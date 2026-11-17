@@ -188,6 +188,14 @@ impl Modifier {
     pub fn effect_immunity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_effect_immunity())
     }
+    /// The max armor attribute modules.
+    pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_max_armor_attribute())
+    }
+    /// The armor level modules.
+    pub fn armor_level_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_armor_level())
+    }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())

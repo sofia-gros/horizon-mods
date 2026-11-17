@@ -920,3 +920,38 @@ fn shipped_block_damage_modules_block_the_sources_they_name() {
     assert!(blocked("tconstruct:frost_walker", "minecraft:hot_floor"), "frost walker blocks magma damage");
     assert!(!blocked("tconstruct:frost_walker", "minecraft:fall"), "and not a fall");
 }
+
+#[test]
+fn shipped_projectile_protection_and_magnet_take_the_largest_and_the_total_over_worn_boots() {
+    use crate::{max_armor, modifier_entries::List, tool_stack::{armor_levels, max_armor_claims, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let boots_id = Identifier::parse("tconstruct:plate_boots").unwrap();
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&boots_id), item_tags: None };
+    let piece = |modifier: &str, level: i32| {
+        let mut tool = ItemSlot::new(boots_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let (low, high) = (piece("tconstruct:projectile_protection", 1), piece("tconstruct:projectile_protection", 3));
+    let claims: Vec<_> = [&low, &high].iter().flat_map(|tool| max_armor_claims(&tool.custom_data, &env)).collect();
+    assert_eq!(claims.len(), 2, "{claims:?}");
+    let amounts = max_armor::strongest(claims);
+    assert_eq!(amounts.len(), 1, "{amounts:?}");
+    assert_eq!(amounts[0].0, "minecraft:knockback_resistance");
+    // The plate boots carry two levels of their own, so the pieces are at levels 3 and 5: the larger counts once, not 8.
+    assert!((amounts[0].1 - 0.25).abs() < 1e-6, "{amounts:?}");
+    // The attributes the host lacks leave the other max armor modifiers unbound, so they claim nothing.
+    let dragon = max_armor_claims(&piece("tconstruct:dragonborn", 2).custom_data, &env);
+    assert!(dragon.iter().all(|claim| format!("{claim:?}").contains("projectile_protection")), "only the boots' own projectile protection claims: {dragon:?}");
+    // Armor levels add up over the pieces under their key.
+    let (a, b) = (piece("tconstruct:magnetic", 1), piece("tconstruct:magnetic", 2));
+    let totals = max_armor::totals([&a, &b].iter().flat_map(|tool| armor_levels(&tool.custom_data, &env)));
+    assert_eq!(totals[&Identifier::parse("tconstruct:magnet").unwrap()], 3);
+    let belt = piece("tconstruct:soul_belt", 1);
+    assert_eq!(armor_levels(&belt.custom_data, &env), vec![(Identifier::parse("tconstruct:soul_belt").unwrap(), 1)]);
+}

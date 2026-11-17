@@ -75,6 +75,10 @@ pub(crate) enum Module {
     BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
     /// EffectImmunityModule: armor that makes its wearer immune to a mob effect.
     EffectImmunity { module: Box<crate::effect_immunity::EffectImmunity>, condition: Condition },
+    /// MaxArmorAttributeModule: an attribute worked from the largest level among the worn pieces.
+    MaxArmorAttribute { module: Box<crate::max_armor::MaxArmorAttribute>, condition: Condition },
+    /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
+    ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
@@ -311,6 +315,15 @@ impl Module {
             "tconstruct:effect_immunity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::EffectImmunity { module: Box::new(crate::effect_immunity::EffectImmunity::decode(fields)?), condition: Condition::decode(fields)? }
             }
+            "tconstruct:max_armor_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                match crate::max_armor::MaxArmorAttribute::decode(fields)? {
+                    Some(module) => Self::MaxArmorAttribute { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:armor_level" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
+                Self::ArmorLevel { module: Box::new(crate::max_armor::ArmorLevel::decode(fields)?) }
+            }
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
                     Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -414,7 +427,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -480,6 +493,20 @@ impl Module {
         let Self::EffectImmunity { module, condition } = self else { return None; };
         module.immunity(entry, condition.matches(entry, facts))
     }
+    /// The claim a worn piece makes on an attribute through a max armor attribute module, when its conditions hold.
+    pub fn max_armor_candidate(&self, entry: &Entry, facts: &Facts, broken: bool) -> Option<crate::max_armor::Candidate> {
+        let Self::MaxArmorAttribute { module, condition } = self else { return None; };
+        module.candidate(entry, condition.matches(entry, facts), broken)
+    }
+    /// The key and levels an armor level module adds for a worn piece.
+    pub fn armor_level(&self, entry: &Entry, broken: bool) -> Option<(Identifier, i32)> {
+        let Self::ArmorLevel { module } = self else { return None; };
+        module.level(entry, broken)
+    }
+    /// Whether this is a max armor attribute module.
+    pub fn is_max_armor_attribute(&self) -> bool { matches!(self, Self::MaxArmorAttribute { .. }) }
+    /// Whether this is an armor level module.
+    pub fn is_armor_level(&self) -> bool { matches!(self, Self::ArmorLevel { .. }) }
     /// Whether this is an effect immunity module.
     pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }
     /// Whether this is a thorns module.

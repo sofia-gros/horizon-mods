@@ -1820,10 +1820,16 @@ impl Hooks for PlutoHooks {
         // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
         let worn = armor.clone();
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
-        if !worn.is_empty() {
+        if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()) };
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()) };
             for id in entity_events_v1::player_tick(&tick) { host.remove_effect(player.uuid, &id); }
+            // The amounts the armor adds to the player's attributes move the base value by the change since the last tick.
+            let wanted = tick.attribute_additions.take();
+            for (attribute, change, total) in entity_events_v1::attribute_changes(player.uuid, &wanted) {
+                let Some((base, _)) = host.attribute(player.uuid, &attribute) else { continue };
+                if host.set_attribute_base(player.uuid, &attribute, base + change) { entity_events_v1::attribute_applied(player.uuid, &attribute, total); }
+            }
         }
         // Damage the armor's thorns deal to the mobs that hit the wearer lands here, as hurt by the player.
         for (mob, damage) in entity_events_v1::take_counter_damage(player.entity_id) {
@@ -1846,6 +1852,10 @@ impl Hooks for PlutoHooks {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
         entity_events_v1::forget_armor(uuid);
+        // The base values are saved with the player, so what the armor added is taken off before they go (best effort: the host may no longer reach them).
+        for (attribute, held) in entity_events_v1::forget_attributes(uuid) {
+            if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base - held); }
+        }
         scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 

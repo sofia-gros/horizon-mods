@@ -41,6 +41,8 @@
     "api/src/thorns.rs",
     "api/src/effect_immunity.rs",
     "api/src/effect_immunity_hook.rs",
+    "api/src/max_armor.rs",
+    "api/src/max_armor_hook.rs",
     "api/src/weapon_effect_hook.rs",
     "api/src/damage_tags.rs",
     "api/src/damage_vanilla.rs",
