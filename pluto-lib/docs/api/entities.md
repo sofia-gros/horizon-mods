@@ -611,6 +611,17 @@ wear.amount.set(wear.amount.get() - 1);
 assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```
 
+### `CounterDamage`
+
+Damage for a callback to deal to the mob that hurt the player: `damage_type` is the damage type id (`minecraft:thorns`) and `amount` the amount.
+
+```rust
+use pluto_lib::CounterDamage;
+
+let damage = CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.5 };
+assert_eq!(damage.amount, 2.5);
+```
+
 ### `EffectGrant`
 
 A status effect for a callback to put on the mob a weapon hit: `effect` is the effect id (an id the game does not know is skipped), `amplifier` the level less one (0 is level I) and `duration` how long it lasts, in ticks.
@@ -636,14 +647,14 @@ assert!(hit.effects.borrow().is_empty());
 
 ### `WearerHit`
 
-A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as, `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) `effects` the effects callbacks push for the mob and `self_effects` the ones they push for the wearer.
+A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as (both not reported yet: an empty id and 0.0), `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) `effects` the effects callbacks push for the mob and `self_effects` the ones they push for the wearer and `counter_damage` the damage they push for the mob.
 
 ```rust
 use pluto_lib::{EntityState, WearerHit};
 use std::cell::RefCell;
 
-let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()) };
-assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effects.borrow().is_empty());
+let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
+assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effects.borrow().is_empty() && hit.counter_damage.borrow().is_empty());
 ```
 
 ### `EntityState`
@@ -674,7 +685,7 @@ assert!(hit.attacker_stack.is_none());
 
 ### `ServerLivingEntityEvents::WEARER_HIT`
 
-A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it, or on the wearer with `self_effects`, which land on the player's next tick. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
+A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it, or on the wearer with `self_effects`, which land on the player's next tick, and deal damage to the mob with `counter_damage` (an armor's thorns), which lands on the next tick too as hurt by the player. The hit is heard once for each attacker in a game tick, and only when the attacking mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
 
 ```rust
 use pluto_lib::{EffectGrant, ServerLivingEntityEvents};

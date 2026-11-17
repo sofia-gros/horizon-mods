@@ -15,6 +15,13 @@ pub(crate) fn register() {
             melee_hook::target_in_tag(entities.as_deref(), attacker.as_ref(), tag)
         };
         for (_, piece) in &hit.armor {
+            // Thorns: the damage goes to the attacker as the damage type names it (the game's own types only).
+            if let Ok(hurts) = with_held_tool(piece, |env, stack| tool_stack::thorns_hurts(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) {
+                for hurt in hurts {
+                    if hurt.damage_type.namespace() != "minecraft" { continue; }
+                    hit.counter_damage.borrow_mut().push(pluto_lib::CounterDamage { damage_type: hurt.damage_type.to_string(), amount: hurt.amount });
+                }
+            }
             let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::counter_effects(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) else { continue; };
             for (whom, grant) in grants {
                 if grant.effect.namespace() != "minecraft" { continue; }

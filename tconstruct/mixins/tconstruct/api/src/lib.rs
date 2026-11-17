@@ -39,6 +39,7 @@ mod mining_speed;
 mod melee_damage;
 mod knockback;
 mod weapon_effect;
+mod thorns;
 mod weapon_effect_hook;
 mod melee_hook;
 mod part_recycling;

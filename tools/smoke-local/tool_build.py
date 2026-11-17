@@ -401,6 +401,27 @@ def main():
             result['scenarios'].append('armor with decay puts wither on the mob that hit its wearer')
         else:
             soft_failures.append(f'counter: no wither on the attacking mob: {counter_reply[:200]}')
+        # Thorns: a helmet with thorns 7 (certain at 15% a level) hurts the husk that hit its wearer, on the player's next tick.
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:7,name:"tconstruct:thorns"}]}]')
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', f'summon minecraft:husk {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+        ctl('wait', '30')
+        ctl('command', 'gamemode survival')
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+        ctl('wait', '30')
+        ctl('command', 'damage @s 4 minecraft:mob_attack by @e[type=minecraft:husk,limit=1]')
+        ctl('wait', '20')
+        thorns_reply = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1] Health'))
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        husk_health = re.findall(r'(-?\d+(?:\.\d+)?)f', thorns_reply)
+        print('THORNS', thorns_reply[:200], flush=True)
+        if husk_health and float(husk_health[-1]) < 20.0:
+            result['scenarios'].append(f'thorns hurts the mob that hit the wearer: the husk is left with {husk_health[-1]} of 20')
+        else:
+            soft_failures.append(f'thorns: the hit husk was not hurt: {thorns_reply[:200]}')
+
         # Protection that names the attacker: tempered protection counts against a burning mob only (a husk that is set alight).
         def loss_from_husk(burning):
             ctl('command', 'kill @e[type=minecraft:husk]')

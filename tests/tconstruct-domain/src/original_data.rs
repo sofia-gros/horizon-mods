@@ -856,3 +856,41 @@ fn shipped_protection_that_names_the_attacker_asks_what_it_is_and_was_doing() {
     assert_eq!(protection_against("tconstruct:airborn", &flying, false), 2.5, "against an attacker in the air");
     assert_eq!(protection_against("tconstruct:airborn", &calm, false), 0.0, "against one on the ground");
 }
+
+#[test]
+fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer() {
+    use crate::{modifier_entries::List, tool_stack::{counter_effects, rebuild_stats, weapon_effects, Environment, TAG_MATERIALS, TAG_UPGRADES}, weapon_effect::Whom};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let decay = |level: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse("tconstruct:decay").unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let tool = decay(2);
+    let none = |_: &Identifier| false;
+    // The weapon module: wither at the modifier level (per_level 1), 120 ticks, always.
+    // (Decay also brings pierce along, an effect of the original's own that no registration here carries.)
+    let hit = weapon_effects(&tool.custom_data, &env, &none, &mut || 0.0);
+    let wither: Vec<_> = hit.iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
+    assert_eq!(wither.len(), 1, "{hit:?}");
+    assert_eq!((wither[0].1.amplifier, wither[0].1.duration), (1, 120));
+    // The armor counter: wither II for 120 ticks on the attacker with 50% a level (certain at level 2), and a wither I on the wearer at 10% a level.
+    let counter = counter_effects(&tool.custom_data, &env, &none, &mut || 0.0);
+    let counter: Vec<_> = counter.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
+    let on_attacker: Vec<_> = counter.iter().filter(|(whom, _)| *whom == Whom::Attacker).collect();
+    let on_wearer: Vec<_> = counter.iter().filter(|(whom, _)| *whom == Whom::Wearer).collect();
+    assert_eq!(on_attacker.len(), 1, "{counter:?}");
+    assert_eq!((on_attacker[0].1.amplifier, on_attacker[0].1.duration), (1, 120));
+    assert_eq!(on_wearer.len(), 1, "a low roll lands the wearer's wither too: {counter:?}");
+    assert_eq!(on_wearer[0].1.amplifier, 0);
+    let unlucky = counter_effects(&tool.custom_data, &env, &none, &mut || 0.99);
+    let unlucky: Vec<_> = unlucky.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
+    assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Wearer).count(), 0, "a high roll spares the wearer (20% at level 2)");
+    assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Attacker).count(), 1, "the attacker's 100% at level 2 needs no roll");
+}

@@ -5,11 +5,11 @@ static QUEUE:Mutex<Vec<(u32,String,i32,i32)>>=Mutex::new(Vec::new());
 pub fn push(entity:u32,effect:&str,ticks:i32,amplifier:i32) {if let Ok(mut queue)=QUEUE.lock() {queue.push((entity,effect.to_string(),ticks,amplifier));}}
 pub fn take()->Vec<(u32,String,i32,i32)> {QUEUE.lock().map(|mut queue|std::mem::take(&mut *queue)).unwrap_or_default()}
 /// The effect id as the game keeps it: a name that lives for the whole run, one allocation per distinct effect.
-pub fn interned(effect:&str)->&'static str {
+pub fn interned(effect:&str)->Option<&'static str> {
     static NAMES:Mutex<Vec<&'static str>>=Mutex::new(Vec::new());
-    let Ok(mut names)=NAMES.lock() else {return "minecraft:luck"};
-    if let Some(known)=names.iter().find(|known|**known==effect) {return known;}
+    let mut names=NAMES.lock().ok()?;
+    if let Some(known)=names.iter().find(|known|**known==effect) {return Some(known);}
     let leaked:&'static str=Box::leak(effect.to_string().into_boxed_str());
     names.push(leaked);
-    leaked
+    Some(leaked)
 }

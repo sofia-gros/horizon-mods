@@ -180,6 +180,10 @@ impl Modifier {
     pub fn knockback_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter(|module| module.is_knockback()).map(move |module| (self.priority, module))
     }
+    /// The thorns modules.
+    pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_thorns())
+    }
     /// The armor counter effect modules.
     pub fn counter_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_counter_effect())

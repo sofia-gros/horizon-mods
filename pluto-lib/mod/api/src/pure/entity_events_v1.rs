@@ -87,13 +87,22 @@ pub struct WeaponHit {
     pub effects: RefCell<Vec<EffectGrant>>,
 }
 
+/// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
+#[derive(Clone, Debug, PartialEq)]
+pub struct CounterDamage {
+    /// The damage type id, such as `minecraft:thorns`.
+    pub damage_type: String,
+    pub amount: f32,
+}
+
 /// A mob hurting the player, heard on a server as the hit starts (before armor wears and the damage lands).
 #[derive(Clone, Debug)]
 pub struct WearerHit {
     /// The mob's entity id and type id.
     pub attacker: i32,
     pub kind: String,
-    /// The damage type id (`minecraft:mob_attack`) and the amount the game works the hit out as.
+    /// The damage type id and the amount the game works the hit out as: not reported yet, so an empty id and 0.0 for now (the hit is
+    /// heard before the game works either out).
     pub damage_type: String,
     pub amount: f32,
     /// What the mob was doing as the hit landed.
@@ -104,6 +113,8 @@ pub struct WearerHit {
     pub effects: RefCell<Vec<EffectGrant>>,
     /// The effects to put on the wearer, which callbacks add to; they land on the player's next tick.
     pub self_effects: RefCell<Vec<EffectGrant>>,
+    /// The damage to deal to the mob, which callbacks add to; it lands on the player's next tick, as hurt by the player.
+    pub counter_damage: RefCell<Vec<CounterDamage>>,
 }
 
 /// Damage about to be applied, which callbacks may change (NeoForge: `LivingDamageEvent.Pre`).
@@ -196,20 +207,37 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
 }
 
-/// The effects the callbacks put on a mob that hurt the player; the ones for the wearer are queued for the player's next tick.
-pub(crate) fn wearer_hit(hit: &WearerHit) -> Vec<EffectGrant> {
+/// The effects the callbacks put on a mob that hurt the player (`wearer`, the entity id of the player the armor is attributed to); the ones for
+/// the wearer and the damage for the mob are queued for that player's next tick, and dropped when no wearer is known.
+pub(crate) fn wearer_hit(hit: &WearerHit, wearer: Option<i32>) -> Vec<EffectGrant> {
     WEARER_HIT.invoke(hit);
-    let own: Vec<EffectGrant> = hit.self_effects.borrow_mut().drain(..).collect();
+    let own: Vec<(i32, EffectGrant)> = hit.self_effects.borrow_mut().drain(..).filter_map(|grant| wearer.map(|wearer| (wearer, grant))).collect();
     if !own.is_empty() { if let Ok(mut queue) = SELF_EFFECTS.lock() { queue.extend(own); } }
+    let damage: Vec<(i32, i32, CounterDamage)> = hit.counter_damage.borrow_mut().drain(..).filter_map(|damage| wearer.map(|wearer| (wearer, hit.attacker, damage))).collect();
+    if !damage.is_empty() { if let Ok(mut queue) = COUNTER_DAMAGE.lock() { queue.extend(damage); } }
     hit.effects.borrow_mut().drain(..).collect()
 }
 
-/// The effects for the wearer that hits have queued.
-static SELF_EFFECTS: std::sync::Mutex<Vec<EffectGrant>> = std::sync::Mutex::new(Vec::new());
+/// The effects for a wearer that hits have queued, with the wearer's entity id.
+static SELF_EFFECTS: std::sync::Mutex<Vec<(i32, EffectGrant)>> = std::sync::Mutex::new(Vec::new());
 
-/// Takes the effects queued for the wearer.
-pub(crate) fn take_self_effects() -> Vec<EffectGrant> {
-    SELF_EFFECTS.lock().map(|mut queue| std::mem::take(&mut *queue)).unwrap_or_default()
+/// The damage for the mobs that hits have queued, with the wearer's entity id and the mob's.
+static COUNTER_DAMAGE: std::sync::Mutex<Vec<(i32, i32, CounterDamage)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the damage queued for the mobs that hurt the wearer `wearer`, as (mob, damage); other players' stay queued.
+pub(crate) fn take_counter_damage(wearer: i32) -> Vec<(i32, CounterDamage)> {
+    let Ok(mut queue) = COUNTER_DAMAGE.lock() else { return Vec::new() };
+    let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *queue).into_iter().partition(|(owner, _, _)| *owner == wearer);
+    *queue = rest;
+    mine.into_iter().map(|(_, mob, damage)| (mob, damage)).collect()
+}
+
+/// Takes the effects queued for the wearer `wearer`; other players' stay queued.
+pub(crate) fn take_self_effects(wearer: i32) -> Vec<EffectGrant> {
+    let Ok(mut queue) = SELF_EFFECTS.lock() else { return Vec::new() };
+    let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *queue).into_iter().partition(|(owner, _)| *owner == wearer);
+    *queue = rest;
+    mine.into_iter().map(|(_, grant)| grant).collect()
 }
 
 /// The entity id of the only player wearing custom-data armor, which a hit on a player is attributed to.
@@ -255,12 +283,16 @@ pub(crate) fn after_death(death: &LivingDamage) {
 
 thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
-    static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>)>> = const { RefCell::new(None) };
+    static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>, std::time::Instant)>> = const { RefCell::new(None) };
 }
 
-/// A player's weapon is hitting `entity`: what both were doing, remembered for the damage that follows in the same call.
+/// How long the states of a hit stay good: the damage event follows in the same call, so a few milliseconds is plenty, and a longer gap
+/// means the hit never reached it (cancelled, absorbed) and the states belong to something that is over.
+const HIT_STATES_LIFETIME: std::time::Duration = std::time::Duration::from_millis(100);
+
+/// A hit is landing on `entity`: what the attacker and the target were doing, remembered for the damage that follows in the same call.
 pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Option<EntityState>) {
-    PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target)));
+    PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target, std::time::Instant::now())));
 }
 
 /// A player is attacking `entity` with `stack`: remembered for the damage that follows in the same call.
@@ -298,7 +330,8 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     let (attacker_state, target_state) = PENDING_STATES.with(|pending| {
         let mut pending = pending.borrow_mut();
         match pending.take() {
-            Some((entity, attacker, target)) if entity == damage.entity => (attacker, target),
+            Some((entity, attacker, target, at)) if entity == damage.entity && at.elapsed() < HIT_STATES_LIFETIME => (attacker, target),
+            Some((entity, _, _, at)) if entity == damage.entity || at.elapsed() >= HIT_STATES_LIFETIME => (None, None),
             other => { *pending = other; (None, None) }
         }
     });
@@ -362,6 +395,10 @@ mod tests {
         modify_damage(&hurt);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![(Some(true), Some(40)), (None, None)], "the states belong to one hit");
+        hit_states(6262, Some(EntityState { sprinting: true, ..EntityState::default() }), None);
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        modify_damage(&hurt);
+        assert_eq!(seen.lock().unwrap().last(), Some(&(None, None)), "states that outlived their hit are dropped");
     }
 
     #[test]
@@ -386,10 +423,10 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
             }
         });
-        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor, effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()) };
+        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor, effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
         let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
-        assert_eq!(wearer_hit(&hit(vec![("head".into(), helmet)])), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
-        assert!(wearer_hit(&hit(Vec::new())).is_empty());
+        assert_eq!(wearer_hit(&hit(vec![("head".into(), helmet)]), Some(7)), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
+        assert!(wearer_hit(&hit(Vec::new()), Some(7)).is_empty());
     }
 
     #[test]
@@ -397,10 +434,16 @@ mod tests {
         ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
             if hit.attacker == 9595 { hit.self_effects.borrow_mut().push(EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }); }
         });
-        let hit = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()) };
-        assert!(wearer_hit(&hit).is_empty(), "nothing goes on the attacker");
-        assert_eq!(take_self_effects(), vec![EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }]);
-        assert!(take_self_effects().is_empty(), "the queue is emptied once taken");
+        let hit = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
+        hit.counter_damage.borrow_mut().push(CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.0 });
+        assert!(wearer_hit(&hit, Some(31)).is_empty(), "nothing goes on the attacker");
+        assert!(take_counter_damage(32).is_empty() && take_self_effects(32).is_empty(), "another player's tick takes nothing");
+        assert_eq!(take_counter_damage(31), vec![(9595, CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.0 })]);
+        assert_eq!(take_self_effects(31), vec![EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }]);
+        assert!(take_self_effects(31).is_empty(), "the queue is emptied once taken");
+        let unattributed = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
+        wearer_hit(&unattributed, None);
+        assert!(take_self_effects(31).is_empty(), "a hit with no known wearer queues nothing");
     }
 
     #[test]

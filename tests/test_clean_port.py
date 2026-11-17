@@ -67,6 +67,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/protection_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_damage_hook.rs',
                 'mixins/tconstruct_native/api/src/weapon_effect.rs',
+                'mixins/tconstruct_native/api/src/thorns.rs',
                 'mixins/tconstruct_native/api/src/weapon_effect_hook.rs',
                 'mixins/tconstruct_native/api/src/damage_tags.rs',
                 'mixins/tconstruct_native/api/src/damage_vanilla.rs',
