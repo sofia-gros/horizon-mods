@@ -38,6 +38,9 @@ mod tool_mining;
 mod mining_speed;
 mod melee_damage;
 mod knockback;
+mod weapon_effect;
+mod thorns;
+mod weapon_effect_hook;
 mod melee_hook;
 mod part_recycling;
 mod tool_actions;
@@ -63,5 +66,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     tool_action_hook::register();
     protection_hook::register();
     tool_damage_hook::register();
+    weapon_effect_hook::register();
     pluto_lib::no_hooks()
 }

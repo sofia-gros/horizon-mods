@@ -1,7 +1,8 @@
 //! ProtectionModule from SlimeKnights (MIT; see LICENSE): armor modifiers that add protection against
 //! damage sources, and the way their sum changes the damage taken (ToolEvents.livingHurt, ArmorUtil).
-//! Only sources and formulas over data this port holds are decoded: a module that names the wearing or attacking
-//! entity, or a formula variable about one (temperature, light, health, equipment), stays unbound.
+//! Only sources and formulas over data this port holds are decoded: a module that names the wearing entity, or a formula variable
+//! about one (temperature, light, health, equipment), stays unbound. The attacking entity is asked by its entity type tags and what it
+//! was doing (burning, in the air), as for melee damage.
 use crate::{damage_tags::DamageTags, mining_speed::StatFormula};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -12,6 +13,8 @@ pub(crate) struct DamageSource<'a> {
     /// The entity that caused the damage differs from the one that dealt it (an arrow's shooter).
     pub indirect: bool,
     pub tags: &'a DamageTags,
+    /// Answers the attacker's entity type tags and, as pseudo tags, what it was doing; false for everything when the attacker is unknown.
+    pub attacker_in_tag: &'a dyn Fn(&Identifier) -> bool,
 }
 
 /// IJsonPredicate over the damage source.
@@ -67,19 +70,22 @@ impl SourceCondition {
 
 /// The module's damage source and protection formula (`value` is the running protection, `level` the modifier level).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Protection { source: SourceCondition, formula: StatFormula }
+pub(crate) struct Protection { source: SourceCondition, attacker: crate::melee_damage::TargetCondition, formula: StatFormula }
 
 impl Protection {
     /// `None` for a module this port cannot evaluate.
     pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         // The wearing entity and the attacker are conditions on live entities.
-        if fields.get("wearing_entity").is_some_and(|value| !value.is_null()) || fields.get("attacker").is_some_and(|value| !value.is_null()) { return Ok(None); }
+        if fields.get("wearing_entity").is_some_and(|value| !value.is_null()) { return Ok(None); }
+        let Some(attacker) = crate::melee_damage::TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
         let source = match fields.get("damage_source") { None | Some(Value::Null) => SourceCondition::Any, Some(value) => match SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
         let Some(formula) = StatFormula::decode(fields, &["level", "protection", "multiplier", "base"])? else { return Ok(None); };
-        Ok(Some(Self { source, formula }))
+        Ok(Some(Self { source, attacker, formula }))
     }
 
     pub fn source(&self) -> &SourceCondition { &self.source }
+    /// Whether the attacker passes the module's condition on it.
+    pub fn attacker_matches(&self, source: &DamageSource) -> bool { self.attacker.matches(source.attacker_in_tag) }
     pub fn formula(&self) -> &StatFormula { &self.formula }
 }
 

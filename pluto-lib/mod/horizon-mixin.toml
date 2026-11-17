@@ -1424,3 +1424,41 @@ kind = "HEAD"
 cancellable = true
 helper = "pluto-item-wear.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "amount", ty = "u32", value = "amount" }]
+
+# The status effects a mod's weapon-hit callback puts on a mob (the game has no mod call that applies an effect to a mob).
+[[module]]
+id = "pluto-mob-effect-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_mob_effect_access"
+source = "pluto-mob-effect-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-mob-effect-apply"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_incoming_damage_v2"
+kind = "RETURN"
+helper = "pluto-mob-effect-apply.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A mob hurts the player: the mods hear it with the mob's state and may put status effects on the mob (the armor's counter-attacks).
+[[module]]
+id = "pluto-player-hurt-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_player_hurt_access"
+source = "pluto-player-hurt-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-player-hurt"
+target = "horizon_client::game::native_hooks::Game<'_>::knockback_scope"
+kind = "HEAD"
+helper = "pluto-player-hurt.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "attacker", ty = "i32", value = "attacker" }]
+
+# Every server tick the player's attributes are refreshed: the status effects queued for mobs (a counter that hits an attacker) land then.
+[[injection]]
+id = "pluto-mob-effect-apply-tick"
+target = "horizon_client::game::lan_attributes::Game<'_>::update_player_attributes"
+kind = "HEAD"
+helper = "pluto-mob-effect-apply-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

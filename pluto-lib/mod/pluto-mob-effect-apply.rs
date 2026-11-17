@@ -1,0 +1,9 @@
+// After a player's weapon hit has been offered to the mods, the status effects they queued go on the mobs they name.
+fn pluto_mob_effect_apply(value:(),game:&mut crate::game::Game<'_>) {
+    let _=value;
+    for (entity,effect,ticks,amplifier) in crate::entry::pluto_mob_effect_access::take() {
+        if ticks <= 0 || amplifier < 0 {continue;}
+        let Some(effect)=crate::entry::pluto_mob_effect_access::interned(&effect) else {continue};
+        if let Some(mob)=game.mobs.iter_mut().find(|mob| mob.id==entity) {mob.add_effect(effect,ticks,amplifier);}
+    }
+}

@@ -1,7 +1,9 @@
 //! ConditionalMeleeDamageModule, from SlimeKnights (MIT; see LICENSE), for the modules whose conditions this
-//! port can evaluate: the tool's own state and the target's entity type, its mob type and its entity tags. A module
-//! that conditions on the attacker (sprinting, effects, biome) or on other target state (fire, health) stays
-//! unbound until PlutoLib reports that state, rather than being half-installed.
+//! port can evaluate: the tool's own state, the target's entity type, mob type and entity tags, and what the attacker and the
+//! target were doing as the hit landed (sprinting, in the air, burning, fire-immune, in water, an effect on them), which PlutoLib
+//! reports with the hit. Those state conditions are asked as pseudo entity type tags in the `STATE_NAMESPACE`
+//! (`tconstruct_state:attacker/sprinting`), so a condition tree is the one the entity type tags already use. A module that conditions
+//! on the attacker's biome or on health stays unbound until PlutoLib reports that, rather than being half-installed.
 use crate::{mining_speed::{StatFormula, ToolView}, modifier_entries::Entry, tool_stats::Stat};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -20,25 +22,82 @@ fn mob_type_tag(mobs: &str) -> Option<&'static str> {
     })
 }
 
-/// IJsonPredicate over the target of the hit, by its entity type tags.
+/// The namespace of the pseudo tags that stand for what the attacker or the target was doing: `attacker/sprinting`,
+/// `target/on_fire`, `attacker/effect/minecraft/poison`.
+pub(crate) const STATE_NAMESPACE: &str = "tconstruct_state";
+
+/// The pseudo tag for a state condition of `role` (`attacker` or `target`).
+fn state_tag(role: &str, what: &str) -> Result<Identifier, String> {
+    Identifier::new(STATE_NAMESPACE, &format!("{role}/{what}")).map_err(|e| e.to_string())
+}
+
+/// A bare predicate name over an entity state, as the original's `mantle:` and `tconstruct:` predicates name them.
+fn named_state(role: &str, name: &str) -> Result<Option<Identifier>, String> {
+    if role.is_empty() { return Ok(None); }
+    let what = match name {
+        "mantle:sprinting" => "sprinting",
+        "mantle:on_fire" => "on_fire",
+        "mantle:fire_immune" => "fire_immune",
+        "mantle:underwater" => "in_water",
+        "tconstruct:airborne" => "airborne",
+        _ => return Ok(None),
+    };
+    state_tag(role, what).map(Some)
+}
+
+/// Answers the pseudo tags from what the attacker and the target were doing; false for a state that was not reported.
+pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::EntityState>, target: Option<&pluto_lib::EntityState>) -> bool {
+    let path = tag.path();
+    let (state, what) = match path.split_once('/') {
+        Some(("attacker", what)) => (attacker, what),
+        Some(("target", what)) => (target, what),
+        _ => return false,
+    };
+    let Some(state) = state else { return false; };
+    match what {
+        "sprinting" => state.sprinting,
+        "on_fire" => state.fire_ticks > 0,
+        "fire_immune" => state.fire_immune,
+        "in_water" => state.in_water,
+        "airborne" => !state.on_ground,
+        _ => what.strip_prefix("effect/").is_some_and(|effect| {
+            let (namespace, path) = effect.split_once('/').unwrap_or(("minecraft", effect));
+            state.effects.iter().any(|id| id == &format!("{namespace}:{path}"))
+        }),
+    }
+}
+
+/// IJsonPredicate over an entity of the hit, by its entity type tags and what it was doing.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum TargetCondition { Any, Tag(Identifier), Not(Box<TargetCondition>), And(Vec<TargetCondition>), Or(Vec<TargetCondition>) }
 
 impl TargetCondition {
-    pub(crate) fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
+    /// Entity type conditions only: a state condition leaves the module unbound (for callers that cannot answer one).
+    pub(crate) fn decode(value: Option<&Value>) -> Result<Option<Self>, String> { Self::decode_for("", value) }
+
+    /// `role` is `attacker` or `target`: whose state the state conditions ask about; empty for none.
+    pub(crate) fn decode_for(role: &str, value: Option<&Value>) -> Result<Option<Self>, String> {
         let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
-        // A bare string is a predicate type with no fields; none of those is known here.
+        // A bare string is a predicate type with no fields.
+        if let Some(name) = value.as_str() { return Ok(named_state(role, name)?.map(Self::Tag)); }
         let Some(object) = value.as_object() else { return Ok(None); };
         let kind = object.get("type").and_then(Value::as_str).ok_or("target type missing")?;
         let list = || -> Result<Option<Vec<Self>>, String> {
             let mut out = Vec::new();
             for child in object.get("predicates").and_then(Value::as_array).ok_or("predicates must be an array")? {
-                match Self::decode(Some(child))? { Some(child) => out.push(child), None => return Ok(None) }
+                match Self::decode_for(role, Some(child))? { Some(child) => out.push(child), None => return Ok(None) }
             }
             Ok(Some(out))
         };
         Ok(Some(match kind {
             "mantle:any" => Self::Any,
+            "mantle:has_effect" => {
+                if role.is_empty() { return Ok(None); }
+                let effect = object.get("effect").and_then(Value::as_str).ok_or("effect must be an effect id")?;
+                let (namespace, path) = effect.split_once(':').unwrap_or(("minecraft", effect));
+                Self::Tag(state_tag(role, &format!("effect/{namespace}/{path}"))?)
+            }
+            "mantle:sprinting" | "mantle:on_fire" | "mantle:fire_immune" | "mantle:underwater" | "tconstruct:airborne" => match named_state(role, kind)? { Some(tag) => Self::Tag(tag), None => return Ok(None) },
             "mantle:mob_type" => {
                 let mobs = object.get("mobs").and_then(Value::as_str).ok_or("mobs must be a mob type")?;
                 match mob_type_tag(mobs) { Some(tag) => Self::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?), None => return Ok(None) }
@@ -48,7 +107,7 @@ impl TargetCondition {
                 let mut inner = object.clone();
                 let inner_kind = inner.remove("inverted_type").ok_or("inverted_type missing")?;
                 inner.insert("type".into(), inner_kind);
-                match Self::decode(Some(&Value::Object(inner)))? { Some(inner) => Self::Not(Box::new(inner)), None => return Ok(None) }
+                match Self::decode_for(role, Some(&Value::Object(inner)))? { Some(inner) => Self::Not(Box::new(inner)), None => return Ok(None) }
             }
             "mantle:and" => match list()? { Some(children) => Self::And(children), None => return Ok(None) },
             "mantle:or" => match list()? { Some(children) => Self::Or(children), None => return Ok(None) },
@@ -67,21 +126,21 @@ impl TargetCondition {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct MeleeDamage { target: TargetCondition, formula: StatFormula }
+pub(crate) struct MeleeDamage { target: TargetCondition, attacker: TargetCondition, formula: StatFormula }
 
 impl MeleeDamage {
     /// `None` when the module names an attacker condition, another target condition or a variable this port does not hold.
     pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
-        if fields.get("attacker").is_some_and(|value| !value.is_null()) { return Ok(None); }
-        let Some(target) = TargetCondition::decode(fields.get("target"))? else { return Ok(None); };
-        Ok(StatFormula::decode(fields, &NAMES)?.map(|formula| Self { target, formula }))
+        let Some(attacker) = TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
+        let Some(target) = TargetCondition::decode_for("target", fields.get("target"))? else { return Ok(None); };
+        Ok(StatFormula::decode(fields, &NAMES)?.map(|formula| Self { target, attacker, formula }))
     }
     /// A percent module runs later in the original (priority 75).
     pub fn percent(&self) -> bool { self.formula.percent() }
     /// MeleeDamageModifierHook.getMeleeDamage: `base` is the attack damage before modifiers, `damage` the running value,
-    /// `target_in_tag` answers the target's entity type tags.
+    /// `target_in_tag` answers the target's entity type tags and, as pseudo tags, what the attacker and the target were doing.
     pub fn apply(&self, entry: &Entry, condition: bool, tool: &ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
-        if !condition || !self.target.matches(target_in_tag) { return damage; }
+        if !condition || !self.target.matches(target_in_tag) || !self.attacker.matches(target_in_tag) { return damage; }
         self.formula.eval(entry, tool, damage, tool.multiplier(Stat::AttackDamage), base)
     }
 }

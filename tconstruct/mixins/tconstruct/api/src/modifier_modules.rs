@@ -69,6 +69,12 @@ pub(crate) enum Module {
     MeleeDamage { module: Box<crate::melee_damage::MeleeDamage>, condition: Condition },
     /// KnockbackModule: adds knockback to a melee hit, filtered on the target's entity type tags.
     Knockback { module: Box<crate::knockback::Knockback>, condition: Condition },
+    /// MobEffectModule.Weapon: a melee hit that may put a mob effect on the target.
+    WeaponEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
+    /// ThornsModule: armor that hurts the mob that hit its wearer.
+    Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
+    /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
+    CounterEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
@@ -288,6 +294,24 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:weapon_mob_effect" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_hit")) => {
+                match crate::weapon_effect::WeaponEffect::decode(fields)? {
+                    Some(module) => Self::WeaponEffect { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
+                match crate::thorns::Thorns::decode(fields)? {
+                    Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:counter_mob_effect" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
+                match crate::weapon_effect::WeaponEffect::decode_counter(fields)? {
+                    Some(module) => Self::CounterEffect { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:knockback" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:tooltip")) => {
                 match crate::knockback::Knockback::decode(fields)? {
                     Some(module) => Self::Knockback { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -379,7 +403,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -418,6 +442,27 @@ impl Module {
         let Self::Knockback { module, condition } = self else { return strength; };
         module.apply(entry, condition.matches(entry, facts), tool, strength, false, target_in_tag)
     }
+    /// The effect a weapon effect module puts on the target of a melee hit, if it lands (`rolls` are uniform values in [0, 1)).
+    pub fn weapon_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(bool, crate::weapon_effect::Grant)> {
+        let Self::WeaponEffect { module, condition } = self else { return None; };
+        module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.before_melee(), grant))
+    }
+    /// The effect an armor counter module puts on the mob that hit the wearer, if it lands (`rolls` are uniform values in [0, 1)).
+    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
+        let Self::CounterEffect { module, condition } = self else { return None; };
+        module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.whom(), grant))
+    }
+    /// The damage a thorns module deals to the mob that hit the wearer, if its chance lands (`rolls` are uniform values in [0, 1)).
+    pub fn thorns(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<crate::thorns::Hurt> {
+        let Self::Thorns { module, condition } = self else { return None; };
+        module.hurt(entry, condition.matches(entry, facts), in_tag, rolls)
+    }
+    /// Whether this is a thorns module.
+    pub fn is_thorns(&self) -> bool { matches!(self, Self::Thorns { .. }) }
+    /// Whether this is an armor counter effect module.
+    pub fn is_counter_effect(&self) -> bool { matches!(self, Self::CounterEffect { .. }) }
+    /// Whether this is a weapon effect module.
+    pub fn is_weapon_effect(&self) -> bool { matches!(self, Self::WeaponEffect { .. }) }
     /// Whether this is a knockback module.
     pub fn is_knockback(&self) -> bool { matches!(self, Self::Knockback { .. }) }
     /// What this module adds to the protection cap attribute (0.05 is one point and a quarter of protection).
@@ -429,7 +474,7 @@ impl Module {
     /// ProtectionModifierHook: the running protection after this module, over a damage source.
     pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
         let Self::Protection { module, condition } = self else { return value; };
-        if !condition.matches(entry, facts) || !module.source().matches(source) { return value; }
+        if !condition.matches(entry, facts) || !module.source().matches(source) || !module.attacker_matches(source) { return value; }
         module.formula().eval(entry, &crate::mining_speed::ToolView { nbt }, value, 1.0, 0.0)
     }
     /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
@@ -737,8 +782,9 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
-        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_none(), "an attacker condition stays unbound");
-        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":"mantle:on_fire","each_level":2.0})).is_none(), "an unknown target condition stays unbound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_some(), "an attacker state condition is bound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":"mantle:on_fire","each_level":2.0})).is_some(), "a target state condition is bound");
+        assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":{"type":"mantle:in_biome","biome":"minecraft:plains"},"flat":7.0})).is_none(), "an attacker condition on the biome stays unbound");
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":{"type":"mantle:mob_type","mobs":"minecraft:undead"},"each_level":2.0})).is_some(), "a mob type target is bound");
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","each_level":2.0})).is_some(), "a condition-free melee module is bound");
         for (kind, fields) in [("tconstruct:stat_boost", json!({"stat":"tconstruct:durability","operation":"explode"})),

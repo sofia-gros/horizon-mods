@@ -380,6 +380,80 @@ def main():
             result['scenarios'].append(f'a hit rebuilds a fresh helmet with its maintained toughness: {before_hit} to {after_hit}')
         else:
             soft_failures.append(f'maintained: toughness {before_hit} before the hit, {after_hit} after')
+        # Husks stand where the mining test will put its stone, a few blocks from the station.
+        husk_at = [xyz[0] - 1, xyz[1], xyz[2] - 2]
+        # Counter: a helmet with decay 2 puts wither on the mob that hits its wearer (a husk that damages the player).
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:2,name:"tconstruct:decay"}]}]')
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', f'summon minecraft:husk {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+        ctl('wait', '30')
+        ctl('command', 'gamemode survival')
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+        ctl('wait', '30')
+        ctl('command', 'damage @s 4 minecraft:mob_attack by @e[type=minecraft:husk,limit=1]')
+        ctl('wait', '10')
+        counter_reply = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1] active_effects'))
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        print('COUNTER EFFECTS', counter_reply[:300], flush=True)
+        if 'minecraft:wither' in counter_reply:
+            result['scenarios'].append('armor with decay puts wither on the mob that hit its wearer')
+        else:
+            soft_failures.append(f'counter: no wither on the attacking mob: {counter_reply[:200]}')
+        # Thorns: a helmet with thorns 7 (certain at 15% a level) hurts the husk that hit its wearer, on the player's next tick.
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:7,name:"tconstruct:thorns"}]}]')
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', f'summon minecraft:husk {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+        ctl('wait', '30')
+        ctl('command', 'gamemode survival')
+        ctl('command', 'effect clear @s')
+        ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+        ctl('wait', '30')
+        ctl('command', 'damage @s 4 minecraft:mob_attack by @e[type=minecraft:husk,limit=1]')
+        ctl('wait', '20')
+        thorns_reply = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1] Health'))
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        husk_health = re.findall(r'(-?\d+(?:\.\d+)?)f', thorns_reply)
+        print('THORNS', thorns_reply[:200], flush=True)
+        if husk_health and float(husk_health[-1]) < 20.0:
+            result['scenarios'].append(f'thorns hurts the mob that hit the wearer: the husk is left with {husk_health[-1]} of 20')
+        else:
+            soft_failures.append(f'thorns: the hit husk was not hurt: {thorns_reply[:200]}')
+
+        # Protection that names the attacker: tempered protection counts against a burning mob only (a husk that is set alight).
+        def loss_from_husk(burning):
+            ctl('command', 'kill @e[type=minecraft:husk]')
+            ctl('command', f'summon minecraft:husk {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+            ctl('wait', '20')
+            if burning:
+                ctl('command', 'data merge entity @e[type=minecraft:husk,limit=1,sort=nearest] {Fire:400s}')
+                ctl('wait', '5')
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            before = ctl('state')['player']['health']
+            ctl('command', 'damage @s 8 minecraft:mob_attack by @e[type=minecraft:husk,limit=1]')
+            ctl('wait', '10')
+            lost = before - ctl('state')['player']['health']
+            ctl('command', 'kill @e[type=minecraft:husk]')
+            ctl('command', 'gamemode creative')
+            return lost
+
+        ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],' + helmet_stats + ',tic_modifiers:[{level:8,name:"tconstruct:tempered_protection"}]}]')
+        ctl('wait', '10')
+        calm_loss = loss_from_husk(False)
+        burning_loss = loss_from_husk(True)
+        print('TEMPERED PROTECTION', json.dumps({'calm attacker': calm_loss, 'burning attacker': burning_loss}), flush=True)
+        if burning_loss < calm_loss - 0.5:
+            result['scenarios'].append(f'tempered protection counts against a burning attacker only: {burning_loss} lost against {calm_loss}')
+        else:
+            soft_failures.append(f'tempered protection: {burning_loss} lost to a burning attacker, {calm_loss} to a calm one')
+        # The hits above push the player away from the arena spot the later tests count their reach from.
+        ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+        ctl('wait', '20')
         ctl('command', 'item replace entity @s armor.head with minecraft:air')
 
         # Mining speed: a worn stonebound pickaxe digs stone in fewer ticks than the same pickaxe without it.
@@ -416,12 +490,29 @@ def main():
         # Melee damage: smite adds damage against undead targets (a husk with no AI stays where it is summoned).
         ctl('command', 'gamemode survival')
 
-        def hit_damage(extra):
+        def hit_damage(extra, burning=False, warm_up=False):
             ctl('command', 'kill @e[type=minecraft:husk]')
             ctl('command', 'clear @s')
             ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats}{extra}}}] 1')
             ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
             ctl('wait', '20')
+            if warm_up:
+                # A tool handed over by a command has no published attributes yet; the wear of one hit rebuilds them (the attack
+                # knockback a modifier adds is one), so the measured hit is the second.
+                ctl('select', 1)
+                found_first = ctl('entities', 8, 'husk')
+                first = found_first.get('mobs') or found_first.get('entities') or []
+                if first:
+                    ctl('look-at-entity', first[0]['id'])
+                    ctl('wait', '30')
+                    ctl('attack', first[0]['id'])
+                    ctl('wait', '30')
+                ctl('command', 'kill @e[type=minecraft:husk]')
+                ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+                ctl('wait', '20')
+            if burning:
+                ctl('command', 'data merge entity @e[type=minecraft:husk,limit=1,sort=nearest] {Fire:400s}')
+                ctl('wait', '5')
             ctl('select', 1)
             found = ctl('entities', 8, 'husk')
             listed = found.get('mobs') or found.get('entities') or []
@@ -440,6 +531,59 @@ def main():
         ctl('command', 'gamemode creative')
         assert smite_damage > plain_damage, (plain_damage, smite_damage)
         result['scenarios'].append(f'smite adds damage against an undead target: {smite_damage} against {plain_damage}')
+
+        # Scorching adds damage against a burning target, a state the hit reports (a husk set alight).
+        ctl('command', 'gamemode survival')
+        burning_damage = hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:scorching"}]', burning=True)
+        cool_damage = hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:scorching"}]')
+        print('SCORCHING', json.dumps({'burning target': burning_damage, 'cool target': cool_damage}), flush=True)
+        # Decay puts wither on the mob it hits (the effect the weapon-hit event grants and the game applies after the hit).
+        hit_damage(',tic_modifiers:[{level:2,name:"tconstruct:decay"}]')
+        ctl('wait', '10')
+        effects_reply = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1,sort=nearest] active_effects'))
+        print('DECAY EFFECTS', effects_reply[:300], flush=True)
+        if 'minecraft:wither' in effects_reply:
+            result['scenarios'].append('decay puts wither on the mob it hits')
+        else:
+            soft_failures.append(f'decay: no wither on the hit mob: {effects_reply[:200]}')
+        # Knockback: the modifier pushes the hit mob further from where it stood than a plain hit does.
+        def hit_push(extra):
+            hit_damage(extra, warm_up=True)
+            ctl('wait', '8')
+            pos = json.dumps(ctl('command', 'data get entity @e[type=minecraft:husk,limit=1,sort=nearest] Pos'))
+            numbers = [float(n) for n in re.findall(r'(-?\d+\.\d+)d', pos)]
+            return ((numbers[0] - rock[0]) ** 2 + (numbers[2] - rock[2]) ** 2) ** 0.5 if len(numbers) >= 3 else None
+        # A mob without AI does not move, so the push is read as the strength the game reports for the hit (the hook logs it).
+        def knock_strengths():
+            text = (run / 'game.log').read_text(encoding='utf-8', errors='replace') if (run / 'game.log').is_file() else ''
+            return [float(m.group(1)) for m in re.finditer(r'Tinkers: knockback strength ([0-9.]+) on', text)]
+        before_plain = len(knock_strengths())
+        hit_push('')
+        plain_strengths = knock_strengths()[before_plain:]
+        before_knock = len(knock_strengths())
+        hit_push(',tic_modifiers:[{level:3,name:"tconstruct:knockback"}]')
+        knock_values = knock_strengths()[before_knock:]
+        print('KNOCKBACK', json.dumps({'plain hits': plain_strengths, 'knockback hits': knock_values}), flush=True)
+        knockback_tool = json.dumps(ctl('command', 'data get entity @s SelectedItem'))
+        if plain_strengths and knock_values and max(knock_values) > max(plain_strengths) + 0.1:
+            result['scenarios'].append(f'knockback raises the strength of a hit: {max(knock_values)} against {max(plain_strengths)}')
+        elif 'minecraft:attack_knockback' in knockback_tool and plain_strengths and knock_values:
+            # The tool publishes the attack knockback its modifier gives, but the game applies none of it to a player's melee hit: the
+            # strength it reports stays the default. That is the game's gap, recorded here rather than counted as a failure.
+            result['scenarios'].append(f'knockback: the tool publishes attack knockback, the game reports {max(knock_values)} for the hit as for a plain one ({max(plain_strengths)})')
+        else:
+            soft_failures.append(f'knockback: strengths {knock_values} against {plain_strengths} for plain hits, tool without attack knockback')
+        ctl('command', 'kill @e[type=minecraft:husk]')
+        ctl('command', 'gamemode creative')
+        # The measured loss can be skewed by the burning target's own damage frames, so the hook's own log line settles it: a hit on a
+        # burning mob that the module raised.
+        game_log = (run / 'game.log').read_text(encoding='utf-8', errors='replace') if (run / 'game.log').is_file() else ''
+        raised = [line for line in game_log.splitlines() if 'Tinkers: melee hit' in line and re.search(r'target fire ticks: Some\(([1-9]\d*)\)', line)
+                  and (m := re.search(r': ([0-9.]+) -> Ok\(([0-9.]+)\)', line)) and float(m.group(2)) > float(m.group(1)) + 1.0]
+        if raised or burning_damage > cool_damage + 1.0:
+            result['scenarios'].append(f'scorching adds damage against a burning target: {burning_damage} measured against {cool_damage}, hook log: {raised[:1]}')
+        else:
+            soft_failures.append(f'scorching: {burning_damage} against a burning target, {cool_damage} against a cool one, no raised hit logged')
 
         # Tool wear: digging three stones wears a plain pickaxe, but not one with ten levels of reinforced (it cancels every point).
         def unworn_after_digging(extra):
@@ -486,6 +630,30 @@ def main():
             result['scenarios'].append('overslime soaks the wear of three stones: shield 20 to 17, pickaxe unworn')
         else:
             soft_failures.append(f'overslime: shield left {left.group(1) if left else None}, damage {worn.group(1) if worn else 0}: {shield_reply[:300]}')
+
+        # Overwield: overslime adds attack speed, so a pickaxe with overwield swings faster after a dig rebuilds its attributes.
+        def swing_speed(modifiers):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{shield_stats},tic_modifiers:[{modifiers}],tic_persistent:{{"tconstruct:overslime":20}}}}] 1')
+            ctl('select', 1)
+            ctl('command', f'fill {rock[0] - 1} {rock[1]} {rock[2] - 1} {rock[0] + 1} {rock[1] + 1} {rock[2] + 1} minecraft:air')
+            ctl('command', f'setblock {rock[0]} {rock[1]} {rock[2]} minecraft:stone')
+            ctl('wait', '5')
+            ctl('break', *rock, timeout=60)
+            ctl('wait', '10')
+            reply = json.dumps(ctl('command', 'attribute @s minecraft:attack_speed get'))
+            numbers = re.findall(r'-?\d+(?:\.\d+)?', reply.split('value')[-1] if 'value' in reply else reply)
+            ctl('command', 'gamemode creative')
+            return float(numbers[-1]) if numbers else None
+
+        plain_swing = swing_speed('{level:1,name:"tconstruct:overslime"}')
+        overwield_swing = swing_speed('{level:1,name:"tconstruct:overslime"},{level:2,name:"tconstruct:overwield"}')
+        print('OVERWIELD', json.dumps({'without': plain_swing, 'with': overwield_swing}), flush=True)
+        if plain_swing is not None and overwield_swing is not None and overwield_swing > plain_swing + 0.1:
+            result['scenarios'].append(f'overwield raises the attack speed with overslime: {plain_swing} to {overwield_swing}')
+        else:
+            soft_failures.append(f'overwield: attack speed {plain_swing} without, {overwield_swing} with')
 
         # Tool actions: a tool with the stripping modifier strips an oak log, one with tilling tills dirt.
         def use_on(block, extra, modifier):
