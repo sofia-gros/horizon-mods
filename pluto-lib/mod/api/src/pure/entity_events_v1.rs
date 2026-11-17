@@ -238,11 +238,11 @@ pub(crate) fn after_death(death: &LivingDamage) {
 
 thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
-    static PENDING_STATES: RefCell<Option<(i32, EntityState, EntityState)>> = const { RefCell::new(None) };
+    static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>)>> = const { RefCell::new(None) };
 }
 
 /// A player's weapon is hitting `entity`: what both were doing, remembered for the damage that follows in the same call.
-pub(crate) fn hit_states(entity: i32, attacker: EntityState, target: EntityState) {
+pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Option<EntityState>) {
     PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target)));
 }
 
@@ -281,7 +281,7 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     let (attacker_state, target_state) = PENDING_STATES.with(|pending| {
         let mut pending = pending.borrow_mut();
         match pending.take() {
-            Some((entity, attacker, target)) if entity == damage.entity => (Some(attacker), Some(target)),
+            Some((entity, attacker, target)) if entity == damage.entity => (attacker, target),
             other => { *pending = other; (None, None) }
         }
     });
@@ -341,7 +341,7 @@ mod tests {
             log.lock().unwrap().push((hit.attacker_state.as_ref().map(|state| state.sprinting), hit.target_state.as_ref().map(|state| state.fire_ticks)));
         });
         let hurt = LivingDamage { entity: 6262, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 5.0 };
-        hit_states(6262, EntityState { sprinting: true, ..EntityState::default() }, EntityState { fire_ticks: 40, ..EntityState::default() });
+        hit_states(6262, Some(EntityState { sprinting: true, ..EntityState::default() }), Some(EntityState { fire_ticks: 40, ..EntityState::default() }));
         modify_damage(&hurt);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![(Some(true), Some(40)), (None, None)], "the states belong to one hit");

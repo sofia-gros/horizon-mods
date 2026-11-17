@@ -2060,7 +2060,9 @@ impl Hooks for PlutoHooks {
         // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
         // server's list of players: what that list says (sprinting, on the ground) and their effects.
         let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
-            let player = host.server_players().into_iter().find(|player| player.entity_id == event.causing)?;
+            // The player list names the attacker by entity id (0 for the owner of a single-player world, who is the acting player).
+            let player = host.server_players().into_iter().find(|player| player.entity_id == event.causing)
+                .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0))?;
             Some(entity_events_v1::EntityState {
                 kind: "minecraft:player".to_owned(),
                 sprinting: player.sprinting,
@@ -2073,9 +2075,7 @@ impl Hooks for PlutoHooks {
         };
         let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
         let target_state = state_of(host, event.entity);
-        if let (Some(attacker), Some(target)) = (&attacker_state, &target_state) {
-            entity_events_v1::hit_states(event.entity, attacker.clone(), target.clone());
-        }
+        entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
