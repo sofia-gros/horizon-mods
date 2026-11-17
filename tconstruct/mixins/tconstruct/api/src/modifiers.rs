@@ -176,6 +176,14 @@ impl Modifier {
     pub fn melee_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.melee_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The conditional stat modules, each with its sort priority (a percent module runs at 75).
+    pub fn conditional_stat_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
+        self.modules.iter().filter_map(move |module| module.conditional_stat_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
+    }
+    /// The conditional power modules, each with its sort priority (a percent module runs at 75).
+    pub fn conditional_power_modules(&self) -> impl Iterator<Item = (i32, &crate::conditional_stat::ConditionalPower)> {
+        self.modules.iter().filter_map(move |module| module.conditional_power().map(|power| (if power.percent() { 75 } else { self.priority }, power)))
+    }
     /// The knockback modules, each with the modifier's priority.
     pub fn knockback_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter(|module| module.is_knockback()).map(move |module| (self.priority, module))

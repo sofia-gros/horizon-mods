@@ -73,6 +73,10 @@ pub(crate) enum Module {
     WeaponEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
     /// BlockDamageSourceModule: armor that blocks damage of the sources it names.
     BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
+    /// ConditionalStatModule: changes a ranged stat while the holder is in the named state.
+    ConditionalStat { module: Box<crate::conditional_stat::ConditionalStat>, condition: Condition },
+    /// ConditionalPowerModule: changes the power of a projectile by what the holder and the target are doing.
+    ConditionalPower { module: Box<crate::conditional_stat::ConditionalPower> },
     /// EffectImmunityModule: armor that makes its wearer immune to a mob effect.
     EffectImmunity { module: Box<crate::effect_immunity::EffectImmunity>, condition: Condition },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
@@ -292,6 +296,18 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:conditional_stat" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:conditional_stat" | "tconstruct:tooltip")) => {
+                match crate::conditional_stat::ConditionalStat::decode(fields)? {
+                    Some(module) => Self::ConditionalStat { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:conditional_power" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_hit" | "tconstruct:sling_force" | "tconstruct:tooltip")) => {
+                match crate::conditional_stat::ConditionalPower::decode(fields)? {
+                    Some(module) => Self::ConditionalPower { module: Box::new(module) },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:conditional_melee_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_damage" | "tconstruct:monster_melee_damage" | "tconstruct:tooltip")) => {
                 match crate::melee_damage::MeleeDamage::decode(fields)? {
                     Some(module) => Self::MeleeDamage { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -414,7 +430,7 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::StatOverride | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -442,6 +458,19 @@ impl Module {
     pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
         let Self::MiningSpeed { module, condition } = self else { return speed; };
         module.apply(entry, condition.matches(entry, facts), tool, context, speed)
+    }
+    /// ConditionalStatModifierHook for a conditional stat module: the stat value after it.
+    pub fn conditional_stat(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, holder_in_tag: &dyn Fn(&Identifier) -> bool, stat: Stat, value: f32, multiplier: f32) -> f32 {
+        let Self::ConditionalStat { module, condition } = self else { return value; };
+        module.apply(entry, condition.matches(entry, facts), tool, holder_in_tag, stat, value, multiplier)
+    }
+    /// Whether a conditional stat module is a percent module (None for other modules).
+    pub fn conditional_stat_percent(&self) -> Option<bool> {
+        match self { Self::ConditionalStat { module, .. } => Some(module.percent()), _ => None }
+    }
+    /// The conditional power module, if this is one.
+    pub fn conditional_power(&self) -> Option<&crate::conditional_stat::ConditionalPower> {
+        match self { Self::ConditionalPower { module } => Some(module), _ => None }
     }
     /// MeleeDamageModifierHook for a conditional melee damage module: the damage after it.
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
@@ -622,7 +651,7 @@ impl Module {
 
 /// INumericToolStat.supports(item): the item tags a stat applies to, any of them. With no item
 /// context (previews outside a tool stack) nothing is filtered.
-fn supports(stat: Stat, facts: &Facts) -> bool {
+pub(crate) fn supports(stat: Stat, facts: &Facts) -> bool {
     let Some(item) = facts.item else { return true; };
     let tags: &[&str] = match stat {
         Stat::Durability => &["modifiable/durability"],

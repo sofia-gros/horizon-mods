@@ -59,7 +59,8 @@ pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::Entity
         "on_fire" => state.fire_ticks > 0,
         "fire_immune" => state.fire_immune,
         "in_water" => state.in_water,
-        "airborne" => !state.on_ground,
+        // AIRBORNE: off the ground and not in water (climbing and riding are not reported).
+        "airborne" => !state.on_ground && !state.in_water,
         _ => what.strip_prefix("effect/").is_some_and(|effect| {
             let (namespace, path) = effect.split_once('/').unwrap_or(("minecraft", effect));
             state.effects.iter().any(|id| id == &format!("{namespace}:{path}"))

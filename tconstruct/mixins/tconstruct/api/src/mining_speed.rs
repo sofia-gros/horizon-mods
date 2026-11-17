@@ -38,11 +38,11 @@ enum Shape { Boost { flat: f32, each: f32 }, Percent { flat: f32, each: f32 }, P
 /// either the simple boost/percent fallback or a post fix formula with tool variables. Shared by the
 /// conditional mining speed and melee damage modules.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct StatFormula { percent: bool, shape: Shape }
+pub(crate) struct StatFormula { percent: bool, shape: Shape, arity: usize }
 
 impl StatFormula {
     /// `names` are the four default variable names; `None` when a variable names an input this port does not hold.
-    pub fn decode(fields: &Map<String, Value>, names: &[&str; 4]) -> Result<Option<Self>, String> {
+    pub fn decode(fields: &Map<String, Value>, names: &[&str]) -> Result<Option<Self>, String> {
         let percent = match fields.get("percent") { None | Some(Value::Null) => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("percent must be boolean".into()) };
         let shape = if let Some(variables) = fields.get("variables") {
             let formula = fields.get("formula").ok_or("Cannot set variables when not using formula")?;
@@ -62,7 +62,7 @@ impl StatFormula {
         } else {
             Shape::Boost { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
         };
-        Ok(Some(Self { percent, shape }))
+        Ok(Some(Self { percent, shape, arity: names.len() }))
     }
     /// A percent module runs later in the original (priority 75).
     pub fn percent(&self) -> bool { self.percent }
@@ -72,7 +72,9 @@ impl StatFormula {
             Shape::Boost { flat, each } => value + (flat + each * entry.effective_level()) * multiplier,
             Shape::Percent { flat, each } => value * (1.0 + (flat + each * entry.effective_level())),
             Shape::PostFix(formula, variables) => {
+                // Three names (level, value, multiplier) for the modules that have no base value, four otherwise.
                 let mut arguments = vec![entry.effective_level(), value, multiplier, base];
+                arguments.truncate(self.arity);
                 arguments.extend(variables.iter().map(|variable| variable.value(tool)));
                 formula.apply(&arguments).unwrap_or(value)
             }

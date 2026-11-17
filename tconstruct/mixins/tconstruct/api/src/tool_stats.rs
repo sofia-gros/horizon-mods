@@ -39,6 +39,8 @@ impl Stat {
     }
     /// The registered default value of the stat (its limits' first entry).
     pub fn default_value(self) -> f32 { self.limits().0 }
+    /// FloatToolStat.clamp: the value held inside the stat's limits.
+    pub fn clamp(self, value: f32) -> f32 { let (_, min, max) = self.limits(); value.clamp(min, max) }
     fn limits(self) -> (f32, f32, f32) {
         match self {
             Self::Durability => (1.0, 1.0, i32::MAX as f32),

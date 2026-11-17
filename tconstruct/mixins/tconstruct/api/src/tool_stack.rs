@@ -152,6 +152,46 @@ pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, dama
     })
 }
 
+/// ConditionalStatModifierHook.getModifiedStat: the tool's stored `stat` after each modifier's conditional stat modules (a modifier's
+/// modules by priority, the modifiers in tool order), clamped to the stat's limits. `holder_in_tag` answers the holder's pseudo state tags.
+/// A stat the item does not support is returned as stored.
+pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut value = self::stat(nbt, stat);
+        if !crate::modifier_modules::supports(stat, facts) { return stat.clamp(value); }
+        let view = crate::mining_speed::ToolView { nbt };
+        let multiplier = view.multiplier(stat);
+        for (entry, modifier) in saved {
+            let mut modules: Vec<(i32, &crate::modifier_modules::Module)> = modifier.conditional_stat_modules().collect();
+            modules.sort_by_key(|(priority, _)| std::cmp::Reverse(*priority));
+            for (_, module) in modules { value = module.conditional_stat(entry, facts, &view, holder_in_tag, stat, value, multiplier); }
+        }
+        stat.clamp(value)
+    })
+}
+
+/// ProjectileShootModifierHook for every conditional power module of the tool: its projectile damage multiplier is recorded in the
+/// projectile's persistent data (separately for ammo and for a launcher).
+pub(crate) fn power_shoot(nbt: &NbtCompound, env: &Environment, is_ammo: bool, projectile: &mut NbtCompound) {
+    with_tool_facts(nbt, env, |saved, _| {
+        let multiplier = crate::mining_speed::ToolView { nbt }.multiplier(Stat::ProjectileDamage);
+        for (_, modifier) in saved { for (_, module) in modifier.conditional_power_modules() { module.shoot(is_ammo, multiplier, projectile); } }
+    })
+}
+
+/// ProjectileHitModifierHook for every conditional power module of the shooter's tool, in priority order (highest first, ties in
+/// modifier order): the arrow's base damage after them, each modifier boosting once per projectile.
+pub(crate) fn power_hit(nbt: &NbtCompound, env: &Environment, projectile: &mut NbtCompound, context: &crate::conditional_stat::PowerContext, base_damage: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, _| {
+        let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::conditional_stat::ConditionalPower)> = Vec::new();
+        for (index, (entry, modifier)) in saved.iter().enumerate() {
+            for (priority, module) in modifier.conditional_power_modules() { modules.push((priority, index, entry, module)); }
+        }
+        modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
+        modules.into_iter().fold(base_damage, |damage, (_, _, entry, module)| module.hit(entry, projectile, context, damage))
+    })
+}
+
 /// MeleeHitModifierHook.beforeMeleeHit's knockback over every modifier of the tool, in priority order (highest first,
 /// ties in modifier order), starting from the game's `strength`.
 pub(crate) fn melee_knockback(nbt: &NbtCompound, env: &Environment, strength: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
