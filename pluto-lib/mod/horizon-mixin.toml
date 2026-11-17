@@ -1453,4 +1453,12 @@ id = "pluto-player-hurt"
 target = "horizon_client::game::native_hooks::Game<'_>::knockback_scope"
 kind = "HEAD"
 helper = "pluto-player-hurt.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "attacker", ty = "i32", value = "attacker" }]
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "attacker", ty = "i32", value = "attacker" }]
+
+# Every server tick the player's attributes are refreshed: the status effects queued for mobs (a counter that hits an attacker) land then.
+[[injection]]
+id = "pluto-mob-effect-apply-tick"
+target = "horizon_client::game::lan_attributes::Game<'_>::update_player_attributes"
+kind = "HEAD"
+helper = "pluto-mob-effect-apply-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
