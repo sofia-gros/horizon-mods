@@ -66,6 +66,10 @@ pub(crate) fn register() {
         let in_tag = |tag: &Identifier| target_in_tag(entities.as_deref(), target.as_ref(), tag);
         let Ok(changed) = with_held_tool(held, |env, stack| tool_stack::melee_knockback(&stack.custom_data, env, strength as f32, &in_tag)) else { return; };
         let changed = f64::from(changed);
+        {
+            static LOGGED: AtomicUsize = AtomicUsize::new(0);
+            if LOGGED.fetch_add(1, Ordering::Relaxed) < 8 { eprintln!("Tinkers: knockback on {} with {}: {} -> {}", push.kind, held.item, strength, changed); }
+        }
         if changed.is_finite() && changed >= 0.0 && (changed - strength).abs() > 1e-6 { push.strength.set(changed); }
     });
 }

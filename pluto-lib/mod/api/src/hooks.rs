@@ -2083,6 +2083,13 @@ impl Hooks for PlutoHooks {
         };
         let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
         let target_state = state_of(host, event.entity);
+        {
+            // The first few hits say which side's state the host could not read, so a hit with no states is explained in the log.
+            static SEEN: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            if SEEN.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 12 {
+                eprintln!("PlutoLib: weapon hit on entity {} by {}: attacker state {}, target state {}", event.entity, event.causing, attacker_state.is_some(), target_state.is_some());
+            }
+        }
         entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
