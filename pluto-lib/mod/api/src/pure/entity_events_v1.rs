@@ -87,6 +87,20 @@ pub struct WeaponHit {
     pub effects: RefCell<Vec<EffectGrant>>,
 }
 
+/// A server player's tick, heard while the player wears armor that carries custom data.
+#[derive(Clone, Debug)]
+pub struct PlayerTick {
+    /// The player's uuid and entity id.
+    pub player: u128,
+    pub entity: i32,
+    /// The armor the player wears, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
+    pub armor: Vec<(String, StackData)>,
+    /// The effects on the player, as (effect id, amplifier, ticks left).
+    pub effects: Vec<(String, i32, i32)>,
+    /// The effects to take off the player, which callbacks add to.
+    pub remove_effects: RefCell<Vec<String>>,
+}
+
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
 #[derive(Clone, Debug, PartialEq)]
 pub struct CounterDamage {
@@ -178,6 +192,7 @@ pub struct ItemDamage {
     pub replacement: RefCell<Option<ItemSlot>>,
 }
 
+static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
@@ -197,6 +212,8 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_DAMAGE: &'static Event<DamageModification, ()> = &MODIFY_DAMAGE;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
+    /// A server player's tick, heard while they wear armor carrying custom data: take effects off them with `remove_effects`.
+    pub const PLAYER_TICK: &'static Event<PlayerTick, ()> = &PLAYER_TICK;
     /// A mob hurting the player, as the hit starts: push status effects on the mob with `effects`. Server only.
     pub const WEARER_HIT: &'static Event<WearerHit, ()> = &WEARER_HIT;
     /// A player's weapon hit on a mob, before its damage lands: push status effects on the mob with `effects`. Server only.
@@ -205,6 +222,12 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
     /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
+}
+
+/// The effects the callbacks take off the player on their tick.
+pub(crate) fn player_tick(tick: &PlayerTick) -> Vec<String> {
+    PLAYER_TICK.invoke(tick);
+    tick.remove_effects.borrow_mut().drain(..).collect()
 }
 
 /// The effects the callbacks put on a mob that hurt the player (`wearer`, the entity id of the player the armor is attributed to); the ones for
@@ -444,6 +467,17 @@ mod tests {
         let unattributed = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
         wearer_hit(&unattributed, None);
         assert!(take_self_effects(31).is_empty(), "a hit with no known wearer queues nothing");
+    }
+
+    #[test]
+    fn a_player_tick_collects_the_effects_callbacks_take_off() {
+        ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+            if tick.entity != 5757 { return; }
+            for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
+        });
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()) };
+        assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
+        assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
 
     #[test]

@@ -19,7 +19,7 @@ pub(crate) struct DamageSource<'a> {
 
 /// IJsonPredicate over the damage source.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>) }
+pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>) }
 
 impl SourceCondition {
     /// `None` when the predicate needs state this port does not hold (the attacker's type, say).
@@ -44,6 +44,10 @@ impl SourceCondition {
                 let tag = fields.and_then(|f| f.get("tag")).and_then(Value::as_str).ok_or("tag predicate needs a tag")?;
                 Self::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?)
             }
+            "mantle:damage_type" => {
+                let name = fields.and_then(|f| f.get("name")).and_then(Value::as_str).ok_or("damage_type predicate needs a name")?;
+                Self::Type(Identifier::parse(name).map_err(|e| e.to_string())?)
+            }
             "mantle:inverted" => {
                 let inner = fields.and_then(|f| f.get("inverted_type")).ok_or("inverted predicate needs inverted_type")?;
                 match Self::decode(inner)? { Some(condition) => Self::Not(Box::new(condition)), None => return Ok(None) }
@@ -61,6 +65,7 @@ impl SourceCondition {
             Self::CanProtect => !source.tags.contains_vanilla("bypasses_invulnerability", source.damage_type),
             Self::Indirect => source.indirect,
             Self::Tag(tag) => source.tags.contains(tag, source.damage_type),
+            Self::Type(name) => source.damage_type == name,
             Self::Not(inner) => !inner.matches(source),
             Self::And(all) => all.iter().all(|condition| condition.matches(source)),
             Self::Or(any) => any.iter().any(|condition| condition.matches(source)),

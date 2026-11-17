@@ -1817,7 +1817,14 @@ impl Hooks for PlutoHooks {
             let data = stack_data_of(host, &stack);
             if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
         }
+        // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
+        let worn = armor.clone();
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+        if !worn.is_empty() {
+            let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()) };
+            for id in entity_events_v1::player_tick(&tick) { host.remove_effect(player.uuid, &id); }
+        }
         // Damage the armor's thorns deal to the mobs that hit the wearer lands here, as hurt by the player.
         for (mob, damage) in entity_events_v1::take_counter_damage(player.entity_id) {
             // Thorns hurt the mob as the player does, which reaches the weapon-hit hook; that hit is not the player's weapon.
