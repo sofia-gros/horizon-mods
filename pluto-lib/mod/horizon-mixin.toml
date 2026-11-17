@@ -1450,7 +1450,7 @@ visibility = "pub"
 
 [[injection]]
 id = "pluto-player-hurt"
-target = "horizon_client::game::combat::Game<'_>::note_attacker"
+target = "horizon_client::game::native_hooks::Game<'_>::knockback_scope"
 kind = "HEAD"
 helper = "pluto-player-hurt.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "damage_type", ty = "&str", value = "damage_type" }, { name = "mob", ty = "u32", value = "mob" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "attacker", ty = "i32", value = "attacker" }]
