@@ -40,6 +40,7 @@ mod melee_damage;
 mod knockback;
 mod weapon_effect;
 mod thorns;
+mod capacity;
 mod effect_immunity;
 mod effect_immunity_hook;
 mod weapon_effect_hook;

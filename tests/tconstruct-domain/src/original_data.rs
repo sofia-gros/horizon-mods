@@ -920,3 +920,38 @@ fn shipped_block_damage_modules_block_the_sources_they_name() {
     assert!(blocked("tconstruct:frost_walker", "minecraft:hot_floor"), "frost walker blocks magma damage");
     assert!(!blocked("tconstruct:frost_walker", "minecraft:fall"), "and not a fall");
 }
+
+#[test]
+fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_fillers_unbound() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let unbound = |name: &str| world.registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(Identifier::to_string).collect::<Vec<_>>();
+    assert!(unbound("tconstruct:barkskin").is_empty(), "the bar and its shield are both bound");
+    assert!(unbound("tconstruct:stoneshield") == ["tconstruct:loot_to_capacity"] && unbound("tconstruct:frostshield") == ["tconstruct:damage_to_capacity"], "fillers without a host path stay unbound");
+    let tool = |modifier: &str, level: i32, stored: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:plate_boots").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let mut persistent = NbtCompound::new();
+        persistent.insert(modifier.into(), Nbt::Int(stored));
+        tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        tool
+    };
+    let stored = |tool: &ItemSlot, modifier: &str| match &tool.custom_data[TAG_PERSISTENT] { Nbt::Compound(data) => data.get(modifier).map_or(0, |value| value.as_i64().unwrap() as i32), _ => 0 };
+    for modifier in ["tconstruct:barkskin", "tconstruct:frostshield"] {
+        let mut worn = tool(modifier, 1, 10);
+        assert_eq!(crate::capacity::absorb(&mut worn.custom_data, &env, None, 4, &mut || 0.0), 0, "{modifier}");
+        assert_eq!(stored(&worn, modifier), 6);
+        assert_eq!(crate::capacity::absorb(&mut worn.custom_data, &env, None, 10, &mut || 0.0), 4);
+        assert_eq!(stored(&worn, modifier), 0);
+    }
+    // The wear goes through the stack path too: the shield keeps the tool whole and the persistent data follows.
+    let mut worn = tool("tconstruct:stoneshield", 1, 20);
+    let outcome = crate::tool_slot::damage_slot(&mut worn, &env, 5, true, true, None, &mut || 0.0).unwrap();
+    assert_eq!((outcome.applied, stored(&worn, "tconstruct:stoneshield")), (0, 15));
+}
