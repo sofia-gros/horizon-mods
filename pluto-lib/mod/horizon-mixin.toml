@@ -1439,3 +1439,18 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_living_incoming_d
 kind = "RETURN"
 helper = "pluto-mob-effect-apply.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A mob hurts the player: the mods hear it with the mob's state and may put status effects on the mob (the armor's counter-attacks).
+[[module]]
+id = "pluto-player-hurt-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_player_hurt_access"
+source = "pluto-player-hurt-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-player-hurt"
+target = "horizon_client::game::item_durability::Game<'_>::hurt_player_equipment"
+kind = "HEAD"
+helper = "pluto-player-hurt.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "source", ty = "horizon_world::damage_source::DamageTypeId", value = "source" }, { name = "amount", ty = "f32", value = "amount" }, { name = "causing", ty = "i32", value = "causing" }]

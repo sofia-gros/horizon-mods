@@ -154,6 +154,19 @@ pub fn hooks() -> Box<dyn Hooks> {
                 horizon_client::entry::pluto_living_load_access::AttributeBase {attribute:base.attribute.to_string(),value:base.value}).collect())
         })
     }}).expect("PlutoLib living load provider installs once");
+    horizon_client::entry::pluto_player_hurt_access::set_sink(horizon_client::entry::pluto_player_hurt_access::Sink {
+        hurt: |hurt| {
+            let hit = entity_events_v1::WearerHit {
+                attacker: hurt.attacker, kind: hurt.attacker_kind.clone(), damage_type: hurt.damage_type.clone(), amount: hurt.amount,
+                attacker_state: entity_events_v1::EntityState {
+                    kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
+                    fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
+                },
+                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()),
+            };
+            entity_events_v1::wearer_hit(&hit).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
+        },
+    }).expect("PlutoLib player hurt sink installs once");
     horizon_client::mobs::pluto_living_entity_access::set_sink(horizon_client::mobs::pluto_living_entity_access::Sink {
         attributes:|kind| {
             let kind=Identifier::parse(kind).map_err(|e|e.to_string())?;
@@ -2047,7 +2060,9 @@ impl Hooks for PlutoHooks {
         // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
         // server's list of players: what that list says (sprinting, on the ground) and their effects.
         let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
-            let player = host.server_players().into_iter().find(|player| player.entity_id == event.causing)?;
+            // The player list names the attacker by entity id (0 for the owner of a single-player world, who is the acting player).
+            let player = host.server_players().into_iter().find(|player| player.entity_id == event.causing)
+                .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0))?;
             Some(entity_events_v1::EntityState {
                 kind: "minecraft:player".to_owned(),
                 sprinting: player.sprinting,
@@ -2060,9 +2075,7 @@ impl Hooks for PlutoHooks {
         };
         let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
         let target_state = state_of(host, event.entity);
-        if let (Some(attacker), Some(target)) = (&attacker_state, &target_state) {
-            entity_events_v1::hit_states(event.entity, attacker.clone(), target.clone());
-        }
+        entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),

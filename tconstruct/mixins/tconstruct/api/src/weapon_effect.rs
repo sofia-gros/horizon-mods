@@ -40,15 +40,27 @@ pub(crate) struct WeaponEffect {
 
 impl WeaponEffect {
     /// `None` when a condition names state this port does not hold.
-    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> { Self::decode_as(fields, false) }
+
+    /// MobEffectModule.ArmorCounter: an armor piece that puts the effect on the mob that hit its wearer. The chance defaults to 15% a level,
+    /// `target` asks about the attacking mob, and the module stays unbound when it targets the wearer (`target_self`), conditions the
+    /// wearer or the damage source, or limits the direct damage: this port holds none of that for the wearer.
+    pub(crate) fn decode_counter(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let present = |key: &str| fields.get(key).is_some_and(|value| !value.is_null());
+        if fields.get("target_self").and_then(Value::as_bool).unwrap_or(false) || present("holder") || present("damage_source") { return Ok(None); }
+        if fields.get("direct_damage").and_then(Value::as_str).is_some_and(|mode| mode != "always") { return Ok(None); }
+        Self::decode_as(fields, true)
+    }
+
+    fn decode_as(fields: &Map<String, Value>, counter: bool) -> Result<Option<Self>, String> {
         let effect = Identifier::parse(fields.get("effect").and_then(Value::as_str).ok_or("effect missing")?).map_err(|e| e.to_string())?;
         let level = RandomLeveling::decode(fields, "level")?;
         let time = RandomLeveling::decode(fields, "time")?;
-        let Some(target) = TargetCondition::decode_for("target", fields.get("target"))? else { return Ok(None); };
-        let Some(holder) = TargetCondition::decode_for("attacker", fields.get("holder"))? else { return Ok(None); };
+        let Some(target) = TargetCondition::decode_for(if counter { "attacker" } else { "target" }, fields.get("target"))? else { return Ok(None); };
+        let Some(holder) = TargetCondition::decode_for(if counter { "" } else { "attacker" }, fields.get("holder"))? else { return Ok(None); };
         // LevelingValue.ONE unless a chance is given: flat 0 + 1 per level is not the default, the default is a flat 1.
         let (chance_flat, chance_each) = match fields.get("chance").filter(|value| !value.is_null()) {
-            None => (1.0, 0.0),
+            None => if counter { (0.0, 0.15) } else { (1.0, 0.0) },
             Some(Value::Object(chance)) => {
                 let float = |name: &str| chance.get(name).and_then(Value::as_f64).map_or(0.0, |value| value as f32);
                 (float("flat"), float("each_level"))
@@ -112,6 +124,20 @@ mod tests {
         assert!(none.grant(&entry(1), true, &all_tags, &mut || 0.0).is_none(), "level 0 is no effect");
         let instant = decode(json!({"effect":"minecraft:poison","level":{"flat":1.0},"time":{"flat":0.0}})).unwrap();
         assert!(instant.grant(&entry(1), true, &all_tags, &mut || 0.0).is_none(), "no duration is no effect");
+    }
+
+    #[test]
+    fn an_armor_counter_defaults_its_chance_and_stays_unbound_for_what_it_cannot_hold() {
+        let decay = WeaponEffect::decode_counter(json!({"effect":"minecraft:wither","level":{"flat":2.0},"time":{"flat":120.0},"chance":{"each_level":0.5}}).as_object().unwrap()).unwrap().unwrap();
+        assert_eq!(decay.grant(&entry(1), true, &all_tags, &mut || 0.49), Some(Grant { effect: Identifier::parse("minecraft:wither").unwrap(), amplifier: 1, duration: 120 }));
+        assert!(decay.grant(&entry(1), true, &all_tags, &mut || 0.51).is_none());
+        let plain = WeaponEffect::decode_counter(json!({"effect":"minecraft:glowing","level":{"flat":1.0},"time":{"flat":200.0}}).as_object().unwrap()).unwrap().unwrap();
+        assert!(plain.grant(&entry(2), true, &all_tags, &mut || 0.29).is_some(), "15% a level: 30% at level 2");
+        assert!(plain.grant(&entry(2), true, &all_tags, &mut || 0.31).is_none());
+        let counter = |value: Value| WeaponEffect::decode_counter(value.as_object().unwrap()).unwrap();
+        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"target_self":true})).is_none(), "an effect on the wearer stays unbound");
+        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"damage_source":{"type":"mantle:attacker"}})).is_none(), "a damage source condition stays unbound");
+        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"holder":"mantle:sprinting"})).is_none(), "a wearer condition stays unbound");
     }
 
     #[test]

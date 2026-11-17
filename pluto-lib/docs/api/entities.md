@@ -634,6 +634,18 @@ let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, wea
 assert!(hit.effects.borrow().is_empty());
 ```
 
+### `WearerHit`
+
+A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as, `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) and `effects` the effects callbacks push for the mob.
+
+```rust
+use pluto_lib::{EntityState, WearerHit};
+use std::cell::RefCell;
+
+let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()) };
+assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty());
+```
+
 ### `EntityState`
 
 What a living entity was doing when a player's weapon hit it: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it.
@@ -658,6 +670,20 @@ let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: N
 hit.amount.set(hit.amount.get() + 2.0);
 assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
 assert!(hit.attacker_stack.is_none());
+```
+
+### `ServerLivingEntityEvents::WEARER_HIT`
+
+A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
+
+```rust
+use pluto_lib::{EffectGrant, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
+    if hit.armor.iter().any(|(_, piece)| piece.item == "example:thorny_helmet") {
+        hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
+    }
+});
 ```
 
 ### `ServerLivingEntityEvents::WEAPON_HIT`

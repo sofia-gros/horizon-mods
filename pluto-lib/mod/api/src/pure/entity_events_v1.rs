@@ -87,6 +87,23 @@ pub struct WeaponHit {
     pub effects: RefCell<Vec<EffectGrant>>,
 }
 
+/// A mob hurting the player, heard on a server as the hit starts (before armor wears and the damage lands).
+#[derive(Clone, Debug)]
+pub struct WearerHit {
+    /// The mob's entity id and type id.
+    pub attacker: i32,
+    pub kind: String,
+    /// The damage type id (`minecraft:mob_attack`) and the amount the game works the hit out as.
+    pub damage_type: String,
+    pub amount: f32,
+    /// What the mob was doing as the hit landed.
+    pub attacker_state: EntityState,
+    /// The armor the player wore as of their last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
+    pub armor: Vec<(String, StackData)>,
+    /// The effects to put on the mob, which callbacks add to.
+    pub effects: RefCell<Vec<EffectGrant>>,
+}
+
 /// Damage about to be applied, which callbacks may change (NeoForge: `LivingDamageEvent.Pre`).
 #[derive(Clone, Debug)]
 pub struct DamageModification {
@@ -149,6 +166,7 @@ pub struct ItemDamage {
 }
 
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
+static WEARER_HIT: Event<WearerHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
 static MODIFY_ITEM_DAMAGE: Event<ItemDamage, ()> = Event::void();
 static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
@@ -166,12 +184,25 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_DAMAGE: &'static Event<DamageModification, ()> = &MODIFY_DAMAGE;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
+    /// A mob hurting the player, as the hit starts: push status effects on the mob with `effects`. Server only.
+    pub const WEARER_HIT: &'static Event<WearerHit, ()> = &WEARER_HIT;
     /// A player's weapon hit on a mob, before its damage lands: push status effects on the mob with `effects`. Server only.
     pub const WEAPON_HIT: &'static Event<WeaponHit, ()> = &WEAPON_HIT;
     /// NeoForge: `LivingKnockBackEvent`. Change the strength or direction with `set`, or set `cancel`. Server only.
     pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
     /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
+}
+
+/// The effects the callbacks put on a mob that hurt the player.
+pub(crate) fn wearer_hit(hit: &WearerHit) -> Vec<EffectGrant> {
+    WEARER_HIT.invoke(hit);
+    hit.effects.borrow_mut().drain(..).collect()
+}
+
+/// What each player wore, by entity id, for a hit on them: the armor cached by `remember_armor`, for the entity the game names.
+pub(crate) fn armor_of_the_only_wearer() -> Vec<(String, StackData)> {
+    ARMOR.lock().ok().and_then(|worn| if worn.len() == 1 { worn.values().next().map(|(_, pieces)| pieces.clone()) } else { None }).unwrap_or_default()
 }
 
 /// The effects the callbacks put on the mob a weapon hit.
@@ -207,11 +238,11 @@ pub(crate) fn after_death(death: &LivingDamage) {
 
 thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
-    static PENDING_STATES: RefCell<Option<(i32, EntityState, EntityState)>> = const { RefCell::new(None) };
+    static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>)>> = const { RefCell::new(None) };
 }
 
 /// A player's weapon is hitting `entity`: what both were doing, remembered for the damage that follows in the same call.
-pub(crate) fn hit_states(entity: i32, attacker: EntityState, target: EntityState) {
+pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Option<EntityState>) {
     PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target)));
 }
 
@@ -250,7 +281,7 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     let (attacker_state, target_state) = PENDING_STATES.with(|pending| {
         let mut pending = pending.borrow_mut();
         match pending.take() {
-            Some((entity, attacker, target)) if entity == damage.entity => (Some(attacker), Some(target)),
+            Some((entity, attacker, target)) if entity == damage.entity => (attacker, target),
             other => { *pending = other; (None, None) }
         }
     });
@@ -310,7 +341,7 @@ mod tests {
             log.lock().unwrap().push((hit.attacker_state.as_ref().map(|state| state.sprinting), hit.target_state.as_ref().map(|state| state.fire_ticks)));
         });
         let hurt = LivingDamage { entity: 6262, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 5.0 };
-        hit_states(6262, EntityState { sprinting: true, ..EntityState::default() }, EntityState { fire_ticks: 40, ..EntityState::default() });
+        hit_states(6262, Some(EntityState { sprinting: true, ..EntityState::default() }), Some(EntityState { fire_ticks: 40, ..EntityState::default() }));
         modify_damage(&hurt);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![(Some(true), Some(40)), (None, None)], "the states belong to one hit");
@@ -328,6 +359,20 @@ mod tests {
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
+    }
+
+    #[test]
+    fn a_hit_on_the_wearer_collects_the_effects_callbacks_put_on_the_attacker() {
+        ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
+            if hit.attacker != 8484 { return; }
+            if hit.armor.iter().any(|(slot, piece)| slot == "head" && piece.item == "example:helmet") {
+                hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
+            }
+        });
+        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor, effects: RefCell::new(Vec::new()) };
+        let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
+        assert_eq!(wearer_hit(&hit(vec![("head".into(), helmet)])), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
+        assert!(wearer_hit(&hit(Vec::new())).is_empty());
     }
 
     #[test]
