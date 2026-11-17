@@ -180,6 +180,13 @@ pub(crate) fn weapon_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn 
     })
 }
 
+/// Whether a worn armor piece blocks damage from `source` altogether (DamageBlockModifierHook).
+pub(crate) fn blocks_damage(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource) -> bool {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().any(|(entry, modifier)| modifier.block_damage_modules().any(|module| module.blocks_damage(entry, facts, source)))
+    })
+}
+
 /// The effects a worn armor piece makes its wearer immune to, each with the count the piece adds, in modifier order.
 pub(crate) fn effect_immunities(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
     with_tool_facts(nbt, env, |saved, facts| {

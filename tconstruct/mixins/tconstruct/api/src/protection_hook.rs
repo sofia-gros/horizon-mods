@@ -44,6 +44,11 @@ pub(crate) fn register() {
             crate::melee_hook::target_in_tag(entities.as_deref(), attacker_kind.as_ref(), tag)
         };
         let source = DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags, attacker_in_tag: &attacker_in_tag };
+        // A piece that blocks this kind of damage (long fall, frost walker, rugged) takes all of it away.
+        if hit.armor.iter().any(|(_, piece)| with_held_tool(piece, |env, stack| tool_stack::blocks_damage(&stack.custom_data, env, &source)).unwrap_or(false)) {
+            hit.amount.set(0.0);
+            return;
+        }
         // Each piece's modifiers see the protection so far, feet to head.
         let mut total = 0.0;
         let mut cap_added = 0.0;
