@@ -1450,7 +1450,7 @@ visibility = "pub"
 
 [[injection]]
 id = "pluto-player-hurt"
-target = "horizon_client::game::item_durability::Game<'_>::hurt_player_equipment"
+target = "horizon_client::game::combat::Game<'_>::note_attacker"
 kind = "HEAD"
 helper = "pluto-player-hurt.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "source", ty = "horizon_world::damage_source::DamageTypeId", value = "source" }, { name = "amount", ty = "f32", value = "amount" }, { name = "causing", ty = "i32", value = "causing" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "damage_type", ty = "&str", value = "damage_type" }, { name = "mob", ty = "u32", value = "mob" }]
