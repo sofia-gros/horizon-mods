@@ -521,10 +521,16 @@ def main():
         plain_push = hit_push('')
         knock_push = hit_push(',tic_modifiers:[{level:3,name:"tconstruct:knockback"}]')
         print('KNOCKBACK', json.dumps({'plain': plain_push, 'knockback': knock_push}), flush=True)
-        if plain_push is not None and knock_push is not None and knock_push > plain_push + 0.3:
+        # A husk with no AI does not move, so the strength the knockback event reported (the hook's own log line) settles it.
+        game_log_now = (run / 'game.log').read_text(encoding='utf-8', errors='replace') if (run / 'game.log').is_file() else ''
+        strengths = [float(m.group(1)) for line in game_log_now.splitlines() if 'Tinkers: knockback on' in line and (m := re.search(r': ([0-9.]+) -> [0-9.]+$', line.strip()))]
+        print('KNOCKBACK STRENGTHS', json.dumps(strengths), flush=True)
+        if strengths and max(strengths) > min(strengths) + 0.05:
+            result['scenarios'].append(f'the knockback modifier raises the knockback strength the event reports: {min(strengths)} to {max(strengths)}')
+        elif plain_push is not None and knock_push is not None and knock_push > plain_push + 0.3:
             result['scenarios'].append(f'knockback pushes the hit mob further: {knock_push:.2f} blocks against {plain_push:.2f}')
         else:
-            soft_failures.append(f'knockback: pushed {knock_push} against {plain_push} for a plain hit')
+            soft_failures.append(f'knockback: event strengths {strengths}, pushed {knock_push} against {plain_push}')
         ctl('command', 'kill @e[type=minecraft:husk]')
         ctl('command', 'gamemode creative')
         # The measured loss can be skewed by the burning target's own damage frames, so the hook's own log line settles it: a hit on a

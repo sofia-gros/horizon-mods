@@ -68,7 +68,7 @@ pub(crate) fn register() {
         let changed = f64::from(changed);
         {
             static LOGGED: AtomicUsize = AtomicUsize::new(0);
-            if LOGGED.fetch_add(1, Ordering::Relaxed) < 8 { eprintln!("Tinkers: knockback on {} with {}: {} -> {}", push.kind, held.item, strength, changed); }
+            if LOGGED.fetch_add(1, Ordering::Relaxed) < 24 { eprintln!("Tinkers: knockback on {} with {}: {} -> {}", push.kind, held.item, strength, changed); }
         }
         if changed.is_finite() && changed >= 0.0 && (changed - strength).abs() > 1e-6 { push.strength.set(changed); }
     });
