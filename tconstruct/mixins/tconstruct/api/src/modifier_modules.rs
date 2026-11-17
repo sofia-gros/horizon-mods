@@ -440,9 +440,9 @@ impl Module {
         module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.before_melee(), grant))
     }
     /// The effect an armor counter module puts on the mob that hit the wearer, if it lands (`rolls` are uniform values in [0, 1)).
-    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<crate::weapon_effect::Grant> {
+    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
         let Self::CounterEffect { module, condition } = self else { return None; };
-        module.grant(entry, condition.matches(entry, facts), in_tag, rolls)
+        module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.whom(), grant))
     }
     /// Whether this is an armor counter effect module.
     pub fn is_counter_effect(&self) -> bool { matches!(self, Self::CounterEffect { .. }) }

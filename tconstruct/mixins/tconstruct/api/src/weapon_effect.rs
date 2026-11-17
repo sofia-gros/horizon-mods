@@ -32,10 +32,14 @@ impl RandomLeveling {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Grant { pub effect: Identifier, pub amplifier: i32, pub duration: i32 }
 
+/// Whom a counter module's effect goes on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Whom { Attacker, Wearer }
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct WeaponEffect {
     effect: Identifier, level: RandomLeveling, time: RandomLeveling, target: TargetCondition, holder: TargetCondition,
-    chance_flat: f32, chance_each: f32, before_melee: bool,
+    chance_flat: f32, chance_each: f32, before_melee: bool, whom: Whom,
 }
 
 impl WeaponEffect {
@@ -47,9 +51,12 @@ impl WeaponEffect {
     /// wearer or the damage source, or limits the direct damage: this port holds none of that for the wearer.
     pub(crate) fn decode_counter(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let present = |key: &str| fields.get(key).is_some_and(|value| !value.is_null());
-        if fields.get("target_self").and_then(Value::as_bool).unwrap_or(false) || present("holder") || present("damage_source") { return Ok(None); }
+        if present("holder") || present("damage_source") { return Ok(None); }
         if fields.get("direct_damage").and_then(Value::as_str).is_some_and(|mode| mode != "always") { return Ok(None); }
-        Self::decode_as(fields, true)
+        let whom = if fields.get("target_self").and_then(Value::as_bool).unwrap_or(false) { Whom::Wearer } else { Whom::Attacker };
+        // An effect on the wearer is not filtered by the target condition (the original repurposes `holder` for the attacker there).
+        if whom == Whom::Wearer && present("target") { return Ok(None); }
+        Ok(Self::decode_as(fields, true)?.map(|module| Self { whom, ..module }))
     }
 
     fn decode_as(fields: &Map<String, Value>, counter: bool) -> Result<Option<Self>, String> {
@@ -68,8 +75,10 @@ impl WeaponEffect {
             Some(_) => return Err("chance must be an object".into()),
         };
         let before_melee = fields.get("apply_before_melee").and_then(Value::as_bool).unwrap_or(false);
-        Ok(Some(Self { effect, level, time, target, holder, chance_flat, chance_each, before_melee }))
+        Ok(Some(Self { effect, level, time, target, holder, chance_flat, chance_each, before_melee, whom: Whom::Attacker }))
     }
+    /// Whom the effect goes on: the mob that hit the wearer, or the wearer.
+    pub(crate) fn whom(&self) -> Whom { self.whom }
     /// Whether the effect applies before the hit's damage lands instead of after.
     pub(crate) fn before_melee(&self) -> bool { self.before_melee }
 
@@ -135,7 +144,9 @@ mod tests {
         assert!(plain.grant(&entry(2), true, &all_tags, &mut || 0.29).is_some(), "15% a level: 30% at level 2");
         assert!(plain.grant(&entry(2), true, &all_tags, &mut || 0.31).is_none());
         let counter = |value: Value| WeaponEffect::decode_counter(value.as_object().unwrap()).unwrap();
-        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"target_self":true})).is_none(), "an effect on the wearer stays unbound");
+        let revenge = counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"target_self":true,"chance":{"flat":1.0}})).unwrap();
+        assert_eq!(revenge.whom(), Whom::Wearer, "an effect on the wearer is bound");
+        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"target_self":true,"target":"mantle:on_fire"})).is_none(), "a target condition on an effect for the wearer stays unbound");
         assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"damage_source":{"type":"mantle:attacker"}})).is_none(), "a damage source condition stays unbound");
         assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"holder":"mantle:sprinting"})).is_none(), "a wearer condition stays unbound");
     }
