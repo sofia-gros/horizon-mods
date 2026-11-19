@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/base/crossbow",
+  "textures": {
+    "layer0": "tconstruct:item/tool/crossbow/bowstring_3_tconstruct_weeping_vine"
+  }
+}

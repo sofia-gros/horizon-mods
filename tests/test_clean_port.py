@@ -99,6 +99,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/material_stats.rs',
                 'mixins/tconstruct_native/api/src/material_snapshot.rs',
                 'mixins/tconstruct_native/api/src/material_sync.rs',
+                'mixins/tconstruct_native/api/src/model_flags.rs',
                 'mixins/tconstruct_native/api/src/tool_materials.rs',
                 'mixins/tconstruct_native/api/src/tool_stats.rs',
                 'mixins/tconstruct_native/api/src/tool_definitions.rs',

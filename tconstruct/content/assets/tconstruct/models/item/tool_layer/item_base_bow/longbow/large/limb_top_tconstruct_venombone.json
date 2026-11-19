@@ -1,0 +1,40 @@
+{
+  "parent": "tconstruct:item/base/bow",
+  "textures": {
+    "layer0": "tconstruct:item/tool/longbow/large/limb_top_tconstruct_venombone"
+  },
+  "elements": [
+    {
+      "from": [
+        -7.5,
+        -8.5,
+        7.5
+      ],
+      "to": [
+        24.5,
+        23.5,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#layer0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#layer0"
+        }
+      }
+    }
+  ]
+}

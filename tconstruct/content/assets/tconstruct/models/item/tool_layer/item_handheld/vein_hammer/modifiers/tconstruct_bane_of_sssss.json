@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/vein_hammer/modifiers/tconstruct_bane_of_sssss"
+  }
+}

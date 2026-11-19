@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/13",
+  "textures": {
+    "layer0": "tconstruct:item/tool/swasher/handle_tconstruct_amethyst_bronze"
+  }
+}

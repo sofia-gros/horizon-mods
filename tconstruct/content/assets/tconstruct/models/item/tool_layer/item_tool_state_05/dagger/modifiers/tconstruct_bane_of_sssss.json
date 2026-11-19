@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/05",
+  "textures": {
+    "layer0": "tconstruct:item/tool/dagger/modifiers/tconstruct_bane_of_sssss"
+  }
+}

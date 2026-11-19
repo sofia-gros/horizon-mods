@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/09",
+  "textures": {
+    "layer0": "tconstruct:item/tool/flint_and_brick/tool"
+  }
+}

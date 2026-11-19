@@ -420,31 +420,36 @@ class MaterialSprites:
                 return root / 'textures' / f'{layer}{suffix}.png'
         return None
 
-    def model_for(self, folder, parent, layer, suffix, offset=(0, 0)):
+    def model_for(self, folder, parent, layer, suffix, offset=(0, 0), large=None):
         """The model reference for a layer sprite, or None when that sprite does not exist. Models are shared by
-        everything in `folder` that uses the same sprite file."""
+        everything in `folder` that uses the same sprite file. `offset` is the material model's pixel shift;
+        `large` is the tool's large_offset when the sprite is a 32x32 large variant."""
         source = self.source_of(layer, suffix)
         if source is None:
             return None
         name = f'item/{folder}/{layer.removeprefix("item/tool/")}{suffix}'
         self.textures[f'{layer}{suffix}'] = source
         model = {'parent': parent, 'textures': {'layer0': f'tconstruct:{layer}{suffix}'}}
-        if tuple(offset) != (0, 0):
+        if large is not None:
+            # The original draws the large quads twice as wide and tall, shifted by ((x - 8) / 32, (-y - 8) / 32) blocks.
+            x, y = (large[0] - 8) / 2, (-large[1] - 8) / 2
+            model['elements'] = [{'from': [x, y, 7.5], 'to': [x + 32, y + 32, 8.5], 'faces': FLAT_FACES}]
+        elif tuple(offset) != (0, 0):
             dx, dy = offset
             model['elements'] = [{'from': [dx, -dy, 7.5], 'to': [16 + dx, 16 - dy, 8.5], 'faces': FLAT_FACES}]
         self.models[name] = model
         return {'type': 'minecraft:model', 'model': f'tconstruct:{name}'}
 
-    def select(self, folder, parent, layer, offset=(0, 0)):
+    def select(self, folder, parent, layer, offset=(0, 0), large=None):
         """(fallback model, cases) for a select on custom_model_data string 0 (a material id path) over the
         shipped materials' sprites; the fallback is the base sprite."""
-        fallback = self.model_for(folder, parent, layer, '', offset)
+        fallback = self.model_for(folder, parent, layer, '', offset, large)
         if fallback is None:
             raise SystemExit(f'base sprite {layer} is missing')
         cases = []
         for material, (chain, fallbacks) in self.sprites.items():
             candidates = [f'_tconstruct_{name}' for name in chain] + [f'_{name}' for name in fallbacks]
-            model = next((m for m in (self.model_for(folder, parent, layer, suffix, offset) for suffix in candidates) if m), None)
+            model = next((m for m in (self.model_for(folder, parent, layer, suffix, offset, large) for suffix in candidates) if m), None)
             if model:
                 cases.append({'when': material, 'model': model})
         return fallback, cases
@@ -458,9 +463,10 @@ class MaterialSprites:
             shutil.copyfile(source, destination)
 
 
-def write_json(destination, data):
+def write_json(destination, data, compact=False):
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
+    text = json.dumps(data, separators=(',', ':')) if compact else json.dumps(data, indent=2)
+    destination.write_text(text + '\n', encoding='utf-8', newline='\n')
 
 
 def original_model(path):
@@ -498,20 +504,152 @@ def copy_part_assets():
 ARMOR_PREFIXES = ('plate_', 'slime_', 'travelers_')
 FORGE_PARENTS = {'forge:item/default': 'minecraft:item/generated', 'forge:item/default-tool': 'minecraft:item/handheld'}
 MODEL_SOURCE = ASSET_SOURCE / 'models'
+MODIFIER_SPRITES = GENERATED_ASSETS / 'tinkering/modifiers/sprites'
+# custom_model_data.flags: what the tool item definitions read besides the material strings (see model_flags.rs).
+BLOCKING_FLAG, SPEAR_FLAG, ARROW_FLAG, FIREWORK_FLAG, OVERLAY_BASE = 0, 1, 2, 3, 4
+# Elapsed use ticks per unit of the original's `charge` property (its default draw time, KEY_DRAWTIME, is 20 ticks).
+CHARGE_SCALE = 0.05
+FLAGS_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/model_flags.rs'
+
+
+def original_model_json(reference):
+    """The original's model JSON: the generated resources (broken/blocking/pulling states) before the hand-written ones."""
+    path = reference.split(':', 1)[1]
+    for root in (GENERATED_ASSETS, ASSET_SOURCE):
+        if (root / 'models' / f'{path}.json').is_file():
+            return original_model(root / 'models' / f'{path}.json')
+    raise SystemExit(f'original model missing: {reference}')
+
+
+def resolve_state(reference):
+    """(tool model spec, display overrides, gui_light) of a tool state model. A state is either a full tool model
+    (loader tconstruct:tool) or a plain model that only adds display transforms to another state."""
+    data = original_model_json(reference)
+    if data.get('loader') == 'tconstruct:tool':
+        return data, {}, None
+    spec, display, light = resolve_state(data['parent'])
+    own = {key: value for key, value in data.get('display', {}).items() if ':' not in key}
+    return spec, {**display, **own}, data.get('gui_light', light)
+
+
+def overlay_textures(spec, large):
+    """{modifier id: [texture layers]} the tool model draws for a modifier, from its modifier model maps (the first
+    map that names a modifier wins, an empty entry removes it). A large tool draws only `texture_large`. Fluid, tank,
+    potion, dyed and trim models are dynamic (tint, fill level) and left out."""
+    merged = {}
+    for option in reversed(spec.get('modifier_maps', [])):
+        path = MODIFIER_SPRITES / f'{option.split(":", 1)[1]}.json'
+        if path.is_file():
+            merged.update(original_model(path).get('modifiers', {}))
+    result = {}
+    for modifier, value in merged.items():
+        layers = []
+        for entry in value if isinstance(value, list) else [value]:
+            entry = {'texture': entry} if isinstance(entry, str) else entry
+            if entry.get('type') not in (None, 'tconstruct:normal'):
+                continue
+            texture = entry.get('texture_large' if large else 'texture')
+            if texture:
+                layers.append(texture.split(':', 1)[1])
+        if layers:
+            result[modifier] = layers
+    return result
+
+
+def state_overrides(overrides):
+    """[(predicate, model)] of a tool model's overrides; as in vanilla 1.20 the last matching entry wins."""
+    known = {'tconstruct:broken', 'tconstruct:cast', 'tconstruct:ammo', 'tconstruct:charging', 'tconstruct:charge'}
+    for override in overrides:
+        if not set(override['predicate']) <= known:
+            raise SystemExit(f'unknown tool model predicate: {override["predicate"]}')
+    return [(override['predicate'], override['model']) for override in overrides]
+
+
+def state_winner(overrides, root, state):
+    chosen = root
+    values = {'tconstruct:broken': state['broken'], 'tconstruct:cast': state['cast'], 'tconstruct:ammo': state['ammo'],
+              'tconstruct:charging': state['charging'], 'tconstruct:charge': state['charge']}
+    for predicate, model in overrides:
+        if all(values[key] >= threshold for key, threshold in predicate.items()):
+            chosen = model
+    return chosen
+
+
+def flag_condition(index, on_true, on_false):
+    if on_true == on_false:
+        return on_true
+    return {'type': 'minecraft:condition', 'property': 'minecraft:custom_model_data', 'index': index, 'on_true': on_true, 'on_false': on_false}
+
+
+def property_condition(name, on_true, on_false):
+    if on_true == on_false:
+        return on_true
+    return {'type': 'minecraft:condition', 'property': name, 'on_true': on_true, 'on_false': on_false}
+
+
+def state_tree(overrides, root, leaf, gui):
+    """The item model tree over a tool's override states. Variables, outermost first: broken (`minecraft:broken`,
+    the host's damage >= max_damage - 1, which is the stack of a broken tool), fishing rod cast, loaded ammo
+    (flags), then use: `using_item`, the use animation (flags: blocking, spear, otherwise drawn like a bow) and the
+    elapsed use ticks (`use_duration`, scaled to the original's charge). Equal subtrees collapse. In the GUI nobody
+    is using or casting, so only broken and ammo apply."""
+    predicates = {key for predicate, _ in overrides for key in predicate}
+    charges = sorted({value for predicate, _ in overrides for key, value in predicate.items() if key == 'tconstruct:charge' and value > 0})
+
+    def used(state, rest, charging):
+        fallback = build({**state, 'charging': charging, 'charge': 0}, rest)
+        entries = []
+        for threshold in charges:
+            model = build({**state, 'charging': charging, 'charge': threshold}, rest)
+            if model != (entries[-1]['model'] if entries else fallback):
+                entries.append({'threshold': threshold, 'model': model})
+        if not entries:
+            return fallback
+        return {'type': 'minecraft:range_dispatch', 'property': 'minecraft:use_duration', 'scale': CHARGE_SCALE, 'entries': entries, 'fallback': fallback}
+
+    def build(state, steps):
+        if not steps:
+            return leaf(state_winner(overrides, root, state))
+        step, rest = steps[0], steps[1:]
+        if step == 'broken':
+            return property_condition('minecraft:broken', build({**state, 'broken': 1}, rest), build({**state, 'broken': 0}, rest))
+        if step == 'cast':
+            return property_condition('minecraft:fishing_rod/cast', build({**state, 'cast': 1}, rest), build({**state, 'cast': 0}, rest))
+        if step == 'ammo':
+            plain = flag_condition(ARROW_FLAG, build({**state, 'ammo': 1}, rest), build({**state, 'ammo': 0}, rest))
+            return flag_condition(FIREWORK_FLAG, build({**state, 'ammo': 2}, rest), plain)
+        # use: the charge entries read the elapsed use ticks, so they sit below `using_item`
+        pull = flag_condition(SPEAR_FLAG, used(state, rest, 1.75), used(state, rest, 1))
+        return property_condition('minecraft:using_item', flag_condition(BLOCKING_FLAG, used(state, rest, 2), pull), build({**state, 'charging': 0, 'charge': 0}, rest))
+
+    if gui:
+        steps = [step for step, key in (('broken', 'tconstruct:broken'), ('ammo', 'tconstruct:ammo')) if key in predicates]
+    else:
+        steps = [step for step, keys in (('broken', {'tconstruct:broken'}), ('cast', {'tconstruct:cast'}), ('ammo', {'tconstruct:ammo'}),
+                                         ('use', {'tconstruct:charging', 'tconstruct:charge'})) if keys & predicates]
+    return build({'broken': 0, 'cast': 0, 'ammo': 0, 'charging': 0, 'charge': 0}, steps)
 
 
 def copy_tool_assets():
-    """Item definitions for the registered tools with material layers (armor and shields excluded): a `composite`
-    of one layer per original model part, in the original's draw order, each a `select` on the custom_model_data
-    string at the part's material slot index (the index the original's model gives it, the slot of the tool
-    definition's part_stats). A tool without parts (staffs, flint and brick) is one plain model. The original's
-    display parents are kept where they carry transforms (`tconstruct:thrown`, a Forge-only context, is dropped;
-    Forge's default parents become the vanilla generated/handheld ones). Broken/blocking/charging variants, modifier
-    overlays, fluid tank layers and the large (tall tool) variants are left out.
+    """Item definitions for the registered tools with material layers (armor excluded, shields included): the
+    original's tool model as one item model tree.
+
+    A leaf is a `composite` of one layer per original model part, in the original's draw order, each a `select` on
+    the custom_model_data string at the part's material slot index (the slot of the tool definition's part_stats),
+    then one overlay per modifier the tool model has a sprite for, each a `condition` on a custom_model_data flag
+    (model_flags.rs: the modifier's position in the table the importer writes). A tool without parts (staffs, flint
+    and brick) draws its single sprite. The original's display parents are kept where they carry transforms
+    (`tconstruct:thrown`, a Forge-only context, is dropped; Forge's default parents become the vanilla generated/handheld ones).
+
+    The override states of the original's tool model (broken, blocking, drawing, throwing, ammo, cast) select among
+    leaves through `state_tree`; a state's own textures (head_broken, bowstring_1) and display transforms apply.
+    A `large` tool draws its 32x32 sprites in every context but the GUI (as the original's BakedToolModel does), as flat
+    quads twice the size, shifted by large_offset. Dynamic layers (fluid, tank fill, potion, dye, trim) are left out.
     Returns (tool names, model count, texture count, tools left out).
     """
     collected = MaterialSprites()
     extra = {}
+    states = {}
 
     def parent_of(reference):
         if reference in FORGE_PARENTS:
@@ -519,7 +657,7 @@ def copy_tool_assets():
         namespace, path = reference.split(':', 1) if ':' in reference else ('minecraft', reference)
         if namespace != 'tconstruct':
             return f'{namespace}:{path}'
-        data = original_model(MODEL_SOURCE / f'{path}.json')
+        data = original_model_json(reference)
         display = {key: value for key, value in data.get('display', {}).items() if ':' not in key}
         if not display:
             return parent_of(data['parent'])
@@ -529,37 +667,89 @@ def copy_tool_assets():
         extra[path] = converted
         return reference
 
-    tools, left_out = [], []
+    def state_parent(spec, display, light):
+        base = parent_of(spec['parent'])
+        if not display:
+            return base
+        key = json.dumps([base, display, light], sort_keys=True)
+        if key not in states:
+            states[key] = f'item/tool_state/{len(states) + 1:02d}'
+            extra[states[key]] = {'parent': base, 'display': display, **({'gui_light': light} if light else {})}
+        return f'tconstruct:{states[key]}'
+
+    tools, left_out, specs = [], [], {}
     for path in sorted((TARGET / 'tool_definitions').glob('*.json')):
         name = path.stem
         original = MODEL_SOURCE / 'item' / f'{name}.json'
-        if name.startswith(ARMOR_PREFIXES) or not original.exists() or original_model(original).get('loader') != 'tconstruct:tool':
+        if (name.startswith(ARMOR_PREFIXES) and not name.endswith('_shield')) or not original.exists() or original_model(original).get('loader') != 'tconstruct:tool':
             left_out.append(name)
             continue
-        data = original_model(original)
         modules = original_model(path)['modules']
         # Material slots: the parts of part_stats, or the stat types of material_stats (tools made of materials alone).
         slots = sum(len(m.get('parts') or m.get('stat_types') or []) for m in modules if m['type'] in ('tconstruct:part_stats', 'tconstruct:material_stats'))
-        parent = parent_of(data['parent'])
+        specs[name] = (original_model(original), slots)
+
+    # The flag table: every modifier any tool state draws a sprite for, in id order.
+    table = sorted({modifier for name, (data, _) in specs.items()
+                    for ref in [f'tconstruct:item/{name}'] + [override['model'] for override in data.get('overrides', [])]
+                    for large in (False, True) for modifier in overlay_textures(resolve_state(ref)[0], large)})
+
+    def leaf(name, ref, large):
+        spec, display, light = resolve_state(ref)
+        slots = specs[name][1]
+        parent = state_parent(spec, display, light)
         folder = 'tool_layer/' + parent.split(':', 1)[1].replace('/', '_')
-        if not data.get('parts'):
-            definition = collected.model_for(folder, parent, data['textures']['tool'].split(':', 1)[1], '')
-            if definition is None:
-                raise SystemExit(f'tool {name}: sprite {data["textures"]["tool"]} is missing')
-        else:
-            layers = []
-            for part in data['parts']:
-                if 'index' not in part:
-                    continue  # a fluid tank layer
+        offset = spec.get('large_offset', [0, 0]) if large else None
+        prefix = 'large_' if large else ''
+        models = []
+        for part in spec.get('parts') or [{'name': 'tool'}]:
+            layer = spec['textures'][prefix + part['name']].split(':', 1)[1]
+            if 'index' in part:
                 if part['index'] >= slots:
                     raise SystemExit(f'tool {name}: part {part["name"]} index {part["index"]} is outside the {slots} material slots')
-                fallback, cases = collected.select(folder, parent, data['textures'][part['name']].split(':', 1)[1])
-                layers.append(material_select(fallback, cases, part['index']))
-            definition = {'type': 'minecraft:composite', 'models': layers}
-        write_json(ASSET_TARGET / 'items' / f'{name}.json', {'model': definition})
+                fallback, cases = collected.select(folder, parent, layer, (0, 0), offset)
+                models.append(material_select(fallback, cases, part['index']))
+            else:
+                model = collected.model_for(folder, parent, layer, '', (0, 0), offset)
+                if model is None:
+                    raise SystemExit(f'tool {name}: sprite {layer} is missing')
+                models.append(model)
+        for modifier, layers in overlay_textures(spec, large).items():
+            for layer in layers:
+                model = collected.model_for(folder, parent, layer, '', (0, 0), offset)
+                if model is None:
+                    raise SystemExit(f'tool {name}: modifier sprite {layer} is missing')
+                models.append({'type': 'minecraft:condition', 'property': 'minecraft:custom_model_data', 'index': OVERLAY_BASE + table.index(modifier),
+                               'on_true': model, 'on_false': {'type': 'minecraft:empty'}})
+        return models[0] if len(models) == 1 else {'type': 'minecraft:composite', 'models': models}
+
+    for name, (data, _) in specs.items():
+        overrides = state_overrides(data.get('overrides', []))
+        root = f'tconstruct:item/{name}'
+        full = state_tree(overrides, root, lambda ref: leaf(name, ref, data.get('large', False)), False)
+        if data.get('large'):
+            gui = state_tree(overrides, root, lambda ref: leaf(name, ref, False), True)
+            full = {'type': 'minecraft:select', 'property': 'minecraft:display_context', 'cases': [{'when': 'gui', 'model': gui}], 'fallback': full}
+        write_json(ASSET_TARGET / 'items' / f'{name}.json', {'model': full}, compact=True)
         tools.append(name)
     collected.write(extra)
+    write_model_flags(table)
     return tools, len(collected.models) + len(extra), len(collected.textures), left_out
+
+
+def write_model_flags(table):
+    lines = ['//! Positions in `custom_model_data.flags` that the imported tool item definitions read (SlimeKnights, MIT; see LICENSE).',
+             '//! Generated from the original tool models by tools/import_original_data.py; do not edit.',
+             '//!',
+             '//! The first four are use-time facts the tool item definitions dispatch on while the tool is held in use',
+             '//! (`using_item` plus the use animation, the crossbow ammo state). `OVERLAYS` lists the modifiers some tool model draws a',
+             '//! sprite for; flag `OVERLAY_BASE + i` is set while the tool has `OVERLAYS[i]` among its crafted modifiers.',
+             '#![allow(dead_code)]', '',
+             f'pub(crate) const BLOCKING: usize = {BLOCKING_FLAG};', f'pub(crate) const SPEAR: usize = {SPEAR_FLAG};',
+             f'pub(crate) const ARROW: usize = {ARROW_FLAG};', f'pub(crate) const FIREWORK: usize = {FIREWORK_FLAG};',
+             f'pub(crate) const OVERLAY_BASE: usize = {OVERLAY_BASE};', '', 'pub(crate) const OVERLAYS: &[&str] = &[']
+    lines += [f'    "{modifier}",' for modifier in table] + ['];']
+    FLAGS_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'

@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/11",
+  "textures": {
+    "layer0": "tconstruct:item/tool/melting_pan/head_tconstruct_gold"
+  }
+}

@@ -24,6 +24,7 @@ mod modifiers;
 mod material_stats;
 mod material_snapshot;
 mod material_sync;
+mod model_flags;
 mod tool_materials;
 mod tool_stats;
 mod tool_definitions;
