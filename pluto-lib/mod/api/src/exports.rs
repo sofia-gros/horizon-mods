@@ -19,7 +19,7 @@ pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry
 pub use crate::pure::particle_factory_registry::{self, ParticleFactoryRegistry};
 pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullModelRegistry};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
-pub use crate::pure::entity_events_v1::{self, ActionTarget, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
+pub use crate::pure::entity_events_v1::{self, ActionTarget, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
@@ -34,14 +34,14 @@ pub use crate::pure::fluid_api_v1::{self, FluidAttributes, FluidDef, FluidRegist
 pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, LanguageEvents, Translations};
 pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, ItemRegistry, ItemRegistrySnapshot, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnderMaskContext, ItemBehavior, ItemBehaviors};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
-pub use crate::pure::loot_api_v2::{self, LootTableContext, LootTableEvents};
+pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
 pub use crate::pure::player_api::{self, EffectInstance, FoodStatus, MemoryPlayerOps, PlayerOps, ServerPlayer, StackData, with_ops};
 pub use crate::pure::screen_handler_api_v1::{
     self, ContainerAccept, MenuButton, MenuAccess, SlotAction, SlotClick, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenTooltip, SlotRule,
 };
 pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, TradeOfferFactory, TradeOfferContext, TradeRandom, TradeWorld};
-pub use crate::pure::projectile_events_v1::{self, ProjectileEvents, ProjectileImpact};
+pub use crate::pure::projectile_events_v1::{self, BowShot, ProjectileEvents, ProjectileImpact, ProjectileLaunch};
 pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, World, WorldOps, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, RegistryLookup, JsonResourceStack, ResourceManagerHelper, ResourceType, reload_event};

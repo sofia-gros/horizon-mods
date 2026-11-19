@@ -41,6 +41,29 @@ pub struct ServerEntityEvents;
 impl ServerEntityEvents {
     pub const ENTITY_LOAD: &'static Event<EntityInfo, ()> = &ENTITY_LOAD;
     pub const ENTITY_UNLOAD: &'static Event<EntityInfo, ()> = &ENTITY_UNLOAD;
+    /// A player is about to shear a mob (Bukkit: `PlayerShearEntityEvent`; Fabric has no counterpart). Set `cancel` to stop the shearing,
+    /// or queue `actions` for the player. Server only; heard before the shears act, so a later callback may still cancel the shearing. The game
+    /// reports only a guest's shearing on the owner's LAN world: the world owner's own shearing is heard by no hook.
+    pub const SHEAR: &'static Event<ShearAttempt, ()> = &SHEAR;
+}
+
+/// A player about to shear a mob, heard on a server before the shearing happens.
+#[derive(Clone, Debug)]
+pub struct ShearAttempt {
+    /// The player's uuid and name.
+    pub player: u128,
+    pub name: String,
+    /// The mob's entity id.
+    pub entity: i32,
+    /// Whether the shears are in the off hand.
+    pub off_hand: bool,
+    /// The stack in that hand (its damage, max damage and custom data); None for an empty hand.
+    pub tool: Option<StackData>,
+    /// Set to true to stop the shearing.
+    pub cancel: Cell<bool>,
+    /// The actions to do to the player (`Attacker`), which callbacks add to; they land when the shearing is heard, even when a later
+    /// callback cancels it.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// What a living entity is doing, as the game reports it when a player's weapon hits a mob.
@@ -150,6 +173,9 @@ pub enum EntityAction {
     /// `LivingEntity.knockback`: pushes a mob with `strength` along the horizontal plane, and up when it stands on the ground. Mobs only
     /// (the host cannot push a player); the mob's own knockback resistance is not applied.
     Knockback { target: ActionTarget, strength: f64, direction: KnockbackDirection },
+    /// `LivingEntity.addEffect`: puts a status effect on the target, a player or a mob. An effect id the game does not know is skipped;
+    /// `amplifier` is the level less one and `duration` is in ticks, and an effect with a negative amplifier or no duration is not given.
+    AddEffect { target: ActionTarget, effect: String, amplifier: i32, duration: i32 },
 }
 
 /// The ticks a mob that burns for `current` ticks burns for after burning for `seconds` more, or None when that changes nothing (the new
@@ -297,6 +323,7 @@ pub struct VisibilityModification {
 }
 
 static MODIFY_VISIBILITY: Event<VisibilityModification, ()> = Event::void();
+static SHEAR: Event<ShearAttempt, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
@@ -442,6 +469,12 @@ pub(crate) fn weapon_hit(hit: &WeaponHit) -> Vec<EffectGrant> {
     hit.effects.borrow_mut().drain(..).collect()
 }
 
+/// What the callbacks decided about a shearing: whether it goes ahead, and the actions queued for the player.
+pub(crate) fn shear(attempt: &ShearAttempt) -> (bool, Vec<EntityAction>) {
+    SHEAR.invoke(attempt);
+    (!attempt.cancel.get(), attempt.actions.borrow_mut().drain(..).collect())
+}
+
 /// The actions the callbacks queued on a weapon hit, taken after `weapon_hit`.
 pub(crate) fn take_weapon_actions(hit: &WeaponHit) -> Vec<EntityAction> {
     hit.actions.borrow_mut().drain(..).collect()
@@ -573,6 +606,27 @@ pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_shearing_can_be_cancelled_and_queues_actions_for_the_player() {
+        ServerEntityEvents::SHEAR.register(|attempt| {
+            if attempt.entity != 8181 { return; }
+            if attempt.tool.as_ref().is_some_and(|tool| tool.item == "example:cutters") {
+                attempt.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 0, duration: 40 });
+            }
+            if attempt.off_hand { attempt.cancel.set(true); }
+        });
+        let attempt = |item: Option<&str>, off_hand| ShearAttempt {
+            player: 1, name: "shearer".into(), entity: 8181, off_hand,
+            tool: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }),
+            cancel: Cell::new(false), actions: RefCell::new(Vec::new()),
+        };
+        let (allowed, actions) = shear(&attempt(Some("example:cutters"), false));
+        assert!(allowed);
+        assert_eq!(actions, vec![EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 0, duration: 40 }]);
+        let (allowed, actions) = shear(&attempt(Some("minecraft:shears"), true));
+        assert!(!allowed && actions.is_empty(), "the off hand's shearing is cancelled and queues nothing");
+    }
 
     #[test]
     fn modify_damage_carries_the_armor_a_player_wore_and_forgets_it_on_logout() {

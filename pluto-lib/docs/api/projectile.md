@@ -116,3 +116,61 @@ let egg = ProjectileImpact {
 };
 assert!(!ProjectileEvents::IMPACT.invoke(&egg));
 ```
+
+### `ProjectileEvents::LAUNCH`
+
+A projectile entered a server level (Bukkit: `ProjectileLaunchEvent`; Fabric has no counterpart), heard after it exists, so nothing here can stop it. It is heard for every projectile the game adds, a bow's arrow included, whoever launched it: `launch.player` is set only when a player did.
+
+```rust
+use pluto_lib::ProjectileEvents;
+
+ProjectileEvents::LAUNCH.register(|launch| {
+    if launch.player.is_some() && launch.kind == "minecraft:snowball" {
+        println!("{} threw snowball {}", launch.name, launch.projectile);
+    }
+});
+```
+
+### `ProjectileLaunch`
+
+A projectile that entered a level. `player` is the launching player's uuid (`None` for a dispenser's or a mob's), `name` their name (empty without a player), `projectile` the projectile's entity id and `kind` its type.
+
+```rust
+use pluto_lib::ProjectileLaunch;
+
+let launch = ProjectileLaunch { player: Some(7), name: "Alex".into(), projectile: 12, kind: "minecraft:arrow".into() };
+assert_eq!((launch.player, launch.projectile), (Some(7), 12));
+assert_eq!((launch.name.as_str(), launch.kind.as_str()), ("Alex", "minecraft:arrow"));
+```
+
+### `ProjectileEvents::SHOOT_BOW`
+
+A player's bow or crossbow shot an arrow, heard on a server after the arrow entered the level, once for each arrow (a multishot crossbow reports three). Push `EntityAction`s for the player onto `shot.actions` (`ActionTarget::Attacker`), for example a status effect for the shooter; the bow is in `shot.main_hand` or `shot.off_hand`.
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, ProjectileEvents};
+
+ProjectileEvents::SHOOT_BOW.register(|shot| {
+    if shot.force >= 1.0 && shot.main_hand.as_ref().is_some_and(|bow| bow.item == "example:longbow") {
+        shot.actions.borrow_mut().push(EntityAction::AddEffect {
+            target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 0, duration: 60,
+        });
+    }
+});
+```
+
+### `BowShot`
+
+An arrow shot by a player's bow or crossbow. `player` is the shooting player's uuid and `name` their name, `projectile` the arrow's entity id, `force` the arrow's launch speed as the game reports it (a fully drawn bow gives 3.0, a weaker draw less, a crossbow its fixed power), `main_hand` and `off_hand` the stacks in the player's hands as the arrow left (damage, max damage and custom data; `None` for an empty hand) and `actions` the `EntityAction`s to do to the player.
+
+```rust
+use pluto_lib::{BowShot, ProjectileEvents};
+
+fn full_draw(shot: &BowShot) -> bool {
+    shot.force >= 1.0
+}
+ProjectileEvents::SHOOT_BOW.register(|shot| {
+    let _ = (shot.player, &shot.name, shot.projectile, &shot.off_hand);
+    assert!(shot.actions.borrow().is_empty() || full_draw(shot));
+});
+```

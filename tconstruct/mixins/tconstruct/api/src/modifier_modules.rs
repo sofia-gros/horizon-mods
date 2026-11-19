@@ -90,6 +90,8 @@ pub(crate) enum Module {
     Knockback { module: Box<crate::knockback::Knockback>, condition: Condition },
     /// MobEffectModule.Weapon: a melee hit that may put a mob effect on the target.
     WeaponEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
+    /// MobEffectModule.ToolUsage: an effect the tool puts on its holder as it is used (a swing, a shot, shearing a mob).
+    UsageEffect { module: Box<crate::weapon_effect::ToolUsage>, condition: Condition },
     /// BlockDamageSourceModule: armor that blocks damage of the sources it names.
     BlockDamage { source: crate::protection::SourceCondition, condition: Condition },
     /// ConditionalStatModule: changes a ranged stat while the holder is in the named state.
@@ -367,6 +369,12 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:tool_usage_mob_effect" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_break" | "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:projectile_hit" | "tconstruct:plant_harvest" | "tconstruct:shear_entity" | "tconstruct:sling_launch")) => {
+                match crate::weapon_effect::ToolUsage::decode(fields, hooks)? {
+                    Some(module) => Self::UsageEffect { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:block_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:damage_block" | "tconstruct:tooltip")) => {
                 let source = match fields.get("damage_source") { None | Some(Value::Null) => crate::protection::SourceCondition::Any, Some(value) => match crate::protection::SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
                 Self::BlockDamage { source, condition: Condition::decode(fields)? }
@@ -552,7 +560,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -615,6 +623,11 @@ impl Module {
             Self::LegacyEffect { weapon, condition, .. } => weapon.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (weapon.before_melee(), grant)),
             _ => None,
         }
+    }
+    /// The effect a tool usage module puts on the tool's holder for `usage`, if it lands (`rolls` are uniform values in [0, 1)).
+    pub fn usage_effect(&self, entry: &Entry, facts: &Facts, usage: crate::weapon_effect::Usage, rolls: &mut dyn FnMut() -> f32) -> Option<crate::weapon_effect::Grant> {
+        let Self::UsageEffect { module, condition } = self else { return None; };
+        module.grant(entry, condition.matches(entry, facts), usage, rolls)
     }
     /// The effect an armor counter module puts on the mob that hit the wearer, if it lands (`rolls` are uniform values in [0, 1)).
     pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
@@ -702,6 +715,8 @@ impl Module {
     pub fn is_counter_effect(&self) -> bool { matches!(self, Self::CounterEffect { .. } | Self::LegacyEffect { .. }) }
     /// Whether this is an armor attack effect module.
     pub fn is_armor_attack_effect(&self) -> bool { matches!(self, Self::ArmorAttackEffect { .. }) }
+    /// Whether this is a tool usage effect module.
+    pub fn is_usage_effect(&self) -> bool { matches!(self, Self::UsageEffect { .. }) }
     /// Whether this is a weapon effect module.
     pub fn is_weapon_effect(&self) -> bool { matches!(self, Self::WeaponEffect { .. } | Self::LegacyEffect { .. }) }
     /// Whether this is a knockback module.

@@ -1,8 +1,12 @@
 //! Projectiles hitting things (Forge: `ProjectileImpactEvent`). A callback sees what flew, who threw it and what it met, can act on the
 //! world with [`World`] and can cancel the hit.
 
+use std::cell::RefCell;
+
 use super::base::Event;
 use super::block_entity_api_v1::BlockPos;
+use super::entity_events_v1::EntityAction;
+use super::player_api::StackData;
 use super::world_api_v1::World;
 
 /// A projectile that has found what it meets.
@@ -35,6 +39,39 @@ impl ProjectileImpact {
     }
 }
 
+/// A projectile that entered a server level, heard after it exists. Read-only: the projectile is already flying.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProjectileLaunch {
+    /// The launching player's uuid; None for a projectile no player launched (a dispenser's, a mob's).
+    pub player: Option<u128>,
+    /// The launching player's name; empty when `player` is None.
+    pub name: String,
+    /// The projectile's entity id.
+    pub projectile: u32,
+    /// The projectile's type, such as `minecraft:arrow` or `minecraft:snowball`.
+    pub kind: String,
+}
+
+/// A player's bow or crossbow shot an arrow, heard after the arrow entered the level.
+#[derive(Clone, Debug)]
+pub struct BowShot {
+    /// The shooting player's uuid and name.
+    pub player: u128,
+    pub name: String,
+    /// The arrow's entity id.
+    pub projectile: u32,
+    /// The arrow's launch speed as the game reports it: a fully drawn bow gives 3.0, a weaker draw less, and a crossbow its fixed power.
+    pub force: f32,
+    /// The stacks in the player's main hand and off hand as the arrow left (damage, max damage and custom data); the bow is one of them.
+    /// None for an empty hand or a player the game could not reach.
+    pub main_hand: Option<StackData>,
+    pub off_hand: Option<StackData>,
+    /// The actions to do to the player (`Attacker`), which callbacks add to.
+    pub actions: RefCell<Vec<EntityAction>>,
+}
+
+static LAUNCH: Event<ProjectileLaunch, ()> = Event::void();
+static SHOOT_BOW: Event<BowShot, ()> = Event::void();
 static IMPACT: Event<ProjectileImpact, bool> = Event::allow_all();
 
 /// Events about projectiles.
@@ -44,6 +81,12 @@ impl ProjectileEvents {
     /// A projectile hit something, before the hit acts. Answer `false` to cancel the hit (the projectile flies on); one `false` is enough.
     /// Only projectiles the game flies (arrows, tridents, snowballs and mod thrown types, eggs, pearls, potions, fireballs, ...) are heard.
     pub const IMPACT: &'static Event<ProjectileImpact, bool> = &IMPACT;
+    /// A projectile entered a server level (Bukkit: `ProjectileLaunchEvent`; Fabric has no counterpart). Heard for every projectile the
+    /// game adds, a bow's arrow included. Server only.
+    pub const LAUNCH: &'static Event<ProjectileLaunch, ()> = &LAUNCH;
+    /// A player's bow or crossbow shot an arrow, after the arrow entered the level, once for each arrow (a multishot crossbow reports each
+    /// of its three). Queue `actions` for the player. Server only.
+    pub const SHOOT_BOW: &'static Event<BowShot, ()> = &SHOOT_BOW;
 }
 
 /// Whether anyone listens, so the game only keeps the copies it needs when someone does.
@@ -55,11 +98,54 @@ pub(crate) fn impact(impact: &ProjectileImpact) -> bool {
     IMPACT.invoke(impact)
 }
 
+/// Whether anyone listens to launches or shots, so the game builds the payloads only when someone does.
+pub(crate) fn launch_heard() -> bool {
+    !LAUNCH.is_empty()
+}
+
+pub(crate) fn shot_heard() -> bool {
+    !SHOOT_BOW.is_empty()
+}
+
+pub(crate) fn launched(launch: &ProjectileLaunch) {
+    LAUNCH.invoke(launch);
+}
+
+/// The actions the callbacks queued for the player who shot.
+pub(crate) fn shot(shot: &BowShot) -> Vec<EntityAction> {
+    SHOOT_BOW.invoke(shot);
+    shot.actions.borrow_mut().drain(..).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::pure::base::Identifier;
     use crate::pure::world_api_v1::{with_world, BlockState, MemoryWorldOps};
+
+    #[test]
+    fn a_bow_shot_carries_the_hands_and_collects_the_players_actions_while_a_launch_is_heard_as_it_is() {
+        use super::super::entity_events_v1::ActionTarget;
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ProjectileEvents::LAUNCH.register(move |launch| if launch.projectile == 4040 { log.lock().unwrap().push((launch.player, launch.kind.clone())); });
+        ProjectileEvents::SHOOT_BOW.register(|shot| {
+            if shot.projectile != 4040 { return; }
+            if shot.force >= 1.0 && shot.main_hand.as_ref().is_some_and(|bow| bow.item == "example:longbow") {
+                shot.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 1, duration: 60 });
+            }
+        });
+        launched(&ProjectileLaunch { player: Some(9), name: "archer".into(), projectile: 4040, kind: "minecraft:arrow".into() });
+        launched(&ProjectileLaunch { player: None, name: String::new(), projectile: 4040, kind: "minecraft:arrow".into() });
+        assert_eq!(*seen.lock().unwrap(), vec![(Some(9), "minecraft:arrow".to_string()), (None, "minecraft:arrow".to_string())]);
+        let shot_with = |force: f32, item: &str| BowShot {
+            player: 9, name: "archer".into(), projectile: 4040, force,
+            main_hand: Some(StackData { item: item.into(), count: 1, ..StackData::default() }), off_hand: None, actions: RefCell::new(Vec::new()),
+        };
+        assert_eq!(shot(&shot_with(1.0, "example:longbow")), vec![EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 1, duration: 60 }]);
+        assert!(shot(&shot_with(0.4, "example:longbow")).is_empty(), "a weak draw queues nothing");
+        assert!(shot(&shot_with(1.0, "minecraft:bow")).is_empty());
+    }
 
     #[test]
     fn a_listener_acts_on_the_world_where_the_projectile_landed_and_can_cancel_the_hit() {

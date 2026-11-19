@@ -2,7 +2,23 @@
 //! tool's weapon effect modules that lands puts its status effect on the mob (MobEffectModule.Weapon). Only effects the game itself
 //! defines (the `minecraft` ones) can land; the original's own effects (venom, conductive, pierce) have no registration here.
 use crate::{break_speed_hook::with_held_tool, common, melee_damage, melee_hook, tool_damage_hook, tool_stack};
-use pluto_lib::{EffectGrant, Identifier, ServerLivingEntityEvents};
+use pluto_lib::{ActionTarget, EffectGrant, EntityAction, Identifier, ProjectileEvents, ServerEntityEvents, ServerLivingEntityEvents};
+
+/// The action that puts a tool usage module's effect on the player using the tool. Only the game's own effects can land.
+fn self_effect(grant: crate::weapon_effect::Grant) -> Option<EntityAction> {
+    if grant.effect.namespace() != "minecraft" { return None; }
+    Some(EntityAction::AddEffect { target: ActionTarget::Attacker, effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration })
+}
+
+/// The effects of the Tinkers tool among `stacks` (the first that is one) for a use of it, as actions on its holder.
+fn usage_actions(stacks: &[&Option<pluto_lib::StackData>], usage: crate::weapon_effect::Usage) -> Vec<EntityAction> {
+    for stack in stacks.iter().filter_map(|stack| stack.as_ref()) {
+        if let Ok(grants) = with_held_tool(stack, |env, slot| tool_stack::usage_effects(&slot.custom_data, env, usage, &mut tool_damage_hook::random)) {
+            return grants.into_iter().filter_map(self_effect).collect();
+        }
+    }
+    Vec::new()
+}
 
 /// Registers the callbacks. Called once from the product's hooks.
 pub(crate) fn register() {
@@ -56,6 +72,8 @@ pub(crate) fn register() {
             }
         }
         let Some(held) = hit.weapon.as_ref() else { return; };
+        // Effects the tool puts on its own holder as it swings (MobEffectModule.ToolUsage).
+        hit.actions.borrow_mut().extend(usage_actions(&[&hit.weapon], crate::weapon_effect::Usage::MeleeHit));
         // Fire and freezing on the mob hit.
         if let Ok(done) = with_held_tool(held, |env, stack| tool_stack::attack_actions(&stack.custom_data, env)) { hit.actions.borrow_mut().extend(done); }
         let Ok(grants) = with_held_tool(held, |env, stack| tool_stack::weapon_effects(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) else { return; };
@@ -64,5 +82,14 @@ pub(crate) fn register() {
             if grant.effect.namespace() != "minecraft" { continue; }
             hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
         }
+    });
+    // A bow or crossbow shot by the player: the tool's usage effects for the holder (MobEffectModule.ToolUsage's launch half, once for each
+    // arrow reported: a multishot's extra arrows are not told apart, so each rolls on its own).
+    ProjectileEvents::SHOOT_BOW.register(|shot| {
+        shot.actions.borrow_mut().extend(usage_actions(&[&shot.main_hand, &shot.off_hand], crate::weapon_effect::Usage::Launch { primary: true }));
+    });
+    // Shearing a mob with a tool (MobEffectModule.ToolUsage's shear half): heard before the shears act.
+    ServerEntityEvents::SHEAR.register(|attempt| {
+        attempt.actions.borrow_mut().extend(usage_actions(&[&attempt.tool], crate::weapon_effect::Usage::Shear { target: true }));
     });
 }

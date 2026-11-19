@@ -226,6 +226,20 @@ pub(crate) fn weapon_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn 
     })
 }
 
+/// The mob effects this tool puts on its own holder for a use of it (a swing, a shot, shearing a mob), in modifier order. `rolls` gives uniform
+/// values in [0, 1).
+pub(crate) fn usage_effects(nbt: &NbtCompound, env: &Environment, usage: crate::weapon_effect::Usage, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::weapon_effect::Grant> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut grants = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.usage_effect_modules() {
+                if let Some(grant) = module.usage_effect(entry, facts, usage, rolls) { grants.push(grant); }
+            }
+        }
+        grants
+    })
+}
+
 /// Whether a worn armor piece blocks damage from `source` altogether (DamageBlockModifierHook).
 pub(crate) fn blocks_damage(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource) -> bool {
     with_tool_facts(nbt, env, |saved, facts| {

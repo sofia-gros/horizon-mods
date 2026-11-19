@@ -2,6 +2,7 @@
 //! the duration are RandomLevelingValues (flat + per level + a random bonus for each level), the effect applies with a chance that
 //! scales with the level, and the target and the holder are entity conditions (the entity type tags and what the entities were
 //! doing, as for melee damage). Applying the effect is the caller's: this only decides which effect lands and how strong.
+//! MobEffectModule.ToolUsage is here too: the effect a tool puts on its own holder as it is used (a melee swing, a shot, shearing a mob).
 use crate::{melee_damage::TargetCondition, modifier_entries::Entry};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -133,6 +134,108 @@ impl WeaponEffect {
     }
 }
 
+/// BooleanPredicate: which values of a boolean a module accepts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Accepts { Always, True, False }
+
+impl Accepts {
+    fn decode(fields: &Map<String, Value>, key: &str, default: Self) -> Result<Self, String> {
+        match fields.get(key).filter(|value| !value.is_null()) {
+            None => Ok(default),
+            Some(Value::String(mode)) => match mode.as_str() {
+                "always" => Ok(Self::Always), "true" => Ok(Self::True), "false" => Ok(Self::False),
+                other => Err(format!("unknown {key} {other}")),
+            },
+            Some(_) => Err(format!("{key} must be a string")),
+        }
+    }
+    /// BooleanPredicate.test: `ALWAYS` or a value equal to what the predicate wants.
+    fn test(self, value: bool) -> bool { self == Self::Always || value == (self == Self::True) }
+}
+
+/// A use of a tool that MobEffectModule.ToolUsage hears, with the two booleans the original reads off it: whether it counts as an area
+/// (`is_aoe`) and whether a projectile caused it (`is_projectile`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Usage {
+    /// afterMeleeHit: the swing's own target (not an extra attack of an area tool).
+    MeleeHit,
+    /// onProjectileLaunch: an arrow of a shot; only the primary arrow is not an area (a multishot's others are).
+    Launch { primary: bool },
+    /// afterShearEntity: the mob sheared; `target` is false for the extra mobs an area tool shears.
+    Shear { target: bool },
+}
+
+impl Usage {
+    /// (`is_aoe`, `is_projectile`) as the original passes them to the module's predicates.
+    fn flags(self) -> (bool, bool) {
+        match self {
+            Self::MeleeHit => (false, false),
+            Self::Launch { primary } => (!primary, false),
+            Self::Shear { target } => (!target, false),
+        }
+    }
+}
+
+/// MobEffectModule.ToolUsage: an effect the tool puts on the entity that uses it, with a chance that grows with the level. The hooks the
+/// module names (all of them when it names none) say which uses it hears. Not ported: the halves for breaking a block, harvesting a
+/// plant, a sling's launch and a projectile hitting something (this port has no event for them), and the full-charge check of a melee
+/// swing (the hit event does not carry the attack strength).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ToolUsage {
+    effect: Identifier, level: RandomLeveling, time: RandomLeveling, chance_flat: f32, chance_each: f32,
+    is_aoe: Accepts, is_projectile: Accepts, melee: bool, launch: bool, shear: bool,
+}
+
+impl ToolUsage {
+    /// `None` when the module would never land here: it names a `target` condition on the holder (state this port does not hold for the
+    /// holder), or the hooks and predicates it names only ever match the uses this port cannot hear.
+    pub(crate) fn decode(fields: &Map<String, Value>, hooks: &[Identifier]) -> Result<Option<Self>, String> {
+        let effect = Identifier::parse(fields.get("effect").and_then(Value::as_str).ok_or("effect missing")?).map_err(|e| e.to_string())?;
+        let level = RandomLeveling::decode(fields, "level")?;
+        let time = RandomLeveling::decode(fields, "time")?;
+        if fields.get("target").is_some_and(|value| !value.is_null()) { return Ok(None); }
+        let (chance_flat, chance_each) = match fields.get("chance").filter(|value| !value.is_null()) {
+            None => (1.0, 0.0),
+            Some(Value::Object(chance)) => {
+                let float = |name: &str| chance.get(name).and_then(Value::as_f64).map_or(0.0, |value| value as f32);
+                (float("flat"), float("each_level"))
+            }
+            Some(_) => return Err("chance must be an object".into()),
+        };
+        let is_aoe = Accepts::decode(fields, "is_aoe", Accepts::False)?;
+        let is_projectile = Accepts::decode(fields, "is_projectile", Accepts::False)?;
+        let names = |wanted: &[&str]| hooks.is_empty() || hooks.iter().any(|hook| wanted.contains(&hook.to_string().as_str()));
+        let module = Self {
+            effect, level, time, chance_flat, chance_each, is_aoe, is_projectile,
+            melee: names(&["tconstruct:melee_hit"]),
+            launch: names(&["tconstruct:projectile_launch", "tconstruct:projectile_shot", "tconstruct:projectile_thrown"]),
+            shear: names(&["tconstruct:shear_entity"]),
+        };
+        let lands = |heard: bool, usage: Usage| heard && module.accepts(usage);
+        let any = lands(module.melee, Usage::MeleeHit) || lands(module.launch, Usage::Launch { primary: true }) || lands(module.shear, Usage::Shear { target: true });
+        Ok(any.then_some(module))
+    }
+
+    fn accepts(&self, usage: Usage) -> bool {
+        let (aoe, projectile) = usage.flags();
+        self.is_aoe.test(aoe) && self.is_projectile.test(projectile)
+    }
+
+    /// MobEffectModule.ToolUsage for `usage`: the effect to put on the holder, or None. `rolls` gives uniform values in [0, 1): the chance
+    /// roll, the level's, then the duration's.
+    pub(crate) fn grant(&self, entry: &Entry, condition: bool, usage: Usage, rolls: &mut dyn FnMut() -> f32) -> Option<Grant> {
+        let heard = match usage { Usage::MeleeHit => self.melee, Usage::Launch { .. } => self.launch, Usage::Shear { .. } => self.shear };
+        if !heard || !condition || !self.accepts(usage) { return None; }
+        let scaled = entry.effective_level();
+        let chance = self.chance_flat + self.chance_each * scaled;
+        if !(chance > 0.0 && (chance >= 1.0 || rolls() < chance)) { return None; }
+        let amplifier = self.level.compute(scaled, rolls()).round() as i32 - 1;
+        if amplifier < 0 { return None; }
+        let duration = self.time.compute(scaled, rolls());
+        (duration > 0.0).then(|| Grant { effect: self.effect.clone(), amplifier, duration: duration as i32 })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,5 +341,51 @@ mod tests {
         assert_eq!((grant.amplifier, grant.duration), (0, 28), "level 1 from 0.5 a level, 20 + 0.4 of 10 for each of two levels");
         let (given, _) = WeaponEffect::decode_legacy(json!({"effect":"minecraft:slowness","level":{"flat":1.0},"time":{"flat":20.0},"chance":{"flat":1.0}}).as_object().unwrap()).unwrap().unwrap();
         assert!(given.grant(&entry(1), true, &all_tags, &mut || 0.99).is_some(), "a chance given replaces the default");
+    }
+
+    fn usage(value: Value, hooks: &[&str]) -> Option<ToolUsage> {
+        let hooks: Vec<Identifier> = hooks.iter().map(|hook| Identifier::parse(hook).unwrap()).collect();
+        ToolUsage::decode(value.as_object().unwrap(), &hooks).unwrap()
+    }
+
+    #[test]
+    fn a_tool_usage_effect_lands_only_for_the_uses_its_hooks_name() {
+        // decay: wither on the holder, a quarter of the time, from a swing or a shot but not from shearing.
+        let decay = usage(json!({"effect":"minecraft:wither","chance":{"flat":0.25},"level":{"per_level":1.0},"time":{"flat":120.0}}),
+            &["tconstruct:melee_hit", "tconstruct:monster_melee_hit", "tconstruct:projectile_launch", "tconstruct:projectile_shot", "tconstruct:projectile_thrown", "tconstruct:sling_launch"]).unwrap();
+        let wither = |amplifier| Some(Grant { effect: Identifier::parse("minecraft:wither").unwrap(), amplifier, duration: 120 });
+        assert_eq!(decay.grant(&entry(2), true, Usage::MeleeHit, &mut || 0.2), wither(1));
+        assert_eq!(decay.grant(&entry(1), true, Usage::Launch { primary: true }, &mut || 0.2), wither(0));
+        assert!(decay.grant(&entry(1), true, Usage::MeleeHit, &mut || 0.3).is_none(), "a roll over 25% misses");
+        assert!(decay.grant(&entry(1), true, Usage::Shear { target: true }, &mut || 0.0).is_none(), "decay does not hear shearing");
+        assert!(decay.grant(&entry(1), true, Usage::Launch { primary: false }, &mut || 0.0).is_none(), "a multishot's extra arrow counts as an area, which is not accepted");
+        assert!(decay.grant(&entry(1), false, Usage::MeleeHit, &mut || 0.0).is_none(), "the modifier condition holds first");
+    }
+
+    #[test]
+    fn a_tool_usage_effect_with_no_hooks_hears_every_use_and_the_predicates_can_widen_it() {
+        // magnetic: every hook by default, and the chance defaults to certain.
+        let magnetic = usage(json!({"effect":"tconstruct:magnetic","level":{"flat":1.0},"time":{"flat":40.0}}), &[]).unwrap();
+        for use_of in [Usage::MeleeHit, Usage::Launch { primary: true }, Usage::Shear { target: true }] {
+            assert_eq!(magnetic.grant(&entry(1), true, use_of, &mut || 0.99).map(|grant| grant.duration), Some(40), "{use_of:?}");
+        }
+        let area = json!({"effect":"minecraft:haste","level":{"flat":1.0},"time":{"flat":40.0},"is_aoe":"true"});
+        assert!(usage(area, &[]).is_none(), "an effect for the extra targets of an area tool never lands: this port reports only the primary one");
+        let anywhere = usage(json!({"effect":"minecraft:haste","level":{"flat":1.0},"time":{"flat":40.0},"is_aoe":"always"}), &["tconstruct:shear_entity"]).unwrap();
+        assert!(anywhere.grant(&entry(1), true, Usage::Shear { target: true }, &mut || 0.0).is_some() && anywhere.grant(&entry(1), true, Usage::MeleeHit, &mut || 0.0).is_none(), "only the hooks it names");
+    }
+
+    #[test]
+    fn a_tool_usage_effect_that_could_never_land_here_stays_unbound() {
+        let base = json!({"effect":"minecraft:haste","level":{"flat":1.0},"time":{"flat":40.0}});
+        assert!(usage(base.clone(), &["tconstruct:block_break"]).is_none(), "only the block-break half: nothing this port hears");
+        assert!(usage(base.clone(), &["tconstruct:sling_launch", "tconstruct:plant_harvest"]).is_none());
+        let mut projectile = base.clone();
+        projectile["is_projectile"] = json!("true");
+        assert!(usage(projectile, &[]).is_none(), "an effect for the holder of a projectile that hit has no use here");
+        let mut targeted = base.clone();
+        targeted["target"] = json!("mantle:on_fire");
+        assert!(usage(targeted, &[]).is_none(), "a condition on the holder stays unbound");
+        assert!(ToolUsage::decode(json!({"effect":"minecraft:haste","level":{"flat":1.0}}).as_object().unwrap(), &[]).is_err(), "the time is required");
     }
 }

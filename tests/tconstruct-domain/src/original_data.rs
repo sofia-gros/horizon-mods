@@ -62,9 +62,9 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (163, 114), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (161, 113), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
-    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
 }
 
@@ -937,6 +937,43 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
     let unlucky: Vec<_> = unlucky.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Wearer).count(), 0, "a high roll spares the wearer (20% at level 2)");
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Attacker).count(), 1, "the attacker's 100% at level 2 needs no roll");
+}
+
+#[test]
+fn shipped_decay_and_magnetic_put_their_effect_on_the_holder_of_a_swing_a_shot_and_for_magnetic_a_shearing() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, usage_effects, Environment, TAG_MATERIALS, TAG_UPGRADES}, weapon_effect::Usage};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    for id in ["tconstruct:decay", "tconstruct:magnetic"] {
+        assert!(world.registry.get(&Identifier::parse(id).unwrap()).is_some_and(|modifier| modifier.unbound.is_empty()), "{id} is fully bound");
+    }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let tool_with = |modifier: &str, level: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let effects = |tool: &ItemSlot, usage: Usage, roll: f32| usage_effects(&tool.custom_data, &env, usage, &mut || roll)
+        .into_iter().map(|grant| (grant.effect.to_string(), grant.amplifier, grant.duration)).collect::<Vec<_>>();
+    let wither = |amplifier| vec![("minecraft:wither".to_string(), amplifier, 120)];
+    // decay: wither at the level, 120 ticks, a quarter of the time; swung or shot, not for shearing (it names no shear hook).
+    let decay = tool_with("tconstruct:decay", 2);
+    assert_eq!(effects(&decay, Usage::MeleeHit, 0.1), wither(1));
+    assert_eq!(effects(&decay, Usage::Launch { primary: true }, 0.1), wither(1));
+    assert!(effects(&decay, Usage::MeleeHit, 0.3).is_empty(), "a roll over 25% spares the holder");
+    assert!(effects(&decay, Usage::Shear { target: true }, 0.0).is_empty());
+    assert!(effects(&decay, Usage::Launch { primary: false }, 0.0).is_empty(), "only the primary arrow of a shot");
+    // magnetic: always, for every use (its hooks default to all): the original's own effect at level 1 for 40 ticks.
+    let magnetic = tool_with("tconstruct:magnetic", 1);
+    for usage in [Usage::MeleeHit, Usage::Launch { primary: true }, Usage::Shear { target: true }] {
+        assert_eq!(effects(&magnetic, usage, 0.99), vec![("tconstruct:magnetic".to_string(), 0, 40)], "{usage:?}");
+    }
+    // A tool with neither has nothing to put on its holder.
+    assert!(usage_effects(&tool_with("tconstruct:sharpness", 1).custom_data, &env, Usage::MeleeHit, &mut || 0.0).is_empty());
 }
 
 #[test]

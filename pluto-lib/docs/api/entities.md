@@ -671,7 +671,7 @@ assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing)
 
 ### `EntityAction`
 
-Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it).
+Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` is in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the player who shot or sheared is reached by their uuid, the world owner included).
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, KnockbackDirection, ServerLivingEntityEvents};
@@ -681,6 +681,40 @@ ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
         hit.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
         hit.actions.borrow_mut().push(EntityAction::Knockback { target: ActionTarget::Victim, strength: 0.5, direction: KnockbackDirection::AwayFromOther });
     }
+});
+```
+
+### `ServerEntityEvents::SHEAR`
+
+A player is about to shear a mob (Bukkit: `PlayerShearEntityEvent`; Fabric has no counterpart), heard on a server before the shears act. Set `attempt.cancel` to stop the shearing, or push `EntityAction`s for the player (`ActionTarget::Attacker`) onto `attempt.actions`; they land even when a later callback cancels the shearing. `attempt.tool` is the stack in the shearing hand. The game reports only a guest's shearing on the world owner's LAN world; the owner's own shearing is heard by no hook.
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, ServerEntityEvents};
+
+ServerEntityEvents::SHEAR.register(|attempt| {
+    if attempt.tool.as_ref().is_some_and(|tool| tool.item == "example:cutters") {
+        attempt.actions.borrow_mut().push(EntityAction::AddEffect {
+            target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 0, duration: 100,
+        });
+    }
+    if attempt.off_hand { attempt.cancel.set(true); }
+});
+```
+
+### `ShearAttempt`
+
+A player about to shear a mob. `player` is the player's uuid and `name` their name, `entity` the mob's entity id, `off_hand` whether the shears are in the off hand, `tool` the stack in that hand (its damage, max damage and custom data; `None` for an empty hand), `cancel` a `Cell<bool>` to set to stop the shearing and `actions` the `EntityAction`s to do to the player.
+
+```rust
+use pluto_lib::{ServerEntityEvents, ShearAttempt};
+
+fn tool_item(attempt: &ShearAttempt) -> Option<String> {
+    attempt.tool.as_ref().map(|tool| tool.item.clone())
+}
+ServerEntityEvents::SHEAR.register(|attempt| {
+    let _ = (attempt.player, &attempt.name, attempt.entity, tool_item(attempt));
+    attempt.cancel.set(false);
+    assert!(attempt.actions.borrow().is_empty());
 });
 ```
 

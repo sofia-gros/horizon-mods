@@ -866,6 +866,30 @@ fn cancel_if(handled: bool) -> Flow {
     if handled { Flow::Cancel } else { Flow::Continue }
 }
 
+/// Puts an effect on the player `uuid` through the host, which reaches the world's owner by their uuid as it reaches a guest. An effect
+/// with a negative amplifier or no duration is not given.
+fn give_effect(host: &mut dyn Host, uuid: u128, effect: String, amplifier: i32, duration: i32) {
+    if duration <= 0 || amplifier < 0 { return; }
+    host.add_effect(uuid, &horizon_client::game::NativeEffect { id: effect, amplifier: u8::try_from(amplifier).unwrap_or(u8::MAX), duration, ambient: false, particles: true });
+}
+
+/// Does `actions` to the player `uuid`, the `Attacker` of each: the effects by uuid, the rest as entity actions when the host can name the
+/// player's entity (a guest, or the acting player); those are skipped otherwise.
+fn apply_player_actions(host: &mut dyn Host, uuid: u128, actions: Vec<entity_events_v1::EntityAction>) {
+    let mut rest = Vec::new();
+    for action in actions {
+        match action {
+            entity_events_v1::EntityAction::AddEffect { target: entity_events_v1::ActionTarget::Attacker, effect, amplifier, duration } => give_effect(host, uuid, effect, amplifier, duration),
+            other => rest.push(other),
+        }
+    }
+    if rest.is_empty() { return; }
+    let found = host.acting_player().filter(|acting| acting.uuid == uuid).map(|acting| (acting.entity_id, acting.dimension.to_string()))
+        .or_else(|| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (player.entity_id, player.dimension.to_string())));
+    let Some((entity, dimension)) = found else { return };
+    apply_entity_actions(host, &dimension, entity, -1, rest);
+}
+
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
     Some(match tag {
         Tag::End => return None,
@@ -964,6 +988,15 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 };
                 let on_ground = host.entity_on_ground(entity).unwrap_or(false);
                 if let Some(delta) = entity_events_v1::knockback_delta(strength, x, z, on_ground) { host.entity_push(entity, delta); }
+            }
+            EntityAction::AddEffect { target, effect, amplifier, duration } => {
+                let id = id_of(target);
+                // A player gets the effect through the host; a mob through the same hand-off the weapon-hit effects use.
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                if let Some(player) = player { give_effect(host, player.uuid, effect, amplifier, duration); continue; }
+                if duration <= 0 || amplifier < 0 { continue; }
+                if let Ok(mob) = u32::try_from(id) { horizon_client::entry::pluto_mob_effect_access::push(mob, &effect, duration, amplifier); }
             }
         }
     }
@@ -1798,6 +1831,55 @@ impl Hooks for PlutoHooks {
         if allowed { Flow::Continue } else { Flow::Cancel }
     }
 
+    fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
+        if !projectile_events_v1::launch_heard() { return; }
+        let launch = projectile_events_v1::ProjectileLaunch { player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned() };
+        scoped(host, || projectile_events_v1::launched(&launch));
+    }
+
+    fn entity_shoot_bow(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::EntityShootBowEvent<'_>) {
+        if !projectile_events_v1::shot_heard() { return; }
+        let player = event.player;
+        // The bow is in one of the shooter's hands: the callbacks get both stacks, as the knockback hook gives them.
+        let main_hand = host.held_stack(player).map(|stack| read_stack(&stack));
+        let off_hand = host.player_equipment(player, horizon_client::mod_api::EquipmentSlot::OffHand).map(|stack| read_stack(&stack));
+        let shot = projectile_events_v1::BowShot { player, name: event.name.to_owned(), projectile: event.projectile, force: event.force, main_hand, off_hand, actions: std::cell::RefCell::new(Vec::new()) };
+        let actions = scoped(host, || projectile_events_v1::shot(&shot));
+        if !actions.is_empty() { apply_player_actions(host, player, actions); }
+    }
+
+    fn player_shear_entity(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::PlayerShearEntityEvent<'_>) -> Flow {
+        let player = event.player;
+        let held = if event.off_hand { host.player_equipment(player, horizon_client::mod_api::EquipmentSlot::OffHand) } else { host.held_stack(player) };
+        let attempt = entity_events_v1::ShearAttempt {
+            player, name: event.name.to_owned(), entity: event.entity_id, off_hand: event.off_hand, tool: held.map(|stack| read_stack(&stack)),
+            cancel: std::cell::Cell::new(false), actions: std::cell::RefCell::new(Vec::new()),
+        };
+        let (allowed, actions) = scoped(host, || entity_events_v1::shear(&attempt));
+        if !actions.is_empty() { apply_player_actions(host, player, actions); }
+        cancel_if(!allowed)
+    }
+
+    fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_, '_>) {
+        // The game's own death-loot path (pluto-living-drops-game) calls the hook for a mob's table drops; heads claimed through the living-drops
+        // callbacks are appended outside it, so this hook only sees and changes the stacks the game passes here.
+        if !loot_api_v2::drops_heard() { return; }
+        let Some(slots) = event.drops.iter().map(slot_of).collect::<Option<Vec<ItemSlot>>>() else { return };
+        let before = slots.clone();
+        let context = &*event.context;
+        let drops = loot_api_v2::LootDrops {
+            table: context.table.to_owned(), dimension: context.dimension.to_owned(), origin: context.origin,
+            block: context.block.as_ref().map(|(pos, _)| *pos),
+            entity: context.entity.as_ref().map(|(id, kind)| (*id, (*kind).to_owned())),
+            player: context.player, tool: context.tool.map(|stack| read_stack(stack)), explosion: context.explosion, used: context.used,
+            drops: std::cell::RefCell::new(slots),
+        };
+        let after = scoped(host, || loot_api_v2::modify_drops(&drops));
+        if after != before {
+            *event.drops = after.into_iter().filter_map(|slot| native_slot(Some(slot))).collect();
+        }
+    }
+
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
         for (usage, level) in command_api_v2::collect() {
             event.commands.push(if level == 0 { NativeCommand::new(&usage) } else { NativeCommand::op(&usage, level) });
@@ -2199,6 +2281,17 @@ impl Hooks for PlutoHooks {
         }
         // The actions the mods queued (fire, freezing, healing, knockback) are done before the hit's damage lands.
         let actions = entity_events_v1::take_weapon_actions(&hit);
+        // The effects a tool puts on its own holder go to the attacking player, named as the player state above names them.
+        let (own_effects, actions): (Vec<_>, Vec<_>) = actions.into_iter().partition(|action| matches!(action, entity_events_v1::EntityAction::AddEffect { target: entity_events_v1::ActionTarget::Attacker, .. }));
+        if !own_effects.is_empty() {
+            let attacker = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.uuid)
+                .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing).map(|player| player.uuid));
+            if let Some(uuid) = attacker {
+                for action in own_effects {
+                    if let entity_events_v1::EntityAction::AddEffect { effect, amplifier, duration, .. } = action { give_effect(host, uuid, effect, amplifier, duration); }
+                }
+            }
+        }
         if !actions.is_empty() {
             if let Some(dimension) = host.acting_player().map(|acting| acting.dimension) {
                 apply_entity_actions(host, &dimension, event.causing, event.entity, actions);
