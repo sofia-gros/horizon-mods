@@ -40,7 +40,7 @@ pub(crate) fn register() {
         let entities = common::entity_type_snapshot();
         let attacker_kind = hit.attacker_state.as_ref().and_then(|state| Identifier::parse(&state.kind).ok());
         let attacker_in_tag = |tag: &Identifier| {
-            if tag.namespace() == crate::melee_damage::STATE_NAMESPACE { return crate::melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), None); }
+            if tag.namespace() == crate::melee_damage::STATE_NAMESPACE { return crate::melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), hit.target_state.as_ref()); }
             crate::melee_hook::target_in_tag(entities.as_deref(), attacker_kind.as_ref(), tag)
         };
         let source = DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags, attacker_in_tag: &attacker_in_tag };
@@ -55,9 +55,16 @@ pub(crate) fn register() {
         for (_, piece) in &hit.armor {
             if let Ok((value, cap)) = with_held_tool(piece, |env, stack| (tool_stack::protection(&stack.custom_data, env, &source, total), tool_stack::protection_cap(&stack.custom_data, env))) { total = value; cap_added += cap; }
         }
-        if total == 0.0 { return; }
         let amount = hit.amount.get();
-        let after = damage_after_protection(amount, 0.0, total, protection_cap(cap_added));
+        let mut after = if total == 0.0 { amount } else { damage_after_protection(amount, 0.0, total, protection_cap(cap_added)) };
+        // The modules that adjust the damage the wearer takes run after the protection, each piece seeing what the last left; the wearer is
+        // the target of the hit, with the health and surroundings PlutoLib reported for them.
+        let entities = crate::entity_facts::Entities { attacker: hit.attacker_state.as_ref(), target: hit.target_state.as_ref() };
+        for (_, piece) in &hit.armor {
+            if after <= 0.0 { break; }
+            if let Ok(next) = with_held_tool(piece, |env, stack| tool_stack::adjust_damage(&stack.custom_data, env, &source, &entities, after)) { after = next; }
+        }
+        if total == 0.0 && after == amount { return; }
         if LOGGED.fetch_add(1, Ordering::Relaxed) < 4 {
             eprintln!("Tinkers: {} damage to {} with {} armor pieces: protection {total}, {amount} -> {after}", hit.damage.damage_type, hit.damage.kind, hit.armor.len());
         }

@@ -81,6 +81,28 @@ pub struct EntityState {
     pub fire_immune: bool,
     /// The ids of the effects on it, such as `minecraft:poison`.
     pub effects: Vec<String>,
+    /// Each effect on it as (id, amplifier): the amplifier is the level less one, 0 for level I. Lists the same effects as `effects`.
+    pub effect_levels: Vec<(String, i32)>,
+    /// Its health points, and its maximum (the `minecraft:max_health` attribute); None when the game did not report them.
+    pub health: Option<f32>,
+    pub max_health: Option<f32>,
+    /// The biome it stands in, such as `minecraft:plains`; None when the game did not report it.
+    pub biome: Option<String>,
+    /// That biome's temperature at its height, as `Biome.getTemperature` reports it; None for a biome PlutoLib has no temperature for.
+    pub biome_temperature: Option<f32>,
+    /// Whether its eyes are in water (`minecraft:water`, a waterlogged block, kelp or seagrass), as opposed to `in_water`, which a touch of water sets.
+    pub eyes_in_water: bool,
+    /// Whether rain falls on it: it is raining, the sky is open above it and the biome rains rather than snows or stays dry.
+    pub rain_exposed: bool,
+    /// The share of its armor slots (head, chest, legs, feet) holding armor, 0.0 to 1.0, as `LivingEntity.getArmorCoverPercentage`; None when unknown.
+    pub armor_coverage: Option<f32>,
+}
+
+impl EntityState {
+    /// The level of the effect `id` on it (the amplifier plus one), or 0 when it does not have the effect or the game did not report levels.
+    pub fn effect_level(&self, id: &str) -> i32 {
+        self.effect_levels.iter().find(|(effect, _)| effect == id).map_or(0, |(_, amplifier)| amplifier.saturating_add(1))
+    }
 }
 
 /// A status effect for a callback to put on the mob a weapon hit.
@@ -519,6 +541,112 @@ pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Opt
     PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target, std::time::Instant::now())));
 }
 
+/// The state of each player wearing armor that carries custom data, as of their last tick, by entity id: the damage event that
+/// follows a hit on them reports it as `target_state` when the hit brought no state of its own.
+static WEARER_STATES: std::sync::Mutex<std::collections::BTreeMap<i32, EntityState>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records the state of the player `entity` as of this tick; None forgets it.
+pub(crate) fn remember_wearer_state(entity: i32, state: Option<EntityState>) {
+    let Ok(mut states) = WEARER_STATES.lock() else { return };
+    match state { Some(state) => { states.insert(entity, state); } None => { states.remove(&entity); } }
+}
+
+fn wearer_state(entity: i32) -> Option<EntityState> { WEARER_STATES.lock().ok()?.get(&entity).cloned() }
+
+/// What the vanilla biomes are like: (id without `minecraft:`, base temperature, whether it has precipitation). A data pack's biome is not here.
+const BIOME_CLIMATES: &[(&str, f32, bool)] = &[
+    ("badlands", 2.0, false), ("eroded_badlands", 2.0, false), ("wooded_badlands", 2.0, false), ("desert", 2.0, false), ("savanna", 2.0, false),
+    ("savanna_plateau", 1.0, false), ("windswept_savanna", 1.1, false),
+    ("bamboo_jungle", 0.95, true), ("jungle", 0.95, true), ("sparse_jungle", 0.95, true),
+    ("beach", 0.8, true), ("snowy_beach", 0.05, true), ("stony_shore", 0.2, true),
+    ("birch_forest", 0.6, true), ("old_growth_birch_forest", 0.6, true), ("dark_forest", 0.7, true), ("forest", 0.7, true), ("flower_forest", 0.7, true),
+    ("pale_garden", 0.7, true), ("cherry_grove", 0.5, true), ("meadow", 0.5, true),
+    ("cold_ocean", 0.5, true), ("deep_cold_ocean", 0.5, true), ("deep_ocean", 0.5, true), ("ocean", 0.5, true), ("lukewarm_ocean", 0.5, true),
+    ("deep_lukewarm_ocean", 0.5, true), ("warm_ocean", 0.5, true), ("deep_frozen_ocean", 0.5, true), ("frozen_ocean", 0.0, true),
+    ("dripstone_caves", 0.8, true), ("lush_caves", 0.5, true), ("deep_dark", 0.8, true),
+    ("end_barrens", 0.5, false), ("end_highlands", 0.5, false), ("end_midlands", 0.5, false), ("small_end_islands", 0.5, false), ("the_end", 0.5, false), ("the_void", 0.5, false),
+    ("nether_wastes", 2.0, false), ("crimson_forest", 2.0, false), ("warped_forest", 2.0, false), ("soul_sand_valley", 2.0, false), ("basalt_deltas", 2.0, false),
+    ("frozen_peaks", -0.7, true), ("grove", -0.2, true), ("jagged_peaks", -0.7, true), ("snowy_slopes", -0.3, true), ("stony_peaks", 1.0, true),
+    ("frozen_river", 0.0, true), ("river", 0.5, true), ("swamp", 0.8, true), ("mangrove_swamp", 0.8, true),
+    ("ice_spikes", 0.0, true), ("snowy_plains", 0.0, true), ("snowy_taiga", -0.5, true), ("taiga", 0.25, true), ("old_growth_pine_taiga", 0.3, true),
+    ("old_growth_spruce_taiga", 0.25, true), ("mushroom_fields", 0.9, true), ("plains", 0.8, true), ("sunflower_plains", 0.8, true),
+    ("windswept_forest", 0.2, true), ("windswept_gravelly_hills", 0.2, true), ("windswept_hills", 0.2, true),
+];
+
+/// The base temperature and whether it has precipitation, for a vanilla biome id (`minecraft:plains`); None for any other.
+pub(crate) fn biome_climate(biome: &str) -> Option<(f32, bool)> {
+    let name = biome.strip_prefix("minecraft:")?;
+    BIOME_CLIMATES.iter().find(|(id, _, _)| *id == name).map(|(_, temperature, rain)| (*temperature, *rain))
+}
+
+/// `Biome.getTemperature` at height `y`: above y 80 the air cools by 0.05 per 40 blocks. The game adds a noise term of at most about 0.01
+/// to that (and a noise to frozen biomes), which is left out.
+pub(crate) fn temperature_at(base: f32, y: i32) -> f32 {
+    if y > 80 { base - (y - 80) as f32 * 0.05 / 40.0 } else { base }
+}
+
+/// Whether rain falls on a spot: it is raining, the sky light there is full (nothing above it) and the biome rains; a biome PlutoLib
+/// does not know is taken to rain, and one that is cooler than 0.15 at that height snows instead.
+pub(crate) fn rain_exposed(raining: bool, sky_light: u8, biome: Option<&str>, y: i32) -> bool {
+    if !raining || sky_light < 15 { return false; }
+    match biome.and_then(biome_climate) {
+        Some((temperature, precipitation)) => precipitation && temperature_at(temperature, y) >= 0.15,
+        None => true,
+    }
+}
+
+/// Whether the block `id` holds water in its own right: water, a bubble column, or a plant that grows under water.
+pub(crate) fn holds_water(id: &str, waterlogged: bool) -> bool {
+    waterlogged || matches!(id, "minecraft:water" | "minecraft:bubble_column" | "minecraft:kelp" | "minecraft:kelp_plant" | "minecraft:seagrass" | "minecraft:tall_seagrass")
+}
+
+/// What an entity's saved data (`Entity.saveWithoutId`) says: its health, its maximum health and the share of its armor slots filled.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32> }
+
+fn number(value: &super::base::Nbt) -> Option<f64> {
+    use super::base::Nbt;
+    Some(match value { Nbt::Float(v) => f64::from(*v), Nbt::Double(v) => *v, Nbt::Int(v) => f64::from(*v), Nbt::Short(v) => f64::from(*v), Nbt::Byte(v) => f64::from(*v), Nbt::Long(v) => *v as f64, _ => return None })
+}
+
+/// Reads an entity's saved data. The maximum health is the saved `minecraft:max_health` attribute: its base value with the saved modifiers
+/// applied (add value, then multiplied base, then multiplied total); None when the data holds no such attribute.
+pub(crate) fn saved_facts(data: &super::base::NbtCompound) -> SavedFacts {
+    use super::base::Nbt;
+    let health = data.get("Health").and_then(number).map(|health| health as f32);
+    let max_health = data.get("attributes").and_then(|list| match list { Nbt::List(list) => Some(list), _ => None }).and_then(|list| {
+        list.iter().find_map(|attribute| {
+            let Nbt::Compound(attribute) = attribute else { return None };
+            if !matches!(attribute.get("id"), Some(Nbt::String(id)) if id == "minecraft:max_health") { return None; }
+            let base = attribute.get("base").and_then(number)?;
+            let (mut add, mut base_multiplier, mut total_multiplier) = (0.0, 0.0, 1.0);
+            if let Some(Nbt::List(modifiers)) = attribute.get("modifiers") {
+                for modifier in modifiers {
+                    let Nbt::Compound(modifier) = modifier else { continue };
+                    let amount = modifier.get("amount").and_then(number).unwrap_or(0.0);
+                    match modifier.get("operation") {
+                        Some(Nbt::String(operation)) if operation == "add_multiplied_base" => base_multiplier += amount,
+                        Some(Nbt::String(operation)) if operation == "add_multiplied_total" => total_multiplier *= 1.0 + amount,
+                        _ => add += amount,
+                    }
+                }
+            }
+            Some(((base + add) * (1.0 + base_multiplier) * total_multiplier) as f32)
+        })
+    });
+    // The `equipment` compound names a slot only while it holds something.
+    let armor_coverage = match data.get("equipment") {
+        Some(Nbt::Compound(equipment)) => Some(armor_coverage(["head", "chest", "legs", "feet"].iter().filter(|slot| {
+            matches!(equipment.get(**slot), Some(Nbt::Compound(stack)) if !matches!(stack.get("id"), Some(Nbt::String(id)) if id == "minecraft:air"))
+        }).count())),
+        _ => None,
+    };
+    SavedFacts { health, max_health, armor_coverage }
+}
+
+/// `LivingEntity.getArmorCoverPercentage` for `filled` of the four armor slots.
+pub(crate) fn armor_coverage(filled: usize) -> f32 { filled.min(4) as f32 / 4.0 }
+
 /// A player is attacking `entity` with `stack`: remembered for the damage that follows in the same call.
 pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
     PENDING_ATTACK.with(|pending| *pending.borrow_mut() = stack.map(|s| (entity, s)));
@@ -570,7 +698,11 @@ pub(crate) fn modify_visibility(wearer: u128, observer: &str) -> f64 {
 
 /// Forgets a player who left.
 pub(crate) fn forget_armor(uuid: u128) {
-    if let Ok(mut worn) = ARMOR.lock() { worn.retain(|_, (known, _)| *known != uuid); }
+    if let Ok(mut worn) = ARMOR.lock() {
+        let gone: Vec<i32> = worn.iter().filter(|(_, (known, _))| *known == uuid).map(|(entity, _)| *entity).collect();
+        worn.retain(|_, (known, _)| *known != uuid);
+        for entity in gone { remember_wearer_state(entity, None); }
+    }
 }
 
 /// The amount after the callbacks; the stack of the attack that is being applied to `damage.entity`, if there is one.
@@ -586,7 +718,7 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
         }
     });
     let armor = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(_, pieces)| pieces.clone())).unwrap_or_default();
-    let (attacker_state, target_state) = PENDING_STATES.with(|pending| {
+    let (attacker_state, mut target_state) = PENDING_STATES.with(|pending| {
         let mut pending = pending.borrow_mut();
         match pending.take() {
             Some((entity, attacker, target, at)) if entity == damage.entity && at.elapsed() < HIT_STATES_LIFETIME => (attacker, target),
@@ -594,6 +726,8 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
             other => { *pending = other; (None, None) }
         }
     });
+    // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
+    if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
     let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state };
     MODIFY_DAMAGE.invoke(&modification);
     modification.amount.get()
@@ -879,5 +1013,72 @@ mod tests {
         let hit = |amount| LivingDamage { entity: 1, kind: "minecraft:zombie".into(), damage_type: "minecraft:generic".into(), attacker: -1, direct: -1, amount };
         assert!(allow_damage(&hit(3.0)));
         assert!(!allow_damage(&hit(500.0)));
+    }
+
+    #[test]
+    fn an_effect_level_is_the_amplifier_plus_one() {
+        let state = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
+        assert_eq!((state.effect_level("minecraft:poison"), state.effect_level("minecraft:speed")), (2, 0));
+    }
+
+    #[test]
+    fn the_climate_of_a_vanilla_biome_cools_with_height_and_decides_rain() {
+        assert_eq!(biome_climate("minecraft:plains"), Some((0.8, true)));
+        assert_eq!(biome_climate("minecraft:desert"), Some((2.0, false)));
+        assert_eq!(biome_climate("example:glow_fields"), None);
+        assert_eq!(temperature_at(0.8, 80), 0.8);
+        assert!((temperature_at(0.8, 120) - 0.75).abs() < 1e-6, "0.05 cooler for 40 blocks above y 80");
+        assert!(rain_exposed(true, 15, Some("minecraft:plains"), 64));
+        assert!(!rain_exposed(true, 15, Some("minecraft:desert"), 64), "a desert has no rain");
+        assert!(!rain_exposed(true, 15, Some("minecraft:snowy_plains"), 64), "a cold biome snows");
+        assert!(!rain_exposed(true, 15, Some("minecraft:plains"), 700), "the air that high is too cold for rain");
+        assert!(!rain_exposed(true, 14, Some("minecraft:plains"), 64), "a roof shuts the rain out");
+        assert!(!rain_exposed(false, 15, Some("minecraft:plains"), 64));
+        assert!(rain_exposed(true, 15, Some("example:glow_fields"), 64), "an unknown biome is taken to rain");
+        assert!(holds_water("minecraft:kelp", false) && holds_water("minecraft:stone", true) && !holds_water("minecraft:air", false));
+    }
+
+    #[test]
+    fn saved_data_gives_health_the_modified_maximum_and_armor_coverage() {
+        use super::super::base::{Nbt, NbtCompound};
+        let compound = |entries: Vec<(&str, Nbt)>| -> NbtCompound { entries.into_iter().map(|(key, value)| (key.to_owned(), value)).collect() };
+        let stack = |id: &str| Nbt::Compound(compound(vec![("id", Nbt::String(id.into())), ("count", Nbt::Int(1))]));
+        let data = compound(vec![
+            ("Health", Nbt::Float(7.5)),
+            ("attributes", Nbt::List(vec![
+                Nbt::Compound(compound(vec![("id", Nbt::String("minecraft:movement_speed".into())), ("base", Nbt::Double(0.2))])),
+                Nbt::Compound(compound(vec![("id", Nbt::String("minecraft:max_health".into())), ("base", Nbt::Double(20.0)), ("modifiers", Nbt::List(vec![
+                    Nbt::Compound(compound(vec![("amount", Nbt::Double(4.0)), ("operation", Nbt::String("add_value".into()))])),
+                    Nbt::Compound(compound(vec![("amount", Nbt::Double(0.5)), ("operation", Nbt::String("add_multiplied_base".into()))])),
+                    Nbt::Compound(compound(vec![("amount", Nbt::Double(1.0)), ("operation", Nbt::String("add_multiplied_total".into()))])),
+                ]))])),
+            ])),
+            ("equipment", Nbt::Compound(compound(vec![("head", stack("minecraft:iron_helmet")), ("feet", stack("minecraft:air")), ("mainhand", stack("minecraft:stick"))]))),
+        ]);
+        // (20 + 4) * (1 + 0.5) * (1 + 1).
+        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25) });
+        assert_eq!(saved_facts(&NbtCompound::new()), SavedFacts::default(), "data that says nothing reports nothing");
+        assert_eq!(armor_coverage(9), 1.0);
+    }
+
+    #[test]
+    fn a_hit_on_a_wearer_reports_the_state_remembered_at_their_last_tick() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| {
+            if hit.damage.entity == 515151 { log.lock().unwrap().push(hit.target_state.as_ref().and_then(|state| state.health)); }
+        });
+        let damage = LivingDamage { entity: 515151, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 3, direct: 3, amount: 4.0 };
+        let piece = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
+        remember_armor(5151, 515151, vec![("chest".into(), piece)]);
+        modify_damage(&damage);
+        remember_wearer_state(515151, Some(EntityState { health: Some(12.0), max_health: Some(20.0), ..EntityState::default() }));
+        modify_damage(&damage);
+        // A state that came with the hit wins over the remembered one.
+        hit_states(515151, None, Some(EntityState { health: Some(3.0), ..EntityState::default() }));
+        modify_damage(&damage);
+        forget_armor(5151);
+        modify_damage(&damage);
+        assert_eq!(*seen.lock().unwrap(), [None, Some(12.0), Some(3.0), None], "forgetting the wearer forgets the state");
     }
 }

@@ -106,7 +106,7 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
             for (priority, module) in modifier.mining_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::of(nbt);
         modules.into_iter().fold(speed, |speed, (_, _, entry, module)| module.mining_speed(entry, facts, &view, context, speed))
     })
 }
@@ -141,33 +141,39 @@ pub(crate) fn protection(nbt: &NbtCompound, env: &Environment, source: &crate::p
     with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(value, |value, (entry, modifier)| modifier.protection(entry, facts, nbt, source, value)))
 }
 
+/// ModifyDamageModifierHook over every modifier of the tool, in modifier order, starting from `amount`: the damage its wearer takes.
+pub(crate) fn adjust_damage(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(amount, |amount, (entry, modifier)| if amount > 0.0 { modifier.adjust_damage(entry, facts, nbt, source, entities, amount) } else { amount }))
+}
+
 /// The attribute modifiers the tool's modifiers add for the `wanted` slots (AttributesModifierHook), in modifier order.
 pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[&str]) -> Vec<NbtCompound> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())
 }
 
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
-/// priority order (highest first, ties in modifier order), starting from `damage`.
-pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+/// priority order (highest first, ties in modifier order), starting from `damage`. `entities` are the attacker and target as PlutoLib
+/// reported them, for the modules that read their health, temperature or effects.
+pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
         for (index, (entry, modifier)) in saved.iter().enumerate() {
             for (priority, module) in modifier.melee_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::with(nbt, *entities);
         modules.into_iter().fold(damage, |damage, (_, _, entry, module)| module.melee_damage(entry, facts, &view, base, damage, target_in_tag))
     })
 }
 
 /// ConditionalStatModifierHook.getModifiedStat: the tool's stored `stat` after each modifier's conditional stat modules (a modifier's
-/// modules by priority, the modifiers in tool order), clamped to the stat's limits. `holder_in_tag` answers the holder's pseudo state tags.
-/// A stat the item does not support is returned as stored.
-pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+/// modules by priority, the modifiers in tool order), clamped to the stat's limits. `holder_in_tag` answers the holder's pseudo state tags
+/// and `entities.attacker` is the holder's state, for the variables that read it. A stat the item does not support is returned as stored.
+pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut value = self::stat(nbt, stat);
         if !crate::modifier_modules::supports(stat, facts) { return stat.clamp(value); }
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::with(nbt, *entities);
         let multiplier = view.multiplier(stat);
         for (entry, modifier) in saved {
             let mut modules: Vec<(i32, &crate::modifier_modules::Module)> = modifier.conditional_stat_modules().collect();
@@ -182,7 +188,7 @@ pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat,
 /// projectile's persistent data (separately for ammo and for a launcher).
 pub(crate) fn power_shoot(nbt: &NbtCompound, env: &Environment, is_ammo: bool, projectile: &mut NbtCompound) {
     with_tool_facts(nbt, env, |saved, _| {
-        let multiplier = crate::mining_speed::ToolView { nbt }.multiplier(Stat::ProjectileDamage);
+        let multiplier = crate::mining_speed::ToolView::of(nbt).multiplier(Stat::ProjectileDamage);
         for (_, modifier) in saved { for (_, module) in modifier.conditional_power_modules() { module.shoot(is_ammo, multiplier, projectile); } }
     })
 }
@@ -209,7 +215,7 @@ pub(crate) fn melee_knockback(nbt: &NbtCompound, env: &Environment, strength: f3
             for (priority, module) in modifier.knockback_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::of(nbt);
         modules.into_iter().fold(strength, |strength, (_, _, entry, module)| module.knockback(entry, facts, &view, strength, target_in_tag))
     })
 }

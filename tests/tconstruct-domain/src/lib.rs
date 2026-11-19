@@ -61,6 +61,8 @@ mod tool_mining;
 mod mining_speed;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_damage.rs"]
 mod melee_damage;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/entity_facts.rs"]
+mod entity_facts;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/conditional_stat.rs"]
 mod conditional_stat;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/knockback.rs"]

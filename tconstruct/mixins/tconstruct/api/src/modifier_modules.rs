@@ -142,6 +142,8 @@ pub(crate) enum Module {
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
+    /// AdjustDamageModule on the modify damage hook: changes the damage the wearer is about to take.
+    AdjustDamage { module: crate::protection::AdjustDamage, condition: Condition },
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
@@ -511,6 +513,10 @@ impl Module {
                 };
                 Self::Enchantment { name, flat, each, condition: Condition::decode(fields)? }
             }
+            "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
+                let Some(module) = crate::protection::AdjustDamage::decode(fields)? else { return Ok(None); };
+                Self::AdjustDamage { module, condition: Condition::decode(fields)? }
+            }
             "tconstruct:protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::Protection::decode(fields)? else { return Ok(None); };
                 Self::Protection { module, condition: Condition::decode(fields)? }
@@ -592,7 +598,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::AdjustDamage { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -757,13 +763,20 @@ impl Module {
     pub fn protection_cap(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound) -> f32 {
         let Self::ProtectionCap { formula, condition } = self else { return 0.0; };
         if !condition.matches(entry, facts) { return 0.0; }
-        formula.eval(entry, &crate::mining_speed::ToolView { nbt }, 0.0, 1.0, 0.0)
+        formula.eval(entry, &crate::mining_speed::ToolView::of(nbt), 0.0, 1.0, 0.0)
     }
     /// ProtectionModifierHook: the running protection after this module, over a damage source.
     pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
         let Self::Protection { module, condition } = self else { return value; };
         if !condition.matches(entry, facts) || !module.source().matches(source) || !module.attacker_matches(source) { return value; }
-        module.formula().eval(entry, &crate::mining_speed::ToolView { nbt }, value, 1.0, 0.0)
+        module.formula().eval(entry, &crate::mining_speed::ToolView::of(nbt), value, 1.0, 0.0)
+    }
+    /// ModifyDamageModifierHook: the damage the wearer takes after this module; `entities` are the hit's attacker and the wearer (as the target).
+    pub fn adjust_damage(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
+        let Self::AdjustDamage { module, condition } = self else { return amount; };
+        if !condition.matches(entry, facts) { return amount; }
+        let holder_in_tag = |tag: &Identifier| crate::melee_damage::state_in_tag(tag, entities.attacker, entities.target);
+        module.apply(entry, &crate::mining_speed::ToolView::with(nbt, *entities), source, &holder_in_tag, amount)
     }
     /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
     pub fn enchantment(&self, entry: &Entry, facts: &Facts) -> Option<(String, i32)> {
@@ -785,7 +798,7 @@ impl Module {
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
         let Self::Attribute { attribute, operation, formula, slots, condition } = self else { return Vec::new(); };
         if !condition.matches(entry, facts) { return Vec::new(); }
-        let amount = f64::from(formula.eval(entry, &crate::mining_speed::ToolView { nbt }, 0.0, 1.0, 0.0));
+        let amount = f64::from(formula.eval(entry, &crate::mining_speed::ToolView::of(nbt), 0.0, 1.0, 0.0));
         let short = attribute.rsplit(':').next().unwrap_or(attribute);
         slots.iter().filter(|slot| wanted.contains(&slot.as_str())).map(|slot| {
             let mut modifier = NbtCompound::new();

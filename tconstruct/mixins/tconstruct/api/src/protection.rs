@@ -94,6 +94,26 @@ impl Protection {
     pub fn formula(&self) -> &StatFormula { &self.formula }
 }
 
+/// AdjustDamageModule: changes the damage a wearer is about to take, while the wearer (`holder`, read as the `target` of the hit) and the
+/// damage source pass their conditions. The formula runs over the level and the damage so far (`protection`), as the original's does.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct AdjustDamage { holder: crate::melee_damage::TargetCondition, source: SourceCondition, formula: StatFormula }
+
+impl AdjustDamage {
+    /// `None` when the holder, the source or a formula variable needs a fact this port does not hold.
+    pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(holder) = crate::melee_damage::TargetCondition::decode_for("target", fields.get("holder"))? else { return Ok(None); };
+        let source = match fields.get("damage_source") { None | Some(Value::Null) => SourceCondition::Any, Some(value) => match SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
+        let formula = StatFormula::decode_in(fields, &["level", "protection", "multiplier", "base"], crate::mining_speed::EntityScope::Hit)?;
+        Ok(formula.map(|formula| Self { holder, source, formula }))
+    }
+    /// ModifyDamageModifierHook.modifyDamageTaken: the damage after the module; `holder_in_tag` answers the wearer's pseudo state tags.
+    pub fn apply(&self, entry: &crate::modifier_entries::Entry, tool: &crate::mining_speed::ToolView, source: &DamageSource, holder_in_tag: &dyn Fn(&Identifier) -> bool, amount: f32) -> f32 {
+        if !self.source.matches(source) || !self.holder.matches(holder_in_tag) { return amount; }
+        self.formula.eval(entry, tool, amount, 1.0, 0.0)
+    }
+}
+
 /// Protection that stops counting: vanilla's cap on the sum, 20 points of the 25 that would stop all damage.
 pub(crate) const PROTECTION_CAP: f32 = 20.0;
 
