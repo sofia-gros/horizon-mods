@@ -254,13 +254,16 @@ impl Modifier {
     }
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, builder: &mut crate::tool_stats::Builder) {
-        for module in &self.modules { module.apply_stats(entry, facts, builder); }
+        // Module priorities: a stat copy runs at 50 so it sees what the others added; the rest take the modifier's priority (stable order).
+        let mut ordered: Vec<(i32, &crate::modifier_modules::Module)> = self.modules.iter().map(|module| (module.stat_priority().unwrap_or(self.priority), module)).collect();
+        ordered.sort_by_key(|(priority, _)| std::cmp::Reverse(*priority));
+        for (_, module) in ordered { module.apply_stats(entry, facts, builder); }
     }
 }
 
 /// Facts for a context with no tool stack.
 fn no_tool() -> crate::tool_predicate::Facts<'static> {
-    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() }
+    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false }
 }
 
 #[derive(Clone, Debug)]
@@ -534,7 +537,7 @@ mod tests {
         ], &BooleanConditions);
         assert!(registry.problems.is_empty(), "{:?}", registry.problems);
         let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false, tag_level: &|_, _| 0,
-            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() };
+            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false };
         let before = |levels: &[(&str, i32)]| levels.iter().map(|(id, level)| (Entry::new(name(id), *level), registry.get(&name(id)).unwrap().clone())).collect::<Vec<_>>();
         let level_of = |built: &[(Entry, Arc<Modifier>)], id: &str| built.iter().find(|(entry, _)| entry.id == name(id)).map(|(entry, _)| entry.level);
         // Owner level 3: the scaled trait is 2 * 3, the fixed one joins once even with a second owner.

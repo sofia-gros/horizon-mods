@@ -66,6 +66,10 @@ pub(crate) enum Module {
     Trait { modifier: Identifier, level: i32, fixed_level: bool, condition: Condition },
     /// ReduceToolDamageModule: probabilistically cancels a fraction of tool damage.
     ReduceDamage { cause: CausePredicate, formula: LevelFormula, condition: Condition },
+    /// ToolDamageRangeModule: clamps the damage of one use into [min, max] (min == max sets it) for the causes it names.
+    DamageRange { min: i32, max: i32, cause: CausePredicate, condition: Condition },
+    /// StatCopyModule: adds `percentage` of the source stat (without its multiplier) to the target stat, after the other stat modules.
+    StatCopy { target: Stat, source: Stat, flat: f32, each: f32, condition: Condition },
     /// RepairModule: scales the durability a repair restores.
     Repair { formula: LevelFormula, condition: Condition },
     /// ModifierRequirementsModule: a modifier added through a recipe needs this of the tool.
@@ -292,6 +296,27 @@ impl Module {
                 let Some(formula) = LevelFormula::decode(fields, &["value", "multiplier"])? else { return Ok(None); };
                 Self::ReduceDamage { cause, formula, condition: Condition::decode(fields)? }
             }
+            "tconstruct:tool_damage_range" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tool_damage") => {
+                // A holder condition needs the holder's state, which the tool damage event does not carry.
+                if fields.get("holder").is_some_and(|value| !value.is_null()) { return Ok(None); }
+                let bound = |key: &str, default: i32| -> Result<i32, String> {
+                    match fields.get(key).filter(|value| !value.is_null()) {
+                        None => Ok(default),
+                        Some(Value::Number(number)) => { let value = crate::materials::number_int(&number.to_string()); if value < 0 { Err(format!("{key} must not be negative")) } else { Ok(value) } }
+                        Some(_) => Err(format!("{key} must be a number")),
+                    }
+                };
+                let Some(cause) = CausePredicate::decode(fields.get("cause"))? else { return Ok(None); };
+                Self::DamageRange { min: bound("min", 0)?, max: bound("max", i32::MAX)?, cause, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:stat_copy" if only("tconstruct:tool_stats") => {
+                let (Some(target), Some(source)) = (Stat::from_id(&identifier(fields, "target")?), Stat::from_id(&identifier(fields, "source")?)) else { return Ok(None); };
+                Self::StatCopy { target, source, flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:soulspeed" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip")) => {
+                // SoulSpeedModule: a constant minecraft:soul_speed enchantment from a leveling int.
+                Self::Enchantment { name: "minecraft:soul_speed".to_owned(), flat: short(fields, "flat")? as f32, each: short(fields, "each_level")? as f32, condition: Condition::decode(fields)? }
+            }
             "tconstruct:requirements" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:validate_upgrade" | "tconstruct:requirements")) => {
                 // A requirement with a predicate type this port lacks is unbound (the early check above).
                 let requirement = Predicate::decode(fields.get("requirement").ok_or("requirement missing")?)?;
@@ -497,6 +522,13 @@ impl Module {
                     let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
                     return Ok(Some(Self::ProtectionCap { formula, condition: Condition::decode(fields)? }));
                 }
+                // Forge's gravity, reach and step height attributes are the vanilla ones under the game's own names, with the same
+                // base and operations; the Tinkers safe fall distance is a distance added to the vanilla safe fall distance.
+                let name = match name {
+                    "forge:entity_gravity" => "minecraft:gravity", "forge:block_reach" => "minecraft:block_interaction_range",
+                    "forge:entity_reach" => "minecraft:entity_interaction_range", "forge:step_height_addition" => "minecraft:step_height",
+                    "tconstruct:generic.safe_fall_distance" => "minecraft:safe_fall_distance", other => other,
+                };
                 let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
                 let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
                 let operation = match fields.get("operation").and_then(Value::as_str) {
@@ -567,7 +599,7 @@ impl Module {
                     if is_known_slot(&name) { add_slots(data, &name, count as i32); }
                 }
             }
-            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
+            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::DamageRange { .. } | Self::StatCopy { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
         }
     }
 
@@ -801,6 +833,11 @@ impl Module {
     /// reduction. `random` yields uniform values in [0, 1).
     pub fn reduce_damage(&self, entry: &Entry, facts: &Facts, cause: Option<&Identifier>,
         modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
+        if let Self::DamageRange { min, max, cause: wanted, condition } = self {
+            if !condition.matches(entry, facts) || !wanted.matches(cause, modifier_in_tag) { return amount; }
+            // ToolDamageRangeModule: a closed range deals exactly that, otherwise the amount is clamped into it.
+            return if min == max { *min } else { if amount < *min { *min } else if amount > *max { *max } else { amount } };
+        }
         let Self::ReduceDamage { cause: wanted, formula, condition } = self else { return amount; };
         if !condition.matches(entry, facts) || !wanted.matches(cause, modifier_in_tag) { return amount; }
         // ConditionalStatFormula.apply(.., value 0, multiplier 1); a simple formula's IDENTITY is the scaled level.
@@ -825,6 +862,9 @@ impl Module {
         }
     }
 
+    /// The module's own priority for the tool-stats hook (StatCopyModule.getPriority), if it overrides the modifier's.
+    pub fn stat_priority(&self) -> Option<i32> { matches!(self, Self::StatCopy { .. }).then_some(50) }
+
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &Facts, builder: &mut Builder) {
         if let Self::SetTier { tier, condition } = self {
@@ -840,6 +880,14 @@ impl Module {
             }
             for (name, value) in (facts.persistent_numbers)(&Identifier::parse(OVERRIDE_MULTIPLIER).expect("valid key")) {
                 if let Some(stat) = parse(&name) { builder.multiply(stat, f64::from(value as f32)); }
+            }
+            return;
+        }
+        if let Self::StatCopy { target, source, flat, each, condition } = self {
+            if condition.matches(entry, facts) {
+                let percentage = flat + each * entry.effective_level();
+                let value = builder.get(*source) * percentage / builder.multiplier(*source);
+                builder.add(*target, f64::from(value));
             }
             return;
         }
@@ -888,7 +936,7 @@ mod tests {
         Module::decode(fields["type"].as_str().unwrap(), fields, &hooks).unwrap()
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
-        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() }
+        Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false }
     }
     #[test]
     fn swappable_slots_follow_the_stored_slot_type_and_clear_on_removal() {
@@ -896,7 +944,7 @@ mod tests {
         let stored = std::cell::RefCell::new(std::collections::BTreeMap::new());
         stored.borrow_mut().insert("test:swap".to_owned(), "abilities".to_owned());
         let lookup = |key: &Identifier| stored.borrow().get(&key.to_string()).cloned().unwrap_or_default();
-        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup, persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() };
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &lookup, persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false };
         let slot = decode(json!({"type":"tconstruct:swappable_slot","slots":1})).unwrap();
         let bonus = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"abilities","bonus":"upgrades","slots":-1})).unwrap();
         let other = decode(json!({"type":"tconstruct:swappable_bonus_slot","match":"defense","bonus":"upgrades","slots":-1})).unwrap();
@@ -932,7 +980,7 @@ mod tests {
         let hook_traits = |hook: &Identifier| if hook.to_string() == "tconstruct:rebalanced_trait" {
             vec![crate::material_traits::ModifierEntry { id: id("test:extra"), level: 2, optional: false }]
         } else { Vec::new() };
-        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &stored, persistent_numbers: &|_| Vec::new(), hook_traits: &hook_traits };
+        let f = Facts { item: None, in_tag: &in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &stored, persistent_numbers: &|_| Vec::new(), hook_traits: &hook_traits, has_hook: &|_| false };
         let entry = Entry::new(id("test:rebalanced"), 1);
         let matching = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait","match":"traits"})).unwrap();
         let other_value = decode(json!({"type":"tconstruct:swappable_tool_traits","hook":"tconstruct:rebalanced_trait","match":"other"})).unwrap();
