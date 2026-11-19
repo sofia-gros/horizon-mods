@@ -54,8 +54,9 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let list = materials(nbt, env.has_materials);
     let saved = upgrades(nbt);
     let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let has_hook = |hook: &Identifier| definition.has_hook(hook);
     let hook_traits = |hook: &Identifier| definition.hook_traits(hook, &list, env.materials).unwrap_or_default();
-    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), modifier_tags: Some(&env.modifiers.reverse_tags) };
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), has_hook: Some(&has_hook), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
     Ok(true)
@@ -89,8 +90,9 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     let saved = saved_modifiers(nbt, env.modifiers);
     let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
     let list = materials(nbt, env.has_materials);
+    let has_hook = |hook: &Identifier| env.definition.is_some_and(|data| data.has_hook(hook));
     let hook_traits = |hook: &Identifier| env.definition.and_then(|data| data.hook_traits(hook, &list, env.materials).ok()).unwrap_or_default();
-    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), modifier_tags: Some(&env.modifiers.reverse_tags) };
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), has_hook: Some(&has_hook), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let upgrades = upgrades(nbt);
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }

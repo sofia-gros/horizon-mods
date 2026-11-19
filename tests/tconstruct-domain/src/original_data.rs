@@ -62,7 +62,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (161, 113), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (151, 109), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
@@ -1281,4 +1281,108 @@ fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_fillers_
     let mut worn = tool("tconstruct:stoneshield", 1, 20);
     let outcome = crate::tool_slot::damage_slot(&mut worn, &env, 5, true, true, None, &mut || 0.0).unwrap();
     assert_eq!((outcome.applied, stored(&worn, "tconstruct:stoneshield")), (0, 15));
+}
+
+/// A rebuilt tool of a shipped definition carrying `upgrades`.
+fn upgraded(world: &World, tool: &str, upgrades: &[(&str, i32)]) -> pluto_lib::ItemSlot {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let env = env_of(world, tool);
+    let mut stack = ItemSlot::new(Identifier::new("tconstruct", tool).unwrap(), 1);
+    if env.has_materials { stack.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec())); }
+    let mut list = List::default();
+    for (modifier, level) in upgrades { list = list.with_modifier(Identifier::parse(modifier).unwrap(), *level).unwrap(); }
+    stack.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+    assert!(rebuild_stats(&mut stack.custom_data, &env).unwrap());
+    stack
+}
+fn env_of<'a>(world: &'a World, tool: &str) -> crate::tool_stack::Environment<'a> {
+    let definition = &world.tools.iter().find(|(id, _)| id.path() == tool).unwrap().1;
+    crate::tool_stack::Environment { definition: Some(definition), has_materials: !definition.tool_parts().is_empty(), materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None }
+}
+
+#[test]
+fn shipped_tanned_limits_the_wear_of_ordinary_use_to_one_point() {
+    let world = world();
+    let plain = upgraded(&world, "pickaxe", &[]);
+    let tanned = upgraded(&world, "pickaxe", &[("tconstruct:tanned", 1)]);
+    let env = env_of(&world, "pickaxe");
+    let wear = |stack: &pluto_lib::ItemSlot, amount| crate::tool_stack::reduce_damage(&stack.custom_data, &env, None, amount, &mut || panic!("a range rolls nothing"));
+    assert_eq!(wear(&plain, 7), 7);
+    assert_eq!(wear(&tanned, 7), 1, "a range with max 1 clamps ordinary use");
+    assert_eq!(wear(&tanned, 1), 1);
+    // A cause that is a modifier outside the bypass tag is clamped too; with no modifier tags loaded none is in a tag.
+    let cause = Identifier::parse("tconstruct:unknown").unwrap();
+    assert_eq!(crate::tool_stack::reduce_damage(&tanned.custom_data, &env, Some(&cause), 4, &mut || 0.0), 1);
+}
+
+#[test]
+fn shipped_overlord_copies_a_tenth_of_the_final_durability_into_overslime_per_level() {
+    use pluto_lib::Nbt;
+    let world = world();
+    let stat = |stack: &pluto_lib::ItemSlot, name: &str| match stack.custom_data.get(crate::tool_stack::TAG_STATS) {
+        Some(Nbt::Compound(stats)) => stats.get(&format!("tconstruct:{name}")).and_then(Nbt::as_f64).map(|value| value as f32),
+        _ => None,
+    };
+    assert_eq!(stat(&upgraded(&world, "pickaxe", &[]), "overslime"), None);
+    let one = upgraded(&world, "pickaxe", &[("tconstruct:overlord", 1)]);
+    let three = upgraded(&world, "pickaxe", &[("tconstruct:overlord", 3)]);
+    // The copy runs after the durability penalty (-15% per level), so it sees the reduced durability.
+    for (stack, level) in [(&one, 1.0_f32), (&three, 3.0)] {
+        let durability = stat(stack, "durability").unwrap();
+        let overslime = stat(stack, "overslime").unwrap();
+        assert!((overslime - durability * 0.1 * level).abs() < 0.01, "level {level}: {overslime} of {durability}");
+    }
+    let plain = stat(&upgraded(&world, "pickaxe", &[]), "durability").unwrap();
+    assert!(stat(&one, "durability").unwrap() < plain, "the durability penalty applies");
+}
+
+#[test]
+fn shipped_soulspeed_is_a_soul_speed_enchantment_and_trim_adds_a_slot_only_without_a_trim_hook() {
+    use crate::tool_stack::{enchantments, TAG_VOLATILE};
+    use pluto_lib::Nbt;
+    let world = world();
+    let soul = upgraded(&world, "pickaxe", &[("tconstruct:soulspeed", 1)]);
+    assert_eq!(enchantments(&soul.custom_data, &env_of(&world, "pickaxe")).get("minecraft:soul_speed"), Some(&1));
+    let defense = |stack: &pluto_lib::ItemSlot| match stack.custom_data.get(TAG_VOLATILE) {
+        Some(Nbt::Compound(data)) => data.get("defense").and_then(Nbt::as_i64).unwrap_or(0),
+        _ => 0,
+    };
+    assert_eq!(defense(&upgraded(&world, "pickaxe", &[("tconstruct:trim", 1)])), 1, "a tool with no trim trait hook gets a defense slot");
+    assert_eq!(defense(&upgraded(&world, "slime_helmet", &[("tconstruct:trim", 1)])), 0, "a tool whose definition binds the trim trait hook does not");
+}
+
+#[test]
+fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_stay_unbound() {
+    use crate::tool_stack::attribute_entries;
+    use pluto_lib::Nbt;
+    let world = world();
+    let amounts = |modifier: &str, level: i32, slot: &str| -> Vec<(String, f64)> {
+        let stack = upgraded(&world, "pickaxe", &[(modifier, level)]);
+        attribute_entries(&stack.custom_data, &env_of(&world, "pickaxe"), &[slot]).iter().map(|entry| {
+            let (Some(Nbt::String(kind)), Some(Nbt::Double(amount))) = (entry.get("type"), entry.get("amount")) else { panic!("an attribute entry") };
+            (kind.clone(), *amount)
+        }).collect()
+    };
+    let reach = amounts("tconstruct:reach", 2, "mainhand");
+    assert!(reach.contains(&("minecraft:block_interaction_range".into(), 2.0)) && reach.contains(&("minecraft:entity_interaction_range".into(), 2.0)), "{reach:?}");
+    assert_eq!(amounts("tconstruct:step_up", 2, "feet"), vec![("minecraft:step_height".to_string(), 1.0)]);
+    let sky = amounts("tconstruct:skyfall", 1, "mainhand");
+    let gravity = sky.iter().find(|(kind, _)| kind == "minecraft:gravity").expect("gravity").1;
+    assert!((gravity - -0.15).abs() < 1e-6, "{sky:?}");
+    assert!(sky.contains(&("minecraft:safe_fall_distance".into(), 1.0)));
+    // Attributes the host has no counterpart for are not published; the modifier keeps them unbound.
+    assert!(amounts("tconstruct:double_jump", 1, "feet").is_empty());
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
+    assert!(unbound("tconstruct:reach").is_empty() && unbound("tconstruct:step_up").is_empty() && unbound("tconstruct:skyfall").is_empty());
+    assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
+    assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
+    // The modules that need host data this port does not receive stay unbound.
+    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:warded", "adjust_damage"),
+        ("tconstruct:dragonheart", "adjust_damage"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:shock", "conditional_melee_damage"), ("tconstruct:tank", "stat_boost"), ("tconstruct:experienced", "volatile_float")] {
+        assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
+    }
+    assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());
 }
