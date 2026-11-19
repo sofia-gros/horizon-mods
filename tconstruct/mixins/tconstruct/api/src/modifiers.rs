@@ -228,6 +228,14 @@ impl Modifier {
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())
     }
+    /// The fiery and freezing attack modules.
+    pub fn attack_action_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_attack_action())
+    }
+    /// The fiery, freezing and knockback counter modules.
+    pub fn counter_action_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_counter_action())
+    }
     /// The armor counter effect modules.
     pub fn counter_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_counter_effect())

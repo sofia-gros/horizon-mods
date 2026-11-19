@@ -289,6 +289,27 @@ pub(crate) fn thorns_hurts(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn
     })
 }
 
+/// The actions a melee hit with this tool does to the mob it hit (fire, freezing), in modifier order.
+pub(crate) fn attack_actions(nbt: &NbtCompound, env: &Environment) -> Vec<pluto_lib::EntityAction> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.attack_action_modules().filter_map(move |module| module.attack_action(entry, facts)).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// The actions a worn armor piece does to the mob that hit its wearer (fire, freezing, knockback), in modifier order. `in_tag` answers the
+/// entity type tags and the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
+pub(crate) fn counter_actions(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::EntityAction> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut actions = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.counter_action_modules() {
+                if let Some(action) = module.counter_action(entry, facts, in_tag, rolls) { actions.push(action); }
+            }
+        }
+        actions
+    })
+}
+
 /// The mob effects a worn armor piece puts on the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and the
 /// pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
 pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {

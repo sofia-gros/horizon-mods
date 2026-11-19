@@ -116,6 +116,10 @@ pub(crate) enum Module {
     MobDisguise { module: crate::mob_disguise::MobDisguise },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
+    /// FieryAttackModule and FreezingAttackModule: a melee hit that sets the target on fire or freezes it.
+    AttackAction { module: Box<crate::hit_actions::Attack>, condition: Condition },
+    /// FieryCounterModule, FreezingCounterModule and KnockbackCounterModule: armor that sets the mob that hit its wearer on fire, freezes or knocks it back.
+    CounterAction { module: Box<crate::hit_actions::Counter>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
     CounterEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
     /// MobEffectModule.ArmorAttack: armor that may put a mob effect on the mob its wearer hits.
@@ -404,6 +408,19 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:fiery_attack" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:projectile_hit")) => {
+                Self::AttackAction { module: Box::new(crate::hit_actions::Attack::decode(crate::hit_actions::Effect::Fire, fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:freezing_attack" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_hit")) => {
+                Self::AttackAction { module: Box::new(crate::hit_actions::Attack::decode(crate::hit_actions::Effect::Freeze, fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:fiery_counter" | "tconstruct:freezing_counter" | "tconstruct:knockback_counter" if only("tconstruct:on_attacked") => {
+                let effect = match kind { "tconstruct:fiery_counter" => crate::hit_actions::Effect::Fire, "tconstruct:freezing_counter" => crate::hit_actions::Effect::Freeze, _ => crate::hit_actions::Effect::Knockback };
+                match crate::hit_actions::Counter::decode(effect, fields)? {
+                    Some(module) => Self::CounterAction { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:counter_mob_effect" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::weapon_effect::WeaponEffect::decode_counter(fields)? {
                     Some(module) => Self::CounterEffect { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -535,7 +552,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -617,6 +634,16 @@ impl Module {
         let Self::Thorns { module, condition } = self else { return None; };
         module.hurt(entry, condition.matches(entry, facts), in_tag, rolls)
     }
+    /// The action a fiery or freezing attack module does to the mob a melee hit landed on, when it lands.
+    pub fn attack_action(&self, entry: &Entry, facts: &Facts) -> Option<pluto_lib::EntityAction> {
+        let Self::AttackAction { module, condition } = self else { return None; };
+        module.action(entry, condition.matches(entry, facts))
+    }
+    /// The action a counter module does to the mob that hit the wearer, if its chance lands (`rolls` are uniform values in [0, 1)).
+    pub fn counter_action(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<pluto_lib::EntityAction> {
+        let Self::CounterAction { module, condition } = self else { return None; };
+        module.value(entry, condition.matches(entry, facts), in_tag, rolls).and_then(|value| module.action(value))
+    }
     /// Whether a block damage module blocks damage from `source`, when its conditions hold.
     pub fn blocks_damage(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource) -> bool {
         let Self::BlockDamage { source: blocked, condition } = self else { return false; };
@@ -665,6 +692,10 @@ impl Module {
     }
     /// Whether this is a mob disguise module.
     pub fn is_mob_disguise(&self) -> bool { matches!(self, Self::MobDisguise { .. }) }
+    /// Whether this is a fiery or freezing attack module.
+    pub fn is_attack_action(&self) -> bool { matches!(self, Self::AttackAction { .. }) }
+    /// Whether this is a fiery, freezing or knockback counter module.
+    pub fn is_counter_action(&self) -> bool { matches!(self, Self::CounterAction { .. }) }
     /// Whether this is a thorns module.
     pub fn is_thorns(&self) -> bool { matches!(self, Self::Thorns { .. }) }
     /// Whether this is an armor counter effect module.

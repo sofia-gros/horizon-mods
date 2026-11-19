@@ -62,10 +62,10 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (166, 119), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (163, 114), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
-    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
@@ -937,6 +937,52 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
     let unlucky: Vec<_> = unlucky.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Wearer).count(), 0, "a high roll spares the wearer (20% at level 2)");
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Attacker).count(), 1, "the attacker's 100% at level 2 needs no roll");
+}
+
+#[test]
+fn shipped_fiery_freezing_and_springy_act_on_the_mob_hit_and_on_the_mob_that_hits_the_wearer() {
+    use crate::{modifier_entries::List, tool_stack::{attack_actions, counter_actions, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ActionTarget, EntityAction, ItemSlot, KnockbackDirection, Nbt};
+    let world = world();
+    let tool_with = |tool: &str, material: &str, parts: usize, upgrades: &[(&str, i32)]| {
+        let definition = &world.tools.iter().find(|(id, _)| id.path() == tool).unwrap().1;
+        let item = Identifier::parse(&format!("tconstruct:{tool}")).unwrap();
+        let tags = pluto_lib::fixtures::registry_with_tags(&[&item.to_string()], &[("tconstruct:modifiable/armor", &[item.to_string().as_str()][..])]).unwrap();
+        let env = Environment { definition: Some(definition), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+            item_tags_loaded: true, item: Some(&item), item_tags: Some(&tags) };
+        let mut stack = ItemSlot::new(item.clone(), 1);
+        stack.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(vec![Nbt::String(material.into()); parts]));
+        let mut list = List::default();
+        for (id, level) in upgrades { list = list.with_modifier(Identifier::parse(id).unwrap(), *level).unwrap(); }
+        stack.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut stack.custom_data, &env).unwrap());
+        (stack, tags)
+    };
+    let (helmet, helmet_tags) = tool_with("plate_helmet", "tconstruct:iron", 2, &[("tconstruct:fiery", 2), ("tconstruct:freezing", 1), ("tconstruct:springy", 2)]);
+    let helmet_definition = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let env = Environment { definition: Some(helmet_definition), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&helmet_tags) };
+    let none = |_: &Identifier| false;
+    let attacker = ActionTarget::Attacker;
+    // Armor that counters: a low roll lands all three (30%, 15% and 30% at these levels); fire burns the constant second, freezing adds
+    // two seconds of 40 ticks, and springy pushes the constant half against the way the mob faces.
+    let landed = counter_actions(&helmet.custom_data, &env, &none, &mut || 0.0);
+    assert!(landed.contains(&EntityAction::SetFire { target: attacker, seconds: 1 }), "{landed:?}");
+    assert!(landed.contains(&EntityAction::Freeze { target: attacker, ticks: 80 }), "{landed:?}");
+    assert!(landed.contains(&EntityAction::Knockback { target: attacker, strength: 0.5, direction: KnockbackDirection::AgainstFacing }), "{landed:?}");
+    assert_eq!(landed.len(), 3, "{landed:?}");
+    assert!(counter_actions(&helmet.custom_data, &env, &none, &mut || 0.99).is_empty(), "a high roll lands none of them");
+    // A tool that is not armor counters nothing: the counters ask for the armor tag.
+    let (pickaxe, _) = tool_with("pickaxe", "tconstruct:wood", 3, &[("tconstruct:fiery", 2), ("tconstruct:freezing", 1)]);
+    let pickaxe_definition = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let pickaxe_env = Environment { definition: Some(pickaxe_definition), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    assert!(counter_actions(&pickaxe.custom_data, &pickaxe_env, &none, &mut || 0.0).is_empty());
+    // The hit: five seconds of fire a level, and (4 + 4 a level) seconds of freezing at 40 ticks each.
+    let hit = attack_actions(&pickaxe.custom_data, &pickaxe_env);
+    assert!(hit.contains(&EntityAction::SetFire { target: ActionTarget::Victim, seconds: 10 }), "{hit:?}");
+    assert!(hit.contains(&EntityAction::Freeze { target: ActionTarget::Victim, ticks: 320 }), "{hit:?}");
 }
 
 #[test]

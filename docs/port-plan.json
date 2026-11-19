@@ -40,6 +40,7 @@
     "api/src/tool_damage_hook.rs",
     "api/src/weapon_effect.rs",
     "api/src/thorns.rs",
+    "api/src/hit_actions.rs",
     "api/src/capacity.rs",
     "api/src/effect_immunity.rs",
     "api/src/tool_inventory.rs",

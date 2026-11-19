@@ -9,10 +9,11 @@ use serde_json::{Map, Value};
 
 /// A LevelingValue: `flat + each_level * level`.
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct Leveling { flat: f32, each: f32 }
+pub(crate) struct Leveling { flat: f32, each: f32 }
 
 impl Leveling {
-    fn decode(fields: &Map<String, Value>, key: &str, default: Self) -> Result<Self, String> {
+    pub(crate) const ZERO: Self = Self { flat: 0.0, each: 0.0 };
+    pub(crate) fn decode(fields: &Map<String, Value>, key: &str, default: Self) -> Result<Self, String> {
         match fields.get(key).filter(|value| !value.is_null()) {
             None => Ok(default),
             Some(Value::Object(value)) => {
@@ -22,7 +23,7 @@ impl Leveling {
             Some(_) => Err(format!("{key} must be an object")),
         }
     }
-    fn compute(self, level: f32) -> f32 { self.flat + self.each * level }
+    pub(crate) fn compute(self, level: f32) -> f32 { self.flat + self.each * level }
 }
 
 /// The damage a thorns module deals to the mob that hit the wearer.

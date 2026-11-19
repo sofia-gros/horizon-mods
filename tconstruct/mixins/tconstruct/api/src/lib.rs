@@ -41,6 +41,7 @@ mod conditional_stat;
 mod knockback;
 mod weapon_effect;
 mod thorns;
+mod hit_actions;
 mod capacity;
 mod effect_immunity;
 mod tool_inventory;
