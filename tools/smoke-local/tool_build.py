@@ -11,7 +11,7 @@ Scenarios (each asserted from the running game, with screenshots kept in the run
   3. taking the result gives the tool (with rebuilt stats) and consumes exactly the parts,
   4. a stone head on that tool swaps the head material in the result,
   5. the game log carries no Tinkers loader problems beyond the known unbound-module report.
-  Later blocks print 'NAME PASS' / 'NAME PARTIAL detail' lines: CREATIVE TOOLS TAB, CAPACITY SHIELD, MAX ARMOR, MOB DISGUISE.
+  Later blocks print 'NAME PASS' / 'NAME PARTIAL detail' lines: CREATIVE TOOLS TAB, CAPACITY SHIELD, MAX ARMOR, MOB DISGUISE, FIERY ATTACK, FIERY COUNTER, FREEZING ATTACK, FREEZING COUNTER, STICKY, WITHERED HIT (springy prints SKIP).
 """
 import argparse
 import json
@@ -848,6 +848,122 @@ def main():
             return 'tconstruct:endermask' in reply, f'ender mask flag in the helmet: {"tconstruct:endermask" in reply}' + ('' if 'tconstruct:endermask' in reply else ' ' + reply[:250])
 
         scenario('MOB DISGUISE', mob_disguise)
+
+        # ---- Hit actions and hit effects (fiery, freezing, springy, sticky, withered). The mob is a pig with no AI: unlike a husk it
+        # is not immune to fire. Every assertion rests on the shipped modifier json and the domain test
+        # shipped_fiery_freezing_and_springy_act_on_the_mob_hit_and_on_the_mob_that_hits_the_wearer; GUESS marks what no real run has shown.
+        def pig_data(path):
+            return json.dumps(ctl('command', f'data get entity @e[type=minecraft:pig,limit=1,sort=nearest] {path}'))
+
+        def last_number(reply, suffix=''):
+            numbers = re.findall(r'(-?\d+(?:\.\d+)?)' + suffix + r'\b', reply)
+            return float(numbers[-1]) if numbers else None
+
+        def summon_pig():
+            ctl('command', 'kill @e[type=minecraft:pig]')
+            ctl('command', f'summon minecraft:pig {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+            ctl('wait', '20')
+
+        def hit_pig(modifiers, before_hit=None):
+            """Hold a pickaxe with the modifiers (a JSON-ish list body) and hit a fresh pig once; the pig stays for the data reads."""
+            summon_pig()
+            ctl('command', 'gamemode survival')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats},tic_modifiers:[{modifiers}]}}] 1')
+            if before_hit:
+                before_hit()  # `clear @s` above also empties the armor slots, so worn pieces go on here
+            ctl('select', 1)
+            found = ctl('entities', 8, 'pig')
+            listed = found.get('mobs') or found.get('entities') or []
+            assert listed, found
+            ctl('look-at-entity', listed[0]['id'])
+            ctl('wait', '30')
+            reply = ctl('attack', listed[0]['id'])
+            assert reply.get('hit'), reply
+            ctl('wait', '5')
+
+        def counter_pig():
+            """The pig damages the wearer (the flow of the thorns scenario); the pig stays for the data reads."""
+            summon_pig()
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', 'damage @s 4 minecraft:mob_attack by @e[type=minecraft:pig,limit=1]')
+            ctl('wait', '5')
+
+        def finish_pig():
+            ctl('command', 'kill @e[type=minecraft:pig]')
+            ctl('command', 'item replace entity @s armor.head with minecraft:air')
+            ctl('command', 'gamemode creative')
+            ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+            ctl('wait', '10')
+
+        # 5. Fiery attack: fiery 2 sets the hit mob alight for 5 seconds a level (SetFire 10 seconds in the domain test).
+        def fiery_attack():
+            hit_pig('{level:2,name:"tconstruct:fiery"}')
+            reply = pig_data('Fire')
+            finish_pig()
+            fire = last_number(reply, 's')  # GUESS: Fire prints as a short with an s suffix, -1s when not burning
+            return fire is not None and fire > 0, f'pig Fire after the hit {fire} (reply {reply[:120]})'
+
+        scenario('FIERY ATTACK', fiery_attack)
+
+        # 6. Fiery counter: worn fiery 7 (15% a level, so certain) sets the mob that hit the wearer alight (SetFire 1 + roll seconds).
+        def fiery_counter():
+            wear('head', 'plate_helmet', '{level:7,name:"tconstruct:fiery"}')
+            counter_pig()
+            reply = pig_data('Fire')
+            finish_pig()
+            fire = last_number(reply, 's')
+            return fire is not None and fire > 0, f'attacking pig Fire {fire} (reply {reply[:120]})'
+
+        scenario('FIERY COUNTER', fiery_counter)
+
+        # 7. Freezing attack: freezing 1 freezes the hit mob for (4 + 4 a level) seconds of 40 ticks = 320 ticks.
+        def freezing_attack():
+            hit_pig('{level:1,name:"tconstruct:freezing"}')
+            reply = pig_data('TicksFrozen')
+            finish_pig()
+            ticks = last_number(reply)
+            return ticks is not None and ticks > 0, f'pig TicksFrozen {ticks}, 320 expected at the hit (reply {reply[:120]})'
+
+        scenario('FREEZING ATTACK', freezing_attack)
+
+        # Freezing counter on worn armor, the same flow as the fiery counter (domain test: Freeze 80 ticks at a low roll).
+        def freezing_counter():
+            wear('head', 'plate_helmet', '{level:7,name:"tconstruct:freezing"}')
+            counter_pig()
+            reply = pig_data('TicksFrozen')
+            finish_pig()
+            ticks = last_number(reply)
+            return ticks is not None and ticks > 0, f'attacking pig TicksFrozen {ticks}, at least 80 ticks of constant 2 seconds expected (reply {reply[:120]})'
+
+        scenario('FREEZING COUNTER', freezing_counter)
+
+        # 8. Springy (knockback_counter) is a push against the attacker's facing. A pig with no AI does not move and the knockback hook of
+        # the melee hit logs only the wearer's own hits, so no log or data path measures the counter: an explicit SKIP, not a pass.
+        print('SPRINGY SKIP no log or data path measures a knockback_counter push on a mob with no AI (domain test covers Knockback 0.5 AgainstFacing)', flush=True)
+        result['scenarios'].append('springy: SKIP, no measurable path (domain test only)')
+
+        # 9. Legacy mob_effect: sticky puts slowness on the mob the tool hits (the shipped json names minecraft:slowness, not a
+        # tconstruct:sticky effect). GUESS: the effect applies on every hit; its level (0.5 a level) is not asserted.
+        def sticky():
+            hit_pig('{level:1,name:"tconstruct:sticky"}')
+            reply = pig_data('active_effects')
+            finish_pig()
+            return 'minecraft:slowness' in reply, f'pig active_effects: {reply[:200]}'
+
+        scenario('STICKY', sticky)
+
+        # 10. armor_attack_mob_effect: worn withered 1 gives the mob the wearer's melee hit wither (level 1, 120 ticks).
+        def withered_hit():
+            hit_pig('', before_hit=lambda: wear('head', 'plate_helmet', '{level:1,name:"tconstruct:withered"}'))  # GUESS: the armor hook runs on the held tool's melee hit
+            reply = pig_data('active_effects')
+            finish_pig()
+            return 'minecraft:wither' in reply, f'pig active_effects: {reply[:200]}'
+
+        scenario('WITHERED HIT', withered_hit)
         ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
         ctl('wait', '10')
 
