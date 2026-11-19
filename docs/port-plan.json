@@ -81,6 +81,12 @@
     "api/src/common.rs",
     "api/src/config.rs",
     "api/src/conditions.rs",
+    "api/src/fluid_values.rs",
+    "api/src/heating.rs",
+    "api/src/fluid_ingredient.rs",
+    "api/src/melting_recipes.rs",
+    "api/src/casting_recipes.rs",
+    "api/src/fluid_recipes.rs",
     "api/src/tables/mod.rs",
     "api/src/tables/lazy_result.rs",
     "api/src/tables/input_consumption.rs",
@@ -186,7 +192,7 @@
       "depends_on": ["R2", "R3"],
       "status": "pending",
       "kind": "gameplay",
-      "result": "Use the fluids-smeltery source scope in R3. General fluid/entity primitives needed by tools are prerequisites supplied in R2, not a circular dependency on this complete consumer domain. Validate material/part casting, fuel/alloying, transfer, interaction, persistence and visuals together.",
+      "result": "Use the fluids-smeltery source scope in R3. General fluid/entity primitives needed by tools are prerequisites supplied in R2, not a circular dependency on this complete consumer domain. Validate material/part casting, fuel/alloying, transfer, interaction, persistence and visuals together. Unit order and the PlutoLib gaps are in docs/roadmap.md (R4-fluids); the pure recipe/arithmetic unit is in the domain tests, not yet connected to a host.",
       "evidence": []
     },
     {

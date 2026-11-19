@@ -191,6 +191,61 @@ def copy_part_builder_recipes():
     return count
 
 
+FLUID_RECIPE_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes'
+FLUID_RECIPE_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/fluids'
+FLUID_TAG_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data'
+FLUID_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/fluid_tags'
+# The smeltery domain's recipe types (melting, alloying, fuel, casting, molding, material fluids), including the tool and
+# potion casting kinds that are copied for completeness but not decoded yet. Wherever they sit in the original's tree.
+FLUID_RECIPE_TYPES = {
+    'tconstruct:melting', 'tconstruct:ore_melting', 'tconstruct:damagable_melting', 'tconstruct:material_melting', 'tconstruct:melting_fuel',
+    'tconstruct:entity_melting', 'tconstruct:alloy', 'tconstruct:material_fluid', 'tconstruct:molding_table',
+    'tconstruct:casting_table', 'tconstruct:casting_basin', 'tconstruct:retextured_casting_basin', 'tconstruct:table_duplication',
+    'tconstruct:casting_table_potion', 'tconstruct:table_filling', 'tconstruct:basin_filling',
+    'tconstruct:table_casting_material', 'tconstruct:basin_casting_material', 'tconstruct:table_casting_composite', 'tconstruct:basin_casting_composite',
+    'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
+    'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
+}
+
+
+def copy_fluid_recipes():
+    """The smeltery domain's recipes, byte for byte, under recipes/fluids with the original's relative path. Other-mod
+    integration (the compat folder) is left out. A forge:conditional file is kept when any wrapped recipe is of a listed
+    type. The sand and clay cast pattern recipes of the part builder (item_part_builder) in smeltery/casts come with them."""
+    if FLUID_RECIPE_TARGET.exists():
+        shutil.rmtree(FLUID_RECIPE_TARGET)
+    count = 0
+    for path in sorted(FLUID_RECIPE_SOURCE.rglob('*.json')):
+        relative = path.relative_to(FLUID_RECIPE_SOURCE)
+        if relative.parts[0] == 'compat':
+            continue
+        data = json.loads(path.read_text(encoding='utf-8'))
+        types = [entry['recipe']['type'] for entry in data['recipes']] if data['type'] == 'forge:conditional' else [data['type']]
+        if not any(kind in FLUID_RECIPE_TYPES or (kind == 'tconstruct:item_part_builder' and relative.parts[:2] == ('smeltery', 'casts')) for kind in types):
+            continue
+        destination = FLUID_RECIPE_TARGET / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+def copy_fluid_tags():
+    """The fluid tags the recipes name (forge:molten_iron, mantle:soup...), byte for byte, in the mod's own folder per
+    namespace. They are not placed in the host's tags/fluid folder: the Tinkers fluids are not registered yet, and a tag
+    naming an unknown fluid would be rejected by the game."""
+    if FLUID_TAG_TARGET.exists():
+        shutil.rmtree(FLUID_TAG_TARGET)
+    count = 0
+    for namespace in ('tconstruct', 'forge', 'mantle'):
+        for path in sorted((FLUID_TAG_SOURCE / namespace / 'tags/fluids').rglob('*.json')):
+            destination = FLUID_TAG_TARGET / namespace / path.relative_to(FLUID_TAG_SOURCE / namespace / 'tags/fluids')
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            count += 1
+    return count
+
+
 DAMAGE_TAG_SOURCE = TAG_SOURCE / 'damage_type'
 DAMAGE_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/tags/damage_types'
 VANILLA_DAMAGE_TAGS = ROOT / '.local/base-26.3/data/minecraft/tags/damage_type'
@@ -942,7 +997,7 @@ def main():
     worn_textures, worn_rows = copy_armor_worn_assets()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names]
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_fluid_recipes() + copy_fluid_tags()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 

@@ -25,9 +25,22 @@ CONTENT_PATHS = (
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The smeltery domain's melting, alloy, fuel, casting and molding recipes and the fluid tags they name (tools/import_original_data.py),
+    # kept in the mod's own folders: the Tinkers fluids are not registered yet, so the host must not read these as tags.
+    re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/fluid_tags/(?:tconstruct|forge|mantle)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The damage type armor modules hurt their wearer with (data pack damage_type definition), and its entries in the two vanilla tags it joins.
     re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects)\.json'),
 )
+FLUID_RECIPE_TYPES = {
+    'tconstruct:melting', 'tconstruct:ore_melting', 'tconstruct:damagable_melting', 'tconstruct:material_melting', 'tconstruct:melting_fuel',
+    'tconstruct:entity_melting', 'tconstruct:alloy', 'tconstruct:material_fluid', 'tconstruct:molding_table', 'tconstruct:item_part_builder',
+    'tconstruct:casting_table', 'tconstruct:casting_basin', 'tconstruct:retextured_casting_basin', 'tconstruct:table_duplication',
+    'tconstruct:casting_table_potion', 'tconstruct:table_filling', 'tconstruct:basin_filling',
+    'tconstruct:table_casting_material', 'tconstruct:basin_casting_material', 'tconstruct:table_casting_composite', 'tconstruct:basin_casting_composite',
+    'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
+    'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
+}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
@@ -179,6 +192,12 @@ def checked_content(root, version):
             if '/tinkering/' in name:
                 if not isinstance(item, dict):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
+                continue
+            if '/recipes/fluids/' in name:
+                # The smeltery domain's recipe types (see import_original_data.FLUID_RECIPE_TYPES), alone or wrapped in forge:conditional.
+                wrapped = [entry.get('recipe', {}).get('type') for entry in item.get('recipes', [])] if isinstance(item, dict) and item.get('type') == 'forge:conditional' else [item.get('type') if isinstance(item, dict) else None]
+                if not wrapped or any(kind not in FLUID_RECIPE_TYPES for kind in wrapped):
+                    raise ValueError(f'only the reviewed smeltery recipe types are allowed here: {name}')
                 continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
