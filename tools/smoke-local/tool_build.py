@@ -861,9 +861,9 @@ def main():
 
         def summon_pig():
             ctl('command', 'kill @e[type=minecraft:pig]')
-            ctl('command', f'summon minecraft:pig {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b,Health:30f}}')
-            # Measured on r3h: a pig summoned here is hurt on landing (health 7, hurt_time 2) and a hit inside that invulnerability
-            # window deals nothing, so no hit effect shows. Wait for it to settle before the measured hit.
+            ctl('command', f'summon minecraft:pig {husk_at[0]} {husk_at[1]} {husk_at[2]} {{NoAI:1b,PersistenceRequired:1b,Health:30f}}')
+            # Measured on r3m: a pig summoned at `rock` (where the mining test puts its stone) stands inside a block and takes suffocation
+            # damage all the time, so every hit lands inside its invulnerability window and deals nothing. It is summoned in the open at husk_at.
             ctl('wait', '80')
 
         def hit_pig(modifiers, before_hit=None):
