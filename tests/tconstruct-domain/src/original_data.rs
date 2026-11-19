@@ -68,6 +68,28 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
 }
 
+/// The edible family needs a per-stack use (start eating only when the tool's hunger stat is above 0, its eat duration as use time, hunger and saturation
+/// from the stack) and the stack plus the eaten slot at completion; PlutoLib's `ItemUseRegistry` is per item id and `UseItemFinishContext` carries only
+/// the item id and the player. The modules stay unbound until the host reports both; this pins the shipped users so a partial binding is noticed.
+#[test]
+fn edible_modifiers_keep_every_edible_module_unbound_until_the_host_reports_the_eaten_stack() {
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let edible_kinds = ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect", "edible_representative_item"];
+    let mut users = std::collections::BTreeMap::new();
+    for id in registry.dynamic_ids() {
+        let Some(modifier) = registry.get(id) else { continue };
+        let kinds: Vec<String> = modifier.unbound.iter().map(|kind| kind.to_string()).filter(|kind| edible_kinds.iter().any(|edible| kind == &format!("tconstruct:{edible}"))).collect();
+        if !kinds.is_empty() { users.insert(id.to_string(), kinds); }
+    }
+    let kinds_of = |id: &str| users.get(id).cloned().unwrap_or_default();
+    assert_eq!(kinds_of("tconstruct:edible"), ["tconstruct:edible"]);
+    assert_eq!(kinds_of("tconstruct:tasty"), ["tconstruct:edible_representative_item", "tconstruct:edible_consume_durability"]);
+    assert_eq!(kinds_of("tconstruct:savory"), ["tconstruct:edible_representative_item", "tconstruct:edible_consume_durability", "tconstruct:edible_cure_random_effect"]);
+    assert_eq!(kinds_of("tconstruct:scrumptious"), ["tconstruct:edible_representative_item", "tconstruct:edible_consume_durability", "tconstruct:edible_remove_effect"]);
+    assert_eq!(users.len(), 4, "only edible, tasty, savory and scrumptious use the edible modules: {users:?}");
+}
+
 /// The whole loaded original, as one world for end-to-end checks.
 struct World { materials: Materials, registry: Registry, tools: Vec<(Identifier, Data)> }
 fn world() -> World {
