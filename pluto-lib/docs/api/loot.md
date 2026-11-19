@@ -25,7 +25,7 @@ The callback runs for every table, so check `context.id` first and return quickl
 
 ## Changing What Drops
 
-`LootTableEvents::MODIFY_DROPS` runs for the items a broken block, a dead mob or a player's use (shears, a brush, an item frame) is about to drop, after the loot table rolled. The callback sees what dropped them (`entity`, `block`, `player`, `tool`, `explosion`, `used`) and edits `drops` in place: add, change or remove stacks.
+`LootTableEvents::MODIFY_DROPS` runs for the items a broken block, a dead mob or a player's use (shears, a brush, an item frame) is about to drop, after the loot table rolled. The callback sees what dropped them (`entity`, `block`, `player`, `tool`, `explosion`, `used`) and edits `drops` in place: add, change or remove stacks. `actions` queues what to do to the player who broke the block or used the tool (`EntityAction`, such as `EditStackData` on the main hand), which the game does after the callbacks ran.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, LootTableEvents};
@@ -71,7 +71,7 @@ LootTableEvents::MODIFY_DROPS.register(|context| {
 
 ### `LootDrops`
 
-What is about to drop. `table` is the loot table rolled (empty when none), `dimension` the level, `origin` where they drop, `block` the block's position when a block broke, `entity` the mob's entity id and type (the mob that died, or the entity a player's use dropped them from), `player` the uuid of the player who broke the block or killed the mob when the game knows them, `tool` what broke the block or what the player used (`None` when the game reports none), `explosion` the radius of the explosion that broke the block, `used` whether a player's use dropped them and `drops` the stacks, as item slots a callback edits.
+What is about to drop. `table` is the loot table rolled (empty when none), `dimension` the level, `origin` where they drop, `block` the block's position when a block broke, `entity` the mob's entity id and type (the mob that died, or the entity a player's use dropped them from), `player` the uuid of the player who broke the block or killed the mob when the game knows them, `tool` what broke the block or what the player used (`None` when the game reports none), `explosion` the radius of the explosion that broke the block, `used` whether a player's use dropped them, `drops` the stacks, as item slots a callback edits, and `actions` the `EntityAction`s for the player (the main hand's stack is edited as it is when they land; dropped when `player` is `None`).
 
 ```rust
 use pluto_lib::{LootDrops, LootTableEvents};
@@ -80,7 +80,7 @@ fn from_mob(context: &LootDrops) -> bool {
     context.entity.is_some() && context.block.is_none() && !context.used
 }
 LootTableEvents::MODIFY_DROPS.register(|context| {
-    let _ = (&context.table, &context.dimension, context.origin, context.player, &context.tool, context.explosion);
+    let _ = (&context.table, &context.dimension, context.origin, context.player, &context.tool, context.explosion, context.actions.borrow().len());
     if from_mob(context) && context.drops.borrow().is_empty() { return; }
 });
 ```

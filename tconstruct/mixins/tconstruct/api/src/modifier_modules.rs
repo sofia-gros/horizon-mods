@@ -112,6 +112,10 @@ pub(crate) enum Module {
     CapacityMelee { module: Box<crate::capacity::MeleeFill>, condition: Condition },
     /// DamageToCapacityModule: armor that turns the damage its wearer takes into capacity.
     CapacityDamage { module: Box<crate::capacity::DamageFill>, condition: Condition },
+    /// MiningCapacityModule: a block the tool breaks that adds to (or drains) a capacity bar.
+    CapacityMining { module: Box<crate::capacity::MiningFill>, condition: Condition },
+    /// LootToCapacityModule: the loot of a block the tool breaks, eaten into a capacity bar.
+    CapacityLoot { module: Box<crate::capacity::LootFill>, condition: Condition },
     /// InventoryModule: item slots the modifier adds to the tool, kept in its persistent data.
     Inventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
     /// InventoryMenuModule: the key that opens the tool's inventory screen.
@@ -429,6 +433,12 @@ impl Module {
             "tconstruct:damage_to_capacity" if only("tconstruct:modify_damage") => {
                 match crate::capacity::DamageFill::decode(fields)? { Some(module) => Self::CapacityDamage { module: Box::new(module), condition: Condition::decode(fields)? }, None => return Ok(None) }
             }
+            "tconstruct:mining_capacity" if only("tconstruct:block_harvest") => {
+                Self::CapacityMining { module: Box::new(crate::capacity::MiningFill::decode(fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:loot_to_capacity" if only("tconstruct:process_loot") => {
+                Self::CapacityLoot { module: Box::new(crate::capacity::LootFill::decode(fields)?), condition: Condition::decode(fields)? }
+            }
             "tconstruct:durability_shield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_damage" | "tconstruct:durability_display")) => {
                 match crate::capacity::Shield::decode(fields)? { Some(shield) => Self::DurabilityShield { shield }, None => return Ok(None) }
             }
@@ -635,7 +645,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -811,6 +821,22 @@ impl Module {
         let Self::CapacityDamage { module, condition } = self else { return None; };
         (condition.matches(entry, facts) && module.matches(source)).then_some(&**module)
     }
+    /// The bar a mining capacity module fills and by how much for one block broken, when its conditions hold and it runs before the break
+    /// (`before`) or after it.
+    pub fn mining_capacity(&self, entry: &Entry, facts: &Facts, before: bool) -> Option<(Option<&Identifier>, i32)> {
+        let Self::CapacityMining { module, condition } = self else { return None; };
+        if !condition.matches(entry, facts) { return None; }
+        module.grant_for(entry, before)
+    }
+    /// The loot to capacity module, when its conditions hold.
+    pub fn loot_capacity(&self, entry: &Entry, facts: &Facts) -> Option<&crate::capacity::LootFill> {
+        let Self::CapacityLoot { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(&**module)
+    }
+    /// Whether this is a mining capacity module.
+    pub fn is_mining_capacity(&self) -> bool { matches!(self, Self::CapacityMining { .. }) }
+    /// Whether this is a loot to capacity module.
+    pub fn is_loot_capacity(&self) -> bool { matches!(self, Self::CapacityLoot { .. }) }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.

@@ -2,8 +2,9 @@
 //! tool's persistent data under the modifier's ID, with a capacity of `flat + each_level * level` scaled by a stat multiplier, and the
 //! shield that soaks tool wear from it before any other reduction (barkskin, frostshield, stoneshield). The durability bar color and the
 //! incremental name are presentation work that is not ported. The sources that fill a bar are ported where PlutoLib reports the event with
-//! a stack it can edit: damage to capacity (armor taking damage) and melee capacity (a weapon hit). Loot, mining and launch capacity stay
-//! unbound: no PlutoLib event reports the loot dropped to the tool's holder, the block it mined or a shot's stack for an edit.
+//! a stack it can edit: damage to capacity (armor taking damage), melee capacity (a weapon hit), mining capacity (a block the tool broke,
+//! before and after) and loot to capacity (the loot of a block the tool broke). Launch capacity stays unbound: no PlutoLib event reports
+//! a shot's stack for an edit.
 //! The edits land as `EntityAction::EditStackData` (see `persistent_edits`).
 use crate::{
     modifier_entries::Entry,
@@ -12,11 +13,12 @@ use crate::{
     modifiers::Modifier,
     protection::{DamageSource, SourceCondition},
     thorns::Leveling,
+    material_recipes::Ingredient,
     overslime,
     tool_stack::{saved_modifiers, Environment, TAG_MULTIPLIERS, TAG_PERSISTENT},
     tool_stats::Stat,
 };
-use pluto_lib::{Identifier, Nbt, NbtCompound, StackDataEdit};
+use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound, StackDataEdit};
 use serde_json::{Map, Value};
 
 /// A LevelingInt: whole numbers within a short, `flat + each_level * level` truncated to an int.
@@ -191,6 +193,72 @@ impl MeleeFill {
     }
 }
 
+/// `tconstruct:mining_capacity`: adds to (or drains) a bar whenever the tool breaks a block, before the break (`run_before`) or after it. The
+/// original's grant is scaled by the number of blocks the break harvested; an area tool is not ported, so that is the one block.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct MiningFill { grant: LevelingInt, before: bool, owner: Option<Identifier> }
+
+impl MiningFill {
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        let grant = match fields.get("grant").filter(|value| !value.is_null()) {
+            None => LevelingInt { flat: 0, each: 0 },
+            Some(Value::Object(grant)) => LevelingInt::decode(grant, 0)?,
+            Some(_) => return Err("grant must be an object".into()),
+        };
+        let before = match fields.get("run_before").filter(|value| !value.is_null()) {
+            None => false,
+            Some(Value::Bool(flag)) => *flag,
+            Some(_) => return Err("run_before must be a boolean".into()),
+        };
+        Ok(Self { grant, before, owner: owner_of(fields)? })
+    }
+
+    /// MiningCapacityModule.startHarvest (`before` true) or finishHarvest (false) for one harvested block: the bar's owner and the grant when
+    /// the module runs in that phase.
+    pub(crate) fn grant_for(&self, entry: &Entry, before: bool) -> Option<(Option<&Identifier>, i32)> {
+        (self.before == before).then(|| (self.owner.as_ref(), self.grant.compute(entry.effective_level())))
+    }
+}
+
+/// `tconstruct:loot_to_capacity`: eats the loot of a mined block that matches `consume` into a bar (stoneshield eats stone). Each eaten item
+/// adds `amount` to the bar; with a chance below 1 every item of a stack is eaten on its own roll.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LootFill { consume: Ingredient, amount: i32, chance: Leveling, owner: Option<Identifier> }
+
+impl LootFill {
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        let consume = Ingredient::decode(fields.get("consume").filter(|value| !value.is_null()).ok_or("consume is required")?)?;
+        let amount = match fields.get("amount") {
+            Some(Value::Number(number)) => crate::materials::number_int(&number.to_string()),
+            _ => return Err("amount must be a number".into()),
+        };
+        if amount < 1 { return Err("amount must be at least 1".into()); }
+        if !fields.get("chance").is_some_and(Value::is_object) { return Err("chance must be an object".into()); }
+        Ok(Self { consume, amount, chance: Leveling::decode(fields, "chance", Leveling::ZERO)?, owner: owner_of(fields)? })
+    }
+
+    pub(crate) fn owner(&self) -> Option<&Identifier> { self.owner.as_ref() }
+
+    /// LootToCapacityModule.processLoot: removes the eaten items from `loot` and returns how much the bar gains (0 when nothing was eaten).
+    /// `in_tag(item, tag)` answers item tag membership; `random` is uniform in [0, 1).
+    pub(crate) fn eat(&self, entry: &Entry, loot: &mut Vec<ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, random: &mut dyn FnMut() -> f32) -> i32 {
+        let chance = self.chance.compute(entry.effective_level());
+        let mut added: i32 = 0;
+        loot.retain_mut(|stack| {
+            if !self.consume.matches(&stack.item, in_tag) { return true; }
+            if chance >= 1.0 {
+                added = added.wrapping_add(stack.count as i32);
+                return false;
+            }
+            let eaten = (0..stack.count).filter(|_| random() < chance).count() as u32;
+            added = added.wrapping_add(eaten as i32);
+            stack.count -= eaten;
+            stack.count > 0
+        });
+        added.wrapping_mul(self.amount)
+    }
+}
+
 /// `tconstruct:damage_to_capacity`: armor that turns the damage its wearer takes into bar capacity; once the bar is full the wearer takes it.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct DamageFill { source: SourceCondition, multiplier: Leveling, reduce_damage: bool, owner: Option<Identifier> }
@@ -332,5 +400,56 @@ mod tests {
         assert!(!default.cause.matches(Some(&Identifier::parse("tconstruct:reinforced").unwrap()), &in_tag), "a bypassing modifier is not");
         assert!(Shield::decode(json!({"color":"7F7F7F","cause":{"type":"mantle:and","predicates":[]}}).as_object().unwrap()).unwrap().is_none(), "an unknown predicate stays unbound");
         assert!(Shield::decode(json!({}).as_object().unwrap()).is_err(), "the color is required");
+    }
+
+    #[test]
+    fn mining_capacity_runs_in_its_phase_and_scales_with_the_level() {
+        let drain = MiningFill::decode(json!({"grant":{"each_level":-1},"owner":"tconstruct:overslime","run_before":true}).as_object().unwrap()).unwrap();
+        assert_eq!(drain.grant_for(&entry(3), true), Some((Some(&overslime::id()), -3)));
+        assert_eq!(drain.grant_for(&entry(3), false), None, "a before module is silent after the break");
+        let fill = MiningFill::decode(json!({"grant":{"flat":1}}).as_object().unwrap()).unwrap();
+        assert_eq!(fill.grant_for(&entry(1), false), Some((None, 1)));
+        assert_eq!(fill.grant_for(&entry(1), true), None);
+        assert_eq!(MiningFill::decode(json!({}).as_object().unwrap()).unwrap().grant_for(&entry(2), false), Some((None, 0)), "no grant is zero, which empties the bar");
+        assert!(MiningFill::decode(json!({"run_before":"yes"}).as_object().unwrap()).is_err());
+    }
+
+    fn stone_tag(item: &Identifier, tag: &Identifier) -> bool { tag.path() == "stoneshields" && matches!(item.path(), "cobblestone" | "netherrack") }
+    fn slot(item: &str, count: u32) -> ItemSlot { ItemSlot::new(Identifier::parse(item).unwrap(), count) }
+    fn eater(chance: Value) -> LootFill {
+        LootFill::decode(json!({"amount":3,"chance":chance,"consume":{"tag":"tconstruct:stoneshields"}}).as_object().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn loot_to_capacity_eats_every_matching_item_at_full_chance_and_scales_the_gain_by_the_amount() {
+        let mut loot = vec![slot("minecraft:cobblestone", 4), slot("minecraft:diamond", 1), slot("minecraft:netherrack", 2)];
+        let gain = eater(json!({"each_level":0.5})).eat(&entry(2), &mut loot, &stone_tag, &mut || 0.99);
+        assert_eq!(gain, 18, "six items at three each");
+        assert_eq!(loot.iter().map(|stack| stack.item.to_string()).collect::<Vec<_>>(), ["minecraft:diamond"], "only what the tag does not name is left");
+    }
+
+    #[test]
+    fn loot_to_capacity_rolls_for_each_item_below_full_chance_and_keeps_the_rest_of_a_stack() {
+        let module = eater(json!({"each_level":0.2}));
+        // level 1 is a 20% chance: rolls 0.1 eat, 0.5 keep.
+        let mut rolls = [0.1, 0.5, 0.1, 0.5].into_iter();
+        let mut loot = vec![slot("minecraft:cobblestone", 4)];
+        assert_eq!(module.eat(&entry(1), &mut loot, &stone_tag, &mut || rolls.next().unwrap()), 6);
+        assert_eq!(loot[0].count, 2);
+        let mut all = vec![slot("minecraft:cobblestone", 2)];
+        assert_eq!(module.eat(&entry(1), &mut all, &stone_tag, &mut || 0.0), 6);
+        assert!(all.is_empty(), "a stack eaten whole is removed");
+        let mut none = vec![slot("minecraft:cobblestone", 2)];
+        assert_eq!(module.eat(&entry(1), &mut none, &stone_tag, &mut || 0.9), 0);
+        assert_eq!(none[0].count, 2);
+    }
+
+    #[test]
+    fn loot_to_capacity_needs_its_ingredient_amount_and_chance() {
+        let decode = |value: Value| LootFill::decode(value.as_object().unwrap());
+        assert!(decode(json!({"amount":3,"chance":{"flat":1.0}})).is_err());
+        assert!(decode(json!({"consume":{"tag":"a:b"},"amount":0,"chance":{"flat":1.0}})).is_err(), "the amount starts at one");
+        assert!(decode(json!({"consume":{"tag":"a:b"},"amount":1})).is_err());
+        assert!(decode(json!({"consume":{"tag":"a:b"},"amount":1,"chance":{"flat":1.0},"owner":"tconstruct:overslime"})).unwrap().owner().is_some());
     }
 }

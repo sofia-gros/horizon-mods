@@ -54,6 +54,7 @@
     "api/src/edible.rs",
     "api/src/edible_hook.rs",
     "api/src/weapon_effect_hook.rs",
+    "api/src/block_break_hook.rs",
     "api/src/damage_tags.rs",
     "api/src/damage_vanilla.rs",
     "api/src/part_recycling.rs",

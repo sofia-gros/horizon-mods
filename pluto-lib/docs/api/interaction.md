@@ -76,7 +76,21 @@ use pluto_lib::PlayerBlockBreakEvents;
 PlayerBlockBreakEvents::BEFORE.register(|broken| broken.pos != [0, 64, 0]);
 ```
 
-> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` remains a stub (support matrix).
+`PlayerBlockBreakEvents::AFTER` runs once the block is gone. Every break event gets a `BlockBreakContext`: the position, dimension and block state, the player and the stack in their main hand, and `actions` for what to do to the player. For `AFTER` the held stack is the tool after the break wore it, so a callback can read its custom data and queue an `EditStackData` for the main hand.
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, PlayerBlockBreakEvents, StackDataEdit, StackSlot, Nbt};
+
+PlayerBlockBreakEvents::AFTER.register(|broken| {
+    let Some(tool) = &broken.held else { return };
+    broken.actions.borrow_mut().push(EntityAction::EditStackData {
+        target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: tool.item.clone(),
+        edits: vec![StackDataEdit { path: vec!["mined".into()], value: Some(Nbt::Int(1)) }],
+    });
+});
+```
+
+> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` runs when the game's break function returns (after the tool wear and the drops, which Fabric's runs before), only for a block the break removed, creative breaks included; it carries no block entity. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
 
 ## Reference
 
@@ -126,13 +140,24 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A block is being broken. `pos` is its position `[x, y, z]`.
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only).
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
 
 PlayerBlockBreakEvents::BEFORE.register(|broken: &BlockBreakContext| broken.pos[1] >= 0);
-assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext { pos: [1, 70, 1] }));
+assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([1, 70, 1])));
+```
+
+### `BlockBreakContext::at`
+
+A context that holds only a position: the other fields are empty. Useful in tests and for callbacks that only read `pos`.
+
+```rust
+use pluto_lib::BlockBreakContext;
+
+let context = BlockBreakContext::at([1, 70, 1]);
+assert!(context.player.is_none() && context.held.is_none() && context.actions.borrow().is_empty());
 ```
 
 ## Events
@@ -369,7 +394,7 @@ assert!(!AttackEntityCallback::EVENT.invoke(&attack).is_accepted());
 
 ### `PlayerBlockBreakEvents`
 
-The block-break events. `BEFORE` decides whether a break may proceed; a veto emits `CANCELED` once for that attempt. `AFTER` remains accepted but never invoked (support matrix).
+The block-break events. `BEFORE` decides whether a break may proceed; a veto emits `CANCELED` once for that attempt; `AFTER` hears a break that removed the block.
 
 ```rust
 use pluto_lib::PlayerBlockBreakEvents;
@@ -385,18 +410,20 @@ Before a block is broken. Answer `false` to cancel the break; one `false` is eno
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
 
 PlayerBlockBreakEvents::BEFORE.register(|b| b.pos != [0, 64, 0]); // protect the block at the origin
-assert!(!PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext { pos: [0, 64, 0] }));
-assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext { pos: [1, 64, 0] }));
+assert!(!PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([0, 64, 0])));
+assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([1, 64, 0])));
 ```
 
 ### `PlayerBlockBreakEvents::AFTER`
 
-Stub: after a block was broken. Accepted, not invoked yet.
+After a player's break removed a block (Fabric: `PlayerBlockBreakEvents.AFTER`). Read the player, the block's `state` and the worn `held` tool from the context and queue `actions` for the player; see "Breaking Blocks" for when it runs and what it leaves out.
 
 ```rust
 use pluto_lib::PlayerBlockBreakEvents;
 
-PlayerBlockBreakEvents::AFTER.register(|_| {});
+PlayerBlockBreakEvents::AFTER.register(|broken| {
+    if broken.state.as_ref().is_some_and(|state| state.block.path() == "stone") && broken.held.is_none() { return; }
+});
 ```
 
 ### `PlayerBlockBreakEvents::CANCELED`
