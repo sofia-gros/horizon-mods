@@ -62,10 +62,12 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (146, 105), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (145, 101), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "depth_protection", "recurrent_protection", "overshield", "restore_lost_health", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
+    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
@@ -1586,4 +1588,112 @@ fn shipped_frostshield_turns_freezing_damage_into_bar_and_overwield_drains_overs
     assert!(drained(&hit(&wield(2, 30)), Some(28)), "level 2 drains 2 a hit");
     assert!(drained(&hit(&wield(1, 1)), None), "a drained bar loses its key");
     assert!(hit(&wield(1, 0)).is_empty(), "an empty bar has nothing to drain");
+}
+
+/// An edible pickaxe through the shipped modifiers: the rebuilt stats, the meal the conditional stats make of them, and what eating costs the tool.
+fn edible_pickaxe<R>(upgrades: &[(&str, i32)], charge_tagged: bool, run: impl FnOnce(&crate::tool_stack::Environment, &pluto_lib::ItemSlot) -> R) -> R {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let id = Identifier::parse("tconstruct:pickaxe").unwrap();
+    let members: &[&str] = if charge_tagged { &["tconstruct:pickaxe"] } else { &[] };
+    let tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:pickaxe"], &[("tconstruct:modifiable/interactable/charge", members)]).unwrap();
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&id), item_tags: Some(&tags) };
+    let mut slot = ItemSlot::new(id.clone(), 1);
+    slot.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    let mut list = List::default();
+    for (modifier, level) in upgrades { list = list.with_modifier(Identifier::parse(modifier).unwrap(), *level).unwrap(); }
+    slot.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+    assert!(rebuild_stats(&mut slot.custom_data, &env).unwrap());
+    run(&env, &slot)
+}
+
+#[test]
+fn the_shipped_edible_family_binds_all_but_the_representative_item() {
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
+    assert!(unbound("tconstruct:edible").is_empty(), "the edible module and its tooltip trait are bound");
+    for name in ["tasty", "savory", "scrumptious"] {
+        assert_eq!(unbound(&format!("tconstruct:{name}")), vec!["tconstruct:edible_representative_item"], "{name} keeps only the particles-and-Diet module unbound");
+    }
+}
+
+#[test]
+fn an_eaten_tool_feeds_the_rounded_stats_and_runs_each_modifiers_edible_effects_in_order() {
+    use crate::{edible::Effect, edible_hook::meal, tool_stack::{edible, stat}, tool_stats::Stat};
+    // tasty II: hunger +1 a level, saturation +0.6, counter chance +0.15 a level, wearing 5 + 5 a level.
+    edible_pickaxe(&[("tconstruct:tasty", 2)], true, |env, tool| {
+        let nbt = &tool.custom_data;
+        assert_eq!((stat(nbt, Stat::Hunger), stat(nbt, Stat::EatDuration)), (2.0, 16.0), "the eat duration keeps its default of 16 ticks");
+        assert!((stat(nbt, Stat::Saturation) - 0.6).abs() < 1e-6 && (stat(nbt, Stat::EdibleCounterChance) - 0.3).abs() < 1e-6);
+        let eaten = meal(nbt, env).expect("a tasty tool is a meal");
+        assert_eq!((eaten.nutrition, eaten.effects), (2, vec![Effect::ConsumeDurability(15)]));
+        assert!((eaten.saturation - 0.6).abs() < 1e-6);
+    });
+    // savory I: wears 4 + 4, then cures one effect; the representative item is unbound and adds nothing.
+    edible_pickaxe(&[("tconstruct:savory", 1)], true, |env, tool| {
+        assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::CureRandomEffect]));
+        assert!((stat(&tool.custom_data, Stat::Saturation) - 0.4).abs() < 1e-6);
+    });
+    // scrumptious I: wears 5 + 3, then removes poison.
+    edible_pickaxe(&[("tconstruct:scrumptious", 1)], true, |env, tool| {
+        let poison = Identifier::parse("minecraft:poison").unwrap();
+        assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::RemoveEffect(poison)]));
+    });
+    // Two different modifiers add their hunger and run their effects in modifier order.
+    edible_pickaxe(&[("tconstruct:tasty", 1), ("tconstruct:scrumptious", 1)], true, |env, tool| {
+        let eaten = meal(&tool.custom_data, env).unwrap();
+        assert_eq!(eaten.nutrition, 2);
+        assert_eq!(eaten.effects.len(), 3, "tasty's wear, scrumptious's wear and the poison cure: {:?}", eaten.effects);
+    });
+    // A plain tool is no meal.
+    edible_pickaxe(&[("tconstruct:sharpness", 1)], true, |env, tool| {
+        assert_eq!(edible(&tool.custom_data, env), None);
+        assert_eq!(meal(&tool.custom_data, env), None);
+    });
+}
+
+#[test]
+fn eating_wears_the_tool_but_not_for_a_creative_eater_and_a_tool_outside_the_valid_tags_gets_no_hunger() {
+    use crate::{edible_hook::{meal, pay}, tool_slot, tool_stack::{damage, stat}, tool_stats::Stat};
+    edible_pickaxe(&[("tconstruct:tasty", 1)], true, |env, tool| {
+        let eaten = meal(&tool.custom_data, env).unwrap();
+        let before = damage(&tool.custom_data);
+        let worn = pay(&eaten, tool, env, false);
+        assert_eq!(damage(&worn.custom_data) - before, 10, "tasty I wears 5 + 5");
+        assert_eq!(worn.damage, tool.damage + 10, "the slot's bar follows the tool's damage");
+        assert_eq!(pay(&eaten, tool, env, true), *tool, "a creative eater pays nothing");
+        // eating cannot wear past what is left: the tool breaks instead
+        let mut nearly_gone = tool.clone();
+        tool_slot::direct_damage_slot(&mut nearly_gone, env, tool_slot::remaining(tool) - 3, true).unwrap();
+        let broken = pay(&eaten, &nearly_gone, env, false);
+        assert!(tool_slot::broken(&broken), "the last 3 points of durability are all eating can take");
+    });
+    // Hunger applies only to the tools EdibleModule.VALID_TOOLS names (charging tools and armor).
+    edible_pickaxe(&[("tconstruct:tasty", 1)], false, |env, tool| {
+        assert_eq!(stat(&tool.custom_data, Stat::Hunger), 0.0);
+        assert_eq!(crate::edible_hook::meal(&tool.custom_data, env), None, "a tool with no hunger rounds to no meal");
+    });
+}
+
+#[test]
+fn the_items_eaten_by_a_right_click_are_the_tools_in_the_shipped_charge_tag() {
+    fn members(tag: &str, found: &mut std::collections::BTreeSet<String>) {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/tags/item").join(format!("{tag}.json"));
+        let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|_| panic!("tag file {path:?}"))).unwrap();
+        for entry in value["values"].as_array().unwrap() {
+            let id = entry.as_str().or_else(|| entry["id"].as_str()).unwrap();
+            match id.strip_prefix("#tconstruct:") { Some(nested) => members(nested, found), None => { found.insert(id.to_owned()); } }
+        }
+    }
+    let mut charge = std::collections::BTreeSet::new();
+    members("modifiable/interactable/charge", &mut charge);
+    // The original's other-mod minotaur axe is not a tool here.
+    let tools: std::collections::BTreeSet<String> = crate::tool_parts::tool_items().map(|id| id.to_string()).collect();
+    let charge: std::collections::BTreeSet<String> = charge.into_iter().filter(|id| tools.contains(id)).collect();
+    let used: std::collections::BTreeSet<String> = crate::edible_hook::USE_ITEMS.iter().map(|path| format!("tconstruct:{path}")).collect();
+    assert_eq!(used, charge, "the edible use covers exactly the charging tools, and no armor");
 }

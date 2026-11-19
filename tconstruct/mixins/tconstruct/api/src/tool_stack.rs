@@ -280,6 +280,13 @@ pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment) -> Vec<(Identif
     let broken = is_broken(nbt);
     saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.armor_level_modules().filter_map(move |module| module.armor_level(entry, broken)).collect::<Vec<_>>()).collect()
 }
+/// EdibleModule: whether the tool carries the edible module, and the effects eating it has, in modifier order.
+pub(crate) fn edible(nbt: &NbtCompound, env: &Environment) -> Option<Vec<crate::edible::Effect>> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        if !saved.iter().any(|(_, modifier)| modifier.is_edible()) { return None; }
+        Some(saved.iter().flat_map(|(entry, modifier)| modifier.edible_effects(entry, facts)).collect())
+    })
+}
 /// The mob types a worn armor piece makes its wearer pass for, each with the count the piece adds (its modifier's level), in modifier order.
 pub(crate) fn mob_disguises(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
     let mut disguises = Vec::new();

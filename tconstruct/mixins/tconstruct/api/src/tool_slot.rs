@@ -92,6 +92,14 @@ pub(crate) fn damage_slot(
     Ok(outcome)
 }
 
+/// ToolDamageUtil.directDamage on a stack: no modifier reduces it, only a creative holder (`consumes_resources` false) and the remaining
+/// durability limit it. Returns the damage applied and whether the tool broke.
+pub(crate) fn direct_damage_slot(slot: &mut ItemSlot, env: &Environment, amount: i32, consumes_resources: bool) -> Result<tool_damage::Damaged, String> {
+    let outcome = tool_damage::direct_damage(&mut slot.custom_data, amount, consumes_resources);
+    if outcome.applied > 0 { sync_visuals(slot, env)?; }
+    Ok(outcome)
+}
+
 /// ToolDamageUtil.repair on a stack; returns the amount repaired.
 pub(crate) fn repair_slot(slot: &mut ItemSlot, env: &Environment, amount: i32) -> Result<i32, String> {
     let repaired = tool_damage::repair(&mut slot.custom_data, amount);

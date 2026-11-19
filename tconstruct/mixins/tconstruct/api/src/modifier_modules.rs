@@ -124,6 +124,14 @@ pub(crate) enum Module {
     ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
     /// MobDisguiseModule: armor that makes mobs of one type see its wearer from half as far for each level.
     MobDisguise { module: crate::mob_disguise::MobDisguise },
+    /// EdibleModule: a tool with a hunger stat can be eaten with a right click.
+    Edible,
+    /// EdibleConsumeDurabilityModule: eating the tool wears it.
+    EdibleWear { usage: crate::edible::DurabilityUsage, condition: Condition },
+    /// EdibleCureRandomEffectModule: eating the tool cures one of the eater's effects.
+    EdibleCure { condition: Condition },
+    /// EdibleRemoveEffectModule: eating the tool removes one effect from the eater.
+    EdibleRemove { effect: Identifier, condition: Condition },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// FieryAttackModule and FreezingAttackModule: a melee hit that sets the target on fire or freezes it.
@@ -447,6 +455,20 @@ impl Module {
             "tconstruct:mob_disguise" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::MobDisguise { module: crate::mob_disguise::MobDisguise::decode(fields)? }
             }
+            "tconstruct:edible" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:on_attacked")) => Self::Edible,
+            // A holder condition needs the eater's state, which the finish event does not carry.
+            "tconstruct:edible_consume_durability" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:edible_effect") => {
+                if crate::edible::has_holder(fields) { return Ok(None); }
+                Self::EdibleWear { usage: crate::edible::DurabilityUsage::decode(fields)?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:edible_cure_random_effect" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:edible_effect") => {
+                if crate::edible::has_holder(fields) { return Ok(None); }
+                Self::EdibleCure { condition: Condition::decode(fields)? }
+            }
+            "tconstruct:edible_remove_effect" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:edible_effect") => {
+                if crate::edible::has_holder(fields) { return Ok(None); }
+                Self::EdibleRemove { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
+            }
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
                     Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -607,7 +629,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -754,6 +776,17 @@ impl Module {
     pub fn mob_disguise(&self, entry: &Entry) -> Option<(Identifier, i32)> {
         let Self::MobDisguise { module } = self else { return None; };
         Some(module.disguise(entry))
+    }
+    /// Whether this is the edible module itself.
+    pub fn is_edible(&self) -> bool { matches!(self, Self::Edible) }
+    /// What eating the tool does for this edible effect module, when its conditions hold.
+    pub fn edible_effect(&self, entry: &Entry, facts: &Facts) -> Option<crate::edible::Effect> {
+        match self {
+            Self::EdibleWear { usage, condition } if condition.matches(entry, facts) => crate::edible::wear(*usage, entry),
+            Self::EdibleCure { condition } if condition.matches(entry, facts) => Some(crate::edible::Effect::CureRandomEffect),
+            Self::EdibleRemove { effect, condition } if condition.matches(entry, facts) => Some(crate::edible::Effect::RemoveEffect(effect.clone())),
+            _ => None,
+        }
     }
     /// Whether this is a mob disguise module.
     pub fn is_mob_disguise(&self) -> bool { matches!(self, Self::MobDisguise { .. }) }
@@ -962,6 +995,8 @@ pub(crate) fn supports(stat: Stat, facts: &Facts) -> bool {
         Stat::Velocity | Stat::Accuracy => &["modifiable/ranged", "modifiable/ammo"],
         Stat::ProjectileDamage => &["modifiable/ranged/launcher", "modifiable/ammo"],
         Stat::SeaLuck | Stat::Lure => &["modifiable/fishing_rods"],
+        // EdibleModule.VALID_TOOLS: tools that charge an interaction, and armor.
+        Stat::Hunger | Stat::Saturation | Stat::EatDuration | Stat::EdibleCounterChance => &["modifiable/interactable/charge", "modifiable/armor"],
         // Water inertia and overslime declare no tag.
         Stat::WaterInertia | Stat::Overslime => return true,
     };

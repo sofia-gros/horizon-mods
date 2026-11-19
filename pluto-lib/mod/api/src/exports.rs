@@ -25,14 +25,14 @@ pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDro
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
 pub use crate::pure::events_interaction_v0::{
     self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, PlayerBlockBreakEvents, UseBlockCallback, UseBlockContext,
-    UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext,
+    UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext, Hand,
 };
 pub use crate::pure::lifecycle_events_v1::{
     self, ServerChunk, ServerChunkEvents, ServerInfo, ServerLifecycleEvents, ServerTickEvents, WorldTick,
 };
 pub use crate::pure::fluid_api_v1::{self, FluidAttributes, FluidDef, FluidRegistry, FluidRegistrySnapshot};
 pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, LanguageEvents, Translations};
-pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, ItemRegistry, ItemRegistrySnapshot, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnderMaskContext, ItemBehavior, ItemBehaviors};
+pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnderMaskContext, ItemBehavior, ItemBehaviors};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};

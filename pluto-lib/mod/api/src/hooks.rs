@@ -1717,12 +1717,34 @@ impl Hooks for PlutoHooks {
     }
 
     fn use_duration(&self, _host: &dyn Host, event: &mut UseDurationEvent<'_>) {
-        event.duration = item_api_v1::use_duration(&event.stack.item, event.duration);
+        // An item with a per-stack use answers from the stack's own data (read only for those items: this is asked every frame a use is drawn).
+        event.duration = if item_api_v1::has_stack_use(&event.stack.item) {
+            item_api_v1::stack_use_duration(&read_stack(event.stack)).unwrap_or(event.duration)
+        } else {
+            item_api_v1::use_duration(&event.stack.item, event.duration)
+        };
+    }
+
+    /// A per-stack use refuses a stack it cannot use, and a hungry-only one refuses a full player who is not in creative mode.
+    fn living_entity_use_item_start(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingEntityUseItemStartEvent<'_>) -> Flow {
+        if event.entity.is_some() || !item_api_v1::has_stack_use(&event.stack.item) { return Flow::Continue; }
+        let stack = read_stack(event.stack);
+        let acting = host.acting_player();
+        let (hungry, creative) = match &acting {
+            Some(player) => (host.player_food(player.uuid).is_none_or(|(level, _, _)| level < 20), player.game_mode == 1),
+            None => (true, false),
+        };
+        if item_api_v1::stack_use_may_start(&stack, hungry, creative) { Flow::Continue } else { Flow::Cancel }
     }
 
     fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
         use item_api_v1::UseAction;
-        if let Some(action) = item_api_v1::use_animation(&event.stack.item) {
+        let action = if item_api_v1::has_stack_use(&event.stack.item) {
+            item_api_v1::stack_use_action(&read_stack(event.stack))
+        } else {
+            item_api_v1::use_animation(&event.stack.item)
+        };
+        if let Some(action) = action {
             *event.animation = match action {
                 UseAction::None => UseAnimation::None,
                 UseAction::Eat => UseAnimation::Eat,
@@ -2099,11 +2121,32 @@ impl Hooks for PlutoHooks {
     fn living_entity_use_item_finish(&self, host: &mut dyn Host, event: &mut LivingEntityUseItemFinishEvent<'_>) {
         if event.entity.is_some() { return; }
         let Some(player) = host.acting_player() else { return };
+        let used = read_stack(event.stack);
+        let server_player = player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() };
+        // What a per-stack use feeds is given before the callbacks run, as the game gives a consumable's food before the finish event.
+        if let Some(food) = item_api_v1::stack_use_food(&used) {
+            scoped(&mut *host, || server_player.add_food(food.nutrition, food.saturation));
+        }
         let context = events_interaction_v0::UseItemFinishContext {
             item: event.stack.item.to_string(),
-            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            player: server_player,
+            stack: used,
+            hand: match event.hand {
+                horizon_client::mod_api::Hand::Main => events_interaction_v0::Hand::Main,
+                horizon_client::mod_api::Hand::Off => events_interaction_v0::Hand::Off,
+            },
+            slot: event.result.as_ref().and_then(slot_of),
+            replacement: std::cell::RefCell::new(None),
+            dimension: player.dimension.to_string(),
+            position: player.position,
+            creative: player.game_mode == 1,
         };
-        scoped(host, || events_interaction_v0::use_item_finish(&context));
+        // A stack a callback put in the hand replaces what the hand holds; a count of 0 empties it.
+        if let Some(replacement) = scoped(host, || events_interaction_v0::use_item_finish(&context)) {
+            let mut stack = event.result.clone().unwrap_or_else(|| ItemStack::new(&replacement.item.to_string(), replacement.count.max(1)));
+            write_slot(&mut stack, &replacement);
+            *event.result = if replacement.count == 0 { None } else { Some(stack) };
+        }
     }
 
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {

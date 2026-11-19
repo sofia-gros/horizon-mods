@@ -3,10 +3,11 @@
 //! Callback data is reduced and owned (Fabric passes player, world, hand and hit result). Results follow Fabric: the first
 //! callback that does not return `ActionResult::Pass` decides; any other result stops the game's own handling.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use super::base::{ActionResult, Event};
-use super::player_api::ServerPlayer;
+use super::block_entity_api_v1::ItemSlot;
+use super::player_api::{ServerPlayer, StackData};
 use super::world_api_v1::BlockState;
 
 /// A player used an item.
@@ -73,13 +74,38 @@ pub struct DiggingPlayer {
     pub eyes_in_water: bool,
 }
 
+/// The hand a player used an item in (Minecraft: `InteractionHand`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Hand {
+    /// The main hand.
+    Main,
+    /// The off hand.
+    Off,
+}
+
 /// A player finished using an item over time (ate or drank it).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct UseItemFinishContext {
     /// The item id, such as `tconstruct:cheese_ingot`.
     pub item: String,
     /// The player; its methods work inside the callback.
     pub player: ServerPlayer,
+    /// The stack that was used, with its damage, max damage and custom data, as it was when the use started.
+    pub stack: StackData,
+    /// The hand the stack was used in.
+    pub hand: Hand,
+    /// What that hand holds now, with all its components, after the game's own food and remainder were given; None when the hand is empty
+    /// (the last of a stack was eaten). To change it, put the changed copy in `replacement`.
+    pub slot: Option<ItemSlot>,
+    /// A whole new stack for the hand, which a callback may set (clone `slot`, edit the clone, store it here); the later callbacks see the
+    /// one before. A count of 0 empties the hand. Left None, the hand keeps what it holds.
+    pub replacement: RefCell<Option<ItemSlot>>,
+    /// The dimension the player is in, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// Where the player is.
+    pub position: [f64; 3],
+    /// Whether the player is in creative mode (nothing is used up).
+    pub creative: bool,
 }
 
 /// A player attacked an entity.
@@ -129,7 +155,8 @@ impl UseItemOnBlockCallback {
 }
 
 /// A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects
-/// have been given; only for a player on the server.
+/// have been given; only for a player on the server. The context names the stack, the hand and the player's place, and a callback may change
+/// what the hand holds through `replacement`.
 pub struct UseItemFinishCallback;
 
 impl UseItemFinishCallback {
@@ -179,8 +206,10 @@ pub(crate) fn use_item_on_block(context: &UseItemOnBlockContext) -> bool {
     handled(USE_ITEM_ON_BLOCK.invoke(context))
 }
 
-pub(crate) fn use_item_finish(context: &UseItemFinishContext) {
+/// Calls the finish callbacks and returns the stack a callback put in the hand, if any.
+pub(crate) fn use_item_finish(context: &UseItemFinishContext) -> Option<ItemSlot> {
     USE_ITEM_FINISH.invoke(context);
+    context.replacement.borrow_mut().take()
 }
 
 /// The dig speed after every callback has had its say.
@@ -211,6 +240,41 @@ mod tests {
         UseBlockCallback::EVENT.register(|c| if c.pos == [1, 2, 3] { ActionResult::Success } else { ActionResult::Pass });
         assert!(use_block([1, 2, 3], [0, 1, 0]));
         assert!(!use_block([9, 9, 9], [0, 1, 0]));
+    }
+
+    fn finish(item: &str, creative: bool) -> UseItemFinishContext {
+        let mut data = StackData { item: item.into(), count: 1, damage: 3, ..Default::default() };
+        data.custom_data.insert("bites".into(), super::super::base::Nbt::Int(2));
+        let mut slot = ItemSlot::new(super::super::base::Identifier::parse(item).unwrap(), 1);
+        slot.damage = 3;
+        UseItemFinishContext {
+            item: item.into(), player: ServerPlayer { uuid: 7, name: "Alex".into() }, stack: data, hand: Hand::Off, slot: Some(slot),
+            replacement: RefCell::new(None), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], creative,
+        }
+    }
+
+    #[test]
+    fn a_finish_callback_sees_the_stack_and_hand_and_may_put_a_new_stack_in_the_hand() {
+        UseItemFinishCallback::EVENT.register(|done| {
+            if done.item != "test:snack_tool" || done.creative { return; }
+            assert_eq!((done.hand, done.stack.damage, done.stack.custom_data.len()), (Hand::Off, 3, 1));
+            // wear the hand's stack by two, as an edible tool's durability cost does
+            let mut worn = done.slot.clone().expect("the hand still holds the tool");
+            worn.damage += 2;
+            *done.replacement.borrow_mut() = Some(worn);
+        });
+        UseItemFinishCallback::EVENT.register(|done| {
+            // a later callback sees the earlier one's replacement
+            if done.item == "test:snack_tool" && !done.creative {
+                let seen = done.replacement.borrow().as_ref().map(|slot| slot.damage);
+                assert_eq!(seen, Some(5));
+            }
+        });
+        let used = finish("test:snack_tool", false);
+        assert_eq!(use_item_finish(&used).map(|slot| slot.damage), Some(5));
+        assert!(used.replacement.borrow().is_none(), "the replacement is handed over once");
+        assert_eq!(use_item_finish(&finish("test:snack_tool", true)), None, "a callback that sets nothing leaves the hand alone");
+        assert_eq!(use_item_finish(&finish("test:other", false)), None);
     }
 
     #[test]
