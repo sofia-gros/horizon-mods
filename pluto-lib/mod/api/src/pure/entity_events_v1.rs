@@ -8,6 +8,7 @@ use super::block_entity_api_v1::ItemSlot;
 pub use super::entity_spawn_api::{MobSpawnInfo,MobSpawnPreparation,MobSpawnCompletion,MobSpawnAction,MobSpawnCallback};
 use super::base::Event;
 use super::player_api::StackData;
+use super::base::{Nbt, NbtCompound};
 
 /// An entity entering or leaving a world.
 #[derive(Clone, Debug, PartialEq)]
@@ -176,6 +177,61 @@ pub enum EntityAction {
     /// `LivingEntity.addEffect`: puts a status effect on the target, a player or a mob. An effect id the game does not know is skipped;
     /// `amplifier` is the level less one and `duration` is in ticks, and an effect with a negative amplifier or no duration is not given.
     AddEffect { target: ActionTarget, effect: String, amplifier: i32, duration: i32 },
+    /// Edits the custom data of the stack a player carries in `slot` (`ItemStack.set(DataComponents.CUSTOM_DATA, ..)`), when that stack is
+    /// still of `item`. Players only: a mob target, a slot that holds another item and an edit that changes nothing are skipped. Acts on
+    /// the stack as it is when the action lands, not as the callback saw it, so wear that happened in between stays.
+    EditStackData { target: ActionTarget, slot: StackSlot, item: String, edits: Vec<StackDataEdit> },
+}
+
+/// Which stack of a player an [`EntityAction::EditStackData`] edits.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StackSlot { MainHand, OffHand, Feet, Legs, Chest, Head }
+
+/// One change to a stack's custom data: `value` is put at `path` (compound keys from the root, the compounds on the way made as needed), or
+/// the entry at `path` is removed when `value` is None.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StackDataEdit {
+    pub path: Vec<String>,
+    pub value: Option<Nbt>,
+}
+
+/// Applies `edits` in order to `data`; true when any of them changed it. An edit with an empty path is skipped; one whose path runs
+/// through a value that is not a compound replaces that value with a compound.
+pub(crate) fn edit_custom_data(data: &mut NbtCompound, edits: &[StackDataEdit]) -> bool {
+    let before = data.clone();
+    for edit in edits {
+        let Some((leaf, parents)) = edit.path.split_last() else { continue };
+        let mut at = &mut *data;
+        let mut present = true;
+        for key in parents {
+            if edit.value.is_none() && !matches!(at.get(key), Some(Nbt::Compound(_))) { present = false; break; }
+            let entry = at.entry(key.clone()).or_insert_with(|| Nbt::Compound(NbtCompound::new()));
+            if !matches!(entry, Nbt::Compound(_)) { *entry = Nbt::Compound(NbtCompound::new()); }
+            let Nbt::Compound(inner) = entry else { unreachable!("made a compound just above") };
+            at = inner;
+        }
+        if !present { continue; }
+        match &edit.value { Some(value) => { at.insert(leaf.clone(), value.clone()); } None => { at.remove(leaf); } }
+    }
+    *data != before
+}
+
+/// The number the host calls a player's stack by (`Inventory` slot numbers): the selected hotbar slot for the main hand, 100 (feet) to 103
+/// (head) for armor, -106 for the off hand.
+pub(crate) fn carried_slot_number(slot: StackSlot, selected: u8) -> i32 {
+    match slot {
+        StackSlot::MainHand => i32::from(selected.min(8)),
+        StackSlot::OffHand => -106,
+        StackSlot::Feet => 100,
+        StackSlot::Legs => 101,
+        StackSlot::Chest => 102,
+        StackSlot::Head => 103,
+    }
+}
+
+/// The slot an armor slot name of `armor` lists (`feet`, `legs`, `chest`, `head`) stands for.
+pub fn armor_stack_slot(name: &str) -> Option<StackSlot> {
+    Some(match name { "feet" => StackSlot::Feet, "legs" => StackSlot::Legs, "chest" => StackSlot::Chest, "head" => StackSlot::Head, _ => return None })
 }
 
 /// The ticks a mob that burns for `current` ticks burns for after burning for `seconds` more, or None when that changes nothing (the new
@@ -255,6 +311,9 @@ pub struct DamageModification {
     /// When a player's weapon hit a mob: what the player and the mob were doing as the hit landed; None otherwise.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// The actions to do to the damaged player (`Victim`), which callbacks add to; they land on the player's next tick (only for a player
+    /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// Knockback about to be applied to a living entity, which callbacks may change or cancel (NeoForge: `LivingKnockBackEvent`).
@@ -594,8 +653,11 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
             other => { *pending = other; (None, None) }
         }
     });
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state };
+    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
     MODIFY_DAMAGE.invoke(&modification);
+    // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
+    let actions: Vec<(i32, i32, EntityAction)> = modification.actions.borrow_mut().drain(..).map(|action| (damage.entity, damage.attacker, action)).collect();
+    if !actions.is_empty() && !modification.armor.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
     modification.amount.get()
 }
 
@@ -879,5 +941,49 @@ mod tests {
         let hit = |amount| LivingDamage { entity: 1, kind: "minecraft:zombie".into(), damage_type: "minecraft:generic".into(), attacker: -1, direct: -1, amount };
         assert!(allow_damage(&hit(3.0)));
         assert!(!allow_damage(&hit(500.0)));
+    }
+    #[test]
+    fn stack_edits_set_nested_values_and_remove_them_and_report_whether_anything_changed() {
+        let edit = |path: &[&str], value: Option<Nbt>| StackDataEdit { path: path.iter().map(|key| key.to_string()).collect(), value };
+        let mut data = NbtCompound::new();
+        assert!(edit_custom_data(&mut data, &[edit(&["persistent", "mod:bar"], Some(Nbt::Int(40)))]), "the compounds on the way are made");
+        let Some(Nbt::Compound(persistent)) = data.get("persistent") else { panic!("persistent compound") };
+        assert_eq!(persistent.get("mod:bar"), Some(&Nbt::Int(40)));
+        assert!(!edit_custom_data(&mut data, &[edit(&["persistent", "mod:bar"], Some(Nbt::Int(40))), edit(&[], Some(Nbt::Int(1))), edit(&["absent", "key"], None)]), "the same value, no path and a missing entry change nothing");
+        assert!(!data.contains_key("absent"), "removing does not make the compounds it would run through");
+        assert!(edit_custom_data(&mut data, &[edit(&["persistent", "mod:bar"], Some(Nbt::Int(10))), edit(&["persistent", "mod:other"], Some(Nbt::Int(5))), edit(&["persistent", "mod:other"], None)]));
+        let Some(Nbt::Compound(persistent)) = data.get("persistent") else { panic!("persistent compound") };
+        assert_eq!((persistent.get("mod:bar"), persistent.contains_key("mod:other")), (Some(&Nbt::Int(10)), false));
+        data.insert("flat".into(), Nbt::Int(1));
+        assert!(edit_custom_data(&mut data, &[edit(&["flat", "inner"], Some(Nbt::Int(2)))]), "a value in the way becomes a compound");
+        assert!(matches!(data.get("flat"), Some(Nbt::Compound(_))));
+    }
+
+    #[test]
+    fn stack_slots_map_to_the_hosts_inventory_numbers() {
+        assert_eq!(carried_slot_number(StackSlot::MainHand, 3), 3);
+        assert_eq!(carried_slot_number(StackSlot::MainHand, 200), 8, "never past the hotbar");
+        assert_eq!([StackSlot::Feet, StackSlot::Legs, StackSlot::Chest, StackSlot::Head].map(|slot| carried_slot_number(slot, 0)), [100, 101, 102, 103]);
+        assert_eq!(carried_slot_number(StackSlot::OffHand, 0), -106);
+        assert_eq!(armor_stack_slot("chest"), Some(StackSlot::Chest));
+        assert_eq!(armor_stack_slot("body"), None);
+    }
+
+    #[test]
+    fn a_damage_callbacks_actions_wait_for_the_wearers_next_tick() {
+        remember_armor(77, 7777, vec![("chest".into(), StackData { item: "example:plate".into(), count: 1, ..StackData::default() })]);
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 7777 { return; }
+            hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: StackSlot::Chest, item: "example:plate".into(), edits: vec![StackDataEdit { path: vec!["bar".into()], value: Some(Nbt::Int(3)) }] });
+        });
+        let hit = |entity| LivingDamage { entity, kind: "minecraft:player".into(), damage_type: "minecraft:freeze".into(), attacker: -1, direct: -1, amount: 2.0 };
+        modify_damage(&hit(7777));
+        modify_damage(&hit(7778));
+        assert!(take_wearer_actions(7778).is_empty(), "a callback that only listens for one wearer queues for that one");
+        let queued = take_wearer_actions(7777);
+        assert_eq!(queued.len(), 1);
+        assert!(matches!(&queued[0], (-1, EntityAction::EditStackData { slot: StackSlot::Chest, .. })));
+        assert!(take_wearer_actions(7777).is_empty());
+        forget_armor(77);
     }
 }

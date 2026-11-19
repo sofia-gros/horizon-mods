@@ -198,6 +198,10 @@ impl Modifier {
     }
     /// The first capacity bar module (the bar a shield of this modifier drains).
     pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { self.modules.iter().find_map(|module| module.capacity_bar()) }
+    /// The melee capacity modules.
+    pub fn melee_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_melee_capacity()) }
+    /// The damage to capacity modules.
+    pub fn damage_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_damage_capacity()) }
     /// The durability shields.
     pub fn shields(&self) -> impl Iterator<Item = &crate::capacity::Shield> { self.modules.iter().filter_map(|module| module.shield()) }
     /// The effect immunity modules.

@@ -925,6 +925,18 @@ fn tag_from_nbt(nbt: &Nbt) -> Tag {
     }
 }
 
+/// Edits the custom data of the stack the acting player carries in `slot` (`Host::carried_stack` by the inventory's slot numbers: the selected
+/// hotbar slot, 100 to 103 for armor, -106 for the off hand), when it is still of `item`; the whole stack goes back through the same
+/// `slot_of` / `write_slot` pair the item-wear adapter uses, so every other component stays as the game had it.
+fn edit_player_stack(host: &mut dyn Host, selected: u8, slot: entity_events_v1::StackSlot, item: &str, edits: &[entity_events_v1::StackDataEdit]) {
+    let number = entity_events_v1::carried_slot_number(slot, selected);
+    let Some(stack) = host.carried_stack(number) else { return };
+    if &*stack.item != item || stack.count == 0 { return; }
+    let Some(mut held) = slot_of(&*stack) else { return };
+    if !entity_events_v1::edit_custom_data(&mut held.custom_data, edits) { return; }
+    write_slot(stack, &held);
+}
+
 /// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
 /// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
 fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
@@ -988,6 +1000,12 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 };
                 let on_ground = host.entity_on_ground(entity).unwrap_or(false);
                 if let Some(delta) = entity_events_v1::knockback_delta(strength, x, z, on_ground) { host.entity_push(entity, delta); }
+            }
+            EntityAction::EditStackData { target, slot, item, edits } => {
+                // Only the player acting in this hook has a stack the host hands out; a hit on a player lands on that player's own tick.
+                let id = id_of(target);
+                let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) else { continue };
+                edit_player_stack(host, selected, slot, &item, &edits);
             }
             EntityAction::AddEffect { target, effect, amplifier, duration } => {
                 let id = id_of(target);
@@ -2289,6 +2307,15 @@ impl Hooks for PlutoHooks {
             if let Some(uuid) = attacker {
                 for action in own_effects {
                     if let entity_events_v1::EntityAction::AddEffect { effect, amplifier, duration, .. } = action { give_effect(host, uuid, effect, amplifier, duration); }
+                }
+            }
+        }
+        // Edits of the attacking player's own stacks are done now, to the player named as the player state names them.
+        let (own_edits, actions): (Vec<_>, Vec<_>) = actions.into_iter().partition(|action| matches!(action, entity_events_v1::EntityAction::EditStackData { target: entity_events_v1::ActionTarget::Attacker, .. }));
+        if !own_edits.is_empty() {
+            if let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.selected_slot) {
+                for action in own_edits {
+                    if let entity_events_v1::EntityAction::EditStackData { slot, item, edits, .. } = action { edit_player_stack(host, selected, slot, &item, &edits); }
                 }
             }
         }

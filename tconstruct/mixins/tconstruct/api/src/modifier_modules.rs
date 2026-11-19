@@ -104,6 +104,10 @@ pub(crate) enum Module {
     CapacityBar { bar: crate::capacity::Bar },
     /// DurabilityShieldModule: soaks tool wear from the modifier's capacity bar.
     DurabilityShield { shield: crate::capacity::Shield },
+    /// MeleeCapacityModule: a melee hit that adds to (or drains) a capacity bar.
+    CapacityMelee { module: Box<crate::capacity::MeleeFill>, condition: Condition },
+    /// DamageToCapacityModule: armor that turns the damage its wearer takes into capacity.
+    CapacityDamage { module: Box<crate::capacity::DamageFill>, condition: Condition },
     /// InventoryModule: item slots the modifier adds to the tool, kept in its persistent data.
     Inventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
     /// InventoryMenuModule: the key that opens the tool's inventory screen.
@@ -382,6 +386,12 @@ impl Module {
             "tconstruct:capacity_bar" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:capacity_bar") => {
                 match crate::capacity::Bar::decode(fields)? { Some(bar) => Self::CapacityBar { bar }, None => return Ok(None) }
             }
+            "tconstruct:melee_capacity" if only("tconstruct:melee_hit") => {
+                match crate::capacity::MeleeFill::decode(fields)? { Some(module) => Self::CapacityMelee { module: Box::new(module), condition: Condition::decode(fields)? }, None => return Ok(None) }
+            }
+            "tconstruct:damage_to_capacity" if only("tconstruct:modify_damage") => {
+                match crate::capacity::DamageFill::decode(fields)? { Some(module) => Self::CapacityDamage { module: Box::new(module), condition: Condition::decode(fields)? }, None => return Ok(None) }
+            }
             "tconstruct:durability_shield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_damage" | "tconstruct:durability_display")) => {
                 match crate::capacity::Shield::decode(fields)? { Some(shield) => Self::DurabilityShield { shield }, None => return Ok(None) }
             }
@@ -560,7 +570,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -709,6 +719,21 @@ impl Module {
     pub fn is_attack_action(&self) -> bool { matches!(self, Self::AttackAction { .. }) }
     /// Whether this is a fiery, freezing or knockback counter module.
     pub fn is_counter_action(&self) -> bool { matches!(self, Self::CounterAction { .. }) }
+    /// The bar a melee capacity module fills and by how much, when its conditions hold for the hit.
+    pub fn melee_capacity(&self, entry: &Entry, facts: &Facts, target_in_tag: &dyn Fn(&Identifier) -> bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool) -> Option<(Option<&Identifier>, i32)> {
+        let Self::CapacityMelee { module, condition } = self else { return None; };
+        if !condition.matches(entry, facts) { return None; }
+        module.grant_for(entry, target_in_tag, attacker_in_tag)
+    }
+    /// The damage to capacity module, when its conditions hold and the damage is of the source it names.
+    pub fn damage_capacity(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource) -> Option<&crate::capacity::DamageFill> {
+        let Self::CapacityDamage { module, condition } = self else { return None; };
+        (condition.matches(entry, facts) && module.matches(source)).then_some(&**module)
+    }
+    /// Whether this is a melee capacity module.
+    pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
+    /// Whether this is a damage to capacity module.
+    pub fn is_damage_capacity(&self) -> bool { matches!(self, Self::CapacityDamage { .. }) }
     /// Whether this is a thorns module.
     pub fn is_thorns(&self) -> bool { matches!(self, Self::Thorns { .. }) }
     /// Whether this is an armor counter effect module.

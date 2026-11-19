@@ -310,6 +310,40 @@ pub(crate) fn attack_actions(nbt: &NbtCompound, env: &Environment) -> Vec<pluto_
     })
 }
 
+/// The edits of the persistent data a melee hit with this tool makes through its melee capacity modules (each module in modifier order, on
+/// the result of the one before). `target_in_tag` and `attacker_in_tag` answer the entity type and state tags of the mob hit and of the player.
+pub(crate) fn melee_capacity_edits(nbt: &NbtCompound, env: &Environment, target_in_tag: &dyn Fn(&Identifier) -> bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.melee_capacity_modules() {
+                let Some((owner, grant)) = module.melee_capacity(entry, facts, target_in_tag, attacker_in_tag) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, owner) { target.grant(&mut work, env, grant); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
+/// The damage a worn armor piece lets through after its damage to capacity modules took what their bars hold (in priority order, highest
+/// first), and the edits of the piece's persistent data that fill the bars.
+pub(crate) fn damage_capacity(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, damage: f32) -> (f32, Vec<pluto_lib::StackDataEdit>) {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut order: Vec<usize> = (0..saved.len()).collect();
+        order.sort_by_key(|&index| (std::cmp::Reverse(saved[index].1.priority), index));
+        let mut work = nbt.clone();
+        let mut damage = damage;
+        for index in order {
+            let (entry, modifier) = &saved[index];
+            for module in modifier.damage_capacity_modules() {
+                let Some(fill) = module.damage_capacity(entry, facts, source) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, fill.owner()) { damage = fill.absorb(&mut work, &target, entry, damage); }
+            }
+        }
+        (damage, crate::capacity::persistent_edits(nbt, &work))
+    })
+}
+
 /// The actions a worn armor piece does to the mob that hit its wearer (fire, freezing, knockback), in modifier order. `in_tag` answers the
 /// entity type tags and the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
 pub(crate) fn counter_actions(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::EntityAction> {

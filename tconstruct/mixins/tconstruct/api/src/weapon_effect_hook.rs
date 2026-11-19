@@ -2,7 +2,7 @@
 //! tool's weapon effect modules that lands puts its status effect on the mob (MobEffectModule.Weapon). Only effects the game itself
 //! defines (the `minecraft` ones) can land; the original's own effects (venom, conductive, pierce) have no registration here.
 use crate::{break_speed_hook::with_held_tool, common, melee_damage, melee_hook, tool_damage_hook, tool_stack};
-use pluto_lib::{ActionTarget, EffectGrant, EntityAction, Identifier, ProjectileEvents, ServerEntityEvents, ServerLivingEntityEvents};
+use pluto_lib::{ActionTarget, EffectGrant, EntityAction, Identifier, ProjectileEvents, ServerEntityEvents, ServerLivingEntityEvents, StackSlot};
 
 /// The action that puts a tool usage module's effect on the player using the tool. Only the game's own effects can land.
 fn self_effect(grant: crate::weapon_effect::Grant) -> Option<EntityAction> {
@@ -76,6 +76,15 @@ pub(crate) fn register() {
         hit.actions.borrow_mut().extend(usage_actions(&[&hit.weapon], crate::weapon_effect::Usage::MeleeHit));
         // Fire and freezing on the mob hit.
         if let Ok(done) = with_held_tool(held, |env, stack| tool_stack::attack_actions(&stack.custom_data, env)) { hit.actions.borrow_mut().extend(done); }
+        // Melee capacity: the tool's modules fill (or drain) their bars as it hits; the edit lands on the held stack before the hit's damage.
+        let player = Identifier::parse("minecraft:player").ok();
+        let attacker_in_tag = |tag: &Identifier| {
+            if tag.namespace() == melee_damage::STATE_NAMESPACE { return melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), hit.target_state.as_ref()); }
+            melee_hook::target_in_tag(entities.as_deref(), player.as_ref(), tag)
+        };
+        if let Ok(edits) = with_held_tool(held, |env, stack| tool_stack::melee_capacity_edits(&stack.custom_data, env, &in_tag, &attacker_in_tag)) {
+            if !edits.is_empty() { hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: held.item.clone(), edits }); }
+        }
         let Ok(grants) = with_held_tool(held, |env, stack| tool_stack::weapon_effects(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) else { return; };
         for (_, grant) in grants {
             // Effects that apply before the hit and after it both land here, before the damage; the game has no later mod call.

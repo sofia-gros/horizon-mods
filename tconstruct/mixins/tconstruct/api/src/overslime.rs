@@ -55,7 +55,7 @@ pub(crate) fn amount(nbt: &NbtCompound) -> i32 {
 pub(crate) fn capacity(nbt: &NbtCompound) -> i32 { stat(nbt, Stat::Overslime) as i32 }
 
 /// PersistentDataCapacityBar.setAmount: zero or less removes the key; otherwise capped at capacity.
-fn set_amount(nbt: &mut NbtCompound, amount: i32) {
+pub(crate) fn set_amount(nbt: &mut NbtCompound, amount: i32) {
     let capacity = capacity(nbt);
     let mut persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
     if amount <= 0 { persistent.remove(&key()); } else { persistent.insert(key(), Nbt::Int(amount.min(capacity))); }
