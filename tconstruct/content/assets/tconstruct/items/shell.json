@@ -1,0 +1,104 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "chorus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "cobalt",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "dragon_scale",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_dragon_scale"
+        }
+      },
+      {
+        "when": "knightly",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightmetal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "kobold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "magnetite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_steel"
+        }
+      },
+      {
+        "when": "nautilus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_nautilus"
+        }
+      },
+      {
+        "when": "phantom",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_phantom"
+        }
+      },
+      {
+        "when": "prismarine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_prismarine"
+        }
+      },
+      {
+        "when": "shulker",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "steel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_steel"
+        }
+      },
+      {
+        "when": "turtle",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shell/armor/slime/leggings/shell_tconstruct_turtle"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/shell/armor/slime/leggings/shell"
+    }
+  }
+}

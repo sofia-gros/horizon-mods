@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/broad_axe/blade_tconstruct_rock_stone"
+  }
+}

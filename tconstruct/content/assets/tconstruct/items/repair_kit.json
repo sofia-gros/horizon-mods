@@ -1,0 +1,580 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "amethyst",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_rock"
+        }
+      },
+      {
+        "when": "amethyst_bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_amethyst_bronze"
+        }
+      },
+      {
+        "when": "ancient",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_ancient"
+        }
+      },
+      {
+        "when": "ancient_hide",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_ancient_hide"
+        }
+      },
+      {
+        "when": "bamboo",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_bamboo"
+        }
+      },
+      {
+        "when": "blaze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_blaze"
+        }
+      },
+      {
+        "when": "blazewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_blazewood"
+        }
+      },
+      {
+        "when": "blazing_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_blazing_bone"
+        }
+      },
+      {
+        "when": "blood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_blood"
+        }
+      },
+      {
+        "when": "bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_bone"
+        }
+      },
+      {
+        "when": "cactus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_cactus"
+        }
+      },
+      {
+        "when": "cheese",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_cheese"
+        }
+      },
+      {
+        "when": "chorus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "cinderslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_cinderslime"
+        }
+      },
+      {
+        "when": "clay",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_clay"
+        }
+      },
+      {
+        "when": "cobalt",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "copper",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_copper"
+        }
+      },
+      {
+        "when": "darkthread",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_darkthread"
+        }
+      },
+      {
+        "when": "dragon_scale",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_dragon_scale"
+        }
+      },
+      {
+        "when": "earthslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_earthslime"
+        }
+      },
+      {
+        "when": "end_rod",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_end_rod"
+        }
+      },
+      {
+        "when": "ender_pearl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_ender_pearl"
+        }
+      },
+      {
+        "when": "enderslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_enderslime"
+        }
+      },
+      {
+        "when": "enderslime_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_enderslime_vine"
+        }
+      },
+      {
+        "when": "enderslimeskin",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_enderslimeskin"
+        }
+      },
+      {
+        "when": "feather",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_wool_white"
+        }
+      },
+      {
+        "when": "flint",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_flint"
+        }
+      },
+      {
+        "when": "glass",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_glass"
+        }
+      },
+      {
+        "when": "glowstone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_rock"
+        }
+      },
+      {
+        "when": "gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_gold"
+        }
+      },
+      {
+        "when": "gunpowder",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_gunpowder"
+        }
+      },
+      {
+        "when": "hepatizon",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_hepatizon"
+        }
+      },
+      {
+        "when": "honey",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_honey"
+        }
+      },
+      {
+        "when": "horn",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_horn"
+        }
+      },
+      {
+        "when": "ice",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_ice"
+        }
+      },
+      {
+        "when": "ichor",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_ichor"
+        }
+      },
+      {
+        "when": "ichorskin",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_ichorskin"
+        }
+      },
+      {
+        "when": "iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_iron"
+        }
+      },
+      {
+        "when": "jadeite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_jadeite"
+        }
+      },
+      {
+        "when": "jeweled_hide",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_jeweled_hide"
+        }
+      },
+      {
+        "when": "knightly",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightmetal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_knightslime"
+        }
+      },
+      {
+        "when": "kobold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "leather",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_leather"
+        }
+      },
+      {
+        "when": "leaves",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_vine"
+        }
+      },
+      {
+        "when": "magma",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_magma"
+        }
+      },
+      {
+        "when": "magnetite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_steel"
+        }
+      },
+      {
+        "when": "manyullyn",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_manyullyn"
+        }
+      },
+      {
+        "when": "nahuatl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_nahuatl"
+        }
+      },
+      {
+        "when": "nautilus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_nautilus"
+        }
+      },
+      {
+        "when": "necrotic_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_necrotic_bone"
+        }
+      },
+      {
+        "when": "obsidian",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_obsidian"
+        }
+      },
+      {
+        "when": "phantom",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_phantom"
+        }
+      },
+      {
+        "when": "pig_iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_pig_iron"
+        }
+      },
+      {
+        "when": "prismarine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_prismarine"
+        }
+      },
+      {
+        "when": "quartz",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_rock"
+        }
+      },
+      {
+        "when": "queens_slime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_queens_slime"
+        }
+      },
+      {
+        "when": "rock",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_rock_stone"
+        }
+      },
+      {
+        "when": "rose_gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_rose_gold"
+        }
+      },
+      {
+        "when": "scorched_stone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_scorched_stone"
+        }
+      },
+      {
+        "when": "seared_stone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_seared_stone"
+        }
+      },
+      {
+        "when": "shulker",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "skyslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_skyslime"
+        }
+      },
+      {
+        "when": "skyslime_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_skyslime_vine"
+        }
+      },
+      {
+        "when": "skyslimeskin",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_skyslimeskin"
+        }
+      },
+      {
+        "when": "slimeball",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_earthslime"
+        }
+      },
+      {
+        "when": "slimeskin",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_slimeskin"
+        }
+      },
+      {
+        "when": "slimesteel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_slimesteel"
+        }
+      },
+      {
+        "when": "slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_slimewood_greenheart"
+        }
+      },
+      {
+        "when": "steel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_steel"
+        }
+      },
+      {
+        "when": "string",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_string"
+        }
+      },
+      {
+        "when": "turtle",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_turtle"
+        }
+      },
+      {
+        "when": "twisting_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_twisting_vine"
+        }
+      },
+      {
+        "when": "venom",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_venom"
+        }
+      },
+      {
+        "when": "venombone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_venombone"
+        }
+      },
+      {
+        "when": "vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_vine"
+        }
+      },
+      {
+        "when": "weeping_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_weeping_vine"
+        }
+      },
+      {
+        "when": "whitestone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_whitestone"
+        }
+      },
+      {
+        "when": "wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_wood"
+        }
+      },
+      {
+        "when": "wool",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/repair_kit/parts/repair_kit_tconstruct_wool_white"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/repair_kit/parts/repair_kit"
+    }
+  }
+}

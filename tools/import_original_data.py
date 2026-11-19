@@ -380,6 +380,187 @@ def copy_client_assets():
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
     return len(written['models']), len(written['textures']), skipped
 
+GENERATED_ASSETS = ROOT / '.local/tconstruct-source/src/generated/resources/assets/tconstruct'
+MATERIAL_INFO = GENERATED_ASSETS / 'tinkering/materials'
+MATERIAL_DEFINITIONS = ROOT / 'tconstruct/content/data/tconstruct/tinkering/materials/definition'
+# Pixel offset (+x right, +y down) the original's material loader applies; a face of the unit element moved the same way.
+FLAT_FACES = {'north': {'uv': [16, 0, 0, 16], 'texture': '#layer0'}, 'south': {'uv': [0, 0, 16, 16], 'texture': '#layer0'}}
+
+
+def material_sprites():
+    """Per shipped material: the redirect chain of sprite names and the fallback names, from the original's render info."""
+    info = {}
+    for path in MATERIAL_INFO.rglob('*.json'):
+        info['_'.join(path.relative_to(MATERIAL_INFO).with_suffix('').parts)] = json.loads(path.read_text(encoding='utf-8'))
+    result = {}
+    for material in sorted(path.stem for path in MATERIAL_DEFINITIONS.glob('*.json')):
+        chain, fallbacks, name = [], [], material
+        while name is not None and name not in chain:
+            chain.append(name)
+            data = info.get(name, {})
+            fallbacks += [fallback for fallback in data.get('fallbacks', []) if fallback not in fallbacks]
+            target = data.get('texture')
+            name = target.split(':', 1)[1] if target and target.startswith('tconstruct:') else None
+        result[material] = (chain, fallbacks)
+    return result
+
+
+class MaterialSprites:
+    """Collects the models and sprites of material-dependent item layers and writes them once, byte for byte."""
+
+    def __init__(self):
+        self.sprites = material_sprites()
+        self.models = {}
+        self.textures = {}
+
+    @staticmethod
+    def source_of(layer, suffix):
+        for root in (GENERATED_ASSETS, ASSET_SOURCE):
+            if (root / 'textures' / f'{layer}{suffix}.png').is_file():
+                return root / 'textures' / f'{layer}{suffix}.png'
+        return None
+
+    def model_for(self, folder, parent, layer, suffix, offset=(0, 0)):
+        """The model reference for a layer sprite, or None when that sprite does not exist. Models are shared by
+        everything in `folder` that uses the same sprite file."""
+        source = self.source_of(layer, suffix)
+        if source is None:
+            return None
+        name = f'item/{folder}/{layer.removeprefix("item/tool/")}{suffix}'
+        self.textures[f'{layer}{suffix}'] = source
+        model = {'parent': parent, 'textures': {'layer0': f'tconstruct:{layer}{suffix}'}}
+        if tuple(offset) != (0, 0):
+            dx, dy = offset
+            model['elements'] = [{'from': [dx, -dy, 7.5], 'to': [16 + dx, 16 - dy, 8.5], 'faces': FLAT_FACES}]
+        self.models[name] = model
+        return {'type': 'minecraft:model', 'model': f'tconstruct:{name}'}
+
+    def select(self, folder, parent, layer, offset=(0, 0)):
+        """(fallback model, cases) for a select on custom_model_data string 0 (a material id path) over the
+        shipped materials' sprites; the fallback is the base sprite."""
+        fallback = self.model_for(folder, parent, layer, '', offset)
+        if fallback is None:
+            raise SystemExit(f'base sprite {layer} is missing')
+        cases = []
+        for material, (chain, fallbacks) in self.sprites.items():
+            candidates = [f'_tconstruct_{name}' for name in chain] + [f'_{name}' for name in fallbacks]
+            model = next((m for m in (self.model_for(folder, parent, layer, suffix, offset) for suffix in candidates) if m), None)
+            if model:
+                cases.append({'when': material, 'model': model})
+        return fallback, cases
+
+    def write(self, models=None):
+        for name, model in {**self.models, **(models or {})}.items():
+            write_json(ASSET_TARGET / 'models' / f'{name}.json', model)
+        for name, source in self.textures.items():
+            destination = ASSET_TARGET / 'textures' / f'{name}.png'
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, destination)
+
+
+def write_json(destination, data):
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
+
+
+def original_model(path):
+    return json.loads(path.read_text(encoding='utf-8'))
+
+
+def material_select(fallback, cases, index):
+    return {'type': 'minecraft:select', 'property': 'minecraft:custom_model_data', 'index': index, 'cases': cases, 'fallback': fallback} if cases else fallback
+
+
+def copy_part_assets():
+    """Item definitions, models and sprites of the tool parts: one `select` on custom_model_data string 0 (the
+    material id path), a case per shipped material that has a sprite, the grayscale base sprite as fallback.
+
+    Sprite choice follows the original's material render info: the pre-baked `<layer>_tconstruct_<material>.png`
+    of the material or of its `texture` redirect target, else the hand-made `<layer>_<fallback>.png` for its
+    first fallback name that exists, else the base sprite. Files are copied byte for byte (SlimeKnights, MIT).
+    The original's `offset` becomes a flat element moved by the same pixels. Returns (part names, model count, texture count).
+    """
+    collected = MaterialSprites()
+    parts = []
+    for path in sorted((HORIZON_DECLARATIONS / 'item').glob('*.json')):
+        original = GENERATED_ASSETS / 'models/item' / f'{path.stem}.json'
+        if not original.exists() or original_model(original).get('loader') != 'tconstruct:material':
+            continue
+        data = original_model(original)
+        layer = data['textures']['texture'].split(':', 1)[1]
+        fallback, cases = collected.select(f'part/{path.stem}', 'minecraft:item/generated', layer, data.get('offset', [0, 0]))
+        write_json(ASSET_TARGET / 'items' / f'{path.stem}.json', {'model': material_select(fallback, cases, 0)})
+        parts.append(path.stem)
+    collected.write()
+    return parts, len(collected.models), len(collected.textures)
+
+
+ARMOR_PREFIXES = ('plate_', 'slime_', 'travelers_')
+FORGE_PARENTS = {'forge:item/default': 'minecraft:item/generated', 'forge:item/default-tool': 'minecraft:item/handheld'}
+MODEL_SOURCE = ASSET_SOURCE / 'models'
+
+
+def copy_tool_assets():
+    """Item definitions for the registered tools with material layers (armor and shields excluded): a `composite`
+    of one layer per original model part, in the original's draw order, each a `select` on the custom_model_data
+    string at the part's material slot index (the index the original's model gives it, the slot of the tool
+    definition's part_stats). A tool without parts (staffs, flint and brick) is one plain model. The original's
+    display parents are kept where they carry transforms (`tconstruct:thrown`, a Forge-only context, is dropped;
+    Forge's default parents become the vanilla generated/handheld ones). Broken/blocking/charging variants, modifier
+    overlays, fluid tank layers and the large (tall tool) variants are left out.
+    Returns (tool names, model count, texture count, tools left out).
+    """
+    collected = MaterialSprites()
+    extra = {}
+
+    def parent_of(reference):
+        if reference in FORGE_PARENTS:
+            return FORGE_PARENTS[reference]
+        namespace, path = reference.split(':', 1) if ':' in reference else ('minecraft', reference)
+        if namespace != 'tconstruct':
+            return f'{namespace}:{path}'
+        data = original_model(MODEL_SOURCE / f'{path}.json')
+        display = {key: value for key, value in data.get('display', {}).items() if ':' not in key}
+        if not display:
+            return parent_of(data['parent'])
+        converted = {'parent': parent_of(data['parent']), 'display': display}
+        if 'gui_light' in data:
+            converted['gui_light'] = data['gui_light']
+        extra[path] = converted
+        return reference
+
+    tools, left_out = [], []
+    for path in sorted((TARGET / 'tool_definitions').glob('*.json')):
+        name = path.stem
+        original = MODEL_SOURCE / 'item' / f'{name}.json'
+        if name.startswith(ARMOR_PREFIXES) or not original.exists() or original_model(original).get('loader') != 'tconstruct:tool':
+            left_out.append(name)
+            continue
+        data = original_model(original)
+        modules = original_model(path)['modules']
+        # Material slots: the parts of part_stats, or the stat types of material_stats (tools made of materials alone).
+        slots = sum(len(m.get('parts') or m.get('stat_types') or []) for m in modules if m['type'] in ('tconstruct:part_stats', 'tconstruct:material_stats'))
+        parent = parent_of(data['parent'])
+        folder = 'tool_layer/' + parent.split(':', 1)[1].replace('/', '_')
+        if not data.get('parts'):
+            definition = collected.model_for(folder, parent, data['textures']['tool'].split(':', 1)[1], '')
+            if definition is None:
+                raise SystemExit(f'tool {name}: sprite {data["textures"]["tool"]} is missing')
+        else:
+            layers = []
+            for part in data['parts']:
+                if 'index' not in part:
+                    continue  # a fluid tank layer
+                if part['index'] >= slots:
+                    raise SystemExit(f'tool {name}: part {part["name"]} index {part["index"]} is outside the {slots} material slots')
+                fallback, cases = collected.select(folder, parent, data['textures'][part['name']].split(':', 1)[1])
+                layers.append(material_select(fallback, cases, part['index']))
+            definition = {'type': 'minecraft:composite', 'models': layers}
+        write_json(ASSET_TARGET / 'items' / f'{name}.json', {'model': definition})
+        tools.append(name)
+    collected.write(extra)
+    return tools, len(collected.models) + len(extra), len(collected.textures), left_out
+
 
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
@@ -439,8 +620,12 @@ def main():
     write_damage_vanilla()
     languages = copy_lang()
     models, textures, unrendered = copy_client_assets()
+    part_names, part_models, part_textures = copy_part_assets()
+    tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
+    models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
+    unrendered = [name for name in unrendered if name not in part_names + tool_names]
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}); {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

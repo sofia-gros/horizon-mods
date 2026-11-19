@@ -1,0 +1,307 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "amethyst",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_rock"
+        }
+      },
+      {
+        "when": "amethyst_bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_amethyst_bronze"
+        }
+      },
+      {
+        "when": "ancient",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_ancient"
+        }
+      },
+      {
+        "when": "bamboo",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_wood"
+        }
+      },
+      {
+        "when": "blazewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_wood"
+        }
+      },
+      {
+        "when": "blazing_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_blazing_bone"
+        }
+      },
+      {
+        "when": "bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_bone"
+        }
+      },
+      {
+        "when": "cactus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_wood"
+        }
+      },
+      {
+        "when": "chorus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "cinderslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_cinderslime"
+        }
+      },
+      {
+        "when": "cobalt",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "copper",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_copper"
+        }
+      },
+      {
+        "when": "ender_pearl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_rock"
+        }
+      },
+      {
+        "when": "flint",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_flint"
+        }
+      },
+      {
+        "when": "glowstone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_rock"
+        }
+      },
+      {
+        "when": "hepatizon",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_hepatizon"
+        }
+      },
+      {
+        "when": "iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_iron"
+        }
+      },
+      {
+        "when": "knightly",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightmetal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_knightslime"
+        }
+      },
+      {
+        "when": "kobold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "magnetite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_steel"
+        }
+      },
+      {
+        "when": "manyullyn",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_manyullyn"
+        }
+      },
+      {
+        "when": "nahuatl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_nahuatl"
+        }
+      },
+      {
+        "when": "necrotic_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_necrotic_bone"
+        }
+      },
+      {
+        "when": "obsidian",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_rock"
+        }
+      },
+      {
+        "when": "phantom",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_wood"
+        }
+      },
+      {
+        "when": "pig_iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_pig_iron"
+        }
+      },
+      {
+        "when": "prismarine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_rock"
+        }
+      },
+      {
+        "when": "quartz",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_rock"
+        }
+      },
+      {
+        "when": "queens_slime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_queens_slime"
+        }
+      },
+      {
+        "when": "rock",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_rock_stone"
+        }
+      },
+      {
+        "when": "rose_gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_rose_gold"
+        }
+      },
+      {
+        "when": "scorched_stone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_scorched_stone"
+        }
+      },
+      {
+        "when": "seared_stone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_seared_stone"
+        }
+      },
+      {
+        "when": "shulker",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "slimesteel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_slimesteel"
+        }
+      },
+      {
+        "when": "slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_slimewood_greenheart"
+        }
+      },
+      {
+        "when": "steel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_steel"
+        }
+      },
+      {
+        "when": "venombone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_venombone"
+        }
+      },
+      {
+        "when": "whitestone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_whitestone"
+        }
+      },
+      {
+        "when": "wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/small_blade/parts/small_blade_tconstruct_wood"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/small_blade/parts/small_blade"
+    }
+  }
+}

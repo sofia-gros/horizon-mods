@@ -1,0 +1,509 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 0,
+        "cases": [
+          {
+            "when": "amethyst_bronze",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_amethyst_bronze"
+            }
+          },
+          {
+            "when": "ancient",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_ancient"
+            }
+          },
+          {
+            "when": "bamboo",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_bamboo"
+            }
+          },
+          {
+            "when": "blazing_bone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_blazing_bone"
+            }
+          },
+          {
+            "when": "bone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_bone"
+            }
+          },
+          {
+            "when": "cactus",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_cactus"
+            }
+          },
+          {
+            "when": "chorus",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_chorus"
+            }
+          },
+          {
+            "when": "cinderslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_cinderslime"
+            }
+          },
+          {
+            "when": "cobalt",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_cobalt"
+            }
+          },
+          {
+            "when": "copper",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_copper"
+            }
+          },
+          {
+            "when": "hepatizon",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_hepatizon"
+            }
+          },
+          {
+            "when": "iron",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_iron"
+            }
+          },
+          {
+            "when": "knightly",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "knightmetal",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "knightslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_knightslime"
+            }
+          },
+          {
+            "when": "kobold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_cobalt"
+            }
+          },
+          {
+            "when": "magnetite",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_steel"
+            }
+          },
+          {
+            "when": "manyullyn",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_manyullyn"
+            }
+          },
+          {
+            "when": "nahuatl",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_nahuatl"
+            }
+          },
+          {
+            "when": "necrotic_bone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_necrotic_bone"
+            }
+          },
+          {
+            "when": "pig_iron",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_pig_iron"
+            }
+          },
+          {
+            "when": "queens_slime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_queens_slime"
+            }
+          },
+          {
+            "when": "rose_gold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_rose_gold"
+            }
+          },
+          {
+            "when": "shulker",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_chorus"
+            }
+          },
+          {
+            "when": "slimesteel",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_slimesteel"
+            }
+          },
+          {
+            "when": "slimewood",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_slimewood_greenheart"
+            }
+          },
+          {
+            "when": "steel",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_steel"
+            }
+          },
+          {
+            "when": "venombone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_venombone"
+            }
+          },
+          {
+            "when": "wood",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod_tconstruct_wood"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/rod"
+        }
+      },
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 1,
+        "cases": [
+          {
+            "when": "ancient_hide",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_ancient_hide"
+            }
+          },
+          {
+            "when": "cheese",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_cheese"
+            }
+          },
+          {
+            "when": "darkthread",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_darkthread"
+            }
+          },
+          {
+            "when": "enderslime_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_enderslime_vine"
+            }
+          },
+          {
+            "when": "jeweled_hide",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_jeweled_hide"
+            }
+          },
+          {
+            "when": "leather",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_leather"
+            }
+          },
+          {
+            "when": "leaves",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_vine"
+            }
+          },
+          {
+            "when": "rose_gold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_rose_gold"
+            }
+          },
+          {
+            "when": "skyslime_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_skyslime_vine"
+            }
+          },
+          {
+            "when": "slimeskin",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_slimeskin"
+            }
+          },
+          {
+            "when": "string",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_string"
+            }
+          },
+          {
+            "when": "twisting_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_twisting_vine"
+            }
+          },
+          {
+            "when": "vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_vine"
+            }
+          },
+          {
+            "when": "weeping_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string_tconstruct_weeping_vine"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/string"
+        }
+      },
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 2,
+        "cases": [
+          {
+            "when": "amethyst",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_amethyst"
+            }
+          },
+          {
+            "when": "chorus",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_chorus"
+            }
+          },
+          {
+            "when": "dragon_scale",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_dragon_scale"
+            }
+          },
+          {
+            "when": "earthslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "ender_pearl",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_ender_pearl"
+            }
+          },
+          {
+            "when": "enderslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_enderslime"
+            }
+          },
+          {
+            "when": "feather",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_wool_white"
+            }
+          },
+          {
+            "when": "flint",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_flint"
+            }
+          },
+          {
+            "when": "glass",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_glass"
+            }
+          },
+          {
+            "when": "glowstone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_glowstone"
+            }
+          },
+          {
+            "when": "gunpowder",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_gunpowder"
+            }
+          },
+          {
+            "when": "ice",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_ice"
+            }
+          },
+          {
+            "when": "ichor",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_ichor"
+            }
+          },
+          {
+            "when": "knightly",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "knightmetal",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "magnetite",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_steel"
+            }
+          },
+          {
+            "when": "prismarine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_prismarine"
+            }
+          },
+          {
+            "when": "quartz",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_quartz"
+            }
+          },
+          {
+            "when": "redstone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_redstone"
+            }
+          },
+          {
+            "when": "shulker",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_chorus"
+            }
+          },
+          {
+            "when": "skyslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_skyslime"
+            }
+          },
+          {
+            "when": "slimeball",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "steel",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_steel"
+            }
+          },
+          {
+            "when": "wool",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook_tconstruct_wool_white"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_base_rod/fishing_rod/hook"
+        }
+      }
+    ]
+  }
+}

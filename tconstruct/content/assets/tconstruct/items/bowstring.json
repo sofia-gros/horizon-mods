@@ -1,0 +1,111 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "ancient_hide",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_ancient_hide"
+        }
+      },
+      {
+        "when": "cheese",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_cheese"
+        }
+      },
+      {
+        "when": "darkthread",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_darkthread"
+        }
+      },
+      {
+        "when": "enderslime_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_enderslime_vine"
+        }
+      },
+      {
+        "when": "jeweled_hide",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_jeweled_hide"
+        }
+      },
+      {
+        "when": "leather",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_leather"
+        }
+      },
+      {
+        "when": "leaves",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_vine"
+        }
+      },
+      {
+        "when": "rose_gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_rose_gold"
+        }
+      },
+      {
+        "when": "skyslime_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_skyslime_vine"
+        }
+      },
+      {
+        "when": "slimeskin",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_slimeskin"
+        }
+      },
+      {
+        "when": "string",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_string"
+        }
+      },
+      {
+        "when": "twisting_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_twisting_vine"
+        }
+      },
+      {
+        "when": "vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_vine"
+        }
+      },
+      {
+        "when": "weeping_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bowstring/parts/bowstring_tconstruct_weeping_vine"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/bowstring/parts/bowstring"
+    }
+  }
+}

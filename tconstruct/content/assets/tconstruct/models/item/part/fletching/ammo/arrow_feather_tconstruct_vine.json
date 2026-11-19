@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/ammo/arrow_feather_tconstruct_vine"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        5,
+        7.5
+      ],
+      "to": [
+        20,
+        21,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#layer0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#layer0"
+        }
+      }
+    }
+  ]
+}

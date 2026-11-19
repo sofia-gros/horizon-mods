@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/ammo/axe_head_tconstruct_glowstone"
+  }
+}

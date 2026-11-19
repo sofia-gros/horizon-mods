@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/longbow/limb_bottom_tconstruct_bamboo"
+  },
+  "elements": [
+    {
+      "from": [
+        5,
+        2,
+        7.5
+      ],
+      "to": [
+        21,
+        18,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#layer0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#layer0"
+        }
+      }
+    }
+  ]
+}
