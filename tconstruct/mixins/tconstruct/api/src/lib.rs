@@ -54,6 +54,8 @@ mod weapon_effect_hook;
 mod melee_hook;
 mod part_recycling;
 mod tool_actions;
+mod edible;
+mod edible_hook;
 mod tool_action_hook;
 mod tool_slot;
 mod tool_station;
@@ -81,5 +83,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     effect_immunity_hook::register();
     max_armor_hook::register();
     mob_disguise_hook::register();
+    edible_hook::register();
     pluto_lib::no_hooks()
 }

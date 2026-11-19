@@ -224,6 +224,12 @@ impl Modifier {
     pub fn mob_disguise_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_mob_disguise())
     }
+    /// Whether this modifier carries the edible module.
+    pub fn is_edible(&self) -> bool { self.modules.iter().any(|module| module.is_edible()) }
+    /// What eating a tool does for this modifier's edible effect modules, in module order.
+    pub fn edible_effects(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::edible::Effect> {
+        self.modules.iter().filter_map(|module| module.edible_effect(entry, facts)).collect()
+    }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())

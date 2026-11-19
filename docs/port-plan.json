@@ -49,6 +49,8 @@
     "api/src/max_armor_hook.rs",
     "api/src/mob_disguise.rs",
     "api/src/mob_disguise_hook.rs",
+    "api/src/edible.rs",
+    "api/src/edible_hook.rs",
     "api/src/weapon_effect_hook.rs",
     "api/src/damage_tags.rs",
     "api/src/damage_vanilla.rs",

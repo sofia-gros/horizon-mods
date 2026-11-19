@@ -228,21 +228,36 @@ let used = UseItemOnBlockContext {
 assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
-### `UseItemFinishContext`
+### `Hand`
 
-A player finished eating or drinking an item. `item` is the item id and `player` the player (its methods work inside the callback).
+The hand a player used an item in (`Main` or `Off`; Minecraft: `InteractionHand`).
 
 ```rust
-use pluto_lib::{ServerPlayer, UseItemFinishContext};
+use pluto_lib::Hand;
 
-let done = UseItemFinishContext { item: "example:cheese".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() } };
+assert_ne!(Hand::Main, Hand::Off);
+```
+
+### `UseItemFinishContext`
+
+A player finished eating or drinking an item. `item` is the item id and `player` the player (its methods work inside the callback). `stack` is the stack that was used (damage, max damage and custom data) and `hand` the hand it was used in. `slot` is what that hand holds now with all its components (`None` when the last of a stack was eaten), and `replacement` is where a callback puts a changed copy of it: the later callbacks see it, and the game writes it to the hand. `dimension` and `position` say where the player is, and `creative` whether nothing is used up.
+
+```rust
+use std::cell::RefCell;
+use pluto_lib::{Hand, ServerPlayer, StackData, UseItemFinishContext};
+
+let done = UseItemFinishContext {
+    item: "example:cheese".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() }, stack: StackData::default(), hand: Hand::Main,
+    slot: None, replacement: RefCell::new(None), dimension: "minecraft:overworld".into(), position: [0.0, 64.0, 0.0], creative: false,
+};
 assert_eq!(done.item, "example:cheese");
 assert_eq!(done.player.name, "Alex");
+assert_eq!(done.hand, Hand::Main);
 ```
 
 ### `UseItemFinishCallback`
 
-A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects have been given, only for a player on the server.
+A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects have been given, only for a player on the server. A callback may wear the used stack or change what the hand holds through `replacement`.
 
 ```rust
 use pluto_lib::UseItemFinishCallback;
@@ -250,6 +265,13 @@ use pluto_lib::UseItemFinishCallback;
 UseItemFinishCallback::EVENT.register(|done| {
     if done.item == "example:cheese" {
         let _ = done.player.effects();
+    }
+    // Eating the tool wears it by two: change a copy of what the hand holds and hand it back.
+    if done.item == "example:lunchbox" && !done.creative {
+        if let Some(mut worn) = done.slot.clone() {
+            worn.damage += 2;
+            *done.replacement.borrow_mut() = Some(worn);
+        }
     }
 });
 ```
@@ -259,12 +281,16 @@ UseItemFinishCallback::EVENT.register(|done| {
 The event to register on. Every callback is called in turn.
 
 ```rust
-use pluto_lib::{ServerPlayer, UseItemFinishCallback, UseItemFinishContext};
+use std::cell::RefCell;
+use pluto_lib::{Hand, ServerPlayer, StackData, UseItemFinishCallback, UseItemFinishContext};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static FINISHED: AtomicU32 = AtomicU32::new(0);
 UseItemFinishCallback::EVENT.register(|done| if done.item == "example:snack" { FINISHED.fetch_add(1, Ordering::SeqCst); });
-let done = UseItemFinishContext { item: "example:snack".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() } };
+let done = UseItemFinishContext {
+    item: "example:snack".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() }, stack: StackData::default(), hand: Hand::Off,
+    slot: None, replacement: RefCell::new(None), dimension: "minecraft:overworld".into(), position: [0.0, 64.0, 0.0], creative: true,
+};
 UseItemFinishCallback::EVENT.invoke(&done);
 assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
 ```
