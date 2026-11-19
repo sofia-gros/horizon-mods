@@ -810,8 +810,9 @@ def main():
 
         scenario('CAPACITY SHIELD', capacity_shield)
 
-        # 3. Max armor: projectile protection on worn boots raises the knockback resistance by 0.05 per level: the command-given
-        # boots carry no plating levels of their own, so upgrade level 3 gives 0.15 (measured in the real game on r3d), and the base value returns without the boots.
+        # 3. Max armor: projectile protection on worn boots gives 0.05 knockback resistance per level of the LARGEST level among the worn pieces (counted once, as the
+        # original does): an earlier scenario leaves a plate helmet worn whose own projectile_protection is 2 levels (base 0.10), the boots carry 3, so the
+        # total is 0.15, not 0.25 (measured on r3m); without the boots the value returns to the helmet's.
         def max_armor_attribute():
             ctl('command', 'item replace entity @s armor.feet with minecraft:air')
             ctl('wait', '10')
@@ -827,7 +828,7 @@ def main():
             ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
             ctl('wait', '10')
             detail = f'base {base}, worn {worn_value}, boots off {off}'
-            ok = None not in (base, worn_value, off) and abs(worn_value - base - 0.15) < 0.02 and abs(off - base) < 0.01
+            ok = None not in (base, worn_value, off) and abs(worn_value - 0.15) < 0.02 and abs(off - base) < 0.01 and worn_value >= base
             return ok, detail
 
         scenario('MAX ARMOR', max_armor_attribute)
