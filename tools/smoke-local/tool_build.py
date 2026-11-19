@@ -837,8 +837,9 @@ def main():
         # timing-dependent target; there is no ctl or log path for it.
         def mob_disguise():
             # No tic_stats on purpose: the stack is rebuilt by the first hit, which is what writes the volatile flag (measured on r3d: a stack
-            # given with tic_stats is not rebuilt and carries no volatile data).
-            ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],tic_modifiers:[{level:1,name:"tconstruct:enderman_disguise"}]}]')
+            # given with tic_stats is not rebuilt and carries no volatile data). Materials are plating + maille, the pair the station builds
+            # a plate helmet from; two irons rebuilt to a broken 2-point piece in r3e, which adds nothing.
+            ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:cobalt","tconstruct:iron"],tic_modifiers:[{level:1,name:"tconstruct:enderman_disguise"}]}]')
             ctl('wait', '10')
             survival_hit(4)  # GUESS: the hit rebuilds the stack, which writes the volatile data
             reply = json.dumps(ctl('command', 'data get entity @s equipment.head'))
