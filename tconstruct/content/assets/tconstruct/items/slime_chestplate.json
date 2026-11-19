@@ -1,0 +1,162 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 1,
+        "cases": [
+          {
+            "when": "blood",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_blood"
+            }
+          },
+          {
+            "when": "clay",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_clay"
+            }
+          },
+          {
+            "when": "earthslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "ender_pearl",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_ender_pearl"
+            }
+          },
+          {
+            "when": "enderslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_enderslime"
+            }
+          },
+          {
+            "when": "honey",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_honey"
+            }
+          },
+          {
+            "when": "ichor",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_ichor"
+            }
+          },
+          {
+            "when": "magma",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_magma"
+            }
+          },
+          {
+            "when": "skyslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_skyslime"
+            }
+          },
+          {
+            "when": "slimeball",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "venom",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime_tconstruct_venom"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/slime"
+        }
+      },
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 0,
+        "cases": [
+          {
+            "when": "blaze",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_blaze"
+            }
+          },
+          {
+            "when": "blazing_bone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_blazing_bone"
+            }
+          },
+          {
+            "when": "bone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_bone"
+            }
+          },
+          {
+            "when": "end_rod",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_end_rod"
+            }
+          },
+          {
+            "when": "horn",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_horn"
+            }
+          },
+          {
+            "when": "jadeite",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_jadeite"
+            }
+          },
+          {
+            "when": "necrotic_bone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_necrotic_bone"
+            }
+          },
+          {
+            "when": "venombone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage_tconstruct_venombone"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/slime/chestplate/ribcage"
+        }
+      }
+    ]
+  }
+}

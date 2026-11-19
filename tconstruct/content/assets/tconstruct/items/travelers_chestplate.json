@@ -1,0 +1,302 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 1,
+        "cases": [
+          {
+            "when": "ancient_hide",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_ancient_hide"
+            }
+          },
+          {
+            "when": "enderslime_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_enderslime_vine"
+            }
+          },
+          {
+            "when": "enderslimeskin",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_enderslimeskin"
+            }
+          },
+          {
+            "when": "feather",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_wool_white"
+            }
+          },
+          {
+            "when": "ichorskin",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_ichorskin"
+            }
+          },
+          {
+            "when": "jeweled_hide",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_jeweled_hide"
+            }
+          },
+          {
+            "when": "leather",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_leather"
+            }
+          },
+          {
+            "when": "leaves",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_vine"
+            }
+          },
+          {
+            "when": "phantom",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_phantom"
+            }
+          },
+          {
+            "when": "skyslime_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_skyslime_vine"
+            }
+          },
+          {
+            "when": "skyslimeskin",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_skyslimeskin"
+            }
+          },
+          {
+            "when": "slimeskin",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_slimeskin"
+            }
+          },
+          {
+            "when": "twisting_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_twisting_vine"
+            }
+          },
+          {
+            "when": "vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_vine"
+            }
+          },
+          {
+            "when": "weeping_vine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_weeping_vine"
+            }
+          },
+          {
+            "when": "wool",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass_tconstruct_wool_white"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/cuirass"
+        }
+      },
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 0,
+        "cases": [
+          {
+            "when": "amethyst_bronze",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_amethyst_bronze"
+            }
+          },
+          {
+            "when": "ancient",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_ancient"
+            }
+          },
+          {
+            "when": "cinderslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_cinderslime"
+            }
+          },
+          {
+            "when": "cobalt",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_cobalt"
+            }
+          },
+          {
+            "when": "copper",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_copper"
+            }
+          },
+          {
+            "when": "gold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_gold"
+            }
+          },
+          {
+            "when": "hepatizon",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_hepatizon"
+            }
+          },
+          {
+            "when": "iron",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_iron"
+            }
+          },
+          {
+            "when": "knightly",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "knightmetal",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "knightslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_knightslime"
+            }
+          },
+          {
+            "when": "kobold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_cobalt"
+            }
+          },
+          {
+            "when": "magma",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_contrast"
+            }
+          },
+          {
+            "when": "magnetite",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_steel"
+            }
+          },
+          {
+            "when": "manyullyn",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_manyullyn"
+            }
+          },
+          {
+            "when": "obsidian",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_obsidian"
+            }
+          },
+          {
+            "when": "pig_iron",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_pig_iron"
+            }
+          },
+          {
+            "when": "queens_slime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_queens_slime"
+            }
+          },
+          {
+            "when": "rose_gold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_rose_gold"
+            }
+          },
+          {
+            "when": "scorched_stone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_scorched_stone"
+            }
+          },
+          {
+            "when": "seared_stone",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_seared_stone"
+            }
+          },
+          {
+            "when": "slimesteel",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_slimesteel"
+            }
+          },
+          {
+            "when": "steel",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal_tconstruct_steel"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/travelers/vest/metal"
+        }
+      }
+    ]
+  }
+}

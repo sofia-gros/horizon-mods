@@ -1,0 +1,197 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 1,
+        "cases": [
+          {
+            "when": "blood",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_blood"
+            }
+          },
+          {
+            "when": "clay",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_clay"
+            }
+          },
+          {
+            "when": "earthslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "ender_pearl",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_ender_pearl"
+            }
+          },
+          {
+            "when": "enderslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_enderslime"
+            }
+          },
+          {
+            "when": "honey",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_honey"
+            }
+          },
+          {
+            "when": "ichor",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_ichor"
+            }
+          },
+          {
+            "when": "magma",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_magma"
+            }
+          },
+          {
+            "when": "skyslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_skyslime"
+            }
+          },
+          {
+            "when": "slimeball",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "venom",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime_tconstruct_venom"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/slime"
+        }
+      },
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 0,
+        "cases": [
+          {
+            "when": "chorus",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_chorus"
+            }
+          },
+          {
+            "when": "cobalt",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_cobalt"
+            }
+          },
+          {
+            "when": "dragon_scale",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_dragon_scale"
+            }
+          },
+          {
+            "when": "knightly",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "knightmetal",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_knightmetal"
+            }
+          },
+          {
+            "when": "kobold",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_cobalt"
+            }
+          },
+          {
+            "when": "magnetite",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_steel"
+            }
+          },
+          {
+            "when": "nautilus",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_nautilus"
+            }
+          },
+          {
+            "when": "phantom",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_phantom"
+            }
+          },
+          {
+            "when": "prismarine",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_prismarine"
+            }
+          },
+          {
+            "when": "shulker",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_chorus"
+            }
+          },
+          {
+            "when": "steel",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_steel"
+            }
+          },
+          {
+            "when": "turtle",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell_tconstruct_turtle"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/slime/leggings/shell"
+        }
+      }
+    ]
+  }
+}

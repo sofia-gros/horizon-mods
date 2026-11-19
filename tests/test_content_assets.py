@@ -97,11 +97,11 @@ class ContentAssets(unittest.TestCase):
             self.assertTrue(seen, part)
 
     def test_every_layered_tool_composes_material_layers_by_slot(self):
-        """Each non-armor tool is one plain model (staffs, flint and brick) or a composite of selects whose index is
+        """Each tool, armor piece and shield is one plain model (staffs, flint and brick) or a composite of selects whose index is
         a material slot of its tool definition and whose cases are shipped material ids with resolving models."""
         materials = {p.stem for p in MATERIALS.glob('*.json')}
-        tools = sorted(p.stem for p in TOOLS.glob('*.json') if not p.stem.startswith(('plate_', 'slime_', 'travelers_')))
-        self.assertEqual(len(tools), 29)
+        tools = sorted(p.stem for p in TOOLS.glob('*.json'))
+        self.assertEqual(len(tools), 44)
         for tool in tools:
             definition = load(TOOLS / f'{tool}.json')
             slots = sum(len(m.get('parts') or m.get('stat_types') or []) for m in definition['modules'] if m['type'] in ('tconstruct:part_stats', 'tconstruct:material_stats'))

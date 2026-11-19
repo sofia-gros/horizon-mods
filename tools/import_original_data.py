@@ -495,13 +495,14 @@ def copy_part_assets():
     return parts, len(collected.models), len(collected.textures)
 
 
-ARMOR_PREFIXES = ('plate_', 'slime_', 'travelers_')
+# The port declares the slime chestplate as `slime_chestplate`; the original registers (and models) it as `slimy_chestplate`.
+MODEL_ALIASES = {'slime_chestplate': 'slimy_chestplate'}
 FORGE_PARENTS = {'forge:item/default': 'minecraft:item/generated', 'forge:item/default-tool': 'minecraft:item/handheld'}
 MODEL_SOURCE = ASSET_SOURCE / 'models'
 
 
 def copy_tool_assets():
-    """Item definitions for the registered tools with material layers (armor and shields excluded): a `composite`
+    """Item definitions for the registered tools with material layers (armor, shields and wings included): a `composite`
     of one layer per original model part, in the original's draw order, each a `select` on the custom_model_data
     string at the part's material slot index (the index the original's model gives it, the slot of the tool
     definition's part_stats). A tool without parts (staffs, flint and brick) is one plain model. The original's
@@ -532,8 +533,8 @@ def copy_tool_assets():
     tools, left_out = [], []
     for path in sorted((TARGET / 'tool_definitions').glob('*.json')):
         name = path.stem
-        original = MODEL_SOURCE / 'item' / f'{name}.json'
-        if name.startswith(ARMOR_PREFIXES) or not original.exists() or original_model(original).get('loader') != 'tconstruct:tool':
+        original = MODEL_SOURCE / 'item' / f'{MODEL_ALIASES.get(name, name)}.json'
+        if not original.exists() or original_model(original).get('loader') != 'tconstruct:tool':
             left_out.append(name)
             continue
         data = original_model(original)

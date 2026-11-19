@@ -1,0 +1,95 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 0,
+        "cases": [
+          {
+            "when": "blood",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_blood"
+            }
+          },
+          {
+            "when": "clay",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_clay"
+            }
+          },
+          {
+            "when": "earthslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "ender_pearl",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_ender_pearl"
+            }
+          },
+          {
+            "when": "enderslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_enderslime"
+            }
+          },
+          {
+            "when": "honey",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_honey"
+            }
+          },
+          {
+            "when": "ichor",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_ichor"
+            }
+          },
+          {
+            "when": "magma",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_magma"
+            }
+          },
+          {
+            "when": "skyslime",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_skyslime"
+            }
+          },
+          {
+            "when": "slimeball",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_earthslime"
+            }
+          },
+          {
+            "when": "venom",
+            "model": {
+              "type": "minecraft:model",
+              "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime_tconstruct_venom"
+            }
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/tool_layer/item_generated/armor/slime/wings/slime"
+        }
+      }
+    ]
+  }
+}
