@@ -97,6 +97,16 @@ pub struct EntityState {
     pub rain_exposed: bool,
     /// The share of its armor slots (head, chest, legs, feet) holding armor, 0.0 to 1.0, as `LivingEntity.getArmorCoverPercentage`; None when unknown.
     pub armor_coverage: Option<f32>,
+    /// Whether it crouches: a player holding sneak. A mob never does.
+    pub crouching: bool,
+    /// Its height, the y of its feet; None when the game did not report it.
+    pub y: Option<f64>,
+    /// The block light and the sky light at the block it stands in, each 0 to 15 as `Level.getBrightness` reports them for the two layers;
+    /// None when the game did not report them. The sky light is the raw one: `sky_darken` is what daylight takes off it.
+    pub block_light: Option<u8>,
+    pub sky_light: Option<u8>,
+    /// How much of the sky light the time of day and the weather take off, 0 to 11 (`Level.getSkyDarken`); 0 where there is no weather or day.
+    pub sky_darken: u8,
 }
 
 impl EntityState {
@@ -104,6 +114,37 @@ impl EntityState {
     pub fn effect_level(&self, id: &str) -> i32 {
         self.effect_levels.iter().find(|(effect, _)| effect == id).map_or(0, |(_, amplifier)| amplifier.saturating_add(1))
     }
+}
+
+/// `Level.getSkyDarken`: how much of the sky light the weather and the time of day take off, 0 (noon, clear) to 11 (midnight, in a thunderstorm).
+/// `rain` and `thunder` are the levels from 0.0 to 1.0 and `day_time` the world's time of day in ticks.
+pub fn sky_darken(rain: f32, thunder: f32, day_time: i64) -> u8 {
+    // `DimensionType.timeOfDay`: the fraction of the day, eased so the sun lingers near the horizon.
+    let fraction = (day_time as f64 / 24000.0 - 0.25).rem_euclid(1.0);
+    let eased = 0.5 - (fraction * std::f64::consts::PI).cos() / 2.0;
+    let time_of_day = ((fraction * 2.0 + eased) / 3.0) as f32;
+    let rain_factor = 1.0 - f64::from(rain.clamp(0.0, 1.0) * 5.0) / 16.0;
+    let thunder_factor = 1.0 - f64::from(thunder.clamp(0.0, 1.0) * 5.0) / 16.0;
+    let brightness = 0.5 + 2.0 * f64::from((time_of_day * (2.0 * std::f32::consts::PI)).cos()).clamp(-0.25, 0.25);
+    ((1.0 - brightness * rain_factor * thunder_factor) * 11.0) as u8
+}
+
+/// A status effect's category (`MobEffectCategory`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EffectCategory { Beneficial, Harmful, Neutral }
+
+/// The category of a vanilla status effect id (`minecraft:speed`); None for an id that is not vanilla's. A vanilla effect can be cured with milk.
+pub fn effect_category(id: &str) -> Option<EffectCategory> {
+    use EffectCategory::*;
+    Some(match id.strip_prefix("minecraft:")? {
+        "speed" | "haste" | "strength" | "instant_health" | "jump_boost" | "regeneration" | "resistance" | "fire_resistance" | "water_breathing"
+        | "invisibility" | "night_vision" | "health_boost" | "absorption" | "saturation" | "luck" | "slow_falling" | "conduit_power"
+        | "dolphins_grace" | "hero_of_the_village" => Beneficial,
+        "slowness" | "mining_fatigue" | "instant_damage" | "nausea" | "blindness" | "hunger" | "weakness" | "poison" | "wither" | "levitation"
+        | "unluck" | "bad_omen" | "darkness" | "trial_omen" | "raid_omen" | "infested" | "oozing" | "weaving" | "wind_charged" => Harmful,
+        "glowing" => Neutral,
+        _ => return None,
+    })
 }
 
 /// A status effect for a callback to put on the mob a weapon hit.
@@ -153,6 +194,9 @@ pub struct PlayerTick {
     /// The amounts callbacks add to the base value of the player's attributes, as (attribute id, amount), which callbacks push to every tick
     /// for as long as they want them: an amount no callback names any more is taken off again.
     pub attribute_additions: RefCell<Vec<(String, f64)>>,
+    /// The actions to do to the ticking player, as `Attacker`, which callbacks add to; they land at the end of the tick. Only a player the host
+    /// can name by entity id is reached (the acting player, or a guest).
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -203,6 +247,14 @@ pub enum EntityAction {
     /// still of `item`. Players only: a mob target, a slot that holds another item and an edit that changes nothing are skipped. Acts on
     /// the stack as it is when the action lands, not as the callback saw it, so wear that happened in between stays.
     EditStackData { target: ActionTarget, slot: StackSlot, item: String, edits: Vec<StackDataEdit> },
+    /// `LivingEntity.hurt`: deals the target `amount` damage of `damage_type` with no attacker, as the host's hurt call does (armor, effects,
+    /// invulnerability time and the damage hooks all hear it, so a callback hears its own hurt). A mod's own damage type id works once its
+    /// data pack declares it (`data/<namespace>/damage_type/<name>.json`). Players and mobs; one the host cannot reach is skipped.
+    Hurt { target: ActionTarget, amount: f32, damage_type: String },
+    /// Sets how many ticks an active effect has left on a player, keeping its level and flags: shortens or lengthens it. An effect the target
+    /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
+    /// the game's own rules for giving an effect apply.
+    SetEffectDuration { target: ActionTarget, effect: String, duration: i32 },
 }
 
 /// Which stack of a player an [`EntityAction::EditStackData`] edits.
@@ -380,6 +432,8 @@ pub struct ItemDamage {
     /// in `stack`, and then the game wears it by 0. When the stack is not in the main inventory (a worn armor piece) it is not
     /// written and the game wears the stack by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left.
     pub replacement: RefCell<Option<ItemSlot>>,
+    /// What the player was doing as the stack wore (health, surroundings, the level of their effects); None when the game did not name them.
+    pub holder: Option<EntityState>,
 }
 
 /// How far a mob sees a player, about to be scaled for the kind of mob that is looking (NeoForge: `LivingVisibilityEvent`). It is
@@ -443,6 +497,11 @@ impl ServerLivingEntityEvents {
 pub(crate) fn player_tick(tick: &PlayerTick) -> Vec<String> {
     PLAYER_TICK.invoke(tick);
     tick.remove_effects.borrow_mut().drain(..).collect()
+}
+
+/// The actions the callbacks queued on the player's tick, taken after `player_tick`.
+pub(crate) fn take_tick_actions(tick: &PlayerTick) -> Vec<EntityAction> {
+    tick.actions.borrow_mut().drain(..).collect()
 }
 
 static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
@@ -886,7 +945,7 @@ mod tests {
         assert_eq!(modify_knockback(&push(Some(hammer.clone()), None)), Some((0.8, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, None)), Some((0.4, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, Some(hammer))), None);
-        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None) };
+        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None };
         assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None)));
         assert_eq!(modify_item_damage(&wear("example:shield", 3)), None);
     }
@@ -1027,7 +1086,7 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
@@ -1186,5 +1245,36 @@ mod tests {
         forget_armor(5151);
         modify_damage(&damage);
         assert_eq!(*seen.lock().unwrap(), [None, Some(12.0), Some(3.0), None], "forgetting the wearer forgets the state");
+    }
+
+    #[test]
+    fn the_sky_is_darkest_at_midnight_and_a_storm_darkens_the_day() {
+        assert_eq!(sky_darken(0.0, 0.0, 6000), 0, "clear noon");
+        assert_eq!(sky_darken(0.0, 0.0, 18000), 11, "clear midnight");
+        assert_eq!(sky_darken(0.0, 0.0, 6000 + 24000 * 3), 0, "the day count does not matter");
+        // 1 - 1.0 * (1 - 5/16) * (1 - 5/16) = 0.5273, times 11 and cut.
+        assert_eq!(sky_darken(1.0, 1.0, 6000), 5, "a thunderstorm at noon");
+        assert_eq!(sky_darken(1.0, 0.0, 6000), 3, "rain alone at noon");
+        assert!((0..24000).step_by(500).all(|time| sky_darken(0.0, 0.0, time) <= 11));
+    }
+
+    #[test]
+    fn effects_are_categorised_for_the_vanilla_ids_only() {
+        assert_eq!(effect_category("minecraft:regeneration"), Some(EffectCategory::Beneficial));
+        assert_eq!(effect_category("minecraft:poison"), Some(EffectCategory::Harmful));
+        assert_eq!(effect_category("minecraft:glowing"), Some(EffectCategory::Neutral));
+        assert_eq!(effect_category("tconstruct:momentum_armor"), None, "another mod's effect is not vanilla's to categorise");
+    }
+
+    #[test]
+    fn a_tick_hears_its_callbacks_and_hands_back_the_actions_they_queued() {
+        ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+            if tick.entity != 6262 { return; }
+            tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
+        });
+        let tick = PlayerTick { player: 1, entity: 6262, armor: Vec::new(), effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        player_tick(&tick);
+        assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
+        assert!(take_tick_actions(&tick).is_empty(), "taken once");
     }
 }

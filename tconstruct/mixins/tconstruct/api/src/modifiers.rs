@@ -124,9 +124,9 @@ impl Modifier {
         self.modules.iter().flat_map(|module| module.trait_entry(entry, facts, first_encounter).into_iter().chain(module.swappable_traits(entry, facts))).collect()
     }
     /// ToolDamageModifierHook: the damage left after every damage-reducing module, in module order.
-    pub fn reduce_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, cause: Option<&Identifier>,
+    pub fn reduce_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, cause: Option<&Identifier>,
         modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, mut amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
-        for module in &self.modules { amount = module.reduce_damage(entry, facts, cause, modifier_in_tag, amount, random); }
+        for module in &self.modules { amount = module.reduce_damage(entry, facts, nbt, cause, modifier_in_tag, amount, random); }
         amount
     }
     /// ValidateModifierHook for a recipe-added modifier: the first failing requirement's translation key.

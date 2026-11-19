@@ -1,8 +1,9 @@
 //! ProtectionModule from SlimeKnights (MIT; see LICENSE): armor modifiers that add protection against
 //! damage sources, and the way their sum changes the damage taken (ToolEvents.livingHurt, ArmorUtil).
-//! Only sources and formulas over data this port holds are decoded: a module that names the wearing entity, or a formula variable
-//! about one (temperature, light, health, equipment), stays unbound. The attacking entity is asked by its entity type tags and what it
-//! was doing (burning, in the air), as for melee damage.
+//! Only sources, wearer conditions and formulas over data this port holds are decoded: the wearer is the `target` of the hit, as PlutoLib
+//! reported it as of their last tick (health, temperature, light, height, crouching, water, armor coverage), so a condition or formula variable
+//! on anything else stays unbound. The attacking entity is asked by its entity type tags and what it was doing (burning, in the air), as for
+//! melee damage.
 use crate::{damage_tags::DamageTags, mining_speed::StatFormula};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -15,6 +16,13 @@ pub(crate) struct DamageSource<'a> {
     pub tags: &'a DamageTags,
     /// Answers the attacker's entity type tags and, as pseudo tags, what it was doing; false for everything when the attacker is unknown.
     pub attacker_in_tag: &'a dyn Fn(&Identifier) -> bool,
+    /// What the attacker and the wearer (as the `target`) were doing, as PlutoLib reported them; both None for a source with no entities.
+    pub entities: crate::entity_facts::Entities<'a>,
+}
+
+impl DamageSource<'_> {
+    /// Answers the wearer's pseudo state tags (`tconstruct_state:target/crouching`) from what was reported of them.
+    pub fn wearer_in_tag(&self, tag: &Identifier) -> bool { crate::melee_damage::state_in_tag(tag, self.entities.attacker, self.entities.target) }
 }
 
 /// IJsonPredicate over the damage source.
@@ -81,20 +89,25 @@ impl SourceCondition {
 
 /// The module's damage source and protection formula (`value` is the running protection, `level` the modifier level).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Protection { source: SourceCondition, attacker: crate::melee_damage::TargetCondition, formula: StatFormula }
+pub(crate) struct Protection { source: SourceCondition, wearer: crate::melee_damage::TargetCondition, attacker: crate::melee_damage::TargetCondition, formula: StatFormula }
 
 impl Protection {
     /// `None` for a module this port cannot evaluate.
     pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
-        // The wearing entity and the attacker are conditions on live entities.
-        if fields.get("wearing_entity").is_some_and(|value| !value.is_null()) { return Ok(None); }
+        let Some(wearer) = crate::melee_damage::TargetCondition::decode_for("target", fields.get("wearing_entity"))? else { return Ok(None); };
         let Some(attacker) = crate::melee_damage::TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
         let source = match fields.get("damage_source") { None | Some(Value::Null) => SourceCondition::Any, Some(value) => match SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
-        let Some(formula) = StatFormula::decode(fields, &["level", "protection", "multiplier", "base"])? else { return Ok(None); };
-        Ok(Some(Self { source, attacker, formula }))
+        // A variable of the formula reads the wearer (`which: target`). The entity that caused the damage is not reported as a mob's hit lands, so a
+        // variable of the attacker stays unbound rather than always taking its fallback.
+        let reads_attacker = fields.get("variables").and_then(Value::as_object).is_some_and(|variables| variables.values().any(|variable| variable.get("which").and_then(Value::as_str) == Some("attacker")));
+        if reads_attacker { return Ok(None); }
+        let Some(formula) = StatFormula::decode_in(fields, &["level", "protection", "multiplier", "base"], crate::mining_speed::EntityScope::Hit)? else { return Ok(None); };
+        Ok(Some(Self { source, wearer, attacker, formula }))
     }
 
     pub fn source(&self) -> &SourceCondition { &self.source }
+    /// Whether the wearer passes the module's `wearing_entity` condition.
+    pub fn wearer_matches(&self, source: &DamageSource) -> bool { self.wearer.matches(&|tag| source.wearer_in_tag(tag)) }
     /// Whether the attacker passes the module's condition on it.
     pub fn attacker_matches(&self, source: &DamageSource) -> bool { self.attacker.matches(source.attacker_in_tag) }
     pub fn formula(&self) -> &StatFormula { &self.formula }

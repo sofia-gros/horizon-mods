@@ -158,6 +158,16 @@ pub(crate) enum Module {
     Protection { module: crate::protection::Protection, condition: Condition },
     /// AdjustDamageModule on the modify damage hook: changes the damage the wearer is about to take.
     AdjustDamage { module: crate::protection::AdjustDamage, condition: Condition },
+    /// DepthProtectionModule: protection by the wearer's height.
+    DepthProtection { module: crate::wearer_modules::DepthProtection, condition: Condition },
+    /// OvershieldModule: protection paid for with the overslime on the piece.
+    Overshield { module: crate::wearer_modules::Overshield },
+    /// RestoreLostHealthModule (on the modify damage hook): armor that turns part of the damage into slow healing.
+    RestoreLostHealth { module: Box<crate::wearer_modules::RestoreLostHealth>, condition: Condition },
+    /// DamageOnUnequipModule: taking the armor off hurts its wearer.
+    DamageOnUnequip { module: crate::wearer_modules::DamageOnUnequip, condition: Condition },
+    /// ReduceEffectOnUnequipModule: taking the armor off shortens the wearer's effects of one category.
+    ReduceEffectOnUnequip { module: crate::wearer_modules::ReduceEffectOnUnequip, condition: Condition },
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
@@ -179,7 +189,7 @@ fn add_slots(data: &mut NbtCompound, name: &str, count: i32) {
 /// A ModifierFormula of either form. `Simple` is flat + each_level * level, which is the scaled
 /// level handed to the module's fallback; `PostFix` runs a formula over named arguments.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum LevelFormula { Simple { flat: f32, each: f32 }, PostFix(Formula) }
+pub(crate) enum LevelFormula { Simple { flat: f32, each: f32 }, PostFix(Formula), Stat(StatFormula) }
 
 impl LevelFormula {
     /// `names` are the argument names after the level: ["value","multiplier"] or ["factor"].
@@ -194,7 +204,7 @@ impl LevelFormula {
     }
     /// processLevel: the scaled level for simple formulas, the plain effective level for post fix.
     fn level(&self, entry: &Entry) -> f32 {
-        match self { Self::Simple { flat, each } => flat + each * entry.effective_level(), Self::PostFix(_) => entry.effective_level() }
+        match self { Self::Simple { flat, each } => flat + each * entry.effective_level(), Self::PostFix(_) | Self::Stat(_) => entry.effective_level() }
     }
 }
 
@@ -309,7 +319,14 @@ impl Module {
             "tconstruct:reduce_tool_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_damage" | "tconstruct:tooltip"))
                 && !fields.get("entity").is_some_and(|value| !value.is_null()) => {
                 let Some(cause) = CausePredicate::decode(fields.get("cause"))? else { return Ok(None); };
-                let Some(formula) = LevelFormula::decode(fields, &["value", "multiplier"])? else { return Ok(None); };
+                // Variables read the holder of the tool (`which` absent), as ConditionalStatFormula's do.
+                let formula = if fields.contains_key("variables") {
+                    let Some(formula) = StatFormula::decode_in(fields, &["level", "value", "multiplier"], crate::mining_speed::EntityScope::Holder)? else { return Ok(None); };
+                    LevelFormula::Stat(formula)
+                } else {
+                    let Some(formula) = LevelFormula::decode(fields, &["value", "multiplier"])? else { return Ok(None); };
+                    formula
+                };
                 Self::ReduceDamage { cause, formula, condition: Condition::decode(fields)? }
             }
             "tconstruct:tool_damage_range" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tool_damage") => {
@@ -555,6 +572,24 @@ impl Module {
                 let Some(module) = crate::protection::Protection::decode(fields)? else { return Ok(None); };
                 Self::Protection { module, condition: Condition::decode(fields)? }
             }
+            "tconstruct:depth_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
+                let Some(module) = crate::wearer_modules::DepthProtection::decode(fields)? else { return Ok(None); };
+                Self::DepthProtection { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:overshield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
+                Self::Overshield { module: crate::wearer_modules::Overshield::decode(fields)? }
+            }
+            // Only on the modify damage hook, which PlutoLib hears after armor: the same module on the modify hurt hook works on the damage before it.
+            "tconstruct:restore_lost_health" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
+                let Some(module) = crate::wearer_modules::RestoreLostHealth::decode(fields)? else { return Ok(None); };
+                Self::RestoreLostHealth { module: Box::new(module), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:damage_on_unequip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:equipment_change") => {
+                Self::DamageOnUnequip { module: crate::wearer_modules::DamageOnUnequip::decode(fields)?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:reduce_effect_on_unequip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:equipment_change") => {
+                Self::ReduceEffectOnUnequip { module: crate::wearer_modules::ReduceEffectOnUnequip::decode(fields)?, condition: Condition::decode(fields)? }
+            }
             "tconstruct:clear_effect_on_unequip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:equipment_change") => {
                 Self::ClearEffectOnUnequip { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
@@ -635,7 +670,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -749,6 +784,24 @@ impl Module {
         let Self::ClearEffectOnUnequip { effect, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| effect.clone())
     }
+    /// What an unequipped armor piece's damage-on-unequip module hurts the wearer by: the damage type and the amount.
+    pub fn damage_on_unequip(&self, entry: &Entry, facts: &Facts) -> Option<(String, f32)> {
+        let Self::DamageOnUnequip { module, condition } = self else { return None; };
+        if condition.matches(entry, facts) { module.hurt(entry) } else { None }
+    }
+    /// What an unequipped armor piece's reduce-effect module does: the category it shortens and the share it takes off.
+    pub fn reduce_effect_on_unequip(&self, entry: &Entry, facts: &Facts) -> Option<(pluto_lib::EffectCategory, f32)> {
+        let Self::ReduceEffectOnUnequip { module, condition } = self else { return None; };
+        if !condition.matches(entry, facts) { return None; }
+        let percent = module.percent(entry);
+        (percent != 0.0).then(|| (module.category(), percent))
+    }
+    /// The restore-lost-health module's result for `amount` of damage taken, when its conditions hold.
+    pub fn restore_lost_health(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, amount: f32, roll: &mut dyn FnMut() -> f32) -> Option<crate::wearer_modules::Restore> {
+        let Self::RestoreLostHealth { module, condition } = self else { return None; };
+        if !condition.matches(entry, facts) { return None; }
+        module.restore(entry, source, amount, roll)
+    }
     /// The capacity bar this module declares.
     pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { match self { Self::CapacityBar { bar } => Some(bar), _ => None } }
     /// The durability shield this module declares.
@@ -843,9 +896,17 @@ impl Module {
             }
             return value;
         }
+        if let Self::DepthProtection { module, condition } = self {
+            return if condition.matches(entry, facts) { module.protect(entry, source, value) } else { value };
+        }
         let Self::Protection { module, condition } = self else { return value; };
-        if !condition.matches(entry, facts) || !module.source().matches(source) || !module.attacker_matches(source) { return value; }
-        module.formula().eval(entry, &crate::mining_speed::ToolView::of(nbt), value, 1.0, 0.0)
+        if !condition.matches(entry, facts) || !module.source().matches(source) || !module.wearer_matches(source) || !module.attacker_matches(source) { return value; }
+        module.formula().eval(entry, &crate::mining_speed::ToolView::with(nbt, source.entities), value, 1.0, 0.0)
+    }
+    /// OvershieldModule as a ProtectionModifierHook: the running protection after this module, with the overslime it spends taken off `work`.
+    pub fn overshield(&self, entry: &Entry, work: &mut NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
+        let Self::Overshield { module } = self else { return value; };
+        module.protect(entry, work, source, value)
     }
     /// ModifyDamageModifierHook: the damage the wearer takes after this module; `entities` are the hit's attacker and the wearer (as the target).
     pub fn adjust_damage(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
@@ -920,7 +981,7 @@ impl Module {
 
     /// ToolDamageModifierHook.beforeDamageTool: the amount left after this module's probabilistic
     /// reduction. `random` yields uniform values in [0, 1).
-    pub fn reduce_damage(&self, entry: &Entry, facts: &Facts, cause: Option<&Identifier>,
+    pub fn reduce_damage(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, cause: Option<&Identifier>,
         modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
         if let Self::DamageRange { min, max, cause: wanted, condition } = self {
             if !condition.matches(entry, facts) || !wanted.matches(cause, modifier_in_tag) { return amount; }
@@ -933,6 +994,11 @@ impl Module {
         let percentage = match formula {
             LevelFormula::Simple { .. } => formula.level(entry),
             LevelFormula::PostFix(post_fix) => match post_fix.apply(&[formula.level(entry), 0.0, 1.0]) { Ok(value) => value, Err(_) => return amount },
+            // The variables read the player holding the tool, as PlutoLib reported them as the tool wore (the fallback when it did not).
+            LevelFormula::Stat(stat) => {
+                let holder = crate::entity_facts::holder();
+                stat.eval(entry, &crate::mining_speed::ToolView::with(nbt, crate::entity_facts::Entities { attacker: holder.as_ref(), target: None }), 0.0, 1.0, 0.0)
+            }
         };
         if percentage >= 1.0 { return 0; }
         if percentage <= 0.0 { return amount; }
@@ -948,6 +1014,7 @@ impl Module {
             // FallbackFormula.PERCENT: value * (1 + level), where the value argument is the factor.
             LevelFormula::Simple { .. } => factor * (1.0 + formula.level(entry)),
             LevelFormula::PostFix(post_fix) => post_fix.apply(&[formula.level(entry), factor]).unwrap_or(factor),
+            LevelFormula::Stat(_) => factor,
         }
     }
 
@@ -1145,6 +1212,27 @@ mod tests {
         assert_eq!(skipped.get(Stat::Durability), Stat::Durability.default_value());
     }
     #[test]
+    fn a_reduction_formula_reads_the_light_around_the_player_holding_the_tool() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("test:solar"), 1);
+        let none = NbtCompound::new();
+        // The shipped solar powered: (0.01 * level + 0.04) * the sky light, which is 15 when nobody was named.
+        let solar = decode(json!({"type":"tconstruct:reduce_tool_damage","formula":[0.01,"$level","*",0.04,"+","$light","*"],
+            "variables":{"light":{"type":"tconstruct:entity","entity_type":"tconstruct:light","fallback":15.0,"light_layer":"sky"}}})).unwrap();
+        let dealt = |holder: Option<&pluto_lib::EntityState>, solar: &Module| {
+            let mut rolls = [0.1_f32, 0.6, 0.4, 0.9].into_iter();
+            crate::entity_facts::with_holder(holder, || solar.reduce_damage(&entry, &f, &none, None, &|_, _| false, 4, &mut || rolls.next().unwrap()))
+        };
+        // Light 15 less the 5 the weather takes is 10: a half chance each, so the 0.1 and 0.4 rolls cancel.
+        let dusk = pluto_lib::EntityState { sky_light: Some(15), sky_darken: 5, ..Default::default() };
+        assert_eq!(dealt(Some(&dusk), &solar), 2);
+        // Nobody named: the fallback light of 15 is a 75% chance and only the 0.9 roll gets through.
+        assert_eq!(dealt(None, &solar), 1);
+        assert_eq!(crate::entity_facts::holder(), None, "the holder is only set around the wear");
+    }
+
+    #[test]
     fn damage_reduction_is_probabilistic_per_point_and_repair_scales_the_factor() {
         let in_tag = |_: &Identifier, _: &Identifier| false;
         let f = facts(None, &in_tag);
@@ -1153,18 +1241,18 @@ mod tests {
         // Reinforced-style: 0.025 * level * (11 - level) = 0.45 at level 2; each damage point is cancelled when the roll is below it.
         let reduce = decode(json!({"type":"tconstruct:reduce_tool_damage","formula":[0.025,"$level","*",11.0,"$level","-","*"]})).unwrap();
         let mut rolls = [0.1_f32, 0.5, 0.44, 0.9].into_iter();
-        let dealt = reduce.reduce_damage(&entry, &f, None, &tags, 4, &mut || rolls.next().unwrap());
+        let dealt = reduce.reduce_damage(&entry, &f, &NbtCompound::new(), None, &tags, 4, &mut || rolls.next().unwrap());
         assert_eq!(dealt, 2, "rolls 0.5 and 0.9 are not below 0.45, so two points land");
         // 100% blocks everything without rolling; 0% blocks nothing without rolling.
         let all = decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0})).unwrap();
-        assert_eq!(all.reduce_damage(&entry, &f, None, &tags, 7, &mut || panic!("no roll expected")), 0);
+        assert_eq!(all.reduce_damage(&entry, &f, &NbtCompound::new(), None, &tags, 7, &mut || panic!("no roll expected")), 0);
         let none = decode(json!({"type":"tconstruct:reduce_tool_damage","flat":0.0,"each_level":0.0})).unwrap();
-        assert_eq!(none.reduce_damage(&entry, &f, None, &tags, 7, &mut || panic!("no roll expected")), 7);
+        assert_eq!(none.reduce_damage(&entry, &f, &NbtCompound::new(), None, &tags, 7, &mut || panic!("no roll expected")), 7);
         // A cause predicate: this reduction ignores damage caused by a bypassing modifier.
         let guarded = decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,
             "cause":{"type":"mantle:inverted","inverted_type":"tconstruct:tag","tag":"test:bypass"}})).unwrap();
-        assert_eq!(guarded.reduce_damage(&entry, &f, None, &tags, 3, &mut || 0.0), 0, "ordinary use is reduced");
-        assert_eq!(guarded.reduce_damage(&entry, &f, Some(&id("test:bypasser")), &tags, 3, &mut || 0.0), 3, "a bypassing cause is not");
+        assert_eq!(guarded.reduce_damage(&entry, &f, &NbtCompound::new(), None, &tags, 3, &mut || 0.0), 0, "ordinary use is reduced");
+        assert_eq!(guarded.reduce_damage(&entry, &f, &NbtCompound::new(), Some(&id("test:bypasser")), &tags, 3, &mut || 0.0), 3, "a bypassing cause is not");
         // Repair: simple form is factor * (1 + scaled level); post fix reads the effective level and the factor.
         let preserved = decode(json!({"type":"tconstruct:repair","each_level":0.15})).unwrap();
         let Some(Module::Repair { .. }) = Some(&preserved) else { panic!() };
@@ -1174,7 +1262,7 @@ mod tests {
         assert_eq!(dense.repair_factor(&Entry::new(id("test:m"), 6), &f, 10.0), 10.0, "outside the level range nothing changes");
         // Unsupported shapes are unbound: an entity predicate or data-defined variables.
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"entity":{"type":"tconstruct:sneaking"}})).is_none());
-        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$light"],"variables":{"light":{"type":"tconstruct:entity"}}})).is_none());
+        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0}}})).is_none());
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"cause":{"type":"mantle:and"}})).is_none());
     }
     #[test]

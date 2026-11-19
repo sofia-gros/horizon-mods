@@ -917,8 +917,13 @@ fn apply_player_actions(host: &mut dyn Host, uuid: u128, actions: Vec<entity_eve
 /// its eyes are in water. `block` is the block it stands in and `eyes` where its eyes are.
 fn read_surroundings(host: &mut dyn Host, state: &mut entity_events_v1::EntityState, block: [i32; 3], eyes: Option<[f64; 3]>) {
     let biome = host.biome(block);
-    let raining = host.weather().0 > 0.2;
-    let sky_light = host.light(block).1;
+    let (rain, thunder) = host.weather();
+    let raining = rain > 0.2;
+    let (block_light, sky_light) = host.light(block);
+    state.block_light = Some(block_light);
+    state.sky_light = Some(sky_light);
+    state.sky_darken = entity_events_v1::sky_darken(rain, thunder, host.day_time());
+    state.y = Some(f64::from(block[1]));
     state.rain_exposed = entity_events_v1::rain_exposed(raining, sky_light, biome.as_deref(), block[1]);
     state.biome_temperature = biome.as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, block[1]));
     state.biome = biome;
@@ -946,11 +951,14 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
         health: Some(player.health),
         max_health: host.attribute(player.uuid, "minecraft:max_health").map(|(_, value)| value as f32),
         armor_coverage: Some(entity_events_v1::armor_coverage(worn)),
+        crouching: player.sneaking,
         ..entity_events_v1::EntityState::default()
     };
     let [x, y, z] = player.position;
     let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
     read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
+    // The height of the feet, not of the block they stand in.
+    state.y = Some(y);
     // The player list has no flag for water; the block they stand in does.
     state.in_water = entity_events_v1::holds_water(&host.block(block), host.block_property(block, "waterlogged").as_deref() == Some("true"));
     state
@@ -1072,6 +1080,22 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 let id = id_of(target);
                 let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) else { continue };
                 edit_player_stack(host, selected, slot, &item, &edits);
+            }
+            EntityAction::Hurt { target, amount, damage_type } => {
+                // A player or a mob, hurt with no attacker; the host refuses an entity it cannot hurt (a creative player, a dead mob).
+                let Ok(entity) = u32::try_from(id_of(target)) else { continue };
+                host.hurt_entity(dimension, entity, amount, &damage_type, None);
+            }
+            EntityAction::SetEffectDuration { target, effect, duration } => {
+                if duration <= 0 { continue; }
+                let id = id_of(target);
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                let Some(player) = player else { continue };
+                // The effect keeps its level and flags: it is taken off and given back with the new time (adding a shorter one over it would keep the longer).
+                let Some(kept) = host.effects(player.uuid).and_then(|all| all.into_iter().find(|active| active.id == effect)) else { continue };
+                host.remove_effect(player.uuid, &effect);
+                host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: kept.id, amplifier: kept.amplifier, duration, ambient: kept.ambient, particles: kept.particles });
             }
             EntityAction::AddEffect { target, effect, amplifier, duration } => {
                 let id = id_of(target);
@@ -2089,8 +2113,11 @@ impl Hooks for PlutoHooks {
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
         if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()) };
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             for id in entity_events_v1::player_tick(&tick) { host.remove_effect(player.uuid, &id); }
+            // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
+            let own = entity_events_v1::take_tick_actions(&tick);
+            if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }
             // The amounts the armor adds to the player's attributes move the base value by the change since the last tick.
             let wanted = tick.attribute_additions.take();
             for (attribute, change, total) in entity_events_v1::attribute_changes(player.uuid, &wanted) {
@@ -2397,6 +2424,8 @@ impl Hooks for PlutoHooks {
             }
             let eyes = host.entity_eye_position(entity);
             if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }
+            // The height of the feet, not of the block they stand in.
+            if let Some(position) = host.entity_position(entity) { state.y = Some(position[1]); }
             Some(state)
         };
         // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
@@ -2486,7 +2515,11 @@ impl Hooks for PlutoHooks {
         let stack = found.as_ref().map(read_stack);
         let slot = found.as_ref().and_then(slot_of);
         let before = stack.clone();
-        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None) };
+        // What the player was doing, for a callback that asks (their health, surroundings and effects).
+        let holder = host.acting_player().filter(|acting| acting.uuid == player)
+            .or_else(|| host.server_players().into_iter().find(|listed| listed.uuid == player))
+            .map(|listed| player_entity_state(host, &listed));
+        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None), holder };
         match entity_events_v1::modify_item_damage(&wear) {
             Some((amount, replacement)) => {
                 event.amount = amount;

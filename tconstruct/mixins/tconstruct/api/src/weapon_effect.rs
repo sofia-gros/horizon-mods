@@ -305,7 +305,7 @@ mod tests {
         crate::damage_tags::DamageTags::load(&[stack]).0
     }
     fn source<'a>(damage_type: &'a Identifier, tags: &'a crate::damage_tags::DamageTags, attacker: &'a dyn Fn(&Identifier) -> bool) -> crate::protection::DamageSource<'a> {
-        crate::protection::DamageSource { damage_type, indirect: false, tags, attacker_in_tag: attacker }
+        crate::protection::DamageSource { damage_type, indirect: false, tags, attacker_in_tag: attacker, entities: Default::default() }
     }
 
     #[test]

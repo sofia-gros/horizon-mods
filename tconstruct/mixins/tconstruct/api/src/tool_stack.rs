@@ -141,6 +141,48 @@ pub(crate) fn protection(nbt: &NbtCompound, env: &Environment, source: &crate::p
     with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(value, |value, (entry, modifier)| modifier.protection(entry, facts, nbt, source, value)))
 }
 
+/// ProtectionModifierHook as `protection` runs it, and the edits of the piece's persistent data that what the modules spent (the overslime an
+/// overshield converts) leaves behind. Each modifier's modules see the overslime the earlier ones left.
+pub(crate) fn protection_with_edits(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, value: f32) -> (f32, Vec<pluto_lib::StackDataEdit>) {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        let value = saved.iter().fold(value, |value, (entry, modifier)| {
+            let value = modifier.protection(entry, facts, &work, source, value);
+            modifier.modules().iter().fold(value, |value, module| module.overshield(entry, &mut work, source, value))
+        });
+        (value, crate::capacity::persistent_edits(nbt, &work))
+    })
+}
+
+/// What the restore-lost-health modules of a worn piece do for `amount` of damage its wearer took, with the modifier each belongs to (the cause
+/// of the wear it costs), in modifier order. `roll` gives uniform values in [0, 1).
+pub(crate) fn restores(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, amount: f32, roll: &mut dyn FnMut() -> f32) -> Vec<(Identifier, crate::wearer_modules::Restore)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(restore) = module.restore_lost_health(entry, facts, source, amount, roll) { found.push((entry.id.clone(), restore)); }
+            }
+        }
+        found
+    })
+}
+
+/// What taking a worn piece off does to its wearer besides clearing effects: the hurts (damage type, amount) its damage-on-unequip modules deal
+/// and the shares (category, percent) its reduce-effect modules take off the wearer's effects, in modifier order.
+pub(crate) fn unequip_effects(nbt: &NbtCompound, env: &Environment) -> (Vec<(String, f32)>, Vec<(pluto_lib::EffectCategory, f32)>) {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let (mut hurts, mut reductions) = (Vec::new(), Vec::new());
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                hurts.extend(module.damage_on_unequip(entry, facts));
+                reductions.extend(module.reduce_effect_on_unequip(entry, facts));
+            }
+        }
+        (hurts, reductions)
+    })
+}
+
 /// ModifyDamageModifierHook over every modifier of the tool, in modifier order, starting from `amount`: the damage its wearer takes.
 pub(crate) fn adjust_damage(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(amount, |amount, (entry, modifier)| if amount > 0.0 { modifier.adjust_damage(entry, facts, nbt, source, entities, amount) } else { amount }))
@@ -474,7 +516,7 @@ pub(crate) fn reduce_damage(nbt: &NbtCompound, env: &Environment, cause: Option<
     let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| env.modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
     with_tool_facts(nbt, env, |saved, facts| {
         for (entry, modifier) in saved {
-            amount = modifier.reduce_damage(entry, facts, cause, &modifier_in_tag, amount, random);
+            amount = modifier.reduce_damage(entry, facts, nbt, cause, &modifier_in_tag, amount, random);
             if amount <= 0 { return 0; }
         }
         amount

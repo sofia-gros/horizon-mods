@@ -48,7 +48,8 @@ pub(crate) fn register() {
         };
         let amount = wear.amount.get();
         if amount <= 0 { return; }
-        let (left, replacement) = worn(stack, wear.slot.as_ref(), amount);
+        // The formulas of tool damage modules read the player (light, temperature) as the tool wore.
+        let (left, replacement) = crate::entity_facts::with_holder(wear.holder.as_ref(), || worn(stack, wear.slot.as_ref(), amount));
         if left != amount { wear.amount.set(left); }
         if replacement.is_some() { *wear.replacement.borrow_mut() = replacement; }
     });

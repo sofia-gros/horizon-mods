@@ -19,7 +19,7 @@ pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry
 pub use crate::pure::particle_factory_registry::{self, ParticleFactoryRegistry};
 pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullModelRegistry};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
-pub use crate::pure::entity_events_v1::{self, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
+pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};

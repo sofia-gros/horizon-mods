@@ -25,7 +25,10 @@ CONTENT_PATHS = (
     # Client assets imported from the original (MIT, assets/tconstruct/LICENSE): item definitions, models, blockstates, textures.
     re.compile(r'assets/tconstruct/LICENSE'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The damage type armor modules hurt their wearer with (data pack damage_type definition), and its entries in the two vanilla tags it joins.
+    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects)\.json'),
 )
+DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
@@ -201,6 +204,10 @@ def checked_content(root, version):
             if '/tags/' in name:
                 if not isinstance(item, dict) or set(item) - {'values', 'replace', 'remove'} or not isinstance(item.get('values'), list):
                     raise ValueError(f'tag must be an object with a values list: {name}')
+                continue
+            if name.startswith('data/tconstruct/damage_type/'):
+                if not isinstance(item, dict) or set(item) - DAMAGE_TYPE_KEYS or not isinstance(item.get('message_id'), str) or item.get('scaling') not in ('never', 'always', 'when_caused_by_living_non_player') or not isinstance(item.get('exhaustion'), (int, float)):
+                    raise ValueError(f'damage type needs a message id, a scaling and an exhaustion, and only reviewed keys: {name}')
                 continue
             if '/menu/' in name:
                 if not isinstance(item, dict) or set(item) - MENU_KEYS or not isinstance(item.get('slots'), int) or not 1 <= item['slots'] <= 256:

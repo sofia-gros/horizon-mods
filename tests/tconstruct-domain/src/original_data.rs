@@ -62,10 +62,18 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (139, 97), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (128, 92), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "depth_protection", "recurrent_protection", "overshield", "restore_lost_health", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
+    // reads the attacker's held items: none of those is reported.
+    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
+    assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
+    assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
+    assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
+    for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
 }
@@ -761,7 +769,7 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id(damage_type);
-        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags, attacker_in_tag: &|_| false }, 0.0)
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() }, 0.0)
     };
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:mob_attack", false), 2.5, "protection gives 1.25 a level");
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:out_of_world", false), 0.0, "void damage bypasses protection");
@@ -956,7 +964,7 @@ fn shipped_protection_that_names_the_attacker_asks_what_it_is_and_was_doing() {
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id("minecraft:mob_attack");
         let in_tag = |tag: &Identifier| if tag.namespace() == STATE_NAMESPACE { state_in_tag(tag, Some(attacker), None) } else { undead && tag.to_string() == "minecraft:undead" };
-        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag }, 0.0)
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag, entities: Default::default() }, 0.0)
     };
     let calm = EntityState { kind: "minecraft:husk".into(), on_ground: true, ..EntityState::default() };
     let burning = EntityState { fire_ticks: 40, ..calm.clone() };
@@ -1108,7 +1116,7 @@ fn shipped_block_damage_modules_block_the_sources_they_name() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 1).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = Identifier::parse(damage_type).unwrap();
-        blocks_damage(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false })
+        blocks_damage(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() })
     };
     assert!(blocked("tconstruct:long_fall", "minecraft:fall"), "long fall blocks fall damage");
     assert!(!blocked("tconstruct:long_fall", "minecraft:mob_attack"), "and nothing else");
@@ -1439,7 +1447,7 @@ fn shipped_warded_and_dragonheart_adjust_the_damage_by_the_wearers_health() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = Identifier::parse(damage_type).unwrap();
-        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false };
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
         adjust_damage(&tool.custom_data, &env, &source, &Entities { attacker: None, target: wearer }, amount)
     };
     let whole = facts(20.0);
@@ -1643,7 +1651,7 @@ fn shipped_fire_protection_takes_back_the_vanilla_points_its_enchantment_gave() 
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id(damage_type);
         let in_tag = |tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE && crate::melee_damage::state_in_tag(tag, attacker, None);
-        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag };
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag, entities: Default::default() };
         let vanilla = host_enchantment_points([&enchantments(&tool.custom_data, &env)], &source);
         (vanilla, protection(&tool.custom_data, &env, &source, vanilla))
     };
@@ -1717,7 +1725,7 @@ fn shipped_frostshield_turns_freezing_damage_into_bar_and_overwield_drains_overs
     };
     let taken = |tool: &ItemSlot, damage_type: &str, amount: f32| {
         let damage_type = id(damage_type);
-        damage_capacity(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false }, amount)
+        damage_capacity(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() }, amount)
     };
     let set = |edits: &[StackDataEdit], value: i32| edits == [StackDataEdit { path: persist("tconstruct:frostshield"), value: Some(Nbt::Int(value)) }];
     let (left, edits) = taken(&frost(0), "minecraft:freeze", 3.0);
@@ -1861,4 +1869,170 @@ fn the_items_eaten_by_a_right_click_are_the_tools_in_the_shipped_charge_tag() {
     let charge: std::collections::BTreeSet<String> = charge.into_iter().filter(|id| tools.contains(id)).collect();
     let used: std::collections::BTreeSet<String> = crate::edible_hook::USE_ITEMS.iter().map(|path| format!("tconstruct:{path}")).collect();
     assert_eq!(used, charge, "the edible use covers exactly the charging tools, and no armor");
+}
+
+/// A plate helmet carrying `modifiers`, with the armor tags a protection condition asks about, ready for the wearer tests.
+fn armor_helmet(world: &World, modifiers: &[(&str, i32)]) -> (pluto_lib::ItemSlot, pluto_lib::ItemSlot) {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::Nbt;
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"]), ("tconstruct:modifiable/armor/helmets", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let mut tool = pluto_lib::ItemSlot::new(helmet_id.clone(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+    let mut list = List::default();
+    for (name, level) in modifiers { list = list.with_modifier(Identifier::parse(&format!("tconstruct:{name}")).unwrap(), *level).unwrap(); }
+    tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    (tool.clone(), tool)
+}
+
+/// The plate helmet's definition, the armor item tags and the environment the wearer tests run the modifiers in.
+macro_rules! helmet_env {
+    ($world:ident, $env:ident) => {
+        let helmet = &$world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+        let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+        let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"]), ("tconstruct:modifiable/armor/helmets", &["tconstruct:plate_helmet"])]).unwrap();
+        let $env = crate::tool_stack::Environment { definition: Some(helmet), has_materials: true, materials: &$world.materials, modifiers: &$world.registry, item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    };
+}
+
+#[test]
+fn shipped_armor_protection_reads_the_wearers_health_light_height_and_stance() {
+    use crate::{damage_tags::DamageTags, protection::DamageSource, tool_stack::protection};
+    use pluto_lib::EntityState;
+    let world = world();
+    helmet_env!(world, env);
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let damage_type = Identifier::parse("minecraft:mob_attack").unwrap();
+    // The protection the modifier gives over what iron plate gives by itself, for a wearer in the state `wearer` (None: no wearer reported).
+    let gain = |modifier: &str, level: i32, wearer: Option<&EntityState>| {
+        let of = |name: &str, level: i32| {
+            let (tool, _) = armor_helmet(&world, &[(name, level)]);
+            let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: crate::entity_facts::Entities { attacker: None, target: wearer } };
+            protection(&tool.custom_data, &env, &source, 0.0)
+        };
+        of(modifier, level) - of("sharpness", 1)
+    };
+    let close = |value: f32, wanted: f32| assert!((value - wanted).abs() < 1e-4, "{value} is not {wanted}");
+    // Vital: more protection the lower the health, from 11 points down: (11 - 4) / 10 of 2.5 a level.
+    let health = |health: f32| EntityState { health: Some(health), max_health: Some(20.0), ..EntityState::default() };
+    close(gain("vital_protection", 1, Some(&health(4.0))), 1.75);
+    close(gain("vital_protection", 1, Some(&health(20.0))), 0.0);
+    close(gain("vital_protection", 1, None), 2.5);
+    // Loyal: protection for each empty armor slot, (1 - coverage) * 10.
+    close(gain("loyal", 1, Some(&EntityState { armor_coverage: Some(0.25), ..EntityState::default() })), 7.5);
+    close(gain("loyal", 1, Some(&EntityState { armor_coverage: Some(1.0), ..EntityState::default() })), 0.0);
+    // Nightmare: 0.125 a level for each point of light below 10, the sky light less what the night takes, or the block light if that is brighter.
+    let lit = |sky: u8, darken: u8, block: u8| EntityState { sky_light: Some(sky), sky_darken: darken, block_light: Some(block), ..EntityState::default() };
+    close(gain("nightmare_protection", 1, Some(&lit(15, 11, 2))), 0.75);
+    close(gain("nightmare_protection", 1, Some(&lit(15, 11, 8))), 0.25);
+    close(gain("nightmare_protection", 1, Some(&lit(15, 0, 0))), 0.0);
+    // Stance: dragonborn in the air, shulking while crouching.
+    close(gain("dragonborn", 2, Some(&EntityState { on_ground: false, ..EntityState::default() })), 4.0);
+    close(gain("dragonborn", 2, Some(&EntityState { on_ground: true, ..EntityState::default() })), 0.0);
+    close(gain("dragonborn", 2, Some(&EntityState { on_ground: false, in_water: true, ..EntityState::default() })), 0.0);
+    close(gain("shulking", 2, Some(&EntityState { crouching: true, ..EntityState::default() })), 5.0);
+    close(gain("shulking", 2, Some(&EntityState::default())), 0.0);
+    close(gain("shulking", 2, None), 0.0);
+    // A turtle shell's helmet protects while the eyes are in water, 2.5 a level; the feet in water protect the legs and boots instead.
+    close(gain("turtle_shell", 2, Some(&EntityState { eyes_in_water: true, ..EntityState::default() })), 5.0);
+    close(gain("turtle_shell", 2, Some(&EntityState { in_water: true, ..EntityState::default() })), 0.0);
+    // Temperature: flamestance adds the biome temperature less 0.75.
+    close(gain("flamestance", 1, Some(&EntityState { biome_temperature: Some(2.0), ..EntityState::default() })), 1.25);
+    close(gain("flamestance", 1, Some(&EntityState { biome_temperature: Some(0.0), ..EntityState::default() })), -0.75);
+    // Depth: 1.25 a level, grown linearly below y 64 (half the maximum bonus of 1 at y 32), a penalty above the neutral range.
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(32.0), ..EntityState::default() })), 1.25);
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(70.0), ..EntityState::default() })), 0.0);
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(112.0), ..EntityState::default() })), -0.625);
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(200.0), ..EntityState::default() })), -2.5);
+}
+
+#[test]
+fn shipped_overshield_turns_overslime_into_protection_and_the_edit_takes_it_off_the_piece() {
+    use crate::{damage_tags::DamageTags, protection::DamageSource, tool_stack::{protection_with_edits, TAG_PERSISTENT}};
+    use pluto_lib::{Nbt, StackDataEdit};
+    let mut world = world();
+    for modifier in crate::overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    helmet_env!(world, env);
+    let (tags, _) = DamageTags::load(&damage_tag_stacks());
+    let (_, mut tool) = armor_helmet(&world, &[("overslime", 1), ("overshield", 1)]);
+    crate::overslime::set_amount(&mut tool.custom_data, 10);
+    assert_eq!(crate::overslime::amount(&tool.custom_data), 10, "the overslime modifier gives the piece room for it");
+    let run = |damage_type: &str, tool: &pluto_lib::ItemSlot| {
+        let damage_type = Identifier::parse(damage_type).unwrap();
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
+        protection_with_edits(&tool.custom_data, &env, &source, 0.0)
+    };
+    // 1.25 a level, for the 2 overslime a level it spends, out of the 10 on the piece.
+    let (value, edits) = run("minecraft:mob_attack", &tool);
+    let (base, _) = { let (plain, _) = armor_helmet(&world, &[("overslime", 1)]); run("minecraft:mob_attack", &plain) };
+    assert!((value - base - 1.25).abs() < 1e-4, "{value} {base}");
+    assert_eq!(edits, vec![StackDataEdit { path: vec![TAG_PERSISTENT.into(), "tconstruct:overslime".into()], value: Some(Nbt::Int(8)) }]);
+    // With only 1 left it gives half of the protection and uses it up (the key goes).
+    crate::overslime::set_amount(&mut tool.custom_data, 1);
+    let (value, edits) = run("minecraft:mob_attack", &tool);
+    assert!((value - base - 0.625).abs() < 1e-4, "{value} {base}");
+    assert_eq!(edits, vec![StackDataEdit { path: vec![TAG_PERSISTENT.into(), "tconstruct:overslime".into()], value: None }]);
+    // Damage that bypasses invulnerability is not protected against and spends nothing.
+    let (value, edits) = run("minecraft:out_of_world", &tool);
+    assert!((value - base).abs() < 1e-4 && edits.is_empty());
+}
+
+#[test]
+fn shipped_rebuff_heals_by_regeneration_and_wears_the_piece_while_restore_stays_before_armor() {
+    use crate::{damage_tags::DamageTags, protection::DamageSource, tool_stack::restores, wearer_modules::{wear_edits, Restore}};
+    use pluto_lib::{Nbt, StackDataEdit};
+    let world = world();
+    helmet_env!(world, env);
+    let (tags, _) = DamageTags::load(&damage_tag_stacks());
+    let damage_type = Identifier::parse("minecraft:mob_attack").unwrap();
+    let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
+    let (tool, _) = armor_helmet(&world, &[("rebuff", 2)]);
+    // Rebuff always lands; level 2 heals half the damage as regeneration at effect level 2 (25 ticks a point) and costs 2 wear.
+    let found = restores(&tool.custom_data, &env, &source, 10.0, &mut || 0.0);
+    assert_eq!(found, vec![(Identifier::parse("tconstruct:rebuff").unwrap(), Restore { duration: 125, wear: 2 })]);
+    assert!(restores(&tool.custom_data, &env, &source, 1.0, &mut || 0.0).is_empty(), "half of 1 damage is not a whole point of health");
+    // The wear edits put the piece's damage up by what the module costs.
+    let edits = wear_edits(&tool.custom_data, &env, &Identifier::parse("tconstruct:rebuff").unwrap(), 2, &mut || 1.0);
+    assert!(edits.contains(&StackDataEdit { path: vec!["Damage".into()], value: Some(Nbt::Int(2)) }), "{edits:?}");
+    // Restore is the same module on the other hook: left unbound, it does nothing here.
+    let (restore, _) = armor_helmet(&world, &[("restore", 1)]);
+    assert!(restores(&restore.custom_data, &env, &source, 10.0, &mut || 0.0).is_empty());
+}
+
+#[test]
+fn shipped_entangled_hurts_and_boon_of_sssss_shortens_the_wearers_beneficial_effects_when_the_piece_comes_off() {
+    use crate::tool_stack::unequip_effects;
+    use pluto_lib::EffectCategory;
+    let world = world();
+    helmet_env!(world, env);
+    let on_unequip = |modifiers: &[(&str, i32)]| unequip_effects(&armor_helmet(&world, modifiers).0.custom_data, &env);
+    assert_eq!(on_unequip(&[("entangled", 1)]).0, [("tconstruct:entangled".to_owned(), 1.0)]);
+    assert_eq!(on_unequip(&[("entwined", 1)]).0, [("tconstruct:entangled".to_owned(), 2.0)], "entwined uses the entangled damage type for 2");
+    let (hurts, cuts) = on_unequip(&[("boon_of_sssss", 2)]);
+    assert!(hurts.is_empty());
+    assert_eq!(cuts.len(), 1);
+    assert_eq!(cuts[0].0, EffectCategory::Beneficial);
+    assert!((cuts[0].1 - 0.4).abs() < 1e-5, "0.2 of the time a level");
+    assert!(on_unequip(&[("sharpness", 1)]) == (Vec::new(), Vec::new()));
+}
+
+#[test]
+fn shipped_solar_powered_cancels_tool_wear_by_the_sky_light_around_the_holder() {
+    use crate::tool_stack::reduce_damage;
+    use pluto_lib::EntityState;
+    let world = world();
+    helmet_env!(world, env);
+    let (tool, _) = armor_helmet(&world, &[("solar_powered", 1)]);
+    // (0.01 * level + 0.04) of the sky light, as a chance for each point: 5 times the light as a percentage.
+    let dealt = |holder: Option<&EntityState>, roll: f32| crate::entity_facts::with_holder(holder, || reduce_damage(&tool.custom_data, &env, None, 5, &mut || roll));
+    let sky = |light: u8, darken: u8| EntityState { sky_light: Some(light), sky_darken: darken, ..EntityState::default() };
+    assert_eq!(dealt(Some(&sky(15, 11)), 0.1), 0, "light 4 is a 20% chance and a roll of 0.1 is under it");
+    assert_eq!(dealt(Some(&sky(15, 11)), 0.5), 5, "a roll of 0.5 is not");
+    assert_eq!(dealt(Some(&sky(15, 0)), 0.5), 0, "full daylight is a 75% chance");
+    assert_eq!(dealt(Some(&sky(0, 0)), 0.0), 5, "no sky light, no reduction");
+    assert_eq!(dealt(None, 0.5), 0, "nobody named: the fallback light of 15");
 }

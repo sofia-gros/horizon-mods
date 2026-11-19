@@ -50,6 +50,7 @@ mod effect_immunity_hook;
 mod unequip_hook;
 mod max_armor;
 mod max_armor_hook;
+mod wearer_modules;
 mod mob_disguise;
 mod mob_disguise_hook;
 mod weapon_effect_hook;

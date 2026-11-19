@@ -600,26 +600,26 @@ assert_eq!((push.strength.get(), push.cancel.get()), (0.8, false));
 
 ### `ItemDamage`
 
-A player's item about to lose durability, for a callback to change or cancel. `player` is the player's uuid and `name` their name; `item` is the id of the item worn and `stack` the stack as the player holds or wears it (`None` when none is found). `amount` is the wear now (a `Cell`: change it with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `slot` is the stack as an item slot, with its components; `replacement` is a whole new stack a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data, after which the game wears it by 0. A stack that is not in the main inventory (worn armor) is not rewritten and the game wears it by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left.
+A player's item about to lose durability, for a callback to change or cancel. `player` is the player's uuid and `name` their name; `item` is the id of the item worn and `stack` the stack as the player holds or wears it (`None` when none is found). `amount` is the wear now (a `Cell`: change it with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `slot` is the stack as an item slot, with its components; `replacement` is a whole new stack a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data, after which the game wears it by 0. A stack that is not in the main inventory (worn armor) is not rewritten and the game wears it by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left. `holder` is what the player was doing as the stack wore, as an [`EntityState`](#entitystate) (their health, height, light, biome temperature and effects as of that moment); `None` when the game did not name the player.
 
 ```rust
 use pluto_lib::ItemDamage;
 use std::cell::{Cell, RefCell};
 
-let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, slot: None, amount: Cell::new(3), cancel: Cell::new(false), replacement: RefCell::new(None) };
+let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, slot: None, amount: Cell::new(3), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None };
 wear.amount.set(wear.amount.get() - 1);
 assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```
 
 ### `PlayerTick`
 
-A server player's tick: `player` is the uuid and `entity` the entity id, `armor` the pieces worn that carry custom data (as (slot, stack)), `effects` the effects on the player as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, and `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the base value of the player's attributes for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again). The tick is heard once more after the last armor piece with custom data comes off, so an amount tied to armor is let go. The host gives no transient modifier call, so the amount moves the saved base value: it is exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
+A server player's tick: `player` is the uuid and `entity` the entity id, `armor` the pieces worn that carry custom data (as (slot, stack)), `effects` the effects on the player as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, and `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the base value of the player's attributes for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at the end of the tick: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last armor piece with custom data comes off, so an amount tied to armor is let go. The host gives no transient modifier call, so the amount moves the saved base value: it is exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
 
 ```rust
 use pluto_lib::PlayerTick;
 use std::cell::RefCell;
 
-let tick = PlayerTick { player: 1, entity: 4, armor: Vec::new(), effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()) };
+let tick = PlayerTick { player: 1, entity: 4, armor: Vec::new(), effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 tick.remove_effects.borrow_mut().push("minecraft:poison".into());
 tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".into(), 0.1));
 assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
@@ -671,10 +671,20 @@ assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing)
 
 ### `EntityAction`
 
-Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` is in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the player who shot or sheared is reached by their uuid, the world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target player carries in [`slot`](#stackslot), but only when that stack is still of `item`; it is done to the stack as it is when the action lands (a weapon hit's before its damage and the hold item's wear, a hit on a player's on their next tick), so wear in between stays. It reaches players only (the acting player of the hit, the world owner included: the host names a player's stack by the player acting in the hook, and a hit on a player lands on that player's own tick); a mob, a slot holding another item and an edit that changes nothing are skipped. A guest's change reaches them through the host's inventory sync, which has not been watched in a game.
+Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` is in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the player who shot or sheared is reached by their uuid, the world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target player carries in [`slot`](#stackslot), but only when that stack is still of `item`; it is done to the stack as it is when the action lands (a weapon hit's before its damage and the hold item's wear, a hit on a player's on their next tick), so wear in between stays. It reaches players only (the acting player of the hit, the world owner included: the host names a player's stack by the player acting in the hook, and a hit on a player lands on that player's own tick); a mob, a slot holding another item and an edit that changes nothing are skipped. A guest's change reaches them through the host's inventory sync, which has not been watched in a game. `Hurt { target, amount, damage_type }` deals a player or a mob `amount` damage of `damage_type` with no attacker, through the host's hurt call: armor, effects, invulnerability time and the damage hooks all apply and hear it, and a creative player or a dead mob is skipped. A mod's own damage type id works once its data pack declares it (`data/<namespace>/damage_type/<name>.json`). `SetEffectDuration { target, effect, duration }` sets the ticks left of an effect a player has, keeping its level and flags (the host takes it off and gives it back, so it can shorten as well as lengthen); an effect the player lacks, a duration that is not positive and a mob are skipped.
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, KnockbackDirection, ServerLivingEntityEvents};
+
+// An action for the ticking player: hurt them, and halve the time left on their poison.
+ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+    if tick.armor.iter().any(|(_, piece)| piece.item == "example:cursed_helmet") {
+        tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 1.0, damage_type: "minecraft:magic".into() });
+    }
+    if let Some((effect, _, left)) = tick.effects.iter().find(|(effect, _, _)| effect == "minecraft:poison") {
+        tick.actions.borrow_mut().push(EntityAction::SetEffectDuration { target: ActionTarget::Attacker, effect: effect.clone(), duration: (left / 2).max(1) });
+    }
+});
 
 ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
     if hit.weapon.as_ref().is_some_and(|weapon| weapon.item == "example:flame_sword") {
@@ -793,18 +803,19 @@ assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effe
 
 ### `EntityState`
 
-What a living entity was doing when a player's weapon hit it, and the facts about it a condition may ask: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it; `effect_levels` the same effects as (id, amplifier), the amplifier being the level less one (see [`EntityState::effect_level`](#entitystateeffect_level)); `health` and `max_health` its health points and its maximum (the `minecraft:max_health` attribute), `None` when not reported; `biome` the biome it stands in, `biome_temperature` that biome's temperature at its height (`Biome.getTemperature`), `None` for a biome PlutoLib has no temperature for; `eyes_in_water` whether its eyes are in water, where `in_water` is a touch of it; `rain_exposed` whether rain falls on it; `armor_coverage` the share of its four armor slots that hold armor, 0.0 to 1.0, `None` when not reported. Every field has a default, so build one with `..EntityState::default()`.
+What a living entity was doing when a player's weapon hit it, and the facts about it a condition may ask: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it; `effect_levels` the same effects as (id, amplifier), the amplifier being the level less one (see [`EntityState::effect_level`](#entitystateeffect_level)); `health` and `max_health` its health points and its maximum (the `minecraft:max_health` attribute), `None` when not reported; `biome` the biome it stands in, `biome_temperature` that biome's temperature at its height (`Biome.getTemperature`), `None` for a biome PlutoLib has no temperature for; `eyes_in_water` whether its eyes are in water, where `in_water` is a touch of it; `rain_exposed` whether rain falls on it; `armor_coverage` the share of its four armor slots that hold armor, 0.0 to 1.0, `None` when not reported; `crouching` whether it crouches (a player holding sneak; a mob never does); `y` the height of its feet, `None` when not reported; `block_light` and `sky_light` the light of the two layers at the block it stands in, each 0 to 15 (`Level.getBrightness`), `None` when not reported; `sky_darken` how much the time of day and the weather take off the sky light, 0 to 11 (see [`sky_darken`](#sky_darken)). Every field has a default, so build one with `..EntityState::default()`.
 
 ```rust
 use pluto_lib::EntityState;
 
 let state = EntityState { kind: "minecraft:husk".into(), on_ground: true, fire_ticks: 40, effects: vec!["minecraft:poison".into()],
-    health: Some(6.0), max_health: Some(20.0), biome_temperature: Some(2.0), rain_exposed: false, ..EntityState::default() };
+    health: Some(6.0), max_health: Some(20.0), biome_temperature: Some(2.0), rain_exposed: false, y: Some(64.0), sky_light: Some(15), sky_darken: 0, ..EntityState::default() };
 assert!(state.fire_ticks > 0 && state.effects.contains(&"minecraft:poison".to_string()));
 assert!(state.health.unwrap() < state.max_health.unwrap());
+assert_eq!((state.crouching, state.y, state.block_light), (false, Some(64.0), None));
 ```
 
-> **Use with Caution.** A mob's health, maximum and armor come from its saved data: the maximum is only known when the mob saved a `minecraft:max_health` attribute, and armor only when it saved equipment. A player's come from the server's player list and their equipment. Temperature is a table of the vanilla biomes with the game's cooling above y 80 (its noise term, at most about 0.01, and the frozen-biome noise are left out); a data pack's biome has `biome` but no temperature. `rain_exposed` is: raining, full sky light at the entity's block, and a biome that rains rather than snows or stays dry (an unknown biome is taken to rain). `eyes_in_water` reads the block at the eyes: water, a bubble column, kelp, seagrass or a waterlogged block. The state of a mob that hurt a wearer (`WearerHit::attacker_state`) carries only what the hurt report holds: type, ground, water, fire and effect ids. When a hit on a player wearing armor that carries custom data brings no target state, `DamageModification::target_state` is the player's as of their last tick, so their health is up to a tick old.
+> **Use with Caution.** A mob's health, maximum and armor come from its saved data: the maximum is only known when the mob saved a `minecraft:max_health` attribute, and armor only when it saved equipment. A player's come from the server's player list and their equipment. Temperature is a table of the vanilla biomes with the game's cooling above y 80 (its noise term, at most about 0.01, and the frozen-biome noise are left out); a data pack's biome has `biome` but no temperature. `rain_exposed` is: raining, full sky light at the entity's block, and a biome that rains rather than snows or stays dry (an unknown biome is taken to rain). `eyes_in_water` reads the block at the eyes: water, a bubble column, kelp, seagrass or a waterlogged block. The state of a mob that hurt a wearer (`WearerHit::attacker_state`) carries only what the hurt report holds: type, ground, water, fire and effect ids. When a hit on a player wearing armor that carries custom data brings no target state, `DamageModification::target_state` is the player's as of their last tick, so their health, height and light are up to a tick old. A player's `crouching` is the server's sneak flag, and their `y` is the height of their feet; a mob's `y` is read from its position, and its light from the block it stands in. The light is read as of the moment the state is made, so a player's `sky_darken` follows the time of day and the weather of the world they are in; it is 0 in the Nether and the End, which have no weather, and the End and the Nether have no sky light to take it from.
 
 ### `EntityState::effect_level`
 
@@ -816,6 +827,41 @@ use pluto_lib::EntityState;
 let state = EntityState { effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
 assert_eq!(state.effect_level("minecraft:poison"), 2);
 assert_eq!(state.effect_level("minecraft:speed"), 0);
+```
+
+
+### `sky_darken`
+
+`sky_darken(rain, thunder, day_time)` is `Level.getSkyDarken`: how much of the sky light the weather and the time of day take off, from 0 (clear noon) to 11 (midnight in a thunderstorm). `rain` and `thunder` are the levels, 0.0 to 1.0, and `day_time` the world's time of day in ticks (it may run past 24000). Subtract it from `EntityState::sky_light` for the light daylight leaves.
+
+```rust
+use pluto_lib::sky_darken;
+
+assert_eq!(sky_darken(0.0, 0.0, 6000), 0);
+assert_eq!(sky_darken(0.0, 0.0, 18000), 11);
+assert!(sky_darken(1.0, 1.0, 6000) > sky_darken(1.0, 0.0, 6000));
+```
+
+### `EffectCategory`
+
+A status effect's category, as `MobEffectCategory`: `Beneficial`, `Harmful` or `Neutral`.
+
+```rust
+use pluto_lib::{effect_category, EffectCategory};
+
+assert_ne!(EffectCategory::Beneficial, EffectCategory::Harmful);
+assert_eq!(effect_category("minecraft:speed"), Some(EffectCategory::Beneficial));
+```
+
+### `effect_category`
+
+`effect_category(id)` is the category of a vanilla effect id (`minecraft:poison` is harmful), or `None` for an id that is not vanilla's: PlutoLib does not know another mod's effects. A vanilla effect is one milk can cure.
+
+```rust
+use pluto_lib::{effect_category, EffectCategory};
+
+assert_eq!(effect_category("minecraft:poison"), Some(EffectCategory::Harmful));
+assert_eq!(effect_category("example:unknown"), None);
 ```
 
 ### `DamageModification`

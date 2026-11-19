@@ -49,6 +49,7 @@
     "api/src/unequip_hook.rs",
     "api/src/max_armor.rs",
     "api/src/max_armor_hook.rs",
+    "api/src/wearer_modules.rs",
     "api/src/mob_disguise.rs",
     "api/src/mob_disguise_hook.rs",
     "api/src/edible.rs",

@@ -10,9 +10,29 @@ use serde_json::{Map, Value};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum Whose { Attacker, Target }
 
+thread_local! {
+    /// The player holding the tool that is being worn down, for the formulas of tool damage modules (set around the wear by `with_holder`).
+    static HOLDER: std::cell::RefCell<Option<EntityState>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Runs `run` with `holder` as the holder `holder()` reports (what PlutoLib said of the player as their tool wore).
+pub(crate) fn with_holder<R>(holder: Option<&EntityState>, run: impl FnOnce() -> R) -> R {
+    let before = HOLDER.with(|slot| slot.replace(holder.cloned()));
+    let result = run();
+    HOLDER.with(|slot| *slot.borrow_mut() = before);
+    result
+}
+
+/// The player holding the tool being worn down, when PlutoLib named them.
+pub(crate) fn holder() -> Option<EntityState> { HOLDER.with(|slot| slot.borrow().clone()) }
+
 /// The attacker (the holder of a tool) and the target of a hit, as PlutoLib reported them; None for one it could not report.
 #[derive(Clone, Copy, Default)]
 pub(crate) struct Entities<'a> { pub attacker: Option<&'a EntityState>, pub target: Option<&'a EntityState> }
+
+/// LightLayer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LightLayer { Sky, Block }
 
 /// EntityVariable.
 #[derive(Clone, Debug, PartialEq)]
@@ -29,6 +49,9 @@ pub(crate) enum EntityFact {
     ArmorCoverage,
     /// The level of an effect on the entity, 0 without it.
     EffectLevel(String),
+    /// EntityLightVariable: the light at the entity's block, in one layer or both (the larger). Sky light has the time of day and the weather
+    /// taken off, as `Level.getSkyDarken` does on a server.
+    Light(Option<LightLayer>),
     /// ConditionalEntityVariable.
     Conditional { condition: Box<TargetCondition>, if_true: Box<EntityFact>, if_false: Box<EntityFact> },
     Constant(f32),
@@ -43,6 +66,12 @@ impl EntityFact {
             "tconstruct:biome_temperature" => Self::BiomeTemperature,
             "tconstruct:water" => Self::Water,
             "tconstruct:armor_coverage" => Self::ArmorCoverage,
+            "tconstruct:light" => Self::Light(match fields.get("light_layer").filter(|value| !value.is_null()).map(Value::as_str) {
+                None => None,
+                Some(Some("sky")) => Some(LightLayer::Sky),
+                Some(Some("block")) => Some(LightLayer::Block),
+                Some(_) => return Ok(None),
+            }),
             "tconstruct:effect_level" => {
                 let effect = fields.get("effect").and_then(Value::as_str).ok_or("effect must be an effect id")?;
                 let (namespace, path) = effect.split_once(':').unwrap_or(("minecraft", effect));
@@ -86,6 +115,11 @@ impl EntityFact {
             Self::BiomeTemperature => state.biome_temperature,
             Self::Water => Some(if state.in_water || state.eyes_in_water { 2.0 } else if state.rain_exposed { 1.0 } else { 0.0 }),
             Self::ArmorCoverage => state.armor_coverage,
+            Self::Light(layer) => {
+                let sky = state.sky_light.map(|light| (i32::from(light) - i32::from(state.sky_darken)).max(0));
+                let block = state.block_light.map(i32::from);
+                match layer { Some(LightLayer::Sky) => sky, Some(LightLayer::Block) => block, None => sky.zip(block).map(|(sky, block)| sky.max(block)) }.map(|light| light as f32)
+            }
             // A state that names effects without levels says nothing about the level.
             Self::EffectLevel(effect) => (state.effect_levels.len() >= state.effects.len()).then(|| state.effect_level(effect) as f32),
             Self::Conditional { condition, if_true, if_false } => {
@@ -138,9 +172,26 @@ mod tests {
         assert_eq!(read("tconstruct:effect_level", json!({"effect": "minecraft:speed"})), Some(0.0));
         assert_eq!(EntityFact::Health.value(&entities, Whose::Target), None, "no target was reported");
         assert!(EntityFact::decode("tconstruct:attribute", &fields(json!({"attribute": "minecraft:generic.armor"})), "attacker").unwrap().is_none());
-        assert!(EntityFact::decode("tconstruct:light", &fields(json!({})), "attacker").unwrap().is_none());
+        assert!(EntityFact::decode("tconstruct:equipment_count", &fields(json!({})), "attacker").unwrap().is_none());
         let unleveled = EntityState { effects: vec!["minecraft:poison".into()], ..EntityState::default() };
         assert_eq!(EntityFact::EffectLevel("minecraft:poison".into()).value(&Entities { attacker: Some(&unleveled), target: None }, Whose::Attacker), None);
+    }
+
+    #[test]
+    fn light_takes_the_time_of_day_off_the_sky_and_reads_both_layers_together() {
+        let read = |layer: Value, state: &EntityState| {
+            let fact = EntityFact::decode("tconstruct:light", &fields(json!({"light_layer": layer})), "target").unwrap().unwrap();
+            fact.value(&Entities { attacker: None, target: Some(state) }, Whose::Target)
+        };
+        let dusk = EntityState { sky_light: Some(15), sky_darken: 11, block_light: Some(4), ..EntityState::default() };
+        assert_eq!(read(json!("sky"), &dusk), Some(4.0), "15 less the 11 the night takes");
+        assert_eq!(read(json!("block"), &dusk), Some(4.0));
+        let torchlit = EntityState { sky_light: Some(3), sky_darken: 11, block_light: Some(9), ..EntityState::default() };
+        assert_eq!(read(json!("sky"), &torchlit), Some(0.0), "never below zero");
+        assert_eq!(read(json!(null), &torchlit), Some(9.0), "no layer: the brighter of the two");
+        let unreported = EntityState { sky_light: Some(15), ..EntityState::default() };
+        assert_eq!(read(json!(null), &unreported), None, "both layers are needed");
+        assert!(EntityFact::decode("tconstruct:light", &fields(json!({"light_layer": "moon"})), "target").unwrap().is_none());
     }
 
     #[test]

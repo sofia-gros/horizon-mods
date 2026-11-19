@@ -36,6 +36,27 @@ pub(crate) fn register() {
     // Damage to capacity runs after the protection (ModifierHooks.MODIFY_DAMAGE follows MODIFY_HURT): each piece's bars take what they can of
     // the damage left, and the fills reach the pieces on the wearer's next tick.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| fill_capacity(hit, source)); });
+    // Restore lost health is the last of the modify damage modules (priority 10): it works on the damage that is left.
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source)); });
+}
+
+/// RestoreLostHealthModule: a share of the damage the wearer takes comes back as Regeneration, at a chance, and wears the piece. The effect and the
+/// edits of the piece reach the wearer on their next tick; several pieces give the effect as the game adds them (the longer one stays).
+fn restore_health(hit: &DamageModification, source: &DamageSource) {
+    let amount = hit.amount.get();
+    if !(amount > 0.0) { return; }
+    let mut actions = Vec::new();
+    for (slot, piece) in &hit.armor {
+        let Some(stack_slot) = armor_stack_slot(slot) else { continue };
+        let Ok(restores) = with_held_tool(piece, |env, stack| tool_stack::restores(&stack.custom_data, env, source, amount, &mut crate::tool_damage_hook::random)) else { continue };
+        for (modifier, restore) in restores {
+            actions.push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:regeneration".into(), amplifier: 0, duration: restore.duration });
+            if restore.wear <= 0 { continue; }
+            let edits = with_held_tool(piece, |env, stack| crate::wearer_modules::wear_edits(&stack.custom_data, env, &modifier, restore.wear, &mut crate::tool_damage_hook::random)).unwrap_or_default();
+            if !edits.is_empty() { actions.push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits }); }
+        }
+    }
+    hit.actions.borrow_mut().extend(actions);
 }
 
 /// Runs `run` on the damage a player's armor is asked about; nothing for an entity that wears no armor with custom data or a damage type that
@@ -51,7 +72,9 @@ fn with_source(hit: &DamageModification, run: impl FnOnce(&DamageSource)) {
         if tag.namespace() == crate::melee_damage::STATE_NAMESPACE { return crate::melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), hit.target_state.as_ref()); }
         crate::melee_hook::target_in_tag(entities.as_deref(), attacker_kind.as_ref(), tag)
     };
-    run(&DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags, attacker_in_tag: &attacker_in_tag });
+    // The wearer is the target of the hit, as PlutoLib reported them as of their last tick.
+    let entities = crate::entity_facts::Entities { attacker: hit.attacker_state.as_ref(), target: hit.target_state.as_ref() };
+    run(&DamageSource { damage_type: &damage_type, indirect: hit.damage.attacker != hit.damage.direct, tags: &tags, attacker_in_tag: &attacker_in_tag, entities });
 }
 
 /// Puts each worn piece's damage to capacity modules to work on the damage left, feet to head, and queues the edits that fill the bars.
@@ -84,9 +107,19 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
     // Each piece's modifiers see the protection so far, feet to head, starting from the enchantment points.
     let mut total = vanilla;
     let mut cap_added = 0.0;
-    for (_, piece) in &hit.armor {
-        if let Ok((value, cap)) = with_held_tool(piece, |env, stack| (tool_stack::protection(&stack.custom_data, env, &source, total), tool_stack::protection_cap(&stack.custom_data, env))) { total = value; cap_added += cap; }
+    let mut spent = Vec::new();
+    for (slot, piece) in &hit.armor {
+        if let Ok((value, cap, edits)) = with_held_tool(piece, |env, stack| {
+            let (value, edits) = tool_stack::protection_with_edits(&stack.custom_data, env, &source, total);
+            (value, tool_stack::protection_cap(&stack.custom_data, env), edits)
+        }) {
+            total = value;
+            cap_added += cap;
+            // What the piece's modules spent (an overshield's overslime) comes off the piece on the wearer's next tick.
+            if let (false, Some(stack_slot)) = (edits.is_empty(), armor_stack_slot(slot)) { spent.push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits }); }
+        }
     }
+    hit.actions.borrow_mut().extend(spent);
     let amount = hit.amount.get();
     let mut after = if total == 0.0 && vanilla == 0.0 { amount } else { damage_after_protection(amount, vanilla, total, protection_cap(cap_added)) };
     // The modules that adjust the damage the wearer takes run after the protection, each piece seeing what the last left; the wearer is

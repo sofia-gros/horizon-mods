@@ -62,7 +62,7 @@ pub(crate) fn register() {
         if let Ok(damage_type) = Identifier::parse("minecraft:player_attack") {
             let tags = crate::protection_hook::tags();
             let no_attacker = |_: &Identifier| false;
-            let source = crate::protection::DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &no_attacker };
+            let source = crate::protection::DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &no_attacker, entities: Default::default() };
             for (_, piece) in &hit.armor {
                 let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::armor_attack_effects(&stack.custom_data, env, &source, &in_tag, &mut tool_damage_hook::random)) else { continue; };
                 for grant in grants {

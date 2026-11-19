@@ -87,6 +87,8 @@ mod unequip_hook;
 mod max_armor;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/max_armor_hook.rs"]
 mod max_armor_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/wearer_modules.rs"]
+mod wearer_modules;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_disguise.rs"]
 mod mob_disguise;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_disguise_hook.rs"]

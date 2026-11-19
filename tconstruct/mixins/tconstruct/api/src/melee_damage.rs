@@ -41,6 +41,11 @@ fn named_state(role: &str, name: &str) -> Result<Option<Identifier>, String> {
         "mantle:underwater" => "in_water",
         "tconstruct:airborne" => "airborne",
         "tconstruct:full_health" => "full_health",
+        // What a mob that hurt a wearer was doing is reported without its crouching and its eyes, so these are asked of the target (the wearer,
+        // or what a weapon hit) only.
+        "mantle:crouching" if role == "target" => "crouching",
+        "mantle:eyes_in_water" if role == "target" => "eyes_in_water",
+        "mantle:feet_in_water" if role == "target" => "feet_in_water",
         _ => return Ok(None),
     };
     state_tag(role, what).map(Some)
@@ -60,6 +65,10 @@ pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::Entity
         "on_fire" => state.fire_ticks > 0,
         "fire_immune" => state.fire_immune,
         "in_water" => state.in_water,
+        "crouching" => state.crouching,
+        // The eyes are in water, as opposed to a touch of it; the feet are in water when the entity is.
+        "eyes_in_water" => state.eyes_in_water,
+        "feet_in_water" => state.in_water,
         // AIRBORNE: off the ground and not in water (climbing and riding are not reported).
         "airborne" => !state.on_ground && !state.in_water,
         // FULL_HEALTH: the ceiling of the health, as the health bar draws it, reaches the maximum; false when either was not reported.
@@ -110,7 +119,7 @@ impl TargetCondition {
                 let (namespace, path) = effect.split_once(':').unwrap_or(("minecraft", effect));
                 Self::Tag(state_tag(role, &format!("effect/{namespace}/{path}"))?)
             }
-            "mantle:sprinting" | "mantle:on_fire" | "mantle:fire_immune" | "mantle:underwater" | "tconstruct:airborne" | "tconstruct:full_health" => match named_state(role, kind)? { Some(tag) => Self::Tag(tag), None => return Ok(None) },
+            "mantle:sprinting" | "mantle:on_fire" | "mantle:fire_immune" | "mantle:underwater" | "tconstruct:airborne" | "tconstruct:full_health" | "mantle:crouching" | "mantle:eyes_in_water" | "mantle:feet_in_water" => match named_state(role, kind)? { Some(tag) => Self::Tag(tag), None => return Ok(None) },
             "tconstruct:variable_range" => {
                 if role.is_empty() { return Ok(None); }
                 let variable = object.get("variable").ok_or("variable missing")?;
