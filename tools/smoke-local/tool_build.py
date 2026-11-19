@@ -11,6 +11,7 @@ Scenarios (each asserted from the running game, with screenshots kept in the run
   3. taking the result gives the tool (with rebuilt stats) and consumes exactly the parts,
   4. a stone head on that tool swaps the head material in the result,
   5. the game log carries no Tinkers loader problems beyond the known unbound-module report.
+  Later blocks print 'NAME PASS' / 'NAME PARTIAL detail' lines: CREATIVE TOOLS TAB, CAPACITY SHIELD, MAX ARMOR, MOB DISGUISE.
 """
 import argparse
 import json
@@ -748,6 +749,103 @@ def main():
             result['scenarios'].append(f'a protection helmet takes the sting out of a hit: {guarded_loss} lost against {bare_loss}')
         else:
             soft_failures.append(f'protection: {guarded_loss} lost with protection against {bare_loss} without')
+
+        # ---- Scenarios for the r2/next2 features. Each is independent: an exception or a failed assertion in one is recorded as
+        # its own PARTIAL line and never hides the others. They cannot be run by the author of this block, so every assertion is
+        # derived from the domain tests and the scenarios above; GUESS marks what has not been seen in a real run.
+        def scenario(name, body):
+            """Run body() -> (ok, detail); print 'NAME PASS' or 'NAME PARTIAL detail' and record it."""
+            try:
+                ok, detail = body()
+            except Exception as error:  # a broken scenario must not stop the ones after it
+                ok, detail = False, f'raised {type(error).__name__}: {error}'
+            finally:
+                try:
+                    ctl('command', 'gamemode creative')
+                except Exception:
+                    pass
+            if ok:
+                print(f'{name} PASS', detail, flush=True)
+                result['scenarios'].append(f'{name.lower()}: {detail}')
+            else:
+                print(f'{name} PARTIAL', detail, flush=True)
+                soft_failures.append(f'{name.lower()}: {detail}')
+
+        def wear(slot, item, modifiers, extra=''):
+            ctl('command', f'item replace entity @s armor.{slot} with tconstruct:{item}[custom_data={{tic_materials:["tconstruct:iron","tconstruct:iron"],{helmet_stats}{extra},tic_modifiers:[{modifiers}]}}]')
+            ctl('wait', '10')
+
+        def survival_hit(amount=8):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', f'damage @s {amount} minecraft:mob_attack')
+            ctl('wait', '10')
+
+        # 1. Creative tools tab. No ctl command lists a creative tab's stacks, so the game log is the evidence: the pluto-lib rebuild
+        # prints the number of tabs it added (GUESS: the tconstruct:tools group is one of them; the 436 stacks of the worker report
+        # are not visible from here). A tab count above zero proves the group registration reached the creative rebuild.
+        def creative_tab():
+            text = (run / 'game.log').read_text(encoding='utf-8', errors='replace')
+            counts = [int(m.group(1)) for m in re.finditer(r'pluto_lib: creative tabs added, tabs=(\d+)', text)]
+            problems = [line for line in text.splitlines() if 'tconstruct:tools' in line and re.search(r'(?i)invalid|error|unknown', line)]
+            return bool(counts) and max(counts) > 0 and not problems, f'tabs added {counts}, group problem lines {problems[:2]}'
+
+        scenario('CREATIVE TOOLS TAB', creative_tab)
+
+        # 2. Capacity shield: barkskin's bar (tic_persistent) soaks the wear two hits would put on the boots.
+        def capacity_shield():
+            wear('feet', 'plate_boots', '{level:1,name:"tconstruct:barkskin"}', ',tic_persistent:{"tconstruct:barkskin":40}')
+            for _ in range(2):
+                survival_hit(8)
+            reply = json.dumps(ctl('command', 'data get entity @s equipment.feet'))
+            ctl('command', 'gamemode creative')
+            bar = re.search(r'tic_persistent[^}]*?tconstruct:barkskin\W{0,6}(\d+)', reply)
+            damage = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', reply)
+            left = int(bar.group(1)) if bar else None
+            worn = int(damage.group(1)) if damage else 0
+            ok = 'plate_boots' in reply and left is not None and left < 40 and worn == 0
+            return ok, f'bar {left} of 40, boots damage {worn}: {reply[:200] if not ok else ""}'
+
+        scenario('CAPACITY SHIELD', capacity_shield)
+
+        # 3. Max armor: projectile protection on worn boots raises the knockback resistance by 0.25 (the strongest claim; the plate
+        # boots carry two levels of their own, so upgrade level 3 is piece level 5), and the base value returns without the boots.
+        def max_armor_attribute():
+            ctl('command', 'item replace entity @s armor.feet with minecraft:air')
+            ctl('wait', '10')
+            base = read_attribute('minecraft:knockback_resistance')
+            wear('feet', 'plate_boots', '{level:3,name:"tconstruct:projectile_protection"}')
+            survival_hit(4)  # GUESS: like the maintained scenario, a hit rebuilds the command-given stack before the claim reads it
+            ctl('command', 'gamemode creative')
+            ctl('wait', '20')
+            worn_value = read_attribute('minecraft:knockback_resistance')
+            ctl('command', 'item replace entity @s armor.feet with minecraft:air')
+            ctl('wait', '20')
+            off = read_attribute('minecraft:knockback_resistance')
+            ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+            ctl('wait', '10')
+            detail = f'base {base}, worn {worn_value}, boots off {off}'
+            ok = None not in (base, worn_value, off) and abs(worn_value - base - 0.25) < 0.02 and abs(off - base) < 0.01
+            return ok, detail
+
+        scenario('MAX ARMOR', max_armor_attribute)
+
+        # 4. Mob disguise: an enderman disguise makes the helmet an ender mask (the volatile flag the domain test checks). The
+        # visibility effect itself (a skeleton's target range at 12 against 20 blocks) is not asserted: it needs an AI mob and a
+        # timing-dependent target; there is no ctl or log path for it.
+        def mob_disguise():
+            wear('head', 'plate_helmet', '{level:1,name:"tconstruct:enderman_disguise"}')
+            survival_hit(4)  # GUESS: the hit rebuilds the stack, which writes the volatile data
+            reply = json.dumps(ctl('command', 'data get entity @s equipment.head'))
+            ctl('command', 'gamemode creative')
+            ctl('command', 'item replace entity @s armor.head with minecraft:air')
+            return 'tconstruct:endermask' in reply, f'ender mask flag in the helmet: {"tconstruct:endermask" in reply}' + ('' if 'tconstruct:endermask' in reply else ' ' + reply[:250])
+
+        scenario('MOB DISGUISE', mob_disguise)
+        ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+        ctl('wait', '10')
 
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
