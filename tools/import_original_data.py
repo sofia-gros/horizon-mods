@@ -268,6 +268,118 @@ def copy_tags():
     return count
 
 
+ASSET_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct'
+ASSET_TARGET = ROOT / 'tconstruct/content/assets/tconstruct'
+BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
+HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
+# Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
+PLAIN_LOADERS = {'mantle:retextured'}
+
+
+def qualify(reference):
+    return reference if ':' in reference else f'minecraft:{reference}'
+
+
+def copy_client_assets():
+    """Models, textures, item definitions and blockstates of the registered content that needs no per-material
+    rendering, converted from the 1.20 resource-pack layout to the pinned 26.x one (SlimeKnights, MIT; see LICENSE).
+
+    Only ids the content mod declares are imported, and only the models and textures they reach through
+    parent and texture references. An item whose model needs the original's own loader (tools, tool parts,
+    armor: tconstruct:tool / material loaders) is left out and returned in the skipped list. 26.x changes: every
+    item needs items/<id>.json naming its model; references are written with their namespace; loader keys
+    that only retexture are dropped; a block declaration copies its template's states (no `facing`), so the
+    original's north variant becomes its single variant.
+    """
+    for folder in ('models', 'textures', 'items', 'blockstates'):
+        shutil.rmtree(ASSET_TARGET / folder, ignore_errors=True)
+    written = {'models': set(), 'textures': set()}
+    skipped = []
+
+    def read(path):
+        return json.loads(path.read_text(encoding='utf-8'))
+
+    def write(relative, data):
+        destination = ASSET_TARGET / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8', newline='\n')
+
+    def import_texture(reference):
+        reference = qualify(reference)
+        namespace, path = reference.split(':', 1)
+        if namespace == 'minecraft':
+            if not (BASE_ASSETS / 'textures' / f'{path}.png').exists():
+                raise SystemExit(f'texture {reference} is not in the pinned base assets')
+            return reference
+        if namespace != 'tconstruct':
+            raise SystemExit(f'texture {reference} belongs to another namespace')
+        source = ASSET_SOURCE / 'textures' / f'{path}.png'
+        if not source.exists():
+            raise SystemExit(f'original texture missing: {reference}')
+        if path not in written['textures']:
+            written['textures'].add(path)
+            destination = ASSET_TARGET / 'textures' / f'{path}.png'
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, destination)
+            meta = source.parent / f'{source.name}.mcmeta'
+            if meta.exists():
+                shutil.copyfile(meta, destination.parent / meta.name)
+        return reference
+
+    def import_model(reference):
+        reference = qualify(reference)
+        namespace, path = reference.split(':', 1)
+        if namespace == 'minecraft':
+            if not (BASE_ASSETS / 'models' / f'{path}.json').exists():
+                raise SystemExit(f'model {reference} is not in the pinned base assets')
+            return reference
+        if namespace != 'tconstruct':
+            raise SystemExit(f'model {reference} belongs to another namespace')
+        if path in written['models']:
+            return reference
+        written['models'].add(path)
+        converted = {}
+        for key, value in read(ASSET_SOURCE / 'models' / f'{path}.json').items():
+            if key in ('loader', 'retextured', '__comment'):
+                continue
+            if key == 'parent':
+                value = import_model(value)
+            elif key == 'textures':
+                value = {name: texture if texture.startswith('#') else import_texture(texture) for name, texture in value.items()}
+            elif key == 'elements':
+                value = [{k: v for k, v in element.items() if k != '__comment'} for element in value]
+            converted[key] = value
+        write(f'models/{path}.json', converted)
+        return reference
+
+    def needs_loader(reference):
+        namespace, path = qualify(reference).split(':', 1)
+        if namespace != 'tconstruct':
+            return False
+        model = read(ASSET_SOURCE / 'models' / f'{path}.json')
+        return model.get('loader') not in (None, *PLAIN_LOADERS) or ('parent' in model and needs_loader(model['parent']))
+
+    shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'LICENSE')
+    for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
+        variants = read(ASSET_SOURCE / 'blockstates' / f'{name}.json').get('variants', {})
+        if sorted(variants) != ['facing=east', 'facing=north', 'facing=south', 'facing=west']:
+            raise SystemExit(f'block {name}: unexpected blockstate shape')
+        variant = dict(variants['facing=north'])
+        if needs_loader(variant['model']):
+            skipped.append(name)
+            continue
+        variant['model'] = import_model(variant['model'])
+        write(f'blockstates/{name}.json', {'variants': {'': variant}})
+        item_model = (ASSET_SOURCE / 'models/item' / f'{name}.json').exists()
+        write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else variant['model']}})
+    for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
+        if not (ASSET_SOURCE / 'models/item' / f'{name}.json').exists() or needs_loader(f'tconstruct:item/{name}'):
+            skipped.append(name)
+            continue
+        write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
+    return len(written['models']), len(written['textures']), skipped
+
+
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
 LANGUAGES = ['en_us', 'ja_jp']
@@ -325,8 +437,9 @@ def main():
     tags = copy_tags() + copy_damage_tags()
     write_damage_vanilla()
     languages = copy_lang()
+    models, textures, unrendered = copy_client_assets()
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}); {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

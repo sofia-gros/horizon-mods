@@ -22,6 +22,8 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # Client assets imported from the original (MIT, assets/tconstruct/LICENSE): item definitions, models, blockstates, textures.
+    re.compile(r'assets/tconstruct/LICENSE'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
@@ -186,6 +188,10 @@ def checked_content(root, version):
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
                     raise ValueError(f'only {" or ".join(reviewed)} recipes are reviewed here: {name}')
+                continue
+            if name.startswith('assets/tconstruct/') and not name.startswith('assets/tconstruct/lang/'):
+                if not isinstance(item, dict):
+                    raise ValueError(f'a client asset must be a JSON object: {name}')
                 continue
             if name.startswith('assets/tconstruct/lang/'):
                 # A language file: a flat object of translation keys to plain strings.
