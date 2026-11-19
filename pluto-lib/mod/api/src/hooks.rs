@@ -1860,7 +1860,7 @@ impl Hooks for PlutoHooks {
         cancel_if(!allowed)
     }
 
-    fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_, '_>) {
+    fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_>) {
         // The game's own death-loot path (pluto-living-drops-game) calls the hook for a mob's table drops; heads claimed through the living-drops
         // callbacks are appended outside it, so this hook only sees and changes the stacks the game passes here.
         if !loot_api_v2::drops_heard() { return; }
