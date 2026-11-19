@@ -72,6 +72,12 @@ mod creative_parts;
 mod creative_tools;
 mod creative;
 mod conditions;
+mod fluid_values;
+mod heating;
+mod fluid_ingredient;
+mod melting_recipes;
+mod casting_recipes;
+mod fluid_recipes;
 mod config;
 mod common;
 

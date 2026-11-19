@@ -1,0 +1,19 @@
+{
+  "type": "tconstruct:entity_melting",
+  "damage": 2,
+  "entity": [
+    {
+      "tag": "forge:ghasts"
+    },
+    {
+      "tag": "forge:axolotls"
+    }
+  ],
+  "result": {
+    "amount": 50,
+    "nbt": {
+      "Potion": "minecraft:regeneration"
+    },
+    "tag": "forge:potion"
+  }
+}

@@ -149,6 +149,18 @@ mod config;
 mod conditions;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/common.rs"]
 mod common;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_values.rs"]
+mod fluid_values;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/heating.rs"]
+mod heating;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_ingredient.rs"]
+mod fluid_ingredient;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melting_recipes.rs"]
+mod melting_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting_recipes.rs"]
+mod casting_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_recipes.rs"]
+mod fluid_recipes;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]

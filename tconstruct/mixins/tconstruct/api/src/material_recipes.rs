@@ -20,6 +20,9 @@ pub(crate) enum Ingredient {
     Difference { base: Box<Ingredient>, subtracted: Box<Ingredient> },
     /// forge:intersection: matches every child.
     Intersection(Vec<Ingredient>),
+    /// tconstruct:no_container (NoContainerIngredient): the nested ingredient, but only an item with no crafting remainder
+    /// (an empty fluid container). The remainder is an item property the caller reports to `matches_with_remainder`.
+    NoContainer(Box<Ingredient>),
 }
 
 /// The synthetic tag standing for "the tool's definition binds this hook".
@@ -50,6 +53,11 @@ impl Ingredient {
                         .iter().map(Self::decode).collect::<Result<_, _>>()?)),
                 // MaterialIngredient with no material named: the part item of any material.
                 Some("tconstruct:material") => Ok(Self::Item(id(fields.get("item").ok_or("item missing")?)?)),
+                Some("tconstruct:no_container") => Ok(Self::NoContainer(Box::new(match fields.get("match") {
+                    Some(nested) => Self::decode(nested)?,
+                    // Without "match" the object itself is the vanilla item or tag ingredient.
+                    None => { let mut plain = fields.clone(); plain.remove("type"); Self::decode(&Value::Object(plain))? }
+                }))),
                 Some("forge:difference") => Ok(Self::Difference {
                     base: Box::new(Self::decode(fields.get("base").ok_or("base missing")?)?),
                     subtracted: Box::new(Self::decode(fields.get("subtracted").ok_or("subtracted missing")?)?),
@@ -66,13 +74,19 @@ impl Ingredient {
             _ => Err("ingredient must be an object or a nonempty array".into()),
         }
     }
+    /// Matches an item that has no crafting remainder (every ordinary item and an empty container).
     pub fn matches(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        self.matches_with_remainder(item, in_tag, false)
+    }
+    /// `has_remainder` is whether the stack has a crafting remainder item, which only no_container looks at.
+    pub fn matches_with_remainder(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, has_remainder: bool) -> bool {
         match self {
             Self::Item(own) => own == item,
             Self::Tag(tag) => in_tag(item, tag),
-            Self::Any(members) => members.iter().any(|member| member.matches(item, in_tag)),
-            Self::Difference { base, subtracted } => base.matches(item, in_tag) && !subtracted.matches(item, in_tag),
-            Self::Intersection(children) => children.iter().all(|child| child.matches(item, in_tag)),
+            Self::Any(members) => members.iter().any(|member| member.matches_with_remainder(item, in_tag, has_remainder)),
+            Self::Difference { base, subtracted } => base.matches_with_remainder(item, in_tag, has_remainder) && !subtracted.matches_with_remainder(item, in_tag, has_remainder),
+            Self::Intersection(children) => children.iter().all(|child| child.matches_with_remainder(item, in_tag, has_remainder)),
+            Self::NoContainer(nested) => !has_remainder && nested.matches_with_remainder(item, in_tag, has_remainder),
         }
     }
 }

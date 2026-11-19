@@ -2095,3 +2095,204 @@ fn shipped_solar_powered_cancels_tool_wear_by_the_sky_light_around_the_holder() 
     assert_eq!(dealt(Some(&sky(0, 0)), 0.0), 5, "no sky light, no reduction");
     assert_eq!(dealt(None, 0.5), 0, "nobody named: the fallback light of 15");
 }
+
+fn fluid_tag_files() -> Vec<(Identifier, Value)> {
+    let base = root().join("fluid_tags");
+    let mut found = Vec::new();
+    for namespace in std::fs::read_dir(&base).expect("fluid tag folder") {
+        let namespace = namespace.unwrap().path();
+        let space = namespace.file_name().unwrap().to_str().unwrap().to_owned();
+        fn walk(dir: &std::path::Path, relative: String, space: &str, out: &mut Vec<(Identifier, Value)>) {
+            for entry in std::fs::read_dir(dir).expect("folder") {
+                let path = entry.unwrap().path();
+                let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                if path.is_dir() { walk(&path, format!("{relative}{name}/"), space, out); continue; }
+                if let Some(stem) = name.strip_suffix(".json") {
+                    out.push((Identifier::new(space, &format!("{relative}{stem}")).unwrap(), serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON")));
+                }
+            }
+        }
+        walk(&namespace, String::new(), &space, &mut found);
+    }
+    found
+}
+
+/// Every condition decodes through the production tree and holds: what a pack that has every other mod's ingots would load.
+struct EverythingOn(crate::conditions::Context);
+impl crate::materials::Conditions for EverythingOn {
+    type Parsed = crate::conditions::Condition;
+    fn decode(&self, json: &Value) -> Result<Self::Parsed, String> { self.0.decode(json) }
+    fn test(&self, _: &Self::Parsed) -> Result<bool, String> { Ok(true) }
+}
+
+fn fluid_tags() -> crate::fluid_ingredient::FluidTags { crate::fluid_ingredient::FluidTags::load(&fluid_tag_files()) }
+fn fluid_recipes(everything_on: bool) -> crate::fluid_recipes::Recipes {
+    let files = recursive_files("fluids", "fluids");
+    assert_eq!(files.len(), 1858, "melting, casting, alloy, fuel, entity and molding recipes outside the compat folder");
+    if everything_on { crate::fluid_recipes::Recipes::load(&files, &EverythingOn(conditions())) } else { crate::fluid_recipes::Recipes::load(&files, &conditions()) }
+}
+fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
+
+#[test]
+fn shipped_fluid_tags_flatten_and_only_two_unshipped_references_are_left_out() {
+    let files = fluid_tag_files();
+    assert_eq!(files.len(), 130, "the tconstruct, forge and mantle fluid tag files");
+    let tags = fluid_tags();
+    assert_eq!(tags.problems, vec![
+        "fluid tag tconstruct:chemthrower_effects/entity: unknown tag forge:milk".to_owned(),
+        "fluid tag tconstruct:hide_in_creative_tanks: unknown tag c:hidden_from_recipe_viewers".to_owned()], "milk is a Forge tag and the recipe viewer tag a Fabric one");
+    // the Forge tag names the Tinkers tag, which lists the source fluid before the flowing one
+    assert_eq!(tags.members(&id("forge:molten_iron")).unwrap(), &vec![id("tconstruct:molten_iron"), id("tconstruct:flowing_molten_iron")]);
+    assert!(tags.contains(&id("tconstruct:flowing_molten_debris"), &id("tconstruct:molten_debris")));
+}
+
+#[test]
+fn every_shipped_fluid_recipe_decodes_whatever_its_conditions_and_only_unported_ingredients_are_left_out() {
+    let recipes = fluid_recipes(true);
+    let mut problems = recipes.problems.clone();
+    problems.sort();
+    // Display-only potion casts need item components, and a block-tag cast needs the item-to-block link: both are host work.
+    assert_eq!(problems.len(), 2, "{problems:#?}");
+    assert!(problems[0].ends_with("unimplemented ingredient type mantle:potion_display") && problems[1].ends_with("unimplemented ingredient type tconstruct:block_tag"), "{problems:#?}");
+    assert_eq!(recipes.left_out.len(), 35, "21 tool casting, 10 part swapping and 4 potion tipping recipes need the tool domain");
+    let kinds: std::collections::BTreeSet<&str> = recipes.left_out.iter().map(|(_, kind)| kind.as_str()).collect();
+    assert!(kinds.iter().all(|kind| crate::fluid_recipes::LEFT_OUT.contains(kind)), "{kinds:?}");
+    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); 652 of 654 casting recipes decode
+    assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (819, 48, 2, true, 32, 24));
+    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (652, 58, 39, 34, 112));
+}
+
+#[test]
+fn shipped_melting_and_cooling_times_follow_the_original_formula() {
+    use crate::{casting_recipes::CastingKind, fluid_ingredient::Source, fluid_values::{calc_cooling_time, calc_time_for_amount}, melting_recipes::MeltingKind};
+    let recipes = fluid_recipes(true);
+    // The generator gives a plain melting recipe sqrt(ingots) * T^0.585 unless its author overrode the time (clay, glass, ores...).
+    let plain: Vec<_> = recipes.melting.iter().filter(|recipe| recipe.kind == MeltingKind::Plain).collect();
+    let agree = plain.iter().filter(|recipe| calc_time_for_amount(recipe.temperature, recipe.output.amount) == recipe.time).count();
+    assert_eq!((plain.len(), agree), (481, 293), "the other 188 carry an authored time");
+    // Casting uses the same formula on the casting fluid's temperature, from the fluid's material_fluid recipe.
+    let temperature_of = |source: &Source| recipes.material_casting.casting.iter()
+        .find(|fluid| fluid.fluid.options.iter().any(|(own, _)| own == source)).map(|fluid| fluid.temperature);
+    let (mut agree_cast, mut bottles, mut other) = (0, 0, Vec::new());
+    for recipe in &recipes.casting {
+        let (CastingKind::Item { .. }, Some(fluid)) = (&recipe.kind, &recipe.fluid) else { continue };
+        let [(source, amount)] = fluid.options.as_slice() else { continue };
+        let Some(temperature) = temperature_of(source) else { continue };
+        if calc_cooling_time(temperature, *amount) == recipe.cooling_time { agree_cast += 1; }
+        else if recipe.cooling_time == 1 { bottles += 1; }
+        else { other.push(recipe.id.to_string()); }
+    }
+    assert_eq!((agree_cast, bottles, other.len()), (338, 7, 0), "the 7 bottle casts take 1 tick by design: {other:?}");
+}
+
+#[test]
+fn a_shipped_iron_ingot_melts_in_a_melter_on_lava_and_the_fluid_alloys_in_a_smeltery() {
+    use crate::{fluid_values::OreRate, heating::{Finished, Fuel, MeltingSlot}, melting_recipes::AlloyTank};
+    let recipes = fluid_recipes(false);
+    let tags = fluid_tags();
+    let in_item_tag = |item: &Identifier, tag: &Identifier| tag.to_string() == "forge:ingots/iron" && item.path() == "iron_ingot";
+    let in_fluid_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    let ingot = recipes.find_melting(&id("minecraft:iron_ingot"), &in_item_tag, false).expect("the shipped recipe melts an iron ingot");
+    assert_eq!((ingot.temperature, ingot.time, ingot.output.amount), (800, 60, 90));
+    assert_eq!(ingot.output.resolve(&tags), Some(id("tconstruct:molten_iron")), "the forge tag prefers the source fluid");
+    assert!(recipes.find_melting(&id("minecraft:iron_nugget"), &in_item_tag, false).is_none(), "an item no recipe names does not melt");
+
+    // The shipped lava fuel: 50 mB burns for 100 at 1000 C and rate 10. An ingot needs 600 progress, so 60 passes of
+    // four ticks and one more to finish: 244 ticks, a little over 12 seconds.
+    let lava = recipes.find_fuel(&id("minecraft:lava"), &in_fluid_tag).expect("lava is a fuel");
+    assert_eq!((lava.amount(&id("minecraft:lava"), &in_fluid_tag), lava.duration, lava.temperature, lava.rate), (50, 100, 1000, 10));
+    let mut fuel = Fuel::default();
+    assert_eq!(fuel.try_liquid(50, 50, lava.duration, lava.temperature, lava.rate, true), 1000);
+    let mut slot = MeltingSlot::default();
+    slot.set_stack(Some((Some((ingot.time, ingot.temperature)), false)));
+    let (mut passes, mut fluid) = (0, 0);
+    while slot.occupied {
+        slot.heat(fuel.temperature, fuel.rate, &mut || { fluid = ingot.output_amount(&OreRate::MELTER, None); Finished::Filled });
+        fuel.decrease(1);
+        passes += 1;
+        assert!(passes < 200, "the slot never finished");
+    }
+    assert_eq!((passes, fluid), (61, 90));
+    assert!(fuel.has_fuel(), "100 burn units outlast the 61 passes: one fill of lava smelts an ingot with fuel to spare");
+
+    // Rose gold: copper and gold, 90 each, at 550 C, make 180. The smeltery holds both and a lot of iron.
+    struct Tank { fluids: Vec<(Identifier, i32)>, temperature: i32 }
+    impl AlloyTank for Tank {
+        fn tanks(&self) -> usize { self.fluids.len() }
+        fn fluid_in_tank(&self, tank: usize) -> Option<(Identifier, i32)> { self.fluids.get(tank).filter(|(_, amount)| *amount > 0).cloned() }
+        fn temperature(&self) -> i32 { self.temperature }
+        fn can_fit(&self, output: &(Identifier, i32), removed: i32) -> bool { output.1 - removed <= 10_000 - self.fluids.iter().map(|(_, amount)| amount).sum::<i32>() }
+        fn drain(&mut self, _: usize, fluid: &Identifier, amount: i32) -> i32 {
+            let entry = self.fluids.iter_mut().find(|(own, _)| own == fluid).unwrap();
+            entry.1 -= amount;
+            amount
+        }
+        fn fill(&mut self, fluid: &Identifier, amount: i32) -> i32 {
+            match self.fluids.iter_mut().find(|(own, _)| own == fluid) { Some(entry) => entry.1 += amount, None => self.fluids.push((fluid.clone(), amount)) }
+            amount
+        }
+    }
+    let mut tank = Tank { fluids: vec![(id("tconstruct:molten_iron"), 900), (id("tconstruct:molten_gold"), 200), (id("tconstruct:molten_copper"), 90)], temperature: 1000 };
+    let matching: Vec<String> = recipes.matching_alloys(&tank, &tags).iter().map(|alloy| alloy.id.to_string()).collect();
+    assert_eq!(matching, vec!["tconstruct:fluids/smeltery/alloys/molten_rose_gold".to_owned()], "only copper plus gold is in the tank");
+    let rose = recipes.matching_alloys(&tank, &tags)[0];
+    assert!(rose.perform(&mut tank, &tags));
+    assert_eq!(tank.fluids, vec![(id("tconstruct:molten_iron"), 900), (id("tconstruct:molten_gold"), 110), (id("tconstruct:molten_copper"), 0), (id("tconstruct:molten_rose_gold"), 180)]);
+    assert!(!rose.can_perform(&tank, &tags), "the copper is used up");
+    // an alloy is also refused below its temperature
+    tank.fluids[2].1 = 90;
+    assert!(rose.can_perform(&tank, &tags));
+    tank.temperature = 549;
+    assert!(!rose.can_perform(&tank, &tags));
+}
+
+#[test]
+fn the_shipped_netherite_alloy_is_the_cheaper_one_by_default_and_obsidian_keeps_its_water() {
+    let tags = fluid_tags();
+    let recipes = fluid_recipes(false);
+    let netherite = recipes.alloys.iter().find(|alloy| alloy.id.path().ends_with("molten_netherite")).expect("netherite alloy");
+    let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    let amounts: Vec<i32> = netherite.inputs.iter().map(|input| input.fluid.options[0].1).collect();
+    assert_eq!(amounts, vec![40, 20], "cheaper_netherite_alloy defaults on: 20 gold for 10 netherite instead of 40");
+    assert_eq!(netherite.temperature, 1250);
+    let obsidian = recipes.alloys.iter().find(|alloy| alloy.id.path().ends_with("molten_obsidian")).expect("obsidian alloy");
+    assert_eq!(obsidian.inputs.iter().map(|input| input.catalyst).collect::<Vec<_>>(), vec![true, false]);
+    assert!(obsidian.inputs[0].fluid.test(&id("minecraft:water"), 250, &in_tag) && !obsidian.inputs[0].fluid.test(&id("minecraft:water"), 249, &in_tag));
+}
+
+#[test]
+fn a_shipped_pick_head_melts_by_its_casting_cost_and_a_golem_melts_into_iron() {
+    use crate::tool_materials::MaterialVariant;
+    let tags = fluid_tags();
+    let recipes = fluid_recipes(false);
+    let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    // A pick head costs two ingots of its material to cast (table_casting_material), so it melts into 180 mB in the time of a 180 mB casting.
+    let head = id("tconstruct:pick_head");
+    let iron = MaterialVariant::parse("tconstruct:iron").unwrap();
+    let (melting, cost) = recipes.find_material_melting(&head, &iron).expect("iron parts melt");
+    assert_eq!((cost, melting.temperature, melting.output_amount(cost), melting.time(cost)), (2, 800, 180, 85));
+    assert!(recipes.find_material_melting(&id("minecraft:stick"), &iron).is_none(), "an item that is not a casting part does not melt by material");
+    assert!(recipes.find_material_melting(&head, &MaterialVariant::parse("tconstruct:wood").unwrap()).is_none(), "wood has no molten form");
+    // The casting side agrees: iron is the fluid that casts into iron, at the same cost and cooling time.
+    let casting = recipes.material_casting.casting_fluid(&id("tconstruct:molten_iron"), &in_tag).expect("molten iron casts a material");
+    assert_eq!(casting.output.material_id(), Some(id("tconstruct:iron")));
+    assert_eq!(crate::casting_recipes::MaterialCasting::cooling_time(casting, cost, &id("tconstruct:molten_iron"), &in_tag), melting.time(cost));
+    let in_entity_tag = |_: &Identifier, _: &Identifier| false;
+    let golem = recipes.entity_melting.iter().find(|recipe| recipe.entity.matches(&id("minecraft:iron_golem"), &in_entity_tag)).expect("golems melt");
+    assert_eq!((golem.damage, golem.output.amount, golem.output.resolve(&tags)), (4, 10, Some(id("tconstruct:molten_iron"))));
+    assert!(recipes.entity_melting.iter().all(|recipe| recipe.damage >= 1));
+}
+
+#[test]
+fn shipped_sand_cast_patterns_and_molding_recipes_load() {
+    use crate::part_builder_recipes::Recipes;
+    let files = recursive_files("fluids", "fluids");
+    let patterns = Recipes::load(&files, &EverythingOn(conditions()));
+    assert!(patterns.problems.is_empty(), "{:#?}", patterns.problems);
+    assert_eq!(patterns.len(), 112, "the sand, red sand and clay cast patterns of the part builder");
+    // Pressing a cast into sand: a molding recipe on the casting table turns a part into its sand cast.
+    let recipes = fluid_recipes(false);
+    let sand_cast = recipes.molding.iter().find(|recipe| recipe.id.path() == "fluids/smeltery/sand_cast_pickup").expect("sand cast pickup");
+    assert!(sand_cast.pattern.is_none() && !sand_cast.pattern_consumed);
+    assert_eq!(sand_cast.result.source, crate::fluid_ingredient::Source::Id(id("tconstruct:blank_sand_cast")));
+}

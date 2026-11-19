@@ -59,13 +59,17 @@ impl Recipe {
             None => Ingredient::Tag(Identifier::new("tconstruct", "patterns/default").expect("valid tag")),
             Some(value) => Ingredient::decode(value)?,
         };
-        let result = fields.get("result").and_then(Value::as_object).ok_or("result must be an object")?;
+        let result_value = fields.get("result");
+        let result = result_value.and_then(Value::as_object);
         let item = |fields: &Map<String, Value>| Identifier::parse(fields.get("item").and_then(Value::as_str).ok_or("result item must be an ID string")?).map_err(|e| e.to_string());
         let count = |fields: &Map<String, Value>| int(fields, "count", Some(1), 1).map(|n| n as u32);
         let (cost, kind) = match kind_name {
             "tconstruct:part_builder" => {
                 let allow_uncraftable = match fields.get("allow_uncraftable") { None => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("allow_uncraftable must be boolean".into()) };
+                {
+                let result = result.ok_or("result must be an object")?;
                 (int(fields, "cost", None, 1)?, Kind::Part { output: item(result)?, count: count(result)?, allow_uncraftable })
+            }
             }
             "tconstruct:item_part_builder" => {
                 let material = match fields.get("material") {
@@ -80,7 +84,12 @@ impl Recipe {
                     Some(Value::String(text)) => Some(Identifier::parse(text).map_err(|e| e.to_string())?),
                     Some(_) => return Err("title_key must be an ID string".into()),
                 };
-                (cost, Kind::Item { material, result: item(result)?, count: count(result)?, title_key })
+                // ItemOutput.REQUIRED_STACK: an item ID alone is one of that item, otherwise an object with an optional count.
+                let (result, count) = match result_value {
+                    Some(Value::String(text)) => (Identifier::parse(text).map_err(|e| e.to_string())?, 1),
+                    _ => { let result = result.ok_or("result must be an object or an item ID")?; (item(result)?, count(result)?) }
+                };
+                (cost, Kind::Item { material, result, count, title_key })
             }
             other => return Err(format!("unsupported recipe type {other}")),
         };
