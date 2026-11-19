@@ -649,6 +649,41 @@ let damage = CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.5
 assert_eq!(damage.amount, 2.5);
 ```
 
+### `ActionTarget`
+
+Which party of a hit an [`EntityAction`](#entityaction) is done to: `Attacker` or `Victim`. In a weapon hit the attacker is the player and the victim the mob; in a hit on a player (`WearerHit`) the attacker is the mob and the victim the wearer.
+
+```rust
+use pluto_lib::ActionTarget;
+
+assert_ne!(ActionTarget::Attacker, ActionTarget::Victim);
+```
+
+### `KnockbackDirection`
+
+How a knockback action picks the way the mob is pushed: `AwayFromOther` pushes it away from the other party of the hit, as the game's damage knockback does; `AgainstFacing` pushes it against the way it faces, as `Entity.knockback(strength, -sin(yaw), cos(yaw))` does.
+
+```rust
+use pluto_lib::KnockbackDirection;
+
+assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing);
+```
+
+### `EntityAction`
+
+Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it).
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, KnockbackDirection, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
+    if hit.weapon.as_ref().is_some_and(|weapon| weapon.item == "example:flame_sword") {
+        hit.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
+        hit.actions.borrow_mut().push(EntityAction::Knockback { target: ActionTarget::Victim, strength: 0.5, direction: KnockbackDirection::AwayFromOther });
+    }
+});
+```
+
 ### `EffectGrant`
 
 A status effect for a callback to put on the mob a weapon hit: `effect` is the effect id (an id the game does not know is skipped), `amplifier` the level less one (0 is level I) and `duration` how long it lasts, in ticks.
@@ -662,26 +697,26 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 
 ### `WeaponHit`
 
-A player's weapon hit on a mob: `entity` is the mob's id and `kind` its type id, `attacker` the player's entity id, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known, and the local player of a single-player world counts only while they are the one wearer), and `effects` the effects callbacks push for the mob.
+A player's weapon hit on a mob: `entity` is the mob's id and `kind` its type id, `attacker` the player's entity id, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known, and the local player of a single-player world counts only while they are the one wearer), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), which the game does just before the hit's damage lands.
 
 ```rust
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()) };
-assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty());
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty());
 ```
 
 ### `WearerHit`
 
-A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as (both not reported yet: an empty id and 0.0), `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) `effects` the effects callbacks push for the mob and `self_effects` the ones they push for the wearer and `counter_damage` the damage they push for the mob.
+A mob hurting the player: `attacker` is the mob's id and `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as (both not reported yet: an empty id and 0.0), `attacker_state` what the mob was doing, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data) `effects` the effects callbacks push for the mob and `self_effects` the ones they push for the wearer and `counter_damage` the damage they push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the mob (`Attacker`) or the wearer (`Victim`), which land on the player's next tick.
 
 ```rust
 use pluto_lib::{EntityState, WearerHit};
 use std::cell::RefCell;
 
-let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
-assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effects.borrow().is_empty() && hit.counter_damage.borrow().is_empty());
+let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effects.borrow().is_empty() && hit.counter_damage.borrow().is_empty() && hit.actions.borrow().is_empty());
 ```
 
 ### `EntityState`
@@ -726,7 +761,7 @@ ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
 
 ### `ServerLivingEntityEvents::WEARER_HIT`
 
-A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it, or on the wearer with `self_effects`, which land on the player's next tick, and deal damage to the mob with `counter_damage` (an armor's thorns), which lands on the next tick too as hurt by the player. The hit is heard once for each attacker in a game tick, and only when the attacking mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
+A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it, or on the wearer with `self_effects`, which land on the player's next tick, and deal damage to the mob with `counter_damage` (an armor's thorns), which lands on the next tick too as hurt by the player; set it on fire, freeze it or knock it back with `actions`, which land on the next tick as well. The hit is heard once for each attacker in a game tick, and only when the attacking mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
 
 ```rust
 use pluto_lib::{EffectGrant, ServerLivingEntityEvents};

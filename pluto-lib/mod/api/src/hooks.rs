@@ -162,7 +162,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
                 },
-                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()), counter_damage: std::cell::RefCell::new(Vec::new()),
+                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()), counter_damage: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
             };
             // The damage event that follows carries the attacker's state, for the protection that conditions on it.
             let wearer = entity_events_v1::only_wearer_entity();
@@ -898,6 +898,74 @@ fn tag_from_nbt(nbt: &Nbt) -> Tag {
         Nbt::Compound(c) => Tag::Compound(compound_to_tag(c)),
         Nbt::IntArray(v) => Tag::IntArray(v.clone()),
         Nbt::LongArray(v) => Tag::LongArray(v.clone()),
+    }
+}
+
+/// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
+/// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
+fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
+    use entity_events_v1::{ActionTarget, EntityAction, KnockbackDirection};
+    let id_of = |target: ActionTarget| if target == ActionTarget::Attacker { attacker } else { victim };
+    // Where an entity or a player is: the player list names players by entity id (0 for the owner of a single-player world).
+    fn position_of(host: &dyn Host, id: i32) -> Option<[f64; 3]> {
+        if let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) {
+            if let Some(position) = host.entity_position(entity) { return Some(position); }
+        }
+        host.acting_player().filter(|acting| acting.entity_id == id || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id)).map(|player| player.position)
+    }
+    for action in actions {
+        match action {
+            EntityAction::SetFire { target, seconds } => {
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                let immune = host.entity_fire_immune(entity).unwrap_or(false);
+                let current = host.entity_fire_ticks(entity).unwrap_or(0);
+                if let Some(ticks) = entity_events_v1::fire_ticks_after(current, seconds, immune) { host.entity_set_fire(entity, ticks); }
+            }
+            EntityAction::Heal { target, amount } => {
+                let id = id_of(target);
+                // A player is healed through their status; a mob through its health in its data (the host cuts both to the maximum).
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                if let Some(player) = player {
+                    if let Some(health) = entity_events_v1::healed_health(player.health, amount) { host.set_player_status(player.uuid, Some(health), None, None); }
+                    continue;
+                }
+                let Ok(mob) = u32::try_from(id) else { continue };
+                let Some(entity) = host.entity(mob) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                let Some(data) = host.entity_nbt(entity) else { continue };
+                let current = data.iter().find(|(key, _)| key.to_string_lossy() == "Health").and_then(|(_, tag)| match tag { Tag::Float(bits) => Some(f32::from_bits(*bits)), _ => None });
+                if let Some(health) = current.and_then(|current| entity_events_v1::healed_health(current, amount)) { host.set_mob_health(dimension, mob, health); }
+            }
+            EntityAction::Freeze { target, ticks } => {
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                let Some(kind) = host.entity_kind(entity) else { continue };
+                if kind == "minecraft:player" || !entity_events_v1::can_freeze(&kind) { continue; }
+                let Some(data) = host.entity_nbt(entity) else { continue };
+                let current = data.iter().find(|(key, _)| key.to_string_lossy() == "TicksFrozen").and_then(|(_, tag)| match tag { Tag::Int(value) => Some(*value), _ => None }).unwrap_or(0);
+                let Some(frozen) = entity_events_v1::frozen_ticks_after(current, ticks) else { continue };
+                let mut merge = Compound::new();
+                merge.insert("TicksFrozen".into(), Tag::Int(frozen));
+                host.entity_merge_nbt(entity, merge);
+                // Freezing puts the fire out.
+                host.entity_set_fire(entity, 0);
+            }
+            EntityAction::Knockback { target, strength, direction } => {
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                let (x, z) = match direction {
+                    KnockbackDirection::AgainstFacing => match host.entity_rotation(entity) { Some([yaw, _]) => entity_events_v1::facing_direction(yaw), None => continue },
+                    KnockbackDirection::AwayFromOther => {
+                        let other = if target == ActionTarget::Attacker { victim } else { attacker };
+                        let (Some(from), Some(here)) = (position_of(host, other), host.entity_position(entity)) else { continue };
+                        (from[0] - here[0], from[2] - here[2])
+                    }
+                };
+                let on_ground = host.entity_on_ground(entity).unwrap_or(false);
+                if let Some(delta) = entity_events_v1::knockback_delta(strength, x, z, on_ground) { host.entity_push(entity, delta); }
+            }
+        }
     }
 }
 
@@ -1843,6 +1911,10 @@ impl Hooks for PlutoHooks {
                 COUNTER_HURT.with(|flag| flag.set(false));
             }
         }
+        // Actions the armor's counters do to the mob that hit the wearer (fire, freezing, knockback) land here too.
+        for (mob, action) in entity_events_v1::take_wearer_actions(player.entity_id) {
+            apply_entity_actions(host, &player.dimension, mob, player.entity_id, vec![action]);
+        }
         // Effects the armor's counters put on the wearer land here, where a host is at hand.
         for grant in entity_events_v1::take_self_effects(player.entity_id) {
             if grant.duration > 0 && grant.amplifier >= 0 {
@@ -2118,11 +2190,18 @@ impl Hooks for PlutoHooks {
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
-            attacker_state, target_state, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()),
+            attacker_state, target_state, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {
                 horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
+        // The actions the mods queued (fire, freezing, healing, knockback) are done before the hit's damage lands.
+        let actions = entity_events_v1::take_weapon_actions(&hit);
+        if !actions.is_empty() {
+            if let Some(dimension) = host.acting_player().map(|acting| acting.dimension) {
+                apply_entity_actions(host, &dimension, event.causing, event.entity, actions);
             }
         }
         Flow::Continue
