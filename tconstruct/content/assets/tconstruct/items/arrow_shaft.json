@@ -1,0 +1,111 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "bamboo",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_bamboo"
+        }
+      },
+      {
+        "when": "blaze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_blaze"
+        }
+      },
+      {
+        "when": "blazewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_blazewood"
+        }
+      },
+      {
+        "when": "blazing_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_blazing_bone"
+        }
+      },
+      {
+        "when": "bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_bone"
+        }
+      },
+      {
+        "when": "cactus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_cactus"
+        }
+      },
+      {
+        "when": "chorus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "end_rod",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_end_rod"
+        }
+      },
+      {
+        "when": "nahuatl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_nahuatl"
+        }
+      },
+      {
+        "when": "necrotic_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_necrotic_bone"
+        }
+      },
+      {
+        "when": "shulker",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_slimewood_greenheart"
+        }
+      },
+      {
+        "when": "venombone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_venombone"
+        }
+      },
+      {
+        "when": "wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft_tconstruct_wood"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/arrow_shaft/ammo/arrow_shaft"
+    }
+  }
+}

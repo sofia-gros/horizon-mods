@@ -1,0 +1,90 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "earthslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_earthslime"
+        }
+      },
+      {
+        "when": "enderslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_enderslime"
+        }
+      },
+      {
+        "when": "feather",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_wool_white"
+        }
+      },
+      {
+        "when": "ichor",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_ichor"
+        }
+      },
+      {
+        "when": "leaves",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_vine"
+        }
+      },
+      {
+        "when": "magma",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_magma"
+        }
+      },
+      {
+        "when": "paper",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_paper"
+        }
+      },
+      {
+        "when": "skyslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_skyslime"
+        }
+      },
+      {
+        "when": "slimeball",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_earthslime"
+        }
+      },
+      {
+        "when": "vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_vine"
+        }
+      },
+      {
+        "when": "wool",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/fletching/ammo/arrow_feather_tconstruct_wool_white"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/fletching/ammo/arrow_feather"
+    }
+  }
+}
