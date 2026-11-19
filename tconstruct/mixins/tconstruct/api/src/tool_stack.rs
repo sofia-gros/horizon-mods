@@ -303,6 +303,20 @@ pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn
     })
 }
 
+/// The mob effects a worn armor piece puts on the mob its wearer hit in melee, in modifier order. `source` is the hit's damage; `in_tag`
+/// answers the entity type tags and the pseudo state tags (of the mob hit, and of the wearer for the holder); `rolls` gives uniform values in [0, 1).
+pub(crate) fn armor_attack_effects(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::weapon_effect::Grant> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut grants = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.armor_attack_effect_modules() {
+                if let Some(grant) = module.armor_attack_effect(entry, facts, source, in_tag, rolls) { grants.push(grant); }
+            }
+        }
+        grants
+    })
+}
+
 /// ModifierRemovalHook.onRemoved(original, updated): every modifier on the original that the updated
 /// tool no longer has clears the persistent data its modules own. Traits count, as in the original.
 pub(crate) fn on_removed(original: &NbtCompound, updated: &mut NbtCompound, env: &Environment) {

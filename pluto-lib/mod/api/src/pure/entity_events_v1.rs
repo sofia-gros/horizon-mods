@@ -83,6 +83,9 @@ pub struct WeaponHit {
     /// What the player and the mob were doing as the hit landed; None when the game could not tell.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// The armor the attacking player wore as of their last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces
+    /// carrying custom data. Empty when the player is not known (with several players online only the named player's armor is known).
+    pub armor: Vec<(String, StackData)>,
     /// The effects to put on the mob, which callbacks add to.
     pub effects: RefCell<Vec<EffectGrant>>,
 }
@@ -396,6 +399,15 @@ pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
 /// Changes whenever the armor any player wears changes; see `VisibilityModification::armor_revision`.
 static ARMOR_REVISION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
+/// The armor the player with entity id `entity` wore as of their last tick; the game names the local player of a single-player world as
+/// entity 0, which is the only wearer when one is known.
+pub(crate) fn armor_worn_by(entity: i32) -> Vec<(String, StackData)> {
+    let Ok(worn) = ARMOR.lock() else { return Vec::new() };
+    if let Some((_, pieces)) = worn.get(&entity) { return pieces.clone(); }
+    if entity == 0 && worn.len() == 1 { return worn.values().next().map(|(_, pieces)| pieces.clone()).unwrap_or_default(); }
+    Vec::new()
+}
+
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
 static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(String, StackData)>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
@@ -560,10 +572,26 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, effects: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
+    }
+
+    #[test]
+    fn the_armor_a_weapon_hit_carries_is_the_attacking_players_as_of_their_last_tick() {
+        let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
+        remember_armor(0xA11CE, 4343, vec![("head".into(), helmet.clone())]);
+        assert_eq!(armor_worn_by(4343), vec![("head".to_owned(), helmet.clone())]);
+        assert!(armor_worn_by(4344).is_empty(), "an unknown player wears nothing known");
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, weapon: None, attacker_state: None, target_state: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()) };
+        assert!(weapon_hit(&hit).is_empty());
+        assert_eq!(*seen.lock().unwrap(), vec![1]);
+        forget_armor(0xA11CE);
+        assert!(armor_worn_by(4343).is_empty(), "a player who left is forgotten");
     }
 
     #[test]

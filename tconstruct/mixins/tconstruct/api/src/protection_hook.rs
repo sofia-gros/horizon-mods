@@ -9,7 +9,7 @@ use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
 static TAGS: RwLock<Option<Arc<DamageTags>>> = RwLock::new(None);
 
 /// The damage-type tags of the last reload, empty before the first.
-fn tags() -> Arc<DamageTags> {
+pub(crate) fn tags() -> Arc<DamageTags> {
     TAGS.read().ok().and_then(|tags| tags.clone()).unwrap_or_default()
 }
 

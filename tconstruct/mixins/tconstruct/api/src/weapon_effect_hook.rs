@@ -31,13 +31,27 @@ pub(crate) fn register() {
         }
     });
     ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
-        let Some(held) = hit.weapon.as_ref() else { return; };
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&hit.kind).ok();
         let in_tag = |tag: &Identifier| {
             if tag.namespace() == melee_damage::STATE_NAMESPACE { return melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), hit.target_state.as_ref()); }
             melee_hook::target_in_tag(entities.as_deref(), target.as_ref(), tag)
         };
+        // Armor that hits back: each worn piece's armor attack modules may put an effect on the mob the wearer hit (MobEffectModule.ArmorAttack).
+        // A weapon hit is the wearer's direct melee damage of the player attack type.
+        if let Ok(damage_type) = Identifier::parse("minecraft:player_attack") {
+            let tags = crate::protection_hook::tags();
+            let no_attacker = |_: &Identifier| false;
+            let source = crate::protection::DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &no_attacker };
+            for (_, piece) in &hit.armor {
+                let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::armor_attack_effects(&stack.custom_data, env, &source, &in_tag, &mut tool_damage_hook::random)) else { continue; };
+                for grant in grants {
+                    if grant.effect.namespace() != "minecraft" { continue; }
+                    hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+                }
+            }
+        }
+        let Some(held) = hit.weapon.as_ref() else { return; };
         let Ok(grants) = with_held_tool(held, |env, stack| tool_stack::weapon_effects(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) else { return; };
         for (_, grant) in grants {
             // Effects that apply before the hit and after it both land here, before the damage; the game has no later mod call.

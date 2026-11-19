@@ -232,6 +232,10 @@ impl Modifier {
     pub fn counter_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_counter_effect())
     }
+    /// The armor attack effect modules.
+    pub fn armor_attack_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_armor_attack_effect())
+    }
     /// The weapon effect modules.
     pub fn weapon_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_weapon_effect())

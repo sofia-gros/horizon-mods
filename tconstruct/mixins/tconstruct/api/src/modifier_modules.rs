@@ -118,6 +118,10 @@ pub(crate) enum Module {
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// MobEffectModule.ArmorCounter: armor that may put a mob effect on the mob that hit its wearer.
     CounterEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
+    /// MobEffectModule.ArmorAttack: armor that may put a mob effect on the mob its wearer hits.
+    ArmorAttackEffect { module: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
+    /// The deprecated MobEffectModule.Legacy: a weapon effect and an armor counter in one module.
+    LegacyEffect { weapon: Box<crate::weapon_effect::WeaponEffect>, counter: Box<crate::weapon_effect::WeaponEffect>, condition: Condition },
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
     /// A presentation-only module (display name, durability bar, tooltip): it changes no tool state, so the port records it and its data.
     Display(Display),
@@ -406,6 +410,18 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:armor_attack_mob_effect" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:damage_dealt")) => {
+                match crate::weapon_effect::WeaponEffect::decode_armor_attack(fields)? {
+                    Some(module) => Self::ArmorAttackEffect { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:mob_effect" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked" | "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_hit")) => {
+                match crate::weapon_effect::WeaponEffect::decode_legacy(fields)? {
+                    Some((weapon, counter)) => Self::LegacyEffect { weapon: Box::new(weapon), counter: Box::new(counter), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:knockback" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:tooltip")) => {
                 match crate::knockback::Knockback::decode(fields)? {
                     Some(module) => Self::Knockback { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -519,7 +535,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -577,13 +593,24 @@ impl Module {
     }
     /// The effect a weapon effect module puts on the target of a melee hit, if it lands (`rolls` are uniform values in [0, 1)).
     pub fn weapon_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(bool, crate::weapon_effect::Grant)> {
-        let Self::WeaponEffect { module, condition } = self else { return None; };
-        module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.before_melee(), grant))
+        match self {
+            Self::WeaponEffect { module, condition } => module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.before_melee(), grant)),
+            Self::LegacyEffect { weapon, condition, .. } => weapon.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (weapon.before_melee(), grant)),
+            _ => None,
+        }
     }
     /// The effect an armor counter module puts on the mob that hit the wearer, if it lands (`rolls` are uniform values in [0, 1)).
     pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
-        let Self::CounterEffect { module, condition } = self else { return None; };
-        module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.whom(), grant))
+        match self {
+            Self::CounterEffect { module, condition } => module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.whom(), grant)),
+            Self::LegacyEffect { counter, condition, .. } => counter.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (counter.whom(), grant)),
+            _ => None,
+        }
+    }
+    /// The effect an armor attack module puts on the mob its wearer hit in melee, if it lands (`rolls` are uniform values in [0, 1)).
+    pub fn armor_attack_effect(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<crate::weapon_effect::Grant> {
+        let Self::ArmorAttackEffect { module, condition } = self else { return None; };
+        module.grant_armor_attack(entry, condition.matches(entry, facts), source, in_tag, rolls)
     }
     /// The damage a thorns module deals to the mob that hit the wearer, if its chance lands (`rolls` are uniform values in [0, 1)).
     pub fn thorns(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<crate::thorns::Hurt> {
@@ -641,9 +668,11 @@ impl Module {
     /// Whether this is a thorns module.
     pub fn is_thorns(&self) -> bool { matches!(self, Self::Thorns { .. }) }
     /// Whether this is an armor counter effect module.
-    pub fn is_counter_effect(&self) -> bool { matches!(self, Self::CounterEffect { .. }) }
+    pub fn is_counter_effect(&self) -> bool { matches!(self, Self::CounterEffect { .. } | Self::LegacyEffect { .. }) }
+    /// Whether this is an armor attack effect module.
+    pub fn is_armor_attack_effect(&self) -> bool { matches!(self, Self::ArmorAttackEffect { .. }) }
     /// Whether this is a weapon effect module.
-    pub fn is_weapon_effect(&self) -> bool { matches!(self, Self::WeaponEffect { .. }) }
+    pub fn is_weapon_effect(&self) -> bool { matches!(self, Self::WeaponEffect { .. } | Self::LegacyEffect { .. }) }
     /// Whether this is a knockback module.
     pub fn is_knockback(&self) -> bool { matches!(self, Self::Knockback { .. }) }
     /// What this module adds to the protection cap attribute (0.05 is one point and a quarter of protection).
