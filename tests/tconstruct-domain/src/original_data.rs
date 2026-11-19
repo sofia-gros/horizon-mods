@@ -175,6 +175,38 @@ fn every_shipped_disguise_binds_and_a_worn_piece_halves_the_range_per_level_for_
 }
 
 #[test]
+fn shipped_worn_helmet_given_without_stats_is_built_by_its_first_wear_and_keeps_the_ender_mask_flag() {
+    // The smoke scenario MOB DISGUISE: a plate helmet of [cobalt, iron] handed over with no tic_stats, then worn down once.
+    use crate::{modifier_entries::List, tool_slot, tool_stack::{is_broken, is_initialized, volatile_flag, Environment, TAG_MATERIALS, TAG_MODIFIERS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let disguise = Identifier::parse("tconstruct:enderman_disguise").unwrap();
+    let given = |key: &str| {
+        let mut slot = ItemSlot::new(helmet_id.clone(), 1);
+        slot.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:cobalt", "tconstruct:iron"].map(|m| Nbt::String(m.into())).to_vec()));
+        slot.custom_data.insert(key.into(), List::default().with_modifier(disguise.clone(), 1).unwrap().to_nbt());
+        assert!(!is_initialized(&slot.custom_data));
+        slot
+    };
+    // Saved as an upgrade (the input of a rebuild), the first wear builds the piece, which is not broken and carries the flag.
+    let mut worn = given(TAG_UPGRADES);
+    let hit = tool_slot::damage_slot(&mut worn, &env, 1, true, true, None, &mut || 1.0).unwrap();
+    assert!(is_initialized(&worn.custom_data) && !is_broken(&worn.custom_data), "{:?}", worn.custom_data);
+    assert_eq!((hit.applied, hit.broke), (1, false));
+    assert!(worn.max_damage.is_some_and(|max| max > 2), "a real durability, not the 1-point default: {:?}", worn.max_damage);
+    assert!(volatile_flag(&worn.custom_data, crate::mob_disguise_hook::ENDERMASK), "{:?}", worn.custom_data);
+    // tic_modifiers is a rebuild's output, never its input: a piece given only that list loses it, as in the original.
+    let mut output_only = given(TAG_MODIFIERS);
+    tool_slot::damage_slot(&mut output_only, &env, 1, true, true, None, &mut || 1.0).unwrap();
+    assert!(!is_broken(&output_only.custom_data) && !volatile_flag(&output_only.custom_data, crate::mob_disguise_hook::ENDERMASK));
+}
+
+#[test]
 fn shipped_reinforced_and_cultivated_change_damage_and_repair_of_a_real_pickaxe() {
     use crate::{modifier_entries::List, tool_slot, tool_stack::{current_durability, rebuild_stats, repair_factor, Environment, TAG_MATERIALS, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt};
