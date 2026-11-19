@@ -163,6 +163,8 @@ pub(crate) enum Usage {
     Launch { primary: bool },
     /// afterShearEntity: the mob sheared; `target` is false for the extra mobs an area tool shears.
     Shear { target: bool },
+    /// afterBlockBreak: a block the tool broke (an area tool's extra blocks are not ported, so the one block is never an area).
+    BlockBreak,
 }
 
 impl Usage {
@@ -172,18 +174,19 @@ impl Usage {
             Self::MeleeHit => (false, false),
             Self::Launch { primary } => (!primary, false),
             Self::Shear { target } => (!target, false),
+            Self::BlockBreak => (false, false),
         }
     }
 }
 
 /// MobEffectModule.ToolUsage: an effect the tool puts on the entity that uses it, with a chance that grows with the level. The hooks the
-/// module names (all of them when it names none) say which uses it hears. Not ported: the halves for breaking a block, harvesting a
-/// plant, a sling's launch and a projectile hitting something (this port has no event for them), and the full-charge check of a melee
-/// swing (the hit event does not carry the attack strength).
+/// module names (all of them when it names none) say which uses it hears. Not ported: the halves for harvesting a plant, a sling's
+/// launch and a projectile hitting something (this port has no event for them), and the full-charge check of a melee swing (the hit
+/// event does not carry the attack strength).
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ToolUsage {
     effect: Identifier, level: RandomLeveling, time: RandomLeveling, chance_flat: f32, chance_each: f32,
-    is_aoe: Accepts, is_projectile: Accepts, melee: bool, launch: bool, shear: bool,
+    is_aoe: Accepts, is_projectile: Accepts, melee: bool, launch: bool, shear: bool, block_break: bool,
 }
 
 impl ToolUsage {
@@ -210,9 +213,10 @@ impl ToolUsage {
             melee: names(&["tconstruct:melee_hit"]),
             launch: names(&["tconstruct:projectile_launch", "tconstruct:projectile_shot", "tconstruct:projectile_thrown"]),
             shear: names(&["tconstruct:shear_entity"]),
+            block_break: names(&["tconstruct:block_break"]),
         };
         let lands = |heard: bool, usage: Usage| heard && module.accepts(usage);
-        let any = lands(module.melee, Usage::MeleeHit) || lands(module.launch, Usage::Launch { primary: true }) || lands(module.shear, Usage::Shear { target: true });
+        let any = lands(module.melee, Usage::MeleeHit) || lands(module.launch, Usage::Launch { primary: true }) || lands(module.shear, Usage::Shear { target: true }) || lands(module.block_break, Usage::BlockBreak);
         Ok(any.then_some(module))
     }
 
@@ -224,7 +228,7 @@ impl ToolUsage {
     /// MobEffectModule.ToolUsage for `usage`: the effect to put on the holder, or None. `rolls` gives uniform values in [0, 1): the chance
     /// roll, the level's, then the duration's.
     pub(crate) fn grant(&self, entry: &Entry, condition: bool, usage: Usage, rolls: &mut dyn FnMut() -> f32) -> Option<Grant> {
-        let heard = match usage { Usage::MeleeHit => self.melee, Usage::Launch { .. } => self.launch, Usage::Shear { .. } => self.shear };
+        let heard = match usage { Usage::MeleeHit => self.melee, Usage::Launch { .. } => self.launch, Usage::Shear { .. } => self.shear, Usage::BlockBreak => self.block_break };
         if !heard || !condition || !self.accepts(usage) { return None; }
         let scaled = entry.effective_level();
         let chance = self.chance_flat + self.chance_each * scaled;
@@ -366,7 +370,7 @@ mod tests {
     fn a_tool_usage_effect_with_no_hooks_hears_every_use_and_the_predicates_can_widen_it() {
         // magnetic: every hook by default, and the chance defaults to certain.
         let magnetic = usage(json!({"effect":"tconstruct:magnetic","level":{"flat":1.0},"time":{"flat":40.0}}), &[]).unwrap();
-        for use_of in [Usage::MeleeHit, Usage::Launch { primary: true }, Usage::Shear { target: true }] {
+        for use_of in [Usage::MeleeHit, Usage::Launch { primary: true }, Usage::Shear { target: true }, Usage::BlockBreak] {
             assert_eq!(magnetic.grant(&entry(1), true, use_of, &mut || 0.99).map(|grant| grant.duration), Some(40), "{use_of:?}");
         }
         let area = json!({"effect":"minecraft:haste","level":{"flat":1.0},"time":{"flat":40.0},"is_aoe":"true"});
@@ -378,7 +382,8 @@ mod tests {
     #[test]
     fn a_tool_usage_effect_that_could_never_land_here_stays_unbound() {
         let base = json!({"effect":"minecraft:haste","level":{"flat":1.0},"time":{"flat":40.0}});
-        assert!(usage(base.clone(), &["tconstruct:block_break"]).is_none(), "only the block-break half: nothing this port hears");
+        let breaking = usage(base.clone(), &["tconstruct:block_break"]).expect("a block the tool broke is heard now");
+        assert!(breaking.grant(&entry(1), true, Usage::BlockBreak, &mut || 0.0).is_some() && breaking.grant(&entry(1), true, Usage::MeleeHit, &mut || 0.0).is_none(), "only the block-break half");
         assert!(usage(base.clone(), &["tconstruct:sling_launch", "tconstruct:plant_harvest"]).is_none());
         let mut projectile = base.clone();
         projectile["is_projectile"] = json!("true");

@@ -7,6 +7,7 @@ use std::cell::{Cell, RefCell};
 
 use super::base::{ActionResult, Event};
 use super::block_entity_api_v1::ItemSlot;
+use super::entity_events_v1::EntityAction;
 use super::player_api::{ServerPlayer, StackData};
 use super::world_api_v1::BlockState;
 
@@ -116,10 +117,31 @@ pub struct AttackEntityContext {
     pub pos: [f64; 3],
 }
 
-/// A block break (before it happens).
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A player breaking a block: what `PlayerBlockBreakEvents` reports (Fabric: world, player, pos, state; the block entity is not given, see
+/// `AFTER`).
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlockBreakContext {
+    /// The block's position.
     pub pos: [i32; 3],
+    /// The dimension it is in, such as `minecraft:overworld`; empty when the game does not name it.
+    pub dimension: String,
+    /// The block as it was before the break; None when the game cannot read it.
+    pub state: Option<BlockState>,
+    /// The player who breaks it; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// The stack in the player's main hand: before the break for `BEFORE` and `CANCELED`, after it (with the wear the break caused) for `AFTER`.
+    /// None for an empty hand.
+    pub held: Option<StackData>,
+    /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to. The game does it right after the callbacks ran: for
+    /// `BEFORE` even when a callback vetoes the break, for `AFTER` once the break is done. `EditStackData` acts on the main hand as it is then.
+    pub actions: RefCell<Vec<EntityAction>>,
+}
+
+impl BlockBreakContext {
+    /// A context with only a position, for a game that reports nothing else (and for callbacks that only read `pos`).
+    pub fn at(pos: [i32; 3]) -> Self {
+        Self { pos, dimension: String::new(), state: None, player: None, held: None, actions: RefCell::new(Vec::new()) }
+    }
 }
 
 static USE_ITEM: Event<UseItemContext, ActionResult> = Event::first_not_pass();
@@ -183,7 +205,9 @@ pub struct PlayerBlockBreakEvents;
 impl PlayerBlockBreakEvents {
     /// Fabric: `BEFORE`: return `false` to cancel the break.
     pub const BEFORE: &'static Event<BlockBreakContext, bool> = &BEFORE_BLOCK_BREAK;
-    /// Fabric: `AFTER`. Stub: no matching Horizon hook point is wired yet (see the support matrix).
+    /// Fabric: `AFTER`: a player's break went through and the block is gone. It runs once the game has also worn the tool and dropped the
+    /// loot (Fabric runs it before them), so `held` is the worn tool; the block entity is not given (it is gone, and the host cannot read
+    /// one). Creative breaks are heard too. Not heard for the breaks `BEFORE` does not hear (leaves decaying, a piston, `/setblock`).
     pub const AFTER: &'static Event<BlockBreakContext, ()> = &AFTER_BLOCK_BREAK;
     /// Fabric: `CANCELED`. Called once when `BEFORE` vetoes a break; the block is kept.
     pub const CANCELED: &'static Event<BlockBreakContext, ()> = &BLOCK_BREAK_CANCELED;
@@ -224,11 +248,25 @@ pub(crate) fn attack_entity(entity: i32, kind: &str, pos: [f64; 3]) -> bool {
 }
 
 /// True when the break may go ahead.
-pub(crate) fn before_block_break(pos: [i32; 3]) -> bool {
-    let context = BlockBreakContext { pos };
-    let allowed = BEFORE_BLOCK_BREAK.invoke(&context);
-    if !allowed { BLOCK_BREAK_CANCELED.invoke(&context); }
+pub(crate) fn before_block_break(context: &BlockBreakContext) -> bool {
+    let allowed = BEFORE_BLOCK_BREAK.invoke(context);
+    if !allowed { BLOCK_BREAK_CANCELED.invoke(context); }
     allowed
+}
+
+/// Calls the `AFTER` callbacks for a break that went through.
+pub(crate) fn after_block_break(context: &BlockBreakContext) {
+    AFTER_BLOCK_BREAK.invoke(context);
+}
+
+/// Whether anyone listens to block breaks, so the game only reads the player and the block when someone does.
+pub(crate) fn block_break_heard() -> bool {
+    !(BEFORE_BLOCK_BREAK.is_empty() && AFTER_BLOCK_BREAK.is_empty() && BLOCK_BREAK_CANCELED.is_empty())
+}
+
+/// Whether anyone listens to `AFTER`.
+pub(crate) fn after_block_break_heard() -> bool {
+    !AFTER_BLOCK_BREAK.is_empty()
 }
 
 #[cfg(test)]
@@ -300,9 +338,38 @@ mod tests {
         PlayerBlockBreakEvents::CANCELED.register(move |c| seen.lock().unwrap().push(c.pos));
         PlayerBlockBreakEvents::BEFORE.register(|c| c.pos[1] >= 0);
         PlayerBlockBreakEvents::BEFORE.register(|c| c.pos[1] >= -1);
-        assert!(before_block_break([0, 64, 0]));
+        assert!(before_block_break(&BlockBreakContext::at([0, 64, 0])));
         assert!(canceled.lock().unwrap().is_empty(), "allowed breaks are not canceled");
-        assert!(!before_block_break([0, -5, 0]));
+        assert!(!before_block_break(&BlockBreakContext::at([0, -5, 0])));
         assert_eq!(*canceled.lock().unwrap(), [[0, -5, 0]], "two vetoes still report one cancellation");
+    }
+
+    #[test]
+    fn an_after_callback_sees_the_player_and_the_worn_tool_and_queues_actions_for_the_game() {
+        use super::super::entity_events_v1::{ActionTarget, StackSlot, StackDataEdit};
+        use super::super::base::Nbt;
+        AFTER_BLOCK_BREAK.register(|broken| {
+            if broken.dimension != "test:break_after" { return; }
+            let held = broken.held.as_ref().expect("the player holds the tool");
+            assert_eq!((held.damage, broken.player.as_ref().map(|p| p.uuid)), (4, Some(9)));
+            assert_eq!(broken.state.as_ref().map(|s| s.block.to_string()), Some("test:rock".to_owned()));
+            broken.actions.borrow_mut().push(EntityAction::EditStackData {
+                target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: held.item.clone(),
+                edits: vec![StackDataEdit { path: vec!["mined".into()], value: Some(Nbt::Int(1)) }],
+            });
+        });
+        let context = BlockBreakContext {
+            pos: [1, 2, 3], dimension: "test:break_after".into(),
+            state: Some(BlockState { block: super::super::base::Identifier::parse("test:rock").unwrap(), properties: Default::default() }),
+            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }),
+            held: Some(StackData { item: "test:pick".into(), count: 1, damage: 4, ..Default::default() }),
+            actions: RefCell::new(Vec::new()),
+        };
+        assert!(after_block_break_heard());
+        after_block_break(&context);
+        assert_eq!(context.actions.borrow().len(), 1);
+        let quiet = BlockBreakContext { dimension: "test:elsewhere".into(), ..BlockBreakContext::at([0, 0, 0]) };
+        after_block_break(&quiet);
+        assert!(quiet.actions.borrow().is_empty(), "a callback that does not match queues nothing");
     }
 }

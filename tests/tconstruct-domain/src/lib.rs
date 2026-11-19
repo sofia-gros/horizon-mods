@@ -97,6 +97,8 @@ mod mob_disguise;
 mod mob_disguise_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect_hook.rs"]
 mod weapon_effect_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/block_break_hook.rs"]
+mod block_break_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
 mod damage_vanilla;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_tags.rs"]

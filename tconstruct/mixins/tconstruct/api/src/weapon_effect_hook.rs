@@ -11,7 +11,7 @@ fn self_effect(grant: crate::weapon_effect::Grant) -> Option<EntityAction> {
 }
 
 /// The effects of the Tinkers tool among `stacks` (the first that is one) for a use of it, as actions on its holder.
-fn usage_actions(stacks: &[&Option<pluto_lib::StackData>], usage: crate::weapon_effect::Usage) -> Vec<EntityAction> {
+pub(crate) fn usage_actions(stacks: &[&Option<pluto_lib::StackData>], usage: crate::weapon_effect::Usage) -> Vec<EntityAction> {
     for stack in stacks.iter().filter_map(|stack| stack.as_ref()) {
         if let Ok(grants) = with_held_tool(stack, |env, slot| tool_stack::usage_effects(&slot.custom_data, env, usage, &mut tool_damage_hook::random)) {
             return grants.into_iter().filter_map(self_effect).collect();

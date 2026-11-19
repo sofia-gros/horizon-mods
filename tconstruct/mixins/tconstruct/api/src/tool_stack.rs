@@ -387,6 +387,38 @@ pub(crate) fn melee_capacity_edits(nbt: &NbtCompound, env: &Environment, target_
     })
 }
 
+/// The edits of the persistent data one block broken with this tool makes through its mining capacity modules (each in modifier order, on
+/// the result of the one before): the modules that run before the break (`before`) or after it.
+pub(crate) fn mining_capacity_edits(nbt: &NbtCompound, env: &Environment, before: bool) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.mining_capacity_modules() {
+                let Some((owner, grant)) = module.mining_capacity(entry, facts, before) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, owner) { target.grant(&mut work, env, grant); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
+/// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one
+/// before left), and the edits of the persistent data that fill their bars. `in_tag(item, tag)` answers item tag membership.
+pub(crate) fn loot_capacity(nbt: &NbtCompound, env: &Environment, loot: &mut Vec<pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.loot_capacity_modules() {
+                let Some(fill) = module.loot_capacity(entry, facts) else { continue };
+                let added = fill.eat(entry, loot, in_tag, rolls);
+                if added <= 0 { continue; }
+                if let Some(target) = crate::capacity::Target::find(saved, entry, fill.owner()) { target.grant(&mut work, env, added); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
 /// The damage a worn armor piece lets through after its damage to capacity modules took what their bars hold (in priority order, highest
 /// first), and the edits of the piece's persistent data that fill the bars.
 pub(crate) fn damage_capacity(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, damage: f32) -> (f32, Vec<pluto_lib::StackDataEdit>) {

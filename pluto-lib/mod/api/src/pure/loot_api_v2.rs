@@ -7,6 +7,7 @@ use std::cell::RefCell;
 
 use super::base::Event;
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
+use super::entity_events_v1::EntityAction;
 use super::player_api::StackData;
 
 /// A loot table being loaded. Callbacks edit `table` in place.
@@ -38,6 +39,10 @@ pub struct LootDrops {
     pub used: bool,
     /// The stacks about to drop, in the game's order. Add, change or remove stacks; stacks left with a count of 0 do not drop.
     pub drops: RefCell<Vec<ItemSlot>>,
+    /// What to do to the player (`ActionTarget::Attacker`) who broke the block or used the tool, which callbacks add to; the game does it
+    /// after the callbacks ran. `EditStackData` acts on the stack the player holds then (a tool that gathers what it mines keeps it here).
+    /// Dropped when no player is known.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 static MODIFY: Event<LootTableContext, ()> = Event::void();
@@ -93,7 +98,15 @@ mod tests {
     #[test]
     fn drops_are_changed_in_place_by_the_callbacks_that_know_the_mob() {
         use super::super::base::Identifier;
+        use super::super::entity_events_v1::{ActionTarget, EntityAction};
         assert!(!drops_heard());
+        // A callback may queue player actions beside the changed drops.
+        LootTableEvents::MODIFY_DROPS.register(|context| {
+            if context.table == "example:blocks/rock" {
+                context.drops.borrow_mut().clear();
+                context.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Attacker, amount: 1.0 });
+            }
+        });
         LootTableEvents::MODIFY_DROPS.register(|context| {
             if context.entity.as_ref().is_some_and(|(_, kind)| kind == "example:beast") && !context.used {
                 let mut drops = context.drops.borrow_mut();
@@ -106,9 +119,18 @@ mod tests {
             table: "example:entities/beast".into(), dimension: "minecraft:overworld".into(), origin: [0.0; 3], block: None,
             entity: Some((5, kind.into())), player: Some(1), tool: None, explosion: None, used: false,
             drops: RefCell::new(vec![ItemSlot::new(Identifier::parse("example:rotten_flesh").unwrap(), 2), ItemSlot::new(Identifier::parse("example:bone").unwrap(), 1)]),
+            actions: RefCell::new(Vec::new()),
         };
         let items = |slots: Vec<ItemSlot>| slots.iter().map(|slot| format!("{}x{}", slot.count, slot.item)).collect::<Vec<_>>();
         assert_eq!(items(modify_drops(&drops("example:beast"))), ["1xexample:bone", "1xexample:trophy"]);
         assert_eq!(items(modify_drops(&drops("example:other"))), ["2xexample:rotten_flesh", "1xexample:bone"], "another mob's drops are untouched");
+        let rock = LootDrops {
+            table: "example:blocks/rock".into(), dimension: "minecraft:overworld".into(), origin: [0.5; 3], block: Some([0, 0, 0]),
+            entity: None, player: Some(1), tool: None, explosion: None, used: false,
+            drops: RefCell::new(vec![ItemSlot::new(Identifier::parse("example:rock").unwrap(), 3)]),
+            actions: RefCell::new(Vec::new()),
+        };
+        assert!(modify_drops(&rock).is_empty());
+        assert_eq!(rock.actions.take(), [EntityAction::Heal { target: ActionTarget::Attacker, amount: 1.0 }]);
     }
 }

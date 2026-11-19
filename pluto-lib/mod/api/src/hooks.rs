@@ -178,6 +178,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
     }).expect("PlutoLib player hurt sink installs once");
+    horizon_client::entry::pluto_block_break_access::set_sink(horizon_client::entry::pluto_block_break_access::Sink {
+        after: finish_block_break,
+    }).expect("PlutoLib block break sink installs once");
     horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
         factor: entity_events_v1::modify_visibility,
     }).expect("PlutoLib player visibility sink installs once");
@@ -962,6 +965,38 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
     // The player list has no flag for water; the block they stand in does.
     state.in_water = entity_events_v1::holds_water(&host.block(block), host.block_property(block, "waterlogged").as_deref() == Some("true"));
     state
+}
+
+/// What the break hook read before the block went, kept for the end of the same break.
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer }
+static PENDING_BREAK: std::sync::Mutex<Option<PendingBreak>> = std::sync::Mutex::new(None);
+
+/// The acting player, their dimension and main-hand stack, and the block at `pos`, as the block break events report them.
+fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::BlockBreakContext {
+    let acting = host.acting_player();
+    let dimension = acting.as_ref().map(|player| player.dimension.to_string()).unwrap_or_default();
+    let state = match host.level(&dimension) { Some(level) => host.level_block_state(level, pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
+    let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack));
+    events_interaction_v0::BlockBreakContext {
+        pos, dimension, state,
+        player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+        held, actions: std::cell::RefCell::new(Vec::new()),
+    }
+}
+
+/// The end of a player's break (the `pluto_block_break_access` sink): `AFTER` hears a break that removed the block, with the stack the player
+/// holds now, and the actions its callbacks queue are done to the player.
+fn finish_block_break(host: &mut dyn Host, pos: [i32; 3], removed: bool) {
+    let Some(pending) = PENDING_BREAK.lock().ok().and_then(|mut slot| slot.take()).filter(|pending| pending.pos == pos) else { return };
+    if !removed { return; }
+    let held = host.held_stack(pending.player.uuid).map(|stack| read_stack(&stack));
+    let uuid = pending.player.uuid;
+    let context = events_interaction_v0::BlockBreakContext {
+        pos, dimension: pending.dimension, state: pending.state, player: Some(pending.player), held, actions: std::cell::RefCell::new(Vec::new()),
+    };
+    scoped(host, || events_interaction_v0::after_block_break(&context));
+    let actions = context.actions.take();
+    if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
 }
 
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
@@ -2007,9 +2042,11 @@ impl Hooks for PlutoHooks {
             block: context.block.as_ref().map(|(pos, _)| *pos),
             entity: context.entity.as_ref().map(|(id, kind)| (*id, (*kind).to_owned())),
             player: context.player, tool: context.tool.map(|stack| read_stack(stack)), explosion: context.explosion, used: context.used,
-            drops: std::cell::RefCell::new(slots),
+            drops: std::cell::RefCell::new(slots), actions: std::cell::RefCell::new(Vec::new()),
         };
         let after = scoped(host, || loot_api_v2::modify_drops(&drops));
+        let actions = drops.actions.take();
+        if let (Some(player), false) = (drops.player, actions.is_empty()) { apply_player_actions(host, player, actions); }
         if after != before {
             *event.drops = after.into_iter().filter_map(|slot| native_slot(Some(slot))).collect();
         }
@@ -2257,8 +2294,19 @@ impl Hooks for PlutoHooks {
         cancel_if(events_interaction_v0::attack_entity(event.entity, event.kind, event.pos))
     }
 
-    fn destroy_block(&self, _host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
-        cancel_if(!events_interaction_v0::before_block_break(event.pos))
+    fn destroy_block(&self, host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
+        if !events_interaction_v0::block_break_heard() { return Flow::Continue; }
+        let context = break_context(host, event.pos);
+        let allowed = scoped(host, || events_interaction_v0::before_block_break(&context));
+        let actions = context.actions.take();
+        if let (Some(player), false) = (&context.player, actions.is_empty()) { apply_player_actions(host, player.uuid, actions); }
+        // The end of the break (the break sink, installed in `hooks`) reports an allowed break to `AFTER` with what was read here.
+        let pending = match (allowed, context.player) {
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension, state: context.state, player }),
+            _ => None,
+        };
+        if let Ok(mut slot) = PENDING_BREAK.lock() { *slot = pending; }
+        cancel_if(!allowed)
     }
 
     fn tooltip(&self, _host: &dyn Host, event: &mut TooltipEvent<'_>) {

@@ -62,9 +62,9 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (128, 92), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (127, 90), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
-    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
     // reads the attacker's held items: none of those is reported.
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
@@ -74,6 +74,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
 }
@@ -1491,7 +1492,7 @@ fn a_range_condition_reads_a_variable_of_the_entity() {
 }
 
 #[test]
-fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_unreported_fillers_unbound() {
+fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_every_filler_but_launch_capacity_is_bound() {
     use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt, NbtCompound};
     let world = world();
@@ -1500,9 +1501,10 @@ fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_unreport
         item_tags_loaded: true, item: None, item_tags: None };
     let unbound = |name: &str| world.registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(Identifier::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:barkskin").is_empty(), "the bar and its shield are both bound");
-    assert!(unbound("tconstruct:stoneshield") == ["tconstruct:loot_to_capacity"], "no event reports loot to the tool's holder");
+    assert!(unbound("tconstruct:stoneshield").is_empty(), "loot to capacity is bound to the loot of a mined block");
     assert!(unbound("tconstruct:frostshield").is_empty(), "damage to capacity is bound to the wearer's damage event");
-    assert!(unbound("tconstruct:overwield").iter().all(|kind| kind != "tconstruct:melee_capacity") && unbound("tconstruct:overwield").iter().any(|kind| kind == "tconstruct:mining_capacity"), "overwield's melee drain is bound, its mining drain is not");
+    assert!(unbound("tconstruct:overwield") == ["tconstruct:launch_capacity"], "overwield's melee and mining drains are bound, its launch drain is not");
+    assert!(unbound("tconstruct:war_charge") == ["tconstruct:launch_capacity"], "no event reports a shot's stack for an edit");
     let tool = |modifier: &str, level: i32, stored: i32| {
         let mut tool = ItemSlot::new(Identifier::parse("tconstruct:plate_boots").unwrap(), 1);
         tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
@@ -1525,6 +1527,63 @@ fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_unreport
     let mut worn = tool("tconstruct:stoneshield", 1, 20);
     let outcome = crate::tool_slot::damage_slot(&mut worn, &env, 5, true, true, None, &mut || 0.0).unwrap();
     assert_eq!((outcome.applied, stored(&worn, "tconstruct:stoneshield")), (0, 15));
+}
+
+#[test]
+fn shipped_mining_capacity_and_loot_to_capacity_edit_the_bars_of_the_tool_that_broke_the_block() {
+    use crate::{modifier_entries::List, tool_stack::{loot_capacity, mining_capacity_edits, rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_STATS, TAG_UPGRADES}, weapon_effect::Usage};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound, StackDataEdit};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let item = Identifier::parse("tconstruct:pickaxe").unwrap();
+    let tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:pickaxe"], &[("tconstruct:modifiable/harvest", &["tconstruct:pickaxe"][..])]).unwrap();
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&item), item_tags: Some(&tags) };
+    let tool = |modifier: &str, level: i32, persistent: &[(&str, i32)]| {
+        let mut tool = ItemSlot::new(item.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let mut data = NbtCompound::new();
+        for (key, value) in persistent { data.insert((*key).into(), Nbt::Int(*value)); }
+        tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(data));
+        tool
+    };
+    let set = |key: &str, value: i32| StackDataEdit { path: vec![TAG_PERSISTENT.to_string(), key.to_string()], value: Some(Nbt::Int(value)) };
+    // overwield spends one overslime a level as the dig starts (it runs before the break), and nothing after it.
+    let mut overwield = tool("tconstruct:overwield", 2, &[("tconstruct:overslime", 50)]);
+    let Some(Nbt::Compound(stats)) = overwield.custom_data.get_mut(TAG_STATS) else { panic!("rebuilt stats") };
+    stats.insert("tconstruct:overslime".into(), Nbt::Float(100.0));
+    assert_eq!(mining_capacity_edits(&overwield.custom_data, &env, true), vec![set("tconstruct:overslime", 48)]);
+    assert!(mining_capacity_edits(&overwield.custom_data, &env, false).is_empty());
+    let mut empty = overwield.clone();
+    let Some(Nbt::Compound(persistent)) = empty.custom_data.get_mut(TAG_PERSISTENT) else { panic!("persistent data") };
+    persistent.insert("tconstruct:overslime".into(), Nbt::Int(1));
+    assert_eq!(mining_capacity_edits(&empty.custom_data, &env, true), vec![StackDataEdit { path: vec![TAG_PERSISTENT.to_string(), "tconstruct:overslime".to_string()], value: None }], "a drained bar is removed");
+    // war charge gains one after a break, only while the tool holds a crossbow ammo key.
+    let charged = tool("tconstruct:war_charge", 1, &[("tconstruct:crossbow_ammo", 1), ("tconstruct:war_charge", 4)]);
+    assert_eq!(mining_capacity_edits(&charged.custom_data, &env, false), vec![set("tconstruct:war_charge", 5)]);
+    assert!(mining_capacity_edits(&charged.custom_data, &env, true).is_empty());
+    assert!(mining_capacity_edits(&tool("tconstruct:war_charge", 1, &[("tconstruct:war_charge", 4)]).custom_data, &env, false).is_empty(), "no ammo key, no gain");
+    // stoneshield eats the stone of the loot into its bar: 40% a stone at level 2, three points a stone.
+    let shield = tool("tconstruct:stoneshield", 2, &[]);
+    let in_tag = |item: &Identifier, tag: &Identifier| tag.to_string() == "tconstruct:stoneshields" && item.path() == "cobblestone";
+    let loot = || vec![ItemSlot::new(Identifier::parse("minecraft:cobblestone").unwrap(), 3), ItemSlot::new(Identifier::parse("minecraft:diamond").unwrap(), 1)];
+    let mut rolls = [0.1, 0.9, 0.3].into_iter();
+    let mut dropped = loot();
+    let edits = loot_capacity(&shield.custom_data, &env, &mut dropped, &in_tag, &mut || rolls.next().unwrap());
+    assert_eq!(edits, vec![set("tconstruct:stoneshield", 6)], "two of the three stones are eaten");
+    assert_eq!(dropped.iter().map(|slot| (slot.item.path().to_string(), slot.count)).collect::<Vec<_>>(), [("cobblestone".to_string(), 1), ("diamond".to_string(), 1)]);
+    let mut all = loot();
+    assert_eq!(loot_capacity(&shield.custom_data, &env, &mut all, &in_tag, &mut || 0.0), vec![set("tconstruct:stoneshield", 9)]);
+    assert_eq!(all.len(), 1, "only the diamond is left");
+    let mut untouched = loot();
+    assert!(loot_capacity(&tool("tconstruct:sharpness", 1, &[]).custom_data, &env, &mut untouched, &in_tag, &mut || 0.0).is_empty());
+    assert_eq!(untouched, loot(), "a tool without the module leaves the loot alone");
+    // The block-break half of the tool usage effects: decay names no such hook, magnetic hears every one.
+    assert!(crate::tool_stack::usage_effects(&tool("tconstruct:decay", 1, &[]).custom_data, &env, Usage::BlockBreak, &mut || 0.0).is_empty());
+    let magnetic = crate::tool_stack::usage_effects(&tool("tconstruct:magnetic", 1, &[]).custom_data, &env, Usage::BlockBreak, &mut || 0.99);
+    assert_eq!(magnetic.iter().map(|grant| (grant.effect.to_string(), grant.duration)).collect::<Vec<_>>(), [("tconstruct:magnetic".to_string(), 40)]);
 }
 
 /// A rebuilt tool of a shipped definition carrying `upgrades`.
