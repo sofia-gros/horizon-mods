@@ -375,14 +375,73 @@ with_ops(&mut game, || {
 
 ### `StackData`
 
-An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod keeps its materials and stats here.
+An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod keeps its materials and stats here. `custom_model_data` is the stack's `minecraft:custom_model_data` component (see `CustomModelData`), None for none: an item model definition selects its sprite from it, and the game reads and writes it with the stack.
 
 ```rust
 use pluto_lib::{Nbt, StackData};
 
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("durability".to_owned(), Nbt::Int(60))].into() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("durability".to_owned(), Nbt::Int(60))].into(), custom_model_data: None };
 assert_eq!(tool.custom_data["durability"], Nbt::Int(60));
 assert_eq!((tool.count, tool.damage), (1, 0));
+```
+
+### `CustomModelData`
+
+What an item model can select on (Minecraft: `minecraft:custom_model_data`). `strings` are matched by a `select` in the item definition (`index` picks the entry), `floats` feed a `range_dispatch`, `flags` a `condition` and `colors` (0xRRGGBB) a tint source. Set it on a `StackData` or `ItemSlot` and the game stores it as the component, so a mod can give each stack its own sprite, such as one per material, without a model per combination. The game cannot look inside `custom_data`, so a sprite choice must be copied here. Keep it in step with the data it comes from every time that data changes.
+
+```rust
+use pluto_lib::{CustomModelData, StackData};
+
+let head = StackData {
+    item: "example:pick_head".into(), count: 1,
+    custom_model_data: Some(CustomModelData { strings: vec!["wood".into()], ..Default::default() }),
+    ..Default::default()
+};
+assert_eq!(head.custom_model_data.unwrap().strings[0], "wood");
+```
+
+### `CustomModelData::with_strings`
+
+`fn with_strings(strings) -> CustomModelData`. Data with only `strings`.
+
+```rust
+use pluto_lib::CustomModelData;
+
+assert_eq!(CustomModelData::with_strings(["wood", ""]).strings, ["wood", ""]);
+```
+
+### `CustomModelData::is_empty`
+
+`fn is_empty(&self) -> bool`. True when all four lists are empty; empty data is not stored on a stack.
+
+```rust
+use pluto_lib::CustomModelData;
+
+assert!(CustomModelData::default().is_empty());
+assert!(!CustomModelData::with_strings(["wood"]).is_empty());
+```
+
+### `CustomModelData::to_nbt`
+
+`fn to_nbt(&self) -> NbtCompound`. The saved form of the component: `strings`, `floats`, `flags` (bytes 0 or 1) and `colors` lists, each left out when empty. The host adapters write this as `minecraft:custom_model_data`.
+
+```rust
+use pluto_lib::{CustomModelData, Nbt};
+
+let saved = CustomModelData::with_strings(["wood"]).to_nbt();
+assert_eq!(saved["strings"], Nbt::List(vec![Nbt::String("wood".into())]));
+assert!(!saved.contains_key("floats"));
+```
+
+### `CustomModelData::from_nbt`
+
+`fn from_nbt(nbt: &NbtCompound) -> CustomModelData`. Reads the saved form back, also accepting int and byte arrays, any non-zero number as a flag and three floats from 0 to 1 as a colour. Entries of another type are skipped.
+
+```rust
+use pluto_lib::CustomModelData;
+
+let data = CustomModelData { strings: vec!["wood".into()], flags: vec![true], ..Default::default() };
+assert_eq!(CustomModelData::from_nbt(&data.to_nbt()), data);
 ```
 
 ### `ServerPlayer::stack`
@@ -394,7 +453,7 @@ use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None };
 game.stacks.insert(1, vec![Some(tool)]);
 with_ops(&mut game, || {
     assert_eq!(player.stack(0).unwrap().custom_data["level"], Nbt::Int(2));
@@ -411,7 +470,7 @@ use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into(), custom_model_data: None };
 with_ops(&mut game, || {
     assert_eq!(player.give_stack(tool), None);
     assert_eq!(player.stack(0).unwrap().max_damage, Some(60));

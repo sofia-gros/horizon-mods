@@ -85,6 +85,34 @@ pub(crate) fn part_material(data: &NbtCompound) -> MaterialVariant {
 }
 pub(crate) fn set_part_material(stack: &mut ItemSlot, material: &MaterialVariant) {
     stack.custom_data.insert("Material".into(), Nbt::String(material.to_string()));
+    sync_model(stack);
+}
+
+/// The sprite key of one material slot for the item definitions' `select` on `custom_model_data`: the material id path without
+/// its namespace (`wood`, `rose_gold`); empty for an unknown material, which has no sprite of its own.
+fn model_key(material: &MaterialVariant) -> String {
+    let unknown = MaterialVariant::unknown().material_id();
+    match material.material_id() {
+        Some(id) if Some(&id) != unknown.as_ref() => id.path().to_owned(),
+        _ => String::new(),
+    }
+}
+/// What a stack's `custom_model_data.strings` hold, from its `custom_data`: for a tool, one `model_key` per `tic_materials` entry in
+/// slot order; for a tool part, its `Material` alone. None for data with neither (an empty material list included).
+pub(crate) fn model_strings(data: &NbtCompound) -> Option<Vec<String>> {
+    if let Some(Nbt::List(_)) = data.get(crate::tool_stack::TAG_MATERIALS) {
+        let list = MaterialList::from_nbt(data.get(crate::tool_stack::TAG_MATERIALS));
+        return Some(list.as_slice().iter().map(model_key).collect()).filter(|strings: &Vec<String>| !strings.is_empty());
+    }
+    data.get("Material").and_then(Nbt::as_str).filter(|text| !text.is_empty()).map(|text| vec![MaterialVariant::parse(text).map(|m| model_key(&m)).unwrap_or_default()])
+}
+/// Keeps the stack's `custom_model_data.strings` in step with its material data; every write of `tic_materials` or `Material` on a stack
+/// goes through here (directly or through `tool_slot::sync_visuals`). The game cannot look inside `custom_data`, so item models select on this.
+/// Other lists the stack's model data carries are kept.
+pub(crate) fn sync_model(stack: &mut ItemSlot) {
+    let mut model = stack.custom_model_data.take().unwrap_or_default();
+    model.strings = model_strings(&stack.custom_data).unwrap_or_default();
+    stack.custom_model_data = Some(model).filter(|model| !model.is_empty());
 }
 pub(crate) fn verify_part_material(stack: &mut ItemSlot, registry: &Definitions) {
     let original = part_material(&stack.custom_data);

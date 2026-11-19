@@ -108,6 +108,39 @@ fn a_pickaxe_of_shipped_wood_builds_repairs_and_breaks_through_the_station_dispa
 }
 
 #[test]
+fn the_model_strings_of_a_shipped_pickaxe_follow_its_material_slots_through_a_head_swap_and_a_part_carries_its_material() {
+    use crate::tool_station::{lookup, Context, Input, Outcome};
+    use crate::tool_materials::MaterialVariant;
+    let world = world();
+    let tools: Vec<(Identifier, &Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty())
+        .map(|(id, data)| (id.clone(), data)).collect();
+    let item_max = |_: &Identifier| 1;
+    let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+    let part = |item: &str, material: &str| Some(Input::Part { item: Identifier::parse(item).unwrap(), material: MaterialVariant::parse(material).unwrap() });
+    let strings = |slot: &pluto_lib::ItemSlot| slot.custom_model_data.as_ref().map(|data| data.strings.clone());
+    let inputs = [part("tconstruct:pick_head", "tconstruct:stone"), part("tconstruct:tool_handle", "tconstruct:wood"), part("tconstruct:tool_binding", "tconstruct:iron"), None];
+    let Outcome::Crafted(built) = lookup(&ctx, None, &inputs).unwrap() else { panic!("the shipped pickaxe did not build") };
+    assert_eq!(crate::tool_stack::materials(&built.result.custom_data, true).get(0).to_string(), "tconstruct:stone");
+    assert_eq!(strings(&built.result), Some(vec!["stone".to_owned(), "wood".to_owned(), "iron".to_owned()]), "one sprite key per material slot, in slot order");
+    // Swapping the head rewrites the first key and leaves the others.
+    let swap = [part("tconstruct:pick_head", "tconstruct:iron"), None, None, None];
+    let Outcome::Crafted(swapped) = lookup(&ctx, Some(&built.result), &swap).unwrap() else { panic!("the head did not swap") };
+    assert_eq!(strings(&swapped.result), Some(vec!["iron".to_owned(), "wood".to_owned(), "iron".to_owned()]));
+    // Wear and repair rebuild the visuals without disturbing the keys.
+    let mut worn = swapped.result.clone();
+    crate::tool_slot::damage_slot(&mut worn, &ctx.environment(&built.result.item, tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1), 3, true, true, None, &mut || 1.0).unwrap();
+    assert_eq!(strings(&worn), strings(&swapped.result));
+    // A part's only key is its material; an unknown material has none, and a stack with no materials has no data at all.
+    let mut head = pluto_lib::ItemSlot::new(Identifier::parse("tconstruct:pick_head").unwrap(), 1);
+    crate::tool_materials::set_part_material(&mut head, &MaterialVariant::parse("tconstruct:rose_gold").unwrap());
+    assert_eq!(strings(&head), Some(vec!["rose_gold".to_owned()]));
+    crate::tool_materials::set_part_material(&mut head, &MaterialVariant::unknown());
+    assert_eq!(strings(&head), Some(vec![String::new()]));
+    let plain = pluto_lib::ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    assert_eq!(crate::tool_materials::model_strings(&plain.custom_data), None);
+}
+
+#[test]
 fn shipped_stat_boost_modifiers_change_a_rebuilt_pickaxe() {
     use crate::{modifier_entries::List, tool_stack::{rebuild_stats, stat, Environment, TAG_UPGRADES, TAG_MATERIALS}, tool_stats::Stat};
     use pluto_lib::{Nbt, NbtCompound};

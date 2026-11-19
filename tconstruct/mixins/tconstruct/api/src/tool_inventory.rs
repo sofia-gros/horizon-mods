@@ -212,6 +212,8 @@ pub(crate) fn read_stack(compound: &NbtCompound) -> Option<ItemSlot> {
             stack.enchantments = Some(map.iter().filter_map(|(name, level)| level.as_i64().map(|level| (name.clone(), level as i32))).collect());
         }
     }
+    // The model selection is derived from the material data, not saved.
+    crate::tool_materials::sync_model(&mut stack);
     Some(stack)
 }
 

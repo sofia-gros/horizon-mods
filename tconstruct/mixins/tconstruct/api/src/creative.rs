@@ -10,7 +10,7 @@ use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
 
 fn part(item: &str, material: &str) -> ItemStack {
     ItemStack::new(Identifier::new("tconstruct", item).expect("valid part id"), 1)
-        .with_components(&format!("{{\"minecraft:custom_data\":{{Material:\"tconstruct:{material}\"}}}}"))
+        .with_components(&format!("{{\"minecraft:custom_data\":{{Material:\"tconstruct:{material}\"}},\"minecraft:custom_model_data\":{{strings:[\"{material}\"]}}}}"))
 }
 
 /// The tab: icon is the first part of the first material, entries follow the original order.
@@ -23,8 +23,10 @@ pub(crate) fn tool_parts_group() -> ItemGroup {
 /// A tool stack made of the given materials, one per material slot, uninitialized like ToolStack.createTool before the registries load.
 fn tool(item: &str, materials: &[&str]) -> ItemStack {
     let list = materials.iter().map(|material| format!("\"tconstruct:{material}\"")).collect::<Vec<_>>().join(",");
+    // The item models select their sprites on custom_model_data.strings, one material path per slot, as tool_materials::sync_model keeps them.
+    let sprites = materials.iter().map(|material| format!("\"{material}\"")).collect::<Vec<_>>().join(",");
     ItemStack::new(Identifier::new("tconstruct", item).expect("valid tool id"), 1)
-        .with_components(&format!("{{\"minecraft:custom_data\":{{tic_materials:[{list}]}}}}"))
+        .with_components(&format!("{{\"minecraft:custom_data\":{{tic_materials:[{list}]}},\"minecraft:custom_model_data\":{{strings:[{sprites}]}}}}"))
 }
 
 /// The Tools tab: armor and shields in the original order, each tool once per visible material.
@@ -51,7 +53,7 @@ mod tests {
         assert!(expected > 500, "the shipped data gives a large catalog");
         let first = &group.entries[0];
         assert_eq!(first.item.to_string(), "tconstruct:pick_head");
-        assert_eq!(first.to_snbt(), "{count:1,id:\"tconstruct:pick_head\",components:{\"minecraft:custom_data\":{Material:\"tconstruct:wood\"}}}");
+        assert_eq!(first.to_snbt(), "{count:1,id:\"tconstruct:pick_head\",components:{\"minecraft:custom_data\":{Material:\"tconstruct:wood\"},\"minecraft:custom_model_data\":{strings:[\"wood\"]}}}");
         // No part repeats a material.
         for (item, materials) in PARTS {
             let mut seen = std::collections::BTreeSet::new();
@@ -70,7 +72,7 @@ mod tests {
         let expected: usize = ARMOR.iter().map(|(_, variants)| variants.len()).sum();
         assert_eq!(group.entries.len(), expected);
         let count = |item: &str| ARMOR.iter().find(|(name, _)| *name == item).map(|(_, v)| v.len()).unwrap();
-        assert_eq!(group.entries[0].to_snbt(), "{count:1,id:\"tconstruct:travelers_helmet\",components:{\"minecraft:custom_data\":{tic_materials:[\"tconstruct:copper\",\"tconstruct:leather\"]}}}");
+        assert_eq!(group.entries[0].to_snbt(), "{count:1,id:\"tconstruct:travelers_helmet\",components:{\"minecraft:custom_data\":{tic_materials:[\"tconstruct:copper\",\"tconstruct:leather\"]},\"minecraft:custom_model_data\":{strings:[\"copper\",\"leather\"]}}}");
         // Wings have one slot; plate takes plating and maille, so a plating-only material gets the first maille material.
         assert!(ARMOR.iter().find(|(name, _)| *name == "slime_wings").unwrap().1.iter().all(|m| m.len() == 1));
         assert!(count("plate_helmet") == count("plate_chestplate") && count("slime_helmet") > count("slime_chestplate"));

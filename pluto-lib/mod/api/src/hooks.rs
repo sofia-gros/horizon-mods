@@ -94,9 +94,16 @@ pub fn hooks() -> Box<dyn Hooks> {
                 None=>None,
                 Some(value)=>Some(i32::try_from(value.as_i64()?).ok()?),
             };
+            let custom_model_data=match components.get("minecraft:custom_model_data") {
+                None=>None,
+                Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+                    Tag::Compound(data)=>Some(player_api::CustomModelData::from_nbt(&compound_from_tag(&data))),
+                    _=>return None,
+                },
+            };
             crate::pure::color_provider_api_v1::ColorProviderRegistry::item_color(
                 &crate::pure::color_provider_api_v1::ItemColorContext {
-                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data},tint_index,
+                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data},tint_index,
                 })
         },
     ).expect("PlutoLib item colour provider installs once before native rendering");
@@ -393,7 +400,20 @@ fn read_stack(stack: &ItemStack) -> player_api::StackData {
         Some(Tag::Int(value)) => Some(*value),
         _ => None,
     };
-    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data }
+    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data, custom_model_data: read_custom_model_data(stack) }
+}
+
+/// The stack's own `minecraft:custom_model_data` component as PlutoLib's `CustomModelData`, None when it has none.
+fn read_custom_model_data(stack: &ItemStack) -> Option<player_api::CustomModelData> {
+    match stack.data().and_then(|d| d.other("minecraft:custom_model_data")) {
+        Some(Tag::Compound(compound)) => Some(player_api::CustomModelData::from_nbt(&compound_from_tag(compound))),
+        _ => None,
+    }
+}
+
+/// The component value for `data`: None (remove the component) when there is none or it is empty.
+fn custom_model_data_tag(data: &Option<player_api::CustomModelData>) -> Option<Tag> {
+    data.as_ref().filter(|data| !data.is_empty()).map(|data| Tag::Compound(compound_to_tag(&data.to_nbt())))
 }
 
 fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,resource_loader_v0::RegistryLookup>)
@@ -416,19 +436,21 @@ fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,reso
             .map_err(|e|format!("invalid item prototype NBT: {e}"))?;
         if used!=prototype.custom_data.len() { return Err("trailing item prototype NBT".into()); }
         let Some(Nbt::Compound(custom_data))=strict(&tag) else { return Err("unsupported item prototype custom data".into()) };
-        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data })
+        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data,custom_model_data:None })
     }).collect::<Result<Vec<_>,String>>()?;
     crate::pure::item_registry::ItemRegistrySnapshot::decode(lookup,stacks)?
         .with_crafting_remainders(defaults.iter().map(|prototype|(prototype.id.clone(),prototype.crafting_remainder.clone())).collect()).map(Some)
 }
 
-/// Writes count, damage, max damage and custom data of `new` onto `stack` (the item is not changed).
+/// Writes count, damage, max damage, custom data and custom model data of `new` onto `stack` (the item is not changed).
 fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
     stack.count = new.count;
     stack.damage = new.damage;
     // the stack's own durability: a component the game reads before the item's
     stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
     stack.data_mut().set_other("minecraft:custom_data", (!new.custom_data.is_empty()).then(|| Tag::Compound(compound_to_tag(&new.custom_data))));
+    // the stack's own model selection: the item definition reads it, so it must travel with the stack
+    stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&new.custom_model_data));
     stack.tidy();
 }
 
@@ -1020,6 +1042,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.tool = read_tool(stack);
     slot.attribute_modifiers = read_attribute_modifiers(stack);
     slot.enchantments = read_enchantments(stack);
+    slot.custom_model_data = data.custom_model_data;
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -1053,6 +1076,10 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
             let compound: NbtCompound = levels.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
             Tag::Compound(compound_to_tag(&compound))
         }));
+    }
+    // The stack's own model selection: the item definition's `select`/`range_dispatch`/`condition` read it from here.
+    if slot.custom_model_data != read_custom_model_data(stack) {
+        stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&slot.custom_model_data));
     }
     stack.tidy();
 }

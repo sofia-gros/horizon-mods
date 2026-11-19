@@ -12,6 +12,7 @@ use pluto_lib::{Identifier, ItemSlot};
 /// durability while broken, so vanilla never deletes the stack), `damage` is ToolStack.getDamage,
 /// and `tool` is the mining component for the current speed/tier/broken state.
 pub(crate) fn sync_visuals(slot: &mut ItemSlot, env: &Environment) -> Result<(), String> {
+    crate::tool_materials::sync_model(slot);
     let data = &slot.custom_data;
     slot.max_damage = Some(tool_damage::fake_max_damage(data, true).max(1));
     slot.damage = u32::try_from(damage(data)).unwrap_or(0);
