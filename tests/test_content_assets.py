@@ -264,6 +264,14 @@ class ContentAssets(unittest.TestCase):
         limb = load(ASSETS / 'models/item/tool_layer/item_base_bow/longbow/large/limb_bottom.json')['elements'][0]
         self.assertEqual((limb['from'][:2], limb['to'][:2]), ([-7.5, -8.5], [24.5, 23.5]))
 
+    def test_every_content_path_is_a_plain_host_path(self):
+        # The host refuses the whole content mod when one path has a part outside [a-z0-9_.-] (measured on r3i: the mod's
+        # blocks and items were not registered because of assets/tconstruct/LICENSE).
+        bad = [p.relative_to(CONTENT).as_posix() for p in CONTENT.rglob('*')
+               if p.is_file() and p.relative_to(CONTENT).parts[0] in ('assets', 'data')
+               and not all(re.fullmatch(r'[a-z0-9_.-]+', part) for part in p.relative_to(CONTENT).parts)]
+        self.assertEqual(bad, [])
+
     def test_every_texture_is_used(self):
         used = set()
         for path in (ASSETS / 'models').rglob('*.json'):

@@ -360,7 +360,7 @@ def copy_client_assets():
         model = read(ASSET_SOURCE / 'models' / f'{path}.json')
         return model.get('loader') not in (None, *PLAIN_LOADERS) or ('parent' in model and needs_loader(model['parent']))
 
-    shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'LICENSE')
+    shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'license')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
         variants = read(ASSET_SOURCE / 'blockstates' / f'{name}.json').get('variants', {})
         if sorted(variants) != ['facing=east', 'facing=north', 'facing=south', 'facing=west']:
