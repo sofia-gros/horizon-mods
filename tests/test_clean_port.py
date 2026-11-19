@@ -178,6 +178,25 @@ class CleanPort(unittest.TestCase):
             with self.assertRaises(ValueError):
                 port.checked_content(self.root, version)
         block.write_text(newline='\n', data=json.dumps({'template': 'minecraft:stone'}), encoding='utf-8')
+        # World data keeps to the reviewed shapes: loot kinds, ore features, add_features modifiers, and own entries in vanilla block tags.
+        data = self.root / port.CONTENT / 'data'
+        loot = data / 'tconstruct/loot_table/blocks/cobalt_ore.json'
+        feature = data / 'tconstruct/worldgen/feature/cobalt_ore_small.json'
+        modifier = data / 'tconstruct/neoforge/biome_modifier/cobalt_ore.json'
+        tag = data / 'minecraft/tags/block/mineable/pickaxe.json'
+        for path, bad in ((loot, lambda t: t.replace('minecraft:apply_bonus', 'mantle:fill_retextured_block')),
+                          (loot, lambda t: t.replace('minecraft:tool/can_silk_touch', 'minecraft:random_chance')),
+                          (loot, lambda t: json.dumps({'type': 'minecraft:block', 'pools': []})),
+                          (feature, lambda t: t.replace('minecraft:ore', 'minecraft:tree')),
+                          (modifier, lambda t: t.replace('neoforge:add_features', 'neoforge:add_spawns')),
+                          (tag, lambda t: json.dumps({'values': ['minecraft:stone']})),
+                          (tag, lambda t: json.dumps({'values': [{'id': 'othermod:ore', 'required': False}]}))):
+            good = path.read_text(encoding='utf-8')
+            path.write_text(newline='\n', data=bad(good), encoding='utf-8')
+            with self.assertRaises(ValueError, msg=path.name):
+                port.checked_content(self.root, version)
+            path.write_text(newline='\n', data=good, encoding='utf-8')
+        port.checked_content(self.root, version)
         with self.assertRaises(ValueError):
             port.checked_content(self.root, '9.9.9')  # manifest version must match the native product
 

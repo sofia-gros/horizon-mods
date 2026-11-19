@@ -27,11 +27,44 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The damage type armor modules hurt their wearer with (data pack damage_type definition), and its entries in the two vanilla tags it joins.
     re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects)\.json'),
+    # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
+    # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
+    re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
+LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of'}
+LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count'}
+LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
+FEATURE_TYPES = {'minecraft:ore'}
+BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
+
+
+def check_loot(item, name):
+    """Block loot tables use only reviewed condition, function and entry kinds (the shapes the importer converts)."""
+    def condition(node):
+        if node != 'minecraft:tool/can_silk_touch' and not (isinstance(node, dict) and node.get('type') in LOOT_CONDITIONS):
+            raise ValueError(f'unreviewed loot condition in {name}')
+        for term in node.get('terms', []) if isinstance(node, dict) else []:
+            condition(term)
+
+    def walk(node):
+        if 'condition' in node:
+            condition(node['condition'])
+        for function in node.get('modifier', []):
+            if function.get('type') not in LOOT_FUNCTIONS:
+                raise ValueError(f'unreviewed loot function in {name}')
+        if 'type' in node and 'entries' not in node and 'pools' not in node and node['type'] not in LOOT_ENTRIES:
+            raise ValueError(f'unreviewed loot entry in {name}')
+        for key in ('pools', 'entries', 'children'):
+            for child in node.get(key, []):
+                walk(child)
+    if not isinstance(item, dict) or item.get('type') != 'minecraft:block' or not isinstance(item.get('pools'), list) or not isinstance(item.get('random_sequence'), str):
+        raise ValueError(f'a block loot table needs the block type, pools and a random sequence: {name}')
+    walk(item)
 
 
 def plan(root):
@@ -201,6 +234,26 @@ def checked_content(root, version):
                 if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
                     raise ValueError(f'a language file must map keys to strings: {name}')
                 continue
+            if '/loot_table/' in name:
+                check_loot(item, name)
+                continue
+            if '/worldgen/' in name:
+                if not isinstance(item, dict):
+                    raise ValueError(f'worldgen data must be a JSON object: {name}')
+                if '/worldgen/feature/' in name and item.get('type') not in FEATURE_TYPES:
+                    raise ValueError(f'only {sorted(FEATURE_TYPES)} features are reviewed here: {name}')
+                if '/worldgen/placed_feature/' in name and not (isinstance(item.get('feature'), str) and isinstance(item.get('placement'), list)):
+                    raise ValueError(f'a placed feature needs a feature and a placement list: {name}')
+                continue
+            if '/biome_modifier/' in name:
+                if not isinstance(item, dict) or set(item) != BIOME_MODIFIER_KEYS or item['type'] != 'neoforge:add_features' or not isinstance(item['step'], str):
+                    raise ValueError(f'only neoforge:add_features biome modifiers are reviewed here: {name}')
+                continue
+            if name.startswith('data/minecraft/tags/'):
+                # A mod's additions to vanilla's tags name only its own entries.
+                entries = item.get('values', []) if isinstance(item, dict) else []
+                if any(not str(entry if isinstance(entry, str) else entry.get('id', '')).lstrip('#').startswith('tconstruct:') for entry in entries):
+                    raise ValueError(f'a vanilla tag addition may only name tconstruct entries: {name}')
             if '/tags/' in name:
                 if not isinstance(item, dict) or set(item) - {'values', 'replace', 'remove'} or not isinstance(item.get('values'), list):
                     raise ValueError(f'tag must be an object with a values list: {name}')

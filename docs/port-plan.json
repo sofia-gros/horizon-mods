@@ -195,7 +195,7 @@
       "depends_on": ["R2", "R3", "R4-fluids"],
       "status": "pending",
       "kind": "gameplay",
-      "result": "Use the world-entities scope in R3, including slime soil. Real tools, fluid behavior and equipment state precede their world consumers. Validate generation, growth, collision/entity behavior, drops and save/reload; no per-block completion substitute.",
+      "result": "Use the world-entities scope in R3, including slime soil. Real tools, fluid behavior and equipment state precede their world consumers. Validate generation, growth, collision/entity behavior, drops and save/reload; no per-block completion substitute. Source-ready data, not game-verified (2026-11-20, tools/import_original_data.py): unit U1 cobalt (cobalt_ore, raw_cobalt_block, raw_cobalt and the three shards, loot, nether ore features and biome modifier, vanilla mineable/needs tags) and unit U2 plain slime blocks (sky/ichor/ender slime, four congealed slime, four slime dirt). Still missing for them: sticky-block rules of the sky/ichor/ender slime (canStickTo), congealed slime collision box 14x15x14, bounce, no fall damage and honey path type, slime dirt plant sustain (slime plants), shard tooltips, c: ore tags, and the Forge gold harvest tier (no 26.3 tag; no world block needs the tool to drop).",
       "evidence": []
     },
     {
