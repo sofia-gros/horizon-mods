@@ -810,8 +810,8 @@ def main():
 
         scenario('CAPACITY SHIELD', capacity_shield)
 
-        # 3. Max armor: projectile protection on worn boots raises the knockback resistance by 0.25 (the strongest claim; the plate
-        # boots carry two levels of their own, so upgrade level 3 is piece level 5), and the base value returns without the boots.
+        # 3. Max armor: projectile protection on worn boots raises the knockback resistance by 0.05 per level: the command-given
+        # boots carry no plating levels of their own, so upgrade level 3 gives 0.15 (measured in the real game on r3d), and the base value returns without the boots.
         def max_armor_attribute():
             ctl('command', 'item replace entity @s armor.feet with minecraft:air')
             ctl('wait', '10')
@@ -827,7 +827,7 @@ def main():
             ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
             ctl('wait', '10')
             detail = f'base {base}, worn {worn_value}, boots off {off}'
-            ok = None not in (base, worn_value, off) and abs(worn_value - base - 0.25) < 0.02 and abs(off - base) < 0.01
+            ok = None not in (base, worn_value, off) and abs(worn_value - base - 0.15) < 0.02 and abs(off - base) < 0.01
             return ok, detail
 
         scenario('MAX ARMOR', max_armor_attribute)
@@ -836,7 +836,10 @@ def main():
         # visibility effect itself (a skeleton's target range at 12 against 20 blocks) is not asserted: it needs an AI mob and a
         # timing-dependent target; there is no ctl or log path for it.
         def mob_disguise():
-            wear('head', 'plate_helmet', '{level:1,name:"tconstruct:enderman_disguise"}')
+            # No tic_stats on purpose: the stack is rebuilt by the first hit, which is what writes the volatile flag (measured on r3d: a stack
+            # given with tic_stats is not rebuilt and carries no volatile data).
+            ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],tic_modifiers:[{level:1,name:"tconstruct:enderman_disguise"}]}]')
+            ctl('wait', '10')
             survival_hit(4)  # GUESS: the hit rebuilds the stack, which writes the volatile data
             reply = json.dumps(ctl('command', 'data get entity @s equipment.head'))
             ctl('command', 'gamemode creative')
