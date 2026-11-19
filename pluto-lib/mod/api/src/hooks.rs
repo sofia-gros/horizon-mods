@@ -168,6 +168,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 attacker_state: entity_events_v1::EntityState {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
+                    ..entity_events_v1::EntityState::default()
                 },
                 armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()), counter_damage: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
             };
@@ -910,6 +911,49 @@ fn apply_player_actions(host: &mut dyn Host, uuid: u128, actions: Vec<entity_eve
         .or_else(|| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (player.entity_id, player.dimension.to_string())));
     let Some((entity, dimension)) = found else { return };
     apply_entity_actions(host, &dimension, entity, -1, rest);
+}
+
+/// What the world around an entity says about it: the biome it stands in and the temperature there, whether rain falls on it and whether
+/// its eyes are in water. `block` is the block it stands in and `eyes` where its eyes are.
+fn read_surroundings(host: &mut dyn Host, state: &mut entity_events_v1::EntityState, block: [i32; 3], eyes: Option<[f64; 3]>) {
+    let biome = host.biome(block);
+    let raining = host.weather().0 > 0.2;
+    let sky_light = host.light(block).1;
+    state.rain_exposed = entity_events_v1::rain_exposed(raining, sky_light, biome.as_deref(), block[1]);
+    state.biome_temperature = biome.as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, block[1]));
+    state.biome = biome;
+    if let Some(eyes) = eyes {
+        let eye_block = [eyes[0].floor() as i32, eyes[1].floor() as i32, eyes[2].floor() as i32];
+        let waterlogged = host.block_property(eye_block, "waterlogged").as_deref() == Some("true");
+        state.eyes_in_water = entity_events_v1::holds_water(&host.block(eye_block), waterlogged);
+    }
+}
+
+/// The state of a server player: what the player list says, their effects with levels, their health and maximum, the armor they wear and
+/// the world around them. A player's eyes are taken 1.62 blocks above their feet.
+fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::NativeServerPlayer) -> entity_events_v1::EntityState {
+    let effects = host.effects(player.uuid).unwrap_or_default();
+    use horizon_client::mod_api::EquipmentSlot;
+    let worn = [host.player_equipment(player.uuid, EquipmentSlot::Head).is_some(), host.player_equipment(player.uuid, EquipmentSlot::Chest).is_some(),
+        host.player_equipment(player.uuid, EquipmentSlot::Legs).is_some(), host.player_equipment(player.uuid, EquipmentSlot::Feet).is_some()]
+        .into_iter().filter(|worn| *worn).count();
+    let mut state = entity_events_v1::EntityState {
+        kind: "minecraft:player".to_owned(),
+        sprinting: player.sprinting,
+        on_ground: player.on_ground,
+        effects: effects.iter().map(|effect| effect.id.clone()).collect(),
+        effect_levels: effects.iter().map(|effect| (effect.id.clone(), i32::from(effect.amplifier))).collect(),
+        health: Some(player.health),
+        max_health: host.attribute(player.uuid, "minecraft:max_health").map(|(_, value)| value as f32),
+        armor_coverage: Some(entity_events_v1::armor_coverage(worn)),
+        ..entity_events_v1::EntityState::default()
+    };
+    let [x, y, z] = player.position;
+    let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
+    read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
+    // The player list has no flag for water; the block they stand in does.
+    state.in_water = entity_events_v1::holds_water(&host.block(block), host.block_property(block, "waterlogged").as_deref() == Some("true"));
+    state
 }
 
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
@@ -2039,6 +2083,9 @@ impl Hooks for PlutoHooks {
         }
         // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
         let worn = armor.clone();
+        // The state of a wearer, for the damage event of a hit on them (their health and surroundings as of this tick).
+        let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
+        entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
         if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
@@ -2326,36 +2373,42 @@ impl Hooks for PlutoHooks {
     fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
         if COUNTER_HURT.with(|flag| flag.get()) { return Flow::Continue; }
         // A player's weapon hit on a mob: what both were doing is remembered for the damage event that follows in the same call.
-        let state_of = |host: &dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
+        let state_of = |host: &mut dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
             let entity = host.entity(u32::try_from(id).ok()?)?;
-            Some(entity_events_v1::EntityState {
+            let effects = host.entity_effects(entity).unwrap_or_default();
+            let mut state = entity_events_v1::EntityState {
                 kind: host.entity_kind(entity)?,
                 sprinting: host.entity_is_sprinting(entity).unwrap_or(false),
                 on_ground: host.entity_on_ground(entity).unwrap_or(true),
                 in_water: host.entity_is_in_water(entity).unwrap_or(false),
                 fire_ticks: host.entity_fire_ticks(entity).unwrap_or(0),
                 fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
-                effects: host.entity_effects(entity).map(|effects| effects.into_iter().map(|(id, _, _)| id).collect()).unwrap_or_default(),
-            })
+                effects: effects.iter().map(|(id, _, _)| id.clone()).collect(),
+                // The mob's effects come as (id, ticks left, amplifier).
+                effect_levels: effects.into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect(),
+                ..entity_events_v1::EntityState::default()
+            };
+            // Health, the maximum and the armor worn are read from the mob's saved data.
+            if let Some(data) = host.entity_nbt(entity) {
+                let saved = entity_events_v1::saved_facts(&compound_from_tag(&data));
+                state.health = saved.health;
+                state.max_health = saved.max_health;
+                state.armor_coverage = saved.armor_coverage;
+            }
+            let eyes = host.entity_eye_position(entity);
+            if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }
+            Some(state)
         };
         // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
-        // server's list of players: what that list says (sprinting, on the ground) and their effects.
-        let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
+        // server's list of players: what that list says (sprinting, on the ground, health) and their effects.
+        let player_state = |host: &mut dyn Host| -> Option<entity_events_v1::EntityState> {
             // The player list names the attacker by entity id (0 for the owner of a single-player world, who is the acting player).
             let player = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
                 .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing))?;
-            Some(entity_events_v1::EntityState {
-                kind: "minecraft:player".to_owned(),
-                sprinting: player.sprinting,
-                on_ground: player.on_ground,
-                in_water: false,
-                fire_ticks: 0,
-                fire_immune: false,
-                effects: host.effects(player.uuid).map(|effects| effects.into_iter().map(|effect| effect.id).collect()).unwrap_or_default(),
-            })
+            Some(player_entity_state(host, &player))
         };
-        let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
-        let target_state = state_of(host, event.entity);
+        let attacker_state = state_of(&mut *host, event.causing).or_else(|| player_state(&mut *host));
+        let target_state = state_of(&mut *host, event.entity);
         entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {

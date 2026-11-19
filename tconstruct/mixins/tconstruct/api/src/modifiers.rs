@@ -162,6 +162,10 @@ impl Modifier {
     pub fn protection(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
         self.modules.iter().fold(value, |value, module| module.protection(entry, facts, nbt, source, value))
     }
+    /// The damage the wearer takes after this modifier's adjust damage modules.
+    pub fn adjust_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
+        self.modules.iter().fold(amount, |amount, module| module.adjust_damage(entry, facts, nbt, source, entities, amount))
+    }
     /// The enchantments this modifier's constant enchantment modules give.
     pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
         self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()

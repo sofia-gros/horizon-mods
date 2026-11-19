@@ -793,18 +793,34 @@ assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effe
 
 ### `EntityState`
 
-What a living entity was doing when a player's weapon hit it: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it.
+What a living entity was doing when a player's weapon hit it, and the facts about it a condition may ask: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it; `effect_levels` the same effects as (id, amplifier), the amplifier being the level less one (see [`EntityState::effect_level`](#entitystateeffect_level)); `health` and `max_health` its health points and its maximum (the `minecraft:max_health` attribute), `None` when not reported; `biome` the biome it stands in, `biome_temperature` that biome's temperature at its height (`Biome.getTemperature`), `None` for a biome PlutoLib has no temperature for; `eyes_in_water` whether its eyes are in water, where `in_water` is a touch of it; `rain_exposed` whether rain falls on it; `armor_coverage` the share of its four armor slots that hold armor, 0.0 to 1.0, `None` when not reported. Every field has a default, so build one with `..EntityState::default()`.
 
 ```rust
 use pluto_lib::EntityState;
 
-let state = EntityState { kind: "minecraft:husk".into(), sprinting: false, on_ground: true, in_water: false, fire_ticks: 40, fire_immune: false, effects: vec!["minecraft:poison".into()] };
+let state = EntityState { kind: "minecraft:husk".into(), on_ground: true, fire_ticks: 40, effects: vec!["minecraft:poison".into()],
+    health: Some(6.0), max_health: Some(20.0), biome_temperature: Some(2.0), rain_exposed: false, ..EntityState::default() };
 assert!(state.fire_ticks > 0 && state.effects.contains(&"minecraft:poison".to_string()));
+assert!(state.health.unwrap() < state.max_health.unwrap());
+```
+
+> **Use with Caution.** A mob's health, maximum and armor come from its saved data: the maximum is only known when the mob saved a `minecraft:max_health` attribute, and armor only when it saved equipment. A player's come from the server's player list and their equipment. Temperature is a table of the vanilla biomes with the game's cooling above y 80 (its noise term, at most about 0.01, and the frozen-biome noise are left out); a data pack's biome has `biome` but no temperature. `rain_exposed` is: raining, full sky light at the entity's block, and a biome that rains rather than snows or stays dry (an unknown biome is taken to rain). `eyes_in_water` reads the block at the eyes: water, a bubble column, kelp, seagrass or a waterlogged block. The state of a mob that hurt a wearer (`WearerHit::attacker_state`) carries only what the hurt report holds: type, ground, water, fire and effect ids. When a hit on a player wearing armor that carries custom data brings no target state, `DamageModification::target_state` is the player's as of their last tick, so their health is up to a tick old.
+
+### `EntityState::effect_level`
+
+The level of an effect on the entity: the amplifier plus one, so 1 for level I, and 0 when it does not have the effect or the game did not report levels.
+
+```rust
+use pluto_lib::EntityState;
+
+let state = EntityState { effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
+assert_eq!(state.effect_level("minecraft:poison"), 2);
+assert_eq!(state.effect_level("minecraft:speed"), 0);
 ```
 
 ### `DamageModification`
 
-Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection. When a player's weapon hit a mob, `attacker_state` and `target_state` say what the player and the mob were doing as the hit landed (`None` otherwise). `actions` takes [`EntityAction`](#entityaction)s for the damaged player (`ActionTarget::Victim`), which land on their next tick; only a player whose armor carries custom data is served, so they are dropped for any other entity. Damage heard in the same tick all work from the armor as of the last tick, so an `EditStackData` one callback queues does not see the edit another queued a moment before.
+Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection. When a player's weapon hit a mob, `attacker_state` and `target_state` say what the player and the mob were doing as the hit landed (`None` otherwise); for a damaged player wearing armor that carries custom data, `target_state` is their state as of their last tick when the hit brought none. `actions` takes [`EntityAction`](#entityaction)s for the damaged player (`ActionTarget::Victim`), which land on their next tick; only a player whose armor carries custom data is served, so they are dropped for any other entity. Damage heard in the same tick all work from the armor as of the last tick, so an `EditStackData` one callback queues does not see the edit another queued a moment before.
 
 ```rust
 use pluto_lib::{DamageModification, LivingDamage};

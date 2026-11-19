@@ -1,8 +1,9 @@
 //! ConditionalStatModule and ConditionalPowerModule, from SlimeKnights (MIT; see LICENSE): ranged-tool stats and projectile power
 //! that depend on what the holder and the target are doing. The conditions are the entity state conditions `melee_damage.rs` already
-//! asks (airborne, an effect, in water, a mob type) as pseudo entity type tags, answered from PlutoLib's `EntityState`. A module whose
-//! condition or variable needs data this port does not hold (health, biome temperature, an effect's level, rain, armor coverage) stays
-//! unbound instead of being half-installed. No game hook reads these yet: nothing in the port draws a bow or fires a projectile.
+//! asks (airborne, an effect, in water, full health, a mob type) as pseudo entity type tags, and the entity variables (health, biome
+//! temperature, an effect's level, rain, armor coverage) are read from PlutoLib's `EntityState`. A module whose condition or variable needs
+//! data this port does not hold stays unbound instead of being half-installed. No game hook reads these yet: nothing in the port draws a
+//! bow or fires a projectile, so the states a shot would carry are not reported.
 use crate::{formula::Formula, melee_damage::TargetCondition, mining_speed::{StatFormula, ToolView}, modifier_entries::Entry, tool_stats::Stat};
 use pluto_lib::{Identifier, Nbt, NbtCompound};
 use serde_json::{Map, Value};
@@ -21,7 +22,7 @@ impl ConditionalStat {
         let Some(stat) = Stat::from_id(&id) else { return Ok(None); };
         // The holder is the one wearing or wielding the tool: the `attacker` role of the state tags.
         let Some(holder) = TargetCondition::decode_for("attacker", fields.get("entity"))? else { return Ok(None); };
-        Ok(StatFormula::decode(fields, &STAT_NAMES)?.map(|formula| Self { stat, holder, formula }))
+        Ok(StatFormula::decode_in(fields, &STAT_NAMES, crate::mining_speed::EntityScope::Holder)?.map(|formula| Self { stat, holder, formula }))
     }
     /// A percent module runs later in the original (priority 75).
     pub fn percent(&self) -> bool { self.formula.percent() }
@@ -39,6 +40,8 @@ enum PowerVariable {
     Constant(f32),
     /// PersistentDataPowerVariable: a float of the projectile's data (0 when absent), the fallback with no projectile.
     ProjectileData { key: String, fallback: f32 },
+    /// EntityPowerVariable: a fact of the shooter or the target, `fallback` when it was not reported.
+    Entity { fact: crate::entity_facts::EntityFact, whose: crate::entity_facts::Whose, fallback: f32 },
 }
 
 impl PowerVariable {
@@ -51,13 +54,24 @@ impl PowerVariable {
                 let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
                 Ok(Some(Self::ProjectileData { key, fallback }))
             }
-            // Entity variables read health, biome temperature, rain or armor coverage, which are not reported.
+            "tconstruct:entity" => {
+                use crate::entity_facts::{EntityFact, Whose};
+                let whose = match object.get("which").and_then(Value::as_str).ok_or("which missing")? { "attacker" => Whose::Attacker, "target" => Whose::Target, _ => return Ok(None) };
+                let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
+                let role = if whose == Whose::Attacker { "attacker" } else { "target" };
+                let fact = match object.get("entity_type").ok_or("entity_type missing")? {
+                    Value::String(kind) => EntityFact::decode(kind, object, role)?,
+                    number => EntityFact::decode_value(number, role)?,
+                };
+                Ok(fact.map(|fact| Self::Entity { fact, whose, fallback }))
+            }
             _ => Ok(None),
         }
     }
-    fn value(&self, projectile: Option<&NbtCompound>) -> f32 {
+    fn value(&self, projectile: Option<&NbtCompound>, entities: &crate::entity_facts::Entities) -> f32 {
         match self {
             Self::Constant(value) => *value,
+            Self::Entity { fact, whose, fallback } => fact.value(entities, *whose).unwrap_or(*fallback),
             Self::ProjectileData { key, fallback } => match projectile {
                 Some(data) => data.get(key).map_or(0.0, number),
                 None => *fallback,
@@ -77,6 +91,8 @@ enum PowerShape { Boost { flat: f32, each: f32 }, Percent { flat: f32, each: f32
 pub(crate) struct PowerContext<'a> {
     pub holder_in_tag: &'a dyn Fn(&Identifier) -> bool,
     pub target_in_tag: &'a dyn Fn(&Identifier) -> bool,
+    /// The holder (as the attacker) and the target as PlutoLib reported them, for the entity variables.
+    pub entities: crate::entity_facts::Entities<'a>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -124,14 +140,14 @@ impl ConditionalPower {
     /// ModifierEntry.VALID_LEVEL: whether the modifier's level is in the module's range.
     pub fn level_matches(&self, entry: &Entry) -> bool { self.min <= entry.level && entry.level <= self.max }
 
-    fn eval(&self, entry: &Entry, projectile: Option<&NbtCompound>, damage: f32, multiplier: f32) -> f32 {
+    fn eval(&self, entry: &Entry, projectile: Option<&NbtCompound>, damage: f32, multiplier: f32, entities: &crate::entity_facts::Entities) -> f32 {
         let level = entry.effective_level();
         match &self.shape {
             PowerShape::Boost { flat, each } => damage + (flat + each * level) * multiplier,
             PowerShape::Percent { flat, each } => damage * (1.0 + (flat + each * level)),
             PowerShape::PostFix(formula, variables) => {
                 let mut arguments = vec![level, damage, multiplier];
-                arguments.extend(variables.iter().map(|variable| variable.value(projectile)));
+                arguments.extend(variables.iter().map(|variable| variable.value(projectile, entities)));
                 formula.apply(&arguments).unwrap_or(damage)
             }
         }
@@ -153,13 +169,13 @@ impl ConditionalPower {
         for key in [AMMO_MULTIPLIER, BOW_MULTIPLIER] {
             if let Some(value) = projectile.get(key) { multiplier *= number(value); }
         }
-        self.eval(entry, Some(projectile), base_damage, multiplier)
+        self.eval(entry, Some(projectile), base_damage, multiplier, &context.entities)
     }
 
     /// SlingForceModifierHook: the force after the module (no projectile, so a projectile variable reads its fallback).
     pub fn sling(&self, entry: &Entry, supported: bool, context: &PowerContext, force: f32, multiplier: f32, tool_multiplier: f32) -> f32 {
         if !self.level_matches(entry) || !supported || !self.holder.matches(context.holder_in_tag) || !self.target.matches(context.target_in_tag) { return force; }
-        self.eval(entry, None, force, multiplier * tool_multiplier)
+        self.eval(entry, None, force, multiplier * tool_multiplier, &context.entities)
     }
 }
 
@@ -171,11 +187,24 @@ mod tests {
     fn entry(level: i32) -> Entry { Entry::new(Identifier::parse("tconstruct:holy").unwrap(), level) }
 
     #[test]
-    fn modules_that_need_unreported_entity_data_stay_unbound() {
+    fn entity_variables_read_the_reported_state_and_others_stay_unbound() {
         let water = fields(json!({"formula":["$water",2.0,"/","$level","*","$multiplier","*","$damage","+"],"percent":false,"variables":{"water":{"type":"tconstruct:entity","entity_type":"tconstruct:water","fallback":2.0,"which":"target"}}}));
-        assert!(ConditionalPower::decode(&water).unwrap().is_none());
-        assert!(ConditionalPower::decode(&fields(json!({"each_level":0.25,"target":"tconstruct:full_health"}))).unwrap().is_none());
-        assert!(ConditionalStat::decode(&fields(json!({"stat":"tconstruct:projectile_damage","each_level":0.5,"entity":"tconstruct:full_health"}))).unwrap().is_none());
+        let module = ConditionalPower::decode(&water).unwrap().expect("a water variable is read from the target");
+        let mut arrow = NbtCompound::new();
+        module.shoot(false, 1.0, &mut arrow);
+        let soaked = pluto_lib::EntityState { in_water: true, ..Default::default() };
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &|_| false, entities: crate::entity_facts::Entities { attacker: None, target: Some(&soaked) } };
+        // 2 / 2 * level 2 * multiplier 1 + damage 3.
+        assert_eq!(module.hit(&entry(2), &mut arrow, &context, 3.0), 5.0);
+        let mut other = NbtCompound::new();
+        module.shoot(false, 1.0, &mut other);
+        let unknown = PowerContext { holder_in_tag: &|_| false, target_in_tag: &|_| false, entities: Default::default() };
+        // No target reported: the variable's fallback of 2 applies.
+        assert_eq!(module.hit(&entry(2), &mut other, &unknown, 3.0), 5.0);
+        let light = fields(json!({"formula":["$light","$damage","+"],"percent":false,"variables":{"light":{"type":"tconstruct:entity","entity_type":"tconstruct:light","fallback":0.0,"which":"target"}}}));
+        assert!(ConditionalPower::decode(&light).unwrap().is_none(), "light is not reported");
+        assert!(ConditionalPower::decode(&fields(json!({"each_level":0.25,"target":"tconstruct:full_health"}))).unwrap().is_some());
+        assert!(ConditionalStat::decode(&fields(json!({"stat":"tconstruct:projectile_damage","each_level":0.5,"entity":"tconstruct:full_health"}))).unwrap().is_some());
     }
 
     #[test]
@@ -184,14 +213,14 @@ mod tests {
         let mut arrow = NbtCompound::new();
         module.shoot(false, 2.0, &mut arrow);
         let undead = |tag: &Identifier| tag.to_string() == "minecraft:undead";
-        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &undead };
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &undead, entities: Default::default() };
         // 2 + 0.75 * level 2 * multiplier 2.
         assert_eq!(module.hit(&entry(2), &mut arrow, &context, 2.0), 5.0);
         assert_eq!(module.hit(&entry(2), &mut arrow, &context, 5.0), 5.0, "a second target gets no second boost");
         // A first hit on a target that does not match spends the boost.
         let mut other = NbtCompound::new();
         module.shoot(false, 2.0, &mut other);
-        let none = PowerContext { holder_in_tag: &|_| false, target_in_tag: &|_| false };
+        let none = PowerContext { holder_in_tag: &|_| false, target_in_tag: &|_| false, entities: Default::default() };
         assert_eq!(module.hit(&entry(2), &mut other, &none, 2.0), 2.0);
         assert_eq!(module.hit(&entry(2), &mut other, &context, 2.0), 2.0);
     }

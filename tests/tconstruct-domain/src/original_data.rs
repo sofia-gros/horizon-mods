@@ -62,7 +62,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (145, 101), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (139, 97), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "depth_protection", "recurrent_protection", "overshield", "restore_lost_health", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
@@ -660,7 +660,7 @@ fn shipped_jagged_and_stonebound_change_melee_damage_with_the_tools_lost_durabil
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 3).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(damage));
-        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|_| false)
+        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|_| false, &Default::default())
     };
     assert_eq!(hit("tconstruct:jagged", 0), 10.0, "a fresh jagged tool changes nothing");
     assert!(hit("tconstruct:jagged", 40) > 10.0, "a worn jagged tool hits harder: {}", hit("tconstruct:jagged", 40));
@@ -680,7 +680,7 @@ fn shipped_smite_and_bane_of_sssss_add_damage_only_to_the_right_targets() {
         tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 2).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
-        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|tag: &Identifier| tags.contains(&tag.to_string().as_str()))
+        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|tag: &Identifier| tags.contains(&tag.to_string().as_str()), &Default::default())
     };
     assert!(hit("tconstruct:smite", &["minecraft:undead"]) > 10.0, "smite boosts undead targets");
     assert_eq!(hit("tconstruct:smite", &["minecraft:arthropod"]), 10.0, "smite leaves other targets alone");
@@ -1239,11 +1239,13 @@ fn shipped_conditional_stat_and_power_bind_exactly_the_modules_whose_inputs_are_
     let unbound = |name: &str, kind: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().any(|id| id.to_string() == kind);
     // Holder state (airborne), tool data (durability, stat, persistent data) and the projectile data are held.
     for name in ["airborne", "dragonshot", "maintained", "overwield", "war_charge"] { assert!(!unbound(name, "tconstruct:conditional_stat"), "{name}"); }
-    // Health, an effect level and the biome temperature are not reported.
-    for name in ["ambush", "antitoxin", "flamestance", "invariant", "raging", "temperate"] { assert!(unbound(name, "tconstruct:conditional_stat"), "{name}"); }
-    for name in ["fins", "holy", "rebound"] { assert!(!unbound(name, "tconstruct:conditional_power"), "{name}"); }
-    // Health, rain and armor coverage of the target are not reported.
-    for name in ["ambush", "shock", "valiant"] { assert!(unbound(name, "tconstruct:conditional_power"), "{name}"); }
+    // Health, an effect level and the biome temperature of the holder are reported with the hit.
+    for name in ["ambush", "antitoxin", "flamestance", "invariant", "raging", "temperate"] { assert!(!unbound(name, "tconstruct:conditional_stat"), "{name}"); }
+    // So are the health, rain and armor coverage of the target.
+    for name in ["fins", "holy", "rebound", "ambush", "shock", "valiant"] { assert!(!unbound(name, "tconstruct:conditional_power"), "{name}"); }
+    // The melee modules over the same facts, and the damage adjustment over the wearer health.
+    for name in ["ambush", "antitoxin", "flamestance", "invariant", "raging", "shock", "valiant"] { assert!(!unbound(name, "tconstruct:conditional_melee_damage"), "{name}"); }
+    for name in ["warded", "dragonheart"] { assert!(!unbound(name, "tconstruct:adjust_damage"), "{name}"); }
 }
 #[test]
 fn shipped_conditional_stats_follow_the_holder_state_and_the_tool_data() {
@@ -1253,7 +1255,7 @@ fn shipped_conditional_stats_follow_the_holder_state_and_the_tool_data() {
     let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
     let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
         item_tags_loaded: true, item: None, item_tags: None };
-    let value = |tool: &NbtCompound, stat: Stat, holder: &EntityState| conditional_stat(tool, &env, stat, &|tag| state_in_tag(tag, Some(holder), None));
+    let value = |tool: &NbtCompound, stat: Stat, holder: &EntityState| conditional_stat(tool, &env, stat, &|tag| state_in_tag(tag, Some(holder), None), &crate::entity_facts::Entities { attacker: Some(holder), target: None });
     let grounded = EntityState { on_ground: true, ..EntityState::default() };
     let jumping = EntityState { on_ground: false, ..EntityState::default() };
     let swimming = EntityState { on_ground: false, in_water: true, ..EntityState::default() };
@@ -1301,7 +1303,7 @@ fn shipped_conditional_power_follows_the_target_and_the_projectile() {
         power_shoot(&tool, &env, false, &mut arrow);
         launch(&mut arrow);
         let target_in_tag = |tag: &Identifier| tags.contains(&tag.to_string().as_str()) || state_in_tag(tag, None, Some(&target));
-        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &target_in_tag };
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &target_in_tag, entities: crate::entity_facts::Entities { attacker: None, target: Some(&target) } };
         power_hit(&tool, &env, &mut arrow, &context, 2.0)
     };
     let dry = EntityState::default();
@@ -1314,6 +1316,170 @@ fn shipped_conditional_power_follows_the_target_and_the_projectile() {
     // rebound: half a point per bounce and level, from the bounce count of the arrow.
     let bounced = |arrow: &mut NbtCompound| { arrow.insert("tconstruct:bounce".into(), pluto_lib::Nbt::Float(3.0)); };
     assert_eq!(shot("tconstruct:rebound", 2, dry, &[], &bounced), 5.0);
+}
+
+/// The reported facts of an entity in a biome of 0.8, at `health` of 20.
+fn facts(health: f32) -> pluto_lib::EntityState {
+    pluto_lib::EntityState { health: Some(health), max_health: Some(20.0), biome_temperature: Some(0.8), ..pluto_lib::EntityState::default() }
+}
+
+#[test]
+fn shipped_melee_modules_read_health_temperature_effect_level_water_and_armor() {
+    use crate::{entity_facts::Entities, melee_damage::state_in_tag, tool_stack::{melee_damage, Environment}};
+    use pluto_lib::EntityState;
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    // A hit of damage 10 with `modifier` at `level`; the attacker and target as PlutoLib would report them.
+    let hit = |modifier: &str, level: i32, attacker: Option<&EntityState>, target: Option<&EntityState>| {
+        let tool = stat_tool(&world, modifier, level);
+        melee_damage(&tool, &env, 2.0, 10.0, &|tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE && state_in_tag(tag, attacker, target), &Entities { attacker, target })
+    };
+    let near = |left: f32, right: f32| assert!((left - right).abs() < 1e-4, "{left} != {right}");
+    // raging: (11 - health) / 10 clamped to 0..1, times 2.5 a level.
+    near(hit("tconstruct:raging", 2, Some(&facts(1.0)), None), 15.0);
+    near(hit("tconstruct:raging", 2, Some(&facts(6.0)), None), 12.5);
+    near(hit("tconstruct:raging", 2, Some(&facts(20.0)), None), 10.0);
+    near(hit("tconstruct:raging", 2, None, None), 15.0); // no attacker reported: the fallback health is 0
+    // ambush: a level of damage for an attacker at full health plus 0.6 a level for a target at full health.
+    let hurt = facts(5.0);
+    near(hit("tconstruct:ambush", 2, Some(&facts(20.0)), Some(&facts(20.0))), 13.2);
+    near(hit("tconstruct:ambush", 2, Some(&facts(20.0)), Some(&hurt)), 12.0);
+    near(hit("tconstruct:ambush", 2, Some(&hurt), Some(&facts(20.0))), 11.2);
+    near(hit("tconstruct:ambush", 2, Some(&hurt), Some(&hurt)), 10.0);
+    near(hit("tconstruct:ambush", 2, None, None), 13.2); // neither reported: the fallbacks are 1 and 0.6, a full-health pair
+    // flamestance: the attacker's biome temperature above 0.75 adds damage; the fallback of 2 applies when it is not known.
+    let desert = EntityState { biome_temperature: Some(2.0), ..EntityState::default() };
+    let tundra = EntityState { biome_temperature: Some(0.0), ..EntityState::default() };
+    near(hit("tconstruct:flamestance", 1, Some(&desert), None), 11.25);
+    near(hit("tconstruct:flamestance", 1, Some(&tundra), None), 9.25);
+    near(hit("tconstruct:flamestance", 1, None, None), 11.25);
+    // invariant: 1.28 a level at 0.75 and less the further the temperature is from it.
+    let mild = EntityState { biome_temperature: Some(0.75), ..EntityState::default() };
+    near(hit("tconstruct:invariant", 1, Some(&mild), None), 11.6);
+    near(hit("tconstruct:invariant", 1, Some(&desert), None), 10.0);
+    // antitoxin: only while poisoned, (effect level + 0.5) a level.
+    let poisoned = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
+    near(hit("tconstruct:antitoxin", 1, Some(&poisoned), None), 12.5);
+    near(hit("tconstruct:antitoxin", 1, Some(&EntityState::default()), None), 10.0);
+    // shock: 2 a level against a target in water, 1 in the rain, none when dry.
+    let wet = EntityState { in_water: true, ..EntityState::default() };
+    let diver = EntityState { eyes_in_water: true, ..EntityState::default() };
+    let rained_on = EntityState { rain_exposed: true, ..EntityState::default() };
+    near(hit("tconstruct:shock", 2, None, Some(&wet)), 14.0);
+    near(hit("tconstruct:shock", 2, None, Some(&diver)), 14.0);
+    near(hit("tconstruct:shock", 2, None, Some(&rained_on)), 12.0);
+    near(hit("tconstruct:shock", 2, None, Some(&EntityState::default())), 10.0);
+    near(hit("tconstruct:shock", 2, None, None), 14.0);
+    // valiant: 1.6 a level times the share of the target armor slots that are filled (the fallback is a full set).
+    let armored = EntityState { armor_coverage: Some(0.5), ..EntityState::default() };
+    near(hit("tconstruct:valiant", 1, None, Some(&armored)), 10.8);
+    near(hit("tconstruct:valiant", 1, None, None), 11.6);
+}
+
+#[test]
+fn shipped_stat_and_power_modules_read_the_holder_and_target_facts() {
+    use crate::{conditional_stat::PowerContext, entity_facts::Entities, melee_damage::state_in_tag, tool_stack::{conditional_stat, power_hit, power_shoot, Environment}, tool_stats::Stat};
+    use pluto_lib::{EntityState, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let near = |left: f32, right: f32| assert!((left - right).abs() < 1e-4, "{left} != {right}");
+    let stat = |modifier: &str, level: i32, stat: Stat, holder: &EntityState| {
+        let tool = stat_tool(&world, modifier, level);
+        conditional_stat(&tool, &env, stat, &|tag| state_in_tag(tag, Some(holder), None), &Entities { attacker: Some(holder), target: None })
+    };
+    // raging: projectile damage (base 2) rises by a level as health falls to 1.
+    near(stat("tconstruct:raging", 2, Stat::ProjectileDamage, &facts(1.0)), 4.0);
+    near(stat("tconstruct:raging", 2, Stat::ProjectileDamage, &facts(20.0)), 2.0);
+    // ambush: half a point of projectile damage a level at full health.
+    near(stat("tconstruct:ambush", 2, Stat::ProjectileDamage, &facts(20.0)), 3.0);
+    near(stat("tconstruct:ambush", 2, Stat::ProjectileDamage, &facts(3.0)), 2.0);
+    // temperate: draw speed rises as the biome drops below 0.75.
+    near(stat("tconstruct:temperate", 1, Stat::DrawSpeed, &EntityState { biome_temperature: Some(0.2), ..EntityState::default() }), 1.0 + 0.55 * 0.12);
+    near(stat("tconstruct:temperate", 1, Stat::DrawSpeed, &EntityState { biome_temperature: Some(1.5), ..EntityState::default() }), 1.0);
+    // antitoxin: a poisoned holder draws faster.
+    let poisoned = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 0)], ..EntityState::default() };
+    near(stat("tconstruct:antitoxin", 1, Stat::DrawSpeed, &poisoned), 1.0 + 1.5 * 0.1);
+    near(stat("tconstruct:antitoxin", 1, Stat::DrawSpeed, &EntityState::default()), 1.0);
+    // Power against a target.
+    let shot = |modifier: &str, level: i32, target: &EntityState| {
+        let tool = stat_tool(&world, modifier, level);
+        let mut arrow = NbtCompound::new();
+        power_shoot(&tool, &env, false, &mut arrow);
+        let target_in_tag = |tag: &Identifier| state_in_tag(tag, None, Some(target));
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &target_in_tag, entities: Entities { attacker: None, target: Some(target) } };
+        power_hit(&tool, &env, &mut arrow, &context, 2.0)
+    };
+    near(shot("tconstruct:shock", 2, &EntityState { in_water: true, ..EntityState::default() }), 4.0);
+    near(shot("tconstruct:shock", 2, &EntityState { rain_exposed: true, ..EntityState::default() }), 3.0);
+    near(shot("tconstruct:shock", 2, &EntityState::default()), 2.0);
+    near(shot("tconstruct:valiant", 2, &EntityState { armor_coverage: Some(0.5), ..EntityState::default() }), 2.8);
+    near(shot("tconstruct:ambush", 2, &facts(20.0)), 2.5);
+    near(shot("tconstruct:ambush", 2, &facts(9.0)), 2.0);
+}
+
+#[test]
+fn shipped_warded_and_dragonheart_adjust_the_damage_by_the_wearers_health() {
+    use crate::{damage_tags::DamageTags, entity_facts::Entities, modifier_entries::List, protection::DamageSource, tool_stack::{adjust_damage, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{EntityState, ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let adjusted = |modifier: &str, level: i32, damage_type: &str, wearer: Option<&EntityState>, amount: f32| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = Identifier::parse(damage_type).unwrap();
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false };
+        adjust_damage(&tool.custom_data, &env, &source, &Entities { attacker: None, target: wearer }, amount)
+    };
+    let whole = facts(20.0);
+    let hurt = facts(12.0);
+    // warded: at full health each level takes a point off a hit, never below 1 and never raising it.
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&whole), 5.0), 3.0);
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&whole), 1.5), 1.0);
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&whole), 0.5), 0.5);
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&hurt), 5.0), 5.0, "not at full health");
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", None, 5.0), 5.0, "a wearer that was not reported is not at full health");
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:out_of_world", Some(&whole), 5.0), 5.0, "damage that cannot be protected against");
+    // dragonheart: a hit is capped at the maximum health less two points a level (at least 1), for a wearer with 2 or more.
+    assert_eq!(adjusted("tconstruct:dragonheart", 1, "minecraft:mob_attack", Some(&hurt), 30.0), 18.0);
+    assert_eq!(adjusted("tconstruct:dragonheart", 1, "minecraft:mob_attack", Some(&hurt), 5.0), 5.0);
+    let frail = EntityState { max_health: Some(1.0), ..facts(1.0) };
+    assert_eq!(adjusted("tconstruct:dragonheart", 1, "minecraft:mob_attack", Some(&frail), 30.0), 30.0, "under 2 maximum health the module does not apply");
+}
+
+#[test]
+fn a_range_condition_reads_a_variable_of_the_entity() {
+    use crate::melee_damage::{state_in_tag, TargetCondition};
+    use serde_json::json;
+    let range = |min: Option<f32>, max: Option<f32>, interval: &str| {
+        let mut condition = json!({"type": "tconstruct:variable_range", "variable": {"type": "tconstruct:attribute", "attribute": "minecraft:generic.max_health"}, "interval": interval});
+        if let Some(min) = min { condition["min"] = json!(min); }
+        if let Some(max) = max { condition["max"] = json!(max); }
+        TargetCondition::decode_for("target", Some(&condition)).unwrap().expect("a max health range decodes")
+    };
+    let holds = |condition: &TargetCondition, max_health: Option<f32>| {
+        let state = pluto_lib::EntityState { max_health, ..Default::default() };
+        condition.matches(&|tag: &Identifier| state_in_tag(tag, None, Some(&state)))
+    };
+    let at_least_two = range(Some(2.0), None, "right_open");
+    assert!(holds(&at_least_two, Some(2.0)) && holds(&at_least_two, Some(40.0)) && !holds(&at_least_two, Some(1.9)) && !holds(&at_least_two, None));
+    let under_ten = range(None, Some(10.0), "left_open");
+    assert!(holds(&under_ten, Some(10.0)) && holds(&under_ten, Some(-5.0)) && !holds(&under_ten, Some(10.5)));
+    let open = range(Some(2.0), Some(4.0), "open");
+    assert!(holds(&open, Some(3.0)) && !holds(&open, Some(2.0)) && !holds(&open, Some(4.0)));
+    let light = json!({"type": "tconstruct:variable_range", "variable": "tconstruct:light", "min": 1.0});
+    assert!(TargetCondition::decode_for("target", Some(&light)).unwrap().is_none(), "light is not reported");
 }
 
 #[test]
@@ -1450,8 +1616,7 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
     assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
     // The modules that need host data this port does not receive stay unbound.
-    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:warded", "adjust_damage"),
-        ("tconstruct:dragonheart", "adjust_damage"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:shock", "conditional_melee_damage"), ("tconstruct:tank", "stat_boost"), ("tconstruct:experienced", "volatile_float")] {
+    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:tank", "stat_boost"), ("tconstruct:experienced", "volatile_float")] {
         assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
     }
     assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());

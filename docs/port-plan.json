@@ -32,6 +32,7 @@
     "api/src/mining_speed.rs",
     "api/src/break_speed_hook.rs",
     "api/src/melee_damage.rs",
+    "api/src/entity_facts.rs",
     "api/src/knockback.rs",
     "api/src/melee_hook.rs",
     "api/src/conditional_stat.rs",

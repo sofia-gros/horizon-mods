@@ -31,8 +31,9 @@ pub(crate) fn meal(nbt: &pluto_lib::NbtCompound, env: &tool_stack::Environment) 
     let effects = tool_stack::edible(nbt, env)?;
     // The eater's state tags are not known to the finish event, so a conditional stat that needs them does not apply.
     let no_state = |_: &Identifier| false;
-    let nutrition = edible::nutrition(tool_stack::conditional_stat(nbt, env, Stat::Hunger, &no_state));
-    let saturation = tool_stack::conditional_stat(nbt, env, Stat::Saturation, &no_state);
+    let no_entities = crate::entity_facts::Entities { attacker: None, target: None };
+    let nutrition = edible::nutrition(tool_stack::conditional_stat(nbt, env, Stat::Hunger, &no_state, &no_entities));
+    let saturation = tool_stack::conditional_stat(nbt, env, Stat::Saturation, &no_state, &no_entities);
     (nutrition > 0).then_some(Meal { nutrition, saturation, effects })
 }
 

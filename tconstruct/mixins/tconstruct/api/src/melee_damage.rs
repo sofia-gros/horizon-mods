@@ -1,9 +1,9 @@
 //! ConditionalMeleeDamageModule, from SlimeKnights (MIT; see LICENSE), for the modules whose conditions this
 //! port can evaluate: the tool's own state, the target's entity type, mob type and entity tags, and what the attacker and the
-//! target were doing as the hit landed (sprinting, in the air, burning, fire-immune, in water, an effect on them), which PlutoLib
-//! reports with the hit. Those state conditions are asked as pseudo entity type tags in the `STATE_NAMESPACE`
-//! (`tconstruct_state:attacker/sprinting`), so a condition tree is the one the entity type tags already use. A module that conditions
-//! on the attacker's biome or on health stays unbound until PlutoLib reports that, rather than being half-installed.
+//! target were doing as the hit landed (sprinting, in the air, burning, fire-immune, in water, an effect on them, full health, a health or
+//! temperature range), which PlutoLib reports with the hit. Those state conditions are asked as pseudo entity type tags in the
+//! `STATE_NAMESPACE` (`tconstruct_state:attacker/sprinting`), so a condition tree is the one the entity type tags already use. A condition
+//! on a fact PlutoLib does not report stays unbound rather than being half-installed.
 use crate::{mining_speed::{StatFormula, ToolView}, modifier_entries::Entry, tool_stats::Stat};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -40,6 +40,7 @@ fn named_state(role: &str, name: &str) -> Result<Option<Identifier>, String> {
         "mantle:fire_immune" => "fire_immune",
         "mantle:underwater" => "in_water",
         "tconstruct:airborne" => "airborne",
+        "tconstruct:full_health" => "full_health",
         _ => return Ok(None),
     };
     state_tag(role, what).map(Some)
@@ -61,6 +62,17 @@ pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::Entity
         "in_water" => state.in_water,
         // AIRBORNE: off the ground and not in water (climbing and riding are not reported).
         "airborne" => !state.on_ground && !state.in_water,
+        // FULL_HEALTH: the ceiling of the health, as the health bar draws it, reaches the maximum; false when either was not reported.
+        "full_health" => matches!((state.health, state.max_health), (Some(health), Some(max)) if health.ceil() >= max),
+        // `range/<variable>/<min>/<max>/<interval>`: EntityVariableRangePredicate over a variable of the entity.
+        _ if what.starts_with("range/") => {
+            let mut parts = what["range/".len()..].split('/');
+            let (Some(variable), Some(min), Some(max), Some(interval)) = (parts.next(), parts.next(), parts.next(), parts.next()) else { return false; };
+            let (Some(variable), Ok(min), Ok(max)) = (crate::entity_facts::EntityFact::from_range_name(variable), min.parse::<f32>(), max.parse::<f32>()) else { return false; };
+            let entities = crate::entity_facts::Entities { attacker, target };
+            let whose = if path.starts_with("attacker/") { crate::entity_facts::Whose::Attacker } else { crate::entity_facts::Whose::Target };
+            variable.value(&entities, whose).is_some_and(|value| crate::entity_facts::in_interval(interval, value, min, max))
+        }
         _ => what.strip_prefix("effect/").is_some_and(|effect| {
             let (namespace, path) = effect.split_once('/').unwrap_or(("minecraft", effect));
             state.effects.iter().any(|id| id == &format!("{namespace}:{path}"))
@@ -98,7 +110,16 @@ impl TargetCondition {
                 let (namespace, path) = effect.split_once(':').unwrap_or(("minecraft", effect));
                 Self::Tag(state_tag(role, &format!("effect/{namespace}/{path}"))?)
             }
-            "mantle:sprinting" | "mantle:on_fire" | "mantle:fire_immune" | "mantle:underwater" | "tconstruct:airborne" => match named_state(role, kind)? { Some(tag) => Self::Tag(tag), None => return Ok(None) },
+            "mantle:sprinting" | "mantle:on_fire" | "mantle:fire_immune" | "mantle:underwater" | "tconstruct:airborne" | "tconstruct:full_health" => match named_state(role, kind)? { Some(tag) => Self::Tag(tag), None => return Ok(None) },
+            "tconstruct:variable_range" => {
+                if role.is_empty() { return Ok(None); }
+                let variable = object.get("variable").ok_or("variable missing")?;
+                let Some(fact) = crate::entity_facts::EntityFact::decode_value(variable, role)? else { return Ok(None); };
+                let Some(name) = fact.range_name() else { return Ok(None); };
+                let bound = |key: &str, default: f32| -> Result<f32, String> { match object.get(key) { None | Some(Value::Null) => Ok(default), Some(value) => value.as_f64().map(|v| v as f32).ok_or_else(|| format!("{key} must be a number")) } };
+                let interval = match object.get("interval").and_then(Value::as_str) { None => "closed", Some(interval @ ("open" | "closed" | "left_open" | "right_open")) => interval, Some(other) => return Err(format!("unknown interval {other}")) };
+                Self::Tag(state_tag(role, &format!("range/{name}/{}/{}/{interval}", bound("min", f32::NEG_INFINITY)?, bound("max", f32::INFINITY)?))?)
+            }
             "mantle:mob_type" => {
                 let mobs = object.get("mobs").and_then(Value::as_str).ok_or("mobs must be a mob type")?;
                 match mob_type_tag(mobs) { Some(tag) => Self::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?), None => return Ok(None) }
@@ -134,7 +155,7 @@ impl MeleeDamage {
     pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let Some(attacker) = TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
         let Some(target) = TargetCondition::decode_for("target", fields.get("target"))? else { return Ok(None); };
-        Ok(StatFormula::decode(fields, &NAMES)?.map(|formula| Self { target, attacker, formula }))
+        Ok(StatFormula::decode_in(fields, &NAMES, crate::mining_speed::EntityScope::Hit)?.map(|formula| Self { target, attacker, formula }))
     }
     /// A percent module runs later in the original (priority 75).
     pub fn percent(&self) -> bool { self.formula.percent() }

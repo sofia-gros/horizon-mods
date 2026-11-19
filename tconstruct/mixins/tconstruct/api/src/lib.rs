@@ -37,6 +37,7 @@ mod tool_parts;
 mod tool_mining;
 mod mining_speed;
 mod melee_damage;
+mod entity_facts;
 mod conditional_stat;
 mod knockback;
 mod weapon_effect;
