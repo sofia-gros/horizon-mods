@@ -11,6 +11,7 @@ Scenarios (each asserted from the running game, with screenshots kept in the run
   3. taking the result gives the tool (with rebuilt stats) and consumes exactly the parts,
   4. a stone head on that tool swaps the head material in the result,
   5. the game log carries no Tinkers loader problems beyond the known unbound-module report.
+  Later blocks print 'NAME PASS' / 'NAME PARTIAL detail' lines: CREATIVE TOOLS TAB, CAPACITY SHIELD, MAX ARMOR, MOB DISGUISE, FIERY ATTACK, FIERY COUNTER, FREEZING ATTACK, FREEZING COUNTER, STICKY, WITHERED HIT (springy prints SKIP).
 """
 import argparse
 import json
@@ -748,6 +749,223 @@ def main():
             result['scenarios'].append(f'a protection helmet takes the sting out of a hit: {guarded_loss} lost against {bare_loss}')
         else:
             soft_failures.append(f'protection: {guarded_loss} lost with protection against {bare_loss} without')
+
+        # ---- Scenarios for the r2/next2 features. Each is independent: an exception or a failed assertion in one is recorded as
+        # its own PARTIAL line and never hides the others. They cannot be run by the author of this block, so every assertion is
+        # derived from the domain tests and the scenarios above; GUESS marks what has not been seen in a real run.
+        def scenario(name, body):
+            """Run body() -> (ok, detail); print 'NAME PASS' or 'NAME PARTIAL detail' and record it."""
+            try:
+                ok, detail = body()
+            except Exception as error:  # a broken scenario must not stop the ones after it
+                ok, detail = False, f'raised {type(error).__name__}: {error}'
+            finally:
+                try:
+                    ctl('command', 'gamemode creative')
+                except Exception:
+                    pass
+            if ok:
+                print(f'{name} PASS', detail, flush=True)
+                result['scenarios'].append(f'{name.lower()}: {detail}')
+            else:
+                print(f'{name} PARTIAL', detail, flush=True)
+                soft_failures.append(f'{name.lower()}: {detail}')
+
+        def wear(slot, item, modifiers, extra=''):
+            ctl('command', f'item replace entity @s armor.{slot} with tconstruct:{item}[custom_data={{tic_materials:["tconstruct:iron","tconstruct:iron"],{helmet_stats}{extra},tic_modifiers:[{modifiers}]}}]')
+            ctl('wait', '10')
+
+        def survival_hit(amount=8):
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', f'damage @s {amount} minecraft:mob_attack')
+            ctl('wait', '10')
+
+        # 1. Creative tools tab. No ctl command lists a creative tab's stacks, so the game log is the evidence: the pluto-lib rebuild
+        # prints the number of tabs it added (GUESS: the tconstruct:tools group is one of them; the 436 stacks of the worker report
+        # are not visible from here). A tab count above zero proves the group registration reached the creative rebuild.
+        def creative_tab():
+            text = (run / 'game.log').read_text(encoding='utf-8', errors='replace')
+            counts = [int(m.group(1)) for m in re.finditer(r'pluto_lib: creative tabs added, tabs=(\d+)', text)]
+            problems = [line for line in text.splitlines() if 'tconstruct:tools' in line and re.search(r'(?i)invalid|error|unknown', line)]
+            return bool(counts) and max(counts) > 0 and not problems, f'tabs added {counts}, group problem lines {problems[:2]}'
+
+        scenario('CREATIVE TOOLS TAB', creative_tab)
+
+        # 2. Capacity shield: barkskin's bar (tic_persistent) soaks the wear two hits would put on the boots.
+        def capacity_shield():
+            wear('feet', 'plate_boots', '{level:1,name:"tconstruct:barkskin"}', ',tic_persistent:{"tconstruct:barkskin":40}')
+            for _ in range(2):
+                survival_hit(8)
+            reply = json.dumps(ctl('command', 'data get entity @s equipment.feet'))
+            ctl('command', 'gamemode creative')
+            bar = re.search(r'tic_persistent[^}]*?tconstruct:barkskin\W{0,6}(\d+)', reply)
+            damage = re.search(r'minecraft:damage[^0-9]{0,8}(\d+)', reply)
+            left = int(bar.group(1)) if bar else None
+            worn = int(damage.group(1)) if damage else 0
+            ok = 'plate_boots' in reply and left is not None and left < 40 and worn == 0
+            return ok, f'bar {left} of 40, boots damage {worn}: {reply[:200] if not ok else ""}'
+
+        scenario('CAPACITY SHIELD', capacity_shield)
+
+        # 3. Max armor: projectile protection on worn boots raises the knockback resistance by 0.05 per level: the command-given
+        # boots carry no plating levels of their own, so upgrade level 3 gives 0.15 (measured in the real game on r3d), and the base value returns without the boots.
+        def max_armor_attribute():
+            ctl('command', 'item replace entity @s armor.feet with minecraft:air')
+            ctl('wait', '10')
+            base = read_attribute('minecraft:knockback_resistance')
+            wear('feet', 'plate_boots', '{level:3,name:"tconstruct:projectile_protection"}')
+            survival_hit(4)  # GUESS: like the maintained scenario, a hit rebuilds the command-given stack before the claim reads it
+            ctl('command', 'gamemode creative')
+            ctl('wait', '20')
+            worn_value = read_attribute('minecraft:knockback_resistance')
+            ctl('command', 'item replace entity @s armor.feet with minecraft:air')
+            ctl('wait', '20')
+            off = read_attribute('minecraft:knockback_resistance')
+            ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+            ctl('wait', '10')
+            detail = f'base {base}, worn {worn_value}, boots off {off}'
+            ok = None not in (base, worn_value, off) and abs(worn_value - base - 0.15) < 0.02 and abs(off - base) < 0.01
+            return ok, detail
+
+        scenario('MAX ARMOR', max_armor_attribute)
+
+        # 4. Mob disguise: an enderman disguise makes the helmet an ender mask (the volatile flag the domain test checks). The
+        # visibility effect itself (a skeleton's target range at 12 against 20 blocks) is not asserted: it needs an AI mob and a
+        # timing-dependent target; there is no ctl or log path for it.
+        def mob_disguise():
+            # No tic_stats on purpose: the stack is rebuilt by the first hit, which is what writes the volatile flag (measured on r3d: a stack
+            # given with tic_stats is not rebuilt and carries no volatile data). Materials are plating + maille, the pair the station builds
+            # a plate helmet from; two irons rebuilt to a broken 2-point piece in r3e, which adds nothing.
+            ctl('command', 'item replace entity @s armor.head with tconstruct:plate_helmet[custom_data={tic_materials:["tconstruct:cobalt","tconstruct:iron"],tic_modifiers:[{level:1,name:"tconstruct:enderman_disguise"}]}]')
+            ctl('wait', '10')
+            survival_hit(4)  # GUESS: the hit rebuilds the stack, which writes the volatile data
+            reply = json.dumps(ctl('command', 'data get entity @s equipment.head'))
+            ctl('command', 'gamemode creative')
+            ctl('command', 'item replace entity @s armor.head with minecraft:air')
+            return 'tconstruct:endermask' in reply, f'ender mask flag in the helmet: {"tconstruct:endermask" in reply}' + ('' if 'tconstruct:endermask' in reply else ' ' + reply[:250])
+
+        scenario('MOB DISGUISE', mob_disguise)
+
+        # ---- Hit actions and hit effects (fiery, freezing, springy, sticky, withered). The mob is a pig with no AI: unlike a husk it
+        # is not immune to fire. Every assertion rests on the shipped modifier json and the domain test
+        # shipped_fiery_freezing_and_springy_act_on_the_mob_hit_and_on_the_mob_that_hits_the_wearer; GUESS marks what no real run has shown.
+        def pig_data(path):
+            return json.dumps(ctl('command', f'data get entity @e[type=minecraft:pig,limit=1,sort=nearest] {path}'))
+
+        def last_number(reply, suffix=''):
+            numbers = re.findall(r'(-?\d+(?:\.\d+)?)' + suffix + r'\b', reply)
+            return float(numbers[-1]) if numbers else None
+
+        def summon_pig():
+            ctl('command', 'kill @e[type=minecraft:pig]')
+            ctl('command', f'summon minecraft:pig {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
+            ctl('wait', '20')
+
+        def hit_pig(modifiers, before_hit=None):
+            """Hold a pickaxe with the modifiers (a JSON-ish list body) and hit a fresh pig once; the pig stays for the data reads."""
+            summon_pig()
+            ctl('command', 'gamemode survival')
+            ctl('command', 'clear @s')
+            ctl('command', f'give @s tconstruct:pickaxe[custom_data={{{parts},{stats},tic_modifiers:[{modifiers}]}}] 1')
+            if before_hit:
+                before_hit()  # `clear @s` above also empties the armor slots, so worn pieces go on here
+            ctl('select', 1)
+            found = ctl('entities', 8, 'pig')
+            listed = found.get('mobs') or found.get('entities') or []
+            assert listed, found
+            ctl('look-at-entity', listed[0]['id'])
+            ctl('wait', '30')
+            reply = ctl('attack', listed[0]['id'])
+            assert reply.get('hit'), reply
+            ctl('wait', '5')
+
+        def counter_pig():
+            """The pig damages the wearer (the flow of the thorns scenario); the pig stays for the data reads."""
+            summon_pig()
+            ctl('command', 'gamemode survival')
+            ctl('command', 'effect clear @s')
+            ctl('command', 'effect give @s minecraft:instant_health 1 10 true')
+            ctl('wait', '30')
+            ctl('command', 'damage @s 4 minecraft:mob_attack by @e[type=minecraft:pig,limit=1]')
+            ctl('wait', '5')
+
+        def finish_pig():
+            ctl('command', 'kill @e[type=minecraft:pig]')
+            ctl('command', 'item replace entity @s armor.head with minecraft:air')
+            ctl('command', 'gamemode creative')
+            ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+            ctl('wait', '10')
+
+        # 5. Fiery attack: fiery 2 sets the hit mob alight for 5 seconds a level (SetFire 10 seconds in the domain test).
+        def fiery_attack():
+            hit_pig('{level:2,name:"tconstruct:fiery"}')
+            reply = pig_data('Fire')
+            finish_pig()
+            fire = last_number(reply, 's')  # GUESS: Fire prints as a short with an s suffix, -1s when not burning
+            return fire is not None and fire > 0, f'pig Fire after the hit {fire} (reply {reply[:120]})'
+
+        scenario('FIERY ATTACK', fiery_attack)
+
+        # 6. Fiery counter: worn fiery 7 (15% a level, so certain) sets the mob that hit the wearer alight (SetFire 1 + roll seconds).
+        def fiery_counter():
+            wear('head', 'plate_helmet', '{level:7,name:"tconstruct:fiery"}')
+            counter_pig()
+            reply = pig_data('Fire')
+            finish_pig()
+            fire = last_number(reply, 's')
+            return fire is not None and fire > 0, f'attacking pig Fire {fire} (reply {reply[:120]})'
+
+        scenario('FIERY COUNTER', fiery_counter)
+
+        # 7. Freezing attack: freezing 1 freezes the hit mob for (4 + 4 a level) seconds of 40 ticks = 320 ticks.
+        def freezing_attack():
+            hit_pig('{level:1,name:"tconstruct:freezing"}')
+            reply = pig_data('TicksFrozen')
+            finish_pig()
+            ticks = last_number(reply)
+            return ticks is not None and ticks > 0, f'pig TicksFrozen {ticks}, 320 expected at the hit (reply {reply[:120]})'
+
+        scenario('FREEZING ATTACK', freezing_attack)
+
+        # Freezing counter on worn armor, the same flow as the fiery counter (domain test: Freeze 80 ticks at a low roll).
+        def freezing_counter():
+            wear('head', 'plate_helmet', '{level:7,name:"tconstruct:freezing"}')
+            counter_pig()
+            reply = pig_data('TicksFrozen')
+            finish_pig()
+            ticks = last_number(reply)
+            return ticks is not None and ticks > 0, f'attacking pig TicksFrozen {ticks}, at least 80 ticks of constant 2 seconds expected (reply {reply[:120]})'
+
+        scenario('FREEZING COUNTER', freezing_counter)
+
+        # 8. Springy (knockback_counter) is a push against the attacker's facing. A pig with no AI does not move and the knockback hook of
+        # the melee hit logs only the wearer's own hits, so no log or data path measures the counter: an explicit SKIP, not a pass.
+        print('SPRINGY SKIP no log or data path measures a knockback_counter push on a mob with no AI (domain test covers Knockback 0.5 AgainstFacing)', flush=True)
+        result['scenarios'].append('springy: SKIP, no measurable path (domain test only)')
+
+        # 9. Legacy mob_effect: sticky puts slowness on the mob the tool hits (the shipped json names minecraft:slowness, not a
+        # tconstruct:sticky effect). GUESS: the effect applies on every hit; its level (0.5 a level) is not asserted.
+        def sticky():
+            hit_pig('{level:1,name:"tconstruct:sticky"}')
+            reply = pig_data('active_effects')
+            finish_pig()
+            return 'minecraft:slowness' in reply, f'pig active_effects: {reply[:200]}'
+
+        scenario('STICKY', sticky)
+
+        # 10. armor_attack_mob_effect: worn withered 1 gives the mob the wearer's melee hit wither (level 1, 120 ticks).
+        def withered_hit():
+            hit_pig('', before_hit=lambda: wear('head', 'plate_helmet', '{level:1,name:"tconstruct:withered"}'))  # GUESS: the armor hook runs on the held tool's melee hit
+            reply = pig_data('active_effects')
+            finish_pig()
+            return 'minecraft:wither' in reply, f'pig active_effects: {reply[:200]}'
+
+        scenario('WITHERED HIT', withered_hit)
+        ctl('command', f'tp @s {centre[0] + 0.5} 200 {centre[1] + 0.5}')
+        ctl('wait', '10')
 
         # Save and reload: the pickaxe survives quitting and reopening the same world.
         ctl('command', 'clear @s')
