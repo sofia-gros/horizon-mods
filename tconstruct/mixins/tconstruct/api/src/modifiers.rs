@@ -116,6 +116,8 @@ impl Modifier {
             level_display: display, tooltips, translation_key, modules, unbound, empty_sentinel: false })
     }
     /// Whether any module of this modifier adds nested traits (it has a MODIFIER_TRAITS binding).
+    /// Every module, in definition order.
+    pub fn modules(&self) -> &[crate::modifier_modules::Module] { &self.modules }
     pub fn has_trait_modules(&self) -> bool { self.modules.iter().any(crate::modifier_modules::Module::is_trait) }
     /// ModifierTraitHook through TraitBuilder: the nested entries for `entry`, in module order.
     pub fn trait_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, first_encounter: bool) -> Vec<Entry> {

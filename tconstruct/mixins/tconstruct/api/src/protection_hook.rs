@@ -1,7 +1,8 @@
 //! Connects the protection modules to PlutoLib's damage event: the damage a player takes while wearing Tinkers armor is
 //! reduced (or raised) by the armor's protection modifiers, as ToolEvents.livingHurt does in the original.
-//! The event fires after vanilla's armor and enchantment protection; vanilla enchantment protection is taken as 0 points,
-//! so armor that also carries vanilla protection enchantments is protected by it twice.
+//! The event fires after vanilla's armor and enchantment protection. The enchantment points counted are those of the enchantments the
+//! armor's own modifiers give (the stack carries them, so the game applied them); enchantments a player added are taken as 0 points,
+//! so armor that also carries those is protected by them twice. Modifiers that ignore the enchantment's protection take its points off again.
 use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
@@ -49,15 +50,18 @@ pub(crate) fn register() {
             hit.amount.set(0.0);
             return;
         }
-        // Each piece's modifiers see the protection so far, feet to head.
-        let mut total = 0.0;
+        // The points the game's enchantment protection already took off for the enchantments the pieces' modifiers give.
+        let levels: Vec<_> = hit.armor.iter().filter_map(|(_, piece)| with_held_tool(piece, |env, stack| tool_stack::enchantments(&stack.custom_data, env)).ok()).collect();
+        let vanilla = crate::protection::host_enchantment_points(&levels, &source);
+        // Each piece's modifiers see the protection so far, feet to head, starting from the enchantment points.
+        let mut total = vanilla;
         let mut cap_added = 0.0;
         for (_, piece) in &hit.armor {
             if let Ok((value, cap)) = with_held_tool(piece, |env, stack| (tool_stack::protection(&stack.custom_data, env, &source, total), tool_stack::protection_cap(&stack.custom_data, env))) { total = value; cap_added += cap; }
         }
-        if total == 0.0 { return; }
+        if total == 0.0 && vanilla == 0.0 { return; }
         let amount = hit.amount.get();
-        let after = damage_after_protection(amount, 0.0, total, protection_cap(cap_added));
+        let after = damage_after_protection(amount, vanilla, total, protection_cap(cap_added));
         if LOGGED.fetch_add(1, Ordering::Relaxed) < 4 {
             eprintln!("Tinkers: {} damage to {} with {} armor pieces: protection {total}, {amount} -> {after}", hit.damage.damage_type, hit.damage.kind, hit.armor.len());
         }

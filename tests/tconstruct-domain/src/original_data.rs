@@ -62,10 +62,10 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (161, 113), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (157, 111), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
-    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "depth_protection", "recurrent_protection", "overshield", "restore_lost_health", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
@@ -698,7 +698,8 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
     };
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:mob_attack", false), 2.5, "protection gives 1.25 a level");
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:out_of_world", false), 0.0, "void damage bypasses protection");
-    assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:lava", false), 3.0);
+    // The running value starts at the game's enchantment points in the hook; from 0 the enchantment's 2 fire points come off its own 3.
+    assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:lava", false), 1.0);
     // Iron plating and maille bring their own projectile protection, so an arrow is measured against a helmet with an unrelated modifier.
     let iron_alone = protection_of("tconstruct:sharpness", 1, "minecraft:arrow", true);
     assert!(iron_alone > 0.0, "iron armor protects against projectiles by itself");
@@ -1281,4 +1282,71 @@ fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_fillers_
     let mut worn = tool("tconstruct:stoneshield", 1, 20);
     let outcome = crate::tool_slot::damage_slot(&mut worn, &env, 5, true, true, None, &mut || 0.0).unwrap();
     assert_eq!((outcome.applied, stored(&worn, "tconstruct:stoneshield")), (0, 15));
+}
+
+#[test]
+fn shipped_fire_protection_takes_back_the_vanilla_points_its_enchantment_gave() {
+    use crate::{damage_tags::DamageTags, modifier_entries::List, protection::{damage_after_protection, host_enchantment_points, DamageSource}, tool_stack::{enchantments, protection, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{EntityState, ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    // The helmet, the points the game's enchantment protection counted for it, and the running protection the modifiers leave.
+    let run = |modifier: &str, level: i32, damage_type: &str, attacker: Option<&EntityState>| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = id(damage_type);
+        let in_tag = |tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE && crate::melee_damage::state_in_tag(tag, attacker, None);
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag };
+        let vanilla = host_enchantment_points([&enchantments(&tool.custom_data, &env)], &source);
+        (vanilla, protection(&tool.custom_data, &env, &source, vanilla))
+    };
+    // Fire protection I is 2 vanilla points against fire, which come off again before its own 3 are added.
+    assert_eq!(run("tconstruct:fire_protection", 1, "minecraft:lava", None), (2.0, 3.0));
+    // Iron plating brings its own projectile and melee protection, so the unrelated baseline is measured with an unrelated modifier.
+    let base = |damage_type: &str| run("tconstruct:sharpness", 1, damage_type, None).1;
+    assert_eq!(run("tconstruct:fire_protection", 1, "minecraft:arrow", None), (0.0, base("minecraft:arrow")), "no fire, no points either way");
+    assert_eq!(run("tconstruct:fire_protection", 1, "minecraft:sonic_boom", None), (0.0, base("minecraft:sonic_boom")), "damage that bypasses enchantments counts none");
+    assert_eq!(run("tconstruct:blast_protection", 1, "minecraft:explosion", None).0, 2.0, "blast protection is 2 points a level against explosions");
+    let (vanilla, total) = run("tconstruct:fireborn", 1, "minecraft:lava", None);
+    assert_eq!((vanilla, total), (14.0, 0.0), "fireborn's level 7 is all taken back");
+    // The event's damage already had the vanilla points: they are undone, then the modifiers' protection applies.
+    assert!((damage_after_protection(10.0, 2.0, 3.0, 20.0) - 10.0 / 0.92 * 0.88).abs() < 1e-4);
+    assert!((damage_after_protection(8.0, 14.0, 0.0, 20.0) - 8.0 / (1.0 - 14.0 / 25.0)).abs() < 1e-4, "ignoring the whole enchantment gives the damage back");
+    // Scorch protection protects against a fire-immune attacker only.
+    let immune = EntityState { kind: "minecraft:blaze".into(), fire_immune: true, ..EntityState::default() };
+    let normal = EntityState { kind: "minecraft:husk".into(), ..EntityState::default() };
+    assert_eq!(run("tconstruct:scorch_protection", 2, "minecraft:mob_attack", Some(&immune)), (0.0, base("minecraft:mob_attack") + 2.5));
+    assert_eq!(run("tconstruct:scorch_protection", 2, "minecraft:mob_attack", Some(&normal)), (0.0, base("minecraft:mob_attack")));
+    assert_eq!(run("tconstruct:scorch_protection", 2, "minecraft:mob_attack", None), (0.0, base("minecraft:mob_attack")), "an unknown attacker is not fire immune");
+}
+
+#[test]
+fn shipped_revenge_names_the_effect_that_unequipping_takes_off() {
+    use crate::{modifier_entries::List, tool_stack::{effects_cleared_on_unequip, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let cleared = |modifier: &str| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), 1).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        effects_cleared_on_unequip(&tool.custom_data, &env)
+    };
+    assert_eq!(cleared("tconstruct:revenge"), vec![id("minecraft:strength")]);
+    assert!(cleared("tconstruct:fire_protection").is_empty());
 }
