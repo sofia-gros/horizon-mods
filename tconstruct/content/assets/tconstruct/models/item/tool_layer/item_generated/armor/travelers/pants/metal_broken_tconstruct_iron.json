@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/armor/travelers/pants/metal_broken_tconstruct_iron"
+  }
+}

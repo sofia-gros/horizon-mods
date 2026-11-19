@@ -37,6 +37,8 @@ DECLARATION_HASHES = {
     'pluto-skull-special-decode': 'c5b954e90c69d3d501c8b21388bda3d7d6a7344e3b3dda0e92b1a2dba9463f23',
     'pluto-item-placement-root-path': '035d99a20cc0d46d713ba538ac0c6edc9f007f2438ce0064bfa363df02e113b3',
     'pluto-entity-particle-host-event': 'd0f3e61a927bf45ae54474ac6d8b2e5ec17035d7f6e711753a481c0b1de835cb',
+    'pluto-armor-worn-layers': 'a2a6fecfd54161df86b15481e0e373d4ea9c8948a24943e361dd8968188309b8',
+    'pluto-armor-stand-worn-layers': 'b05d7e67e819cea384b368d61af4ba336f9aba941a19d20b39338c6e4944818f',
     'pluto-block-entity-cache-generation': 'f8e21e6c9424b94864b9bbb22d15332eb4f4070157617cc0031c664f2007d06f',
     'pluto-living-drop-state': 'e8204433c51ef8d9a66931bc851816aacedbf7db00153a2fcf10de7ebf824551',
 }

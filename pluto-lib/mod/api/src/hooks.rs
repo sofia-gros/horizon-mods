@@ -107,6 +107,10 @@ pub fn hooks() -> Box<dyn Hooks> {
                 })
         },
     ).expect("PlutoLib item colour provider installs once before native rendering");
+    horizon_client::item_render::pluto_armor_layers::set_provider(
+        crate::pure::armor_renderer_api_v1::has_renderer,
+        |item,count,components,kind| crate::pure::armor_renderer_api_v1::host_layers(worn_stack(item,count,components)?,kind),
+    ).expect("PlutoLib armor layer provider installs once before native rendering");
     horizon_client::mobs::pluto_entity_particles::set_provider(
         crate::pure::particle_factory_registry::entity_particle_from_host,
     ).expect("PlutoLib entity particle provider installs once");
@@ -1318,6 +1322,33 @@ fn model_from_native(part: &horizon_client::mod_api::ModelPart) -> ModelPart {
     model.visible = part.visible;
     model.skip_draw = part.skip_draw;
     model
+}
+/// A worn stack as the item renderer's merged components describe it: the same fields the item colour provider hands a mod.
+fn worn_stack(item:&str,count:i32,components:&std::collections::BTreeMap<String,serde_json::Value>)->Option<player_api::StackData> {
+    let count=u32::try_from(count).ok()?;
+    let custom_data=match components.get("minecraft:custom_data") {
+        None=>NbtCompound::new(),
+        Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+            Tag::Compound(data)=>compound_from_tag(&data),
+            _=>return None,
+        },
+    };
+    let damage=match components.get("minecraft:damage") {
+        None=>0,
+        Some(value)=>u32::try_from(value.as_u64()?).ok()?,
+    };
+    let max_damage=match components.get("minecraft:max_damage") {
+        None=>None,
+        Some(value)=>Some(i32::try_from(value.as_i64()?).ok()?),
+    };
+    let custom_model_data=match components.get("minecraft:custom_model_data") {
+        None=>None,
+        Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+            Tag::Compound(data)=>Some(player_api::CustomModelData::from_nbt(&compound_from_tag(&data))),
+            _=>return None,
+        },
+    };
+    Some(player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data})
 }
 fn skull_model_to_native(part:&horizon_client::mod_api::ModelPart)->horizon_client::entry::pluto_block::SkullModelPart {
     let p=part.store_pose();

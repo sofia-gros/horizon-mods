@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/armor/modifiers/boots/tconstruct_double_jump"
+  }
+}

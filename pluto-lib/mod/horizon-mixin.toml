@@ -1343,6 +1343,41 @@ name = "pluto_item_colors"
 source = "pluto-item-colors.rs"
 visibility = "pub"
 
+[[module]]
+id = "pluto-armor-layers"
+file = "crates/horizon-client/src/item_render.rs"
+name = "pluto_armor_layers"
+source = "pluto-armor-layers.rs"
+visibility = "pub"
+
+# A worn stack's own layers (a registered armor renderer) replace its equipment asset's list; the worn-armour resolver is a source edit
+# (direct host attachment) because the layer list is chosen inside the one function that also draws glint, trims and CIT.
+[[injection]]
+id = "pluto-armor-worn-layers"
+target = "horizon_client::game::armor_stands::Game<'_>::armor_layers"
+kind = "MODIFY_VARIABLE"
+variable = { name = "layers", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "pluto-armor-worn-layers.rs"
+bindings = [
+    { name = "value", ty = "&Vec<(String, Option<u32>)>", value = "$value" },
+    { name = "game", ty = "&Game<'_>", value = "self" },
+]
+
+[[injection]]
+id = "pluto-armor-stand-worn-layers"
+target = "horizon_client::game::armor_stands::Game<'_>::armor_stand_vertices"
+kind = "MODIFY_VARIABLE"
+variable = { name = "layers", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "pluto-armor-worn-layers.rs"
+bindings = [
+    { name = "value", ty = "&Vec<(String, Option<u32>)>", value = "$value" },
+    { name = "game", ty = "&Game<'_>", value = "self" },
+]
+
 [[injection]]
 id = "pluto-item-color-layers"
 target = "horizon_client_lib::item_render::ItemRenderer::resolve_with_rule"
