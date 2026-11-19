@@ -15,8 +15,12 @@ FLAGS_TABLE = ROOT / 'tconstruct/mixins/tconstruct/api/src/model_flags.rs'
 MODIFIERS = CONTENT / 'data/tconstruct/tinkering/modifiers'
 ARMOR_TABLE = ROOT / 'tconstruct/mixins/tconstruct/api/src/armor_textures.rs'
 BASE = ROOT / '.local/base-26.3/assets/minecraft'  # a read-only reference checkout; absent on some runners
+BASE_DATA = ROOT / '.local/base-26.3/data/minecraft'
+DATA = CONTENT / 'data/tconstruct'
 # Declared items whose original model is plain (no tool/material loader); the rest wait for per-material rendering.
-SIMPLE_ITEMS = {'modifier_crystal', 'pattern', 'venom_bottle'}
+SIMPLE_ITEMS = {'modifier_crystal', 'pattern', 'venom_bottle', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball'}
+# The stations drop themselves through mantle:fill_retextured_block (their domain, R2); every other declared block has the original's loot table.
+STATION_BLOCKS = {'tinker_station', 'part_builder', 'modifier_worktable'}
 
 
 def load(path):
@@ -266,6 +270,132 @@ class ContentAssets(unittest.TestCase):
                 self.assertEqual(sizes(model['fallback']), {(32, 32)}, path.stem)
         limb = load(ASSETS / 'models/item/tool_layer/item_base_bow/longbow/large/limb_bottom.json')['elements'][0]
         self.assertEqual((limb['from'][:2], limb['to'][:2]), ([-7.5, -8.5], [24.5, 23.5]))
+
+    def declared(self):
+        return {p.stem for p in (DECLARED / 'block').glob('*.json')}, {p.stem for p in (DECLARED / 'item').glob('*.json')}
+
+    def test_every_declared_block_and_item_has_its_original_loot_and_names(self):
+        blocks, items = self.declared()
+        lang = load(ASSETS / 'lang/en_us.json')
+        for name in blocks:
+            self.assertIn(f'block.tconstruct.{name}', lang, name)
+            table = DATA / 'loot_table/blocks' / f'{name}.json'
+            if name in STATION_BLOCKS:
+                self.assertFalse(table.exists(), name)
+                continue
+            loot = load(table)
+            self.assertEqual((loot['type'], loot['random_sequence']), ('minecraft:block', f'tconstruct:blocks/{name}'))
+            for entry in self.loot_entries(loot):
+                namespace, path = split(entry['name'])
+                self.assertIn(path, blocks | items if namespace == 'tconstruct' else {path}, f'{name} drops {entry["name"]}')
+                if namespace == 'minecraft' and BASE.is_dir():
+                    self.assertTrue((BASE / 'items' / f'{path}.json').is_file(), f'{name} drops {entry["name"]}')
+        for name in SIMPLE_ITEMS:
+            self.assertIn(f'item.tconstruct.{name}', lang, name)
+        self.assertEqual({p.stem for p in (DATA / 'loot_table/blocks').glob('*.json')}, blocks - STATION_BLOCKS)
+
+    def loot_entries(self, node):
+        for pool in node.get('pools', []):
+            stack = list(pool['entries'])
+            while stack:
+                entry = stack.pop()
+                stack += entry.get('children', [])
+                if entry['type'] == 'minecraft:item':
+                    yield entry
+
+    def test_imported_loot_has_the_shape_of_vanilla_26_3_loot_for_the_same_drops(self):
+        """The 1.20.1 tables are converted to the form the host reads: an ore is vanilla's diamond ore under other names, a block that
+        drops itself is vanilla's slime block."""
+        if not BASE_DATA.is_dir():
+            self.skipTest('no base data')
+
+        def renamed(text, names):
+            for old, new in names.items():
+                text = text.replace(old, new)
+            return json.loads(text)
+        ore = (BASE_DATA / 'loot_table/blocks/diamond_ore.json').read_text(encoding='utf-8')
+        self.assertEqual(load(DATA / 'loot_table/blocks/cobalt_ore.json'), renamed(ore, {'minecraft:diamond_ore': 'tconstruct:cobalt_ore', 'minecraft:diamond': 'tconstruct:raw_cobalt', 'minecraft:blocks/diamond_ore': 'tconstruct:blocks/cobalt_ore'}))
+        block = (BASE_DATA / 'loot_table/blocks/slime_block.json').read_text(encoding='utf-8')
+        for name in ('sky_slime', 'ichor_slime', 'ender_slime', 'raw_cobalt_block', 'earth_slime_dirt', 'sky_slime_dirt', 'ichor_slime_dirt', 'ender_slime_dirt'):
+            self.assertEqual(load(DATA / f'loot_table/blocks/{name}.json'), renamed(block, {'minecraft:slime_block': f'tconstruct:{name}', 'minecraft:blocks/slime_block': f'tconstruct:blocks/{name}'}), name)
+        # Congealed slime: itself with silk touch, else four slime balls of its type (the original's alternatives, with the host's silk touch condition).
+        for slime in ('earth', 'sky', 'ichor', 'ender'):
+            alternatives = load(DATA / f'loot_table/blocks/{slime}_congealed_slime.json')['pools'][0]['entries'][0]
+            silk, drop = alternatives['children']
+            self.assertEqual((silk['condition'], silk['name']), ('minecraft:tool/can_silk_touch', f'tconstruct:{slime}_congealed_slime'))
+            self.assertEqual((drop['name'], drop['modifier'][0]), ('minecraft:slime_ball' if slime == 'earth' else f'tconstruct:{slime}_slime_ball', {'type': 'minecraft:set_count', 'count': 4}))
+
+    def test_cobalt_generates_in_the_nether_through_its_own_features(self):
+        """TinkerWorld's two ore features and the add_features biome modifier: placed features name shipped features, which place the
+        declared ore block into netherrack, and the modifier adds exactly those to the nether."""
+        blocks, _ = self.declared()
+        features = {p.stem: load(p) for p in (DATA / 'worldgen/feature').glob('*.json')}
+        placed = {p.stem: load(p) for p in (DATA / 'worldgen/placed_feature').glob('*.json')}
+        self.assertEqual((set(features), set(placed)), ({'cobalt_ore_small', 'cobalt_ore_large'},) * 2)
+        self.assertEqual((features['cobalt_ore_small']['size'], features['cobalt_ore_large']['size']), (4, 6))
+        self.assertIn('cobalt_ore', blocks)
+        for name, feature in features.items():
+            self.assertEqual(placed[name]['feature'], f'tconstruct:{name}')
+            self.assertEqual([t['state'] for t in feature['targets']], ['tconstruct:cobalt_ore'])
+            self.assertEqual([t['target'] for t in feature['targets']], [{'predicate_type': 'minecraft:block_match', 'block': 'minecraft:netherrack'}])
+            self.assertNotIn('config', feature)  # 26.3 writes a feature's settings in its own body
+            self.assertEqual(placed[name]['placement'][-1], {'type': 'minecraft:biome'})
+        if BASE_DATA.is_dir():
+            self.assertEqual(set(features['cobalt_ore_small']), set(load(BASE_DATA / 'worldgen/feature/ore_nether_gold.json')))
+            self.assertEqual(set(placed['cobalt_ore_small']), set(load(BASE_DATA / 'worldgen/placed_feature/ore_gold_nether.json')))
+            self.assertTrue((BASE_DATA / 'tags/worldgen/biome/is_nether.json').is_file())
+        modifiers = {p.stem: load(p) for p in (DATA / 'neoforge/biome_modifier').glob('*.json')}
+        self.assertEqual(modifiers, {'cobalt_ore': {'type': 'neoforge:add_features', 'biomes': '#minecraft:is_nether', 'features': ['tconstruct:cobalt_ore_small', 'tconstruct:cobalt_ore_large'], 'step': 'underground_decoration'}})
+
+    def test_world_blocks_carry_the_originals_numbers_and_tool_tags(self):
+        """The declarations of TinkerWorld's registrations (hardness, resistance, friction, light, tool need) and the harvest tags."""
+        def properties(name):
+            return load(DECLARED / 'block' / f'{name}.json')['properties']
+
+        keys = ('hardness', 'explosion_resistance', 'requires_tool')
+        self.assertEqual({k: properties('cobalt_ore')[k] for k in keys}, {'hardness': 10.0, 'explosion_resistance': 10.0, 'requires_tool': True})
+        self.assertEqual({k: properties('raw_cobalt_block')[k] for k in keys}, {'hardness': 6.0, 'explosion_resistance': 7.0, 'requires_tool': True})
+        for slime, light in (('earth', None), ('sky', None), ('ichor', 10), ('ender', None)):
+            congealed = properties(f'{slime}_congealed_slime')
+            self.assertEqual((congealed['hardness'], congealed['friction'], congealed.get('light')), (0.5, 0.5, light), slime)
+            self.assertEqual(properties(f'{slime}_slime_dirt')['hardness'], 1.9, slime)
+            if slime != 'earth':
+                sticky = load(DECLARED / f'block/{slime}_slime.json')
+                self.assertEqual((sticky['template'], sticky['properties']['friction'], sticky['properties']['occludes'], sticky['properties'].get('light')), ('minecraft:slime_block', 0.8, False, light), slime)
+        self.assertFalse((DECLARED / 'block/earth_slime.json').exists())  # vanilla's slime block
+        tags = CONTENT / 'data/minecraft/tags/block'
+
+        def members(path):
+            return set(load(tags / path)['values'])
+        dirt = {f'tconstruct:{t}_slime_dirt' for t in ('earth', 'sky', 'ichor', 'ender')}
+        congealed = {f'tconstruct:{t}_congealed_slime' for t in ('earth', 'sky', 'ichor', 'ender')}
+        self.assertTrue({'tconstruct:cobalt_ore', 'tconstruct:raw_cobalt_block'} <= members('mineable/pickaxe.json'))
+        self.assertTrue(dirt | congealed <= members('mineable/shovel.json'))
+        self.assertTrue({'tconstruct:cobalt_ore', 'tconstruct:raw_cobalt_block', 'tconstruct:ichor_slime_dirt'} <= members('needs_iron_tool.json'))
+        self.assertIn('tconstruct:earth_slime_dirt', members('needs_stone_tool.json'))
+        self.assertIn('tconstruct:ender_slime_dirt', members('needs_diamond_tool.json'))
+        self.assertTrue({'#tconstruct:congealed_slime', '#tconstruct:slimy_soil'} <= members('enderman_holdable.json'))
+        # Every entry names a declared block or a shipped Tinkers tag.
+        blocks, _ = self.declared()
+        for path in tags.rglob('*.json'):
+            for entry in load(path)['values']:
+                value = entry if isinstance(entry, str) else entry['id']
+                if value.startswith('#'):
+                    self.assertTrue((CONTENT / 'data/tconstruct/tags/block' / f'{value.split(":", 1)[1]}.json').is_file(), f'{path.name}: {value}')
+                else:
+                    self.assertIn(value.removeprefix('tconstruct:'), blocks, f'{path.name}: {value}')
+
+    def test_slime_block_models_keep_the_originals_texture_and_vanilla_parent(self):
+        """Sky and ender slime reuse vanilla's slime block shape with their own texture; ichor adds the lava core; render_type is a 1.20 key."""
+        for slime in ('sky', 'ender'):
+            model = load(ASSETS / f'models/block/slime/sticky/{slime}.json')
+            self.assertEqual(model['parent'], 'minecraft:block/slime_block')
+            self.assertEqual(model['textures']['texture'], f'tconstruct:block/slime/storage/{slime}')
+        ichor = load(ASSETS / 'models/block/slime/sticky/ichor.json')
+        self.assertEqual(ichor['textures']['inner'], 'minecraft:block/lava_still')
+        self.assertEqual(len(ichor['elements']), 2)
+        for path in (ASSETS / 'models').rglob('*.json'):
+            self.assertNotIn('render_type', load(path), path)
 
     def test_every_content_path_is_a_plain_host_path(self):
         # The host refuses the whole content mod when one path has a part outside [a-z0-9_.-] (measured on r3i: the mod's

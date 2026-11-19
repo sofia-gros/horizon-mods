@@ -336,6 +336,15 @@ def qualify(reference):
     return reference if ':' in reference else f'minecraft:{reference}'
 
 
+def asset_source(relative):
+    """An original client asset: the hand-written ones are in src/main, the data-generated ones (item models of plain
+    items, block states of generated blocks) in src/generated. A name is in at most one place; src/main wins."""
+    for base in (ASSET_SOURCE, GENERATED_ASSETS):
+        if (base / relative).exists():
+            return base / relative
+    return ASSET_SOURCE / relative
+
+
 def copy_client_assets():
     """Models, textures, item definitions and blockstates of the registered content that needs no per-material
     rendering, converted from the 1.20 resource-pack layout to the pinned 26.x one (SlimeKnights, MIT; see LICENSE).
@@ -369,7 +378,7 @@ def copy_client_assets():
             return reference
         if namespace != 'tconstruct':
             raise SystemExit(f'texture {reference} belongs to another namespace')
-        source = ASSET_SOURCE / 'textures' / f'{path}.png'
+        source = asset_source(f'textures/{path}.png')
         if not source.exists():
             raise SystemExit(f'original texture missing: {reference}')
         if path not in written['textures']:
@@ -395,8 +404,9 @@ def copy_client_assets():
             return reference
         written['models'].add(path)
         converted = {}
-        for key, value in read(ASSET_SOURCE / 'models' / f'{path}.json').items():
-            if key in ('loader', 'retextured', '__comment'):
+        for key, value in read(asset_source(f'models/{path}.json')).items():
+            # render_type: 26.x derives the render layer from the texture's alpha (its own slime block model has none).
+            if key in ('loader', 'retextured', '__comment', 'render_type'):
                 continue
             if key == 'parent':
                 value = import_model(value)
@@ -412,24 +422,27 @@ def copy_client_assets():
         namespace, path = qualify(reference).split(':', 1)
         if namespace != 'tconstruct':
             return False
-        model = read(ASSET_SOURCE / 'models' / f'{path}.json')
+        model = read(asset_source(f'models/{path}.json'))
         return model.get('loader') not in (None, *PLAIN_LOADERS) or ('parent' in model and needs_loader(model['parent']))
 
     shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'license')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
-        variants = read(ASSET_SOURCE / 'blockstates' / f'{name}.json').get('variants', {})
-        if sorted(variants) != ['facing=east', 'facing=north', 'facing=south', 'facing=west']:
+        variants = read(asset_source(f'blockstates/{name}.json')).get('variants', {})
+        if sorted(variants) == ['facing=east', 'facing=north', 'facing=south', 'facing=west']:
+            variant = dict(variants['facing=north'])
+        elif list(variants) == ['']:  # a block with no state of its own: its one model
+            variant = dict(variants[''])
+        else:
             raise SystemExit(f'block {name}: unexpected blockstate shape')
-        variant = dict(variants['facing=north'])
         if needs_loader(variant['model']):
             skipped.append(name)
             continue
         variant['model'] = import_model(variant['model'])
         write(f'blockstates/{name}.json', {'variants': {'': variant}})
-        item_model = (ASSET_SOURCE / 'models/item' / f'{name}.json').exists()
+        item_model = asset_source(f'models/item/{name}.json').exists()
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else variant['model']}})
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
-        if not (ASSET_SOURCE / 'models/item' / f'{name}.json').exists() or needs_loader(f'tconstruct:item/{name}'):
+        if not asset_source(f'models/item/{name}.json').exists() or needs_loader(f'tconstruct:item/{name}'):
             skipped.append(name)
             continue
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
@@ -934,6 +947,205 @@ def copy_armor_worn_assets():
     return len(used), len(rows)
 
 
+# --- World content: cobalt (unit U1) and the plain slime blocks (unit U2) of R4-world --------------------------------
+# Source: world/TinkerWorld.java (registrations), shared/block/SlimeType.java, world/block/DirtType.java and the
+# data-generated loot tables, features, biome modifiers and tags of the original.
+GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
+CONTENT_DATA = ROOT / 'tconstruct/content/data'
+# MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
+MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'WARPED_STEM': 56}
+# SlimeType: map colour and light level. DirtType.TINKER: map colour.
+SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
+DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT_BLUE', 'ender': 'TERRACOTTA_ORANGE'}
+# Plain items: TinkerWorld's with Item.Properties (TooltipItem only adds the lang tooltip text) and TinkerCommons' tinker slime
+# balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
+WORLD_ITEMS = ['raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
+WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
+WORLD_BIOME_MODIFIERS = ['cobalt_ore']
+
+
+def world_blocks():
+    """name -> declaration of the plain-property world blocks, each from its Java registration. The template is the
+    vanilla plain `Block` (stone: bass drum; dirt: the default harp, as Properties.of()) or the slime block; sounds name
+    the vanilla block of the SoundType. Light is declared only above zero (the templates emit none)."""
+    def block(template, color, sounds, hardness, resistance, requires_tool, light=0, **extra):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], **extra}
+        if template != 'minecraft:slime_block' or requires_tool:
+            properties['requires_tool'] = requires_tool
+        if light:
+            properties['light'] = light
+        return {'template': template, 'properties': properties, 'item': True}
+
+    ore = 'minecraft:nether_gold_ore'  # SoundType.NETHER_ORE
+    blocks = {
+        # builder(MapColor.NETHER, NETHER_ORE).instrument(BASEDRUM).requiresCorrectToolForDrops().strength(10.0F)
+        'cobalt_ore': block('minecraft:stone', 'NETHER', ore, 10.0, 10.0, True),
+        # builder(MapColor.COLOR_BLUE, NETHER_ORE).instrument(BASEDRUM).requiresCorrectToolForDrops().strength(6.0f, 7.0f)
+        'raw_cobalt_block': block('minecraft:stone', 'COLOR_BLUE', ore, 6.0, 7.0, True),
+    }
+    for slime, (color, light) in SLIME_TYPES.items():
+        # congealed: builder(color, SLIME_BLOCK).strength(0.5F).friction(0.5F).lightLevel(type light)
+        blocks[f'{slime}_congealed_slime'] = block('minecraft:dirt', color, 'minecraft:slime_block', 0.5, 0.5, False, light, friction=0.5)
+        if slime != 'earth':  # the earth slime block is vanilla's
+            # slimeProps: builder(color, SLIME_BLOCK).friction(0.8F).noOcclusion() (no strength: 0); ichor adds its light
+            blocks[f'{slime}_slime'] = block('minecraft:slime_block', color, 'minecraft:slime_block', 0.0, 0.0, False, light, friction=0.8, occludes=False)
+    for dirt, color in DIRT_TYPES.items():
+        # builder(color, SLIME_BLOCK).strength(1.9f); harvest tiers are tags and need no tool (no requiresCorrectToolForDrops)
+        blocks[f'{dirt}_slime_dirt'] = block('minecraft:dirt', color, 'minecraft:slime_block', 1.9, 1.9, False)
+    return blocks
+
+
+def write_world_declarations():
+    """Block and item declarations of the world units, written beside the hand-written station ones."""
+    blocks = world_blocks()
+    for name, declaration in blocks.items():
+        write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
+    for name in WORLD_ITEMS:
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper'}, compact=True)
+    return len(blocks), len(WORLD_ITEMS)
+
+
+def whole(value):
+    """An integral float as the integer 26.3 writes (rolls 1.0 -> 1), recursively."""
+    if isinstance(value, float) and value == int(value):
+        return int(value)
+    if isinstance(value, list):
+        return [whole(item) for item in value]
+    if isinstance(value, dict):
+        return {key: whole(item) for key, item in value.items()}
+    return value
+
+
+def upgrade_loot(node):
+    """A 1.20.1 loot table in 26.3's shape (as horizon-port-pack's carry does): `conditions` lists become one `condition`
+    (`all_of` for several), `functions` become `modifier`, kinds are named by `type`; a match_tool on silk touch alone
+    is `minecraft:tool/can_silk_touch`. Only the shapes the world blocks use are known: anything else stops the import."""
+    if isinstance(node, list):
+        return [upgrade_loot(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    result = {}
+    for key, value in node.items():
+        if key == 'conditions':
+            terms = [upgrade_condition(term) for term in value]
+            result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
+        elif key == 'functions':
+            result['modifier'] = [upgrade_function(function) for function in value]
+        elif key == 'bonus_rolls' and value == 0:
+            continue  # the default
+        elif key in ('type', 'name', 'random_sequence', 'rolls'):
+            result[key] = value
+        elif key in ('pools', 'entries', 'children'):
+            result[key] = upgrade_loot(value)
+        else:
+            raise SystemExit(f'loot table: unknown key {key!r}')
+    return result
+
+
+def upgrade_condition(condition):
+    kind = condition['condition']
+    if kind == 'minecraft:survives_explosion' and set(condition) == {'condition'}:
+        return {'type': kind}
+    silk = {'enchantments': [{'enchantment': 'minecraft:silk_touch', 'levels': {'min': 1}}]}
+    if kind == 'minecraft:match_tool' and condition['predicate'] == silk:
+        return 'minecraft:tool/can_silk_touch'
+    raise SystemExit(f'loot table: unknown condition {condition}')
+
+
+def upgrade_function(function):
+    kind = function['function']
+    rest = {key: value for key, value in function.items() if key != 'function'}
+    if kind == 'minecraft:explosion_decay' and not rest:
+        return {'type': kind}
+    if kind == 'minecraft:apply_bonus' and rest == {'enchantment': 'minecraft:fortune', 'formula': 'minecraft:ore_drops'}:
+        return {'type': kind, **rest}
+    if kind == 'minecraft:set_count' and rest.get('add') is False and set(rest) == {'add', 'count'}:
+        return {'type': kind, 'count': rest['count']}
+    raise SystemExit(f'loot table: unknown function {function}')
+
+
+def copy_world_loot(names):
+    """Block loot tables (data/<ns>/loot_table/blocks, 26.3's folder) of the given blocks."""
+    target = CONTENT_DATA / 'tconstruct/loot_table'
+    shutil.rmtree(target, ignore_errors=True)
+    for name in names:
+        table = whole(upgrade_loot(json.loads((GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name}.json').read_text(encoding='utf-8'))))
+        write_json(target / 'blocks' / f'{name}.json', table)
+    return len(names)
+
+
+def upgrade_feature(feature):
+    """A 1.20.1 configured feature in 26.3's `worldgen/feature` form: the config is the feature's own body and a plain
+    block state is its name."""
+    body = {'type': feature['type'], **feature['config']}
+    if body['type'] != 'minecraft:ore':
+        raise SystemExit(f'world feature: only minecraft:ore is imported, not {body["type"]}')
+    for target in body['targets']:
+        state = target['state']
+        target['state'] = state['Name'] if list(state) == ['Name'] else state
+    return body
+
+
+def copy_world_features():
+    """Cobalt's configured and placed features and its biome modifier (the host reads `neoforge/biome_modifier` and the
+    `forge:`/`neoforge:` types alike; the original's `forge:add_features` becomes `neoforge:add_features`)."""
+    for folder in ('worldgen', 'neoforge'):
+        shutil.rmtree(CONTENT_DATA / 'tconstruct' / folder, ignore_errors=True)
+    source = GENERATED_DATA / 'tconstruct'
+    for name in WORLD_FEATURES:
+        feature = upgrade_feature(json.loads((source / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8')))
+        for target in feature['targets']:
+            block = target['state'] if isinstance(target['state'], str) else target['state']['Name']
+            if block.startswith('tconstruct:') and not (HORIZON_DECLARATIONS / 'block' / f'{block[len("tconstruct:"):]}.json').exists():
+                raise SystemExit(f'feature {name} places the undeclared block {block}')
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/feature/{name}.json', feature)
+        placed = json.loads((source / f'worldgen/placed_feature/{name}.json').read_text(encoding='utf-8'))
+        if placed['feature'] != f'tconstruct:{name}':
+            raise SystemExit(f'placed feature {name} names {placed["feature"]}')
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/placed_feature/{name}.json', placed)
+    for name in WORLD_BIOME_MODIFIERS:
+        modifier = json.loads((source / f'forge/biome_modifier/{name}.json').read_text(encoding='utf-8'))
+        if not modifier['type'].startswith('forge:') or not set(modifier['features']) <= {f'tconstruct:{n}' for n in WORLD_FEATURES}:
+            raise SystemExit(f'biome modifier {name} is not a forge modifier of the shipped features')
+        modifier['type'] = 'neoforge:' + modifier['type'].removeprefix('forge:')
+        write_json(CONTENT_DATA / f'tconstruct/neoforge/biome_modifier/{name}.json', modifier)
+    return len(WORLD_FEATURES) * 2 + len(WORLD_BIOME_MODIFIERS)
+
+
+def copy_vanilla_tags():
+    """The original's additions to vanilla's block tags (mineable/*, needs_*_tool, enderman_holdable...), reduced to the
+    declared blocks and to the Tinkers block tags that ship (the host drops unknown ids anyway; this keeps the files to what this
+    port registers, and a later unit's blocks join on the next import). Entries of any other namespace stop the import,
+    Forge's convention tags are left out (that namespace does not exist here, as in copy_tags). `forge:needs_gold_tool` has no
+    26.3 tag: gold tools are wooden ones there, and no world block needs the tool to drop anyway. Vanilla's item tags (tool
+    families, logs...) wait for the units that register those items."""
+    target = CONTENT_DATA / 'minecraft/tags/block'
+    declared = {p.stem for p in (HORIZON_DECLARATIONS / 'block').glob('*.json')}
+    shipped = {path.relative_to(TAG_TARGET / 'block').with_suffix('').as_posix() for path in (TAG_TARGET / 'block').rglob('*.json')}
+    shutil.rmtree(target, ignore_errors=True)
+    folder = GENERATED_DATA / 'minecraft/tags/blocks'
+    count = 0
+    for path in sorted(folder.rglob('*.json')):
+        values = []
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            value = entry if isinstance(entry, str) else entry['id']  # an optional entry is {id, required}
+            if value.startswith('#tconstruct:'):
+                keep = value[len('#tconstruct:'):] in shipped
+            elif value.startswith('tconstruct:'):
+                keep = value[len('tconstruct:'):] in declared
+            elif value.lstrip('#').startswith('forge:'):
+                keep = False
+            else:
+                raise SystemExit(f'{path.name}: entry {value} is neither a Tinkers nor a Forge one')
+            if keep:
+                values.append(entry)
+        if values:
+            write_json(target / path.relative_to(folder), {'values': values})
+            count += 1
+    return count
+
+
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
 LANGUAGES = ['en_us', 'ja_jp']
@@ -991,7 +1203,11 @@ def main():
     tags = copy_tags() + copy_damage_tags()
     write_damage_vanilla()
     languages = copy_lang()
+    world_blocks_written, world_items_written = write_world_declarations()
     models, textures, unrendered = copy_client_assets()
+    world_loot = copy_world_loot(sorted(world_blocks()))
+    world_worldgen = copy_world_features()
+    world_tags = copy_vanilla_tags()
     part_names, part_models, part_textures = copy_part_assets()
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
     worn_textures, worn_rows = copy_armor_worn_assets()
