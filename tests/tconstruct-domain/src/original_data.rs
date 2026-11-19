@@ -62,7 +62,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (147, 107), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (146, 105), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "depth_protection", "recurrent_protection", "overshield", "restore_lost_health", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
@@ -1315,7 +1315,7 @@ fn shipped_conditional_power_follows_the_target_and_the_projectile() {
 }
 
 #[test]
-fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_fillers_unbound() {
+fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_unreported_fillers_unbound() {
     use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt, NbtCompound};
     let world = world();
@@ -1324,7 +1324,9 @@ fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_leave_the_fillers_
         item_tags_loaded: true, item: None, item_tags: None };
     let unbound = |name: &str| world.registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(Identifier::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:barkskin").is_empty(), "the bar and its shield are both bound");
-    assert!(unbound("tconstruct:stoneshield") == ["tconstruct:loot_to_capacity"] && unbound("tconstruct:frostshield") == ["tconstruct:damage_to_capacity"], "fillers without a host path stay unbound");
+    assert!(unbound("tconstruct:stoneshield") == ["tconstruct:loot_to_capacity"], "no event reports loot to the tool's holder");
+    assert!(unbound("tconstruct:frostshield").is_empty(), "damage to capacity is bound to the wearer's damage event");
+    assert!(unbound("tconstruct:overwield").iter().all(|kind| kind != "tconstruct:melee_capacity") && unbound("tconstruct:overwield").iter().any(|kind| kind == "tconstruct:mining_capacity"), "overwield's melee drain is bound, its mining drain is not");
     let tool = |modifier: &str, level: i32, stored: i32| {
         let mut tool = ItemSlot::new(Identifier::parse("tconstruct:plate_boots").unwrap(), 1);
         tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
@@ -1518,4 +1520,70 @@ fn shipped_revenge_names_the_effect_that_unequipping_takes_off() {
     };
     assert_eq!(cleared("tconstruct:revenge"), vec![id("minecraft:strength")]);
     assert!(cleared("tconstruct:fire_protection").is_empty());
+}
+
+#[test]
+fn shipped_frostshield_turns_freezing_damage_into_bar_and_overwield_drains_overslime_on_a_hit() {
+    use crate::{damage_tags::DamageTags, modifier_entries::List, overslime, protection::DamageSource, tool_stack::{damage_capacity, melee_capacity_edits, rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound, StackDataEdit};
+    let mut world = world();
+    for modifier in overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let persist = |modifier: &str| vec![TAG_PERSISTENT.to_string(), modifier.to_string()];
+
+    // Frostshield on boots: freezing damage fills the bar by its amount and the wearer is spared that much.
+    let boots = &world.tools.iter().find(|(tool, _)| tool.path() == "plate_boots").unwrap().1;
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None };
+    let frost = |stored: i32| {
+        let mut tool = ItemSlot::new(id("tconstruct:plate_boots"), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id("tconstruct:frostshield"), 1).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        if stored > 0 {
+            let mut persistent = NbtCompound::new();
+            persistent.insert("tconstruct:frostshield".into(), Nbt::Int(stored));
+            tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        }
+        tool
+    };
+    let taken = |tool: &ItemSlot, damage_type: &str, amount: f32| {
+        let damage_type = id(damage_type);
+        damage_capacity(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false }, amount)
+    };
+    let set = |edits: &[StackDataEdit], value: i32| edits == [StackDataEdit { path: persist("tconstruct:frostshield"), value: Some(Nbt::Int(value)) }];
+    let (left, edits) = taken(&frost(0), "minecraft:freeze", 3.0);
+    assert!(left == 0.0 && set(&edits, 3), "3 freezing damage fill 3 of an empty bar: {left} {edits:?}");
+    let (left, edits) = taken(&frost(10), "minecraft:freeze", 2.5);
+    assert!(left == -0.5 && set(&edits, 13), "the amount is rounded up to whole bar points and the surplus comes off the damage as the original does: {left} {edits:?}");
+    let (left, edits) = taken(&frost(0), "minecraft:mob_attack", 3.0);
+    assert!(left == 3.0 && edits.is_empty(), "only the freezing source fills the bar");
+    let capacity = crate::capacity::Bar::decode(serde_json::json!({"each_level":100,"multiplier":"tconstruct:durability"}).as_object().unwrap()).unwrap().unwrap().capacity(&frost(0).custom_data, &crate::modifier_entries::Entry::new(id("tconstruct:frostshield"), 1));
+    assert!(capacity > 3);
+    let (left, edits) = taken(&frost(capacity - 1), "minecraft:freeze", 3.0);
+    assert!(left == 2.0 && set(&edits, capacity), "a nearly full bar takes one point, capped, and the wearer the rest: {left} {edits:?}");
+    let (left, edits) = taken(&frost(capacity), "minecraft:freeze", 3.0);
+    assert!(left == 3.0 && edits.is_empty(), "a full bar leaves the damage to the wearer");
+
+    // Overwield on a pickaxe: each hit drains overslime by the level; an emptied bar loses its key.
+    let pickaxe = &world.tools.iter().find(|(tool, _)| tool.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None };
+    let wield = |level: i32, stored: i32| {
+        let mut tool = ItemSlot::new(id("tconstruct:pickaxe"), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(overslime::id(), 1).unwrap().with_modifier(id("tconstruct:overwield"), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        if stored > 0 {
+            let mut persistent = NbtCompound::new();
+            persistent.insert("tconstruct:overslime".into(), Nbt::Int(stored));
+            tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        }
+        tool
+    };
+    let hit = |tool: &ItemSlot| melee_capacity_edits(&tool.custom_data, &env, &|_| false, &|_| false);
+    let drained = |edits: &[StackDataEdit], value: Option<i32>| edits == [StackDataEdit { path: persist("tconstruct:overslime"), value: value.map(Nbt::Int) }];
+    assert!(drained(&hit(&wield(2, 30)), Some(28)), "level 2 drains 2 a hit");
+    assert!(drained(&hit(&wield(1, 1)), None), "a drained bar loses its key");
+    assert!(hit(&wield(1, 0)).is_empty(), "an empty bar has nothing to drain");
 }

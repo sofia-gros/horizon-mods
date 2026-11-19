@@ -1,16 +1,22 @@
 //! CapacityBarModule and DurabilityShieldModule, from SlimeKnights (MIT; see LICENSE): a data-defined bar whose amount lives in the
 //! tool's persistent data under the modifier's ID, with a capacity of `flat + each_level * level` scaled by a stat multiplier, and the
 //! shield that soaks tool wear from it before any other reduction (barkskin, frostshield, stoneshield). The durability bar color and the
-//! incremental name are presentation work that is not ported. The modules that fill a bar (damage, loot, melee, mining and launch
-//! capacity) need a host call that rewrites the stack the event is about, which the game gives only for item wear, so they stay unbound.
+//! incremental name are presentation work that is not ported. The sources that fill a bar are ported where PlutoLib reports the event with
+//! a stack it can edit: damage to capacity (armor taking damage) and melee capacity (a weapon hit). Loot, mining and launch capacity stay
+//! unbound: no PlutoLib event reports the loot dropped to the tool's holder, the block it mined or a shot's stack for an edit.
+//! The edits land as `EntityAction::EditStackData` (see `persistent_edits`).
 use crate::{
     modifier_entries::Entry,
+    melee_damage::TargetCondition,
     modifier_modules::CausePredicate,
+    modifiers::Modifier,
+    protection::{DamageSource, SourceCondition},
+    thorns::Leveling,
     overslime,
     tool_stack::{saved_modifiers, Environment, TAG_MULTIPLIERS, TAG_PERSISTENT},
     tool_stats::Stat,
 };
-use pluto_lib::{Identifier, Nbt, NbtCompound};
+use pluto_lib::{Identifier, Nbt, NbtCompound, StackDataEdit};
 use serde_json::{Map, Value};
 
 /// A LevelingInt: whole numbers within a short, `flat + each_level * level` truncated to an int.
@@ -124,6 +130,103 @@ impl Shield {
         set_amount(nbt, &modifier.id, capacity, 0);
         damage
     }
+}
+
+/// The bar a capacity source fills: the overslime bar or the capacity bar of a modifier on the tool (CapacitySourceModule.barModifier).
+pub(crate) enum Target<'a> { Overslime, Bar { entry: &'a Entry, bar: &'a Bar } }
+
+impl<'a> Target<'a> {
+    /// The bar of `owner` (the source's own modifier `own` when none); None when that modifier is not on the tool or holds no bar. The
+    /// original would also fill the bar of an absent owner at level 0; only bars of modifiers on the tool are filled here.
+    pub(crate) fn find(saved: &'a [(Entry, std::sync::Arc<Modifier>)], own: &'a Entry, owner: Option<&Identifier>) -> Option<Self> {
+        let id = owner.unwrap_or(&own.id);
+        if *id == overslime::id() { return Some(Self::Overslime); }
+        saved.iter().find(|(entry, _)| entry.id == *id).and_then(|(entry, modifier)| modifier.capacity_bar().map(|bar| Self::Bar { entry, bar }))
+    }
+    fn capacity(&self, nbt: &NbtCompound) -> i32 { match self { Self::Overslime => overslime::capacity(nbt), Self::Bar { entry, bar } => bar.capacity(nbt, entry) } }
+    fn amount(&self, nbt: &NbtCompound) -> i32 { match self { Self::Overslime => overslime::amount(nbt), Self::Bar { entry, .. } => amount(nbt, &entry.id) } }
+    /// BarHook.setAmount: zero or less empties the bar, otherwise the amount is capped at the capacity.
+    fn set(&self, nbt: &mut NbtCompound, value: i32) {
+        match self { Self::Overslime => overslime::set_amount(nbt, value), Self::Bar { entry, bar } => { let capacity = bar.capacity(nbt, entry); set_amount(nbt, &entry.id, capacity, value) } }
+    }
+    /// CapacitySourceModule.apply with an amount of 1: a positive grant adds it, a negative one removes it and 0 empties the bar.
+    pub(crate) fn grant(&self, nbt: &mut NbtCompound, env: &Environment, grant: i32) {
+        match (self, grant) {
+            (_, 0) => self.set(nbt, 0),
+            (Self::Overslime, grant) if grant > 0 => overslime::add_amount(nbt, env, grant),
+            (_, grant) => { let current = self.amount(nbt); self.set(nbt, current.wrapping_add(grant)) }
+        }
+    }
+}
+
+/// `tconstruct:melee_capacity`: adds to a bar whenever the tool deals melee damage. `run_before` only orders the grant against the hit's own
+/// damage modules, which run in one pass here.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct MeleeFill { target: TargetCondition, attacker: TargetCondition, grant: LevelingInt, owner: Option<Identifier> }
+
+fn owner_of(fields: &Map<String, Value>) -> Result<Option<Identifier>, String> {
+    match fields.get("owner").filter(|value| !value.is_null()) {
+        None => Ok(None),
+        Some(Value::String(text)) => Identifier::parse(text).map(Some).map_err(|e| e.to_string()),
+        Some(_) => Err("owner must be a modifier ID".into()),
+    }
+}
+
+impl MeleeFill {
+    /// `None` when a condition names state this port does not hold.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(target) = TargetCondition::decode_for("target", fields.get("target"))? else { return Ok(None); };
+        let Some(attacker) = TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
+        let grant = match fields.get("grant").filter(|value| !value.is_null()) {
+            None => LevelingInt { flat: 0, each: 0 },
+            Some(Value::Object(grant)) => LevelingInt::decode(grant, 0)?,
+            Some(_) => return Err("grant must be an object".into()),
+        };
+        Ok(Some(Self { target, attacker, grant, owner: owner_of(fields)? }))
+    }
+
+    /// MeleeCapacityModule.apply: the bar's owner and the grant when the hit's target and attacker pass their conditions.
+    pub(crate) fn grant_for(&self, entry: &Entry, target_in_tag: &dyn Fn(&Identifier) -> bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool) -> Option<(Option<&Identifier>, i32)> {
+        (self.attacker.matches(attacker_in_tag) && self.target.matches(target_in_tag)).then(|| (self.owner.as_ref(), self.grant.compute(entry.effective_level())))
+    }
+}
+
+/// `tconstruct:damage_to_capacity`: armor that turns the damage its wearer takes into bar capacity; once the bar is full the wearer takes it.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct DamageFill { source: SourceCondition, multiplier: Leveling, reduce_damage: bool, owner: Option<Identifier> }
+
+impl DamageFill {
+    /// `None` when the source predicate needs state this port does not hold.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(source) = fields.get("source").filter(|value| !value.is_null()) else { return Err("source is required".into()); };
+        let Some(source) = SourceCondition::decode(source)? else { return Ok(None); };
+        let multiplier = match fields.get("multiplier") { Some(Value::Object(_)) => Leveling::decode(fields, "multiplier", Leveling::ZERO)?, _ => return Err("multiplier must be an object".into()) };
+        let reduce_damage = match fields.get("reduce_damage") { Some(Value::Bool(flag)) => *flag, _ => return Err("reduce_damage must be a boolean".into()) };
+        Ok(Some(Self { source, multiplier, reduce_damage, owner: owner_of(fields)? }))
+    }
+
+    pub(crate) fn matches(&self, source: &DamageSource) -> bool { self.source.matches(source) }
+    pub(crate) fn owner(&self) -> Option<&Identifier> { self.owner.as_ref() }
+
+    /// DamageToCapacityModule.modifyDamageTaken for a matching source: the damage after the bar took what it can of it.
+    pub(crate) fn absorb(&self, nbt: &mut NbtCompound, target: &Target, entry: &Entry, amount: f32) -> f32 {
+        let (capacity, current) = (target.capacity(nbt), target.amount(nbt));
+        // Once the bar is full the damage is taken directly.
+        if current >= capacity { return amount; }
+        let wanted = (amount * self.multiplier.compute(entry.effective_level())).ceil() as i32;
+        let added = (capacity - current).min(wanted);
+        target.set(nbt, current.wrapping_add(added));
+        if self.reduce_damage { amount - added as f32 } else { amount }
+    }
+}
+
+/// The edits that turn `before` into `after` where bars live: the changed, added and removed keys of the persistent data.
+pub(crate) fn persistent_edits(before: &NbtCompound, after: &NbtCompound) -> Vec<StackDataEdit> {
+    let data = |nbt: &NbtCompound| match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let (was, now) = (data(before), data(after));
+    let keys: std::collections::BTreeSet<&String> = was.keys().chain(now.keys()).collect();
+    keys.into_iter().filter(|key| was.get(*key) != now.get(*key))
+        .map(|key| StackDataEdit { path: vec![TAG_PERSISTENT.to_string(), key.clone()], value: now.get(key).cloned() }).collect()
 }
 
 /// The shield part of tool wear over every bar of the tool, in priority order (highest first, ties in modifier order), before any other

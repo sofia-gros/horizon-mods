@@ -671,7 +671,7 @@ assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing)
 
 ### `EntityAction`
 
-Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` is in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the player who shot or sheared is reached by their uuid, the world owner included).
+Something for a callback to do to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; those of a hit on a player on the player's next tick. Each action is guarded, and one the target cannot take is skipped without a word: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer than it already burns (a fire-immune mob is skipped; a player is reached only when the host can reach them); `Heal { target, amount }` gives a mob or a player `amount` health, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, and its fire goes out; not a player, not a kind the game makes freeze-immune such as the stray); `Knockback { target, strength, direction }` pushes a mob along the horizontal plane (and up when it stands on the ground) as `LivingEntity.knockback` does, without the mob's own knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` is in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the player who shot or sheared is reached by their uuid, the world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target player carries in [`slot`](#stackslot), but only when that stack is still of `item`; it is done to the stack as it is when the action lands (a weapon hit's before its damage and the hold item's wear, a hit on a player's on their next tick), so wear in between stays. It reaches players only (the acting player of the hit, the world owner included: the host names a player's stack by the player acting in the hook, and a hit on a player lands on that player's own tick); a mob, a slot holding another item and an edit that changes nothing are skipped. A guest's change reaches them through the host's inventory sync, which has not been watched in a game.
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, KnockbackDirection, ServerLivingEntityEvents};
@@ -680,6 +680,44 @@ ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
     if hit.weapon.as_ref().is_some_and(|weapon| weapon.item == "example:flame_sword") {
         hit.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
         hit.actions.borrow_mut().push(EntityAction::Knockback { target: ActionTarget::Victim, strength: 0.5, direction: KnockbackDirection::AwayFromOther });
+    }
+});
+```
+
+### `StackSlot`
+
+Which stack of a player an `EntityAction::EditStackData` edits: `MainHand` (the selected hotbar slot), `OffHand`, `Feet`, `Legs`, `Chest` or `Head`.
+
+```rust
+use pluto_lib::{armor_stack_slot, StackSlot};
+
+assert_eq!(armor_stack_slot("head"), Some(StackSlot::Head));
+assert_ne!(StackSlot::MainHand, StackSlot::OffHand);
+```
+
+### `armor_stack_slot`
+
+The [`StackSlot`](#stackslot) of an armor slot name that `armor` lists use (`feet`, `legs`, `chest`, `head`); None for any other name.
+
+```rust
+use pluto_lib::armor_stack_slot;
+
+assert!(armor_stack_slot("chest").is_some() && armor_stack_slot("body").is_none());
+```
+
+### `StackDataEdit`
+
+One change to a stack's custom data for `EntityAction::EditStackData`: `value` is put at `path` (compound keys from the root of the custom data, the compounds on the way made when missing, a value in the way replaced by a compound) or, when `value` is None, the entry at `path` is removed. Edits are applied in order and an empty path is skipped. Edits state the value they want, not a change: a bar that two hits fill in one tick is set by the second from what the first had not yet written.
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, Nbt, ServerLivingEntityEvents, StackDataEdit, StackSlot};
+
+ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
+    if hit.weapon.as_ref().is_some_and(|weapon| weapon.item == "example:charged_sword") {
+        hit.actions.borrow_mut().push(EntityAction::EditStackData {
+            target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: "example:charged_sword".into(),
+            edits: vec![StackDataEdit { path: vec!["example:charge".into()], value: Some(Nbt::Int(7)) }],
+        });
     }
 });
 ```
@@ -766,14 +804,14 @@ assert!(state.fire_ticks > 0 && state.effects.contains(&"minecraft:poison".to_st
 
 ### `DamageModification`
 
-Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection. When a player's weapon hit a mob, `attacker_state` and `target_state` say what the player and the mob were doing as the hit landed (`None` otherwise).
+Damage about to be applied, for a callback to change. `damage` is what is known of it (its `amount` is the game's and does not change), `amount` the amount now (a `Cell`: change it with `set`) and `attacker_stack` the stack a player attacked with, with its damage, max damage and custom data; None when no player's attack caused it. `armor` lists what a player wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data, which is where a mod keeps its armor's state); it is empty for anything but a player. The event fires after vanilla's armor and enchantment protection. When a player's weapon hit a mob, `attacker_state` and `target_state` say what the player and the mob were doing as the hit landed (`None` otherwise). `actions` takes [`EntityAction`](#entityaction)s for the damaged player (`ActionTarget::Victim`), which land on their next tick; only a player whose armor carries custom data is served, so they are dropped for any other entity. Damage heard in the same tick all work from the armor as of the last tick, so an `EditStackData` one callback queues does not see the edit another queued a moment before.
 
 ```rust
 use pluto_lib::{DamageModification, LivingDamage};
 use std::cell::Cell;
 
 let damage = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
-let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new(), attacker_state: None, target_state: None };
+let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new(), attacker_state: None, target_state: None, actions: Default::default() };
 hit.amount.set(hit.amount.get() + 2.0);
 assert_eq!((hit.damage.amount, hit.amount.get()), (3.0, 5.0));
 assert!(hit.attacker_stack.is_none());
