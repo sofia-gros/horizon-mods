@@ -1006,7 +1006,6 @@ fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
         if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
     }
 }
-}
 
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
     Some(match tag {
