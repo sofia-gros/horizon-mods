@@ -34,6 +34,8 @@ mod tool_repair;
 mod tool_swap;
 mod tool_build;
 mod tool_parts;
+mod armor_textures;
+mod armor_worn;
 mod tool_mining;
 mod mining_speed;
 mod melee_damage;
@@ -87,5 +89,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     max_armor_hook::register();
     mob_disguise_hook::register();
     edible_hook::register();
+    armor_worn::register();
     pluto_lib::no_hooks()
 }

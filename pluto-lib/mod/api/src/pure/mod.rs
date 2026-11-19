@@ -7,6 +7,7 @@ pub mod block_entity_api_v1;
 pub mod block_entity_renderer_api_v1;
 pub(crate) mod render_cache;
 pub mod color_provider_api_v1;
+pub mod armor_renderer_api_v1;
 pub mod particle_factory_registry;
 pub mod skull_model_registry;
 pub mod command_api_v2;

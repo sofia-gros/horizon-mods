@@ -57,6 +57,8 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_swap.rs',
                 'mixins/tconstruct_native/api/src/tool_build.rs',
                 'mixins/tconstruct_native/api/src/tool_parts.rs',
+                'mixins/tconstruct_native/api/src/armor_textures.rs',
+                'mixins/tconstruct_native/api/src/armor_worn.rs',
                 'mixins/tconstruct_native/api/src/tool_mining.rs',
                 'mixins/tconstruct_native/api/src/mining_speed.rs',
                 'mixins/tconstruct_native/api/src/break_speed_hook.rs',

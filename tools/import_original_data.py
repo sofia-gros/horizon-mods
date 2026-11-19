@@ -563,6 +563,132 @@ def copy_tool_assets():
     return tools, len(collected.models) + len(extra), len(collected.textures), left_out
 
 
+WORN_ROOTS = [GENERATED_ASSETS / 'textures/tinker_armor', ASSET_SOURCE / 'textures/tinker_armor']
+WORN_TARGET = ASSET_TARGET / 'textures/entity/equipment'
+ARMOR_TABLE = ROOT / 'tconstruct/mixins/tconstruct/api/src/armor_textures.rs'
+EQUIPMENT_TARGET = ASSET_TARGET / 'equipment'
+# Texture word of each equipment layer set (the original's `armor`, `leggings` and `wings` bases) and its texture folder.
+WORN_KINDS = {'armor': 'humanoid', 'leggings': 'humanoid_leggings', 'wings': 'wings'}
+# The material layers of each armor model in ArmorModelProvider (the dyed suppliers need the dyed modifier and are left out; the trim
+# supplier is the game's own trim layer): ('fixed', prefix) is one base texture, ('material', prefix, slot) the texture of the material
+# in that tool slot. Each prefix is completed with the layer set's word.
+WORN_FAMILIES = {
+    'travelers': [('fixed', 'travelers/base_'), ('material', 'travelers/cuirass_', 1), ('material', 'travelers/metal_', 0)],
+    'plate': [('material', 'plate/plating_', 0), ('material', 'plate/maille_', 1)],
+    'slime': [('material', 'slime/', 1), ('material', 'slime/overlay_', 0)],
+    'slime_wings': [('material', 'slime/', 0)],
+}
+# Item path -> (family, layer-set word).
+WORN_ITEMS = {
+    **{f'travelers_{piece}': ('travelers', 'leggings' if piece == 'leggings' else 'armor') for piece in ('helmet', 'chestplate', 'leggings', 'boots')},
+    **{f'plate_{piece}': ('plate', 'leggings' if piece == 'leggings' else 'armor') for piece in ('helmet', 'chestplate', 'leggings', 'boots')},
+    **{f'slime_{piece}': ('slime', 'leggings' if piece == 'leggings' else 'armor') for piece in ('chestplate', 'leggings', 'boots')},
+    'slime_wings': ('slime_wings', 'wings'),
+}
+
+
+def worn_source(stem):
+    for root in WORN_ROOTS:
+        if (root / f'{stem}.png').is_file():
+            return root / f'{stem}.png'
+    return None
+
+
+def worn_word(stem):
+    """The layer-set word a texture stem belongs to: the first of `armor`, `leggings`, `wings` in its file name."""
+    name = stem.rsplit('/', 1)[1]
+    return next(word for word in WORN_KINDS if re.search(rf'(^|_){word}(_|$)', name))
+
+
+def worn_color(material, info):
+    """The render info's vertex colour (0xRRGGBB) of the first redirect-chain material that has one."""
+    chain, name = [], material
+    while name is not None and name not in chain:
+        chain.append(name)
+        data = info.get(name, {})
+        if 'color' in data:
+            return int(data['color'], 16) & 0xFFFFFF
+        target = data.get('texture')
+        name = target.split(':', 1)[1] if target and target.startswith('tconstruct:') else None
+    return None
+
+
+def copy_armor_worn_assets():
+    """Worn armor textures, equipment assets and the layer table of the armor renderer (armor_textures.rs).
+
+    Mirrors the original's MaterialArmorTextureSupplier: a material's texture is the pre-baked `<base>_tconstruct_<material>` of its
+    redirect chain, else the first fallback's `<base>_<fallback>` tinted with the material's vertex colour, else the base tinted the
+    same way. Only the bases of the layer plans of the registered armor are read; files are copied byte for byte (SlimeKnights, MIT).
+    Returns (textures copied, table rows).
+    """
+    sprites = material_sprites()
+    info = {}
+    for path in MATERIAL_INFO.rglob('*.json'):
+        info['_'.join(path.relative_to(MATERIAL_INFO).with_suffix('').parts)] = json.loads(path.read_text(encoding='utf-8'))
+    if 'unknown' in info:
+        sprites['unknown'] = (['unknown'], list(info['unknown'].get('fallbacks', [])))
+    words = {family: sorted({word for item_family, word in WORN_ITEMS.values() if item_family == family}) for family in WORN_FAMILIES}
+    bases, rows, used = set(), [], set()
+    for family, plan in WORN_FAMILIES.items():
+        for word in words[family]:
+            for layer in plan:
+                base = f'{layer[1]}{word}'
+                if worn_source(base) is None:
+                    continue
+                bases.add(base)
+                used.add(base)
+                if layer[0] == 'fixed':
+                    continue
+                for material, (chain, fallbacks) in sprites.items():
+                    pick = next((f'_tconstruct_{name}' for name in chain if worn_source(f'{base}_tconstruct_{name}')), None)
+                    tint = None
+                    if pick is None:
+                        pick = next((f'_{name}' for name in fallbacks if worn_source(f'{base}_{name}')), '')
+                        tint = worn_color(material, info)
+                    used.add(base + pick)
+                    if pick or tint is not None:
+                        rows.append((base, material, pick, tint))
+    shutil.rmtree(WORN_TARGET, ignore_errors=True)
+    for stem in sorted(used):
+        destination = WORN_TARGET / WORN_KINDS[worn_word(stem)] / f'{stem}.png'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(worn_source(stem), destination)
+    # Equipment assets: the item's `equippable.asset_id`; each layer set names the plan's first base that exists (what draws when
+    # the renderer declines), so every asset resolves to real textures.
+    shutil.rmtree(EQUIPMENT_TARGET, ignore_errors=True)
+    for family, plan in WORN_FAMILIES.items():
+        layers = {}
+        for word in words[family]:
+            kind = WORN_KINDS[word]
+            first = next((f'{layer[1]}{word}' for layer in plan if f'{layer[1]}{word}' in bases), None)
+            if first:
+                layers[kind] = [{'texture': f'tconstruct:{first}'}]
+        write_json(EQUIPMENT_TARGET / f'{family}.json', {'layers': layers})
+    rows.sort(key=lambda row: (row[0], row[1]))
+    lines = ["//! The worn layers of the registered armor: which texture each material gives each layer, from the original's material render",
+             '//! info and the pre-baked `tinker_armor` textures (SlimeKnights, MIT; see LICENSE). Generated by tools/import_original_data.py;',
+             '//! `armor_worn.rs` reads it. A base absent from BASES is a layer the original skips for that layer set.', '',
+             '/// One layer of an armor model: a base texture, or the texture of the material in a tool slot.',
+             'pub(crate) enum Layer {', "    Fixed(&'static str),", "    Material(&'static str, usize),", '}', '',
+             '/// Item path -> (family, layer-set word `armor`, `leggings` or `wings`).',
+             'pub(crate) const ITEMS: &[(&str, &str, &str)] = &[']
+    lines += [f'    ("{item}", "{family}", "{word}"),' for item, (family, word) in sorted(WORN_ITEMS.items())]
+    lines += ['];', '', '/// The layers of each family, in draw order; each prefix is completed with the layer-set word.',
+              'pub(crate) const FAMILIES: &[(&str, &[Layer])] = &[']
+    for family, plan in WORN_FAMILIES.items():
+        entries = [f'Layer::Fixed("{layer[1]}")' if layer[0] == 'fixed' else f'Layer::Material("{layer[1]}", {layer[2]})' for layer in plan]
+        lines.append(f'    ("{family}", &[{", ".join(entries)}]),')
+    lines += ['];', '', "/// Every base texture the original ships (a path under the layer set's texture folder, without `.png`), sorted.",
+              'pub(crate) const BASES: &[&str] = &[']
+    lines += [f'    "{base}",' for base in sorted(bases)]
+    lines += ['];', '', '/// (base, material id path, suffix of the variant texture, tint 0xRRGGBB) of every material that does not simply use its',
+              '/// untinted base; sorted by base and material.', 'pub(crate) const VARIANTS: &[(&str, &str, &str, Option<u32>)] = &[']
+    lines += [f'    ("{base}", "{material}", "{suffix}", {"None" if tint is None else f"Some(0x{tint:06X})"}),' for base, material, suffix, tint in rows]
+    lines += ['];']
+    ARMOR_TABLE.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(used), len(rows)
+
+
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
 LANGUAGES = ['en_us', 'ja_jp']
@@ -623,10 +749,11 @@ def main():
     models, textures, unrendered = copy_client_assets()
     part_names, part_models, part_textures = copy_part_assets()
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
+    worn_textures, worn_rows = copy_armor_worn_assets()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names]
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

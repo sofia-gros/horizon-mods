@@ -11,6 +11,7 @@ DECLARED = CONTENT / 'data/tconstruct/horizon'
 MATERIALS = CONTENT / 'data/tconstruct/tinkering/materials/definition'
 TOOLS = CONTENT / 'data/tconstruct/tinkering/tool_definitions'
 PART_TABLE = ROOT / 'tconstruct/mixins/tconstruct/api/src/tool_parts.rs'
+ARMOR_TABLE = ROOT / 'tconstruct/mixins/tconstruct/api/src/armor_textures.rs'
 BASE = ROOT / '.local/base-26.3/assets/minecraft'  # a read-only reference checkout; absent on some runners
 # Declared items whose original model is plain (no tool/material loader); the rest wait for per-material rendering.
 SIMPLE_ITEMS = {'modifier_crystal', 'pattern', 'venom_bottle'}
@@ -127,8 +128,52 @@ class ContentAssets(unittest.TestCase):
         used = set()
         for path in (ASSETS / 'models').rglob('*.json'):
             used |= {split(t)[1] for t in load(path).get('textures', {}).values() if split(t)[0] == 'tconstruct'}
-        present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')}
+        present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
+                   if not p.relative_to(ASSETS / 'textures').as_posix().startswith('entity/equipment/')}
         self.assertEqual(present, used)
+
+    def test_worn_armor_textures_are_exactly_the_ones_the_layer_table_can_pick(self):
+        """armor_textures.rs names every worn texture: each base and each material variant is a shipped PNG in the folder of its
+        layer set, nothing else is shipped there, and every equipment asset and armor declaration resolves."""
+        text = ARMOR_TABLE.read_text(encoding='utf-8')
+        bases = re.findall(r'^    "([a-z_/]+)",$', text.split('const BASES')[1].split('];')[0], re.M)
+        variants = re.findall(r'^    \("([a-z_/]+)", "([a-z_]+)", "([a-z_]*)", (?:None|Some\(0x[0-9A-F]{6}\))\),$', text.split('const VARIANTS')[1], re.M)
+        self.assertTrue(bases and variants)
+        folders = {'armor': 'humanoid', 'leggings': 'humanoid_leggings', 'wings': 'wings'}
+
+        def folder(stem):
+            name = stem.rsplit('/', 1)[1]
+            return folders[next(word for word in folders if re.search(rf'(^|_){word}(_|$)', name))]
+
+        stems = set(bases) | {base + suffix for base, _, suffix in variants}
+        materials = {p.stem for p in MATERIALS.glob('*.json')} | {'unknown'}
+        for base, material, suffix in variants:
+            self.assertIn(base, bases)
+            self.assertIn(material, materials, base)
+        shipped = {p.relative_to(ASSETS / 'textures/entity/equipment').with_suffix('').as_posix() for p in (ASSETS / 'textures/entity/equipment').rglob('*.png')}
+        self.assertEqual(shipped, {f'{folder(stem)}/{stem}' for stem in stems})
+        equipment = {p.stem: load(p) for p in (ASSETS / 'equipment').glob('*.json')}
+        for name, asset in equipment.items():
+            self.assertTrue(asset['layers'], name)
+            for kind, layers in asset['layers'].items():
+                self.assertIn(kind, folders.values())
+                for layer in layers:
+                    namespace, path = split(layer['texture'])
+                    self.assertEqual(namespace, 'tconstruct')
+                    self.assertTrue((ASSETS / f'textures/entity/equipment/{kind}/{path}.png').is_file(), f'{name}: {layer}')
+        slots = {'helmet': 'head', 'chestplate': 'chest', 'leggings': 'legs', 'boots': 'feet', 'wings': 'chest'}
+        armor = [p for p in (DECLARED / 'item').glob('*.json') if re.fullmatch(r'(travelers|plate|slime)_(helmet|chestplate|leggings|boots)|slime_wings', p.stem)]
+        self.assertEqual(len(armor), 13)
+        for path in armor:
+            equippable = load(path)['components']['minecraft:equippable'] if 'components' in load(path) else None
+            if path.stem == 'slime_helmet':
+                self.assertIsNone(equippable)  # the slimeskull needs its own skull model; it keeps its template's asset
+                continue
+            self.assertEqual(equippable['slot'], slots[path.stem.rsplit('_', 1)[1]], path.stem)
+            asset = split(equippable['asset_id'])
+            self.assertEqual(asset[0], 'tconstruct')
+            self.assertIn(asset[1], equipment, path.stem)
+            self.assertIn('wings' if path.stem == 'slime_wings' else 'humanoid_leggings' if path.stem.endswith('leggings') else 'humanoid', equipment[asset[1]]['layers'], path.stem)
 
 
 if __name__ == '__main__':

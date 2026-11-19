@@ -1,1 +1,1 @@
-{"template":"minecraft:elytra","max_stack_size":1}
+{"template":"minecraft:elytra","max_stack_size":1,"components":{"minecraft:equippable":{"asset_id":"tconstruct:slime_wings","damage_on_hurt":false,"equip_sound":"minecraft:item.armor.equip_elytra","slot":"chest"}}}

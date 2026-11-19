@@ -28,6 +28,8 @@
     "api/src/tool_swap.rs",
     "api/src/tool_build.rs",
     "api/src/tool_parts.rs",
+    "api/src/armor_textures.rs",
+    "api/src/armor_worn.rs",
     "api/src/tool_mining.rs",
     "api/src/mining_speed.rs",
     "api/src/break_speed_hook.rs",

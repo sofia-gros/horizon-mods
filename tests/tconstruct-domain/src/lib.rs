@@ -55,6 +55,10 @@ mod tool_swap;
 mod tool_build;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_parts.rs"]
 mod tool_parts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/armor_textures.rs"]
+mod armor_textures;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/armor_worn.rs"]
+mod armor_worn;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_mining.rs"]
 mod tool_mining;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/mining_speed.rs"]
