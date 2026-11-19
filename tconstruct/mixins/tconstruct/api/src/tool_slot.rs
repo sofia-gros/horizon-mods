@@ -3,7 +3,7 @@
 //! SlimeKnights (MIT; see LICENSE) defines the arithmetic; this only mirrors it onto an ItemSlot.
 use crate::{
     tool_damage,
-    tool_stack::{current_durability, damage, durability, is_broken, mining_component, rebuild_stats, stat, Environment},
+    tool_stack::{current_durability, damage, durability, is_broken, is_initialized, mining_component, rebuild_stats, stat, Environment},
     tool_stats::Stat,
 };
 use pluto_lib::{Identifier, ItemSlot};
@@ -79,6 +79,9 @@ pub(crate) fn damage_slot(
     slot: &mut ItemSlot, env: &Environment, amount: i32, consumes_resources: bool, has_durability_tag: bool,
     cause: Option<&pluto_lib::Identifier>, random: &mut dyn FnMut() -> f32,
 ) -> Result<tool_damage::Damaged, String> {
+    // ModifiableItem.verifyTag runs on a stack's first inventory tick, so a worn stack that was never built (a command-given piece,
+    // an old save) is built before it takes wear; without it the missing durability reads as 1 and the first hit would break it.
+    if amount > 0 && !is_initialized(&slot.custom_data) && !rebuild(slot, env)? { return Ok(tool_damage::Damaged { applied: 0, broke: false }); }
     let before = slot.custom_data.clone();
     let outcome = tool_damage::damage_tool_reduced(&mut slot.custom_data, amount, consumes_resources, has_durability_tag,
         // Overslime soaks damage before any other reduction.
