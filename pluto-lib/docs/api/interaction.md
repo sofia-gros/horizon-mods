@@ -76,7 +76,7 @@ use pluto_lib::PlayerBlockBreakEvents;
 PlayerBlockBreakEvents::BEFORE.register(|broken| broken.pos != [0, 64, 0]);
 ```
 
-`PlayerBlockBreakEvents::AFTER` runs once the block is gone. Every break event gets a `BlockBreakContext`: the position, dimension and block state, the player and the stack in their main hand, and `actions` for what to do to the player. For `AFTER` the held stack is the tool after the break wore it, so a callback can read its custom data and queue an `EditStackData` for the main hand.
+`PlayerBlockBreakEvents::AFTER` runs once the block is gone. Every break event gets a `BlockBreakContext`: the position, dimension and block state, the player and the stack in their main hand, and `actions` for what to do to the player. For `AFTER` the held stack is the tool as of the report, after the break wore it, so a callback can read its custom data and queue an `EditStackData` for the main hand.
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, PlayerBlockBreakEvents, StackDataEdit, StackSlot, Nbt};
@@ -90,7 +90,7 @@ PlayerBlockBreakEvents::AFTER.register(|broken| {
 });
 ```
 
-> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` runs when the game's break function returns (after the tool wear and the drops, which Fabric's runs before), only for a block the break removed, creative breaks included; it carries no block entity. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
+> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` is not immediate: the game has no hook at the end of a break, so it runs at the breaking player's next tick or next break, at most one tick late, and only if the block at the position is no longer the one `BEFORE` saw (a break another mod cancelled later is not reported). `held` is the tool as of that tick. Creative breaks are heard too; it carries no block entity. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
 
 ## Reference
 

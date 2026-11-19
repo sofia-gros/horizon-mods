@@ -182,9 +182,6 @@ pub fn hooks() -> Box<dyn Hooks> {
             entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
     }).expect("PlutoLib player hurt sink installs once");
-    horizon_client::entry::pluto_block_break_access::set_sink(horizon_client::entry::pluto_block_break_access::Sink {
-        after: finish_block_break,
-    }).expect("PlutoLib block break sink installs once");
     horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
         factor: entity_events_v1::modify_visibility,
     }).expect("PlutoLib player visibility sink installs once");
@@ -973,7 +970,7 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
 
 /// What the break hook read before the block went, kept for the end of the same break.
 struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer }
-static PENDING_BREAK: std::sync::Mutex<Option<PendingBreak>> = std::sync::Mutex::new(None);
+static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
 
 /// The acting player, their dimension and main-hand stack, and the block at `pos`, as the block break events report them.
 fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::BlockBreakContext {
@@ -988,19 +985,27 @@ fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::B
     }
 }
 
-/// The end of a player's break (the `pluto_block_break_access` sink): `AFTER` hears a break that removed the block, with the stack the player
-/// holds now, and the actions its callbacks queue are done to the player.
-fn finish_block_break(host: &mut dyn Host, pos: [i32; 3], removed: bool) {
-    let Some(pending) = PENDING_BREAK.lock().ok().and_then(|mut slot| slot.take()).filter(|pending| pending.pos == pos) else { return };
-    if !removed { return; }
-    let held = host.held_stack(pending.player.uuid).map(|stack| read_stack(&stack));
-    let uuid = pending.player.uuid;
-    let context = events_interaction_v0::BlockBreakContext {
-        pos, dimension: pending.dimension, state: pending.state, player: Some(pending.player), held, actions: std::cell::RefCell::new(Vec::new()),
+/// Reports the earlier breaks of the player `uuid` to `AFTER`: the game has no hook at the end of a break, so each allowed break waits until the
+/// player's next tick (or their next break) and is heard then if the block at its position is no longer the one that was there. `held` is the
+/// stack the player holds now, and the actions the callbacks queue are done to the player.
+fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
+    let due: Vec<PendingBreak> = match PENDING_BREAKS.lock() {
+        Ok(mut pending) => { let (due, rest) = std::mem::take(&mut *pending).into_iter().partition(|entry| entry.player.uuid == uuid); *pending = rest; due }
+        Err(_) => return,
     };
-    scoped(host, || events_interaction_v0::after_block_break(&context));
-    let actions = context.actions.take();
-    if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
+    for entry in due {
+        let now = match host.level(&entry.dimension) { Some(level) => host.level_block_state(level, entry.pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
+        // An unreadable block or one that is still the same means the break did not happen (another mod cancelled it later).
+        if now.is_none() || now == entry.state { continue; }
+        let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
+        let context = events_interaction_v0::BlockBreakContext {
+            pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, actions: std::cell::RefCell::new(Vec::new()),
+        };
+        scoped(host, || events_interaction_v0::after_block_break(&context));
+        let actions = context.actions.take();
+        if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
+    }
+}
 }
 
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
@@ -2167,6 +2172,7 @@ impl Hooks for PlutoHooks {
     fn player_tick(&self, host: &mut dyn Host, _event: &mut horizon_client::mod_api::PlayerTickEvent) {
         // Damage hooks get no host, so the armor a player wears is read here each tick for them to find.
         let Some(player) = host.acting_player() else { return };
+        flush_block_breaks(host, player.uuid);
         let mut armor = Vec::new();
         for (name, slot) in [("feet", horizon_client::mod_api::EquipmentSlot::Feet), ("legs", horizon_client::mod_api::EquipmentSlot::Legs), ("chest", horizon_client::mod_api::EquipmentSlot::Chest), ("head", horizon_client::mod_api::EquipmentSlot::Head)] {
             let Some(stack) = host.player_equipment(player.uuid, slot) else { continue };
@@ -2328,15 +2334,19 @@ impl Hooks for PlutoHooks {
     fn destroy_block(&self, host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
         if !events_interaction_v0::block_break_heard() { return Flow::Continue; }
         let context = break_context(host, event.pos);
+        if let Some(player) = &context.player { flush_block_breaks(host, player.uuid); }
         let allowed = scoped(host, || events_interaction_v0::before_block_break(&context));
         let actions = context.actions.take();
         if let (Some(player), false) = (&context.player, actions.is_empty()) { apply_player_actions(host, player.uuid, actions); }
-        // The end of the break (the break sink, installed in `hooks`) reports an allowed break to `AFTER` with what was read here.
+        // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
         let pending = match (allowed, context.player) {
             (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension, state: context.state, player }),
             _ => None,
         };
-        if let Ok(mut slot) = PENDING_BREAK.lock() { *slot = pending; }
+        if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
+            if waiting.len() >= 64 { waiting.remove(0); }
+            waiting.push(pending);
+        }
         cancel_if(!allowed)
     }
 

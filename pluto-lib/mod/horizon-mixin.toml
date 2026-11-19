@@ -1460,22 +1460,6 @@ cancellable = true
 helper = "pluto-item-wear.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "amount", ty = "u32", value = "amount" }]
 
-# The end of a player's break of a block: the sink the mods install hears whether the block went, with the game as the host (Fabric's
-# PlayerBlockBreakEvents.AFTER; the game's own destroy hook only runs before the block is removed).
-[[module]]
-id = "pluto-block-break-access"
-file = "crates/horizon-client/src/entry.rs"
-name = "pluto_block_break_access"
-source = "pluto-block-break-access.rs"
-visibility = "pub"
-
-[[injection]]
-id = "pluto-block-break"
-target = "horizon_client::game::Game<'_>::break_block_as_player"
-kind = "RETURN"
-helper = "pluto-block-break.rs"
-bindings = [{ name = "value", ty = "crate::Result<bool>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
-
 # The status effects a mod's weapon-hit callback puts on a mob (the game has no mod call that applies an effect to a mob).
 [[module]]
 id = "pluto-mob-effect-access"

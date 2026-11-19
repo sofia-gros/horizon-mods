@@ -129,7 +129,7 @@ pub struct BlockBreakContext {
     pub state: Option<BlockState>,
     /// The player who breaks it; None when the game names none.
     pub player: Option<ServerPlayer>,
-    /// The stack in the player's main hand: before the break for `BEFORE` and `CANCELED`, after it (with the wear the break caused) for `AFTER`.
+    /// The stack in the player's main hand: before the break for `BEFORE` and `CANCELED`, at the tick that reports it (with the wear the break caused) for `AFTER`.
     /// None for an empty hand.
     pub held: Option<StackData>,
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to. The game does it right after the callbacks ran: for
@@ -205,9 +205,10 @@ pub struct PlayerBlockBreakEvents;
 impl PlayerBlockBreakEvents {
     /// Fabric: `BEFORE`: return `false` to cancel the break.
     pub const BEFORE: &'static Event<BlockBreakContext, bool> = &BEFORE_BLOCK_BREAK;
-    /// Fabric: `AFTER`: a player's break went through and the block is gone. It runs once the game has also worn the tool and dropped the
-    /// loot (Fabric runs it before them), so `held` is the worn tool; the block entity is not given (it is gone, and the host cannot read
-    /// one). Creative breaks are heard too. Not heard for the breaks `BEFORE` does not hear (leaves decaying, a piston, `/setblock`).
+    /// Fabric: `AFTER`: a player's break went through and the block is gone. The game has no hook at the end of a break, so it is heard at
+    /// the player's next tick (or their next break), at most one tick late, and only when the block at `pos` is no longer the one `BEFORE`
+    /// saw. `held` is the tool as of then; the block entity is not given. Creative breaks are heard too. Not heard for the breaks
+    /// `BEFORE` does not hear (leaves decaying, a piston, `/setblock`).
     pub const AFTER: &'static Event<BlockBreakContext, ()> = &AFTER_BLOCK_BREAK;
     /// Fabric: `CANCELED`. Called once when `BEFORE` vetoes a break; the block is kept.
     pub const CANCELED: &'static Event<BlockBreakContext, ()> = &BLOCK_BREAK_CANCELED;
