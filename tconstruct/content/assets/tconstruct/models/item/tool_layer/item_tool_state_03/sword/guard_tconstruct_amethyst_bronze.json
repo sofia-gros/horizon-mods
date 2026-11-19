@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/03",
+  "textures": {
+    "layer0": "tconstruct:item/tool/sword/guard_tconstruct_amethyst_bronze"
+  }
+}

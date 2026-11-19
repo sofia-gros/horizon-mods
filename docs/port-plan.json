@@ -71,6 +71,7 @@
     "api/src/material_stats.rs",
     "api/src/material_snapshot.rs",
     "api/src/material_sync.rs",
+    "api/src/model_flags.rs",
     "api/src/tool_materials.rs",
     "api/src/tool_stats.rs",
     "api/src/tool_definitions.rs",

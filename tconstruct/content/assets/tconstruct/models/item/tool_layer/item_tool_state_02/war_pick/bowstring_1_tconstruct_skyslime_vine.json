@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/02",
+  "textures": {
+    "layer0": "tconstruct:item/tool/war_pick/bowstring_1_tconstruct_skyslime_vine"
+  }
+}
