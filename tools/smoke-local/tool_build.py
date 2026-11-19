@@ -861,8 +861,10 @@ def main():
 
         def summon_pig():
             ctl('command', 'kill @e[type=minecraft:pig]')
-            ctl('command', f'summon minecraft:pig {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
-            ctl('wait', '20')
+            ctl('command', f'summon minecraft:pig {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b,Health:30f}}')
+            # Measured on r3h: a pig summoned here is hurt on landing (health 7, hurt_time 2) and a hit inside that invulnerability
+            # window deals nothing, so no hit effect shows. Wait for it to settle before the measured hit.
+            ctl('wait', '80')
 
         def hit_pig(modifiers, before_hit=None):
             """Hold a pickaxe with the modifiers (a JSON-ish list body) and hit a fresh pig once; the pig stays for the data reads."""
