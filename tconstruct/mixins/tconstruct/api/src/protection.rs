@@ -19,7 +19,7 @@ pub(crate) struct DamageSource<'a> {
 
 /// IJsonPredicate over the damage source.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>) }
+pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>), Attacker(crate::melee_damage::TargetCondition) }
 
 impl SourceCondition {
     /// `None` when the predicate needs state this port does not hold (the attacker's type, say).
@@ -52,6 +52,11 @@ impl SourceCondition {
                 let inner = fields.and_then(|f| f.get("inverted_type")).ok_or("inverted predicate needs inverted_type")?;
                 match Self::decode(inner)? { Some(condition) => Self::Not(Box::new(condition)), None => return Ok(None) }
             }
+            // The entity that caused the damage, by its type tags and what it was doing; the direct entity of an arrow is not reported.
+            "mantle:attacker" => {
+                if fields.and_then(|f| f.get("which")).and_then(Value::as_str) != Some("causing") { return Ok(None); }
+                match crate::melee_damage::TargetCondition::decode_for("attacker", fields.and_then(|f| f.get("entity_type")))? { Some(condition) => Self::Attacker(condition), None => return Ok(None) }
+            }
             "mantle:and" => match list("predicates")? { Some(all) => Self::And(all), None => return Ok(None) },
             "mantle:or" => match list("predicates")? { Some(any) => Self::Or(any), None => return Ok(None) },
             _ => return Ok(None),
@@ -69,6 +74,7 @@ impl SourceCondition {
             Self::Not(inner) => !inner.matches(source),
             Self::And(all) => all.iter().all(|condition| condition.matches(source)),
             Self::Or(any) => any.iter().any(|condition| condition.matches(source)),
+            Self::Attacker(condition) => condition.matches(source.attacker_in_tag),
         }
     }
 }
@@ -110,4 +116,26 @@ pub(crate) fn damage_after_protection(damage: f32, vanilla: f32, total: f32, cap
     if vanilla > 0.0 { damage /= 1.0 - vanilla.clamp(0.0, 20.0) / 25.0; }
     if total != 0.0 && damage > 0.0 { damage *= 1.0 - total.clamp(-20.0, cap) / 25.0; }
     damage
+}
+
+/// Enchantment.getDamageProtection for the protection enchantments, the points the game's own enchantment protection gives a level
+/// against a damage source (0 for any other enchantment and for damage that bypasses invulnerability).
+pub(crate) fn enchantment_points(enchantment: &str, level: i32, source: &DamageSource) -> f32 {
+    if level <= 0 || source.tags.contains_vanilla("bypasses_invulnerability", source.damage_type) { return 0.0; }
+    let (factor, tag) = match enchantment {
+        "minecraft:protection" => return level as f32,
+        "minecraft:fire_protection" => (2, "is_fire"),
+        "minecraft:feather_falling" => (3, "is_fall"),
+        "minecraft:blast_protection" => (2, "is_explosion"),
+        "minecraft:projectile_protection" => (2, "is_projectile"),
+        _ => return 0.0,
+    };
+    if source.tags.contains_vanilla(tag, source.damage_type) { (level * factor) as f32 } else { 0.0 }
+}
+
+/// The points the game's enchantment protection gave the damage from the worn pieces' enchantments (each piece's levels per enchantment,
+/// as the modifiers give them): none for damage that bypasses enchantments.
+pub(crate) fn host_enchantment_points<'a>(pieces: impl IntoIterator<Item = &'a std::collections::BTreeMap<String, i32>>, source: &DamageSource) -> f32 {
+    if source.tags.contains_vanilla("bypasses_enchantments", source.damage_type) { return 0.0; }
+    pieces.into_iter().flat_map(|levels| levels.iter()).map(|(name, level)| enchantment_points(name, *level, source)).sum()
 }

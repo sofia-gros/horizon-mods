@@ -140,7 +140,9 @@ pub(crate) enum Module {
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
-    Enchantment { name: String, flat: f32, each: f32, condition: Condition },
+    Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
+    /// ClearEffectOnUnequipModule: taking the armor off takes the effect off its wearer.
+    ClearEffectOnUnequip { effect: Identifier, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
@@ -315,7 +317,7 @@ impl Module {
             }
             "tconstruct:soulspeed" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip")) => {
                 // SoulSpeedModule: a constant minecraft:soul_speed enchantment from a leveling int.
-                Self::Enchantment { name: "minecraft:soul_speed".to_owned(), flat: short(fields, "flat")? as f32, each: short(fields, "each_level")? as f32, condition: Condition::decode(fields)? }
+                Self::Enchantment { name: "minecraft:soul_speed".to_owned(), flat: short(fields, "flat")? as f32, each: short(fields, "each_level")? as f32, ignoring: false, condition: Condition::decode(fields)? }
             }
             "tconstruct:requirements" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:validate_upgrade" | "tconstruct:requirements")) => {
                 // A requirement with a predicate type this port lacks is unbound (the early check above).
@@ -501,7 +503,7 @@ impl Module {
                 for name in names { let name = name.as_str().filter(|name| !name.is_empty()).ok_or("tool action must be a name")?; if !actions.iter().any(|known| known == name) { actions.push(name.to_owned()); } }
                 Self::ToolActions { actions, condition: Condition::decode(fields)? }
             }
-            "tconstruct:constant_enchantment" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip")) => {
+            "tconstruct:constant_enchantment" | "tconstruct:enchantment_ignoring_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip" | "tconstruct:protection")) && (kind == "tconstruct:enchantment_ignoring_protection" || !hooks.iter().any(|bound| bound.to_string() == "tconstruct:protection")) => {
                 let name = identifier(fields, "name")?.to_string();
                 // `level` is a plain number (a flat level) or a leveling value with flat and each_level parts.
                 let (flat, each) = match fields.get("level") {
@@ -509,11 +511,14 @@ impl Module {
                     Some(Value::Object(level)) => (float(level, "flat")?, float(level, "each_level")?),
                     _ => return Err("level must be a number or a leveling value".into()),
                 };
-                Self::Enchantment { name, flat, each, condition: Condition::decode(fields)? }
+                Self::Enchantment { name, flat, each, ignoring: kind == "tconstruct:enchantment_ignoring_protection", condition: Condition::decode(fields)? }
             }
             "tconstruct:protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::Protection::decode(fields)? else { return Ok(None); };
                 Self::Protection { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:clear_effect_on_unequip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:equipment_change") => {
+                Self::ClearEffectOnUnequip { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
@@ -592,7 +597,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::ClearEffectOnUnequip { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -701,6 +706,11 @@ impl Module {
         let Self::EffectImmunity { module, condition } = self else { return None; };
         module.immunity(entry, condition.matches(entry, facts))
     }
+    /// The effect an armor piece's clear-on-unequip module takes off its wearer, when its conditions hold.
+    pub fn clear_effect_on_unequip(&self, entry: &Entry, facts: &Facts) -> Option<Identifier> {
+        let Self::ClearEffectOnUnequip { effect, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| effect.clone())
+    }
     /// The capacity bar this module declares.
     pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { match self { Self::CapacityBar { bar } => Some(bar), _ => None } }
     /// The durability shield this module declares.
@@ -761,13 +771,21 @@ impl Module {
     }
     /// ProtectionModifierHook: the running protection after this module, over a damage source.
     pub fn protection(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
+        // EnchantmentModule.Protection: the game's own enchantment protection counted the enchantment this module gave, so its points come off again.
+        if let Self::Enchantment { name, flat, each, ignoring: true, condition } = self {
+            let level = (flat + each * entry.effective_level()) as i32;
+            if level > 0 && condition.matches(entry, facts) && !source.tags.contains_vanilla("bypasses_enchantments", source.damage_type) {
+                return value - crate::protection::enchantment_points(name, level, source);
+            }
+            return value;
+        }
         let Self::Protection { module, condition } = self else { return value; };
         if !condition.matches(entry, facts) || !module.source().matches(source) || !module.attacker_matches(source) { return value; }
         module.formula().eval(entry, &crate::mining_speed::ToolView { nbt }, value, 1.0, 0.0)
     }
     /// The enchantment this module gives the tool and its level, when its conditions hold and the level is positive.
     pub fn enchantment(&self, entry: &Entry, facts: &Facts) -> Option<(String, i32)> {
-        let Self::Enchantment { name, flat, each, condition } = self else { return None; };
+        let Self::Enchantment { name, flat, each, condition, .. } = self else { return None; };
         let level = (flat + each * entry.effective_level()) as i32;
         (level > 0 && condition.matches(entry, facts)).then(|| (name.clone(), level))
     }

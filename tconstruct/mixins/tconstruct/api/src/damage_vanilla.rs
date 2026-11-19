@@ -2,6 +2,7 @@
 //! Generated from the pinned vanilla data by tools/import_original_data.py; do not edit by hand.
 
 pub(crate) const TAGS: &[(&str, &[&str])] = &[
+    ("bypasses_enchantments", &["minecraft:sonic_boom"]),
     ("bypasses_invulnerability", &["minecraft:out_of_world", "minecraft:generic_kill"]),
     ("is_explosion", &["minecraft:fireworks", "minecraft:explosion", "minecraft:player_explosion", "minecraft:bad_respawn_point"]),
     ("is_fall", &["minecraft:fall", "minecraft:ender_pearl", "minecraft:stalagmite"]),

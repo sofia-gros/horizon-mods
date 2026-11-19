@@ -262,6 +262,11 @@ pub(crate) fn effect_immunities(nbt: &NbtCompound, env: &Environment) -> Vec<(Id
     })
 }
 
+/// The effects taking a worn armor piece off takes off its wearer (clear-effect-on-unequip modules), in modifier order.
+pub(crate) fn effects_cleared_on_unequip(nbt: &NbtCompound, env: &Environment) -> Vec<Identifier> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.clear_effect_on_unequip(entry, facts))).collect())
+}
+
 /// The claims a worn armor piece makes on attributes through max armor attribute modules, in modifier order.
 pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crate::max_armor::Candidate> {
     let broken = is_broken(nbt);

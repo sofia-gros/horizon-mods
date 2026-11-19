@@ -213,7 +213,7 @@ def write_damage_vanilla():
 
     Read from the pinned vanilla data, so a tag is as the game version defines it. The bypass tags are what
     mantle:can_protect (not bypassing invulnerability, as vanilla's enchantment protection) looks at."""
-    wanted = {'bypasses_invulnerability'}
+    wanted = {'bypasses_invulnerability', 'bypasses_enchantments'}
     for path in DAMAGE_TAG_SOURCE.rglob('*.json'):
         for value in json.loads(path.read_text(encoding='utf-8')).get('values', []):
             text = value if isinstance(value, str) else value.get('id', '')

@@ -45,6 +45,7 @@
     "api/src/effect_immunity.rs",
     "api/src/tool_inventory.rs",
     "api/src/effect_immunity_hook.rs",
+    "api/src/unequip_hook.rs",
     "api/src/max_armor.rs",
     "api/src/max_armor_hook.rs",
     "api/src/mob_disguise.rs",

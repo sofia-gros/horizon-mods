@@ -79,6 +79,8 @@ mod effect_immunity;
 mod tool_inventory;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity_hook.rs"]
 mod effect_immunity_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/unequip_hook.rs"]
+mod unequip_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/max_armor.rs"]
 mod max_armor;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/max_armor_hook.rs"]
