@@ -47,6 +47,8 @@ mod tool_inventory;
 mod effect_immunity_hook;
 mod max_armor;
 mod max_armor_hook;
+mod mob_disguise;
+mod mob_disguise_hook;
 mod weapon_effect_hook;
 mod melee_hook;
 mod part_recycling;
@@ -77,5 +79,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     weapon_effect_hook::register();
     effect_immunity_hook::register();
     max_armor_hook::register();
+    mob_disguise_hook::register();
     pluto_lib::no_hooks()
 }

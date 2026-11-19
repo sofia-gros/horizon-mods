@@ -170,6 +170,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
     }).expect("PlutoLib player hurt sink installs once");
+    horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
+        factor: entity_events_v1::modify_visibility,
+    }).expect("PlutoLib player visibility sink installs once");
     horizon_client::mobs::pluto_living_entity_access::set_sink(horizon_client::mobs::pluto_living_entity_access::Sink {
         attributes:|kind| {
             let kind=Identifier::parse(kind).map_err(|e|e.to_string())?;
@@ -230,7 +233,7 @@ pub fn hooks() -> Box<dyn Hooks> {
     }).expect("PlutoLib entity type provider installs once before native table loading");
     horizon_client::entry::pluto_block::set_mask_dispatcher(|item, wearer, observer| {
         item_api_v1::ender_mask(&item_api_v1::EnderMaskContext {
-            item: item.to_owned(), stack: None, wearer_uuid: Some(wearer), observer_entity: Some(observer),
+            item: item.to_owned(), stack: entity_events_v1::worn_piece(wearer, "head").filter(|stack| stack.item == item), wearer_uuid: Some(wearer), observer_entity: Some(observer),
         })
     }).expect("PlutoLib item mask dispatcher installs once");
     horizon_client::entry::pluto_entity_spawn_access::set_provider(

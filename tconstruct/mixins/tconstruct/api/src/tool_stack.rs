@@ -259,6 +259,21 @@ pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment) -> Vec<(Identif
     let broken = is_broken(nbt);
     saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.armor_level_modules().filter_map(move |module| module.armor_level(entry, broken)).collect::<Vec<_>>()).collect()
 }
+/// The mob types a worn armor piece makes its wearer pass for, each with the count the piece adds (its modifier's level), in modifier order.
+pub(crate) fn mob_disguises(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    let mut disguises = Vec::new();
+    for (entry, modifier) in saved_modifiers(nbt, env.modifiers) {
+        for module in modifier.mob_disguise_modules() {
+            if let Some(disguise) = module.mob_disguise(&entry) { disguises.push(disguise); }
+        }
+    }
+    disguises
+}
+
+/// ModifierUtil.checkVolatileFlag: whether the tool's volatile data holds the flag.
+pub(crate) fn volatile_flag(nbt: &NbtCompound, flag: &str) -> bool {
+    matches!(nbt.get(TAG_VOLATILE), Some(Nbt::Compound(data)) if boolean(data, flag))
+}
 
 /// The damage a worn armor piece's thorns deal to the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and
 /// the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).

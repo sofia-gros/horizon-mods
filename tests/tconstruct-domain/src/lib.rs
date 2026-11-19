@@ -81,6 +81,10 @@ mod effect_immunity_hook;
 mod max_armor;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/max_armor_hook.rs"]
 mod max_armor_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_disguise.rs"]
+mod mob_disguise;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_disguise_hook.rs"]
+mod mob_disguise_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect_hook.rs"]
 mod weapon_effect_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]

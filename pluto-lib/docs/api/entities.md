@@ -625,6 +625,19 @@ tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".int
 assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
 ```
 
+### `VisibilityModification`
+
+How far a mob sees a player, for a callback to scale: `wearer` is the player's uuid, `observer` the type id of the mob that is looking, `armor` the pieces the player wore as of their last tick (as (slot, stack); only those carrying custom data), `armor_revision` a number that changes whenever what any player wears changes (never 0; keep what you worked out from `armor` while it stays the same) and `multiplier` the factor on the range now (a `Cell`: 1 leaves it whole, 0.5 halves it).
+
+```rust
+use pluto_lib::VisibilityModification;
+use std::cell::Cell;
+
+let look = VisibilityModification { wearer: 1, observer: "minecraft:skeleton".into(), armor: Vec::new(), armor_revision: 1, multiplier: Cell::new(1.0) };
+look.multiplier.set(look.multiplier.get() * 0.5);
+assert_eq!(look.multiplier.get(), 0.5);
+```
+
 ### `CounterDamage`
 
 Damage for a callback to deal to the mob that hurt the player: `damage_type` is the damage type id (`minecraft:thorns`) and `amount` the amount.
@@ -763,6 +776,20 @@ use pluto_lib::ServerLivingEntityEvents;
 ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
     if wear.item == "example:unbreaking_pickaxe" {
         wear.cancel.set(true);
+    }
+});
+```
+
+### `ServerLivingEntityEvents::MODIFY_VISIBILITY`
+
+NeoForge: `LivingVisibilityEvent`. Heard on a server each time a mob works out how far it sees a player who wears armor carrying custom data; the game's own factors (sneaking, invisibility, worn heads) are already counted, and a callback scales the range further with `multiplier.set` (a disguise that halves it for one kind of mob). Nothing is heard for a player wearing no such armor, and the factor never blocks a mob that is already targeting.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::MODIFY_VISIBILITY.register(|look| {
+    if look.observer == "minecraft:skeleton" && look.armor.iter().any(|(_, piece)| piece.item == "example:bone_helmet") {
+        look.multiplier.set(look.multiplier.get() * 0.5);
     }
 });
 ```

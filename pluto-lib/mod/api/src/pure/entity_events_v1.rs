@@ -195,6 +195,28 @@ pub struct ItemDamage {
     pub replacement: RefCell<Option<ItemSlot>>,
 }
 
+/// How far a mob sees a player, about to be scaled for the kind of mob that is looking (NeoForge: `LivingVisibilityEvent`). It is
+/// heard on a server each time a mob works out its range for a player who wears armor carrying custom data (a mod's own armor keeps its
+/// state there); the game's own factors (sneaking, invisibility, worn heads) are already in the range and a callback only scales it
+/// further. Nothing is heard for a player wearing no such armor.
+#[derive(Clone, Debug)]
+pub struct VisibilityModification {
+    /// The wearer's uuid.
+    pub wearer: u128,
+    /// The type id of the mob that is looking, such as `minecraft:skeleton`.
+    pub observer: String,
+    /// What the wearer wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data).
+    pub armor: Vec<(String, StackData)>,
+    /// Changes whenever what any player wears changes, so a callback may keep what it worked out from `armor` for as long as it stays
+    /// the same. It is never 0.
+    pub armor_revision: u64,
+    /// The factor on the mob's range now (a `Cell`: change it with `set`; 1 leaves the range whole, 0.5 halves it, 0 hides the wearer);
+    /// each callback sees the last one's. NeoForge's `modifyVisibility` multiplies, so a callback usually sets it to its product with the
+    /// factor it wants.
+    pub multiplier: Cell<f64>,
+}
+
+static MODIFY_VISIBILITY: Event<VisibilityModification, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
@@ -225,6 +247,8 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
     /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
+    /// NeoForge: `LivingVisibilityEvent`. How far a mob sees a player in armor carrying custom data: scale it with `multiplier.set`. Server only.
+    pub const MODIFY_VISIBILITY: &'static Event<VisibilityModification, ()> = &MODIFY_VISIBILITY;
 }
 
 /// The effects the callbacks take off the player on their tick.
@@ -369,13 +393,39 @@ pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
     PENDING_ATTACK.with(|pending| *pending.borrow_mut() = stack.map(|s| (entity, s)));
 }
 
+/// Changes whenever the armor any player wears changes; see `VisibilityModification::armor_revision`.
+static ARMOR_REVISION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
 static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(String, StackData)>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
 /// Records what the player (`entity`) wears; an empty list forgets it.
 pub(crate) fn remember_armor(uuid: u128, entity: i32, armor: Vec<(String, StackData)>) {
     let Ok(mut worn) = ARMOR.lock() else { return };
-    if armor.is_empty() { worn.remove(&entity); } else { worn.insert(entity, (uuid, armor)); }
+    if armor.is_empty() {
+        if worn.remove(&entity).is_some() { ARMOR_REVISION.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
+    } else if worn.get(&entity).map(|(known, pieces)| (*known, pieces)) != Some((uuid, &armor)) {
+        worn.insert(entity, (uuid, armor));
+        ARMOR_REVISION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// The piece (`feet`, `legs`, `chest` or `head`) the player with `uuid` wore as of their last tick, when it carries custom data.
+pub(crate) fn worn_piece(uuid: u128, slot: &str) -> Option<StackData> {
+    let worn = ARMOR.lock().ok()?;
+    worn.values().find(|(known, _)| *known == uuid)?.1.iter().find(|(name, _)| name == slot).map(|(_, stack)| stack.clone())
+}
+
+/// The factor on how far a mob of type `observer` sees the player `wearer`: 1 when the player wears no armor carrying custom data.
+pub(crate) fn modify_visibility(wearer: u128, observer: &str) -> f64 {
+    let Ok(worn) = ARMOR.lock() else { return 1.0 };
+    let Some((_, armor)) = worn.values().find(|(known, _)| *known == wearer) else { return 1.0 };
+    let armor = armor.clone();
+    drop(worn);
+    let modification = VisibilityModification { wearer, observer: observer.to_owned(), armor, armor_revision: ARMOR_REVISION.load(std::sync::atomic::Ordering::Relaxed), multiplier: Cell::new(1.0) };
+    MODIFY_VISIBILITY.invoke(&modification);
+    let factor = modification.multiplier.get();
+    if factor.is_finite() { factor.max(0.0) } else { 1.0 }
 }
 
 /// Forgets a player who left.
@@ -429,6 +479,38 @@ mod tests {
         forget_armor(99);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![vec!["head:example:helmet".to_string()], Vec::<String>::new()]);
+    }
+
+    #[test]
+    fn visibility_scales_only_for_a_wearer_of_custom_data_armor_and_the_revision_follows_the_armor() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_VISIBILITY.register(move |look| {
+            if look.wearer != 31337 { return; }
+            log.lock().unwrap().push(look.armor_revision);
+            if look.observer == "minecraft:skeleton" && look.armor.iter().any(|(slot, piece)| slot == "head" && piece.item == "example:mask") {
+                look.multiplier.set(look.multiplier.get() * 0.25);
+            }
+        });
+        let piece = |item: &str| StackData { item: item.into(), count: 1, ..StackData::default() };
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 1.0, "a player with no cached armor is not asked about");
+        remember_armor(31337, 4141, vec![("head".into(), piece("example:mask"))]);
+        assert_eq!(worn_piece(31337, "head").map(|stack| stack.item), Some("example:mask".to_string()));
+        assert!(worn_piece(31337, "feet").is_none() && worn_piece(1, "head").is_none());
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 0.25);
+        assert_eq!(modify_visibility(31337, "minecraft:zombie"), 1.0);
+        remember_armor(31337, 4141, vec![("head".into(), piece("example:mask"))]);
+        assert_eq!(modify_visibility(31337, "minecraft:zombie"), 1.0);
+        remember_armor(31337, 4141, vec![("head".into(), piece("example:hat"))]);
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 1.0, "the armor changed");
+        forget_armor(31337);
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 1.0);
+        let revisions = seen.lock().unwrap().clone();
+        assert!(revisions.iter().all(|revision| *revision != 0));
+        assert_eq!(revisions.len(), 4);
+        assert_eq!(revisions[0], revisions[1], "the same armor keeps its revision");
+        assert_eq!(revisions[1], revisions[2], "re-reporting identical armor keeps it too");
+        assert!(revisions[3] > revisions[2], "changed armor takes a new one");
     }
 
     #[test]

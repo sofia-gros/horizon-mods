@@ -1455,6 +1455,21 @@ kind = "HEAD"
 helper = "pluto-player-hurt.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "attacker", ty = "i32", value = "attacker" }]
 
+# A mob works out how far it sees the player (sneaking, invisibility, worn heads): the mods scale that range for the kind of mob that is looking.
+[[module]]
+id = "pluto-player-visibility-access"
+file = "crates/horizon-client/src/mobs.rs"
+name = "pluto_player_visibility_access"
+source = "pluto-player-visibility-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-player-visibility"
+target = "horizon_client_lib::mobs::PlayerView::visibility_percent"
+kind = "RETURN"
+helper = "pluto-player-visibility.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "player", ty = "&PlayerView", value = "self" }, { name = "targeting", ty = "Option<&str>", value = "targeting" }]
+
 # Every server tick the player's attributes are refreshed: the status effects queued for mobs (a counter that hits an attacker) land then.
 [[injection]]
 id = "pluto-mob-effect-apply-tick"

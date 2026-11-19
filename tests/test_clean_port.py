@@ -75,6 +75,8 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/effect_immunity_hook.rs',
                 'mixins/tconstruct_native/api/src/max_armor.rs',
                 'mixins/tconstruct_native/api/src/max_armor_hook.rs',
+                'mixins/tconstruct_native/api/src/mob_disguise.rs',
+                'mixins/tconstruct_native/api/src/mob_disguise_hook.rs',
                 'mixins/tconstruct_native/api/src/weapon_effect_hook.rs',
                 'mixins/tconstruct_native/api/src/damage_tags.rs',
                 'mixins/tconstruct_native/api/src/damage_vanilla.rs',
