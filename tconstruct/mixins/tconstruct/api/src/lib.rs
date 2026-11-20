@@ -89,6 +89,8 @@ mod vanilla_fuels;
 mod melter;
 mod melter_menu;
 mod melter_blocks;
+mod multiblock;
+mod smeltery_tank;
 mod config;
 mod common;
 
