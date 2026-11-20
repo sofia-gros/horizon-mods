@@ -24,7 +24,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
-    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The smeltery domain's melting, alloy, fuel, casting and molding recipes and the fluid tags they name (tools/import_original_data.py),
     # kept in the mod's own folders: the Tinkers fluids are not registered yet, so the host must not read these as tags.
     re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
@@ -237,6 +237,8 @@ def checked_content(root, version):
                     reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier')
                 elif '/recipes/tools/parts/builder/' in name:
                     reviewed = ('tconstruct:part_builder',)
+                elif '/recipes/tools/severing/' in name:
+                    reviewed = ('tconstruct:severing',)
                 elif '/recipes/tools/recycling/' in name:
                     reviewed = ('tconstruct:part_builder_tool_recycling',)
                 else:

@@ -12,6 +12,8 @@ static PART_BUILDER_RECIPES: OnceLock<Arc<RwLock<crate::part_builder_recipes::Re
 pub(crate) fn part_builder_recipes() -> Option<&'static Arc<RwLock<crate::part_builder_recipes::Recipes>>> { PART_BUILDER_RECIPES.get() }
 static RECYCLES: OnceLock<Arc<RwLock<crate::part_recycling::Recycles>>> = OnceLock::new();
 pub(crate) fn recycles() -> Option<&'static Arc<RwLock<crate::part_recycling::Recycles>>> { RECYCLES.get() }
+static SEVERING: OnceLock<Arc<RwLock<crate::severing::Recipes>>> = OnceLock::new();
+pub(crate) fn severing() -> Option<&'static Arc<RwLock<crate::severing::Recipes>>> { SEVERING.get() }
 static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = OnceLock::new();
 pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
 static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
@@ -88,6 +90,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers part recycling listener registration failed");
         RECYCLES.set(recycles).expect("Tinkers part recycling already initialized");
+        SEVERING.set(crate::severing::register().expect("Tinkers severing recipe listener registration failed")).expect("Tinkers severing recipes already initialized");
         crate::protection_hook::register_tags().expect("Tinkers damage tag listener registration failed");
         let salvage_config = config.clone();
         let salvages = crate::modifier_removal::register(move || {

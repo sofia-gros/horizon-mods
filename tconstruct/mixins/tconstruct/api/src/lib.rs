@@ -60,6 +60,8 @@ mod mob_disguise;
 mod mob_disguise_hook;
 mod weapon_effect_hook;
 mod block_break_hook;
+mod severing;
+mod severing_hook;
 mod melee_hook;
 mod part_recycling;
 mod tool_actions;
@@ -97,6 +99,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     tool_damage_hook::register();
     weapon_effect_hook::register();
     block_break_hook::register();
+    severing_hook::register();
     effect_immunity_hook::register();
     unequip_hook::register();
     max_armor_hook::register();

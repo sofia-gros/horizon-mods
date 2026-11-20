@@ -214,6 +214,8 @@ impl Modifier {
     pub fn lifesteal_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_lifesteal()) }
     /// The loot to capacity modules.
     pub fn loot_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_loot_capacity()) }
+    /// The effective levels of this modifier's severing modules, one per module.
+    pub fn severing_levels(&self, entry: &Entry) -> Vec<f32> { self.modules.iter().filter_map(|module| module.severing_level(entry)).collect() }
     /// The damage to capacity modules.
     pub fn damage_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_damage_capacity()) }
     /// The durability shields.

@@ -120,6 +120,17 @@ pub(crate) fn enchantments(nbt: &NbtCompound, env: &Environment) -> std::collect
     })
 }
 
+/// The effective level of each severing module the tool's modifiers carry, in modifier order (SeveringModule, one per module).
+pub(crate) fn severing_levels(nbt: &NbtCompound, env: &Environment) -> Vec<f32> {
+    let saved = saved_modifiers(nbt, env.modifiers);
+    saved.iter().flat_map(|(entry, modifier)| modifier.severing_levels(entry)).collect()
+}
+
+/// The looting level the tool's modifiers give its holder (LootingModifierHook, as the constant looting enchantment they publish).
+pub(crate) fn looting(nbt: &NbtCompound, env: &Environment) -> i32 {
+    enchantments(nbt, env).get("minecraft:looting").copied().unwrap_or(0).max(0)
+}
+
 /// The tool actions the tool's modifiers perform on a right click, in modifier order.
 pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
