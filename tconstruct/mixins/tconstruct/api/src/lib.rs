@@ -82,6 +82,11 @@ mod fluid_ingredient;
 mod melting_recipes;
 mod casting_recipes;
 mod fluid_recipes;
+mod smeltery_data;
+mod vanilla_fuels;
+mod melter;
+mod melter_menu;
+mod melter_blocks;
 mod config;
 mod common;
 
@@ -90,6 +95,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     station_menu::register();
     part_builder_menu::register();
     worktable_menu::register();
+    melter_menu::register();
+    melter_blocks::register();
     creative::register();
     break_speed_hook::register();
     melee_hook::register();
