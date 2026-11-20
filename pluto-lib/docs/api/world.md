@@ -62,6 +62,26 @@ with_world(&mut ops, || {
 
 > **Use with Caution.** A `World` reaches the game only while a callback that carries a world runs (a command, a projectile impact, a player joining or leaving). Elsewhere its methods do nothing and say so (`None`, `false`). Whole-block writes of blocks with block entities create the block entity, but a block entity's data starts at its initial data.
 
+## Reading a Box of Blocks, and the World of a Ticking Block Entity
+
+A machine that checks a structure around itself needs two things a command does not: the world of the block entity that is ticking, and a box of blocks read all at once. `World::ticking()` is the dimension the host is ticking a block entity in; `read_region` reads every block between two corners and answers `None` unless all of them are loaded, so a check never judges half a region:
+
+```rust
+use pluto_lib::{with_ticking_dimension, with_world, MemoryWorldOps, World};
+
+let mut ops = MemoryWorldOps::default();
+let walls_are_stone = with_ticking_dimension("minecraft:overworld", || {
+    with_world(&mut ops, || {
+        let world = World::ticking()?;
+        let region = world.read_region([0, 64, 0], [2, 65, 2])?;
+        Some(region.state([1, 64, 1]).is_some_and(|state| state.block.path() == "air"))
+    })
+});
+assert_eq!(walls_are_stone, Some(true));
+```
+
+> **Use with Caution.** Source-ready only. `World::ticking` answers `None` until the host opens `with_ticking_dimension` (and the `with_world` scope) around the block entity tickers of `BlockEntityTypeRegistry`; that adapter is not written because the generated `Host` signatures can only be checked by a native build. The ticking block entity is kept out of the world while it ticks, so changing its own block there may not work. A region read is one block read per position: keep boxes to what the check needs (the smeltery reads at most 16 by 16 by 64).
+
 ## Drawing from the Server World's Random Stream
 
 Use `World::random_float` for behavior that should consume the same stream as vanilla's level logic, such as two independently pitched block sounds. It draws from the existing authoritative dimension, never from a new generator or the clock:
@@ -107,6 +127,25 @@ assert_eq!(ParticleFactoryRegistry::item(&particle).unwrap().item, "minecraft:cl
 > **Use with Caution.** Registration and independent stack copies are pure-tested. A source-declared adapter handles named requests through the native client particle API: the requesting Game resolves the stack's current Ground model, then delegates once with ordinary Item options to preserve native validation and simulation. Its actual HEAD/bridge helpers pass trace-facade tests, not native stack conversion, model baking, particle settings/RNG or rendering. Cube landing emission now has a source-declared particle-kind override and a shared mob-event consumer used by both the host and remote-client tick. It changes only the kind, leaving the inherited loop/positions/RNG in place. The actual selector/event/constructor helper chain passes trace-facade tests, not the native loop or model/filter/RNG/render pipeline. Other engine-direct named requests, nonzero particle bursts, arbitrary entity emitters and network type registration remain incomplete or unverified. No custom particle physics or sprite-set factory is provided by this item-constructor API. Tinkers registers its original Sky/Ender slime-ball and Terracube clay-ball factories here.
 
 ## Reference
+
+### `World::ticking`, `with_ticking_dimension`
+
+`World::ticking() -> Option<World>` is the world of the block entity being ticked (Minecraft: `BlockEntity.getLevel`); `with_ticking_dimension(dimension, || ...)` is the scope the host opens around a ticker.
+
+```rust
+use pluto_lib::{with_ticking_dimension, World};
+assert!(World::ticking().is_none());
+with_ticking_dimension("minecraft:the_nether", || assert_eq!(World::ticking().unwrap().dimension, "minecraft:the_nether"));
+```
+
+### `World::read_region`, `Region`
+
+`read_region(from, to) -> Option<Region>` (Minecraft: `Level.hasChunksAt` then `getBlockState` over the box; corners in any order); `Region::state(pos)` the state read there and `Region::bounds()` the corners given.
+
+```rust
+use pluto_lib::World;
+assert!(World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).is_none(), "outside a world scope nothing is loaded");
+```
 
 ### `ParticleFactoryRegistry`
 

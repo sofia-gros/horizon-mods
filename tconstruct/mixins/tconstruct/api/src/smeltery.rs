@@ -466,7 +466,7 @@ impl Controller {
     // --- saving
 
     pub(crate) const TAG_STRUCTURE: &'static str = "multiblock";
-    const TAG_TANK: &'static str = "tank";
+    pub(crate) const TAG_TANK: &'static str = "tank";
     const TAG_INVENTORY: &'static str = "inventory";
 
     pub(crate) fn save(&self, data: &mut NbtCompound) {
@@ -488,8 +488,16 @@ impl Controller {
         }).collect();
         inventory.insert("items".to_owned(), Nbt::List(saved));
         data.insert(Self::TAG_INVENTORY.to_owned(), Nbt::Compound(inventory));
-        for (key, value) in [("fuel", self.fuel.fuel), ("temperature", self.fuel.temperature), ("rate", self.fuel.rate)] {
+        for (key, value) in [("fuel", self.fuel.fuel), ("temperature", self.fuel.temperature), ("rate", self.fuel.rate), ("quality", self.fuel.quality)] {
             data.insert(key.to_owned(), Nbt::Int(value));
+        }
+        // the original keeps its tick, expand counter and queued check in the live block entity; a ticker here is stateless between ticks
+        for (key, value) in [("tick", self.tick), ("expand", self.expand_counter), ("queued", i32::from(self.update_queued))] {
+            data.insert(format!("pluto_{key}"), Nbt::Int(value));
+        }
+        match self.error_pos {
+            Some(pos) => { data.insert("lastError".to_owned(), Nbt::IntArray(vec![pos[0] - self.pos[0], pos[1] - self.pos[1], pos[2] - self.pos[2]])); }
+            None => { data.remove("lastError"); }
         }
         if let Some(last) = self.last_tank {
             data.insert("last_fuel".to_owned(), Nbt::IntArray(vec![last[0] - self.pos[0], last[1] - self.pos[1], last[2] - self.pos[2]]));
@@ -527,6 +535,13 @@ impl Controller {
         this.fuel.fuel = data.get_int("fuel", 0) as i32;
         this.fuel.temperature = data.get_int("temperature", 0) as i32;
         this.fuel.rate = data.get_int("rate", 0) as i32;
+        this.fuel.quality = data.get_int("quality", 0) as i32;
+        this.tick = (data.get_int("pluto_tick", 0) as i32).rem_euclid(20);
+        this.expand_counter = data.get_int("pluto_expand", 0) as i32;
+        this.update_queued = data.get_int("pluto_queued", 0) != 0;
+        if let Some(Nbt::IntArray(error)) = data.get("lastError") {
+            if let [x, y, z] = error[..] { this.error_pos = Some([x + pos[0], y + pos[1], z + pos[2]]); }
+        }
         if let Some(Nbt::IntArray(last)) = data.get("last_fuel") {
             if let [x, y, z] = last[..] { this.last_tank = Some([x + pos[0], y + pos[1], z + pos[2]]).filter(|last| last[1] != NO_POS[1]); }
         }
@@ -749,6 +764,7 @@ mod tests {
         assert!(loaded.slots[3].occupied && loaded.slots[3].current_time > 0);
         assert_eq!(loaded.fuel_rate, 4);
         assert_eq!(loaded.last_tank, Some([4, 2, 2]));
+        assert_eq!((loaded.tick, loaded.fuel.quality), (controller.tick, controller.fuel.quality));
         // a saved slot whose stack is gone has no progress to keep
         let without = Controller::load(Kind::Smeltery, [2, 2, 0], Direction::North, &data, &vec![None; 256]);
         assert!(!without.slots[3].occupied);

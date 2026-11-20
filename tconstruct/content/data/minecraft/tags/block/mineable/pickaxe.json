@@ -3,8 +3,22 @@
     "#tconstruct:copper_platforms",
     "tconstruct:cobalt_ore",
     "tconstruct:raw_cobalt_block",
+    "tconstruct:seared_stone",
+    "tconstruct:seared_paver",
+    "tconstruct:seared_cobble",
+    "tconstruct:seared_bricks",
+    "tconstruct:seared_cracked_bricks",
+    "tconstruct:seared_fancy_bricks",
+    "tconstruct:seared_triangle_bricks",
+    "tconstruct:seared_lamp",
+    "tconstruct:scorched_bricks",
+    "tconstruct:scorched_road",
+    "tconstruct:chiseled_scorched_bricks",
+    "tconstruct:scorched_lamp",
     "tconstruct:seared_heater",
     "tconstruct:seared_melter",
+    "tconstruct:smeltery_controller",
+    "tconstruct:foundry_controller",
     "tconstruct:modifier_worktable"
   ]
 }
