@@ -1,6 +1,8 @@
 {
   "values": [
     "#tconstruct:congealed_slime",
+    "tconstruct:grout",
+    "tconstruct:nether_grout",
     "#tconstruct:slimy_soil"
   ]
 }

@@ -11,7 +11,7 @@ pub use crate::pure::block_api_v1::{
     self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PickContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, EntityInsideMotionContext, FallOnContext, AfterFallContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
     SurviveContext, PathNodeType, PathNodeTypeContext, PistonBehavior,
 };
-pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityFill, BlockEntityTick, BlockEntityUse, BlockUseOutcome, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
+pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityDrain, BlockEntityFill, FluidFilter, FluidForward, BlockEntityTick, BlockEntityUse, BlockUseOutcome, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
 pub use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose, CubeDefinition, PartDefinition, LayerDefinition, EntityModelLayerRegistry};
 pub use crate::pure::color_provider_api_v1::{self, BlockColorContext, ItemColorContext, ColorProviderRegistry};
 pub use crate::pure::armor_renderer_api_v1::{self, ArmorLayer, ArmorLayerKind, ArmorRenderContext, ArmorRenderer};
@@ -43,6 +43,7 @@ pub use crate::pure::screen_handler_api_v1::{
 };
 pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, TradeOfferFactory, TradeOfferContext, TradeRandom, TradeWorld};
 pub use crate::pure::projectile_events_v1::{self, BowShot, ProjectileEvents, ProjectileImpact, ProjectileLaunch};
+pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage, MemoryBlockEntities};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
 pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, Region, World, WorldOps, with_ticking_dimension, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};

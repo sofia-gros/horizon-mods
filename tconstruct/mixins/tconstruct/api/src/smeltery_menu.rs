@@ -107,13 +107,30 @@ impl<'a> Live<'a> {
 }
 
 impl Env for Live<'_> {
-    fn cell(&self, kind: Kind, pos: Pos) -> Option<Cell> { Some(classify(kind, &World::ticking()?.get_block_state(pos)?)) }
+    fn cell(&self, kind: Kind, pos: Pos) -> Option<Cell> {
+        let world = World::ticking()?;
+        let state = world.get_block_state(pos)?;
+        let mut cell = classify(kind, &state);
+        // IServantLogic.isValidMaster: a drain, duct or tank of a structure that is still there answers to that controller only
+        if cell.in_structure == Some(true) && crate::smeltery_io::keeps_master(state.block.path()) {
+            if let Some(data) = world.block_entity_data(pos) {
+                cell.foreign = crate::smeltery_io::foreign_to(&data, self.pos, |master| {
+                    world.get_block_state(master).is_some_and(|controller| matches!(controller.block.path(), SMELTERY | FOUNDRY) && controller.property("in_structure") == Some("true"))
+                });
+            }
+        }
+        Some(cell)
+    }
 
     fn mark(&mut self, pos: Pos, in_structure: bool) {
         let Some(world) = World::ticking() else { return };
         let Some(state) = world.get_block_state(pos) else { return };
         let wanted = if in_structure { "true" } else { "false" };
-        if state.property("in_structure").is_some_and(|value| value != wanted) { world.set_block_state(pos, &state.with("in_structure", wanted)); }
+        if state.property("in_structure").is_some_and(|value| value != wanted) { world.set_block_state(pos, &state.clone().with("in_structure", wanted)); }
+        // drains, ducts and tanks keep their master in their block entity (ServantTileEntity.setMaster)
+        if crate::smeltery_io::keeps_master(state.block.path()) {
+            world.merge_block_entity_data(pos, &crate::smeltery_io::master_data(in_structure.then_some(self.pos)));
+        }
     }
 
     fn block_state(&self) -> (bool, bool) {
@@ -368,7 +385,11 @@ pub(crate) fn register() {
             .on_button(|button| press(button.id, button.data));
         let _ = title;
         ScreenHandlerRegistry::register(window);
-        BlockEntityTypeRegistry::register(BlockEntityType::new(id).item_slots(MAX_SLOTS as u32).menu(&format!("tconstruct:{name}")).ticker(move |tick| tick_controller(kind, tick)));
+        BlockEntityTypeRegistry::register(
+            BlockEntityType::new(id).item_slots(MAX_SLOTS as u32).menu(&format!("tconstruct:{name}")).ticker(move |tick| tick_controller(kind, tick))
+                // the tank answers drains, faucets and pipes (ISmelteryTankHandler.getFluidCapability): see smeltery_io
+                .fluid_reader(crate::smeltery_io::read_controller).fluid_filler(crate::smeltery_io::fill_controller).fluid_drainer(crate::smeltery_io::drain_controller),
+        );
     }
 }
 
@@ -485,5 +506,29 @@ mod tests {
             assert_eq!(window.layout.slots.iter().flatten().count(), VISIBLE);
             assert_eq!(window.layout.inventory_y, 138.0);
         }
+    }
+
+    #[test]
+    fn joining_a_structure_tells_a_drain_its_master_and_a_drain_of_another_live_controller_is_foreign() {
+        use pluto_lib::with_ticking_dimension;
+        let dim = "minecraft:overworld".to_owned();
+        let mut world = MemoryWorldOps::default();
+        world.blocks.insert((dim.clone(), [0, 64, 0]), "tconstruct:smeltery_controller[in_structure=true]".to_owned());
+        world.blocks.insert((dim.clone(), [9, 64, 0]), "tconstruct:smeltery_controller[in_structure=true]".to_owned());
+        world.blocks.insert((dim.clone(), [1, 64, 0]), "tconstruct:seared_drain[in_structure=false]".to_owned());
+        world.entities.insert((dim.clone(), [1, 64, 0]), NbtCompound::new());
+        let data = Data::default();
+        with_ticking_dimension("minecraft:overworld", || with_world(&mut world, || {
+            let mut live = Live::new(&data, None, [0, 64, 0]);
+            live.mark([1, 64, 0], true);
+            assert_eq!(World::ticking().unwrap().block_entity_data([1, 64, 0]).unwrap().get("master"), Some(&Nbt::IntArray(vec![0, 64, 0])));
+            assert_eq!(World::ticking().unwrap().get_block_state([1, 64, 0]).unwrap().property("in_structure"), Some("true"));
+            assert!(!live.cell(Kind::Smeltery, [1, 64, 0]).unwrap().foreign, "our own servant");
+            let other = Live::new(&data, None, [9, 64, 0]);
+            assert!(other.cell(Kind::Smeltery, [1, 64, 0]).unwrap().foreign, "it answers to the controller at 0 that is still formed");
+            live.mark([1, 64, 0], false);
+            assert!(!other.cell(Kind::Smeltery, [1, 64, 0]).unwrap().foreign, "freed");
+            assert_eq!(World::ticking().unwrap().block_entity_data([1, 64, 0]).unwrap().get("master"), Some(&Nbt::IntArray(vec![])));
+        }));
     }
 }

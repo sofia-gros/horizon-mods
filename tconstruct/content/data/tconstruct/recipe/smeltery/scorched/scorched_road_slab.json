@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "tconstruct:scorched_road"
+  },
+  "pattern": [
+    "BBB"
+  ],
+  "group": "tconstruct:scorched_road_slab",
+  "result": {
+    "id": "tconstruct:scorched_road_slab",
+    "count": 6
+  }
+}

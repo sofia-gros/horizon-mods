@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": [
+    "tconstruct:seared_fancy_bricks",
+    "tconstruct:seared_triangle_bricks",
+    "tconstruct:seared_stone"
+  ],
+  "result": {
+    "id": "tconstruct:seared_bricks"
+  }
+}

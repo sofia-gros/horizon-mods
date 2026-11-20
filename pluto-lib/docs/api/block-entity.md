@@ -685,3 +685,158 @@ let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: Vec::new() };
 assert!(used.fluid(0).is_none());
 ```
+
+## Forwarding and custom fluid storage
+
+A block that is only a door to another block's tanks (a drain in a smeltery wall), or that keeps its fluid in its own shape (one tank shared by several fluids), declares how its storage is reached. The pure rules are in [fluid-storage](fluid-storage.md), which answers a neighbour's query over these hooks.
+
+> **Use with Caution.** Source-ready only. `BlockEntityTypeRegistry::forward_of`, `read_tanks` and `drain_fluid` run the hooks over data the caller supplies and are tested through `FluidStorage` and its in-memory world, but the native host does not call them yet: until its adapter answers a neighbour's tank, fill and drain query through them (the same adapter `fluid_filler` waits for), a block with these hooks keeps the default declared-tank answers of the game.
+
+### `FluidFilter`
+
+What passes through a forwarding block: `Any`, `Only(fluid)` (fills and drains of other fluids are refused; only tanks that are empty or hold the fluid are listed) or `Closed` (nothing moves; only the last tank is listed, and only while it is empty).
+
+```rust
+use pluto_lib::{FluidFilter, Identifier};
+
+let lava = FluidFilter::Only(Identifier::parse("minecraft:lava").unwrap());
+assert_ne!(lava, FluidFilter::Any);
+assert_ne!(FluidFilter::Closed, FluidFilter::Any);
+```
+
+### `FluidForward`
+
+Where a forwarding block's storage really is: `target`, the position of the block entity that answers, and `filter`, a [`FluidFilter`](#fluidfilter).
+
+```rust
+use pluto_lib::{FluidFilter, FluidForward};
+
+let forward = FluidForward { target: [0, 64, 0], filter: FluidFilter::Any };
+assert_eq!((forward.target, forward.filter), ([0, 64, 0], FluidFilter::Any));
+```
+
+### `BlockEntityType::fluid_forward`
+
+`fn fluid_forward(self, forward: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<FluidForward> + Send + Sync + 'static) -> BlockEntityType`. The block's fluid storage is another block entity's: the hook reads the saved data and item slots and names the target and a filter, or `None` when it points nowhere (then the block has no storage). Fabric: a `FluidStorage.SIDED` lookup that returns the storage of another position.
+
+```rust
+use pluto_lib::{BlockEntityType, FluidFilter, FluidForward, Identifier, Nbt};
+
+// a drain remembers its controller's position in its data
+let drain = BlockEntityType::new(Identifier::parse("example:drain").unwrap()).fluid_forward(|data, _items| match data.get("master") {
+    Some(Nbt::IntArray(at)) if at.len() == 3 => Some(FluidForward { target: [at[0], at[1], at[2]], filter: FluidFilter::Any }),
+    _ => None,
+});
+let _ = drain;
+```
+
+### `BlockEntityType::fluid_reader`
+
+`fn fluid_reader(self, reader: impl Fn(&NbtCompound) -> Vec<NeighbourTank> + Send + Sync + 'static) -> BlockEntityType`. How the block lists its tanks, from its saved data (Fabric: `Storage.iterator`; NeoForge: `IFluidHandler.getFluidInTank`). Without one the declared tanks are listed.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, NeighbourTank};
+
+let vat = BlockEntityType::new(Identifier::parse("example:vat").unwrap()).fluid_reader(|_data| vec![NeighbourTank { fluid: None, capacity: 4000 }]);
+let _ = vat;
+```
+
+### `BlockEntityDrain`
+
+What a drainer receives: `pos`, the saved `data` and `items` (changes are kept only when `execute` is true), `wanted` (the fluid asked for, `None` for whatever comes first), `amount` (the most millibuckets) and `execute`. `fluid_in(index)` and `set_fluid(index, stack)` read and write a declared tank.
+
+```rust
+use pluto_lib::{BlockEntityDrain, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut drain = BlockEntityDrain { pos: [0; 3], data: &mut data, items: &mut items, wanted: None, amount: 90, execute: true };
+drain.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500 }));
+assert_eq!((drain.fluid_in(0).unwrap().amount, drain.amount, drain.wanted.is_none(), drain.pos, drain.execute, drain.items.len(), drain.data.len()), (500, 90, true, [0; 3], true, 0, 1));
+```
+
+### `BlockEntityDrain::fluid_in`
+
+`fn fluid_in(&self, index: usize) -> Option<FluidStack>`. The fluid in declared tank `index` of the data being drained.
+
+```rust
+use pluto_lib::{BlockEntityDrain, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let drain = BlockEntityDrain { pos: [0; 3], data: &mut data, items: &mut items, wanted: None, amount: 1, execute: false };
+assert_eq!(drain.fluid_in(0), None);
+```
+
+### `BlockEntityDrain::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts a fluid in declared tank `index`, or empties it with `None`.
+
+```rust
+use pluto_lib::{BlockEntityDrain, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut drain = BlockEntityDrain { pos: [0; 3], data: &mut data, items: &mut items, wanted: None, amount: 1, execute: true };
+drain.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 10 }));
+drain.set_fluid(0, None);
+assert_eq!(drain.fluid_in(0), None);
+```
+
+### `BlockEntityType::fluid_drainer`
+
+`fn fluid_drainer(self, drainer: impl Fn(&mut BlockEntityDrain<'_>) -> Option<FluidStack> + Send + Sync + 'static) -> BlockEntityType`. The block's own rule for fluid taken out (Fabric: `Storage.extract`; NeoForge: `IFluidHandler.drain`). Without one the first declared tank that holds fluid, or the one named, is drained.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier};
+
+let vat = BlockEntityType::new(Identifier::parse("example:vat").unwrap()).fluid_drainer(|drain| {
+    let _ = (drain.wanted.as_ref(), drain.amount);
+    None
+});
+let _ = vat;
+```
+
+### `BlockEntityTypeRegistry::forward_of`
+
+`fn forward_of(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<FluidForward>`. Where the block's fluid storage really is, from its `fluid_forward` hook; `None` without a hook or when it points nowhere.
+
+```rust
+use pluto_lib::{BlockEntityTypeRegistry, NbtCompound};
+
+assert!(BlockEntityTypeRegistry::forward_of("example:no_such_block", &NbtCompound::new(), &[]).is_none());
+```
+
+### `BlockEntityTypeRegistry::forwards`
+
+`fn forwards(block: &str) -> bool`. Whether the block has a `fluid_forward` hook, so that a `None` from `forward_of` means "no storage" and not "the block's own storage".
+
+```rust
+use pluto_lib::BlockEntityTypeRegistry;
+
+assert!(!BlockEntityTypeRegistry::forwards("example:no_such_block"));
+```
+
+### `BlockEntityTypeRegistry::read_tanks`
+
+`fn read_tanks(block: &str, data: &NbtCompound) -> Option<Vec<NeighbourTank>>`. The tanks as the block's `fluid_reader` lists them, or the declared tanks with what the saved data holds; `None` when the block has neither.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, NbtCompound};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:cistern").unwrap()).fluid_tanks([4000]));
+let tanks = BlockEntityTypeRegistry::read_tanks("example:cistern", &NbtCompound::new()).unwrap();
+assert_eq!((tanks.len(), tanks[0].capacity, tanks[0].fluid.is_none()), (1, 4000, true));
+```
+
+### `BlockEntityTypeRegistry::drain_fluid`
+
+`fn drain_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, wanted: Option<Identifier>, amount: u32, execute: bool) -> Option<Option<FluidStack>>`. Takes up to `amount` millibuckets out over the given data and slots: through the block's `fluid_drainer`, or from the first declared tank that holds fluid (or `wanted`). `None` when the block has no tanks, `Some(None)` when nothing came out; with `execute` false the data and slots are left unchanged.
+
+```rust
+use pluto_lib::{BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, FluidStack, Identifier, NbtCompound};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:reservoir").unwrap()).fluid_tanks([4000]));
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let lava = FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500 };
+BlockEntityTick { pos: [0; 3], data: &mut data, items: &mut items }.set_fluid(0, Some(lava));
+let taken = BlockEntityTypeRegistry::drain_fluid("example:reservoir", [0; 3], &mut data, &mut items, None, 200, true);
+assert_eq!(taken.unwrap().unwrap().amount, 200);
+```

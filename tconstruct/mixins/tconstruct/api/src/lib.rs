@@ -98,6 +98,8 @@ mod smeltery_tank;
 mod smeltery;
 mod smeltery_menu;
 mod smeltery_blocks;
+mod tank;
+mod smeltery_io;
 mod config;
 mod common;
 
@@ -114,6 +116,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     casting_blocks::register();
     smeltery_menu::register();
     smeltery_blocks::register();
+    tank::register();
+    smeltery_io::register();
     creative::register();
     fluids::register();
     break_speed_hook::register();

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smelting",
+  "cookingtime": 200,
+  "experience": 0.1,
+  "ingredient": "tconstruct:seared_cobble",
+  "result": {
+    "id": "tconstruct:seared_stone"
+  }
+}

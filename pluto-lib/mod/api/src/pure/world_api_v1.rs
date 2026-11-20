@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
 
-use super::base::{Identifier, IdentifierError};
+use super::base::{Identifier, IdentifierError, NbtCompound};
 use super::block_entity_api_v1::BlockPos;
 
 /// A block with its properties, as `/setblock` writes it: `minecraft:oak_stairs[facing=east,half=bottom]`.
@@ -86,6 +86,15 @@ pub trait WorldOps {
     }
     /// Whether the block (`minecraft:stone`) is in the block tag (`minecraft:mineable/pickaxe`); false for an unknown tag.
     fn block_in_tag(&mut self, _block: &str, _tag: &str) -> bool {
+        false
+    }
+    /// The saved data of the block entity at `pos` (without its position and id); None where there is none or it is not loaded.
+    fn block_entity_data(&mut self, _dimension: &str, _pos: BlockPos) -> Option<NbtCompound> {
+        None
+    }
+    /// Merges `data` into the saved data of the block entity at `pos`: each key given replaces the same key, the others stay; false when there is
+    /// no block entity there or the host cannot.
+    fn merge_block_entity_data(&mut self, _dimension: &str, _pos: BlockPos, _data: &NbtCompound) -> bool {
         false
     }
 }
@@ -208,6 +217,18 @@ impl World {
     pub fn set_block_state(&self, pos: BlockPos, state: &BlockState) -> bool {
         with_current(false, |ops| ops.set_block_state(&self.dimension, pos, &state.to_string()))
     }
+
+    /// The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); None where there is none, the chunk is not loaded
+    /// or the call is made outside a callback.
+    pub fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound> {
+        with_current(None, |ops| ops.block_entity_data(&self.dimension, pos))
+    }
+
+    /// Merges `data` into the saved data of the block entity at `pos` (a controller telling the blocks of its structure who their master is). False
+    /// if there is no block entity there, or outside a callback.
+    pub fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool {
+        with_current(false, |ops| ops.merge_block_entity_data(&self.dimension, pos, data))
+    }
 }
 
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
@@ -219,6 +240,8 @@ pub struct MemoryWorldOps {
     pub sounds: Vec<(String, [f64; 3])>,
     /// The `(block, tag)` pairs that are true for `block_in_tag`.
     pub tags: Vec<(String, String)>,
+    /// The saved data of the block entities, by `(dimension, position)`.
+    pub entities: BTreeMap<(String, BlockPos), NbtCompound>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -233,6 +256,20 @@ impl WorldOps for MemoryWorldOps {
 
     fn block_in_tag(&mut self, block: &str, tag: &str) -> bool {
         self.tags.iter().any(|(b, t)| b == block && t == tag)
+    }
+
+    fn block_entity_data(&mut self, dimension: &str, pos: BlockPos) -> Option<NbtCompound> {
+        self.entities.get(&(dimension.to_owned(), pos)).cloned()
+    }
+
+    fn merge_block_entity_data(&mut self, dimension: &str, pos: BlockPos, data: &NbtCompound) -> bool {
+        match self.entities.get_mut(&(dimension.to_owned(), pos)) {
+            Some(held) => {
+                held.extend(data.iter().map(|(key, value)| (key.clone(), value.clone())));
+                true
+            }
+            None => false,
+        }
     }
 
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], _volume: f32, _pitch: f32) -> bool {

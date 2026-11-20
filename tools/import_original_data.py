@@ -474,11 +474,11 @@ BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
 HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
 # Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
 SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
-SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure']
+SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
 # tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
-PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture'}
+PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture', 'mantle:connected'}
 
 
 def qualify(reference):
@@ -537,7 +537,8 @@ def copy_client_assets():
             shutil.copyfile(source, destination)
             meta = source.parent / f'{source.name}.mcmeta'
             if meta.exists():
-                shutil.copyfile(meta, destination.parent / meta.name)
+                # only the line endings are normalized (the original checkout may be CRLF)
+                (destination.parent / meta.name).write_bytes(meta.read_bytes().replace(b'\r\n', b'\n'))
         return reference
 
     def import_model(reference):
@@ -555,7 +556,7 @@ def copy_client_assets():
         converted = {}
         for key, value in read(asset_source(f'models/{path}.json')).items():
             # render_type: 26.x derives the render layer from the texture's alpha (its own slime block model has none).
-            if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids'):
+            if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids', 'connection'):
                 continue
             if key == 'parent':
                 value = import_model(value)
@@ -1127,7 +1128,7 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
              'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
@@ -1220,7 +1221,64 @@ def smeltery_blocks():
             name = f'{kind}_{block}'
             blocks[name] = {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
                             'state_properties': properties, 'item': True}
+    blocks.update(smeltery_unit6_blocks())
     return blocks
+
+
+def smeltery_unit6_blocks():
+    """The rest of the structure blocks and the smeltery's fluid interface (TinkerSmeltery; every one requires the correct tool and
+    uses structureProps, noOcclusion for the non-solid ones): grout, slabs, stairs, walls, fences, scorched pillars, glass, panes, ladders,
+    the drains and ducts (factor 2 seared, 3 scorched) and the four tank types of each kind. Templates are the vanilla block of the
+    same class (the host copies its states and shape); the slabs and stairs of the original are smeltery component block entities
+    without an `in_structure` state, the glass, pillars, ladders, drains and ducts carry it. Soul glass, chutes, fluid cannons, lanterns,
+    gauges, the casting tank, the proxy tank and the alloyer are other units."""
+    facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
+    in_structure = {'type': 'boolean'}
+    kinds = {'seared': ('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0), 'scorched': ('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0)}
+
+    def declare(template, color, sounds, hardness, resistance, states=None, occludes=True, light_states=False):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if not occludes:
+            properties['occludes'] = False
+        declaration = {'template': template, 'properties': properties}
+        if states:
+            declaration['state_properties'] = states
+        if light_states:
+            declaration['state_light'] = {'property': 'light', 'values': {str(level): level for level in range(16)}}
+        declaration['item'] = True
+        return declaration
+
+    blocks = {}
+    # grout: builder(color, sound).strength(3.0f).friction(0.8F), no tool needed
+    for name, color, sound in (('grout', 'COLOR_LIGHT_GRAY', 'minecraft:sand'), ('nether_grout', 'COLOR_BROWN', 'minecraft:soul_soil')):
+        blocks[name] = {'template': 'minecraft:dirt', 'properties': {'hardness': 3.0, 'explosion_resistance': 3.0, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': False, 'friction': 0.8}, 'item': True}
+    for kind, (color, sound, hardness, resistance) in kinds.items():
+        base = kind == 'seared'
+        # registerBuilding: slab and stairs of stone, paver, bricks (and cobble); registerWallBuilding adds a wall; registerFenceBuilding a fence
+        families = {'seared': {'stone': 'slab,stairs', 'cobble': 'slab,stairs,wall', 'paver': 'slab,stairs', 'bricks': 'slab,stairs,wall'},
+                    'scorched': {'bricks': 'slab,stairs,fence', 'road': 'slab,stairs'}}[kind]
+        for family, parts in families.items():
+            for part in parts.split(','):
+                template = {'slab': 'minecraft:stone_slab', 'stairs': 'minecraft:stone_stairs', 'wall': 'minecraft:cobblestone_wall', 'fence': 'minecraft:nether_brick_fence'}[part]
+                blocks[f'{kind}_{family}_{part}'] = declare(template, color, sound, hardness, resistance)
+        blocks[f'{kind}_glass'] = declare('minecraft:glass', color, 'minecraft:glass', hardness, resistance, {'in_structure': in_structure}, False)
+        blocks[f'{kind}_tinted_glass'] = declare('minecraft:tinted_glass', color, 'minecraft:glass', hardness, resistance, {'in_structure': in_structure}, False)
+        blocks[f'{kind}_glass_pane'] = declare('minecraft:glass_pane', color, 'minecraft:glass', hardness, resistance, None, False)
+        # the ladders' own sounds are METAL / BASALT
+        blocks[f'{kind}_ladder'] = declare('minecraft:ladder', color, sound, hardness, resistance, {'in_structure': in_structure, 'bottom': {'type': 'boolean'}}, False)
+        factor = 2 if base else 3
+        for part in ('drain', 'duct'):
+            blocks[f'{kind}_{part}'] = declare('minecraft:stone', color, sound, hardness * factor, resistance * factor, {'in_structure': in_structure, 'facing': facing})
+        for tank in ('fuel_tank', 'fuel_gauge', 'ingot_tank', 'ingot_gauge'):
+            light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+            blocks[f'{kind}_{tank}'] = declare('minecraft:stone', color, sound, hardness, resistance, {'in_structure': in_structure, 'light': light}, False, True)
+    for name in ('scorched_stone', 'polished_scorched_stone'):
+        blocks[name] = declare('minecraft:basalt', 'TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0, {'in_structure': in_structure})
+    return blocks
+
+
+# Their block states are the original's own (variants or multipart over the template's properties), so they are copied as they are.
+SMELTERY_STATE_BLOCKS += [name for name in smeltery_unit6_blocks() if name not in ('grout', 'nether_grout')]
 
 
 def write_vanilla_fuels():
@@ -1316,6 +1374,8 @@ def upgrade_condition(condition):
     silk = {'enchantments': [{'enchantment': 'minecraft:silk_touch', 'levels': {'min': 1}}]}
     if kind == 'minecraft:match_tool' and condition['predicate'] == silk:
         return 'minecraft:tool/can_silk_touch'
+    if kind == 'minecraft:block_state_property' and set(condition) == {'condition', 'block', 'properties'}:
+        return {'type': kind, 'block': condition['block'], 'properties': condition['properties']}
     raise SystemExit(f'loot table: unknown condition {condition}')
 
 
@@ -1326,8 +1386,15 @@ def upgrade_function(function):
         return {'type': kind}
     if kind == 'minecraft:apply_bonus' and rest == {'enchantment': 'minecraft:fortune', 'formula': 'minecraft:ore_drops'}:
         return {'type': kind, **rest}
-    if kind == 'minecraft:set_count' and rest.get('add') is False and set(rest) == {'add', 'count'}:
-        return {'type': kind, 'count': rest['count']}
+    if kind == 'minecraft:set_count' and rest.get('add') is False and set(rest) <= {'add', 'count', 'conditions'}:
+        result = {'type': kind, 'count': rest['count']}
+        if 'conditions' in rest:
+            terms = [upgrade_condition(term) for term in rest['conditions']]
+            result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
+        return result
+    if kind == 'minecraft:copy_nbt' and rest.get('source') == 'block_entity' and set(rest) == {'source', 'ops'}:
+        # the tank items keep their fluid in the stack's custom data under `tank` (TankItem.getTank reads the stack's `tank` tag)
+        return {'type': 'minecraft:copy_custom_data', 'source': 'block_entity', 'ops': rest['ops']}
     raise SystemExit(f'loot table: unknown function {function}')
 
 
@@ -1377,6 +1444,112 @@ def copy_world_features():
         modifier['type'] = 'neoforge:' + modifier['type'].removeprefix('forge:')
         write_json(CONTENT_DATA / f'tconstruct/neoforge/biome_modifier/{name}.json', modifier)
     return len(WORLD_FEATURES) * 2 + len(WORLD_BIOME_MODIFIERS)
+
+
+# Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
+GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
+    'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
+FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
+              'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass']}
+CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting')
+CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
+
+
+def copy_crafting_recipes():
+    """The crafting, smelting and stonecutting recipes of the smeltery (`smeltery/` in the original's recipe tree: seared and scorched
+    bricks, grout, every structure block, the controllers, tables, drains, ducts and tanks) in the game's recipe format, under the
+    original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention tags become the
+    vanilla items they stand for, a `forge:difference` stonecutting ingredient is expanded over the original's tag, and the melter's
+    `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming an item this port does not declare is left out
+    and returned (the foundry's scorched basin, table, drain and chute wait for the gold platform, gold bars and obsidian pane)."""
+    shutil.rmtree(CRAFTING_TARGET, ignore_errors=True)
+    declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
+    tag_files = GENERATED_DATA / 'tconstruct/tags/items'
+
+    def known(item):
+        return item in declared or item.startswith('minecraft:')
+
+    def members(tag, seen=()):
+        namespace, path = tag.split(':', 1)
+        if namespace != 'tconstruct' or tag in seen:
+            raise KeyError(tag)
+        result = []
+        for entry in json.loads((tag_files / f'{path}.json').read_text(encoding='utf-8'))['values']:
+            entry = entry if isinstance(entry, str) else entry['id']
+            result += members(entry[1:], seen + (tag,)) if entry.startswith('#') else [entry]
+        return [item for item in result if item in declared]
+
+    def convert(node):
+        """An ingredient as a string or a list of strings; KeyError when it names something this port has not."""
+        if isinstance(node, list):
+            out = []
+            for part in node:
+                part = convert(part)
+                out += part if isinstance(part, list) else [part]
+            return out
+        kind = node.get('type')
+        if kind == 'forge:difference':
+            base, taken = convert(node['base']), convert(node['subtracted'])
+            base = base if isinstance(base, list) else [base]
+            taken = taken if isinstance(taken, list) else [taken]
+            if any(entry.startswith('#') for entry in base + taken):
+                raise KeyError('difference of tags')
+            return [entry for entry in base if entry not in taken]
+        if kind == 'tconstruct:no_container':
+            return convert(node['match'])
+        if kind is not None:
+            raise KeyError(kind)
+        if 'tag' in node:
+            tag = node['tag']
+            if tag in FORGE_TAGS:
+                return list(FORGE_TAGS[tag])
+            if tag == 'minecraft:sand':
+                return '#minecraft:sand'
+            if tag.startswith('tconstruct:'):
+                return members(tag)
+            raise KeyError(tag)
+        if not known(node['item']):
+            raise KeyError(node['item'])
+        return node['item']
+
+    def one(ingredient):
+        ingredient = convert(ingredient)
+        return ingredient
+
+    written, left_out = 0, []
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')):
+        relative = path.relative_to(FLUID_RECIPE_SOURCE / 'smeltery')
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('type') not in CRAFTING_TYPES:
+            continue
+        stem = path.relative_to(FLUID_RECIPE_SOURCE).with_suffix('').as_posix()
+        result = data['result']
+        item = result['item'] if isinstance(result, dict) else result
+        count = result.get('count', 1) if isinstance(result, dict) else data.get('count', 1)
+        try:
+            if data['type'] == 'minecraft:crafting_shaped':
+                out = {'type': data['type'], 'key': {key: one(value) for key, value in data['key'].items()}, 'pattern': data['pattern']}
+            elif data['type'] == 'minecraft:crafting_shapeless':
+                out = {'type': data['type'], 'ingredients': [one(value) for value in data['ingredients']]}
+            elif data['type'] == 'minecraft:smelting':
+                out = {'type': data['type'], 'cookingtime': data['cookingtime'], 'experience': data['experience'], 'ingredient': one(data['ingredient'])}
+            else:
+                out = {'type': data['type'], 'ingredient': one(data['ingredient'])}
+        except KeyError as missing:
+            left_out.append((stem, str(missing)))
+            continue
+        if any(value == [] for value in out.get('key', {}).values()) or out.get('ingredient') == []:
+            left_out.append((stem, 'empty ingredient'))
+            continue
+        if 'group' in data:
+            out['group'] = data['group']
+        out['result'] = {'id': item} if count == 1 else {'id': item, 'count': count}
+        if not known(item):
+            left_out.append((stem, item))
+            continue
+        write_json(CRAFTING_TARGET / f'{stem}.json', out)
+        written += 1
+    return written, left_out
 
 
 def copy_vanilla_tags():
@@ -1472,6 +1645,7 @@ def main():
     languages = copy_lang()
     fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
+    crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
     world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
     world_worldgen = copy_world_features()
@@ -1482,7 +1656,7 @@ def main():
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names]
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':
