@@ -11,7 +11,7 @@ pub use crate::pure::block_api_v1::{
     self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PickContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, EntityInsideMotionContext, FallOnContext, AfterFallContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
     SurviveContext, PathNodeType, PathNodeTypeContext, PistonBehavior,
 };
-pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
+pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityFill, BlockEntityTick, BlockEntityUse, BlockUseOutcome, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
 pub use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose, CubeDefinition, PartDefinition, LayerDefinition, EntityModelLayerRegistry};
 pub use crate::pure::color_provider_api_v1::{self, BlockColorContext, ItemColorContext, ColorProviderRegistry};
 pub use crate::pure::armor_renderer_api_v1::{self, ArmorLayer, ArmorLayerKind, ArmorRenderContext, ArmorRenderer};

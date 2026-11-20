@@ -111,6 +111,44 @@ pub(crate) fn set_menu_data(data: &mut NbtCompound, index: usize, value: i32) {
     }
 }
 
+/// The fluid in tank `index` of saved data, if it holds any.
+fn read_fluid(data: &NbtCompound, index: usize) -> Option<FluidStack> {
+    let tank = data.get("fluids")?.as_list()?.get(index)?.as_compound()?;
+    let fluid = tank.get("Fluid")?.as_str()?;
+    let amount = tank.get("Amount")?.as_i64()?;
+    if fluid == "minecraft:empty" || amount <= 0 {
+        return None;
+    }
+    Some(FluidStack { fluid: Identifier::parse(fluid).ok()?, amount: amount as u32 })
+}
+
+/// Puts `stack` in tank `index` of saved data, or empties the tank with `None`; the tanks before it are kept (empty if there are none yet).
+fn write_fluid(data: &mut NbtCompound, index: usize, stack: Option<FluidStack>) {
+    let mut tanks: Vec<Nbt> = match data.get("fluids") {
+        Some(Nbt::List(list)) => list.clone(),
+        _ => Vec::new(),
+    };
+    let empty = || {
+        let mut tank = NbtCompound::new();
+        tank.insert("Fluid".to_owned(), Nbt::String("minecraft:empty".to_owned()));
+        tank.insert("Amount".to_owned(), Nbt::Int(0));
+        Nbt::Compound(tank)
+    };
+    while tanks.len() <= index {
+        tanks.push(empty());
+    }
+    tanks[index] = match stack {
+        Some(stack) if stack.amount > 0 => {
+            let mut tank = NbtCompound::new();
+            tank.insert("Fluid".to_owned(), Nbt::String(stack.fluid.to_string()));
+            tank.insert("Amount".to_owned(), Nbt::Int(stack.amount.min(i32::MAX as u32) as i32));
+            Nbt::Compound(tank)
+        }
+        _ => empty(),
+    };
+    data.insert("fluids".to_owned(), Nbt::List(tanks));
+}
+
 impl BlockEntityTick<'_> {
     /// Sets menu data slot `index` (0..256); the content menu must declare it. Values are clamped to the signed 16-bit wire range.
     pub fn set_menu_data(&mut self, index: usize, value: i32) {
@@ -119,41 +157,75 @@ impl BlockEntityTick<'_> {
 
     /// The fluid in tank `index`, if it holds any (tanks are declared with [`BlockEntityType::fluid_tanks`]).
     pub fn fluid(&self, index: usize) -> Option<FluidStack> {
-        let tank = self.data.get("fluids")?.as_list()?.get(index)?.as_compound()?;
-        let fluid = tank.get("Fluid")?.as_str()?;
-        let amount = tank.get("Amount")?.as_i64()?;
-        if fluid == "minecraft:empty" || amount <= 0 {
-            return None;
-        }
-        Some(FluidStack { fluid: Identifier::parse(fluid).ok()?, amount: amount as u32 })
+        read_fluid(self.data, index)
     }
 
     /// Puts `stack` in tank `index`, or empties the tank with `None`. The tanks before `index` are kept (empty if there are none yet).
     pub fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>) {
-        let mut tanks: Vec<Nbt> = match self.data.get("fluids") {
-            Some(Nbt::List(list)) => list.clone(),
-            _ => Vec::new(),
-        };
-        let empty = || {
-            let mut tank = NbtCompound::new();
-            tank.insert("Fluid".to_owned(), Nbt::String("minecraft:empty".to_owned()));
-            tank.insert("Amount".to_owned(), Nbt::Int(0));
-            Nbt::Compound(tank)
-        };
-        while tanks.len() <= index {
-            tanks.push(empty());
-        }
-        tanks[index] = match stack {
-            Some(stack) if stack.amount > 0 => {
-                let mut tank = NbtCompound::new();
-                tank.insert("Fluid".to_owned(), Nbt::String(stack.fluid.to_string()));
-                tank.insert("Amount".to_owned(), Nbt::Int(stack.amount.min(i32::MAX as u32) as i32));
-                Nbt::Compound(tank)
-            }
-            _ => empty(),
-        };
-        self.data.insert("fluids".to_owned(), Nbt::List(tanks));
+        write_fluid(self.data, index, stack);
     }
+}
+
+/// A fluid offered to a block entity's tanks: what [`BlockEntityType::fluid_filler`] receives. The hook decides how much of `fluid` the block
+/// takes, and may change the saved data and the item slots (a casting table starts its recipe here and fixes its tank to the recipe's amount).
+pub struct BlockEntityFill<'a> {
+    /// The block entity's position.
+    pub pos: BlockPos,
+    /// The saved data; changes are kept only when `execute` is true.
+    pub data: &'a mut NbtCompound,
+    /// The item slots; changes are kept only when `execute` is true.
+    pub items: &'a mut Vec<Option<ItemSlot>>,
+    /// What is offered.
+    pub fluid: FluidStack,
+    /// False when the caller only asks how much would be taken: the changes are thrown away, so the hook may run the same code for both.
+    pub execute: bool,
+}
+
+impl BlockEntityFill<'_> {
+    /// The fluid in tank `index`, if it holds any.
+    pub fn fluid_in(&self, index: usize) -> Option<FluidStack> {
+        read_fluid(self.data, index)
+    }
+
+    /// Puts `stack` in tank `index`, or empties the tank with `None`.
+    pub fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>) {
+        write_fluid(self.data, index, stack);
+    }
+}
+
+/// A player used the block with the block entity: what [`BlockEntityType::on_use`] receives (Minecraft: `BlockEntity` reached from
+/// `Block.use`; Fabric: `UseBlockCallback` with the block entity at hand).
+pub struct BlockEntityUse<'a> {
+    /// The block entity's position.
+    pub pos: BlockPos,
+    /// The saved data.
+    pub data: &'a mut NbtCompound,
+    /// The item slots.
+    pub items: &'a mut Vec<Option<ItemSlot>>,
+    /// The stack in the hand that was used; `None` for an empty hand. The hook may change it (taking one off the stack) or empty it.
+    pub held: Option<ItemSlot>,
+    /// Whether the player was sneaking.
+    pub sneaking: bool,
+    /// Stacks the hook gives the player: into the inventory, dropped at the player's feet when it is full.
+    pub give: Vec<ItemSlot>,
+}
+
+impl BlockEntityUse<'_> {
+    /// The fluid in tank `index`, if it holds any.
+    pub fn fluid(&self, index: usize) -> Option<FluidStack> {
+        read_fluid(self.data, index)
+    }
+}
+
+/// What a use of the block did: the answer, the hand afterwards and what the player is given.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BlockUseOutcome {
+    /// `Pass` leaves the use to the game.
+    pub result: crate::pure::base::action_result::ActionResult,
+    /// The stack in the used hand afterwards; `None` for an empty hand.
+    pub held: Option<ItemSlot>,
+    /// Stacks to give the player.
+    pub give: Vec<ItemSlot>,
 }
 
 /// A client-only block entity tick. Saved/synchronized data is read-only;
@@ -169,6 +241,8 @@ pub struct BlockEntityClientTick<'a> {
 
 type ClientTicker = Arc<dyn Fn(&mut BlockEntityClientTick<'_>) + Send + Sync>;
 type Ticker = Arc<dyn Fn(&mut BlockEntityTick<'_>) + Send + Sync>;
+type Filler = Arc<dyn Fn(&mut BlockEntityFill<'_>) -> u32 + Send + Sync>;
+type User = Arc<dyn Fn(&mut BlockEntityUse<'_>) -> crate::pure::base::action_result::ActionResult + Send + Sync>;
 type UpdateTag = Arc<dyn Fn(&NbtCompound) -> NbtCompound + Send + Sync>;
 
 /// The kind of block entity a block has (Minecraft: `BlockEntityType`).
@@ -186,12 +260,14 @@ pub struct BlockEntityType {
     ticker: Option<Ticker>,
     client_ticker: Option<ClientTicker>,
     update_tag: Option<UpdateTag>,
+    filler: Option<Filler>,
+    user: Option<User>,
 }
 
 impl BlockEntityType {
     /// A block entity type for `block`, with no data, no ticker and nothing sent to clients.
     pub fn new(block: Identifier) -> Self {
-        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None }
+        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None, filler: None, user: None }
     }
 
     /// The same type under another id.
@@ -250,6 +326,21 @@ impl BlockEntityType {
         self
     }
 
+    /// The same type, with its own rule for fluid put into it: `filler` is asked how much of the offered fluid the block takes, and may change
+    /// the saved data (Fabric: a custom `Storage<FluidVariant>.insert`; NeoForge: a custom `IFluidHandler.fill`). Without one the host fills
+    /// the declared tanks up to their capacity. It lets a block take a capacity that depends on what it is offered.
+    pub fn fluid_filler(mut self, filler: impl Fn(&mut BlockEntityFill<'_>) -> u32 + Send + Sync + 'static) -> Self {
+        self.filler = Some(Arc::new(filler));
+        self
+    }
+
+    /// The same type, with `user` run when a player uses the block (right click): it may exchange items with the hand and the slots. Its
+    /// answer is the use's answer; `Pass` leaves it to the game.
+    pub fn on_use(mut self, user: impl Fn(&mut BlockEntityUse<'_>) -> crate::pure::base::action_result::ActionResult + Send + Sync + 'static) -> Self {
+        self.user = Some(Arc::new(user));
+        self
+    }
+
     /// The same type, clients being sent all of its saved data.
     pub fn sync_data(self) -> Self {
         self.update_tag(NbtCompound::clone)
@@ -275,6 +366,25 @@ impl BlockEntityTypeRegistry {
     /// The type registered for `block` (an id such as `tconstruct:seared_melter`), if any.
     pub fn get(block: &str) -> Option<BlockEntityType> {
         TYPES.lock().ok()?.iter().find(|t| t.block.to_string() == block).cloned()
+    }
+
+    /// Offers `fluid` to the block entity of `block` with the saved `data` and `items`: how much its [`BlockEntityType::fluid_filler`] takes, or
+    /// `None` when the block has no filler (the host fills the declared tanks). With `execute` false the changes the filler makes are thrown away.
+    pub fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, execute: bool) -> Option<u32> {
+        let filler = Self::get(block)?.filler?;
+        if execute {
+            return Some(filler(&mut BlockEntityFill { pos, data, items, fluid, execute }));
+        }
+        let (mut data, mut items) = (data.clone(), items.clone());
+        Some(filler(&mut BlockEntityFill { pos, data: &mut data, items: &mut items, fluid, execute }))
+    }
+
+    /// Runs the [`BlockEntityType::on_use`] hook of `block` for a player holding `held` (`None`: an empty hand); `None` when the block has no hook.
+    pub fn use_block(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, held: Option<ItemSlot>, sneaking: bool) -> Option<BlockUseOutcome> {
+        let user = Self::get(block)?.user?;
+        let mut used = BlockEntityUse { pos, data, items, held, sneaking, give: Vec::new() };
+        let result = user(&mut used);
+        Some(BlockUseOutcome { result, held: used.held, give: used.give })
     }
 }
 
@@ -318,6 +428,11 @@ pub(crate) fn block_of(entity_id: &str) -> Option<String> {
 /// The capacity of each fluid tank of the block's block entity; None if it has none.
 pub(crate) fn fluid_tanks(block: &str) -> Option<Vec<u32>> {
     BlockEntityTypeRegistry::get(block).map(|t| t.tanks).filter(|t| !t.is_empty())
+}
+
+/// Whether the block's block entity has its own fluid rule (the host must route fills to it instead of the declared tanks).
+pub(crate) fn has_fluid_filler(block: &str) -> bool {
+    BlockEntityTypeRegistry::get(block).is_some_and(|t| t.filler.is_some())
 }
 
 /// Whether the block's block entity ticks.
@@ -474,5 +589,38 @@ mod tests {
         assert!(!tick("test:quiet", [0; 3], &mut data, &mut Vec::new()));
         BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:quiet")));
         assert!(update_tag("test:quiet", &data).is_none(), "registering again replaces the earlier type");
+    }
+
+    #[test]
+    fn a_fluid_filler_decides_what_a_block_takes_and_a_simulation_keeps_nothing_and_a_use_hook_trades_with_the_hand() {
+        use crate::pure::base::action_result::ActionResult;
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:basin")).item_slots(1).fluid_tanks([1000])
+            .fluid_filler(|fill| {
+                // takes up to 90 of one fluid
+                let held = fill.fluid_in(0).map_or(0, |held| held.amount);
+                let taken = fill.fluid.amount.min(90 - held);
+                if taken > 0 { fill.set_fluid(0, Some(FluidStack { fluid: fill.fluid.fluid.clone(), amount: held + taken })); }
+                taken
+            })
+            .on_use(|used| {
+                let Some(stack) = used.held.take() else { return ActionResult::Pass };
+                used.give.push(stack.clone());
+                used.items[0] = Some(stack);
+                ActionResult::Success
+            }));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:plain_tank")).fluid_tanks([1000]));
+        let (mut data, mut items) = (NbtCompound::new(), vec![None]);
+        let lava = |amount| FluidStack { fluid: id("minecraft:lava"), amount };
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), false), Some(50));
+        assert!(data.is_empty(), "a simulation changes nothing");
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), true), Some(50));
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), true), Some(40), "90 is the most it takes");
+        assert!(has_fluid_filler("test:basin") && !has_fluid_filler("test:plain_tank"));
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:plain_tank", [0; 3], &mut data, &mut items, lava(5), true), None, "no filler: the host fills the tanks");
+        let stick = ItemSlot::new(id("minecraft:stick"), 1);
+        let out = BlockEntityTypeRegistry::use_block("test:basin", [0; 3], &mut data, &mut items, Some(stick.clone()), false).unwrap();
+        assert_eq!((out.result, out.held, out.give, items[0].clone()), (ActionResult::Success, None, vec![stick.clone()], Some(stick)));
+        assert_eq!(BlockEntityTypeRegistry::use_block("test:basin", [0; 3], &mut data, &mut items, None, false).unwrap().result, ActionResult::Pass);
+        assert!(BlockEntityTypeRegistry::use_block("test:plain_tank", [0; 3], &mut data, &mut items, None, false).is_none());
     }
 }

@@ -41,6 +41,16 @@ pub trait NeighbourOps {
     fn fluid_tanks(&mut self, pos: BlockPos, face: Direction) -> Option<Vec<NeighbourTank>>;
     /// Drains up to `amount` millibuckets of one fluid (the first that is there) through `face`.
     fn drain_fluid(&mut self, pos: BlockPos, face: Direction, amount: u32) -> Option<FluidStack>;
+    /// Puts up to `stack.amount` millibuckets of the fluid into the block at `pos` through `face`; the amount taken (0 where nothing answers).
+    /// With `execute` false it only reports what would be taken. A block with its own fluid rule (`BlockEntityType::fluid_filler`) decides itself.
+    fn fill_fluid(&mut self, _pos: BlockPos, _face: Direction, _stack: &FluidStack, _execute: bool) -> u32 {
+        0
+    }
+    /// The state of the block at `pos` as text (`minecraft:stone` or `ns:name[key=value]`), `None` where it is not loaded. The ticking block's
+    /// own position answers too (a faucet reads its own facing).
+    fn block_state(&mut self, _pos: BlockPos) -> Option<String> {
+        None
+    }
 }
 
 thread_local! {
@@ -121,6 +131,16 @@ impl Neighbours {
     pub fn drain_fluid(pos: BlockPos, face: Direction, amount: u32) -> Option<FluidStack> {
         with_current(None, |ops| ops.drain_fluid(pos, face, amount))
     }
+
+    /// How much of `stack` the block at `pos` takes through `face`: 0 outside a scope or where nothing answers. `execute` false only asks.
+    pub fn fill_fluid(pos: BlockPos, face: Direction, stack: &FluidStack, execute: bool) -> u32 {
+        with_current(0, |ops| ops.fill_fluid(pos, face, stack, execute))
+    }
+
+    /// The state of the block at `pos`, `None` outside a scope, where it is not loaded or when the host's text does not parse.
+    pub fn block_state(pos: BlockPos) -> Option<super::world_api_v1::BlockState> {
+        with_current(None, |ops| ops.block_state(pos)).and_then(|text| super::world_api_v1::BlockState::parse(&text).ok())
+    }
 }
 
 /// A small world of containers and tanks, for tests: every face reaches every slot and tank.
@@ -129,6 +149,8 @@ pub struct MemoryNeighbourOps {
     pub containers: BTreeMap<BlockPos, Vec<Option<ItemSlot>>>,
     /// Tanks by position: contents and capacity.
     pub tanks: BTreeMap<BlockPos, Vec<(Option<FluidStack>, u32)>>,
+    /// Block states by position, as text.
+    pub states: BTreeMap<BlockPos, String>,
 }
 
 impl NeighbourOps for MemoryNeighbourOps {
@@ -194,6 +216,31 @@ impl NeighbourOps for MemoryNeighbourOps {
         }
         Some(out)
     }
+
+    fn fill_fluid(&mut self, pos: BlockPos, _: Direction, stack: &FluidStack, execute: bool) -> u32 {
+        let Some(tanks) = self.tanks.get_mut(&pos) else { return 0 };
+        for (held, capacity) in tanks.iter_mut() {
+            let room = match held {
+                Some(own) if own.fluid != stack.fluid => continue,
+                Some(own) => capacity.saturating_sub(own.amount),
+                None => *capacity,
+            };
+            let taken = room.min(stack.amount);
+            if taken == 0 { continue; }
+            if execute {
+                match held {
+                    Some(own) => own.amount += taken,
+                    None => *held = Some(FluidStack { fluid: stack.fluid.clone(), amount: taken }),
+                }
+            }
+            return taken;
+        }
+        0
+    }
+
+    fn block_state(&mut self, pos: BlockPos) -> Option<String> {
+        self.states.get(&pos).cloned()
+    }
 }
 
 #[cfg(test)]
@@ -227,4 +274,23 @@ mod tests {
         assert_eq!(world.containers[&[0, 63, 0]][0].as_ref().unwrap().count, 1);
         assert_eq!(Neighbours::drain_fluid([0, 63, 0], Direction::Up, 1), None, "the scope is closed again");
     }
+
+    #[test]
+    fn filling_respects_the_tank_fluid_and_capacity_and_states_are_read_by_position() {
+        let mut world = MemoryNeighbourOps::default();
+        world.tanks.insert([0, 63, 0], vec![(None, 100), (Some(FluidStack { fluid: id("minecraft:water"), amount: 10 }), 50)]);
+        world.states.insert([0, 64, 0], "test:faucet[facing=north]".to_owned());
+        let lava = FluidStack { fluid: id("minecraft:lava"), amount: 130 };
+        assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, true), 0, "no scope");
+        with_neighbours(&mut world, || {
+            assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, false), 100);
+            assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, true), 100, "only the empty tank takes lava");
+            assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &FluidStack { fluid: id("minecraft:water"), amount: 100 }, true), 40, "the water tank has 40 left");
+            assert_eq!(Neighbours::fill_fluid([9, 9, 9], Direction::Up, &lava, true), 0);
+            assert_eq!(Neighbours::block_state([0, 64, 0]).unwrap().property("facing"), Some("north"));
+            assert_eq!(Neighbours::block_state([1, 64, 0]), None);
+        });
+        assert_eq!(world.tanks[&[0, 63, 0]][0].0.as_ref().unwrap().amount, 100, "the simulation added nothing, the real fill 100");
+    }
+
 }

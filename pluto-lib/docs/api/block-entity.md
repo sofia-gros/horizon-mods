@@ -528,3 +528,160 @@ assert_eq!(tick.fluid(2), Some(lava));
 tick.set_fluid(2, None);
 assert_eq!(tick.fluid(2), None);
 ```
+
+## Custom fluid rules and use hooks
+
+A block whose tank capacity depends on what it is offered (a casting table that wants exactly the recipe's amount), or that trades items with the player's hand, declares the rule itself. Both hooks are pure and tested; the host adapter that routes a neighbour's fill and a player's right click to them is not written (see the caution below).
+
+> **Use with Caution.** Source-ready only. `BlockEntityTypeRegistry::fill_fluid` and `use_block` run the hooks over data and slots the caller supplies and are tested through the in-memory worlds, but the native host does not call them yet: until its adapter reads a block's `fluid_filler` for fills (neighbour fills, faucets, buckets) and its `on_use` hook for right clicks, a block with these hooks keeps the default tank fill and the game's own use. The generated `Host` signatures can only be checked by a native build.
+
+### `BlockEntityType::fluid_filler`
+
+`fn fluid_filler(self, filler: impl Fn(&mut BlockEntityFill<'_>) -> u32 + Send + Sync + 'static) -> BlockEntityType`. The hook is asked how much of an offered fluid the block takes, and may change its saved data and item slots. Without one the declared tanks are filled to their capacity (Fabric: a custom `Storage<FluidVariant>.insert`; NeoForge: a custom `IFluidHandler.fill`).
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, FluidStack, Identifier, NbtCompound};
+
+let basin = Identifier::new("example", "basin").unwrap();
+BlockEntityTypeRegistry::register(BlockEntityType::new(basin).fluid_tanks([1000]).fluid_filler(|fill| {
+    // takes at most 90 millibuckets of a single fluid
+    let held = fill.fluid_in(0).map_or(0, |held| held.amount);
+    let taken = fill.fluid.amount.min(90 - held);
+    if taken > 0 {
+        fill.set_fluid(0, Some(FluidStack { fluid: fill.fluid.fluid.clone(), amount: held + taken }));
+    }
+    taken
+}));
+let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 500 };
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:basin", [0, 64, 0], &mut data, &mut items, lava, true), Some(90));
+```
+
+### `BlockEntityFill`
+
+What a fluid filler receives: `pos`, the saved `data`, the item `items`, the `fluid` offered and `execute`. With `execute` false the caller only asks how much would be taken and the changes are thrown away, so the hook can run the same code either way. `fluid_in(index)` and `set_fluid(index, stack)` read and write a tank.
+
+```rust
+use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
+
+fn take_all(fill: &mut BlockEntityFill<'_>) -> u32 {
+    let _ = (fill.pos, fill.execute, fill.items.len());
+    fill.set_fluid(0, Some(fill.fluid.clone()));
+    fill.fluid.amount
+}
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 250 };
+let mut fill = BlockEntityFill { pos: [0, 64, 0], data: &mut data, items: &mut items, fluid: water, execute: true };
+assert_eq!(take_all(&mut fill), 250);
+assert_eq!(fill.fluid_in(0).unwrap().amount, 250);
+```
+
+### `BlockEntityTypeRegistry::fill_fluid`
+
+`fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, execute: bool) -> Option<u32>`. Offers `fluid` to the block's filler over the given data and slots: the amount taken, or `None` when the block has no filler (the host then fills the declared tanks). With `execute` false the data and slots are left unchanged.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, FluidStack, Identifier, NbtCompound};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example", "sink").unwrap()).fluid_filler(|fill| fill.fluid.amount));
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 40 };
+assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:sink", [0; 3], &mut data, &mut items, water.clone(), false), Some(40));
+assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:plain", [0; 3], &mut data, &mut items, water, false), None);
+```
+
+### `BlockEntityType::on_use`
+
+`fn on_use(self, user: impl Fn(&mut BlockEntityUse<'_>) -> ActionResult + Send + Sync + 'static) -> BlockEntityType`. Run when a player uses the block; it may exchange items with the hand and the slots, and its answer is the use's answer (`Pass` leaves it to the game).
+
+```rust
+use pluto_lib::{ActionResult, BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemSlot};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example", "shelf").unwrap()).item_slots(1).on_use(|used| {
+    // an empty hand takes the item out, a held item goes on the shelf when it is empty
+    match (used.held.take(), used.items[0].take()) {
+        (None, Some(stack)) => { used.give.push(stack); ActionResult::Success }
+        (Some(held), None) => { used.items[0] = Some(held); ActionResult::Success }
+        (held, slot) => { used.held = held; used.items[0] = slot; ActionResult::Pass }
+    }
+}));
+let mut items = vec![None];
+let hand = ItemSlot::new(Identifier::new("minecraft", "stick").unwrap(), 1);
+let out = BlockEntityTypeRegistry::use_block("example:shelf", [0; 3], &mut Default::default(), &mut items, Some(hand), false).unwrap();
+assert_eq!(out.result, ActionResult::Success);
+assert!(items[0].is_some() && out.held.is_none());
+```
+
+### `BlockEntityUse`
+
+What a use hook receives: `pos`, `data`, `items`, `held` (the stack in the used hand, `None` when empty; the hook may change it), `sneaking`, and `give`, the stacks the player is handed (into the inventory, dropped when it is full). `fluid(index)` reads a tank.
+
+```rust
+use pluto_lib::{BlockEntityUse, ItemSlot, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), vec![None]);
+let stick = ItemSlot::new(Identifier::new("minecraft", "stick").unwrap(), 1);
+let mut used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: vec![stick] };
+assert!(used.fluid(0).is_none() && used.give.len() == 1 && !used.sneaking && used.pos == [0; 3]);
+```
+
+### `BlockEntityTypeRegistry::use_block`
+
+`fn use_block(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, held: Option<ItemSlot>, sneaking: bool) -> Option<BlockUseOutcome>`. Runs the block's use hook for a player holding `held`; `None` when the block has none.
+
+```rust
+use pluto_lib::{BlockEntityTypeRegistry, NbtCompound};
+
+assert!(BlockEntityTypeRegistry::use_block("example:no_hook", [0; 3], &mut NbtCompound::new(), &mut Vec::new(), None, false).is_none());
+```
+
+### `BlockUseOutcome`
+
+What a use did: `result` (the answer), `held` (the used hand afterwards) and `give` (stacks for the player).
+
+```rust
+use pluto_lib::{ActionResult, BlockUseOutcome};
+
+let outcome = BlockUseOutcome { result: ActionResult::Pass, held: None, give: Vec::new() };
+assert_eq!(outcome.result, ActionResult::Pass);
+assert!(outcome.held.is_none() && outcome.give.is_empty());
+```
+
+### `BlockEntityFill::fluid_in`
+
+`fn fluid_in(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index` of the data being filled.
+
+```rust
+use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10 };
+let fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water, execute: false };
+assert_eq!(fill.fluid_in(0), None);
+```
+
+### `BlockEntityFill::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts a fluid in tank `index`, or empties it with `None`.
+
+```rust
+use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10 };
+let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water.clone(), execute: true };
+fill.set_fluid(0, Some(water));
+assert_eq!(fill.fluid_in(0).unwrap().amount, 10);
+```
+
+### `BlockEntityUse::fluid`
+
+`fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index`, for a use hook that depends on it (a casting table does nothing with an item while it holds fluid).
+
+```rust
+use pluto_lib::{BlockEntityUse, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: Vec::new() };
+assert!(used.fluid(0).is_none());
+```
