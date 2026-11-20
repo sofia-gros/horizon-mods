@@ -131,6 +131,8 @@ impl Recipes {
     }
 
     /// The first melting recipe whose ingredient the item satisfies, in ID order (RecipeManager.getRecipeFor).
+    pub(crate) fn melting_count(&self) -> usize { self.melting.len() }
+
     pub(crate) fn find_melting(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, has_remainder: bool) -> Option<&Melting> {
         self.melting.iter().find(|recipe| recipe.matches(item, in_tag, has_remainder))
     }

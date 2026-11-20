@@ -100,6 +100,11 @@ impl RegistryLookup {
     /// Whether the ID exists in this captured registry (not just a render catalog).
     pub fn contains(&self,id:&Identifier)->bool { self.entries.contains(id) }
     pub(crate) fn entry_count(&self)->usize { self.entries.len() }
+    /// Every ID of this captured registry, in order.
+    pub fn entries(&self)->impl Iterator<Item=&Identifier> { self.entries.iter() }
+    /// Adds `members` to the tag `tag` in this snapshot (creating the tag), for a mod that stands in for a tag its host does not ship.
+    /// Only the snapshot changes, never the game's own tags.
+    pub fn add_tag_members(&mut self,tag:Identifier,members:impl IntoIterator<Item=Identifier>) { self.tags.entry(tag).or_default().extend(members); }
     /// Members of a captured tag; None means absent, Some(empty) means present but empty.
     pub fn get_tag(&self,tag:&Identifier)->Option<&std::collections::BTreeSet<Identifier>> { self.tags.get(tag) }
     pub(crate) fn from_parts(entries:&[String],tags:&[(String,Vec<String>)])->Result<Self,String> {

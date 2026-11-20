@@ -101,9 +101,14 @@ impl State {
         let saved = data.get(MELTING_TAG).and_then(Nbt::as_list).unwrap_or(&[]);
         for index in 0..SLOTS {
             let Some(stack) = items.get(index).and_then(Option::as_ref) else { continue };
+            let saved_slot = saved.get(index).and_then(Nbt::as_compound);
+            // The progress belongs to the stack that was in the slot when it was saved: a different one (put in by a click, a command or
+            // a hopper since the last tick) is left unsynchronised, so the first pass sets it up (MeltingModule.setStack).
+            let saved_key = saved_slot.and_then(|slot| Some((Identifier::parse(slot.get("key_item")?.as_str()?).ok()?, slot.get_int("key_damage", 0) as u32, slot.get("key_data")?.as_compound()?.clone())));
+            if saved_key.as_ref() != Some(&key_of(stack)) { continue; }
             state.keys[index] = Some(key_of(stack));
             state.slots[index].occupied = true;
-            if let Some(slot) = saved.get(index).and_then(Nbt::as_compound) {
+            if let Some(slot) = saved_slot {
                 state.slots[index].current_time = slot.get_int("time", 0) as i32;
                 state.slots[index].required_time = slot.get_int("required", 0) as i32;
                 state.slots[index].required_temp = slot.get_int("temp", 0) as i32;
@@ -120,11 +125,16 @@ impl State {
     }
 
     pub(crate) fn save(&self, data: &mut NbtCompound) {
-        let slots = self.slots.iter().map(|slot| {
+        let slots = self.slots.iter().enumerate().map(|(index, slot)| {
             let mut tag = NbtCompound::new();
             tag.insert("time".to_owned(), Nbt::Int(slot.current_time));
             tag.insert("required".to_owned(), Nbt::Int(slot.required_time));
             tag.insert("temp".to_owned(), Nbt::Int(slot.required_temp));
+            if let Some((item, damage, custom)) = &self.keys[index] {
+                tag.insert("key_item".to_owned(), Nbt::String(item.to_string()));
+                tag.insert("key_damage".to_owned(), Nbt::Int(*damage as i32));
+                tag.insert("key_data".to_owned(), Nbt::Compound(custom.clone()));
+            }
             Nbt::Compound(tag)
         }).collect();
         data.insert(MELTING_TAG.to_owned(), Nbt::List(slots));

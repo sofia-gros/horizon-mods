@@ -2576,3 +2576,43 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
     }
 }
+
+#[test]
+fn the_forge_item_tags_the_host_lacks_are_synthesized_from_item_names() {
+    // The original runs on Forge, whose own tags (forge:ingots/iron and family) its recipes name. The host ships
+    // none of them, so the captured item snapshot gets them from item names, by Forge's naming (common::capture_items).
+    let items = crate::common::with_forge_item_tags(pluto_lib::fixtures::registry(&[
+        "minecraft:iron_ingot", "minecraft:iron_nugget", "minecraft:iron_block", "minecraft:raw_iron",
+        "minecraft:iron_ore", "minecraft:deepslate_iron_ore", "minecraft:gold_ingot", "minecraft:diamond", "minecraft:lapis_lazuli",
+    ]).unwrap());
+    let member = |tag: &str, item: &str| items.get_tag(&Identifier::parse(tag).unwrap()).is_some_and(|members| members.contains(&Identifier::parse(item).unwrap()));
+    assert!(member("forge:ingots/iron", "minecraft:iron_ingot"));
+    assert!(member("forge:nuggets/iron", "minecraft:iron_nugget"));
+    assert!(member("forge:storage_blocks/iron", "minecraft:iron_block"));
+    assert!(member("forge:raw_materials/iron", "minecraft:raw_iron"));
+    assert!(member("forge:ores/iron", "minecraft:iron_ore"));
+    assert!(member("forge:ores/iron", "minecraft:deepslate_iron_ore"), "the deepslate prefix is part of the ore, not the metal");
+    assert!(member("forge:gems/diamond", "minecraft:diamond"));
+    assert!(member("forge:gems/lapis", "minecraft:lapis_lazuli"), "Forge names the tag lapis, not lapis_lazuli");
+    assert!(!member("forge:ingots/iron", "minecraft:gold_ingot"), "one metal's tag holds no other metal");
+}
+
+#[test]
+fn shipped_fluid_recipes_load_and_an_iron_ingot_melts_through_its_forge_tag() {
+    let files = recursive_files("fluids", "fluids");
+    assert_eq!(files.len(), 1858, "every file the smeltery domain ships under recipes/fluids");
+    let recipes = crate::fluid_recipes::Recipes::load(&files, &conditions());
+    // 813 melting files ship, but most are switched off in this tag-less test world by their own conditions
+    // (the tag-filled and other-mod gates of conditions()); what loads unconditionally must still be hundreds.
+    assert!(recipes.melting_count() > 250, "{} melting recipes loaded, {} problems", recipes.melting_count(), recipes.problems.len());
+    assert!(recipes.solid_fuel.is_some(), "the shipped solid fuel recipe (MeltingFuelLookup.getSolid) loaded");
+    assert!(!recipes.fuels.is_empty(), "the shipped liquid fuel recipes loaded");
+    // The shipped iron ingot recipe names the tag forge:ingots/iron, not the item: with no such tag the melter
+    // finds no recipe for the ingot, never takes fuel and never heats (the real-game melter that sat at fuel 0).
+    let ingot = Identifier::parse("minecraft:iron_ingot").unwrap();
+    assert!(recipes.find_melting(&ingot, &|_, _| false, false).is_none(), "no tag, no melting recipe");
+    let items = crate::common::with_forge_item_tags(pluto_lib::fixtures::registry(&["minecraft:iron_ingot"]).unwrap());
+    let in_tag = |item: &Identifier, tag: &Identifier| items.get_tag(tag).is_some_and(|members| members.contains(item));
+    let recipe = recipes.find_melting(&ingot, &in_tag, false).expect("the ingot melts once its forge tag exists");
+    assert_eq!((recipe.temperature, recipe.time), (800, 60), "the shipped iron ingot melting values");
+}
