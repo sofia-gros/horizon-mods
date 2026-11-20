@@ -62,13 +62,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (127, 90), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (124, 88), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
     // reads the attacker's held items: none of those is reported.
-    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
-    for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
     assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
     assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
@@ -1492,7 +1492,7 @@ fn a_range_condition_reads_a_variable_of_the_entity() {
 }
 
 #[test]
-fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_every_filler_but_launch_capacity_is_bound() {
+fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_every_filler_is_bound() {
     use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt, NbtCompound};
     let world = world();
@@ -1503,8 +1503,9 @@ fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_every_filler_but_l
     assert!(unbound("tconstruct:barkskin").is_empty(), "the bar and its shield are both bound");
     assert!(unbound("tconstruct:stoneshield").is_empty(), "loot to capacity is bound to the loot of a mined block");
     assert!(unbound("tconstruct:frostshield").is_empty(), "damage to capacity is bound to the wearer's damage event");
-    assert!(unbound("tconstruct:overwield") == ["tconstruct:launch_capacity"], "overwield's melee and mining drains are bound, its launch drain is not");
-    assert!(unbound("tconstruct:war_charge") == ["tconstruct:launch_capacity"], "no event reports a shot's stack for an edit");
+    assert!(unbound("tconstruct:overwield").is_empty(), "overwield's melee, mining and launch drains are bound");
+    assert!(unbound("tconstruct:war_charge").is_empty(), "the shot event reports the launcher's stack for an edit");
+    assert!(unbound("tconstruct:necrotic").is_empty(), "lifesteal is bound");
     let tool = |modifier: &str, level: i32, stored: i32| {
         let mut tool = ItemSlot::new(Identifier::parse("tconstruct:plate_boots").unwrap(), 1);
         tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
@@ -1565,6 +1566,19 @@ fn shipped_mining_capacity_and_loot_to_capacity_edit_the_bars_of_the_tool_that_b
     assert_eq!(mining_capacity_edits(&charged.custom_data, &env, false), vec![set("tconstruct:war_charge", 5)]);
     assert!(mining_capacity_edits(&charged.custom_data, &env, true).is_empty());
     assert!(mining_capacity_edits(&tool("tconstruct:war_charge", 1, &[("tconstruct:war_charge", 4)]).custom_data, &env, false).is_empty(), "no ammo key, no gain");
+    // launch capacity: war charge has no grant, which empties its bar on every shot; overwield spends overslime only for ranged tools.
+    use crate::tool_stack::launch_capacity_edits;
+    assert_eq!(launch_capacity_edits(&charged.custom_data, &env), vec![StackDataEdit { path: vec![TAG_PERSISTENT.to_string(), "tconstruct:war_charge".to_string()], value: None }]);
+    assert!(launch_capacity_edits(&tool("tconstruct:war_charge", 1, &[]).custom_data, &env).is_empty(), "an empty bar stays empty");
+    assert!(launch_capacity_edits(&overwield.custom_data, &env).is_empty(), "a pickaxe is no ranged tool");
+    let ranged = pluto_lib::fixtures::registry_with_tags(&["tconstruct:pickaxe"], &[("tconstruct:modifiable/ranged", &["tconstruct:pickaxe"][..])]).unwrap();
+    let ranged_env = Environment { item_tags: Some(&ranged), ..Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: Some(&item), item_tags: None } };
+    assert_eq!(launch_capacity_edits(&overwield.custom_data, &ranged_env), vec![set("tconstruct:overslime", 48)], "one overslime a level for each shot");
+    // lifesteal: necrotic heals 5% of the damage a level, except from a mob of the necrotic blacklist.
+    let necrotic = tool("tconstruct:necrotic", 2, &[]);
+    let heal = |blacklisted: bool| crate::tool_stack::lifesteal_heal(&necrotic.custom_data, &env, 10.0, blacklisted, &|_| true, &|_| true);
+    assert!((heal(false) - 1.0).abs() < 1e-5 && heal(true) == 0.0, "{} {}", heal(false), heal(true));
+    assert_eq!(crate::tool_stack::lifesteal_heal(&overwield.custom_data, &env, 10.0, false, &|_| true, &|_| true), 0.0, "a tool without the module heals nothing");
     // stoneshield eats the stone of the loot into its bar: 40% a stone at level 2, three points a stone.
     let shield = tool("tconstruct:stoneshield", 2, &[]);
     let in_tag = |item: &Identifier, tag: &Identifier| tag.to_string() == "tconstruct:stoneshields" && item.path() == "cobblestone";

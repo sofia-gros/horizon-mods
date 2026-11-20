@@ -208,6 +208,10 @@ impl Modifier {
     pub fn melee_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_melee_capacity()) }
     /// The mining capacity modules.
     pub fn mining_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_mining_capacity()) }
+    /// The launch capacity modules.
+    pub fn launch_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_launch_capacity()) }
+    /// The lifesteal modules.
+    pub fn lifesteal_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_lifesteal()) }
     /// The loot to capacity modules.
     pub fn loot_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_loot_capacity()) }
     /// The damage to capacity modules.

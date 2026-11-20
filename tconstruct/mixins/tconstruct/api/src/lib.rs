@@ -46,6 +46,8 @@ mod knockback;
 mod weapon_effect;
 mod thorns;
 mod hit_actions;
+mod lifesteal;
+mod lifesteal_hook;
 mod capacity;
 mod effect_immunity;
 mod tool_inventory;
@@ -89,6 +91,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     creative::register();
     break_speed_hook::register();
     melee_hook::register();
+    lifesteal_hook::register();
     tool_action_hook::register();
     protection_hook::register();
     tool_damage_hook::register();

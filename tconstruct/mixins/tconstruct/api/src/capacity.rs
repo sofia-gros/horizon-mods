@@ -3,8 +3,8 @@
 //! shield that soaks tool wear from it before any other reduction (barkskin, frostshield, stoneshield). The durability bar color and the
 //! incremental name are presentation work that is not ported. The sources that fill a bar are ported where PlutoLib reports the event with
 //! a stack it can edit: damage to capacity (armor taking damage), melee capacity (a weapon hit), mining capacity (a block the tool broke,
-//! before and after) and loot to capacity (the loot of a block the tool broke). Launch capacity stays unbound: no PlutoLib event reports
-//! a shot's stack for an edit.
+//! before and after), loot to capacity (the loot of a block the tool broke) and launch capacity (an arrow a player's bow or crossbow shot:
+//! the shot event carries both hands' stacks and takes the edit). A sling's or a thrown projectile's launch is not reported.
 //! The edits land as `EntityAction::EditStackData` (see `persistent_edits`).
 use crate::{
     modifier_entries::Entry,
@@ -218,6 +218,25 @@ impl MiningFill {
     pub(crate) fn grant_for(&self, entry: &Entry, before: bool) -> Option<(Option<&Identifier>, i32)> {
         (self.before == before).then(|| (self.owner.as_ref(), self.grant.compute(entry.effective_level())))
     }
+}
+
+/// `tconstruct:launch_capacity`: adds to (or drains) a bar whenever the tool launches a projectile (LaunchCapacityModule: the same grant on
+/// the launch, shot and thrown hooks, once for each projectile). The grant defaults to zero, which empties the bar (war charge).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LaunchFill { grant: LevelingInt, owner: Option<Identifier> }
+
+impl LaunchFill {
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        let grant = match fields.get("grant").filter(|value| !value.is_null()) {
+            None => LevelingInt { flat: 0, each: 0 },
+            Some(Value::Object(grant)) => LevelingInt::decode(grant, 0)?,
+            Some(_) => return Err("grant must be an object".into()),
+        };
+        Ok(Self { grant, owner: owner_of(fields)? })
+    }
+
+    /// LaunchCapacityModule.onProjectileShoot: the bar's owner and the grant for one projectile launched.
+    pub(crate) fn grant_for(&self, entry: &Entry) -> (Option<&Identifier>, i32) { (self.owner.as_ref(), self.grant.compute(entry.effective_level())) }
 }
 
 /// `tconstruct:loot_to_capacity`: eats the loot of a mined block that matches `consume` into a bar (stoneshield eats stone). Each eaten item
@@ -442,6 +461,15 @@ mod tests {
         let mut none = vec![slot("minecraft:cobblestone", 2)];
         assert_eq!(module.eat(&entry(1), &mut none, &stone_tag, &mut || 0.9), 0);
         assert_eq!(none[0].count, 2);
+    }
+
+    #[test]
+    fn launch_capacity_grants_per_projectile_and_no_grant_empties_the_bar() {
+        let drain = LaunchFill::decode(json!({"grant":{"each_level":-1},"owner":"tconstruct:overslime"}).as_object().unwrap()).unwrap();
+        assert_eq!(drain.grant_for(&entry(3)), (Some(&overslime::id()), -3));
+        assert_eq!(LaunchFill::decode(json!({}).as_object().unwrap()).unwrap().grant_for(&entry(2)), (None, 0), "war charge: no grant is zero, which empties the bar");
+        assert!(LaunchFill::decode(json!({"grant":1}).as_object().unwrap()).is_err());
+        assert!(LaunchFill::decode(json!({"owner":5}).as_object().unwrap()).is_err());
     }
 
     #[test]

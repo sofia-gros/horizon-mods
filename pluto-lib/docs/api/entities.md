@@ -977,6 +977,18 @@ ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
 });
 ```
 
+On a player's attack, `actions` aimed at `ActionTarget::Attacker` are done to the attacking player on their next tick, so a callback can act on the damage it just saw (a lifesteal heals by a share of `amount`). They are guarded like every action and dropped when the attack names no attacker. Actions aimed at `Victim` keep their older rule: they land on a damaged player wearing armor with custom data.
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+    if hit.attacker_stack.as_ref().is_some_and(|stack| stack.item == "example:vampire_sword") {
+        hit.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Attacker, amount: hit.amount.get() * 0.1 });
+    }
+});
+```
+
 ### `ServerLivingEntityEvents::AFTER_DEATH`
 
 An entity died: called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.

@@ -116,6 +116,10 @@ pub(crate) enum Module {
     CapacityMining { module: Box<crate::capacity::MiningFill>, condition: Condition },
     /// LootToCapacityModule: the loot of a block the tool breaks, eaten into a capacity bar.
     CapacityLoot { module: Box<crate::capacity::LootFill>, condition: Condition },
+    /// LaunchCapacityModule: a projectile the tool launches that adds to (or drains) a capacity bar.
+    CapacityLaunch { module: Box<crate::capacity::LaunchFill>, condition: Condition },
+    /// LifestealModule: the melee half (a critical hit of a fully charged swing heals its wielder by a share of the damage dealt).
+    Lifesteal { module: Box<crate::lifesteal::Lifesteal>, condition: Condition },
     /// InventoryModule: item slots the modifier adds to the tool, kept in its persistent data.
     Inventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
     /// InventoryMenuModule: the key that opens the tool's inventory screen.
@@ -453,6 +457,12 @@ impl Module {
             "tconstruct:mining_capacity" if only("tconstruct:block_harvest") => {
                 Self::CapacityMining { module: Box::new(crate::capacity::MiningFill::decode(fields)?), condition: Condition::decode(fields)? }
             }
+            "tconstruct:launch_capacity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown")) => {
+                Self::CapacityLaunch { module: Box::new(crate::capacity::LaunchFill::decode(fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:lifesteal" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_launch" | "tconstruct:projectile_hit" | "tconstruct:tooltip")) => {
+                match crate::lifesteal::Lifesteal::decode(fields)? { Some(module) => Self::Lifesteal { module: Box::new(module), condition: Condition::decode(fields)? }, None => return Ok(None) }
+            }
             "tconstruct:loot_to_capacity" if only("tconstruct:process_loot") => {
                 Self::CapacityLoot { module: Box::new(crate::capacity::LootFill::decode(fields)?), condition: Condition::decode(fields)? }
             }
@@ -680,7 +690,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -886,6 +896,20 @@ impl Module {
         let Self::CapacityLoot { module, condition } = self else { return None; };
         condition.matches(entry, facts).then_some(&**module)
     }
+    /// The bar a launch capacity module fills and by how much for one projectile launched, when its conditions hold.
+    pub fn launch_capacity(&self, entry: &Entry, facts: &Facts) -> Option<(Option<&Identifier>, i32)> {
+        let Self::CapacityLaunch { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| module.grant_for(entry))
+    }
+    /// The health a lifesteal module gives the wielder of a critical melee hit that dealt `damage`, when its conditions hold.
+    pub fn lifesteal(&self, entry: &Entry, facts: &Facts, damage: f32, blacklisted: bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool, target_in_tag: &dyn Fn(&Identifier) -> bool) -> Option<f32> {
+        let Self::Lifesteal { module, condition } = self else { return None; };
+        module.heal(entry, condition.matches(entry, facts), damage, blacklisted, attacker_in_tag, target_in_tag)
+    }
+    /// Whether this is a launch capacity module.
+    pub fn is_launch_capacity(&self) -> bool { matches!(self, Self::CapacityLaunch { .. }) }
+    /// Whether this is a lifesteal module.
+    pub fn is_lifesteal(&self) -> bool { matches!(self, Self::Lifesteal { .. }) }
     /// Whether this is a mining capacity module.
     pub fn is_mining_capacity(&self) -> bool { matches!(self, Self::CapacityMining { .. }) }
     /// Whether this is a loot to capacity module.

@@ -402,6 +402,30 @@ pub(crate) fn mining_capacity_edits(nbt: &NbtCompound, env: &Environment, before
     })
 }
 
+/// The edits of the persistent data one projectile launched with this tool makes through its launch capacity modules (each in modifier order,
+/// on the result of the one before).
+pub(crate) fn launch_capacity_edits(nbt: &NbtCompound, env: &Environment) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.launch_capacity_modules() {
+                let Some((owner, grant)) = module.launch_capacity(entry, facts) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, owner) { target.grant(&mut work, env, grant); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
+/// The health a critical melee hit with this tool that dealt `damage` gives its wielder through the tool's lifesteal modules (added up, in
+/// modifier order). `blacklisted` says the mob hit is of the necrotic blacklist; the tags answer the entity type and state tags of the player
+/// and of the mob.
+pub(crate) fn lifesteal_heal(nbt: &NbtCompound, env: &Environment, damage: f32, blacklisted: bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.lifesteal_modules().filter_map(move |module| module.lifesteal(entry, facts, damage, blacklisted, attacker_in_tag, target_in_tag)).collect::<Vec<_>>()).sum()
+    })
+}
+
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one
 /// before left), and the edits of the persistent data that fill their bars. `in_tag(item, tag)` answers item tag membership.
 pub(crate) fn loot_capacity(nbt: &NbtCompound, env: &Environment, loot: &mut Vec<pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::StackDataEdit> {

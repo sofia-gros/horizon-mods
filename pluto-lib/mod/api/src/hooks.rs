@@ -2211,6 +2211,10 @@ impl Hooks for PlutoHooks {
         for (mob, action) in entity_events_v1::take_wearer_actions(player.entity_id) {
             apply_entity_actions(host, &player.dimension, mob, player.entity_id, vec![action]);
         }
+        // What the player's own attacks asked for on the attacker (a heal by the damage dealt) lands here, with the damaged entity as the other party.
+        for (victim, action) in entity_events_v1::take_attacker_actions(player.entity_id) {
+            apply_entity_actions(host, &player.dimension, player.entity_id, victim, vec![action]);
+        }
         // Effects the armor's counters put on the wearer land here, where a host is at hand.
         for grant in entity_events_v1::take_self_effects(player.entity_id) {
             if grant.duration > 0 && grant.amplifier >= 0 {

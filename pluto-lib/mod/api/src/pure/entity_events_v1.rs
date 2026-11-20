@@ -386,7 +386,8 @@ pub struct DamageModification {
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
     /// The actions to do to the damaged player (`Victim`), which callbacks add to; they land on the player's next tick (only for a player
-    /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped.
+    /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped. On a player's attack
+    /// (`attacker_stack` is set) the actions for `Attacker` land on the attacking player's next tick instead.
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
@@ -848,10 +849,34 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
     let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
     MODIFY_DAMAGE.invoke(&modification);
+    let (by_attacker, rest): (Vec<EntityAction>, Vec<EntityAction>) = modification.actions.borrow_mut().drain(..)
+        .partition(|action| modification.attacker_stack.is_some() && damage.attacker >= 0 && action_target(action) == ActionTarget::Attacker);
+    // The actions a player's attack asks for the attacker (a heal by the damage dealt) land on that player's next tick, with the damaged entity as the other party.
+    if !by_attacker.is_empty() { if let Ok(mut queue) = ATTACKER_ACTIONS.lock() { queue.extend(by_attacker.into_iter().map(|action| (damage.attacker, damage.entity, action))); } }
     // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
-    let actions: Vec<(i32, i32, EntityAction)> = modification.actions.borrow_mut().drain(..).map(|action| (damage.entity, damage.attacker, action)).collect();
+    let actions: Vec<(i32, i32, EntityAction)> = rest.into_iter().map(|action| (damage.entity, damage.attacker, action)).collect();
     if !actions.is_empty() && !modification.armor.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
     modification.amount.get()
+}
+
+/// Which party an action is done to.
+fn action_target(action: &EntityAction) -> ActionTarget {
+    match action {
+        EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
+        | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
+        | EntityAction::SetEffectDuration { target, .. } => *target,
+    }
+}
+
+/// The actions a player's attacks asked for the attacker, with the attacker's entity id and the damaged entity's.
+static ATTACKER_ACTIONS: std::sync::Mutex<Vec<(i32, i32, EntityAction)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the actions queued for the attacks of the player `attacker`, as (damaged entity, action); other players' stay queued.
+pub(crate) fn take_attacker_actions(attacker: i32) -> Vec<(i32, EntityAction)> {
+    let Ok(mut queue) = ATTACKER_ACTIONS.lock() else { return Vec::new() };
+    let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *queue).into_iter().partition(|(who, _, _)| *who == attacker);
+    *queue = rest;
+    mine.into_iter().map(|(_, victim, action)| (victim, action)).collect()
 }
 
 pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
@@ -1178,6 +1203,28 @@ mod tests {
         assert!(matches!(&queued[0], (-1, EntityAction::EditStackData { slot: StackSlot::Chest, .. })));
         assert!(take_wearer_actions(7777).is_empty());
         forget_armor(77);
+    }
+
+    #[test]
+    fn a_players_attack_can_ask_for_an_action_on_the_attacker_that_waits_for_their_next_tick() {
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 5151 { return; }
+            hit.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Attacker, amount: hit.amount.get() * 0.5 });
+            hit.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Victim, amount: 1.0, damage_type: "example:echo".into() });
+        });
+        let hit = |attacker| LivingDamage { entity: 5151, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker, direct: attacker, amount: 8.0 };
+        let sword = || StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
+        // A hit with no player's stack behind it asks for nothing for an attacker (a mob's heal is not a lifesteal).
+        modify_damage(&hit(9191));
+        assert!(take_attacker_actions(9191).is_empty());
+        attack_started(5151, Some(sword()));
+        modify_damage(&hit(9191));
+        assert!(take_attacker_actions(9192).is_empty(), "another player's tick takes nothing");
+        assert_eq!(take_attacker_actions(9191), vec![(5151, EntityAction::Heal { target: ActionTarget::Attacker, amount: 4.0 })], "the victim's own action stays off the attacker's queue");
+        assert!(take_attacker_actions(9191).is_empty(), "taken once");
+        attack_started(5151, Some(sword()));
+        modify_damage(&hit(-1));
+        assert!(take_attacker_actions(-1).is_empty(), "no attacker, nothing queued");
     }
 
     #[test]

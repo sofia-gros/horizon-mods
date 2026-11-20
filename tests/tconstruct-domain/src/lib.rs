@@ -79,6 +79,8 @@ mod weapon_effect;
 mod thorns;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/hit_actions.rs"]
 mod hit_actions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/lifesteal.rs"]
+mod lifesteal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/capacity.rs"]
 mod capacity;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity.rs"]
@@ -117,6 +119,8 @@ mod tool_damage_hook;
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
 mod melee_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/lifesteal_hook.rs"]
+mod lifesteal_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_recycling.rs"]
 mod part_recycling;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]
