@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -17,7 +17,8 @@ use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use horizon_client::pluto_host_world as horizon_world;
 use crate::pure::base::{Identifier, Nbt, NbtCompound};
-use crate::pure::block_entity_api_v1::{self, ItemSlot};
+use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
+use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
@@ -689,12 +690,131 @@ impl WorldOps for HostWorld {
     fn set_block_state(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
         let Ok(parsed) = BlockState::parse(state) else { return false };
         let host = self.0.get();
+        // The block already there keeps its block entity (the ticking one included): only the named properties change.
+        if host.block(pos) == parsed.block.to_string() {
+            for (key, value) in &parsed.properties {
+                if host.block_property(pos, key).as_deref() != Some(value.as_str()) {
+                    host.set_block_property(pos, key, value);
+                }
+            }
+            return parsed.properties.iter().all(|(key, value)| host.block_property(pos, key).as_deref() == Some(value.as_str()));
+        }
         let Some(id) = host.default_state(&parsed.block.to_string()) else { return false };
         let changed = host.set_block(dimension, pos, id, 3);
         for (key, value) in &parsed.properties {
             host.set_block_property(pos, key, value);
         }
         changed
+    }
+}
+
+/// The host's face for a PlutoLib one (the same six, in the same order).
+fn host_face(face: block_api_v1::Direction) -> horizon_client::mod_api::Direction {
+    horizon_client::mod_api::Direction::ALL[face as usize]
+}
+
+fn fluid_stack_of(fluid: &str, amount: i32) -> Option<FluidStack> {
+    let fluid = Identifier::parse(fluid).ok()?;
+    u32::try_from(amount).ok().filter(|&amount| amount > 0).map(|amount| FluidStack { fluid, amount })
+}
+
+/// How much of `offered` the block entity at `pos` takes by its own fluid rule (`BlockEntityType::fluid_filler`); `None` when its block
+/// has none. With `execute` the filler's changes are kept (and sent to the clients), otherwise they are thrown away.
+fn filler_takes(host: &mut dyn Host, pos: [i32; 3], face: Option<block_api_v1::Direction>, offered: &FluidStack, execute: bool) -> Option<u32> {
+    let block = host.block(pos);
+    if !block_entity_api_v1::has_fluid_filler(&block) {
+        return None;
+    }
+    let mut taken = None;
+    if execute {
+        let mut fluid = Some(offered.clone());
+        host.change_mod_block_entity(pos, &mut |entity| {
+            let Some(fluid) = fluid.take() else { return };
+            with_block_entity(entity, |data, items| {
+                taken = block_entity_api_v1::BlockEntityTypeRegistry::fill_fluid(&block, pos, data, items, fluid, face, true);
+                true
+            });
+        });
+        if taken.is_some() {
+            host.block_entity_sync(pos);
+        }
+    } else {
+        let mut entity = host.mod_block_entity(pos)?;
+        with_block_entity(&mut entity, |data, items| {
+            taken = block_entity_api_v1::BlockEntityTypeRegistry::fill_fluid(&block, pos, data, items, offered.clone(), face, false);
+            false
+        });
+    }
+    taken
+}
+
+/// The containers, tanks and block states beside a ticking block entity, over the host.
+struct HostNeighbours {
+    host: HostHandle,
+    dimension: String,
+}
+
+impl NeighbourOps for HostNeighbours {
+    fn item_slots(&mut self, pos: [i32; 3], face: block_api_v1::Direction) -> Option<Vec<NeighbourSlot>> {
+        let slots = self.host.get().container_slots(&self.dimension, pos, host_face(face))?;
+        Some(slots.into_iter().map(|(slot, stack, can_take)| NeighbourSlot { slot, stack: stack.as_ref().and_then(slot_of), can_take }).collect())
+    }
+
+    fn extract_item(&mut self, pos: [i32; 3], face: block_api_v1::Direction, slot: usize, count: u32) -> Option<ItemSlot> {
+        self.host.get().extract_item(&self.dimension, pos, host_face(face), slot, count).and_then(|stack| slot_of(&stack))
+    }
+
+    fn insert_item(&mut self, pos: [i32; 3], face: block_api_v1::Direction, stack: ItemSlot) -> Option<ItemSlot> {
+        let Some(native) = native_slot(Some(stack.clone())) else { return Some(stack) };
+        match self.host.get().insert_item(pos, host_face(face), native) {
+            None => None,
+            Some(left) if left.count == 0 => None,
+            Some(left) => {
+                let mut rest = stack;
+                rest.count = left.count;
+                Some(rest)
+            }
+        }
+    }
+
+    fn fluid_tanks(&mut self, pos: [i32; 3], face: block_api_v1::Direction) -> Option<Vec<NeighbourTank>> {
+        let tanks = self.host.get().fluid_tanks(&self.dimension, pos, host_face(face))?;
+        Some(tanks.into_iter().map(|tank| NeighbourTank {
+            fluid: tank.fluid.as_deref().and_then(|fluid| fluid_stack_of(fluid, tank.amount)),
+            capacity: u32::try_from(tank.capacity).unwrap_or(0),
+        }).collect())
+    }
+
+    fn drain_fluid(&mut self, pos: [i32; 3], face: block_api_v1::Direction, amount: u32) -> Option<FluidStack> {
+        let amount = i32::try_from(amount).unwrap_or(i32::MAX);
+        let (fluid, drained) = self.host.get().fluid_extract(&self.dimension, pos, host_face(face), amount)?;
+        fluid_stack_of(&fluid, drained)
+    }
+
+    fn fill_fluid(&mut self, pos: [i32; 3], face: block_api_v1::Direction, stack: &FluidStack, execute: bool) -> u32 {
+        let host = self.host.get();
+        let amount = i32::try_from(stack.amount).unwrap_or(i32::MAX);
+        if execute {
+            // The host asks `custom_fluid_fill` for a block with its own fluid rule and fills the declared tanks of the others.
+            let left = host.fluid_insert(pos, host_face(face), &stack.fluid.to_string(), amount);
+            return (amount - left).clamp(0, amount) as u32;
+        }
+        if let Some(taken) = filler_takes(host, pos, Some(face), stack, false) {
+            return taken.min(stack.amount);
+        }
+        let fluid = stack.fluid.to_string();
+        let Some(tanks) = host.fluid_tanks(&self.dimension, pos, host_face(face)) else { return 0 };
+        let room: i32 = tanks.iter()
+            .filter(|tank| tank.can_fill && tank.fluid.as_deref().is_none_or(|held| held == fluid))
+            .map(|tank| (tank.capacity - tank.amount).max(0))
+            .sum();
+        room.min(amount).max(0) as u32
+    }
+
+    fn block_state(&mut self, pos: [i32; 3]) -> Option<String> {
+        let host = self.host.get();
+        let level = host.level(&self.dimension)?;
+        host.level_block_state(level, pos)
     }
 }
 
@@ -1922,9 +2042,96 @@ impl Hooks for PlutoHooks {
         }
     }
 
-    fn block_entity_tick(&self, _host: &mut dyn Host, event: &mut BlockEntityTickEvent<'_>) {
+    fn block_entity_tick(&self, host: &mut dyn Host, event: &mut BlockEntityTickEvent<'_>) {
         let (pos, id) = (event.pos, event.entity.id.clone());
-        with_block_entity(event.entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
+        let dimension = host.dimension().to_owned();
+        let handle = HostHandle::new(host);
+        let entity = &mut *event.entity;
+        // The ticker sees the world of its dimension (reads, and block state writes), its neighbours' containers and tanks, and which
+        // dimension it ticks in. The ticking entity itself is out of the world, as the host documents.
+        world_api_v1::with_ticking_dimension(&dimension, || {
+            world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
+                    with_block_entity(entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
+                });
+            });
+        });
+    }
+
+    fn custom_block_fluids(&self, _host: &dyn Host, event: &mut CustomBlockFluidsEvent<'_>) {
+        // A block with its own fluid rule (`fluid_filler`) answers fills itself; every other mod block keeps the host's tank storage.
+        if block_entity_api_v1::has_fluid_filler(event.block) {
+            event.custom = true;
+        }
+    }
+
+    fn custom_fluid_tanks(&self, host: &dyn Host, event: &mut CustomFluidTanksEvent) -> Option<Vec<NativeFluidTankView>> {
+        let entity = host.mod_block_entity(event.pos)?;
+        let block = block_entity_api_v1::block_of(&entity.id)?;
+        let tanks = block_entity_api_v1::tank_contents(&block, &compound_from_tag(&entity.nbt))?;
+        Some(tanks.into_iter().enumerate().map(|(tank, (content, capacity))| NativeFluidTankView {
+            tank,
+            content: content.map(|stack| NativeFluidStack { fluid: stack.fluid.to_string(), amount: stack.amount.min(i32::MAX as u32) as i32, components: Compound::new() }),
+            capacity: capacity.min(i32::MAX as u32) as i32,
+            can_fill: true,
+            can_drain: false,
+        }).collect())
+    }
+
+    fn custom_fluid_fill(&self, host: &mut dyn Host, event: &mut CustomFluidFillEvent<'_>) -> Option<i32> {
+        let fluid = Identifier::parse(&event.resource.fluid).ok()?;
+        let offered = FluidStack { fluid, amount: u32::try_from(event.resource.amount).ok()? };
+        let face = event.side.map(|side| direction(side as u8));
+        let execute = matches!(event.action, NativeFluidAction::Execute);
+        let taken = filler_takes(host, event.pos, face, &offered, execute).unwrap_or(0);
+        Some(taken.min(offered.amount) as i32)
+    }
+
+    fn custom_fluid_drain(&self, _host: &mut dyn Host, _event: &mut CustomFluidDrainEvent<'_>) -> Option<NativeFluidStack> {
+        // A block with its own fluid rule only takes fluid in; nothing is drained out of it by another block.
+        None
+    }
+
+    fn right_click_block_v2(&self, host: &mut dyn Host, event: &mut RightClickBlockV2Event) -> Flow {
+        use crate::pure::base::action_result::ActionResult;
+        let pos = event.pos;
+        let block = host.block(pos);
+        if !block_entity_api_v1::has_use_hook(&block) {
+            return Flow::Continue;
+        }
+        let Some(player) = host.acting_player() else { return Flow::Continue };
+        let slot = if matches!(event.hand, Hand::Off) { EquipmentSlot::OffHand } else { EquipmentSlot::MainHand };
+        let held = host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
+        let sneaking = host.sneaking();
+        let mut outcome = None;
+        let mut hand = Some(held.clone());
+        host.change_mod_block_entity(pos, &mut |entity| {
+            let Some(hand) = hand.take() else { return };
+            with_block_entity(entity, |data, items| {
+                outcome = block_entity_api_v1::BlockEntityTypeRegistry::use_block(&block, pos, data, items, hand, sneaking);
+                true
+            });
+        });
+        let Some(outcome) = outcome else { return Flow::Continue };
+        host.block_entity_sync(pos);
+        if outcome.held != held {
+            let living = host.entity_by_uuid(player.uuid).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.living(entity));
+            if let Some(living) = living {
+                living.set_equipment(host, slot, native_slot(outcome.held.clone()));
+            }
+        }
+        for given in outcome.give {
+            let Some(stack) = native_slot(Some(given)) else { continue };
+            let Some(left) = host.give_stack(player.uuid, stack) else { continue };
+            // The inventory is full: the rest lands at the player's feet.
+            let mut item = NbtCompound::new();
+            item.insert("id".to_owned(), Nbt::String(left.item.to_string()));
+            item.insert("count".to_owned(), Nbt::Int(left.count.min(i32::MAX as u32) as i32));
+            let mut nbt = NbtCompound::new();
+            nbt.insert("Item".to_owned(), Nbt::Compound(item));
+            host.summon(&player.dimension, "minecraft:item", player.position, compound_to_tag(&nbt));
+        }
+        if matches!(outcome.result, ActionResult::Pass) { Flow::Continue } else { Flow::Cancel }
     }
 
     fn menu_button_v2(&self, _host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {

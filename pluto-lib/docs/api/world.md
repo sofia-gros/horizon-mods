@@ -80,7 +80,7 @@ let walls_are_stone = with_ticking_dimension("minecraft:overworld", || {
 assert_eq!(walls_are_stone, Some(true));
 ```
 
-> **Use with Caution.** Source-ready only. `World::ticking` answers `None` until the host opens `with_ticking_dimension` (and the `with_world` scope) around the block entity tickers of `BlockEntityTypeRegistry`; that adapter is not written because the generated `Host` signatures can only be checked by a native build. The ticking block entity is kept out of the world while it ticks, so changing its own block there may not work. A region read is one block read per position: keep boxes to what the check needs (the smeltery reads at most 16 by 16 by 64).
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `block_entity_tick` in `hooks.rs` opens `with_ticking_dimension` (the host's level in place) and the `with_world` scope around every ticker of `BlockEntityTypeRegistry`, so `World::ticking` and `read_region` work inside tickers. The ticking block entity is kept out of the world while it ticks: `set_block_state` of a block that is already there changes only the properties the state names (through the host's property write, so the block entity stays; properties the state leaves out keep their value), while a different block is placed whole and a block with a block entity gets a fresh one. A region read is one block read per position: keep boxes to what the check needs (the smeltery reads at most 16 by 16 by 64).
 
 ## Drawing from the Server World's Random Stream
 

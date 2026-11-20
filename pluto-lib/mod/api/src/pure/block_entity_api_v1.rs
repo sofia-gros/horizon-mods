@@ -437,6 +437,17 @@ pub(crate) fn has_fluid_filler(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.filler.is_some())
 }
 
+/// Whether the block's block entity has an [`BlockEntityType::on_use`] hook (the host asks it on a right click).
+pub(crate) fn has_use_hook(block: &str) -> bool {
+    BlockEntityTypeRegistry::get(block).is_some_and(|t| t.user.is_some())
+}
+
+/// The tanks of the block's block entity as saved: each one's content and capacity; `None` if the block declares no tanks.
+pub(crate) fn tank_contents(block: &str, data: &NbtCompound) -> Option<Vec<(Option<FluidStack>, u32)>> {
+    let capacities = fluid_tanks(block)?;
+    Some(capacities.iter().enumerate().map(|(index, &capacity)| (read_fluid(data, index), capacity)).collect())
+}
+
 /// Whether the block's block entity ticks.
 pub(crate) fn ticks(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.ticker.is_some())

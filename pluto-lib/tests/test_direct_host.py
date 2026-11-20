@@ -136,6 +136,8 @@ class DirectHostTests(unittest.TestCase):
                 helper = 'fn test_helper() {}'
                 suffix = '\n' + helper if rule.get('append_helper', True) else ''
                 self.assertEqual(direct.apply_rule(original, rule, helper), expected + suffix)
+                if not rule['edits']:
+                    continue  # an append-only rule has no anchor; its official file hash is the drift check
                 for drifted in ('', original + '\n' + original):
                     with self.assertRaisesRegex(ValueError, 'expected one source anchor'):
                         direct.apply_rule(drifted, rule, helper)

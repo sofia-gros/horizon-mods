@@ -531,9 +531,9 @@ assert_eq!(tick.fluid(2), None);
 
 ## Custom fluid rules and use hooks
 
-A block whose tank capacity depends on what it is offered (a casting table that wants exactly the recipe's amount), or that trades items with the player's hand, declares the rule itself. Both hooks are pure and tested; the host adapter that routes a neighbour's fill and a player's right click to them is not written (see the caution below).
+A block whose tank capacity depends on what it is offered (a casting table that wants exactly the recipe's amount), or that trades items with the player's hand, declares the rule itself. Both hooks are pure and tested; the host adapter in `hooks.rs` routes fills through the host's custom fluid hooks (a block with a `fluid_filler` opts in with `custom_block_fluids`; `custom_fluid_tanks` reads its declared tanks, `custom_fluid_fill` runs the filler, simulating on a copy) and right clicks through `right_click_block_v2` (see the caution below).
 
-> **Use with Caution.** Source-ready only. `BlockEntityTypeRegistry::fill_fluid` and `use_block` run the hooks over data and slots the caller supplies and are tested through the in-memory worlds, but the native host does not call them yet: until its adapter reads a block's `fluid_filler` for fills (neighbour fills, faucets, buckets) and its `on_use` hook for right clicks, a block with these hooks keeps the default tank fill and the game's own use. The generated `Host` signatures can only be checked by a native build.
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. A right click on a block whose type has an `on_use` hook runs it before the block's own use and the item's: any answer but `Pass` cancels both (the hand does not swing, because the host cannot swing a player's arm), the hand afterwards is written back to the used hand and the stacks it gives go to the inventory, the rest dropped at the player's feet. A block with a `fluid_filler` takes fluid only through that hook, and nothing is drained out of it by another block (`custom_fluid_drain` answers none). Items given or left in the hand keep their components only for stacks the hook did not rebuild.
 
 ### `BlockEntityType::fluid_filler`
 

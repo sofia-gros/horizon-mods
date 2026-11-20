@@ -1378,6 +1378,17 @@ bindings = [
     { name = "game", ty = "&Game<'_>", value = "self" },
 ]
 
+# A container's slots through a side as plain values for `Host`: the generated `Host` cannot name the crate-private `NativeContainerSlot`, so a
+# wrapper is appended to its file (direct host attachment) and listed by a helper fragment beside the upstream ones.
+[[injection]]
+id = "pluto-block-entity-container-reach"
+target = "horizon_client::game::machines::native_items::Game<'_>::native_container_slots"
+kind = "HEAD"
+helper = "pluto-container-reach.rs"
+bindings = [
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+]
+
 [[injection]]
 id = "pluto-item-color-layers"
 target = "horizon_client_lib::item_render::ItemRenderer::resolve_with_rule"
