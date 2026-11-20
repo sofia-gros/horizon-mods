@@ -41,7 +41,7 @@
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/netherite",
+      "id": "minecraft:netherite_block",
       "required": false
     },
     {

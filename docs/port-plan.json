@@ -74,6 +74,8 @@
     "api/src/worktable_menu.rs",
     "api/src/creative_parts.rs",
     "api/src/creative_tools.rs",
+    "api/src/creative_fluids.rs",
+    "api/src/convention_tags.rs",
     "api/src/creative.rs",
     "api/src/material_stats.rs",
     "api/src/material_snapshot.rs",

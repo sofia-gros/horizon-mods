@@ -6,10 +6,10 @@ use pluto_lib::{Identifier, JsonResourceStack};
 use serde_json::Value;
 use std::path::PathBuf;
 
-fn root() -> PathBuf {
+pub(crate) fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/tinkering")
 }
-fn files(folder: &str) -> Vec<(Identifier, Value)> {
+pub(crate) fn files(folder: &str) -> Vec<(Identifier, Value)> {
     let mut found = Vec::new();
     for entry in std::fs::read_dir(root().join(folder)).expect("content folder") {
         let path = entry.unwrap().path();
@@ -21,12 +21,12 @@ fn files(folder: &str) -> Vec<(Identifier, Value)> {
     found.sort_by(|a, b| a.0.cmp(&b.0));
     found
 }
-fn stacks(folder: &str) -> Vec<JsonResourceStack> {
+pub(crate) fn stacks(folder: &str) -> Vec<JsonResourceStack> {
     files(folder).into_iter().map(|(id, value)| JsonResourceStack { id, layers: vec![Ok(value)] }).collect()
 }
 /// The production condition tree over an item registry with no external ingot tags and default config,
 /// the vanilla-only world the other-mod materials were excluded for.
-fn conditions() -> crate::conditions::Context {
+pub(crate) fn conditions() -> crate::conditions::Context {
     crate::conditions::Context { items: Some(pluto_lib::fixtures::registry(&[]).unwrap()), config: crate::config::parse("").unwrap() }
 }
 
@@ -80,8 +80,8 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
-struct World { materials: Materials, registry: Registry, tools: Vec<(Identifier, Data)> }
-fn world() -> World {
+pub(crate) struct World { pub(crate) materials: Materials, pub(crate) registry: Registry, pub(crate) tools: Vec<(Identifier, Data)> }
+pub(crate) fn world() -> World {
     let mut materials = Materials::load(&files("materials/definition"), &conditions());
     let mut problems = Vec::new();
     materials.stats = crate::material_stats::load(&stacks("materials/stats"), &mut problems);
@@ -89,6 +89,9 @@ fn world() -> World {
     assert!(problems.is_empty(), "{problems:?}");
     materials.server_loaded = true;
     let mut registry = Registry::default();
+    // the materials' traits that are Java classes in the original (copper's dwarven...), which `modifiers::register` adds before the first reload;
+    // the tests that need overslime register its code modifiers themselves
+    for modifier in crate::modifiers::unported_code_modifiers().unwrap() { registry.register_static(modifier).unwrap(); }
     registry.reload(&files("modifiers"), &conditions());
     let tools = files("tool_definitions").into_iter().map(|(id, value)| (id, Data::decode(&value).expect("shipped definition"))).collect();
     World { materials, registry, tools }
@@ -288,7 +291,7 @@ fn shipped_reinforced_and_cultivated_change_damage_and_repair_of_a_real_pickaxe(
     let _ = current_durability(&plain.custom_data);
 }
 
-fn recursive_files(folder: &str, prefix: &str) -> Vec<(Identifier, Value)> {
+pub(crate) fn recursive_files(folder: &str, prefix: &str) -> Vec<(Identifier, Value)> {
     fn walk(dir: &std::path::Path, relative: String, out: &mut Vec<(Identifier, Value)>) {
         for entry in std::fs::read_dir(dir).expect("folder") {
             let path = entry.unwrap().path();
@@ -2149,7 +2152,7 @@ fn shipped_solar_powered_cancels_tool_wear_by_the_sky_light_around_the_holder() 
     assert_eq!(dealt(None, 0.5), 0, "nobody named: the fallback light of 15");
 }
 
-fn fluid_tag_files() -> Vec<(Identifier, Value)> {
+pub(crate) fn fluid_tag_files() -> Vec<(Identifier, Value)> {
     let base = root().join("fluid_tags");
     let mut found = Vec::new();
     for namespace in std::fs::read_dir(&base).expect("fluid tag folder") {
@@ -2171,25 +2174,25 @@ fn fluid_tag_files() -> Vec<(Identifier, Value)> {
 }
 
 /// Every condition decodes through the production tree and holds: what a pack that has every other mod's ingots would load.
-struct EverythingOn(crate::conditions::Context);
+pub(crate) struct EverythingOn(crate::conditions::Context);
 impl crate::materials::Conditions for EverythingOn {
     type Parsed = crate::conditions::Condition;
     fn decode(&self, json: &Value) -> Result<Self::Parsed, String> { self.0.decode(json) }
     fn test(&self, _: &Self::Parsed) -> Result<bool, String> { Ok(true) }
 }
 
-fn fluid_tags() -> crate::fluid_ingredient::FluidTags { crate::fluid_ingredient::FluidTags::load(&fluid_tag_files()) }
-fn fluid_recipes(everything_on: bool) -> crate::fluid_recipes::Recipes {
+pub(crate) fn fluid_tags() -> crate::fluid_ingredient::FluidTags { crate::fluid_ingredient::FluidTags::load(&fluid_tag_files()) }
+pub(crate) fn fluid_recipes(everything_on: bool) -> crate::fluid_recipes::Recipes {
     let files = recursive_files("fluids", "fluids");
     assert_eq!(files.len(), 1858, "melting, casting, alloy, fuel, entity and molding recipes outside the compat folder");
     if everything_on { crate::fluid_recipes::Recipes::load(&files, &EverythingOn(conditions())) } else { crate::fluid_recipes::Recipes::load(&files, &conditions()) }
 }
-fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
+pub(crate) fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
 
 #[test]
 fn shipped_fluid_tags_flatten_and_only_two_unshipped_references_are_left_out() {
     let files = fluid_tag_files();
-    assert_eq!(files.len(), 130, "the tconstruct, forge and mantle fluid tag files");
+    assert_eq!(files.len(), 131, "the tconstruct, forge and mantle fluid tag files, and Mantle's own water tag");
     let tags = fluid_tags();
     assert_eq!(tags.problems, vec![
         "fluid tag tconstruct:chemthrower_effects/entity: unknown tag forge:milk".to_owned(),
@@ -2204,15 +2207,14 @@ fn every_shipped_fluid_recipe_decodes_whatever_its_conditions_and_only_unported_
     let recipes = fluid_recipes(true);
     let mut problems = recipes.problems.clone();
     problems.sort();
-    // Display-only potion casts need item components, and a block-tag cast needs the item-to-block link: both are host work.
-    assert_eq!(problems.len(), 2, "{problems:#?}");
-    assert!(problems[0].ends_with("unimplemented ingredient type mantle:potion_display") && problems[1].ends_with("unimplemented ingredient type tconstruct:block_tag"), "{problems:#?}");
+    // A potion display cast matches the item whatever potion it carries, and a block tag cast reads the item tag the importer writes for the block tag.
+    assert!(problems.is_empty(), "{problems:#?}");
     assert_eq!(recipes.left_out.len(), 35, "21 tool casting, 10 part swapping and 4 potion tipping recipes need the tool domain");
     let kinds: std::collections::BTreeSet<&str> = recipes.left_out.iter().map(|(_, kind)| kind.as_str()).collect();
     assert!(kinds.iter().all(|kind| crate::fluid_recipes::LEFT_OUT.contains(kind)), "{kinds:?}");
-    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); 652 of 654 casting recipes decode
+    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); all 654 casting recipes decode
     assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (819, 48, 2, true, 32, 24));
-    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (652, 58, 39, 34, 112));
+    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (654, 58, 39, 34, 112));
 }
 
 #[test]
@@ -2569,19 +2571,20 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 84, "the smeltery's crafting recipes (the copper can came with the fluid items) the importer converts; the rest name items this port does not declare yet");
+    assert_eq!(count, 88, "the smeltery's crafting recipes (the copper can came with the fluid items, the four table recipes with the parts data) the importer converts; the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel",
-                 "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can"] {
+                 "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can",
+                 "tinker_station", "part_builder", "modifier_worktable", "pattern"] {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
     }
 }
 
 #[test]
-fn the_forge_item_tags_the_host_lacks_are_synthesized_from_item_names() {
+fn the_forge_item_tags_the_host_lacks_come_from_the_original_data() {
     // The original runs on Forge, whose own tags (forge:ingots/iron and family) its recipes name. The host ships
-    // none of them, so the captured item snapshot gets them from item names, by Forge's naming (common::capture_items).
-    let items = crate::common::with_forge_item_tags(pluto_lib::fixtures::registry(&[
+    // none of them, so the captured item snapshot gets them from the importer's table of the original data (common::capture_items).
+    let items = crate::common::with_convention_tags(pluto_lib::fixtures::registry(&[
         "minecraft:iron_ingot", "minecraft:iron_nugget", "minecraft:iron_block", "minecraft:raw_iron",
         "minecraft:iron_ore", "minecraft:deepslate_iron_ore", "minecraft:gold_ingot", "minecraft:diamond", "minecraft:lapis_lazuli",
     ]).unwrap());
@@ -2611,7 +2614,7 @@ fn shipped_fluid_recipes_load_and_an_iron_ingot_melts_through_its_forge_tag() {
     // finds no recipe for the ingot, never takes fuel and never heats (the real-game melter that sat at fuel 0).
     let ingot = Identifier::parse("minecraft:iron_ingot").unwrap();
     assert!(recipes.find_melting(&ingot, &|_, _| false, false).is_none(), "no tag, no melting recipe");
-    let items = crate::common::with_forge_item_tags(pluto_lib::fixtures::registry(&["minecraft:iron_ingot"]).unwrap());
+    let items = crate::common::with_convention_tags(pluto_lib::fixtures::registry(&["minecraft:iron_ingot"]).unwrap());
     let in_tag = |item: &Identifier, tag: &Identifier| items.get_tag(tag).is_some_and(|members| members.contains(item));
     let recipe = recipes.find_melting(&ingot, &in_tag, false).expect("the ingot melts once its forge tag exists");
     assert_eq!((recipe.temperature, recipe.time), (800, 60), "the shipped iron ingot melting values");

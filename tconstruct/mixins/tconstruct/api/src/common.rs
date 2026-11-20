@@ -39,40 +39,16 @@ pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> {
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
 pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
-/// The Forge item tags the original's recipes name (`forge:ingots/iron`, `forge:nuggets/gold`, `forge:storage_blocks/copper`, ...). The host ships
-/// none, so the snapshot gets them from item names by Forge's naming: `<metal>_ingot`, `<metal>_nugget`, `<metal>_block`, `raw_<metal>`,
-/// `<metal>_ore`, `<metal>_dust`, `<metal>_rod`, and the gems. Only vanilla and this mod's items are looked at.
-pub(crate) fn with_forge_item_tags(mut items: pluto_lib::RegistryLookup) -> pluto_lib::RegistryLookup {
-    let mut found: Vec<(Identifier, Identifier)> = Vec::new();
-    for item in items.entries() {
-        if item.namespace() != "minecraft" && item.namespace() != "tconstruct" { continue; }
-        let path = item.path();
-        let kind = |suffix: &str, tag: &str| path.strip_suffix(suffix).filter(|name| !name.is_empty()).map(|name| format!("{tag}/{name}"));
-        let mut tags: Vec<String> = Vec::new();
-        if let Some(name) = path.strip_prefix("raw_") {
-            match name.strip_suffix("_block") { Some(metal) => tags.push(format!("storage_blocks/raw_{metal}")), None => tags.push(format!("raw_materials/{name}")) }
-        } else {
-            tags.extend(kind("_ingot", "ingots"));
-            tags.extend(kind("_nugget", "nuggets"));
-            tags.extend(kind("_block", "storage_blocks"));
-            tags.extend(kind("_dust", "dusts"));
-            tags.extend(kind("_rod", "rods"));
-            if let Some(ore) = path.strip_suffix("_ore") {
-                let metal = ore.strip_prefix("deepslate_").or_else(|| ore.strip_prefix("nether_")).unwrap_or(ore);
-                tags.push(format!("ores/{metal}"));
-            }
-            match path { "diamond" | "emerald" | "quartz" => tags.push(format!("gems/{path}")), "lapis_lazuli" => tags.push("gems/lapis".to_owned()), "amethyst_shard" => tags.push("gems/amethyst".to_owned()), _ => {} }
-        }
-        for tag in tags {
-            if let Ok(tag) = Identifier::new("forge", &tag) { found.push((tag, item.clone())); }
-        }
-    }
-    for (tag, item) in found { items.add_tag_members(tag, [item]); }
-    items
+/// The item registry snapshot with Forge's convention tags (`forge:ingots/iron`, `forge:glass`...) that the original's recipes name and
+/// nothing in this host defines, each holding the vanilla and Tinkers items it stands for (convention_tags.rs).
+pub(crate) fn with_convention_tags(items: pluto_lib::RegistryLookup) -> pluto_lib::RegistryLookup {
+    let extra: Vec<(Identifier, Vec<Identifier>)> = crate::convention_tags::TAGS.iter().filter_map(|(tag, members)| {
+        Some((Identifier::parse(tag).ok()?, members.iter().filter_map(|member| Identifier::parse(member).ok()).collect()))
+    }).collect();
+    items.with_extra_tags(&extra)
 }
-
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
-    let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap()).map(with_forge_item_tags);
+    let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap()).map(with_convention_tags);
     if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
         *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));

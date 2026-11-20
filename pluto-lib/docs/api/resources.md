@@ -249,6 +249,19 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 }
 ```
 
+### `RegistryLookup::with_extra_tags`
+
+`fn with_extra_tags(&self, extra: &[(Identifier, Vec<Identifier>)]) -> RegistryLookup`. A copy whose tags also hold the given members (a mod that needs a convention tag such as `forge:ingots/iron` that nothing in the game defines). Members that are not registry entries are dropped, and a tag with no remaining member is not created. The original snapshot is unchanged; redo it for every reload.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:item").unwrap()) {
+    let tag = Identifier::parse("forge:ingots/iron").unwrap();
+    let with = items.with_extra_tags(&[(tag.clone(), vec![Identifier::parse("minecraft:iron_ingot").unwrap()])]);
+    let _held = with.get_tag(&tag);
+}
+```
+
 ### `ResourceManagerHelper::read_client_resource`
 
 `fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed, the id contains a non-plain path (empty, `.` or `..` segments), or the asset could not be read. This does not read server datapacks, and does not validate the file's format.

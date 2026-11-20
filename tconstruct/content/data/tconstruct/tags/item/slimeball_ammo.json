@@ -1,19 +1,19 @@
 {
   "values": [
     {
-      "id": "#forge:slimeball/earth",
+      "id": "minecraft:slime_ball",
       "required": false
     },
     {
-      "id": "#forge:slimeball/sky",
+      "id": "tconstruct:sky_slime_ball",
       "required": false
     },
     {
-      "id": "#forge:slimeball/ichor",
+      "id": "tconstruct:ichor_slime_ball",
       "required": false
     },
     {
-      "id": "#forge:slimeball/ender",
+      "id": "tconstruct:ender_slime_ball",
       "required": false
     },
     "minecraft:magma_cream"

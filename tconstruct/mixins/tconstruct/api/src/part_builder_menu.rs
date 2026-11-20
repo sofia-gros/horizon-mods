@@ -48,8 +48,13 @@ pub(crate) struct Crafted {
     pub keeps_pattern: bool,
 }
 
-/// The part patterns in a fixed order the window and the server agree on.
-fn pattern_order() -> Vec<Identifier> { tool_parts::registry().into_keys().collect() }
+/// The patterns that are not parts: the cast shapes the part builder presses into sand and red sand casts (`smeltery/casts/*/builder_*`).
+const CAST_PATTERNS: &[&str] = &["ingot", "nugget", "gem", "rod", "plate", "gear", "coin", "wire"];
+
+/// The patterns in a fixed order the window and the server agree on: the material items, then the cast shapes.
+pub(crate) fn pattern_order() -> Vec<Identifier> {
+    tool_parts::material_items().into_keys().chain(CAST_PATTERNS.iter().map(|name| Identifier::new("tconstruct", name).expect("valid pattern id"))).collect()
+}
 
 /// Runs `read` over the loaded registries and recipes; `None` while any has not loaded.
 fn with_context<R>(read: impl FnOnce(&Context, &Recipes, &MaterialRecipes, &dyn Fn(&Identifier, &Identifier) -> bool, &dyn Fn(&LeftoverSource) -> Option<Identifier>) -> R) -> Option<R> {
@@ -65,7 +70,7 @@ fn with_context<R>(read: impl FnOnce(&Context, &Recipes, &MaterialRecipes, &dyn 
         LeftoverSource::Item(item) => Some(item.clone()),
         LeftoverSource::Tag(tag) => item_tags.as_deref().and_then(|tags| tags.get_tag(tag)).and_then(|members| members.iter().next().cloned()),
     };
-    let parts = tool_parts::registry();
+    let parts = tool_parts::material_items();
     let ctx = Context { materials: &materials as &Definitions, parts: &parts, in_tag: &in_tag };
     Some(read(&ctx, &part_recipes, &material_recipes, &in_tag, &first_of))
 }
@@ -108,7 +113,7 @@ pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Opt
         let material = material_stack.as_ref().and_then(|stack| material_recipes.find(&stack.item, in_tag));
         let inv = Inventory { pattern_item: Some(&pattern_stack.item), stack: material_stack.as_ref().map(|stack| (&stack.item, stack.count)), material };
         let order = pattern_order();
-        // A recipe whose pattern is not a known part has no button: the window could not name it.
+        // A recipe whose pattern is neither a part nor a cast shape has no button: the window could not name it.
         let buttons: Vec<Identifier> = recipes.buttons(&inv, ctx).into_iter().map(|(pattern, _)| pattern).filter(|pattern| order.contains(pattern)).collect();
         let selected_index = selected.and_then(|name| buttons.iter().position(|button| button.to_string() == name));
         let crafted = selected_index.and_then(|index| {
@@ -257,6 +262,6 @@ mod tests {
     #[test]
     fn pattern_buttons_get_readable_names() {
         assert_eq!(display_name(&Identifier::parse("tconstruct:pick_head").unwrap()), "Pick Head");
-        assert_eq!(pattern_order().len(), 27);
+        assert_eq!(pattern_order().len(), 36, "27 tool parts, the repair kit and the eight cast shapes");
     }
 }

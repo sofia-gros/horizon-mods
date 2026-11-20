@@ -324,7 +324,7 @@ impl<'a> Live<'a> {
     }
 
     fn can_use(&self, part: &Identifier, material: &MaterialVariant) -> bool {
-        self.materials.is_some_and(|defs| crate::tool_parts::registry().get(part).is_some_and(|part| part.can_use(material, defs)))
+        self.materials.is_some_and(|defs| crate::tool_parts::material_items().get(part).is_some_and(|part| part.can_use(material, defs)))
     }
 
     /// The recipe's numbers for this cast and fluid, if it takes them.

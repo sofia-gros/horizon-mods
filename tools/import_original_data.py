@@ -31,6 +31,9 @@ def external(condition):
     return 'mantle:tag_filled' in text or 'forge:mod_loaded' in text
 
 
+REPAIRABLE = ['head', 'limb', 'plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'skull', 'slime']
+
+
 def write_creative_parts(skipped):
     """creative_parts.rs: every tool part with the visible materials that have its stat type.
 
@@ -55,19 +58,72 @@ def write_creative_parts(skipped):
              '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
              'pub(crate) const PARTS: &[(&str, &[&str])] = &[']
     for item, stat in parts:
-        materials = [name for name in order if f'tconstruct:{stat}' in stats.get(name, set())]
+        # RepairKitItem.canUseMaterial: the repair kit stat or any stat type of IRepairableMaterialStats
+        wanted = {f'tconstruct:{stat}'} | ({f'tconstruct:{name}' for name in REPAIRABLE} if stat == 'repair_kit' else set())
+        materials = [name for name in order if wanted & stats.get(name, set())]
         lines.append(f'    ("{item}", &[' + ', '.join(f'"{name}"' for name in materials) + ']),')
     lines.append('];')
+    # ModifierCrystalItem.addVariants: every modifier a modifier recipe makes (ModifierRecipeLookup.getRecipeModifierList, sorted by id),
+    # except the extract blacklist; the original reads them from the loaded recipes, the tab here is fixed when the mod starts.
+    def tag_members(path, seen=()):
+        found = set()
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            text = entry if isinstance(entry, str) else entry['id']
+            if text.startswith('#tconstruct:') and (TARGET / 'tags/modifiers' / f'{text[12:]}.json').is_file():
+                found |= tag_members(TARGET / 'tags/modifiers' / f'{text[12:]}.json')
+            elif text.startswith('tconstruct:'):
+                found.add(text)
+        return found
+    blacklist = tag_members(TARGET / 'tags/modifiers/extract_blacklist/tools.json')
+    modifier_made = set()
+    for path in MODIFIER_RECIPE_SOURCE.rglob('*.json'):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('type') in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:swappable_modifier'):
+            result = data['result']
+            modifier_made.add(result if isinstance(result, str) else result['name'])
+    crystals = sorted(name for name in modifier_made if name not in blacklist)
+    lines += ['', '/// Modifiers that get a modifier crystal stack, by id (namespace tconstruct).', 'pub(crate) const CRYSTALS: &[&str] = &[']
+    lines += [f'    "{name}",' for name in crystals] + ['];']
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_parts.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
-ARMOR_TOOLS = ['travelers_helmet', 'travelers_chestplate', 'travelers_leggings', 'travelers_boots', 'travelers_shield',
-               'plate_helmet', 'plate_chestplate', 'plate_leggings', 'plate_boots', 'plate_shield',
-               'slime_helmet', 'slime_chestplate', 'slime_leggings', 'slime_boots', 'slime_wings']
+# TinkerTools.addTabItems order: tools that lack materials, small tools, broad tools, ranged, ancient tools, then armor (minotaur_axe is another mod's).
+TOOL_ORDER = ['flint_and_brick', 'sky_staff', 'earth_staff', 'ichor_staff', 'ender_staff',
+              'pickaxe', 'pickadze', 'mattock', 'hand_axe', 'kama', 'dagger', 'sword',
+              'sledge_hammer', 'vein_hammer', 'excavator', 'broad_axe', 'scythe', 'cleaver',
+              'crossbow', 'longbow', 'fishing_rod', 'javelin', 'arrow', 'shuriken', 'throwing_axe',
+              'melting_pan', 'war_pick', 'battlesign', 'swasher',
+              'travelers_helmet', 'travelers_chestplate', 'travelers_leggings', 'travelers_boots', 'travelers_shield',
+              'plate_helmet', 'plate_chestplate', 'plate_leggings', 'plate_boots', 'plate_shield',
+              'slime_helmet', 'slime_chestplate', 'slime_leggings', 'slime_boots', 'slime_wings']
+
+
+def write_creative_fluids(fluid_names):
+    """creative_fluids.rs: the fluids of the Tanks tab in registry order, each with whether the original (TankItem.addFilledVariants)
+    fills the ingot tank and gauge for it (the `tooltips/metal` fluid tag) instead of the fuel ones; `hide_in_creative_tanks` ones are left out."""
+    def members(name):
+        data = json.loads((FLUID_HOST_TAG_TARGET / f'{name}.json').read_text(encoding='utf-8'))
+        found = set()
+        for entry in data['values']:
+            text = entry if isinstance(entry, str) else entry['id']
+            if text.startswith('#tconstruct:') and (FLUID_HOST_TAG_TARGET / f'{text[12:]}.json').is_file():
+                found |= members(text[12:])
+            elif not text.startswith('#'):
+                found.add(text.removeprefix('tconstruct:'))
+        return found
+    metal, hidden = members('tooltips/metal'), members('hide_in_creative_tanks')
+    lines = ['//! The fluids of the Tanks creative tab, in registry order, and whether each is a metal (ingot tanks instead of fuel tanks).',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const FLUIDS: &[(&str, bool)] = &[']
+    for name in fluid_names:
+        if name not in hidden:
+            lines.append('    ("%s", %s),' % (name, 'true' if name in metal else 'false'))
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_fluids.rs').write_text(chr(10).join(lines) + chr(10), encoding='utf-8', newline=chr(10))
 
 
 def write_creative_tools():
-    """creative_tools.rs: the armor and shield stacks of the Tools tab, as ToolBuildHandler.addVariants lists them.
+    """creative_tools.rs: the stacks of the Tools tab, as ToolBuildHandler.addVariants lists them (a tool with no materials is one plain stack).
 
     Per tool, one material list for each visible material (same order as the parts tab) that has any of the
     tool's stat types; slots whose stat type the material lacks take the first visible material with it
@@ -85,15 +141,15 @@ def write_creative_tools():
     source = (ROOT / 'tconstruct/mixins/tconstruct/api/src/tool_parts.rs').read_text(encoding='utf-8')
     table = source.split('const PARTS')[1].split('];')[0]
     part_stat = dict(re.findall(r'\("([a-z_]+)", "([a-z_]+)"\)', table))
-    lines = ['//! Armor and shield stacks of the Tools creative tab: per tool, the material of each slot for every entry.',
+    lines = ['//! Stacks of the Tools creative tab: per tool, the material of each slot for every entry.',
              '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
-             'pub(crate) const ARMOR: &[(&str, &[&[&str]])] = &[']
-    for tool in ARMOR_TOOLS:
+             'pub(crate) const TOOLS: &[(&str, &[&[&str]])] = &[']
+    for tool in TOOL_ORDER:
         modules = json.loads((TARGET / 'tool_definitions' / f'{tool}.json').read_text(encoding='utf-8'))['modules']
         required = []
         for module in modules:
             if module['type'] == 'tconstruct:part_stats':
-                required = [part_stat[part.split(':')[1]] for part in module['parts']]
+                required = [part_stat[(part if isinstance(part, str) else part['item']).split(':')[1]] for part in module['parts']]
             elif module['type'] == 'tconstruct:material_stats':
                 required = [(entry if isinstance(entry, str) else entry['stat']).split(':')[1] for entry in module['stat_types']]
         has = lambda name, stat: f'tconstruct:{stat}' in stats.get(name, set())
@@ -102,6 +158,8 @@ def write_creative_tools():
         for name in order:
             if any(has(name, stat) for stat in required):
                 entries.append([name if has(name, stat) else first[i] for i, stat in enumerate(required)])
+        if not required:
+            entries = [[]]  # no materials: one plain stack
         rows = ', '.join('&[' + ', '.join(f'"{m}"' for m in entry) + ']' for entry in entries)
         lines.append(f'    ("{tool}", &[{rows}]),')
     lines.append('];')
@@ -263,7 +321,9 @@ def copy_fluid_tags():
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, destination)
             count += 1
-    return count
+    # Mantle defines `mantle:water` itself (the recipes of composite oxidation and tipped arrow cleaning name it); its own definition is water.
+    write_json(FLUID_TAG_TARGET / 'mantle/water.json', {'values': ['minecraft:water', 'minecraft:flowing_water']})
+    return count + 1
 
 
 FLUID_JAVA = ROOT / '.local/tconstruct-source/src/main/java/slimeknights/tconstruct/fluids/TinkerFluids.java'
@@ -416,7 +476,7 @@ def write_fluid_defs():
                      f"slope_distance: {row['slope']}, hot: {str(row['hot']).lower()}, block_light: {block['light'] if block else 0}, contact: {contact} }},")
     lines.append('];')
     FLUID_DEFS_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
-    return len(rows), {row['name'] for row in rows}
+    return len(rows), [row['name'] for row in rows]
 
 
 def write_fluid_world():
@@ -589,6 +649,40 @@ DAMAGE_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/tags/da
 VANILLA_DAMAGE_TAGS = ROOT / '.local/base-26.3/data/minecraft/tags/damage_type'
 
 
+VANILLA_TAGS = ROOT / '.local/base-26.3/data'
+
+
+def write_block_tag_ingredients():
+    """Item tags for the `tconstruct:block_tag` ingredients of the recipes (a casting cast "any block of this block tag", such as
+    `minecraft:convertable_to_mud`): the host snapshots item tags only, so the block tag becomes an item tag `block_tags/<ns>/<path>` of the
+    blocks' items (a block item has its block's id), flattened from the vanilla tag files, every entry optional. The original's 1.20 spelling
+    `convertable_to_mud` is vanilla's `convertible_to_mud` here. The Rust decoder reads the ingredient as that item tag."""
+    names = set()
+    for path in FLUID_RECIPE_SOURCE.rglob('*.json'):
+        for match in re.finditer(r'"type": "tconstruct:block_tag",\s*"tag": "([a-z_:/]+)"', path.read_text(encoding='utf-8')):
+            names.add(match.group(1))
+
+    def members(tag, seen=()):
+        namespace, name = tag.split(':', 1)
+        file = VANILLA_TAGS / namespace / 'tags/block' / f'{name}.json'
+        if not file.is_file() and 'convertable' in name:
+            file = VANILLA_TAGS / namespace / 'tags/block' / f'{name.replace("convertable", "convertible")}.json'
+        if not file.is_file() or tag in seen:
+            raise SystemExit(f'block tag {tag} is not in the vanilla data')
+        found = []
+        for entry in json.loads(file.read_text(encoding='utf-8')).get('values', []):
+            text = entry if isinstance(entry, str) else entry['id']
+            for member in (members(text[1:], seen + (tag,)) if text.startswith('#') else [text]):
+                if member not in found:
+                    found.append(member)
+        return found
+
+    for tag in sorted(names):
+        namespace, name = tag.split(':', 1)
+        write_json(TAG_TARGET / 'item/block_tags' / namespace / f'{name}.json', {'values': [{'id': member, 'required': False} for member in members(tag)]})
+    return len(names)
+
+
 def copy_damage_tags():
     """Damage-type tags (protection/*, is_melee...). The host has no damage-type tag capture, so the mod reads
     them from its own folder, like the modifier tags."""
@@ -634,6 +728,110 @@ def write_damage_vanilla():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
+# Forge's own convention item tags (the original's recipes name them; nothing in this host defines them): the vanilla items each stands for,
+# as Forge defines them. The original's own contributions (generated `data/forge/tags/items`: glass, normal_stone, the Tinkers metals...) are
+# added, reduced to vanilla items and to the Tinkers items this port declares. The result is applied to the item registry snapshot by
+# convention_tags.rs, and replaces `#forge:` entries of the shipped item tags.
+def _vanilla(*names):
+    return [f'minecraft:{name}' for name in names]
+
+
+VANILLA_CONVENTION = {
+    'ingots/iron': _vanilla('iron_ingot'), 'ingots/gold': _vanilla('gold_ingot'), 'ingots/copper': _vanilla('copper_ingot'),
+    'ingots/netherite': _vanilla('netherite_ingot'), 'ingots/netherite_scrap': _vanilla('netherite_scrap'),
+    'nuggets/iron': _vanilla('iron_nugget'), 'nuggets/gold': _vanilla('gold_nugget'),
+    'storage_blocks/iron': _vanilla('iron_block'), 'storage_blocks/gold': _vanilla('gold_block'), 'storage_blocks/copper': _vanilla('copper_block'),
+    'storage_blocks/diamond': _vanilla('diamond_block'), 'storage_blocks/emerald': _vanilla('emerald_block'),
+    'storage_blocks/netherite': _vanilla('netherite_block'), 'storage_blocks/quartz': _vanilla('quartz_block'),
+    'storage_blocks/lapis': _vanilla('lapis_block'), 'storage_blocks/redstone': _vanilla('redstone_block'),
+    'storage_blocks/coal': _vanilla('coal_block'), 'storage_blocks/amethyst': _vanilla('amethyst_block'),
+    'storage_blocks/raw_iron': _vanilla('raw_iron_block'), 'storage_blocks/raw_gold': _vanilla('raw_gold_block'), 'storage_blocks/raw_copper': _vanilla('raw_copper_block'),
+    'gems/diamond': _vanilla('diamond'), 'gems/emerald': _vanilla('emerald'), 'gems/quartz': _vanilla('quartz'),
+    'gems/amethyst': _vanilla('amethyst_shard'), 'gems/lapis': _vanilla('lapis_lazuli'),
+    'raw_materials/iron': _vanilla('raw_iron'), 'raw_materials/gold': _vanilla('raw_gold'), 'raw_materials/copper': _vanilla('raw_copper'),
+    'ores/iron': _vanilla('iron_ore', 'deepslate_iron_ore'), 'ores/gold': _vanilla('gold_ore', 'deepslate_gold_ore', 'nether_gold_ore'),
+    'ores/copper': _vanilla('copper_ore', 'deepslate_copper_ore'), 'ores/diamond': _vanilla('diamond_ore', 'deepslate_diamond_ore'),
+    'ores/emerald': _vanilla('emerald_ore', 'deepslate_emerald_ore'), 'ores/lapis': _vanilla('lapis_ore', 'deepslate_lapis_ore'),
+    'ores/redstone': _vanilla('redstone_ore', 'deepslate_redstone_ore'), 'ores/coal': _vanilla('coal_ore', 'deepslate_coal_ore'),
+    'ores/quartz': _vanilla('nether_quartz_ore'), 'ores/netherite_scrap': _vanilla('ancient_debris'),
+    'dusts/redstone': _vanilla('redstone'), 'dusts/glowstone': _vanilla('glowstone_dust'),
+    'obsidian': _vanilla('obsidian'), 'cobblestone': _vanilla('cobblestone', 'mossy_cobblestone', 'cobbled_deepslate'),
+    'stone': _vanilla('stone'), 'netherrack': _vanilla('netherrack'), 'end_stones': _vanilla('end_stone'),
+    'ender_pearls': _vanilla('ender_pearl'), 'feathers': _vanilla('feather'), 'leather': _vanilla('leather'), 'gunpowder': _vanilla('gunpowder'),
+    'bones': _vanilla('bone'), 'slimeballs': _vanilla('slime_ball'), 'string': _vanilla('string'), 'rods/wooden': _vanilla('stick'),
+    'rods/blaze': _vanilla('blaze_rod'), 'sand': _vanilla('sand', 'red_sand'), 'sand/colorless': _vanilla('sand'), 'sand/red': _vanilla('red_sand'),
+    'crops/carrot': _vanilla('carrot'), 'bottles/empty': _vanilla('glass_bottle'),
+}
+_COLORS = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black']
+VANILLA_CONVENTION.update({
+    'glass/colorless': _vanilla('glass'), 'glass/tinted': _vanilla('tinted_glass'),
+    'glass/silica': _vanilla('glass', *[f'{color}_stained_glass' for color in _COLORS]),
+    'glass': _vanilla('glass', 'tinted_glass', *[f'{color}_stained_glass' for color in _COLORS]),
+    'glass_panes/colorless': _vanilla('glass_pane'), 'glass_panes/silica': _vanilla('glass_pane', *[f'{color}_stained_glass_pane' for color in _COLORS]),
+    'glass_panes': _vanilla('glass_pane', *[f'{color}_stained_glass_pane' for color in _COLORS]),
+    **{f'glass/{color}': _vanilla(f'{color}_stained_glass') for color in _COLORS},
+    **{f'glass_panes/{color}': _vanilla(f'{color}_stained_glass_pane') for color in _COLORS},
+})
+CONVENTION_ROLLUPS = {'rods': 'rods/', 'ingots': 'ingots/', 'nuggets': 'nuggets/', 'gems': 'gems/', 'ores': 'ores/', 'raw_materials': 'raw_materials/', 'storage_blocks': 'storage_blocks/'}
+CONVENTION_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/convention_tags.rs'
+
+
+def convention_tags():
+    """forge tag path -> sorted members (vanilla and declared Tinkers items), for every convention tag with at least one."""
+    declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
+    folder = GENERATED_DATA / 'forge/tags/items'
+    result = {tag: list(members) for tag, members in VANILLA_CONVENTION.items()}
+
+    def add(tag, members):
+        held = result.setdefault(tag, [])
+        held += [member for member in members if member not in held]
+
+    def flatten(tag, seen=()):
+        name = tag[len('forge:'):]
+        path = folder / f'{name}.json'
+        if tag in seen or not path.is_file():
+            return list(result.get(name, []))
+        out = []
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            text = entry if isinstance(entry, str) else entry['id']
+            if text.startswith('#'):
+                if text.startswith('#forge:'):
+                    out += flatten(text[1:], seen + (tag,))
+            elif text.startswith('minecraft:') or text in declared:
+                out.append(text)
+        return out
+
+    for path in sorted(folder.rglob('*.json')):
+        name = path.relative_to(folder).with_suffix('').as_posix()
+        add(name, flatten('forge:' + name))
+    for roll, prefix in CONVENTION_ROLLUPS.items():
+        for tag in sorted(result):
+            if tag.startswith(prefix):
+                add(roll, result[tag])
+    return {tag: sorted(members) for tag, members in sorted(result.items()) if members}
+
+
+_CONVENTION = {}
+
+
+def convention_tags_cached():
+    if not _CONVENTION:
+        _CONVENTION.update(convention_tags())
+    return _CONVENTION
+
+
+def write_convention_tags():
+    tags = convention_tags_cached()
+    lines = ['//! Forge convention item tags that the original data names and nothing in this host defines, with the vanilla and Tinkers items they stand for.',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const TAGS: &[(&str, &[&str])] = &[']
+    for tag, members in tags.items():
+        lines.append(f'    ("forge:{tag}", &[' + ', '.join(f'"{member}"' for member in members) + ']),')
+    lines.append('];')
+    CONVENTION_TARGET.write_text(chr(10).join(lines) + chr(10), encoding='utf-8', newline=chr(10))
+    return len(tags)
+
+
 def copy_tags():
     """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
     required reference to a forge tag becomes an optional one (as the original already does for
@@ -647,6 +845,11 @@ def copy_tags():
             values = []
             for value in data.get('values', []):
                 text = value if isinstance(value, str) else value.get('id', '')
+                if source_name == 'items' and text.startswith('#forge:') and convention_tags_cached().get(text[len('#forge:'):]):
+                    # a convention tag this host lacks: the items it stands for, in its place
+                    held = {(entry if isinstance(entry, str) else entry['id']) for entry in values}
+                    values += [{'id': member, 'required': False} for member in convention_tags_cached()[text[len('#forge:'):]] if member not in held]
+                    continue
                 if isinstance(value, str) and text.lstrip('#').startswith('forge:'):
                     value = {'id': text, 'required': False}
                 # This port registers no Tinkers entity types yet; a tag naming one would make the whole
@@ -1651,7 +1854,9 @@ GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{colo
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
 FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass']}
-CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting')
+CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
+# Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
+TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}
 CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 
@@ -1679,6 +1884,8 @@ def copy_crafting_recipes():
             result += members(entry[1:], seen + (tag,)) if entry.startswith('#') else [entry]
         return [item for item in result if item in declared]
 
+    tables = False
+
     def convert(node):
         """An ingredient as a string or a list of strings; KeyError when it names something this port has not."""
         if isinstance(node, list):
@@ -1701,6 +1908,10 @@ def copy_crafting_recipes():
             raise KeyError(kind)
         if 'tag' in node:
             tag = node['tag']
+            if tables and tag in TABLE_TAGS:
+                return '#' + tag
+            if tables and tag == 'forge:rods/wooden':
+                return 'minecraft:stick'
             if tag in FORGE_TAGS:
                 return list(FORGE_TAGS[tag])
             if tag == 'minecraft:sand':
@@ -1717,18 +1928,19 @@ def copy_crafting_recipes():
         return ingredient
 
     written, left_out = 0, []
-    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')):
-        relative = path.relative_to(FLUID_RECIPE_SOURCE / 'smeltery')
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').glob('*.json')):
+        tables = path.parent == FLUID_RECIPE_SOURCE / 'tables'
         data = json.loads(path.read_text(encoding='utf-8'))
-        if data.get('type') not in CRAFTING_TYPES:
+        # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
+        if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured' and not tables):
             continue
         stem = path.relative_to(FLUID_RECIPE_SOURCE).with_suffix('').as_posix()
         result = data['result']
         item = result['item'] if isinstance(result, dict) else result
         count = result.get('count', 1) if isinstance(result, dict) else data.get('count', 1)
         try:
-            if data['type'] == 'minecraft:crafting_shaped':
-                out = {'type': data['type'], 'key': {key: one(value) for key, value in data['key'].items()}, 'pattern': data['pattern']}
+            if data['type'] in ('minecraft:crafting_shaped', 'mantle:crafting_shaped_retextured'):
+                out = {'type': 'minecraft:crafting_shaped', 'key': {key: one(value) for key, value in data['key'].items()}, 'pattern': data['pattern']}
             elif data['type'] == 'minecraft:crafting_shapeless':
                 out = {'type': data['type'], 'ingredients': [one(value) for value in data['ingredients']]}
             elif data['type'] == 'minecraft:smelting':
@@ -1839,8 +2051,11 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     write_creative_tools()
+    write_convention_tags()
     fluid_count, fluid_names = write_fluid_defs()
     tags = copy_tags() + copy_damage_tags() + copy_fluid_host_tags(fluid_names)
+    write_creative_fluids(fluid_names)
+    tags += write_block_tag_ingredients()
     write_damage_vanilla()
     languages = copy_lang()
     fuels = write_vanilla_fuels()

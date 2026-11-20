@@ -74,6 +74,8 @@ mod station_menu;
 mod break_speed_hook;
 mod creative_parts;
 mod creative_tools;
+mod creative_fluids;
+mod convention_tags;
 mod creative;
 mod conditions;
 mod fluid_values;
