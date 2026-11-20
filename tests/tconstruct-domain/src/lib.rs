@@ -157,6 +157,10 @@ mod conditions;
 mod common;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_values.rs"]
 mod fluid_values;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_defs.rs"]
+mod fluid_defs;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluids.rs"]
+mod fluids;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/heating.rs"]
 mod heating;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_ingredient.rs"]

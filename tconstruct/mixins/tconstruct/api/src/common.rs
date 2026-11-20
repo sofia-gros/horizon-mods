@@ -28,6 +28,11 @@ pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_r
 static ITEMS: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
 /// The captured entity type registry and tags, for melee target conditions (mob types and entity tags).
 static ENTITY_TYPES: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+/// The captured fluid registry (native and Tinkers fluids) with the fluid tags, for the smeltery's tag reads; None until a reload
+/// captured it, and never an empty stand-in. The melter and casting units read it.
+static FLUID_SNAPSHOT: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+#[allow(dead_code)]
+pub(crate) fn fluid_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { FLUID_SNAPSHOT.read().expect("fluid snapshot lock poisoned").clone() }
 pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ENTITY_TYPES.read().expect("entity type snapshot lock poisoned").clone() }
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
@@ -38,6 +43,8 @@ fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
         *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));
     }
+    // A reload without a fluid capture drops the previous generation's snapshot rather than keeping stale tags.
+    *FLUID_SNAPSHOT.write().expect("fluid snapshot lock poisoned") = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "fluid").unwrap()).map(Arc::new);
     items
 }
 pub(crate) fn server_modifiers() -> Option<&'static Arc<RwLock<crate::modifiers::Registry>>> { MODIFIERS.get() }
@@ -122,6 +129,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
             *ITEMS.write().expect("item snapshot lock poisoned") = None;
             *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;
+            *FLUID_SNAPSHOT.write().expect("fluid snapshot lock poisoned") = None;
             let mut state = stopped.write().expect("material registry lock poisoned");
             let generation = state.generation.wrapping_add(1);
             *state = Definitions { generation, ..Definitions::default() };

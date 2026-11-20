@@ -2349,3 +2349,76 @@ fn shipped_sand_cast_patterns_and_molding_recipes_load() {
     assert!(sand_cast.pattern.is_none() && !sand_cast.pattern_consumed);
     assert_eq!(sand_cast.result.source, crate::fluid_ingredient::Source::Id(id("tconstruct:blank_sand_cast")));
 }
+
+/// The Tinkers fluid tags as the host reads them (`data/tconstruct/tags/fluid`), by tag id.
+fn host_fluid_tag_files() -> Vec<(Identifier, Value)> {
+    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/tags/fluid");
+    fn walk(dir: &std::path::Path, relative: String, out: &mut Vec<(Identifier, Value)>) {
+        for entry in std::fs::read_dir(dir).expect("folder") {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            if path.is_dir() { walk(&path, format!("{relative}{name}/"), out); continue; }
+            if let Some(stem) = name.strip_suffix(".json") {
+                out.push((Identifier::new("tconstruct", &format!("{relative}{stem}")).unwrap(), serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON")));
+            }
+        }
+    }
+    let mut found = Vec::new();
+    walk(&base, String::new(), &mut found);
+    found
+}
+
+#[test]
+fn the_72_original_fluids_are_defined_with_the_original_attributes_and_names() {
+    use pluto_lib::FluidRegistry;
+    crate::fluids::register();
+    let mine: Vec<_> = FluidRegistry::registered().into_iter().filter(|fluid| fluid.id.namespace() == "tconstruct").collect();
+    assert_eq!(mine.len(), 72);
+    // Values read off TinkerFluids by hand: the helper defaults (slime 1600/1600, hot 2000/10000/1000K, cool and powder water's),
+    // the setters after them, the inverted fluids' negative density and the potion's own numbers.
+    let attributes = |name: &str| { let a = FluidRegistry::get(&format!("tconstruct:{name}")).unwrap().attributes; (a.temperature, a.luminance, a.density, a.viscosity, a.color) };
+    assert_eq!(attributes("venom"), (310, 0, 1600, 1600, 0xFFFFFFFF));
+    assert_eq!(attributes("magma"), (600, 3, 1600, 1600, 0xFFFFFFFF));
+    assert_eq!(attributes("ichor"), (1000, 0, -1600, 1600, 0xFFFFFFFF));
+    assert_eq!(attributes("beetroot_soup"), (400, 0, 1000, 1000, 0xFF84160D));
+    assert_eq!(attributes("powdered_snow"), (270, 0, 1000, 1000, 0xFFFFFFFF));
+    assert_eq!(attributes("potion"), (315, 0, 1100, 1100, 0xFFF800F8));
+    assert_eq!(attributes("seared_stone"), (900, 6, 2000, 10000, 0xFF4F4A47));
+    assert_eq!(attributes("blazing_blood"), (1800, 15, 3500, 10000, 0xFFFFFFFF));
+    assert_eq!(attributes("molten_iron"), (1100, 12, 2000, 10000, 0xFFFFFFFF));
+    assert_eq!(attributes("molten_cinderslime"), (1350, 10, -2000, 10000, 0xFFFFFFFF));
+    assert_eq!(attributes("molten_bendalloy"), (400, 9, 2000, 10000, 0xFFD6D2C1));
+    assert_eq!(attributes("fiery_liquid"), (1800, 15, 2000, 10000, 0xFFFFFFFF));
+    // Every fluid is named in the shipped languages under the key the original uses.
+    for language in ["en_us", "ja_jp"] {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../tconstruct/content/assets/tconstruct/lang/{language}.json"));
+        let lang: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let missing: Vec<_> = mine.iter().map(|fluid| fluid.translation_key()).filter(|key| lang.get(key).is_none()).collect();
+        assert!(missing.is_empty(), "{language}: {missing:?}");
+    }
+}
+
+#[test]
+fn the_host_fluid_tags_hold_only_defined_fluids_and_match_the_recipe_copy_without_flowing_variants() {
+    let files = host_fluid_tag_files();
+    assert_eq!(files.len(), 84, "the original's tconstruct fluid tag files; forge and mantle ones stay with the recipes");
+    let defined: Vec<Identifier> = crate::fluids::definitions().into_iter().map(|def| def.id).collect();
+    let host = crate::fluid_ingredient::FluidTags::load(&files);
+    // Forge's milk and the Fabric recipe-viewer tag are missing, and both are optional in the host copy.
+    assert!(host.problems.is_empty(), "{:?}", host.problems);
+    let recipe_copy = fluid_tags();
+    for (tag, _) in &files {
+        let members = host.members(tag).unwrap();
+        assert!(members.iter().all(|member| defined.contains(member) || member.to_string() == "minecraft:lava"), "{tag}: {members:?}");
+        // The forge and mantle references are inlined, so the flattened members are the original's (the recipe copy does not
+        // flatten the two tags that name forge:milk and the Fabric viewer tag, which the host copy marks optional).
+        let Some(all) = recipe_copy.members(tag) else { assert!(["tconstruct:chemthrower_effects/entity", "tconstruct:hide_in_creative_tanks"].contains(&tag.to_string().as_str()), "{tag}"); continue };
+        let original: Vec<_> = all.iter().filter(|member| !member.path().starts_with("flowing_")).cloned().collect();
+        assert_eq!(members, &original, "{tag} differs from the original beyond the flowing variants");
+    }
+    let milkless = host.members(&id("tconstruct:chemthrower_effects/entity")).unwrap();
+    assert!(milkless.contains(&id("tconstruct:meat_soup")) && milkless.contains(&id("tconstruct:molten_steeleaf")) && !milkless.iter().any(|m| m.path().contains("milk")));
+    assert_eq!(host.members(&id("tconstruct:molten_iron")).unwrap(), &vec![id("tconstruct:molten_iron")]);
+    assert!(host.contains(&id("tconstruct:molten_iron"), &id("tconstruct:chemthrower_effects/entity")));
+    assert!(host.contains(&id("minecraft:lava"), &id("tconstruct:swasher/drowned")));
+}

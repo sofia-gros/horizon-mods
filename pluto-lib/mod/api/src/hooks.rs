@@ -2423,11 +2423,21 @@ impl Hooks for PlutoHooks {
             Err(error)=>{ eprintln!("PlutoLib: item prototypes unavailable: {error}"); None }
         };
         let native=horizon_client::registries::pluto_reload_registry::current();
-        let base=native.as_ref().and_then(|records|records.iter().find(|r|r.id=="minecraft:fluid")).map(|r|r.entries.as_slice());
+        let native_fluids=native.as_ref().and_then(|records|records.iter().find(|r|r.id=="minecraft:fluid"));
+        let base=native_fluids.map(|r|r.entries.as_slice());
         let fluids=match crate::pure::fluid_api_v1::FluidRegistrySnapshot::capture(base) {
             Ok(snapshot)=>snapshot,
             Err(error)=>{ eprintln!("PlutoLib: fluid registry unavailable: {error}"); None }
         };
+        // The fluid lookup joins the native fluids with the ones PlutoLib defines and carries the loaded fluid tags,
+        // so `reload_registry("minecraft:fluid")` answers for mod fluids too.
+        let mut registries=registries;
+        if let Some(record)=native_fluids {
+            match crate::pure::fluid_api_v1::reload_lookup(&record.entries,&record.tags) {
+                Ok(lookup)=>{ registries.insert(Identifier::parse("minecraft:fluid").expect("valid registry ID"),lookup); },
+                Err(error)=>eprintln!("PlutoLib: fluid reload registry unavailable: {error}"),
+            }
+        }
         let result=crate::pure::fluid_api_v1::with_fluid_registry(fluids,||
             crate::pure::item_registry::with_item_registry(items,||
                 resource_loader_v0::with_reload_folders(registries,resources,||

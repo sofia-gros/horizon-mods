@@ -77,6 +77,8 @@ mod creative_tools;
 mod creative;
 mod conditions;
 mod fluid_values;
+mod fluid_defs;
+mod fluids;
 mod heating;
 mod fluid_ingredient;
 mod melting_recipes;
@@ -91,6 +93,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     part_builder_menu::register();
     worktable_menu::register();
     creative::register();
+    fluids::register();
     break_speed_hook::register();
     melee_hook::register();
     lifesteal_hook::register();

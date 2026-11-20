@@ -37,7 +37,26 @@ ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listen
     }).unwrap();
 ```
 
-> **Use with Caution.** Native source reads the complete static fluid IDs from the selected resource root's command-registry export, not a renderer catalog or a guessed water/lava list. A missing/empty native export makes capture unavailable even when mods have defined fluids. Invalid/duplicate native IDs and a poisoned definition registry also reject capture. This is pure-tested and source-wired, not native plan/build/game validated. Retained snapshots never refresh; registering a fluid later can affect later captures, not an earlier snapshot. Nested scopes restore outer membership, including unwinding. This API captures membership only: it does not freeze attributes, supply ordered tag members or enable source/flowing blocks and buckets. Read ordered JSON tag layers separately and apply the source format's merge rules. The current generic `reload_registry` tag lookup still supports only entity/item registries; no unavailable fluid tag members are advertised as absent.
+> **Use with Caution.** Native source reads the complete static fluid IDs from the selected resource root's command-registry export, not a renderer catalog or a guessed water/lava list. A missing/empty native export makes capture unavailable even when mods have defined fluids. Invalid/duplicate native IDs and a poisoned definition registry also reject capture. This is pure-tested and source-wired, not native plan/build/game validated. Retained snapshots never refresh; registering a fluid later can affect later captures, not an earlier snapshot. Nested scopes restore outer membership, including unwinding. This API captures membership only: it does not freeze attributes, supply ordered tag members or enable source/flowing blocks and buckets. Read ordered JSON tag layers separately and apply the source format's merge rules. The generic `reload_registry` lookup now also answers for `minecraft:fluid` (see [Fluid Tags](#fluid-tags)).
+
+## Fluid Tags
+
+Inside a server JSON reload callback, `ResourceManagerHelper::reload_registry` also answers for `minecraft:fluid`. The lookup holds the native fluid IDs joined with every fluid defined through `FluidRegistry` when the callback starts, and the fluid tags: the resource root's `data/<namespace>/tags/fluid/*.json` (vanilla's and the content mods') plus the world's packs, `replace` and nested `#tag` references applied, read with the same loader the game uses for its own tags. A mod ships its tags under `data/<its namespace>/tags/fluid`.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
+ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+    Identifier::parse("example:fluid_rules").unwrap(), "example/fluid_rules", |_| {
+        let fluids = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:fluid").unwrap())
+            .ok_or("fluid registry unavailable; do not publish a fake empty table")?;
+        // `None` is "no such tag or tags unavailable", never an empty set: keep recipes disabled rather than guess.
+        let molten = fluids.get_tag(&Identifier::parse("example:molten").unwrap()).ok_or("fluid tag example:molten not loaded")?;
+        let _lava_is_molten = molten.contains(&Identifier::parse("minecraft:lava").unwrap());
+        Ok(())
+    }).unwrap();
+```
+
+> **Use with Caution.** Source-wired and pure-tested (`reload_lookup`), not native build or game validated: the native module calls the host's `items::load_tags(root, "fluid", pack overlay)` inside the reload snapshot. Mandatory guards: the lookup is `None` outside a reload callback or when the native fluid export is missing (no empty stand-in, no hardcoded vanilla list); a failed tag read leaves every `get_tag` as `None` (unavailable), never an empty member set; the `RegistryLookup` is an owned snapshot of that generation and never refreshes. A tag member that is not a known fluid (a pack naming a fluid no mod defined, a flowing variant nobody registered) is left out of its tag while the tag stays present; malformed IDs reject the whole lookup. Tags are unordered sets: where order matters (a recipe preferring the source fluid), read the ordered JSON layers yourself. Tag files of the `forge`, `mantle` or other namespaces the content root does not own are not read, and the host does not synchronize mod fluids to clients.
 
 ## Hot, Cool and Light Fluids
 

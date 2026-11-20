@@ -128,7 +128,7 @@
     {"module_id":"pluto-entity-spawn-game","file":"crates/horizon-client/src/game.rs","name":"pluto_entity_spawn_game","visibility":"pub(crate)","source_file":"pluto-entity-spawn-game.rs","source_sha256":"0650fbd15f70e0d20d4f6cd3f3d4e6db63bdd6129470594b2a30d4affb6bb021"},
     {"module_id":"pluto-entity-spawn-state-module","file":"crates/horizon-client/src/mobs/nav.rs","name":"pluto_entity_spawn_state","visibility":"pub","source_file":"pluto-entity-spawn-state.rs","source_sha256":"e2860d49af43ba96f7c1feb8dab828dd6311a6fb5ba743445e6e1481b7ffa6cd"},
     {"module_id":"pluto-reload-registry-access","file":"crates/horizon-client-core/src/registries.rs","name":"pluto_reload_registry","visibility":"pub","source_file":"pluto-reload-registry-access.rs","source_sha256":"cef877ca8c804f6d6fef9f4686f51e95f4227f60f2d0e93ea6d35827c8252475"},
-    {"module_id":"pluto-reload-registry-source","file":"crates/horizon-client/src/game/chat.rs","name":"pluto_reload_registry_source","visibility":"pub(crate)","source_file":"pluto-reload-registry-source.rs","source_sha256":"8d0548b5d2c4c9c79b26be488a068b24bec74f97c087b76dce0561b3afb9cafc"},
+    {"module_id":"pluto-reload-registry-source","file":"crates/horizon-client/src/game/chat.rs","name":"pluto_reload_registry_source","visibility":"pub(crate)","source_file":"pluto-reload-registry-source.rs","source_sha256":"1ea304a155fba6c65466e40b64176bc1ef73781f7e236055926c336463bb6756"},
     {
       "module_id": "pluto-trade-pool",
       "file": "crates/horizon-client/src/merchant.rs",

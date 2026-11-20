@@ -96,7 +96,7 @@ data.register_json_reload_listener(Identifier::new("example", "material_tags").u
 
 ## Capturing Reload Registry Membership
 
-Inside a server JSON-folder callback, `reload_registry` returns an owned lookup for a supported registry. Native source uses the full entity-type ID data used by command validation, not the renderer-filtered MobTypes list. Entity tags come from the active world's successfully loaded pack-tag registry, with the native base-tag fallback only when that registry is unavailable. Item entries/tags use the world's currently selected native Items, not the fixed base Items or a built-in mod tag catalog. An absent tag and a present empty tag remain distinct.
+Inside a server JSON-folder callback, `reload_registry` returns an owned lookup for a supported registry. Native source uses the full entity-type ID data used by command validation, not the renderer-filtered MobTypes list. Entity tags come from the active world's successfully loaded pack-tag registry, with the native base-tag fallback only when that registry is unavailable. Item entries/tags use the world's currently selected native Items, not the fixed base Items or a built-in mod tag catalog. The fluid registry (`minecraft:fluid`) is the native fluid IDs joined with the fluids defined through [`FluidRegistry`](fluid.md), with the fluid tags read as the game reads its own (the resource root's `data/<namespace>/tags/fluid` and the world's pack stack, nested `#tag`s expanded); see [Fluid Tags](fluid.md#fluid-tags). An absent tag and a present empty tag remain distinct.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
@@ -204,7 +204,7 @@ assert!(stack.layers[1].is_err()); // not replaced by the lower layer
 
 ### `ResourceManagerHelper::reload_registry`
 
-`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type` and `minecraft:item`; native integration remains unverified.
+`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type`, `minecraft:item` and `minecraft:fluid` (membership with mod fluids and tags); native integration remains unverified.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};

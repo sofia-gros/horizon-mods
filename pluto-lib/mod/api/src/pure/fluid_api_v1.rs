@@ -119,6 +119,21 @@ impl FluidRegistrySnapshot {
         Ok(Some(Self { ids:std::sync::Arc::new(ids) }))
     }
 }
+/// The lookup `ResourceManagerHelper::reload_registry("minecraft:fluid")` returns: the native fluid IDs joined with the fluids defined
+/// through PlutoLib, and the loaded fluid tags. A tag member that is no known fluid (a pack naming a fluid no mod defines, or a mod
+/// fluid that is not defined) is left out of its tag, as the host's own tag loader treats unknown entries; the tag stays present.
+/// Malformed IDs reject the whole lookup, so a bad capture is unavailable rather than silently partial.
+pub(crate) fn reload_lookup(base:&[String],tags:&[(String,Vec<String>)])->Result<super::resource_loader_v0::RegistryLookup,String> {
+    let mut entries:std::collections::BTreeSet<String>=base.iter().cloned().collect();
+    {
+        let defined=FLUIDS.lock().map_err(|_|"fluid definitions registry poisoned")?;
+        if let Some(defined)=defined.as_ref() { entries.extend(defined.values().map(|def|def.id.to_string())); }
+    }
+    let entry_list:Vec<String>=entries.iter().cloned().collect();
+    let known_tags:Vec<(String,Vec<String>)>=tags.iter().map(|(tag,members)|
+        (tag.clone(),members.iter().filter(|member|entries.contains(*member)).cloned().collect())).collect();
+    super::resource_loader_v0::RegistryLookup::from_parts(&entry_list,&known_tags)
+}
 thread_local! { static CURRENT_FLUIDS:std::cell::RefCell<Vec<Option<FluidRegistrySnapshot>>>=const { std::cell::RefCell::new(Vec::new()) }; }
 pub(crate) fn with_fluid_registry<T>(snapshot:Option<FluidRegistrySnapshot>,action:impl FnOnce()->T)->T {
     struct Scope;
@@ -200,6 +215,27 @@ mod tests {
         assert!(!kept.contains(&late_id)); assert!(FluidRegistry::snapshot().is_none());
         assert!(FluidRegistrySnapshot::capture(Some(&["bad id".into()])).is_err());
         assert!(FluidRegistrySnapshot::capture(Some(&[base[0].clone(),base[0].clone()])).is_err());
+    }
+
+    #[test]
+    fn the_fluid_lookup_joins_native_and_defined_fluids_with_tags_and_drops_unknown_members() {
+        let id=|text:&str|Identifier::parse(text).unwrap();
+        FluidRegistry::register(FluidDef::new(id("test:lookup_fluid")));
+        let base=vec!["minecraft:water".to_owned(),"minecraft:lava".to_owned()];
+        let tags=vec![
+            ("test:molten".to_owned(),vec!["test:lookup_fluid".to_owned(),"test:lookup_flowing_fluid".to_owned(),"minecraft:lava".to_owned()]),
+            ("minecraft:water".to_owned(),vec!["minecraft:water".to_owned()]),
+            ("test:empty".to_owned(),Vec::new()),
+        ];
+        let lookup=reload_lookup(&base,&tags).unwrap();
+        assert!(lookup.contains(&id("test:lookup_fluid")) && lookup.contains(&id("minecraft:water")));
+        assert!(!lookup.contains(&id("test:lookup_flowing_fluid")));
+        let molten:Vec<_>=lookup.get_tag(&id("test:molten")).unwrap().iter().map(ToString::to_string).collect();
+        assert_eq!(molten,["minecraft:lava","test:lookup_fluid"],"the flowing variant nobody defined is not a member");
+        assert!(lookup.get_tag(&id("test:empty")).unwrap().is_empty(),"present but empty differs from absent");
+        assert!(lookup.get_tag(&id("test:absent")).is_none());
+        assert!(reload_lookup(&base,&[("bad tag".to_owned(),Vec::new())]).is_err());
+        assert!(reload_lookup(&["bad id".to_owned()],&[]).is_err());
     }
 
     #[test]

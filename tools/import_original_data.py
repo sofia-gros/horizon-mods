@@ -252,8 +252,8 @@ def copy_fluid_recipes():
 
 def copy_fluid_tags():
     """The fluid tags the recipes name (forge:molten_iron, mantle:soup...), byte for byte, in the mod's own folder per
-    namespace. They are not placed in the host's tags/fluid folder: the Tinkers fluids are not registered yet, and a tag
-    naming an unknown fluid would be rejected by the game."""
+    namespace, for the recipes' FluidTags. The host's own tag folder gets the converted tconstruct ones
+    (copy_fluid_host_tags): these keep the flowing variants and the forge/mantle namespaces the host does not have."""
     if FLUID_TAG_TARGET.exists():
         shutil.rmtree(FLUID_TAG_TARGET)
     count = 0
@@ -263,6 +263,130 @@ def copy_fluid_tags():
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, destination)
             count += 1
+    return count
+
+
+FLUID_JAVA = ROOT / '.local/tconstruct-source/src/main/java/slimeknights/tconstruct/fluids/TinkerFluids.java'
+FLUID_TEXTURES = ROOT / '.local/tconstruct-source/src/generated/resources/assets/tconstruct/mantle/fluid_texture'
+FLUID_DEFS_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/fluid_defs.rs'
+FLUID_HOST_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tags/fluid'
+# FluidType.Properties defaults (Forge): water's numbers. The helper builders of TinkerFluids start from these.
+FLUID_DEFAULT = {'temperature': 300, 'light': 0, 'density': 1000, 'viscosity': 1000}
+FLUID_BUILDERS = {
+    'cool': {},
+    'powder': {},
+    'slime': {'density': 1600, 'viscosity': 1600},
+    'hot': {'density': 2000, 'viscosity': 10000, 'temperature': 1000},
+}
+FLUID_SETTERS = {'temperature': 'temperature', 'lightLevel': 'light', 'density': 'density', 'viscosity': 'viscosity'}
+
+
+def fluid_properties(expression):
+    """Evaluate one FluidType.Properties chain of TinkerFluids (`hot("x").temperature(900).lightLevel(6)`): the helper
+    builder's defaults, then each setter in order. Anything this does not know stops the import."""
+    values = dict(FLUID_DEFAULT)
+    base = re.search(r'\b(cool|powder|slime|hot)\(("[a-z_]*"\s*)?\)', expression)
+    if not base:
+        raise SystemExit(f'fluid properties without a known builder: {expression}')
+    values.update(FLUID_BUILDERS[base.group(1)])
+    for name, argument in re.findall(r'\.(\w+)\((-?\d+)\)', expression[base.end():]):
+        if name not in FLUID_SETTERS:
+            raise SystemExit(f'unknown fluid property setter {name} in {expression}')
+        values[FLUID_SETTERS[name]] = int(argument)
+    return values
+
+
+def fluid_type_expression(name, rest):
+    """The FluidType.Properties expression of one registration line: the second argument of registerSlime(name, props),
+    or the argument of .type(...) / .invertedType(...) up to the call that follows it."""
+    if rest.startswith(', '):
+        return rest[2:rest.index(').bucket(') if ').bucket(' in rest else len(rest)]
+    found = re.search(r'\.(?:type|invertedType)\((.*?)\)\.(?:bucket|block|burningBlock|commonTag|unplacable|tickRate|flowing|invertedFlowing)\(', rest)
+    if not found:
+        raise SystemExit(f'fluid {name}: no type in {rest}')
+    return found.group(1)
+
+
+def write_fluid_defs():
+    """fluid_defs.rs: the original's 72 fluids with temperature, luminance, density, viscosity and tint, in TinkerFluids order.
+
+    Attributes are the FluidType.Properties of each registration (the `hot`/`slime`/`cool`/`powder` helper defaults, then the
+    setters), the tint is the colour of the generated mantle fluid_texture (white when it has none). The names are the
+    original's `fluid.tconstruct.<name>` translations, already in the lang files. Blocks, buckets and flowing fluids are not
+    declared: the host has no mod fluid blocks."""
+    text = FLUID_JAVA.read_text(encoding='utf-8')
+    rows = []
+    for line in text.splitlines():
+        match = re.search(r'=\s*FLUIDS\.register\w*\("([a-z_]+)"(.*)$', line)
+        if not match:
+            continue
+        name, rest = match.groups()
+        values = fluid_properties(fluid_type_expression(name, rest))
+        texture = FLUID_TEXTURES / f'{name}.json'
+        color = int(json.loads(texture.read_text(encoding='utf-8')).get('color', 'FFFFFFFF'), 16) if texture.exists() else 0xFFFFFFFF
+        rows.append((name, values['temperature'], values['light'], values['density'], values['viscosity'], color))
+    if len(rows) != 72 or len({row[0] for row in rows}) != 72:
+        raise SystemExit(f"expected the original's 72 distinct fluids, found {len(rows)}")
+    lines = ["//! The original's 72 fluids (SlimeKnights TinkerFluids, MIT; see LICENSE): attributes and tint, in registration order.",
+             '//! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.', '',
+             '/// One fluid: id path (namespace tconstruct), kelvin, luminance, density, viscosity and tint (0xAARRGGBB).',
+             "pub(crate) struct FluidSpec { pub name: &'static str, pub temperature: i32, pub luminance: u8, pub density: i32, pub viscosity: i32, pub color: u32 }",
+             '', 'pub(crate) const FLUIDS: &[FluidSpec] = &[']
+    for name, temperature, light, density, viscosity, color in rows:
+        lines.append(f'    FluidSpec {{ name: "{name}", temperature: {temperature}, luminance: {light}, density: {density}, viscosity: {viscosity}, color: 0x{color:08X} }},')
+    lines.append('];')
+    FLUID_DEFS_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(rows), {row[0] for row in rows}
+
+
+def copy_fluid_host_tags(fluids):
+    """The Tinkers fluid tags in the host's tag folder (data/tconstruct/tags/fluid), which PlutoLib reads through
+    reload_registry("minecraft:fluid"). The fluids are registered now, so the host may read them. Compared with the
+    byte-exact copy in fluid_tags (kept for the recipes): the flowing variants are left out (the host has no flowing mod
+    fluids; they belong to the world blocks), and a reference to a forge or mantle tag is replaced by that tag's own entries,
+    since those namespaces do not exist in this host (the tag files themselves stay in fluid_tags for the recipes). A
+    reference to a tag the original does not ship (Forge's milk, the Fabric recipe-viewer tag) becomes an optional one. Any
+    other member must be a registered fluid or vanilla's lava."""
+    shutil.rmtree(FLUID_HOST_TAG_TARGET, ignore_errors=True)
+    source = FLUID_TAG_SOURCE / 'tconstruct/tags/fluids'
+    # The original's forge and mantle tags (forge:molten_iron = #tconstruct:molten_iron, mantle:soup...): their namespaces do not
+    # exist in the host, so a reference to one is replaced by that tag's own entries, and an unshipped one (forge:milk) is optional.
+    foreign = {}
+    for namespace in ('forge', 'mantle'):
+        for path in sorted((FLUID_TAG_SOURCE / namespace / 'tags/fluids').rglob('*.json')):
+            name = f'{namespace}:{path.relative_to(FLUID_TAG_SOURCE / namespace / "tags/fluids").with_suffix("").as_posix()}'
+            foreign[name] = json.loads(path.read_text(encoding='utf-8')).get('values', [])
+
+    def convert(entries, origin, seen):
+        values = []
+        for value in entries:
+            text = value if isinstance(value, str) else value['id']
+            required = isinstance(value, str) or value.get('required', True)
+            if text.startswith('tconstruct:flowing_'):
+                continue
+            if text.startswith('#tconstruct:'):
+                values.append(value)
+            elif text.startswith('#'):
+                name = text[1:]
+                if name in foreign and name not in seen:
+                    values.extend(convert(foreign[name], origin, seen | {name}))
+                elif name in foreign:
+                    raise SystemExit(f'{origin}: foreign tag {name} contains itself')
+                else:
+                    values.append({'id': text, 'required': False})
+                    if required and not name.startswith(('forge:', 'c:')):
+                        raise SystemExit(f'{origin}: unknown tag {name}')
+            elif not ((text.startswith('tconstruct:') and text.split(':')[1] in fluids) or text == 'minecraft:lava'):
+                raise SystemExit(f'{origin}: member {text} is neither a Tinkers fluid nor lava')
+            else:
+                values.append(value)
+        return values
+
+    count = 0
+    for path in sorted(source.rglob('*.json')):
+        values = convert(json.loads(path.read_text(encoding='utf-8')).get('values', []), path.name, set())
+        write_json(FLUID_HOST_TAG_TARGET / path.relative_to(source), {'values': values})
+        count += 1
     return count
 
 
@@ -1220,7 +1344,8 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     write_creative_tools()
-    tags = copy_tags() + copy_damage_tags()
+    fluid_count, fluid_names = write_fluid_defs()
+    tags = copy_tags() + copy_damage_tags() + copy_fluid_host_tags(fluid_names)
     write_damage_vanilla()
     languages = copy_lang()
     world_blocks_written, world_items_written = write_world_declarations()

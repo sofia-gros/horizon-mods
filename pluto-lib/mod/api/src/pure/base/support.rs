@@ -62,7 +62,7 @@ pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
         api: "resource_loader_v0::ResourceManagerHelper::reload_registry",
         support: Support::Stub,
-        behaviour: "owned membership/tag lookups and nested/unwind cleanup are pure-tested; a source-declared native reload wrapper scopes full entity-type IDs/effective world-pack tags and active item membership/tags with native fallback; invalid contents isolate that registry; outside callbacks/unsupported registries return None; native plan/type/build/game validation is pending",
+        behaviour: "owned membership/tag lookups and nested/unwind cleanup are pure-tested; a source-declared native reload wrapper scopes full entity-type IDs/effective world-pack tags and active item membership/tags with native fallback, plus native fluid IDs joined with PlutoLib-defined fluids and the host-loaded fluid tags (unknown members dropped, failed tag read leaves tags unavailable); invalid contents isolate that registry; outside callbacks/unsupported registries return None; native plan/type/build/game validation is pending",
         unblocked_by: "native attachment source/site review and consolidated native reload tests, full entity registry rather than render catalogs, effective versus fallback pack tags, absent versus empty tags, nested callbacks and scope teardown; other registries need their own validated sources",
     },
     SupportEntry {
