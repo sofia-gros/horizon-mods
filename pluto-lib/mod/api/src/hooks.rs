@@ -2105,11 +2105,22 @@ impl Hooks for PlutoHooks {
         let sneaking = host.sneaking();
         let mut outcome = None;
         let mut hand = Some(held.clone());
-        host.change_mod_block_entity(pos, &mut |entity| {
-            let Some(hand) = hand.take() else { return };
-            with_block_entity(entity, |data, items| {
-                outcome = block_entity_api_v1::BlockEntityTypeRegistry::use_block(&block, pos, data, items, hand, sneaking);
-                true
+        // The use handler sees the same reach as a ticker: its dimension, the world, and the neighbours' containers and
+        // tanks. Outside that reach every neighbour query answers "nothing there", so a faucet could never find the tank
+        // behind it or the table below it, and a click on it would change nothing.
+        let dimension = host.dimension().to_owned();
+        let handle = HostHandle::new(host);
+        world_api_v1::with_ticking_dimension(&dimension, || {
+            world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
+                    host.change_mod_block_entity(pos, &mut |entity| {
+                        let Some(hand) = hand.take() else { return };
+                        with_block_entity(entity, |data, items| {
+                            outcome = block_entity_api_v1::BlockEntityTypeRegistry::use_block(&block, pos, data, items, hand, sneaking);
+                            true
+                        });
+                    });
+                });
             });
         });
         let Some(outcome) = outcome else { return Flow::Continue };
