@@ -473,7 +473,7 @@ ASSET_TARGET = ROOT / 'tconstruct/content/assets/tconstruct'
 BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
 HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
 # Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
-SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater']
+SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
 SMELTERY_GUI_TEXTURES = ['melter', 'heater']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
@@ -575,7 +575,19 @@ def copy_client_assets():
 
     shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'license')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
-        variants = read(asset_source(f'blockstates/{name}.json')).get('variants', {})
+        blockstate = read(asset_source(f'blockstates/{name}.json'))
+        variants = blockstate.get('variants', {})
+        if name in SMELTERY_STATE_BLOCKS and 'multipart' in blockstate:
+            # the channel's parts: each applies a model (or a list of them) when its states hold
+            parts = blockstate['multipart']
+            applies = [apply for part in parts for apply in (part['apply'] if isinstance(part['apply'], list) else [part['apply']])]
+            if any(needs_loader(apply['model']) for apply in applies):
+                skipped.append(name)
+                continue
+            converted = [{**part, 'apply': ([{**a, 'model': import_model(a['model'])} for a in part['apply']] if isinstance(part['apply'], list) else {**part['apply'], 'model': import_model(part['apply']['model'])})} for part in parts]
+            write(f'blockstates/{name}.json', {'multipart': converted})
+            write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
+            continue
         if name in SMELTERY_STATE_BLOCKS:
             # The controllers declare facing/active/in_structure themselves, so the original's variants apply as they are.
             if any(needs_loader(variant['model']) for variant in variants.values()):
@@ -1114,7 +1126,7 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+MAP_COLOR = {'TERRACOTTA_BROWN': 48, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
              'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'WARPED_STEM': 56}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
@@ -1123,6 +1135,12 @@ DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
 WORLD_ITEMS = ['raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
+# TinkerSmeltery's casts: registerCast(name) makes <name>_cast (gold), <name>_sand_cast and <name>_red_sand_cast, all plain items
+# (PartCastItem only adds the part's tooltip); the arrow cast and the two blank casts are single plain items.
+CAST_NAMES = ['ingot', 'nugget', 'gem', 'rod', 'repair_kit', 'plate', 'gear', 'coin', 'wire', 'pick_head', 'small_axe_head', 'small_blade', 'adze_head',
+              'hammer_head', 'broad_axe_head', 'broad_blade', 'large_plate', 'tool_binding', 'tough_binding', 'tool_handle', 'tough_handle',
+              'bow_limb', 'bow_grip', 'helmet_plating', 'chestplate_plating', 'leggings_plating', 'boots_plating', 'maille']
+CAST_ITEMS = [f'{name}{kind}_cast' for name in CAST_NAMES for kind in ('', '_sand', '_red_sand')] + ['arrow_cast', 'blank_sand_cast', 'blank_red_sand_cast']
 WORLD_BIOME_MODIFIERS = ['cobalt_ore']
 
 
@@ -1167,7 +1185,21 @@ def smeltery_blocks():
         return {'template': 'minecraft:stone', 'properties': properties,
                 'state_properties': {'active': {'type': 'boolean'}, 'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}, 'in_structure': {'type': 'boolean'}},
                 'state_light': {'property': 'active', 'values': {'false': 0, 'true': 13}}, 'item': True}
-    return {'seared_melter': controller(False), 'seared_heater': controller(True)}
+    blocks = {'seared_melter': controller(False), 'seared_heater': controller(True)}
+    # the pouring blocks: searedNonSolidProps(METAL) strength 3/9 and scorchedNonSolidProps(BASALT) 2.5/8, both noOcclusion and
+    # requiring the correct tool; their block states are the original's (TableBlock facing + has_item, FaucetBlock facing,
+    # ChannelBlock down/powered and one of none/in/out per side). Waterlogging is left out (no fluid logging here).
+    flow = {'type': 'enum', 'values': ['none', 'in', 'out']}
+    states = {'table': {'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}, 'has_item': {'type': 'boolean'}},
+              'faucet': {'facing': {'type': 'enum', 'values': ['down', 'north', 'south', 'east', 'west']}},
+              'channel': {'down': {'type': 'boolean'}, 'powered': {'type': 'boolean'}, 'north': flow, 'south': flow, 'west': flow, 'east': flow}}
+    states['basin'] = states['table']
+    for kind, (color, hardness, resistance, sound) in {'seared': ('COLOR_GRAY', 3.0, 9.0, 'minecraft:iron_block'), 'scorched': ('TERRACOTTA_BROWN', 2.5, 8.0, 'minecraft:basalt')}.items():
+        for block, properties in states.items():
+            name = f'{kind}_{block}'
+            blocks[name] = {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                            'state_properties': properties, 'item': True}
+    return blocks
 
 
 def write_vanilla_fuels():
@@ -1210,9 +1242,9 @@ def write_world_declarations():
     blocks = {**world_blocks(), **smeltery_blocks()}
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
-    for name in WORLD_ITEMS:
+    for name in WORLD_ITEMS + CAST_ITEMS:
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper'}, compact=True)
-    return len(blocks), len(WORLD_ITEMS)
+    return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS)
 
 
 def whole(value):

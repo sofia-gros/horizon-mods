@@ -83,7 +83,12 @@ class ContentAssets(unittest.TestCase):
             self.assertEqual(definition['model']['type'], 'minecraft:model')
             self.assertTrue(self.resolves('models', 'json', definition['model']['model']), name)
         for name in blocks:
-            for variant in load(ASSETS / 'blockstates' / f'{name}.json')['variants'].values():
+            blockstate = load(ASSETS / 'blockstates' / f'{name}.json')
+            # a multipart block state (the channel) applies a model, or a list of them, per part
+            applied = list(blockstate['variants'].values()) if 'variants' in blockstate else [
+                apply for part in blockstate['multipart'] for apply in (part['apply'] if isinstance(part['apply'], list) else [part['apply']])]
+            self.assertTrue(applied, name)
+            for variant in applied:
                 self.assertTrue(self.resolves('models', 'json', variant['model']), name)
         for path in (ASSETS / 'items').glob('*.json'):
             self.assertIn(path.stem, blocks | items, f'item definition for an undeclared id: {path.name}')

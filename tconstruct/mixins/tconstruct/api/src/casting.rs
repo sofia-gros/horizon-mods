@@ -324,7 +324,9 @@ impl<'a> Live<'a> {
         let base = |fluid_amount, cooling_time| Found { id: recipe.id.clone(), fluid_amount, cooling_time, consumed: recipe.cast_consumed, switch_slots: recipe.switch_slots };
         match &recipe.kind {
             CastingKind::Item { .. } | CastingKind::Retextured { .. } | CastingKind::Duplication => {
-                recipe.matches(item, fluid, &in_fluid, false).then(|| base(recipe.fluid_amount(fluid, &in_fluid), recipe.cooling_time))
+                // `matches` asks one membership test for both the cast (an item tag) and the fluid (a fluid tag); the two tag sets are told apart by id
+                let either = |member: &Identifier, tag: &Identifier| in_fluid(member, tag) || in_item(member, tag);
+                recipe.matches(item, fluid, &either, false).then(|| base(recipe.fluid_amount(fluid, &in_fluid), recipe.cooling_time))
             }
             CastingKind::Material { result, item_cost } | CastingKind::Composite { result, item_cost, .. } => {
                 if !recipe.cast_matches(item, &in_item, false) { return None; }

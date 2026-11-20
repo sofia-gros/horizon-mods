@@ -2451,3 +2451,76 @@ fn a_melter_on_the_shipped_data_burns_coal_from_below_and_melts_an_ingot_and_a_p
     assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 + 180 }));
     assert!(world.containers[&[0, 63, 0]][0].is_none(), "the one coal was burned");
 }
+
+/// The pouring loop on the shipped data: a tank of molten iron behind a faucet, a casting table below it with a cast on it.
+struct Pour { tank: Option<pluto_lib::FluidStack>, state: crate::casting::State, items: Vec<Option<pluto_lib::ItemSlot>>, now: crate::casting::Live<'static> }
+impl pluto_lib::NeighbourOps for Pour {
+    fn item_slots(&mut self, _: pluto_lib::BlockPos, _: pluto_lib::Direction) -> Option<Vec<pluto_lib::NeighbourSlot>> { None }
+    fn extract_item(&mut self, _: pluto_lib::BlockPos, _: pluto_lib::Direction, _: usize, _: u32) -> Option<pluto_lib::ItemSlot> { None }
+    fn insert_item(&mut self, _: pluto_lib::BlockPos, _: pluto_lib::Direction, stack: pluto_lib::ItemSlot) -> Option<pluto_lib::ItemSlot> { Some(stack) }
+    fn fluid_tanks(&mut self, pos: pluto_lib::BlockPos, _: pluto_lib::Direction) -> Option<Vec<pluto_lib::NeighbourTank>> {
+        match pos {
+            [0, 64, 1] => Some(vec![pluto_lib::NeighbourTank { fluid: self.tank.clone(), capacity: 4000 }]),
+            [0, 63, 0] => Some(vec![pluto_lib::NeighbourTank { fluid: self.state.fluid.clone(), capacity: crate::casting::HOST_CAPACITY }]),
+            _ => None,
+        }
+    }
+    fn drain_fluid(&mut self, pos: pluto_lib::BlockPos, _: pluto_lib::Direction, amount: u32) -> Option<pluto_lib::FluidStack> {
+        if pos != [0, 64, 1] { return None; }
+        let held = self.tank.as_mut()?;
+        let taken = amount.min(held.amount);
+        held.amount -= taken;
+        let out = pluto_lib::FluidStack { fluid: held.fluid.clone(), amount: taken };
+        if held.amount == 0 { self.tank = None; }
+        Some(out)
+    }
+    fn fill_fluid(&mut self, pos: pluto_lib::BlockPos, _: pluto_lib::Direction, stack: &pluto_lib::FluidStack, execute: bool) -> u32 {
+        if pos != [0, 63, 0] { return 0; }
+        // the table's fluid filler, over a copy when only asking (what BlockEntityTypeRegistry::fill_fluid does)
+        let (mut state, mut items) = (self.state.clone(), self.items.clone());
+        let taken = state.fill(&self.now, &mut items, stack, false);
+        if execute { self.state = state; self.items = items; }
+        taken
+    }
+    fn block_state(&mut self, pos: pluto_lib::BlockPos) -> Option<String> { (pos == [0, 64, 0]).then(|| "tconstruct:seared_faucet[facing=north]".to_owned()) }
+}
+
+#[test]
+fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_and_the_basin_a_block() {
+    use crate::{casting::{State, Live, INPUT, OUTPUT}, casting_recipes::Station, faucet::{self, Around}, smeltery_data::Data};
+    use pluto_lib::{with_neighbours, FluidStack, ItemSlot};
+    let data: &'static Data = Box::leak(Box::new(Data { recipes: fluid_recipes(false), tags: fluid_tags(), recipes_loaded: true, tags_loaded: true }));
+    let tags: &'static pluto_lib::RegistryLookup = Box::leak(Box::new(pluto_lib::fixtures::registry_with_tags(
+        &["tconstruct:ingot_cast", "minecraft:iron_ingot", "minecraft:iron_block", "tconstruct:blank_sand_cast", "tconstruct:sand_cast"],
+        &[("tconstruct:casts/multi_use/ingot", &["tconstruct:ingot_cast"]), ("forge:ingots/iron", &["minecraft:iron_ingot"]), ("forge:storage_blocks/iron", &["minecraft:iron_block"]),
+          ("tconstruct:casts/sand", &["tconstruct:sand_cast"])]).unwrap()));
+    let iron = id("tconstruct:molten_iron");
+    let mut world = Pour {
+        tank: Some(FluidStack { fluid: iron.clone(), amount: 300 }), state: State::default(), items: vec![Some(ItemSlot::new(id("tconstruct:ingot_cast"), 1)), None],
+        now: Live { data, item_tags: Some(tags), station: Station::Table, materials: None },
+    };
+    let mut faucet = faucet::State::default();
+    with_neighbours(&mut world, || {
+        let mut around = Around::of([0, 64, 0], Around::facing_of([0, 64, 0]));
+        faucet.activate(&mut around);
+    });
+    assert_eq!(world.state.recipe.as_ref().map(|recipe| recipe.path()), Some("fluids/smeltery/casting/metal/iron/ingot_gold_cast"));
+    // the recipe takes exactly 90, so the faucet drew exactly that much
+    for _ in 0..20 {
+        with_neighbours(&mut world, || faucet.tick(&mut Around::of([0, 64, 0], Around::facing_of([0, 64, 0]))));
+    }
+    assert_eq!((world.tank.clone().map(|tank| tank.amount), world.state.fluid.clone().map(|fluid| fluid.amount), world.state.cooling), (Some(210), Some(90), 60));
+    for _ in 0..60 { world.state.tick(&world.now, &mut world.items); }
+    assert_eq!(world.items[OUTPUT].as_ref().map(|stack| stack.item.to_string()), Some("minecraft:iron_ingot".to_owned()));
+    assert_eq!(world.items[INPUT].as_ref().map(|stack| stack.item.to_string()), Some("tconstruct:ingot_cast".to_owned()));
+    // the basin casts a block with no cast, and a sand cast on the table is picked up as a blank one
+    let basin = Live { data, item_tags: Some(tags), station: Station::Basin, materials: None };
+    let (mut block, mut items) = (State::default(), vec![None, None]);
+    assert_eq!(block.fill(&basin, &mut items, &FluidStack { fluid: iron, amount: 900 }, false), 810);
+    for _ in 0..180 { block.tick(&basin, &mut items); }
+    assert_eq!(items[OUTPUT].as_ref().map(|stack| stack.item.to_string()), Some("minecraft:iron_block".to_owned()));
+    let (mut table, mut slots) = (State::default(), vec![Some(ItemSlot::new(id("tconstruct:sand_cast"), 1)), None]);
+    let mut hand = None;
+    table.interact(&world.now, &mut slots, &mut hand, &mut Vec::new());
+    assert_eq!(hand.map(|stack| stack.item.to_string()), Some("tconstruct:blank_sand_cast".to_owned()), "the shipped sand cast pickup recipe");
+}
