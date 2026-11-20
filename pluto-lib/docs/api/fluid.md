@@ -113,9 +113,7 @@ let _ = kind;
 
 ## Source Blocks and Buckets
 
-Many mods want a fluid to be a real thing in the world: placed from a bucket, flowing across the ground. `with_world_blocks` and `with_bucket` record that wish.
-
-> **Use with Caution.** Horizon has no source or flowing blocks of a mod's fluid, and no buckets of one yet, so these two do nothing today. They are kept and listed in the support matrix, and start working without a change in your mod once the game offers them. Until then a fluid exists only in tanks.
+`with_world_blocks` gives the fluid's block `<id>_fluid` flowing cells in the world and `with_bucket` a bucket `<id>_bucket`. Both run through PlutoLib's block and item hooks; see [fluid-items](fluid-items.md) for the rules, the container API and the limits.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -191,7 +189,7 @@ assert_eq!(water.color, 0xFFFF_FFFF);
 
 ### `FluidDef`
 
-A fluid a mod defines. `id` is its id, `attributes` how it looks and behaves, `world_blocks` whether it wants source and flowing blocks in the world (stub), `bucket` whether it wants a bucket (stub).
+A fluid a mod defines. `id` is its id, `attributes` how it looks and behaves, `world_blocks` whether it has source and flowing blocks in the world, `bucket` whether it has a bucket, `flow` how it flows, and `bucket_fill_sound` / `bucket_empty_sound` the sounds of its bucket.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -265,7 +263,7 @@ assert_eq!(FluidDef::new(Identifier::new("example", "ink").unwrap()).color(0xFF1
 
 ### `FluidDef::with_world_blocks`
 
-`fn with_world_blocks(self) -> FluidDef`. The fluid wants source and flowing blocks in the world. Kept; does nothing until the game has mod fluid blocks.
+`fn with_world_blocks(self) -> FluidDef`. The fluid has source and flowing blocks in the world (see [fluid-items](fluid-items.md)).
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -275,7 +273,7 @@ assert!(FluidDef::new(Identifier::new("example", "lake").unwrap()).with_world_bl
 
 ### `FluidDef::with_bucket`
 
-`fn with_bucket(self) -> FluidDef`. The fluid wants a bucket. Kept; does nothing until the game has mod fluid buckets.
+`fn with_bucket(self) -> FluidDef`. The fluid has a bucket `<id>_bucket` (see [fluid-items](fluid-items.md)).
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};

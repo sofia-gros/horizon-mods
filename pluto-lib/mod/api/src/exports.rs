@@ -31,7 +31,9 @@ pub use crate::pure::events_interaction_v0::{
 pub use crate::pure::lifecycle_events_v1::{
     self, ServerChunk, ServerChunkEvents, ServerInfo, ServerLifecycleEvents, ServerTickEvents, WorldTick,
 };
-pub use crate::pure::fluid_api_v1::{self, FluidAttributes, FluidDef, FluidRegistry, FluidRegistrySnapshot};
+pub use crate::pure::fluid_api_v1::{self, FluidAttributes, FluidDef, FluidFlow, FluidRegistry, FluidRegistrySnapshot};
+pub use crate::pure::fluid_item_api_v1::{self, Drained, Filled, FluidItemDef, FluidItems, FluidTarget, Interaction, TransferDirection};
+pub use crate::pure::fluid_world_api_v1::{self, FluidWorld};
 pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, LanguageEvents, Translations};
 pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnderMaskContext, ItemBehavior, ItemBehaviors};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};

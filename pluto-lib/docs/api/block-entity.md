@@ -686,6 +686,21 @@ let used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, hel
 assert!(used.fluid(0).is_none());
 ```
 
+### `BlockEntityUse::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties it with `None`: a use hook that trades fluid with the held container (see [fluid-items](fluid-items.md)) writes the tank back with it.
+
+```rust
+use pluto_lib::{BlockEntityUse, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: Vec::new() };
+used.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 250 }));
+assert_eq!(used.fluid(0).unwrap().amount, 250);
+used.set_fluid(0, None);
+assert!(used.fluid(0).is_none());
+```
+
 ## Forwarding and custom fluid storage
 
 A block that is only a door to another block's tanks (a drain in a smeltery wall), or that keeps its fluid in its own shape (one tank shared by several fluids), declares how its storage is reached. The pure rules are in [fluid-storage](fluid-storage.md), which answers a neighbour's query over these hooks.

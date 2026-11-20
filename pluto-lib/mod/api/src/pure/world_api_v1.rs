@@ -88,6 +88,11 @@ pub trait WorldOps {
     fn block_in_tag(&mut self, _block: &str, _tag: &str) -> bool {
         false
     }
+    /// Asks the game to tick `block` at `pos` after `delay` game ticks (Minecraft: `scheduleTick`); false when the host cannot schedule from
+    /// this callback, which is the default.
+    fn schedule_block_tick(&mut self, _dimension: &str, _pos: BlockPos, _block: &str, _delay: i32) -> bool {
+        false
+    }
     /// The saved data of the block entity at `pos` (without its position and id); None where there is none or it is not loaded.
     fn block_entity_data(&mut self, _dimension: &str, _pos: BlockPos) -> Option<NbtCompound> {
         None
@@ -216,6 +221,13 @@ impl World {
     /// Minecraft: `setBlockState`. False if it could not be set (chunk not loaded, unknown block, outside a callback).
     pub fn set_block_state(&self, pos: BlockPos, state: &BlockState) -> bool {
         with_current(false, |ops| ops.set_block_state(&self.dimension, pos, &state.to_string()))
+    }
+
+    /// Minecraft: `scheduleTick`. Asks for the block at `pos` to be ticked after `delay` game ticks (its behaviour's `scheduled_tick` runs). False
+    /// when the host cannot schedule from this callback, outside a callback, or for a delay below 1; the caller then relies on the block's own
+    /// random ticks and neighbour updates.
+    pub fn schedule_tick(&self, pos: BlockPos, block: &str, delay: i32) -> bool {
+        delay > 0 && with_current(false, |ops| ops.schedule_block_tick(&self.dimension, pos, block, delay))
     }
 
     /// The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); None where there is none, the chunk is not loaded

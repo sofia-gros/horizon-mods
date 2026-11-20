@@ -307,36 +307,230 @@ def fluid_type_expression(name, rest):
     return found.group(1)
 
 
+# FluidDeferredRegisterExtension: level decrease per block, slope find distance and tick rate of each family (Forge's defaults: 1, 4, 5).
+FLUID_FAMILIES = {'register': (1, 4, 5), 'registerSlime': (1, 4, 50), 'registerStone': (2, 2, 40), 'registerMetal': (3, 3, 30), 'registerGem': (4, 4, 45), 'registerGlass': (8, 8, 30)}
+# net.minecraft.world.level.material.MapColor ids
+MAP_COLORS = {name: index for index, name in enumerate(
+    'NONE GRASS SAND WOOL FIRE ICE METAL PLANT SNOW CLAY DIRT STONE WATER WOOD QUARTZ COLOR_ORANGE COLOR_MAGENTA COLOR_LIGHT_BLUE COLOR_YELLOW COLOR_LIGHT_GREEN '
+    'COLOR_PINK COLOR_GRAY COLOR_LIGHT_GRAY COLOR_CYAN COLOR_PURPLE COLOR_BLUE COLOR_BROWN COLOR_GREEN COLOR_RED COLOR_BLACK GOLD DIAMOND LAPIS EMERALD PODZOL NETHER '
+    'TERRACOTTA_WHITE TERRACOTTA_ORANGE TERRACOTTA_MAGENTA TERRACOTTA_LIGHT_BLUE TERRACOTTA_YELLOW TERRACOTTA_LIGHT_GREEN TERRACOTTA_PINK TERRACOTTA_GRAY '
+    'TERRACOTTA_LIGHT_GRAY TERRACOTTA_CYAN TERRACOTTA_PURPLE TERRACOTTA_BLUE TERRACOTTA_BROWN TERRACOTTA_GREEN TERRACOTTA_RED TERRACOTTA_BLACK CRIMSON_NYLIUM '
+    'CRIMSON_STEM CRIMSON_HYPHAE WARPED_NYLIUM WARPED_STEM WARPED_HYPHAE WARPED_WART_BLOCK DEEPSLATE RAW_IRON GLOW_LICHEN'.split())}
+FLUID_EFFECTS = {'MobEffects.POISON': 'minecraft:poison', 'MobEffects.MOVEMENT_SLOWDOWN': 'minecraft:slowness', 'MobEffects.BLINDNESS': 'minecraft:blindness',
+                 'TinkerEffects.bouncy.get()': 'tconstruct:bouncy', 'TinkerEffects.ricochet.get()': 'tconstruct:ricochet', 'TinkerEffects.enderference.get()': 'tconstruct:enderference'}
+
+
+def duration(text):
+    """A MobEffectInstance duration such as `5*20` or `250`."""
+    if not re.fullmatch(r'[0-9 *]+', text):
+        raise SystemExit(f'effect duration {text}')
+    result = 1
+    for factor in text.split('*'):
+        result *= int(factor)
+    return result
+
+
+def fluid_block(name, rest):
+    """The block of one registration: None when it has none (`.unplacable()`), else its map colour, light and contact rule."""
+    burning = re.search(r'\.burningBlock\(MapColor\.(\w+),\s*(\d+),\s*(\d+),\s*([\d.]+)f\)', rest)
+    if burning:
+        return {'color': burning.group(1), 'light': int(burning.group(2)), 'contact': ('burning', int(burning.group(3)), float(burning.group(4)))}
+    start = rest.find('.block(')
+    if start < 0:
+        if '.unplacable()' in rest:
+            return None
+        raise SystemExit(f'fluid {name}: block not understood: {rest}')
+    depth, index = 0, start + len('.block')
+    for index in range(start + len('.block'), len(rest)):
+        depth += rest[index] == '('
+        depth -= rest[index] == ')'
+        if depth == 0:
+            break
+    inner = rest[start + len('.block(') : index]
+    plain = re.fullmatch(r'MapColor\.(\w+),\s*(\d+)', inner)
+    if plain:
+        return {'color': plain.group(1), 'light': int(plain.group(2)), 'contact': None}
+    burn = re.fullmatch(r'createBurning\(MapColor\.(\w+),\s*(\d+),\s*(\d+),\s*([\d.]+)f\)', inner)
+    if burn:
+        return {'color': burn.group(1), 'light': int(burn.group(2)), 'contact': ('burning', int(burn.group(3)), float(burn.group(4)))}
+    effect = re.fullmatch(r'createEffect\(MapColor\.(\w+),\s*(\d+),\s*\(\)\s*->\s*new MobEffectInstance\(([\w.()]+),\s*([0-9 *]+)(?:,\s*(\d+))?\)\)', inner)
+    if not effect or effect.group(3) not in FLUID_EFFECTS:
+        raise SystemExit(f'fluid {name}: block not understood: {inner}')
+    block = {'color': effect.group(1), 'light': int(effect.group(2)),
+             'contact': ('effect', FLUID_EFFECTS[effect.group(3)], int(effect.group(5) or 0), duration(effect.group(4)))}
+    return block
+
+
+def fluid_registrations():
+    """One dict per `FLUIDS.register*` line of TinkerFluids, in registration order: its properties, flow family, block and bucket."""
+    rows = []
+    for line in FLUID_JAVA.read_text(encoding='utf-8').splitlines():
+        match = re.search(r'=\s*FLUIDS\.(register\w*)\("([a-z_]+)"(.*)$', line)
+        if not match:
+            continue
+        method, name, rest = match.groups()
+        values = fluid_properties(fluid_type_expression(name, rest))
+        texture = FLUID_TEXTURES / f'{name}.json'
+        info = json.loads(texture.read_text(encoding='utf-8')) if texture.exists() else {}
+        drop, slope, tick = FLUID_FAMILIES[method]
+        override = re.search(r'\.tickRate\((\d+)\)', rest)
+        base = re.search(r'\b(cool|powder|slime|hot)\(("[a-z_]*"\s*)?\)', fluid_type_expression(name, rest))
+        block = fluid_block(name, rest)
+        rows.append({'name': name, **values, 'color': int(info.get('color', 'FFFFFFFF'), 16), 'still': info.get('still'),
+                     'drop': drop, 'slope': slope, 'tick': int(override.group(1)) if override else tick,
+                     'hot': base.group(1) == 'hot', 'block': block,
+                     'bucket': block is not None})
+    return rows
+
+
 def write_fluid_defs():
-    """fluid_defs.rs: the original's 72 fluids with temperature, luminance, density, viscosity and tint, in TinkerFluids order.
+    """fluid_defs.rs: the original's 72 fluids with temperature, luminance, density, viscosity and tint, in TinkerFluids order, and
+    how each is in the world.
 
     Attributes are the FluidType.Properties of each registration (the `hot`/`slime`/`cool`/`powder` helper defaults, then the
     setters), the tint is the colour of the generated mantle fluid_texture (white when it has none). The names are the
-    original's `fluid.tconstruct.<name>` translations, already in the lang files. Blocks, buckets and flowing fluids are not
-    declared: the host has no mod fluid blocks."""
-    text = FLUID_JAVA.read_text(encoding='utf-8')
-    rows = []
-    for line in text.splitlines():
-        match = re.search(r'=\s*FLUIDS\.register\w*\("([a-z_]+)"(.*)$', line)
-        if not match:
-            continue
-        name, rest = match.groups()
-        values = fluid_properties(fluid_type_expression(name, rest))
-        texture = FLUID_TEXTURES / f'{name}.json'
-        color = int(json.loads(texture.read_text(encoding='utf-8')).get('color', 'FFFFFFFF'), 16) if texture.exists() else 0xFFFFFFFF
-        rows.append((name, values['temperature'], values['light'], values['density'], values['viscosity'], color))
-    if len(rows) != 72 or len({row[0] for row in rows}) != 72:
+    original's `fluid.tconstruct.<name>` translations, already in the lang files. The flow is the family's of
+    FluidDeferredRegisterExtension (level decrease, slope distance, tick rate), the block light and contact rule are those of
+    `createBurning` / `createEffect`, and a fluid with no block (`unplacable`: the potion and powdered snow) has neither block nor bucket here."""
+    rows = fluid_registrations()
+    if len(rows) != 72 or len({row['name'] for row in rows}) != 72:
         raise SystemExit(f"expected the original's 72 distinct fluids, found {len(rows)}")
-    lines = ["//! The original's 72 fluids (SlimeKnights TinkerFluids, MIT; see LICENSE): attributes and tint, in registration order.",
+    lines = ["//! The original's 72 fluids (SlimeKnights TinkerFluids, MIT; see LICENSE): attributes, tint and world behaviour, in registration order.",
              '//! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.', '',
-             '/// One fluid: id path (namespace tconstruct), kelvin, luminance, density, viscosity and tint (0xAARRGGBB).',
-             "pub(crate) struct FluidSpec { pub name: &'static str, pub temperature: i32, pub luminance: u8, pub density: i32, pub viscosity: i32, pub color: u32 }",
+             '/// What an entity inside the fluid block suffers (BurningLiquidBlock, MobEffectLiquidBlock).',
+             '#[derive(Clone, Copy, Debug, PartialEq)]',
+             'pub(crate) enum Contact { None, Burning { seconds: i32, damage: f32 }, Effect { effect: &\'static str, amplifier: i32, duration: i32 } }', '',
+             '/// One fluid: id path (namespace tconstruct), kelvin, luminance, density, viscosity and tint (0xAARRGGBB); whether it has a block and a bucket,',
+             '/// its flow (tick delay, level drop per block, slope distance), the sounds of its bucket (`hot`: the lava ones), the light of its block and its contact rule.',
+             "pub(crate) struct FluidSpec { pub name: &'static str, pub temperature: i32, pub luminance: u8, pub density: i32, pub viscosity: i32, pub color: u32,",
+             '    pub placeable: bool, pub bucket: bool, pub tick_delay: u16, pub level_drop: u8, pub slope_distance: u8, pub hot: bool, pub block_light: u8, pub contact: Contact }',
              '', 'pub(crate) const FLUIDS: &[FluidSpec] = &[']
-    for name, temperature, light, density, viscosity, color in rows:
-        lines.append(f'    FluidSpec {{ name: "{name}", temperature: {temperature}, luminance: {light}, density: {density}, viscosity: {viscosity}, color: 0x{color:08X} }},')
+    for row in rows:
+        block = row['block']
+        contact = 'Contact::None'
+        if block and block['contact']:
+            kind = block['contact']
+            contact = f'Contact::Burning {{ seconds: {kind[1]}, damage: {kind[2]:.1f} }}' if kind[0] == 'burning' else f'Contact::Effect {{ effect: "{kind[1]}", amplifier: {kind[2]}, duration: {kind[3]} }}'
+        lines.append(f"    FluidSpec {{ name: \"{row['name']}\", temperature: {row['temperature']}, luminance: {row['light']}, density: {row['density']}, viscosity: {row['viscosity']}, "
+                     f"color: 0x{row['color']:08X}, placeable: {str(block is not None).lower()}, bucket: {str(row['bucket']).lower()}, tick_delay: {row['tick']}, level_drop: {row['drop']}, "
+                     f"slope_distance: {row['slope']}, hot: {str(row['hot']).lower()}, block_light: {block['light'] if block else 0}, contact: {contact} }},")
     lines.append('];')
     FLUID_DEFS_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
-    return len(rows), {row[0] for row in rows}
+    return len(rows), {row['name'] for row in rows}
+
+
+def write_fluid_world():
+    """The content of the fluids that are blocks and buckets: for each fluid with a block, the block declaration (the vanilla glass template, no
+    collision, a `level` state 0 to 8 and an outline only on the source, so an empty bucket can reach it), its block state and nine stepped
+    models over the still texture of the original's fluid texture, and the bucket item (a plain item stacking to 1) with its model. The
+    still textures come from the original's resources. Runs after copy_client_assets, which clears the folders it writes into."""
+    count = 0
+    for row in fluid_registrations():
+        block, name = row['block'], row['name']
+        if block is None:
+            continue
+        still = row['still']
+        if still is None or not still.startswith('tconstruct:'):
+            raise SystemExit(f'fluid {name}: no still texture')
+        path = still.split(':', 1)[1]
+        source = asset_source(f'textures/{path}.png')
+        if not source.exists():
+            raise SystemExit(f'fluid texture missing: {still}')
+        destination = ASSET_TARGET / 'textures' / f'{path}.png'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        meta = source.parent / f'{source.name}.mcmeta'
+        if meta.exists():
+            (destination.parent / meta.name).write_bytes(meta.read_bytes().replace(b'\r\n', b'\n'))
+        # levels 0 to 8: the source and the amounts 7 to 1 stand 8/9 to 1/9 of a block, the falling column fills it
+        shapes = {str(level): ([[0, 0, 0, 16, 128 / 9, 16]] if level == 0 else []) for level in range(9)}
+        properties = {'hardness': 100.0, 'explosion_resistance': 100.0, 'map_color': MAP_COLORS[block['color']], 'occludes': False}
+        if block['light']:
+            properties['light'] = block['light']
+        tinted = row['color'] != 0xFFFFFFFF
+        declaration = {'template': 'minecraft:glass', 'item': False, 'properties': properties,
+                       'state_properties': {'level': {'type': 'enum', 'values': [str(level) for level in range(9)]}},
+                       'default_state': {'level': '0'}, 'shapes': {'property': 'level', 'values': shapes}, 'collision_shapes': {'default': []}}
+        write_json(HORIZON_DECLARATIONS / 'block' / f'{name}_fluid.json', declaration, compact=True)
+        variants = {}
+        for level in range(9):
+            amount = 8 if level in (0, 8) else 8 - level
+            height = 16 if level == 8 else amount * 16 / 9
+            face = {'texture': '#fluid', **({'tintindex': 0} if tinted else {})}
+            model = {'ambientocclusion': False, 'textures': {'fluid': still, 'particle': still},
+                     'elements': [{'from': [0, 0, 0], 'to': [16, round(height, 4), 16], 'faces': {side: dict(face) for side in ('down', 'up', 'north', 'south', 'west', 'east')}}]}
+            write_json(ASSET_TARGET / 'models/block/fluid' / name / f'level_{level}.json', model)
+            variants[f'level={level}'] = {'model': f'tconstruct:block/fluid/{name}/level_{level}'}
+        write_json(ASSET_TARGET / 'blockstates' / f'{name}_fluid.json', {'variants': variants})
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_bucket.json', {'template': 'minecraft:paper', 'max_stack_size': 1}, compact=True)
+        write_json(ASSET_TARGET / 'models/item' / f'{name}_bucket.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket'}})
+        item = {'type': 'minecraft:model', 'model': f'tconstruct:item/{name}_bucket'}
+        if tinted:
+            item['tints'] = [{'type': 'minecraft:constant', 'value': row['color'] & 0xFFFFFF}]
+        write_json(ASSET_TARGET / 'items' / f'{name}_bucket.json', {'model': item})
+        count += 1
+    return count
+
+
+def write_copper_can():
+    """The copper can's item model: the original's own fluid container loader is not available, so the can shows its base texture
+    (the fluid layer of the original's model is not drawn). Runs after copy_client_assets, which clears the folders it writes into."""
+    source = asset_source('textures/item/copper_can.png')
+    destination = ASSET_TARGET / 'textures/item/copper_can.png'
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, destination)
+    write_json(ASSET_TARGET / 'models/item/copper_can.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/copper_can'}})
+    write_json(ASSET_TARGET / 'items/copper_can.json', {'model': {'type': 'minecraft:model', 'model': 'tconstruct:item/copper_can'}})
+
+
+FLUID_TRANSFER_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/mantle/fluid_transfer'
+FLUID_TRANSFER_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/fluid_transfers.rs'
+FLUID_TAG_FOLDERS = [ROOT / '.local/tconstruct-source/src/generated/resources/data/forge/tags/fluids', ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tags/fluids']
+
+
+def fluid_tag_members(tag, seen=()):
+    """The source fluids of a fluid tag of the original: references followed, flowing variants dropped, other namespaces left out."""
+    namespace, path = tag.split(':', 1)
+    folder = {'forge': FLUID_TAG_FOLDERS[0], 'tconstruct': FLUID_TAG_FOLDERS[1]}[namespace]
+    found = []
+    for entry in json.loads((folder / f'{path}.json').read_text(encoding='utf-8'))['values']:
+        entry = entry if isinstance(entry, str) else entry['id']
+        if entry.startswith('#'):
+            if entry[1:] not in seen:
+                found += fluid_tag_members(entry[1:], seen + (tag,))
+        elif entry.startswith('tconstruct:') and not entry.startswith('tconstruct:flowing_'):
+            found.append(entry.split(':', 1)[1])
+    return found
+
+
+def write_fluid_transfers():
+    """fluid_transfers.rs: the original's `mantle:fill_item` and `mantle:empty_item` fluid transfers of Tinkers (a bowl or glass bottle fills
+    with 250 of a fluid, the meat soup and the bottles empty), fluid tags resolved to the source fluids they name. The two transfers that need
+    Twilight Forest items are left out (other-mod integration)."""
+    rows = []
+    for path in sorted(FLUID_TRANSFER_SOURCE.glob('*.json')):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if 'conditions' in data:
+            continue
+        kind = {'mantle:fill_item': 'Fill', 'mantle:empty_item': 'Empty'}[data['type']]
+        fluid = data['fluid']
+        names = [fluid['fluid'].split(':', 1)[1]] if 'fluid' in fluid else fluid_tag_members(fluid['tag'])
+        item = data['input']['item']
+        result = data['result']
+        rows.append((path.stem, kind, item, names, fluid['amount'], result))
+    lines = ["//! The original's Tinkers fluid container transfers (Mantle `fill_item` / `empty_item`, SlimeKnights; see LICENSE): a bowl or glass bottle fills with",
+             '//! an amount of a fluid and becomes the filled item, a filled item gives the amount back as the empty one. Generated from the pinned original',
+             '//! by tools/import_original_data.py; do not edit by hand.', '',
+             '#[derive(Clone, Copy, Debug, PartialEq, Eq)]', 'pub(crate) enum Kind { Fill, Empty }', '',
+             '/// One transfer: its name, direction, the held item, the fluids (ids in the tconstruct namespace) it takes or gives, the amount and the resulting item.',
+             'pub(crate) struct Transfer { pub name: &\'static str, pub kind: Kind, pub item: &\'static str, pub fluids: &\'static [&\'static str], pub amount: u32, pub result: &\'static str }', '',
+             'pub(crate) const TRANSFERS: &[Transfer] = &[']
+    for name, kind, item, names, amount, result in rows:
+        fluids = ', '.join(f'"{n}"' for n in names)
+        lines.append(f'    Transfer {{ name: "{name}", kind: Kind::{kind}, item: "{item}", fluids: &[{fluids}], amount: {amount}, result: "{result}" }},')
+    lines.append('];')
+    FLUID_TRANSFER_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(rows)
 
 
 def copy_fluid_host_tags(fluids):
@@ -1137,6 +1331,10 @@ DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
 WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
+# Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
+# The bottles' and the bowl's models are plain; the copper can's own loader is replaced by write_copper_can below.
+FLUID_ITEMS = {'venom_bottle': 16, 'earth_slime_bottle': 16, 'sky_slime_bottle': 16, 'ender_slime_bottle': 16, 'ichor_slime_bottle': 16, 'magma_bottle': 16,
+               'meat_soup': 1, 'copper_can': 16}
 # TinkerSmeltery's casts: registerCast(name) makes <name>_cast (gold), <name>_sand_cast and <name>_red_sand_cast, all plain items
 # (PartCastItem only adds the part's tooltip); the arrow cast and the two blank casts are single plain items.
 CAST_NAMES = ['ingot', 'nugget', 'gem', 'rod', 'repair_kit', 'plate', 'gear', 'coin', 'wire', 'pick_head', 'small_axe_head', 'small_blade', 'adze_head',
@@ -1323,7 +1521,9 @@ def write_world_declarations():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
     for name in WORLD_ITEMS + CAST_ITEMS:
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper'}, compact=True)
-    return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS)
+    for name, stack in FLUID_ITEMS.items():
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper', 'max_stack_size': stack}, compact=True)
+    return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS) + len(FLUID_ITEMS)
 
 
 def whole(value):
@@ -1647,6 +1847,9 @@ def main():
     world_blocks_written, world_items_written = write_world_declarations()
     crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
+    fluid_blocks = write_fluid_world()
+    write_copper_can()
+    transfers = write_fluid_transfers()
     world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
@@ -1654,9 +1857,9 @@ def main():
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
     worn_textures, worn_rows = copy_armor_worn_assets()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
-    unrendered = [name for name in unrendered if name not in part_names + tool_names]
+    unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

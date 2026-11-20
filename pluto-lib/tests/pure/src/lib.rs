@@ -182,6 +182,7 @@ mod api_pages {
     page!(Renderer, "renderer.md");
     page!(Fluid, "fluid.md");
     page!(Neighbours, "neighbours.md");
+    page!(FluidItems, "fluid-items.md");
     page!(I18n, "i18n.md");
     page!(World, "world.md");
     page!(Worldgen, "worldgen.md");

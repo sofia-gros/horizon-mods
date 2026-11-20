@@ -3,9 +3,10 @@
 //! mold on the table, the finished item), a tank whose capacity is whatever the matching recipe wants of the fluid poured in, the
 //! cooling timer, molding with the player's hand (sand and clay casts, picking a cast up) and the comparator strength.
 //! `State` is the whole block entity as plain data (saved in the block entity's own data); `Env` is what it asks of the recipes.
-//! Not ported here, each named where it would go: filling a held fluid container (waits for fluid stacks inside items), the
-//! `has_item` block state, redstone swapping, sounds and particles (a ticker has no world scope), the hopper face rules, potion and
-//! container recipes, retextured casting's texture, and tool casting (unit 7).
+//! A held fluid container empties into the tank or fills from it first (`State::transfer`, over PlutoLib's fluid items); the item swap
+//! only runs for a table without fluid. Not ported here, each named where it would go: the `has_item` block state, redstone swapping,
+//! sounds and particles (a ticker has no world scope), the hopper face rules, potion recipes, retextured casting's texture, and tool
+//! casting (unit 7).
 use crate::{
     casting_recipes::{Casting, CastingKind, MaterialCasting, Station},
     fluid_ingredient::{ItemOutput, Source},
@@ -14,8 +15,8 @@ use crate::{
     tool_materials::{part_material, set_part_material, MaterialVariant},
 };
 use pluto_lib::{
-    BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidStack, Identifier, ItemSlot,
-    Nbt, NbtCompound, NbtCompoundExt, RegistryLookup,
+    BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot,
+    Nbt, NbtCompound, NbtCompoundExt, RegistryLookup, TransferDirection,
 };
 
 pub(crate) const INPUT: usize = 0;
@@ -215,6 +216,16 @@ impl State {
             items[OUTPUT] = Some(output);
         }
         self.reset(env, items);
+    }
+
+    /// `FluidTransferHelper.interactWithContainer` on the table's tank: a held fluid container empties into the tank (as far as the recipe
+    /// takes it) or fills from what the tank holds. Skipped while the recipe cools. The outcome is the hand and what to give, `None` when
+    /// nothing moved.
+    pub(crate) fn transfer(&mut self, env: &dyn Env, items: &mut Vec<Option<ItemSlot>>, held: Option<&ItemSlot>, require_cast: bool) -> Option<pluto_lib::Interaction> {
+        slots(items);
+        if self.cooling >= 0 && self.timer > 0 { return None; }
+        let mut target = CastingTank { state: self, env, items, require_cast };
+        FluidItems::interact(held, &mut target, TransferDirection::Auto)
     }
 
     /// CastingBlockEntity.interact: a player used the table with `held` (None for an empty hand). Returns nothing; the hand and the
@@ -421,11 +432,45 @@ fn fill_casting(fill: &mut BlockEntityFill<'_>, station: Station, require_cast: 
     }).unwrap_or(0)
 }
 
-fn use_casting(used: &mut BlockEntityUse<'_>, station: Station) -> ActionResult {
+/// The casting table's tank as a trade partner (`CastingFluidHandler`): it fills by the recipe's rule (`State::fill`) and drains whatever it
+/// holds, which resets the table once empty.
+struct CastingTank<'a> { state: &'a mut State, env: &'a dyn Env, items: &'a mut Vec<Option<ItemSlot>>, require_cast: bool }
+
+impl FluidTarget for CastingTank<'_> {
+    fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 {
+        if execute { return self.state.fill(self.env, self.items, fluid, self.require_cast); }
+        let (mut state, mut items) = (self.state.clone(), self.items.clone());
+        state.fill(self.env, &mut items, fluid, self.require_cast)
+    }
+    fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
+        let held = self.state.fluid.as_ref()?;
+        if wanted.is_some_and(|wanted| wanted != &held.fluid) { return None; }
+        let taken = held.amount.min(amount);
+        if taken == 0 { return None; }
+        let out = FluidStack { fluid: held.fluid.clone(), amount: taken };
+        if execute {
+            let left = held.amount - taken;
+            if left == 0 { self.state.reset(self.env, self.items); } else {
+                self.state.fluid = Some(FluidStack { fluid: out.fluid.clone(), amount: left });
+                self.state.contents_changed(self.env, self.items);
+            }
+        }
+        Some(out)
+    }
+}
+
+fn use_casting(used: &mut BlockEntityUse<'_>, station: Station, require_cast: bool) -> ActionResult {
     // sneaking uses the block's neighbour instead
     if used.sneaking { return ActionResult::Pass; }
     with_live(station, |env| {
         let mut state = State::load(used.data, used.fluid(0));
+        // first the table as a tank; the item swap only runs for a table without fluid
+        if let Some(done) = state.transfer(env, used.items, used.held.as_ref(), require_cast) {
+            used.held = done.held;
+            used.give.extend(done.give);
+            state.save(used.data);
+            return ActionResult::Success;
+        }
         state.interact(env, used.items, &mut used.held, &mut used.give);
         state.save(used.data);
         ActionResult::Success
@@ -439,7 +484,7 @@ pub(crate) fn register() {
             BlockEntityType::new(block).item_slots(SLOTS as u32).fluid_tanks([HOST_CAPACITY]).sync_data()
                 .ticker(move |tick| tick_casting(tick, station))
                 .fluid_filler(move |fill| fill_casting(fill, station, require_cast))
-                .on_use(move |used| use_casting(used, station)),
+                .on_use(move |used| use_casting(used, station, require_cast)),
         );
     }
 }

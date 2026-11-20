@@ -186,10 +186,10 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "PlutoLib-owned adapters inside the corresponding feature execution contexts, retaining their RNG and world semantics",
     },
     SupportEntry {
-        api: "fluid_api_v1::FluidDef::with_world_blocks / with_bucket",
+        api: "fluid_world_api_v1::FluidWorld (the first tick of a placed source, entity contact)",
         support: Support::Stub,
-        behaviour: "the request is kept; no source or flowing blocks and no bucket of a mod's fluid exist",
-        unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
+        behaviour: "the flow, the buckets and the fluid's block behaviour are pure-tested and run through existing block hooks; a source a bucket places asks for its first tick through World::schedule_tick, which does nothing until the host adapter schedules from an item use, so it starts flowing at its first random tick or neighbour change; entity contact (burning, effects, swimming, buoyancy, fog) has no hook",
+        unblocked_by: "a HostWorld adapter for WorldOps::schedule_block_tick, and an entity-inside hook that can act on the entity",
     },
     SupportEntry {
         api: "living_entity_drops::LivingEntityDropsCallback / LivingEntityDrops",

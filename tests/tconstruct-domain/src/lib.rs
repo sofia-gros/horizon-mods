@@ -203,6 +203,10 @@ mod smeltery_blocks;
 mod tank;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_io.rs"]
 mod smeltery_io;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_transfers.rs"]
+mod fluid_transfers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_items.rs"]
+mod fluid_items;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]

@@ -217,6 +217,11 @@ impl BlockEntityUse<'_> {
     pub fn fluid(&self, index: usize) -> Option<FluidStack> {
         read_fluid(self.data, index)
     }
+
+    /// Puts `stack` in tank `index`, or empties the tank with `None` (a held bucket filling or emptying the block's tank).
+    pub fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>) {
+        write_fluid(self.data, index, stack);
+    }
 }
 
 /// What a use of the block did: the answer, the hand afterwards and what the player is given.

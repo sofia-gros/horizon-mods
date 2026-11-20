@@ -159,16 +159,35 @@ pub(crate) fn drain_tank(name: &str, drain: &mut BlockEntityDrain<'_>) -> Option
     Some(FluidStack { fluid: out.fluid, amount: out.amount as u32 })
 }
 
+/// `FluidTransferHelper.interactWithTank` (SearedTankBlock.use): the held container empties into the tank or fills from it; `Pass` when
+/// nothing moved. A stack of several containers trades one at a time, a stack of tanks as a whole (TankItem's scaled handler).
+fn use_tank(name: &str, used: &mut pluto_lib::BlockEntityUse<'_>) -> pluto_lib::ActionResult {
+    struct Block(Tank);
+    impl pluto_lib::FluidTarget for Block {
+        fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 { self.0.fill(&fluid.fluid, fluid.amount.min(i32::MAX as u32) as i32, execute).max(0) as u32 }
+        fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
+            self.0.drain(wanted, amount.min(i32::MAX as u32) as i32, execute).map(|out| FluidStack { fluid: out.fluid, amount: out.amount as u32 })
+        }
+    }
+    let mut target = Block(tank_of(name, used.data));
+    let Some(done) = pluto_lib::FluidItems::interact(used.held.as_ref(), &mut target, pluto_lib::TransferDirection::Auto) else { return pluto_lib::ActionResult::Pass };
+    target.0.write(used.data);
+    used.held = done.held;
+    used.give.extend(done.give);
+    pluto_lib::ActionResult::Success
+}
+
 pub(crate) fn register() {
     for (name, _) in blocks() {
         let block = Identifier::new("tconstruct", &name).expect("valid tank id");
-        let (for_tick, for_read, for_fill, for_drain) = (name.clone(), name.clone(), name.clone(), name);
+        let (for_tick, for_read, for_fill, for_drain, for_use) = (name.clone(), name.clone(), name.clone(), name.clone(), name);
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(block).sync_data()
                 .ticker(move |tick| tick_tank(&for_tick, tick))
                 .fluid_reader(move |data| read_tanks(&for_read, data))
                 .fluid_filler(move |fill| fill_tank(&for_fill, fill))
-                .fluid_drainer(move |drain| drain_tank(&for_drain, drain)),
+                .fluid_drainer(move |drain| drain_tank(&for_drain, drain))
+                .on_use(move |used| use_tank(&for_use, used)),
         );
     }
 }
