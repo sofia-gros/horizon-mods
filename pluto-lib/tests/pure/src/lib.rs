@@ -181,6 +181,7 @@ mod api_pages {
     page!(Screen, "screen.md");
     page!(Renderer, "renderer.md");
     page!(Fluid, "fluid.md");
+    page!(Neighbours, "neighbours.md");
     page!(I18n, "i18n.md");
     page!(World, "world.md");
     page!(Worldgen, "worldgen.md");
