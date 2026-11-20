@@ -69,6 +69,14 @@ impl Ingredient {
                     let hook = id(fields.get("hook").ok_or("hook missing")?)?;
                     Ok(Self::Intersection(vec![Self::Tag(tag), Self::Tag(hook_tag(&hook))]))
                 }
+                // PotionDisplayIngredient (Mantle): an item that matches whatever potion it carries; the display variants only list them.
+                Some("mantle:potion_display") => Ok(Self::Item(id(fields.get("item").ok_or("item missing")?)?)),
+                // BlockTagIngredient: an item whose block is in a block tag. The host snapshots item tags only, so the importer writes the
+                // block tag's items as the item tag `tconstruct:block_tags/<namespace>/<path>` and the ingredient reads that.
+                Some("tconstruct:block_tag") => {
+                    let tag = id(fields.get("tag").ok_or("tag missing")?)?;
+                    Ok(Self::Tag(Identifier::new("tconstruct", &format!("block_tags/{}/{}", tag.namespace(), tag.path())).map_err(|e| e.to_string())?))
+                }
                 Some(other) => Err(format!("unimplemented ingredient type {other}")),
             },
             _ => Err("ingredient must be an object or a nonempty array".into()),

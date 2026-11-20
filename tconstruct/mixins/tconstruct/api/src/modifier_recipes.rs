@@ -500,7 +500,7 @@ mod tests {
         };
         assert!(bad(json!({"inputs":[]})) && bad(json!({"slots":{"upgrades":1,"abilities":1}})) && bad(json!({"slots":{"Bad Name":1}})) && bad(json!({"slots":{"upgrades":0}})));
         assert!(bad(json!({"level":{"min":3,"max":2}})) && bad(json!({"max_tool_size":0})) && bad(json!({"result":3})));
-        assert!(bad(json!({"inputs":[{"type":"tconstruct:block_tag","tag":"tconstruct:tanks"}]})), "ingredients this port lacks reject the recipe");
+        assert!(bad(json!({"inputs":[{"type":"tconstruct:not_ported","tag":"tconstruct:tanks"}]})), "ingredients this port lacks reject the recipe");
     }
     #[test]
     fn recipes_load_in_id_order_with_conditions_and_report_unsupported_ones() {

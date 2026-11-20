@@ -147,6 +147,10 @@ mod part_builder_menu;
 mod creative_parts;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_tools.rs"]
 mod creative_tools;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_fluids.rs"]
+mod creative_fluids;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/convention_tags.rs"]
+mod convention_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative.rs"]
 mod creative;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]
@@ -207,3 +211,7 @@ mod smeltery_io;
 mod reload_tests;
 #[cfg(test)]
 mod original_data;
+#[cfg(test)]
+mod casting_loop;
+#[cfg(test)]
+mod visuals;

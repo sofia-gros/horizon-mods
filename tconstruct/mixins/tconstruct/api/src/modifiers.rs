@@ -611,10 +611,27 @@ mod tests {
     }
 }
 
+/// The modifiers the original defines only in code (a Java class, no data file) that a material trait names and Tinkers has not ported:
+/// DwarvenModifier (copper), StrongBonesModifier (bone), ConductingModifier (blazing bone), EnderportingModifier (ender pearl and ender slime
+/// vine), InsatiableModifier (jadeite), LaceratingModifier (nahuatl), MomentumModifier (hepatizon) and SelfDestructiveModifier (gunpowder).
+/// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
+/// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
+pub(crate) const CODE_MODIFIERS: &[&str] = &["conducting", "dwarven", "enderporting", "insatiable", "lacerating", "momentum", "self_destructive", "strong_bones"];
+
+pub(crate) fn unported_code_modifiers() -> Result<Vec<Modifier>, String> {
+    CODE_MODIFIERS.iter().map(|name| {
+        let id = Identifier::new("tconstruct", name).map_err(|e| e.to_string())?;
+        let mut modifier = Modifier::decode(id.clone(), &serde_json::json!({}))?;
+        modifier.unbound = vec![id];
+        Ok(modifier)
+    }).collect()
+}
+
 pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<Arc<RwLock<Registry>>, String> {
     // Overslime is defined in code in the original; it survives every reload as a static modifier.
     let mut registry = Registry::default();
     for modifier in crate::overslime::code_modifiers()? { registry.register_static(modifier)?; }
+    for modifier in unported_code_modifiers()? { registry.register_static(modifier)?; }
     let state = Arc::new(RwLock::new(registry));
     let output = state.clone();
     ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(

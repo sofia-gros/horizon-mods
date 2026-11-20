@@ -39,8 +39,16 @@ pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> {
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
 pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
+/// The item registry snapshot with Forge's convention tags (`forge:ingots/iron`, `forge:glass`...) that the original's recipes name and
+/// nothing in this host defines, each holding the vanilla and Tinkers items it stands for (convention_tags.rs).
+pub(crate) fn with_convention_tags(items: pluto_lib::RegistryLookup) -> pluto_lib::RegistryLookup {
+    let extra: Vec<(Identifier, Vec<Identifier>)> = crate::convention_tags::TAGS.iter().filter_map(|(tag, members)| {
+        Some((Identifier::parse(tag).ok()?, members.iter().filter_map(|member| Identifier::parse(member).ok()).collect()))
+    }).collect();
+    items.with_extra_tags(&extra)
+}
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
-    let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap());
+    let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap()).map(with_convention_tags);
     if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
         *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));

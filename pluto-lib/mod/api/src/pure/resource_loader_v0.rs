@@ -100,6 +100,17 @@ impl RegistryLookup {
     /// Whether the ID exists in this captured registry (not just a render catalog).
     pub fn contains(&self,id:&Identifier)->bool { self.entries.contains(id) }
     pub(crate) fn entry_count(&self)->usize { self.entries.len() }
+    /// A copy with extra tag members added: each `(tag, members)` joins the captured tag of that id (or makes a new tag). Members that
+    /// are not entries of this registry are left out, as an optional tag entry is. The snapshot itself is not changed.
+    pub fn with_extra_tags(&self,extra:&[(Identifier,Vec<Identifier>)])->Self {
+        let mut result=self.clone();
+        for (tag,members) in extra {
+            let present:Vec<Identifier>=members.iter().filter(|id|self.entries.contains(id)).cloned().collect();
+            if present.is_empty() { continue; }
+            result.tags.entry(tag.clone()).or_default().extend(present);
+        }
+        result
+    }
     /// Members of a captured tag; None means absent, Some(empty) means present but empty.
     pub fn get_tag(&self,tag:&Identifier)->Option<&std::collections::BTreeSet<Identifier>> { self.tags.get(tag) }
     pub(crate) fn from_parts(entries:&[String],tags:&[(String,Vec<String>)])->Result<Self,String> {
