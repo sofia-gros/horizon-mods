@@ -169,6 +169,11 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     };
     let mut wrong = Vec::new();
     for name in &declared {
+        // Fluid blocks have no item in the original, and its soulsteel bucket is registered but in no tab ("future: soulsteel").
+        if name.ends_with("_fluid") || name == "tconstruct:molten_soulsteel_bucket" {
+            for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
+            continue;
+        }
         let tab = expected(name);
         if !groups[tab].contains(name) { wrong.push(format!("{name} is missing from {tab}")); }
         for (other, entries) in &groups {

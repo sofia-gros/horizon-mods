@@ -5,9 +5,9 @@
 //! creative_parts.rs, creative_tools.rs and creative_fluids.rs; a datapack's extra materials are not listed. A tool stack carries only
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
-//! drains, and anvils, none of which exist yet), the books, food, glass, platforms and gadgets of the general tab, the copper can,
-//! lanterns, gauges of other kinds, chutes, cannons, tank and proxy tank of the smeltery tab, the geodes, heads, trees and foliage
-//! of the world tab, and the buckets and bottles of the vanilla tabs.
+//! drains, and anvils, none of which exist yet), the books, food, glass, platforms and gadgets of the general tab,
+//! lanterns, gauges of other kinds, chutes, cannons, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
+//! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
 
@@ -85,11 +85,12 @@ fn casts(family: &str) -> Vec<String> {
 }
 
 /// TinkerSmeltery.addTabItems for the declared items: crafting items, controllers, IO blocks, tanks, fluid transfer, casting blocks,
-/// the seared and scorched building blocks and the casts; venom bottle closes it (TinkerFluids.addTabItems is called by the smeltery).
+/// the seared and scorched building blocks and the casts; the buckets and bottles of TinkerFluids.addTabItems close it, as the smeltery
+/// calls it last. The soulsteel bucket is in no tab: the original registers it but leaves it for the future.
 pub(crate) fn smeltery_group() -> ItemGroup {
     let mut names: Vec<String> = Vec::new();
     let mut add = |list: &[&str]| names.extend(list.iter().map(|name| (*name).to_owned()));
-    add(&["grout", "seared_brick", "nether_grout", "scorched_brick"]);
+    add(&["grout", "seared_brick", "nether_grout", "scorched_brick", "copper_can"]);
     add(&["seared_melter", "seared_heater", "smeltery_controller", "foundry_controller"]);
     add(&["seared_drain", "seared_duct", "scorched_drain", "scorched_duct"]);
     let smeltery = group("smeltery", "Tinkers' Smeltery", item("smeltery_controller"));
@@ -120,7 +121,18 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(casts("sand_"));
     rest.push("blank_red_sand_cast".to_owned());
     rest.extend(casts("red_sand_"));
-    rest.push("venom_bottle".to_owned());
+    // TinkerFluids.addTabItems, which the smeltery calls after the casts: the slime fluids and their bottles, the food fluids and the
+    // meat soup bowl, the stone fluids, the ore, metal and alloy fluids, then the compat metals and alloys. The splash and lingering
+    // bottles are not declared in this port, and the soulsteel bucket is in no tab in the original.
+    rest.extend(["earth_slime_bucket", "sky_slime_bucket", "ichor_bucket", "ender_slime_bucket", "earth_slime_bottle", "sky_slime_bottle", "ichor_slime_bottle", "ender_slime_bottle", "magma_bucket", "magma_bottle", "venom_bucket", "venom_bottle"].map(str::to_owned));
+    rest.extend(["honey_bucket", "beetroot_soup_bucket", "mushroom_stew_bucket", "rabbit_stew_bucket", "meat_soup_bucket", "meat_soup"].map(str::to_owned));
+    rest.extend(["seared_stone_bucket", "scorched_stone_bucket", "molten_clay_bucket", "molten_porcelain_bucket", "molten_glass_bucket", "molten_obsidian_bucket", "liquid_soul_bucket", "molten_ender_bucket", "blazing_blood_bucket"].map(str::to_owned));
+    rest.extend(["molten_emerald_bucket", "molten_quartz_bucket", "molten_amethyst_bucket", "molten_diamond_bucket", "molten_debris_bucket"].map(str::to_owned));
+    rest.extend(["molten_copper_bucket", "molten_iron_bucket", "molten_gold_bucket", "molten_cobalt_bucket", "molten_steel_bucket"].map(str::to_owned));
+    rest.extend(["molten_slimesteel_bucket", "molten_amethyst_bronze_bucket", "molten_rose_gold_bucket", "molten_pig_iron_bucket"].map(str::to_owned));
+    rest.extend(["molten_cinderslime_bucket", "molten_queens_slime_bucket", "molten_manyullyn_bucket", "molten_hepatizon_bucket", "molten_netherite_bucket", "molten_knightmetal_bucket", "molten_knightslime_bucket"].map(str::to_owned));
+    rest.extend(["molten_tin_bucket", "molten_aluminum_bucket", "molten_lead_bucket", "molten_silver_bucket", "molten_nickel_bucket", "molten_zinc_bucket", "molten_platinum_bucket", "molten_tungsten_bucket", "molten_osmium_bucket", "molten_uranium_bucket", "molten_chromium_bucket", "molten_cadmium_bucket"].map(str::to_owned));
+    rest.extend(["molten_bronze_bucket", "molten_brass_bucket", "molten_electrum_bucket", "molten_invar_bucket", "molten_constantan_bucket", "molten_pewter_bucket", "molten_nicrosil_bucket", "molten_enderium_bucket", "molten_lumium_bucket", "molten_signalum_bucket", "molten_refined_glowstone_bucket", "molten_refined_obsidian_bucket", "molten_duralumin_bucket", "molten_bendalloy_bucket", "molten_steeleaf_bucket", "fiery_liquid_bucket"].map(str::to_owned));
     entries.extend(rest.iter().map(|name| item(name)));
     smeltery.entries(entries)
 }
