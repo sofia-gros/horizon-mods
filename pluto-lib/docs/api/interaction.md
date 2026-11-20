@@ -76,7 +76,21 @@ use pluto_lib::PlayerBlockBreakEvents;
 PlayerBlockBreakEvents::BEFORE.register(|broken| broken.pos != [0, 64, 0]);
 ```
 
-> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` remains a stub (support matrix).
+`PlayerBlockBreakEvents::AFTER` runs once the block is gone. Every break event gets a `BlockBreakContext`: the position, dimension and block state, the player and the stack in their main hand, and `actions` for what to do to the player. For `AFTER` the held stack is the tool as of the report, after the break wore it, so a callback can read its custom data and queue an `EditStackData` for the main hand.
+
+```rust
+use pluto_lib::{ActionTarget, EntityAction, PlayerBlockBreakEvents, StackDataEdit, StackSlot, Nbt};
+
+PlayerBlockBreakEvents::AFTER.register(|broken| {
+    let Some(tool) = &broken.held else { return };
+    broken.actions.borrow_mut().push(EntityAction::EditStackData {
+        target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: tool.item.clone(),
+        edits: vec![StackDataEdit { path: vec!["mined".into()], value: Some(Nbt::Int(1)) }],
+    });
+});
+```
+
+> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` is not immediate: the game has no hook at the end of a break, so it runs at the breaking player's next tick or next break, at most one tick late, and only if the block at the position is no longer the one `BEFORE` saw (a break another mod cancelled later is not reported). `held` is the tool as of that tick. Creative breaks are heard too; it carries no block entity. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
 
 ## Reference
 
@@ -126,13 +140,24 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A block is being broken. `pos` is its position `[x, y, z]`.
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only).
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
 
 PlayerBlockBreakEvents::BEFORE.register(|broken: &BlockBreakContext| broken.pos[1] >= 0);
-assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext { pos: [1, 70, 1] }));
+assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([1, 70, 1])));
+```
+
+### `BlockBreakContext::at`
+
+A context that holds only a position: the other fields are empty. Useful in tests and for callbacks that only read `pos`.
+
+```rust
+use pluto_lib::BlockBreakContext;
+
+let context = BlockBreakContext::at([1, 70, 1]);
+assert!(context.player.is_none() && context.held.is_none() && context.actions.borrow().is_empty());
 ```
 
 ## Events
@@ -228,21 +253,36 @@ let used = UseItemOnBlockContext {
 assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
-### `UseItemFinishContext`
+### `Hand`
 
-A player finished eating or drinking an item. `item` is the item id and `player` the player (its methods work inside the callback).
+The hand a player used an item in (`Main` or `Off`; Minecraft: `InteractionHand`).
 
 ```rust
-use pluto_lib::{ServerPlayer, UseItemFinishContext};
+use pluto_lib::Hand;
 
-let done = UseItemFinishContext { item: "example:cheese".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() } };
+assert_ne!(Hand::Main, Hand::Off);
+```
+
+### `UseItemFinishContext`
+
+A player finished eating or drinking an item. `item` is the item id and `player` the player (its methods work inside the callback). `stack` is the stack that was used (damage, max damage and custom data) and `hand` the hand it was used in. `slot` is what that hand holds now with all its components (`None` when the last of a stack was eaten), and `replacement` is where a callback puts a changed copy of it: the later callbacks see it, and the game writes it to the hand. `dimension` and `position` say where the player is, and `creative` whether nothing is used up.
+
+```rust
+use std::cell::RefCell;
+use pluto_lib::{Hand, ServerPlayer, StackData, UseItemFinishContext};
+
+let done = UseItemFinishContext {
+    item: "example:cheese".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() }, stack: StackData::default(), hand: Hand::Main,
+    slot: None, replacement: RefCell::new(None), dimension: "minecraft:overworld".into(), position: [0.0, 64.0, 0.0], creative: false,
+};
 assert_eq!(done.item, "example:cheese");
 assert_eq!(done.player.name, "Alex");
+assert_eq!(done.hand, Hand::Main);
 ```
 
 ### `UseItemFinishCallback`
 
-A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects have been given, only for a player on the server.
+A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects have been given, only for a player on the server. A callback may wear the used stack or change what the hand holds through `replacement`.
 
 ```rust
 use pluto_lib::UseItemFinishCallback;
@@ -250,6 +290,13 @@ use pluto_lib::UseItemFinishCallback;
 UseItemFinishCallback::EVENT.register(|done| {
     if done.item == "example:cheese" {
         let _ = done.player.effects();
+    }
+    // Eating the tool wears it by two: change a copy of what the hand holds and hand it back.
+    if done.item == "example:lunchbox" && !done.creative {
+        if let Some(mut worn) = done.slot.clone() {
+            worn.damage += 2;
+            *done.replacement.borrow_mut() = Some(worn);
+        }
     }
 });
 ```
@@ -259,12 +306,16 @@ UseItemFinishCallback::EVENT.register(|done| {
 The event to register on. Every callback is called in turn.
 
 ```rust
-use pluto_lib::{ServerPlayer, UseItemFinishCallback, UseItemFinishContext};
+use std::cell::RefCell;
+use pluto_lib::{Hand, ServerPlayer, StackData, UseItemFinishCallback, UseItemFinishContext};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static FINISHED: AtomicU32 = AtomicU32::new(0);
 UseItemFinishCallback::EVENT.register(|done| if done.item == "example:snack" { FINISHED.fetch_add(1, Ordering::SeqCst); });
-let done = UseItemFinishContext { item: "example:snack".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() } };
+let done = UseItemFinishContext {
+    item: "example:snack".into(), player: ServerPlayer { uuid: 1, name: "Alex".into() }, stack: StackData::default(), hand: Hand::Off,
+    slot: None, replacement: RefCell::new(None), dimension: "minecraft:overworld".into(), position: [0.0, 64.0, 0.0], creative: true,
+};
 UseItemFinishCallback::EVENT.invoke(&done);
 assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
 ```
@@ -343,7 +394,7 @@ assert!(!AttackEntityCallback::EVENT.invoke(&attack).is_accepted());
 
 ### `PlayerBlockBreakEvents`
 
-The block-break events. `BEFORE` decides whether a break may proceed; a veto emits `CANCELED` once for that attempt. `AFTER` remains accepted but never invoked (support matrix).
+The block-break events. `BEFORE` decides whether a break may proceed; a veto emits `CANCELED` once for that attempt; `AFTER` hears a break that removed the block.
 
 ```rust
 use pluto_lib::PlayerBlockBreakEvents;
@@ -359,18 +410,20 @@ Before a block is broken. Answer `false` to cancel the break; one `false` is eno
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
 
 PlayerBlockBreakEvents::BEFORE.register(|b| b.pos != [0, 64, 0]); // protect the block at the origin
-assert!(!PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext { pos: [0, 64, 0] }));
-assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext { pos: [1, 64, 0] }));
+assert!(!PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([0, 64, 0])));
+assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([1, 64, 0])));
 ```
 
 ### `PlayerBlockBreakEvents::AFTER`
 
-Stub: after a block was broken. Accepted, not invoked yet.
+After a player's break removed a block (Fabric: `PlayerBlockBreakEvents.AFTER`). Read the player, the block's `state` and the worn `held` tool from the context and queue `actions` for the player; see "Breaking Blocks" for when it runs and what it leaves out.
 
 ```rust
 use pluto_lib::PlayerBlockBreakEvents;
 
-PlayerBlockBreakEvents::AFTER.register(|_| {});
+PlayerBlockBreakEvents::AFTER.register(|broken| {
+    if broken.state.as_ref().is_some_and(|state| state.block.path() == "stone") && broken.held.is_none() { return; }
+});
 ```
 
 ### `PlayerBlockBreakEvents::CANCELED`

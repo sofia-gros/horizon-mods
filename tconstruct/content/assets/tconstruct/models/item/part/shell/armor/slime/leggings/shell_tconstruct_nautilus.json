@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/armor/slime/leggings/shell_tconstruct_nautilus"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        1,
+        7.5
+      ],
+      "to": [
+        16,
+        17,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#layer0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#layer0"
+        }
+      }
+    }
+  ]
+}

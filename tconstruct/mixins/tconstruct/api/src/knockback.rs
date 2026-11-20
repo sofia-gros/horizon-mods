@@ -56,7 +56,7 @@ mod tests {
         let nbt = tool();
         let entry = Entry::new(Identifier::parse("tconstruct:springy").unwrap(), 2);
         let springy = module(json!({"each_level": 0.25}));
-        let strength = springy.apply(&entry, true, &ToolView { nbt: &nbt }, 0.5, false, &|_| false);
+        let strength = springy.apply(&entry, true, &ToolView::of(&nbt), 0.5, false, &|_| false);
         assert!((strength - 0.75).abs() < 1e-6, "{strength}");
     }
 
@@ -65,9 +65,9 @@ mod tests {
         let nbt = tool();
         let entry = Entry::new(Identifier::parse("tconstruct:knockback").unwrap(), 1);
         let knockback = module(json!({"allow": "projectile", "each_level": 0.5}));
-        assert_eq!(knockback.apply(&entry, true, &ToolView { nbt: &nbt }, 0.5, false, &|_| false), 0.5);
-        assert!(knockback.apply(&entry, true, &ToolView { nbt: &nbt }, 0.5, true, &|_| false) > 0.5);
-        assert_eq!(module(json!({"allow": "melee", "each_level": 0.5})).apply(&entry, false, &ToolView { nbt: &nbt }, 0.5, false, &|_| false), 0.5, "a failed condition changes nothing");
+        assert_eq!(knockback.apply(&entry, true, &ToolView::of(&nbt), 0.5, false, &|_| false), 0.5);
+        assert!(knockback.apply(&entry, true, &ToolView::of(&nbt), 0.5, true, &|_| false) > 0.5);
+        assert_eq!(module(json!({"allow": "melee", "each_level": 0.5})).apply(&entry, false, &ToolView::of(&nbt), 0.5, false, &|_| false), 0.5, "a failed condition changes nothing");
     }
 
     #[test]
@@ -75,8 +75,8 @@ mod tests {
         let nbt = tool();
         let entry = Entry::new(Identifier::parse("tconstruct:knockback").unwrap(), 1);
         let filtered = module(json!({"entity": {"type": "mantle:tag", "tag": "minecraft:undead"}, "flat": 1.0}));
-        assert_eq!(filtered.apply(&entry, true, &ToolView { nbt: &nbt }, 0.5, false, &|_| false), 0.5);
-        assert_eq!(filtered.apply(&entry, true, &ToolView { nbt: &nbt }, 0.5, false, &|_| true), 1.0);
+        assert_eq!(filtered.apply(&entry, true, &ToolView::of(&nbt), 0.5, false, &|_| false), 0.5);
+        assert_eq!(filtered.apply(&entry, true, &ToolView::of(&nbt), 0.5, false, &|_| true), 1.0);
     }
 
     #[test]

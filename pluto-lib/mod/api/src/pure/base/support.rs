@@ -239,12 +239,6 @@ pub const MATRIX: &[SupportEntry] = &[
         behaviour: "callbacks are accepted and never invoked",
         unblocked_by: "a PlutoLib injection that reads the block state in Horizon's block_entity_inside (the hook gives the state id only)",
     },
-    SupportEntry {
-        api: "events_interaction_v0::PlayerBlockBreakEvents::AFTER",
-        support: Support::Stub,
-        behaviour: "callbacks are accepted and never invoked; BEFORE and its veto notification CANCELED work",
-        unblocked_by: "wiring Horizon's block-destroyed notifications (a hook point to map, not yet done)",
-    },
 ];
 
 /// Rows for a given support class.

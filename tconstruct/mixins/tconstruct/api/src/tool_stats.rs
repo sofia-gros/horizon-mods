@@ -8,6 +8,8 @@ pub(crate) enum Stat {
     Durability, UseItemSpeed, AttackDamage, AttackSpeed, MiningSpeed, Armor, ArmorToughness,
     KnockbackResistance, BlockAmount, BlockAngle, DrawSpeed, Velocity, Accuracy,
     ProjectileDamage, WaterInertia, SeaLuck, Lure, Overslime,
+    /// EdibleModule.HUNGER, SATURATION, EAT_DURATION and COUNTER_CHANCE.
+    Hunger, Saturation, EatDuration, EdibleCounterChance,
 }
 impl Stat {
     pub fn from_id(id: &Identifier) -> Option<Self> {
@@ -21,6 +23,8 @@ impl Stat {
             "draw_speed" => Self::DrawSpeed, "velocity" => Self::Velocity, "accuracy" => Self::Accuracy,
             "projectile_damage" => Self::ProjectileDamage, "water_inertia" => Self::WaterInertia,
             "sea_luck" => Self::SeaLuck, "lure" => Self::Lure, "overslime" => Self::Overslime,
+            "hunger" => Self::Hunger, "saturation" => Self::Saturation, "eat_duration" => Self::EatDuration,
+            "edible_counter_chance" => Self::EdibleCounterChance,
             _ => return None,
         })
     }
@@ -35,10 +39,14 @@ impl Stat {
             Self::DrawSpeed => "draw_speed", Self::Velocity => "velocity", Self::Accuracy => "accuracy",
             Self::ProjectileDamage => "projectile_damage", Self::WaterInertia => "water_inertia",
             Self::SeaLuck => "sea_luck", Self::Lure => "lure", Self::Overslime => "overslime",
+            Self::Hunger => "hunger", Self::Saturation => "saturation", Self::EatDuration => "eat_duration",
+            Self::EdibleCounterChance => "edible_counter_chance",
         }
     }
     /// The registered default value of the stat (its limits' first entry).
     pub fn default_value(self) -> f32 { self.limits().0 }
+    /// FloatToolStat.clamp: the value held inside the stat's limits.
+    pub fn clamp(self, value: f32) -> f32 { let (_, min, max) = self.limits(); value.clamp(min, max) }
     fn limits(self) -> (f32, f32, f32) {
         match self {
             Self::Durability => (1.0, 1.0, i32::MAX as f32),
@@ -57,6 +65,9 @@ impl Stat {
             Self::SeaLuck => (0.0, 0.0, 1024.0),
             Self::Lure => (0.0, 0.0, 5.0),
             Self::Overslime => (0.0, 0.0, i16::MAX as f32),
+            Self::Hunger | Self::Saturation => (0.0, 0.0, 200.0),
+            Self::EatDuration => (16.0, 0.0, 100.0),
+            Self::EdibleCounterChance => (0.0, 0.0, 1.0),
         }
     }
 }

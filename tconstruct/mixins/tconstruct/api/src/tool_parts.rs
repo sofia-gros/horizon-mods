@@ -35,6 +35,11 @@ pub(crate) fn tool_stack_size(item: &Identifier) -> i32 {
     TOOL_STACKS.iter().find(|(path, _)| *path == item.path()).map_or(1, |(_, size)| *size)
 }
 
+/// Every tool item the original registers (`TinkerTools`), in registration order.
+pub(crate) fn tool_items() -> impl Iterator<Item = Identifier> {
+    TOOL_STACKS.iter().map(|(path, _)| Identifier::new("tconstruct", path).expect("valid tool item"))
+}
+
 pub(crate) fn registry() -> BTreeMap<Identifier, ToolPart> {
     PARTS.iter().map(|(item, stat)| {
         let item = Identifier::new("tconstruct", item).expect("valid part item");

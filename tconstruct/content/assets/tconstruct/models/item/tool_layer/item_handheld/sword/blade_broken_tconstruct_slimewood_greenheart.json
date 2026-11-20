@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/sword/blade_broken_tconstruct_slimewood_greenheart"
+  }
+}

@@ -54,8 +54,9 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let list = materials(nbt, env.has_materials);
     let saved = upgrades(nbt);
     let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let has_hook = |hook: &Identifier| definition.has_hook(hook);
     let hook_traits = |hook: &Identifier| definition.hook_traits(hook, &list, env.materials).unwrap_or_default();
-    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), modifier_tags: Some(&env.modifiers.reverse_tags) };
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), has_hook: Some(&has_hook), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
     Ok(true)
@@ -89,8 +90,9 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     let saved = saved_modifiers(nbt, env.modifiers);
     let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
     let list = materials(nbt, env.has_materials);
+    let has_hook = |hook: &Identifier| env.definition.is_some_and(|data| data.has_hook(hook));
     let hook_traits = |hook: &Identifier| env.definition.and_then(|data| data.hook_traits(hook, &list, env.materials).ok()).unwrap_or_default();
-    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), modifier_tags: Some(&env.modifiers.reverse_tags) };
+    let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), has_hook: Some(&has_hook), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let upgrades = upgrades(nbt);
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }
@@ -104,7 +106,7 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
             for (priority, module) in modifier.mining_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::of(nbt);
         modules.into_iter().fold(speed, |speed, (_, _, entry, module)| module.mining_speed(entry, facts, &view, context, speed))
     })
 }
@@ -123,6 +125,12 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
 }
 
+/// ToolActionModifierHook over every modifier of the tool: whether one of them lets it perform the named tool action
+/// (a tool actions module such as `item_hook`, `drill_attack`, `grapple_hook` or `shield_disable`).
+pub(crate) fn can_perform_action(nbt: &NbtCompound, env: &Environment, name: &str) -> bool {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.can_perform_action(entry, facts, name)))
+}
+
 /// What the tool's modifiers add to the protection cap attribute (boundless).
 pub(crate) fn protection_cap(nbt: &NbtCompound, env: &Environment) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.protection_cap(entry, facts, nbt)).sum())
@@ -133,22 +141,110 @@ pub(crate) fn protection(nbt: &NbtCompound, env: &Environment, source: &crate::p
     with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(value, |value, (entry, modifier)| modifier.protection(entry, facts, nbt, source, value)))
 }
 
+/// ProtectionModifierHook as `protection` runs it, and the edits of the piece's persistent data that what the modules spent (the overslime an
+/// overshield converts) leaves behind. Each modifier's modules see the overslime the earlier ones left.
+pub(crate) fn protection_with_edits(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, value: f32) -> (f32, Vec<pluto_lib::StackDataEdit>) {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        let value = saved.iter().fold(value, |value, (entry, modifier)| {
+            let value = modifier.protection(entry, facts, &work, source, value);
+            modifier.modules().iter().fold(value, |value, module| module.overshield(entry, &mut work, source, value))
+        });
+        (value, crate::capacity::persistent_edits(nbt, &work))
+    })
+}
+
+/// What the restore-lost-health modules of a worn piece do for `amount` of damage its wearer took, with the modifier each belongs to (the cause
+/// of the wear it costs), in modifier order. `roll` gives uniform values in [0, 1).
+pub(crate) fn restores(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, amount: f32, roll: &mut dyn FnMut() -> f32) -> Vec<(Identifier, crate::wearer_modules::Restore)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(restore) = module.restore_lost_health(entry, facts, source, amount, roll) { found.push((entry.id.clone(), restore)); }
+            }
+        }
+        found
+    })
+}
+
+/// What taking a worn piece off does to its wearer besides clearing effects: the hurts (damage type, amount) its damage-on-unequip modules deal
+/// and the shares (category, percent) its reduce-effect modules take off the wearer's effects, in modifier order.
+pub(crate) fn unequip_effects(nbt: &NbtCompound, env: &Environment) -> (Vec<(String, f32)>, Vec<(pluto_lib::EffectCategory, f32)>) {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let (mut hurts, mut reductions) = (Vec::new(), Vec::new());
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                hurts.extend(module.damage_on_unequip(entry, facts));
+                reductions.extend(module.reduce_effect_on_unequip(entry, facts));
+            }
+        }
+        (hurts, reductions)
+    })
+}
+
+/// ModifyDamageModifierHook over every modifier of the tool, in modifier order, starting from `amount`: the damage its wearer takes.
+pub(crate) fn adjust_damage(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().fold(amount, |amount, (entry, modifier)| if amount > 0.0 { modifier.adjust_damage(entry, facts, nbt, source, entities, amount) } else { amount }))
+}
+
 /// The attribute modifiers the tool's modifiers add for the `wanted` slots (AttributesModifierHook), in modifier order.
 pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[&str]) -> Vec<NbtCompound> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())
 }
 
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
-/// priority order (highest first, ties in modifier order), starting from `damage`.
-pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+/// priority order (highest first, ties in modifier order), starting from `damage`. `entities` are the attacker and target as PlutoLib
+/// reported them, for the modules that read their health, temperature or effects.
+pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
         for (index, (entry, modifier)) in saved.iter().enumerate() {
             for (priority, module) in modifier.melee_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::with(nbt, *entities);
         modules.into_iter().fold(damage, |damage, (_, _, entry, module)| module.melee_damage(entry, facts, &view, base, damage, target_in_tag))
+    })
+}
+
+/// ConditionalStatModifierHook.getModifiedStat: the tool's stored `stat` after each modifier's conditional stat modules (a modifier's
+/// modules by priority, the modifiers in tool order), clamped to the stat's limits. `holder_in_tag` answers the holder's pseudo state tags
+/// and `entities.attacker` is the holder's state, for the variables that read it. A stat the item does not support is returned as stored.
+pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut value = self::stat(nbt, stat);
+        if !crate::modifier_modules::supports(stat, facts) { return stat.clamp(value); }
+        let view = crate::mining_speed::ToolView::with(nbt, *entities);
+        let multiplier = view.multiplier(stat);
+        for (entry, modifier) in saved {
+            let mut modules: Vec<(i32, &crate::modifier_modules::Module)> = modifier.conditional_stat_modules().collect();
+            modules.sort_by_key(|(priority, _)| std::cmp::Reverse(*priority));
+            for (_, module) in modules { value = module.conditional_stat(entry, facts, &view, holder_in_tag, stat, value, multiplier); }
+        }
+        stat.clamp(value)
+    })
+}
+
+/// ProjectileShootModifierHook for every conditional power module of the tool: its projectile damage multiplier is recorded in the
+/// projectile's persistent data (separately for ammo and for a launcher).
+pub(crate) fn power_shoot(nbt: &NbtCompound, env: &Environment, is_ammo: bool, projectile: &mut NbtCompound) {
+    with_tool_facts(nbt, env, |saved, _| {
+        let multiplier = crate::mining_speed::ToolView::of(nbt).multiplier(Stat::ProjectileDamage);
+        for (_, modifier) in saved { for (_, module) in modifier.conditional_power_modules() { module.shoot(is_ammo, multiplier, projectile); } }
+    })
+}
+
+/// ProjectileHitModifierHook for every conditional power module of the shooter's tool, in priority order (highest first, ties in
+/// modifier order): the arrow's base damage after them, each modifier boosting once per projectile.
+pub(crate) fn power_hit(nbt: &NbtCompound, env: &Environment, projectile: &mut NbtCompound, context: &crate::conditional_stat::PowerContext, base_damage: f32) -> f32 {
+    with_tool_facts(nbt, env, |saved, _| {
+        let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::conditional_stat::ConditionalPower)> = Vec::new();
+        for (index, (entry, modifier)) in saved.iter().enumerate() {
+            for (priority, module) in modifier.conditional_power_modules() { modules.push((priority, index, entry, module)); }
+        }
+        modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
+        modules.into_iter().fold(base_damage, |damage, (_, _, entry, module)| module.hit(entry, projectile, context, damage))
     })
 }
 
@@ -161,7 +257,7 @@ pub(crate) fn melee_knockback(nbt: &NbtCompound, env: &Environment, strength: f3
             for (priority, module) in modifier.knockback_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView { nbt };
+        let view = crate::mining_speed::ToolView::of(nbt);
         modules.into_iter().fold(strength, |strength, (_, _, entry, module)| module.knockback(entry, facts, &view, strength, target_in_tag))
     })
 }
@@ -174,6 +270,20 @@ pub(crate) fn weapon_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn 
         for (entry, modifier) in saved {
             for module in modifier.weapon_effect_modules() {
                 if let Some(grant) = module.weapon_effect(entry, facts, in_tag, rolls) { grants.push(grant); }
+            }
+        }
+        grants
+    })
+}
+
+/// The mob effects this tool puts on its own holder for a use of it (a swing, a shot, shearing a mob), in modifier order. `rolls` gives uniform
+/// values in [0, 1).
+pub(crate) fn usage_effects(nbt: &NbtCompound, env: &Environment, usage: crate::weapon_effect::Usage, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::weapon_effect::Grant> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut grants = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.usage_effect_modules() {
+                if let Some(grant) = module.usage_effect(entry, facts, usage, rolls) { grants.push(grant); }
             }
         }
         grants
@@ -200,6 +310,47 @@ pub(crate) fn effect_immunities(nbt: &NbtCompound, env: &Environment) -> Vec<(Id
     })
 }
 
+/// The effects taking a worn armor piece off takes off its wearer (clear-effect-on-unequip modules), in modifier order.
+pub(crate) fn effects_cleared_on_unequip(nbt: &NbtCompound, env: &Environment) -> Vec<Identifier> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.clear_effect_on_unequip(entry, facts))).collect())
+}
+
+/// The claims a worn armor piece makes on attributes through max armor attribute modules, in modifier order.
+pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crate::max_armor::Candidate> {
+    let broken = is_broken(nbt);
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.max_armor_attribute_modules().filter_map(move |module| module.max_armor_candidate(entry, facts, broken)).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// The levels a worn armor piece adds under each armor level key, in modifier order.
+pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    let broken = is_broken(nbt);
+    saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.armor_level_modules().filter_map(move |module| module.armor_level(entry, broken)).collect::<Vec<_>>()).collect()
+}
+/// EdibleModule: whether the tool carries the edible module, and the effects eating it has, in modifier order.
+pub(crate) fn edible(nbt: &NbtCompound, env: &Environment) -> Option<Vec<crate::edible::Effect>> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        if !saved.iter().any(|(_, modifier)| modifier.is_edible()) { return None; }
+        Some(saved.iter().flat_map(|(entry, modifier)| modifier.edible_effects(entry, facts)).collect())
+    })
+}
+/// The mob types a worn armor piece makes its wearer pass for, each with the count the piece adds (its modifier's level), in modifier order.
+pub(crate) fn mob_disguises(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    let mut disguises = Vec::new();
+    for (entry, modifier) in saved_modifiers(nbt, env.modifiers) {
+        for module in modifier.mob_disguise_modules() {
+            if let Some(disguise) = module.mob_disguise(&entry) { disguises.push(disguise); }
+        }
+    }
+    disguises
+}
+
+/// ModifierUtil.checkVolatileFlag: whether the tool's volatile data holds the flag.
+pub(crate) fn volatile_flag(nbt: &NbtCompound, flag: &str) -> bool {
+    matches!(nbt.get(TAG_VOLATILE), Some(Nbt::Compound(data)) if boolean(data, flag))
+}
+
 /// The damage a worn armor piece's thorns deal to the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and
 /// the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
 pub(crate) fn thorns_hurts(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::thorns::Hurt> {
@@ -214,6 +365,93 @@ pub(crate) fn thorns_hurts(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn
     })
 }
 
+/// The actions a melee hit with this tool does to the mob it hit (fire, freezing), in modifier order.
+pub(crate) fn attack_actions(nbt: &NbtCompound, env: &Environment) -> Vec<pluto_lib::EntityAction> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.attack_action_modules().filter_map(move |module| module.attack_action(entry, facts)).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// The edits of the persistent data a melee hit with this tool makes through its melee capacity modules (each module in modifier order, on
+/// the result of the one before). `target_in_tag` and `attacker_in_tag` answer the entity type and state tags of the mob hit and of the player.
+pub(crate) fn melee_capacity_edits(nbt: &NbtCompound, env: &Environment, target_in_tag: &dyn Fn(&Identifier) -> bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.melee_capacity_modules() {
+                let Some((owner, grant)) = module.melee_capacity(entry, facts, target_in_tag, attacker_in_tag) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, owner) { target.grant(&mut work, env, grant); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
+/// The edits of the persistent data one block broken with this tool makes through its mining capacity modules (each in modifier order, on
+/// the result of the one before): the modules that run before the break (`before`) or after it.
+pub(crate) fn mining_capacity_edits(nbt: &NbtCompound, env: &Environment, before: bool) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.mining_capacity_modules() {
+                let Some((owner, grant)) = module.mining_capacity(entry, facts, before) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, owner) { target.grant(&mut work, env, grant); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
+/// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one
+/// before left), and the edits of the persistent data that fill their bars. `in_tag(item, tag)` answers item tag membership.
+pub(crate) fn loot_capacity(nbt: &NbtCompound, env: &Environment, loot: &mut Vec<pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::StackDataEdit> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut work = nbt.clone();
+        for (entry, modifier) in saved {
+            for module in modifier.loot_capacity_modules() {
+                let Some(fill) = module.loot_capacity(entry, facts) else { continue };
+                let added = fill.eat(entry, loot, in_tag, rolls);
+                if added <= 0 { continue; }
+                if let Some(target) = crate::capacity::Target::find(saved, entry, fill.owner()) { target.grant(&mut work, env, added); }
+            }
+        }
+        crate::capacity::persistent_edits(nbt, &work)
+    })
+}
+
+/// The damage a worn armor piece lets through after its damage to capacity modules took what their bars hold (in priority order, highest
+/// first), and the edits of the piece's persistent data that fill the bars.
+pub(crate) fn damage_capacity(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, damage: f32) -> (f32, Vec<pluto_lib::StackDataEdit>) {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut order: Vec<usize> = (0..saved.len()).collect();
+        order.sort_by_key(|&index| (std::cmp::Reverse(saved[index].1.priority), index));
+        let mut work = nbt.clone();
+        let mut damage = damage;
+        for index in order {
+            let (entry, modifier) = &saved[index];
+            for module in modifier.damage_capacity_modules() {
+                let Some(fill) = module.damage_capacity(entry, facts, source) else { continue };
+                if let Some(target) = crate::capacity::Target::find(saved, entry, fill.owner()) { damage = fill.absorb(&mut work, &target, entry, damage); }
+            }
+        }
+        (damage, crate::capacity::persistent_edits(nbt, &work))
+    })
+}
+
+/// The actions a worn armor piece does to the mob that hit its wearer (fire, freezing, knockback), in modifier order. `in_tag` answers the
+/// entity type tags and the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
+pub(crate) fn counter_actions(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::EntityAction> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut actions = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.counter_action_modules() {
+                if let Some(action) = module.counter_action(entry, facts, in_tag, rolls) { actions.push(action); }
+            }
+        }
+        actions
+    })
+}
+
 /// The mob effects a worn armor piece puts on the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and the
 /// pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
 pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
@@ -222,6 +460,20 @@ pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn
         for (entry, modifier) in saved {
             for module in modifier.counter_effect_modules() {
                 if let Some(grant) = module.counter_effect(entry, facts, in_tag, rolls) { grants.push(grant); }
+            }
+        }
+        grants
+    })
+}
+
+/// The mob effects a worn armor piece puts on the mob its wearer hit in melee, in modifier order. `source` is the hit's damage; `in_tag`
+/// answers the entity type tags and the pseudo state tags (of the mob hit, and of the wearer for the holder); `rolls` gives uniform values in [0, 1).
+pub(crate) fn armor_attack_effects(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<crate::weapon_effect::Grant> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut grants = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.armor_attack_effect_modules() {
+                if let Some(grant) = module.armor_attack_effect(entry, facts, source, in_tag, rolls) { grants.push(grant); }
             }
         }
         grants
@@ -254,10 +506,40 @@ pub(crate) fn try_validate(nbt: &NbtCompound, env: &Environment) -> Option<Strin
         let free = crate::modifier_entries::nbt_int(persistent.get(&name)).wrapping_add(crate::modifier_entries::nbt_int(volatile.get(&name)));
         if free < 0 { return Some(format!("recipe.tconstruct.modifier.validate_slots slot_type.tconstruct.{name}")); }
     }
+    // Stacks that no longer fit the tool's slots stop the change (the move itself is validate_inventory).
+    let mut checked = nbt.clone();
+    if let Err(error) = validate_inventory(&mut checked, env) { return Some(error.to_owned()); }
     let upgrades = List::from_nbt(nbt.get(TAG_UPGRADES));
     with_tool_facts(nbt, env, |_, facts| {
         upgrades.entries().iter().find_map(|entry| env.modifiers.get(&entry.id).and_then(|modifier| modifier.validate_upgrade(entry, facts)))
     })
+}
+
+/// The tool's item handler: every inventory module of its modifiers, the last modifier first (ToolInventoryCapability).
+pub(crate) fn inventory(nbt: &NbtCompound, env: &Environment) -> crate::tool_inventory::ToolInventory {
+    with_tool_facts(nbt, env, |saved, facts| {
+        crate::tool_inventory::ToolInventory::new(saved.iter().rev().flat_map(|(entry, modifier)| modifier.inventory_parts(entry, facts)).collect())
+    })
+}
+
+/// The slots the tool's volatile data counts (ToolInventoryCapability.TOTAL_SLOTS); the capability exists only above zero.
+pub(crate) fn inventory_slots(nbt: &NbtCompound) -> i32 {
+    match nbt.get(TAG_VOLATILE) { Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get(crate::tool_inventory::TOTAL_SLOTS)), _ => 0 }
+}
+
+/// Runs `edit` over the tool's persistent data (the stored stacks live there) and writes it back.
+pub(crate) fn with_persistent<R>(nbt: &mut NbtCompound, edit: impl FnOnce(&mut NbtCompound) -> R) -> R {
+    let mut persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let result = edit(&mut persistent);
+    if persistent.is_empty() { if nbt.contains_key(TAG_PERSISTENT) && !matches!(nbt.get(TAG_PERSISTENT), Some(Nbt::Compound(data)) if data.is_empty()) { nbt.remove(TAG_PERSISTENT); } }
+    else { nbt.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent)); }
+    result
+}
+
+/// InventoryModule.validate over the tool: stacks above a module's slots move down; an error key when they cannot.
+pub(crate) fn validate_inventory(nbt: &mut NbtCompound, env: &Environment) -> Result<(), &'static str> {
+    let handler = inventory(nbt, env);
+    with_persistent(nbt, |persistent| handler.validate(persistent))
 }
 
 /// ToolDamageUtil.damage's modifier loop: each modifier may cancel part of the damage; once nothing
@@ -266,7 +548,7 @@ pub(crate) fn reduce_damage(nbt: &NbtCompound, env: &Environment, cause: Option<
     let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| env.modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
     with_tool_facts(nbt, env, |saved, facts| {
         for (entry, modifier) in saved {
-            amount = modifier.reduce_damage(entry, facts, cause, &modifier_in_tag, amount, random);
+            amount = modifier.reduce_damage(entry, facts, nbt, cause, &modifier_in_tag, amount, random);
             if amount <= 0 { return 0; }
         }
         amount

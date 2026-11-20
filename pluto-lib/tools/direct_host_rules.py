@@ -228,6 +228,40 @@ RULES = [
             let e = pluto_entity_particle_event(e, self);
             match e {''')],
     },
+    {
+        'id': 'pluto-armor-worn-layers',
+        'file': 'crates/horizon-client/src/game/armor_stands.rs',
+        'sha256': '72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a',
+        'target': "horizon_client::game::armor_stands::Game<'_>::armor_layers",
+        'kind': 'MODIFY_VARIABLE', 'helper': 'pluto-armor-worn-layers.rs',
+        # The worn stack's registered renderer replaces the equipment asset's layer list for that piece; glint, trims, CIT and
+        # emissive overlays keep running over whichever list it is.
+        'edits': [('''            let Some(layers) = assets.equipment.get(&asset).and_then(|k| k.get(kind)) else {
+                continue;
+            };
+            let Some(part) = assets.player.get(layer) else {''', '''            let Some(layers) = assets.equipment.get(&asset).and_then(|k| k.get(kind)) else {
+                continue;
+            };
+            let pluto_layers = pluto_armor_worn_layers(self, stack, kind);
+            let layers = pluto_layers.as_ref().unwrap_or(layers);
+            let Some(part) = assets.player.get(layer) else {''')],
+    },
+    {
+        'id': 'pluto-armor-stand-worn-layers',
+        'file': 'crates/horizon-client/src/game/armor_stands.rs',
+        'sha256': '72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a',
+        'target': "horizon_client::game::armor_stands::Game<'_>::armor_stand_vertices",
+        'kind': 'MODIFY_VARIABLE', 'helper': 'pluto-armor-worn-layers.rs', 'append_helper': False,
+        'edits': [('''            let Some(layers) = assets.equipment.get(&asset).and_then(|k| k.get(kind)) else {
+                continue;
+            };
+            let Some(part) = assets.layers.get(&(layer, a.small)) else {''', '''            let Some(layers) = assets.equipment.get(&asset).and_then(|k| k.get(kind)) else {
+                continue;
+            };
+            let pluto_layers = pluto_armor_worn_layers(self, Some(stack), kind);
+            let layers = pluto_layers.as_ref().unwrap_or(layers);
+            let Some(part) = assets.layers.get(&(layer, a.small)) else {''')],
+    },
 ]
 
 

@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/14",
+  "textures": {
+    "layer0": "tconstruct:item/tool/armor/travelers/shield/wood_tconstruct_slimewood_greenheart"
+  }
+}

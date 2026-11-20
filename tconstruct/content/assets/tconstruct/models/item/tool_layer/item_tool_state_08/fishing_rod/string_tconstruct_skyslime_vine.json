@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/08",
+  "textures": {
+    "layer0": "tconstruct:item/tool/fishing_rod/string_tconstruct_skyslime_vine"
+  }
+}

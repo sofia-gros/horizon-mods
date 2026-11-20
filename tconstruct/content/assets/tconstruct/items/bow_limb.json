@@ -1,0 +1,237 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "amethyst_bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_amethyst_bronze"
+        }
+      },
+      {
+        "when": "ancient",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_ancient"
+        }
+      },
+      {
+        "when": "bamboo",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_bamboo"
+        }
+      },
+      {
+        "when": "blazewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_stick"
+        }
+      },
+      {
+        "when": "blazing_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_blazing_bone"
+        }
+      },
+      {
+        "when": "bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_bone"
+        }
+      },
+      {
+        "when": "cactus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_cactus"
+        }
+      },
+      {
+        "when": "chorus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "cinderslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_cinderslime"
+        }
+      },
+      {
+        "when": "cobalt",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "copper",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_copper"
+        }
+      },
+      {
+        "when": "flint",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_stick"
+        }
+      },
+      {
+        "when": "gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_metal"
+        }
+      },
+      {
+        "when": "hepatizon",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_hepatizon"
+        }
+      },
+      {
+        "when": "iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_iron"
+        }
+      },
+      {
+        "when": "knightly",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightmetal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_knightslime"
+        }
+      },
+      {
+        "when": "kobold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "magnetite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_steel"
+        }
+      },
+      {
+        "when": "manyullyn",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_manyullyn"
+        }
+      },
+      {
+        "when": "nahuatl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_nahuatl"
+        }
+      },
+      {
+        "when": "necrotic_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_necrotic_bone"
+        }
+      },
+      {
+        "when": "pig_iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_pig_iron"
+        }
+      },
+      {
+        "when": "queens_slime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_queens_slime"
+        }
+      },
+      {
+        "when": "rose_gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_rose_gold"
+        }
+      },
+      {
+        "when": "shulker",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "slimesteel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_slimesteel"
+        }
+      },
+      {
+        "when": "slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_slimewood_greenheart"
+        }
+      },
+      {
+        "when": "steel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_steel"
+        }
+      },
+      {
+        "when": "venombone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_venombone"
+        }
+      },
+      {
+        "when": "wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom_tconstruct_wood"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/bow_limb/longbow/limb_bottom"
+    }
+  }
+}

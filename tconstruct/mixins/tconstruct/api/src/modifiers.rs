@@ -116,15 +116,17 @@ impl Modifier {
             level_display: display, tooltips, translation_key, modules, unbound, empty_sentinel: false })
     }
     /// Whether any module of this modifier adds nested traits (it has a MODIFIER_TRAITS binding).
+    /// Every module, in definition order.
+    pub fn modules(&self) -> &[crate::modifier_modules::Module] { &self.modules }
     pub fn has_trait_modules(&self) -> bool { self.modules.iter().any(crate::modifier_modules::Module::is_trait) }
     /// ModifierTraitHook through TraitBuilder: the nested entries for `entry`, in module order.
     pub fn trait_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, first_encounter: bool) -> Vec<Entry> {
         self.modules.iter().flat_map(|module| module.trait_entry(entry, facts, first_encounter).into_iter().chain(module.swappable_traits(entry, facts))).collect()
     }
     /// ToolDamageModifierHook: the damage left after every damage-reducing module, in module order.
-    pub fn reduce_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, cause: Option<&Identifier>,
+    pub fn reduce_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, cause: Option<&Identifier>,
         modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, mut amount: i32, random: &mut dyn FnMut() -> f32) -> i32 {
-        for module in &self.modules { amount = module.reduce_damage(entry, facts, cause, modifier_in_tag, amount, random); }
+        for module in &self.modules { amount = module.reduce_damage(entry, facts, nbt, cause, modifier_in_tag, amount, random); }
         amount
     }
     /// ValidateModifierHook for a recipe-added modifier: the first failing requirement's translation key.
@@ -160,6 +162,10 @@ impl Modifier {
     pub fn protection(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, value: f32) -> f32 {
         self.modules.iter().fold(value, |value, module| module.protection(entry, facts, nbt, source, value))
     }
+    /// The damage the wearer takes after this modifier's adjust damage modules.
+    pub fn adjust_damage(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, source: &crate::protection::DamageSource, entities: &crate::entity_facts::Entities, amount: f32) -> f32 {
+        self.modules.iter().fold(amount, |amount, module| module.adjust_damage(entry, facts, nbt, source, entities, amount))
+    }
     /// The enchantments this modifier's constant enchantment modules give.
     pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
         self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()
@@ -167,6 +173,10 @@ impl Modifier {
     /// The tool actions this modifier's transform modules perform on a right click.
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
+    }
+    /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
+    pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
+        self.modules.iter().any(|module| module.can_perform_action(entry, facts, name))
     }
     /// The attribute modifier entries this modifier's attribute modules give for the `wanted` slots.
     pub fn attribute_entries(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
@@ -176,6 +186,14 @@ impl Modifier {
     pub fn melee_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter_map(move |module| module.melee_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
     }
+    /// The conditional stat modules, each with its sort priority (a percent module runs at 75).
+    pub fn conditional_stat_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
+        self.modules.iter().filter_map(move |module| module.conditional_stat_percent().map(|percent| (if percent { 75 } else { self.priority }, module)))
+    }
+    /// The conditional power modules, each with its sort priority (a percent module runs at 75).
+    pub fn conditional_power_modules(&self) -> impl Iterator<Item = (i32, &crate::conditional_stat::ConditionalPower)> {
+        self.modules.iter().filter_map(move |module| module.conditional_power().map(|power| (if power.percent() { 75 } else { self.priority }, power)))
+    }
     /// The knockback modules, each with the modifier's priority.
     pub fn knockback_modules(&self) -> impl Iterator<Item = (i32, &crate::modifier_modules::Module)> {
         self.modules.iter().filter(|module| module.is_knockback()).map(move |module| (self.priority, module))
@@ -184,17 +202,71 @@ impl Modifier {
     pub fn block_damage_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_block_damage())
     }
+    /// The first capacity bar module (the bar a shield of this modifier drains).
+    pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { self.modules.iter().find_map(|module| module.capacity_bar()) }
+    /// The melee capacity modules.
+    pub fn melee_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_melee_capacity()) }
+    /// The mining capacity modules.
+    pub fn mining_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_mining_capacity()) }
+    /// The loot to capacity modules.
+    pub fn loot_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_loot_capacity()) }
+    /// The damage to capacity modules.
+    pub fn damage_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_damage_capacity()) }
+    /// The durability shields.
+    pub fn shields(&self) -> impl Iterator<Item = &crate::capacity::Shield> { self.modules.iter().filter_map(|module| module.shield()) }
     /// The effect immunity modules.
     pub fn effect_immunity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_effect_immunity())
+    }
+    /// The inventory modules, in module order.
+    pub fn inventory_parts(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::tool_inventory::Part> {
+        self.modules.iter().filter_map(|module| module.inventory_part(entry, facts)).collect()
+    }
+    /// The keys of the inventory menu modules.
+    pub fn inventory_menu_keys(&self) -> Vec<crate::tool_inventory::MenuKey> {
+        self.modules.iter().filter_map(|module| module.inventory_menu_key()).collect()
+    }
+    /// The max armor attribute modules.
+    pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_max_armor_attribute())
+    }
+    /// The armor level modules.
+    pub fn armor_level_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_armor_level())
+    }
+    /// The mob disguise modules.
+    pub fn mob_disguise_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_mob_disguise())
+    }
+    /// Whether this modifier carries the edible module.
+    pub fn is_edible(&self) -> bool { self.modules.iter().any(|module| module.is_edible()) }
+    /// What eating a tool does for this modifier's edible effect modules, in module order.
+    pub fn edible_effects(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::edible::Effect> {
+        self.modules.iter().filter_map(|module| module.edible_effect(entry, facts)).collect()
     }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())
     }
+    /// The fiery and freezing attack modules.
+    pub fn attack_action_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_attack_action())
+    }
+    /// The fiery, freezing and knockback counter modules.
+    pub fn counter_action_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_counter_action())
+    }
     /// The armor counter effect modules.
     pub fn counter_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_counter_effect())
+    }
+    /// The armor attack effect modules.
+    pub fn armor_attack_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_armor_attack_effect())
+    }
+    /// The tool usage effect modules.
+    pub fn usage_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_usage_effect())
     }
     /// The weapon effect modules.
     pub fn weapon_effect_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
@@ -202,13 +274,16 @@ impl Modifier {
     }
     /// The tool-stats hook.
     pub fn apply_stats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, builder: &mut crate::tool_stats::Builder) {
-        for module in &self.modules { module.apply_stats(entry, facts, builder); }
+        // Module priorities: a stat copy runs at 50 so it sees what the others added; the rest take the modifier's priority (stable order).
+        let mut ordered: Vec<(i32, &crate::modifier_modules::Module)> = self.modules.iter().map(|module| (module.stat_priority().unwrap_or(self.priority), module)).collect();
+        ordered.sort_by_key(|(priority, _)| std::cmp::Reverse(*priority));
+        for (_, module) in ordered { module.apply_stats(entry, facts, builder); }
     }
 }
 
 /// Facts for a context with no tool stack.
 fn no_tool() -> crate::tool_predicate::Facts<'static> {
-    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() }
+    crate::tool_predicate::Facts { item: None, in_tag: &|_, _| false, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false }
 }
 
 #[derive(Clone, Debug)]
@@ -482,7 +557,7 @@ mod tests {
         ], &BooleanConditions);
         assert!(registry.problems.is_empty(), "{:?}", registry.problems);
         let facts = Facts { item: None, in_tag: &|_, _| false, has_persistent_key: &|_| false, tag_level: &|_, _| 0,
-            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() };
+            level: &|modifier, _check| if modifier.path() == "other" { 1 } else { 0 }, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false };
         let before = |levels: &[(&str, i32)]| levels.iter().map(|(id, level)| (Entry::new(name(id), *level), registry.get(&name(id)).unwrap().clone())).collect::<Vec<_>>();
         let level_of = |built: &[(Entry, Arc<Modifier>)], id: &str| built.iter().find(|(entry, _)| entry.id == name(id)).map(|(entry, _)| entry.level);
         // Owner level 3: the scaled trait is 2 * 3, the fixed one joins once even with a second owner.

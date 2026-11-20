@@ -61,13 +61,16 @@ pub struct ItemSlot {
     /// The stack's own `minecraft:enchantments` component as enchantment id to level (such as `minecraft:fortune` to 3), when it has one.
     /// Set it to give this stack, not every stack of the item, those enchantments; an empty map removes them; `None` leaves the stack's.
     pub enchantments: Option<std::collections::BTreeMap<String, i32>>,
+    /// The stack's own `minecraft:custom_model_data` component, which item models select on (see `CustomModelData`), when it has one.
+    /// Set it to give this stack, not every stack of the item, that model selection; `None` leaves the stack's.
+    pub custom_model_data: Option<crate::pure::player_api::CustomModelData>,
     snapshot: Option<StackSnapshot>,
 }
 
 impl ItemSlot {
     /// A plain stack of `count` of `item`, with no damage and no data.
     pub fn new(item: Identifier, count: u32) -> Self {
-        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, enchantments: None, snapshot: None }
+        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, enchantments: None, custom_model_data: None, snapshot: None }
     }
 
     pub(crate) fn capture<T: std::any::Any + Send + Sync + PartialEq>(&mut self, value: T) {

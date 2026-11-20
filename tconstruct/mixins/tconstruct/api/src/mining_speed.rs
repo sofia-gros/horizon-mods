@@ -29,6 +29,19 @@ pub(crate) enum Variable {
     StatMultiplier(Stat),
     /// A float from the tool's persistent or volatile data (0 when absent).
     ModData { key: String, persistent: bool },
+    /// EntityMeleeVariable and its relatives: a fact of the attacker (the holder) or the target of the hit, `fallback` when it was not reported.
+    Entity { fact: crate::entity_facts::EntityFact, whose: crate::entity_facts::Whose, fallback: f32 },
+}
+
+/// Which modules read entity variables, and so where `tconstruct:entity` variables are decoded.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum EntityScope {
+    /// No entities are known: an entity variable stays unbound.
+    None,
+    /// A melee hit: `which` names the attacker or the target.
+    Hit,
+    /// The holder of a tool: no `which`; the holder is the attacker of the state.
+    Holder,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -38,11 +51,13 @@ enum Shape { Boost { flat: f32, each: f32 }, Percent { flat: f32, each: f32 }, P
 /// either the simple boost/percent fallback or a post fix formula with tool variables. Shared by the
 /// conditional mining speed and melee damage modules.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct StatFormula { percent: bool, shape: Shape }
+pub(crate) struct StatFormula { percent: bool, shape: Shape, arity: usize }
 
 impl StatFormula {
     /// `names` are the four default variable names; `None` when a variable names an input this port does not hold.
-    pub fn decode(fields: &Map<String, Value>, names: &[&str; 4]) -> Result<Option<Self>, String> {
+    pub fn decode(fields: &Map<String, Value>, names: &[&str]) -> Result<Option<Self>, String> { Self::decode_in(fields, names, EntityScope::None) }
+    /// As `decode`, with the entity variables `scope` allows.
+    pub fn decode_in(fields: &Map<String, Value>, names: &[&str], scope: EntityScope) -> Result<Option<Self>, String> {
         let percent = match fields.get("percent") { None | Some(Value::Null) => false, Some(Value::Bool(value)) => *value, Some(_) => return Err("percent must be boolean".into()) };
         let shape = if let Some(variables) = fields.get("variables") {
             let formula = fields.get("formula").ok_or("Cannot set variables when not using formula")?;
@@ -51,7 +66,7 @@ impl StatFormula {
             let mut decoded = Vec::new();
             for (name, value) in variables {
                 if names.contains(&name.as_str()) { return Err(format!("Variable {name} is already defined for this module")); }
-                match Variable::decode(value)? { Some(variable) => decoded.push(variable), None => return Ok(None) }
+                match Variable::decode_in(value, scope)? { Some(variable) => decoded.push(variable), None => return Ok(None) }
                 all.push(name);
             }
             Shape::PostFix(Formula::decode(formula, &all)?, decoded)
@@ -62,7 +77,7 @@ impl StatFormula {
         } else {
             Shape::Boost { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
         };
-        Ok(Some(Self { percent, shape }))
+        Ok(Some(Self { percent, shape, arity: names.len() }))
     }
     /// A percent module runs later in the original (priority 75).
     pub fn percent(&self) -> bool { self.percent }
@@ -72,7 +87,9 @@ impl StatFormula {
             Shape::Boost { flat, each } => value + (flat + each * entry.effective_level()) * multiplier,
             Shape::Percent { flat, each } => value * (1.0 + (flat + each * entry.effective_level())),
             Shape::PostFix(formula, variables) => {
+                // Three names (level, value, multiplier) for the modules that have no base value, four otherwise.
                 let mut arguments = vec![entry.effective_level(), value, multiplier, base];
+                arguments.truncate(self.arity);
                 arguments.extend(variables.iter().map(|variable| variable.value(tool)));
                 formula.apply(&arguments).unwrap_or(value)
             }
@@ -98,7 +115,13 @@ pub(crate) struct Context<'a> {
 }
 
 /// Tool state a variable reads.
-pub(crate) struct ToolView<'a> { pub nbt: &'a NbtCompound }
+pub(crate) struct ToolView<'a> { pub nbt: &'a NbtCompound, pub entities: crate::entity_facts::Entities<'a> }
+impl<'a> ToolView<'a> {
+    /// A view of a tool with no entities known.
+    pub fn of(nbt: &'a NbtCompound) -> Self { Self { nbt, entities: crate::entity_facts::Entities::default() } }
+    /// A view of a tool in the hands of `entities.attacker`, over `entities.target`.
+    pub fn with(nbt: &'a NbtCompound, entities: crate::entity_facts::Entities<'a>) -> Self { Self { nbt, entities } }
+}
 impl ToolView<'_> {
     /// IToolStackView.getMultiplier.
     pub fn multiplier(&self, stat: Stat) -> f32 { Variable::StatMultiplier(stat).value(self) }
@@ -197,7 +220,7 @@ impl HolderCondition {
 }
 
 impl Variable {
-    fn decode(value: &Value) -> Result<Option<Self>, String> {
+    fn decode_in(value: &Value, scope: EntityScope) -> Result<Option<Self>, String> {
         let kind = match value {
             Value::String(kind) => kind.as_str(),
             Value::Object(object) => object.get("type").and_then(Value::as_str).ok_or("variable type missing")?,
@@ -219,6 +242,24 @@ impl Variable {
                 let persistent = match object.get("source").and_then(Value::as_str) { Some("persistent") => true, Some("volatile") => false, _ => return Ok(None) };
                 Self::ModData { key, persistent }
             }
+            "tconstruct:entity" if scope != EntityScope::None => {
+                use crate::entity_facts::{EntityFact, Whose};
+                let object = object.ok_or("entity variable needs fields")?;
+                let whose = match (scope, object.get("which").and_then(Value::as_str)) {
+                    (EntityScope::Holder, None) | (_, Some("attacker")) => Whose::Attacker,
+                    (EntityScope::Hit, Some("target")) => Whose::Target,
+                    (EntityScope::Hit, None) => return Err("which missing".into()),
+                    _ => return Ok(None),
+                };
+                let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
+                let role = if whose == Whose::Attacker { "attacker" } else { "target" };
+                // The variable's own fields (effect, attribute, condition) sit beside its `entity_type`.
+                let fact = match object.get("entity_type").ok_or("entity_type missing")? {
+                    Value::String(kind) => EntityFact::decode(kind, object, role)?,
+                    number => EntityFact::decode_value(number, role)?,
+                };
+                match fact { Some(fact) => Self::Entity { fact, whose, fallback }, None => return Ok(None) }
+            }
             _ => return Ok(None),
         }))
     }
@@ -233,6 +274,7 @@ impl Variable {
                 Some(other) => nbt_int(Some(&other)) as f32,
                 None => 1.0,
             },
+            Self::Entity { fact, whose, fallback } => fact.value(&tool.entities, *whose).unwrap_or(*fallback),
             Self::ModData { key, persistent } => {
                 let tag = if *persistent { crate::tool_stack::TAG_PERSISTENT } else { crate::tool_stack::TAG_VOLATILE };
                 match compound(tag).and_then(|data| data.get(key).cloned()) {

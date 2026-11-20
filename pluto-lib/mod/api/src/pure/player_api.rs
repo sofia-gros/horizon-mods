@@ -105,6 +105,76 @@ pub struct StackData {
     pub max_damage: Option<i32>,
     /// The custom data compound, empty for none.
     pub custom_data: crate::pure::base::NbtCompound,
+    /// The stack's `minecraft:custom_model_data` component, which item models select on; None for none.
+    pub custom_model_data: Option<CustomModelData>,
+}
+
+/// The values an item model can select on (Minecraft: the `minecraft:custom_model_data` component, `CustomModelData`). An item definition
+/// reads them by index: a `select` on `custom_model_data` compares `strings[index]`, a `range_dispatch` uses `floats[index]`, a `condition`
+/// uses `flags[index]` and a tint source uses `colors[index]`.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CustomModelData {
+    /// Strings an item definition's `select` matches against.
+    pub strings: Vec<String>,
+    /// Numbers a `range_dispatch` reads.
+    pub floats: Vec<f32>,
+    /// Booleans a `condition` reads.
+    pub flags: Vec<bool>,
+    /// RGB colours (0xRRGGBB) a tint source reads.
+    pub colors: Vec<i32>,
+}
+
+impl CustomModelData {
+    /// Data with only `strings`.
+    pub fn with_strings<S: Into<String>>(strings: impl IntoIterator<Item = S>) -> Self {
+        Self { strings: strings.into_iter().map(Into::into).collect(), ..Self::default() }
+    }
+
+    /// True when all four lists are empty; such data is not stored on a stack.
+    pub fn is_empty(&self) -> bool {
+        self.strings.is_empty() && self.floats.is_empty() && self.flags.is_empty() && self.colors.is_empty()
+    }
+
+    /// The saved form of the component: a compound with `strings`, `floats`, `flags` (bytes 0 or 1) and `colors` lists, each left out when
+    /// empty, as the game writes it.
+    pub fn to_nbt(&self) -> crate::pure::base::NbtCompound {
+        use crate::pure::base::Nbt;
+        let mut out = crate::pure::base::NbtCompound::new();
+        if !self.strings.is_empty() { out.insert("strings".into(), Nbt::List(self.strings.iter().cloned().map(Nbt::String).collect())); }
+        if !self.floats.is_empty() { out.insert("floats".into(), Nbt::List(self.floats.iter().copied().map(Nbt::Float).collect())); }
+        if !self.flags.is_empty() { out.insert("flags".into(), Nbt::List(self.flags.iter().map(|flag| Nbt::Byte(i8::from(*flag))).collect())); }
+        if !self.colors.is_empty() { out.insert("colors".into(), Nbt::List(self.colors.iter().copied().map(Nbt::Int).collect())); }
+        out
+    }
+
+    /// Reads the saved form back. Lists may also be int or byte arrays, a flag is any non-zero number, and a colour may be three floats
+    /// from 0 to 1 (red, green, blue); entries of another type are skipped.
+    pub fn from_nbt(nbt: &crate::pure::base::NbtCompound) -> Self {
+        use crate::pure::base::Nbt;
+        let entries = |key: &str| -> Vec<Nbt> {
+            match nbt.get(key) {
+                Some(Nbt::List(list)) => list.clone(),
+                Some(Nbt::IntArray(values)) => values.iter().map(|v| Nbt::Int(*v)).collect(),
+                Some(Nbt::ByteArray(values)) => values.iter().map(|v| Nbt::Byte(*v as i8)).collect(),
+                _ => Vec::new(),
+            }
+        };
+        let float = |value: &Nbt| match value {
+            Nbt::Float(v) => Some(f64::from(*v)),
+            Nbt::Double(v) => Some(*v),
+            other => other.as_i64().map(|v| v as f64),
+        };
+        let channel = |value: Option<&Nbt>| value.and_then(float).map(|v| (((v as f32) * 255.0).floor() as i32) & 255);
+        Self {
+            strings: entries("strings").iter().filter_map(|v| match v { Nbt::String(text) => Some(text.clone()), _ => None }).collect(),
+            floats: entries("floats").iter().filter_map(float).map(|v| v as f32).collect(),
+            flags: entries("flags").iter().filter_map(Nbt::as_i64).map(|v| v != 0).collect(),
+            colors: entries("colors").iter().filter_map(|v| match v {
+                Nbt::List(rgb) if rgb.len() == 3 => Some((channel(rgb.first())? << 16) | (channel(rgb.get(1))? << 8) | channel(rgb.get(2))?),
+                other => other.as_i64().map(|v| v as i32),
+            }).collect(),
+        }
+    }
 }
 
 thread_local! {
@@ -429,7 +499,7 @@ mod stack_tests {
     use crate::pure::base::Nbt;
 
     fn pickaxe(damage: u32) -> StackData {
-        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into() }
+        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None }
     }
 
     #[test]
@@ -444,6 +514,38 @@ mod stack_tests {
         ops.stacks.insert(1, vec![Some(pickaxe(0)); 36]);
         assert_eq!(with_ops(&mut ops, || player.give_stack(pickaxe(1))), Some(pickaxe(1)));
         assert_eq!(player.give_stack(pickaxe(2)), Some(pickaxe(2)), "outside a callback nothing is given");
+    }
+
+    #[test]
+    fn custom_model_data_saves_as_the_games_compound_and_reads_every_form_the_game_writes() {
+        let data = CustomModelData { strings: vec!["wood".into(), String::new()], floats: vec![0.5], flags: vec![true, false], colors: vec![0x00a0_a0a0] };
+        let saved = data.to_nbt();
+        assert_eq!(saved["strings"], Nbt::List(vec![Nbt::String("wood".into()), Nbt::String(String::new())]));
+        assert_eq!(saved["flags"], Nbt::List(vec![Nbt::Byte(1), Nbt::Byte(0)]));
+        assert_eq!(CustomModelData::from_nbt(&saved), data);
+        // lists left empty are not written, and nothing at all is empty data
+        assert_eq!(CustomModelData::with_strings(["rose_gold"]).to_nbt().keys().collect::<Vec<_>>(), ["strings"]);
+        assert!(CustomModelData::default().is_empty() && CustomModelData::default().to_nbt().is_empty());
+        // the game saves int and byte lists as arrays, and a colour may be three floats
+        let game: crate::pure::base::NbtCompound = [
+            ("flags".to_owned(), Nbt::ByteArray(vec![1, 0])), ("colors".to_owned(), Nbt::IntArray(vec![7])),
+            ("floats".to_owned(), Nbt::List(vec![Nbt::Double(2.0), Nbt::Int(3)])),
+        ].into();
+        let read = CustomModelData::from_nbt(&game);
+        assert_eq!((read.flags, read.colors, read.floats), (vec![true, false], vec![7], vec![2.0, 3.0]));
+        let triple: crate::pure::base::NbtCompound = [("colors".to_owned(), Nbt::List(vec![Nbt::List(vec![Nbt::Float(0.0), Nbt::Float(1.0), Nbt::Float(0.0)])]))].into();
+        assert_eq!(CustomModelData::from_nbt(&triple).colors, vec![0x0000_ff00]);
+    }
+
+    #[test]
+    fn a_stack_keeps_its_custom_model_data_through_give_and_read() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        let stack = StackData { custom_model_data: Some(CustomModelData::with_strings(["wood", "stone"])), ..pickaxe(0) };
+        with_ops(&mut ops, || {
+            assert_eq!(player.give_stack(stack.clone()), None);
+            assert_eq!(player.stack(0).unwrap().custom_model_data, stack.custom_model_data);
+        });
     }
 
     #[test]

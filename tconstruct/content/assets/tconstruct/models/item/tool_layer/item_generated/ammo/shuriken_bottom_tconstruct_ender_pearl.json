@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/ammo/shuriken_bottom_tconstruct_ender_pearl"
+  }
+}

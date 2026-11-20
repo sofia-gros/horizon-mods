@@ -25,7 +25,7 @@ pub(crate) fn random() -> f32 {
 pub(crate) fn worn(stack: &pluto_lib::StackData, slot: Option<&pluto_lib::ItemSlot>, amount: i32) -> (i32, Option<pluto_lib::ItemSlot>) {
     let Ok(result) = with_held_tool(stack, |env, tool| {
         let mut data = tool.custom_data.clone();
-        let soaked = crate::overslime::absorb(&mut data, env, None, amount);
+        let soaked = crate::capacity::absorb(&mut data, env, None, amount, &mut random);
         let left = tool_stack::reduce_damage(&data, env, None, soaked, &mut random);
         let replacement = slot.and_then(|slot| {
             let mut next = slot.clone();
@@ -48,7 +48,8 @@ pub(crate) fn register() {
         };
         let amount = wear.amount.get();
         if amount <= 0 { return; }
-        let (left, replacement) = worn(stack, wear.slot.as_ref(), amount);
+        // The formulas of tool damage modules read the player (light, temperature) as the tool wore.
+        let (left, replacement) = crate::entity_facts::with_holder(wear.holder.as_ref(), || worn(stack, wear.slot.as_ref(), amount));
         if left != amount { wear.amount.set(left); }
         if replacement.is_some() { *wear.replacement.borrow_mut() = replacement; }
     });

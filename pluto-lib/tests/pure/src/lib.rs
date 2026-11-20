@@ -98,6 +98,7 @@ mod mobs {
     pub(crate) use crate::living_query_host_tests::pluto_living_entity_access;
     pub(crate) use crate::head_policy_tests::nav;
     pub(crate) use crate::item_particle_factory_tests::pluto_entity_particles;
+    pub(crate) use crate::player_visibility_access_tests as pluto_player_visibility_access;
 }
 
 #[cfg(test)]
@@ -134,6 +135,13 @@ mod trade_pool_tests;
 #[cfg(test)]
 #[path = "../../../mod/pluto-item-mask-tests.rs"]
 mod item_mask_adapter_tests;
+
+#[cfg(test)]
+#[path = "../../../mod/pluto-player-visibility-access.rs"]
+mod player_visibility_access_tests;
+#[cfg(test)]
+#[path = "../../../mod/pluto-player-visibility-tests.rs"]
+mod player_visibility_adapter_tests;
 
 #[cfg(test)]
 #[path = "../../../mod/pluto-block-entity-access.rs"]

@@ -23,6 +23,22 @@ The callback runs for every table, so check `context.id` first and return quickl
 
 > **Tip.** To add a drop, push a pool onto `table["pools"]`; to remove drops, set the pools to an empty list. The shape of the JSON is the game's own loot table format.
 
+## Changing What Drops
+
+`LootTableEvents::MODIFY_DROPS` runs for the items a broken block, a dead mob or a player's use (shears, a brush, an item frame) is about to drop, after the loot table rolled. The callback sees what dropped them (`entity`, `block`, `player`, `tool`, `explosion`, `used`) and edits `drops` in place: add, change or remove stacks. `actions` queues what to do to the player who broke the block or used the tool (`EntityAction`, such as `EditStackData` on the main hand), which the game does after the callbacks ran.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, LootTableEvents};
+
+LootTableEvents::MODIFY_DROPS.register(|context| {
+    if context.entity.as_ref().is_some_and(|(_, kind)| kind == "minecraft:zombie") {
+        context.drops.borrow_mut().push(ItemSlot::new(Identifier::parse("minecraft:iron_nugget").unwrap(), 1));
+    }
+});
+```
+
+> **Use with Caution.** The pinned game reports a tool for block breaks and player uses but none for a mob's death, and the head a charged creeper's kill adds is appended through `LivingEntityDropsCallback` outside this event.
+
 ## Living Death Drops
 
 `LivingEntityDropsCallback` registers ID-ordered callbacks over a borrowed death context, separately from loading loot-table JSON. A callback can inspect owned death metadata, ask the native killer's head-drop capability, claim it once, and append a reduced `StackData` without rewriting untouched native drops.
@@ -40,6 +56,34 @@ LivingEntityDropsCallback::register(Identifier::parse("example:heads").unwrap(),
 > **Use with Caution.** The registry, dispatcher, actual Tinkers consumer and host-independent gateway/state helpers are pure-tested. Native collection/counter callers are source-declared but remain blocked by native attachment review; registration does not establish a working drop. Nav clones share an unsaved spent-head flag; CombatTracker owns removed-exploder claims with an explicit wave reset. The scoped loot gate never clears powered state or changes ordinary loot properties. Retained explosion type IDs are normalized without replacing custom namespaces. The draft native adapter publishes appended stacks immediately during callbacks, before captured ordinary drops; both use the pinned host's item-owned RNG constructor for initial motion. Player loot context is optional independently of player-kill credit. It does not expose arbitrary removal/cancellation. The source-bound diagnostic binary passed an isolated Wither death check: one nether star retained negative Age, and collecting the native XP orbs raised the player's total from 0 to the pinned Wither reward of 50. This verifies extended-age initialization, not the complete despawn duration, callback ordering, head claims or combined attachment contracts. Errors stop later callbacks without rolling back earlier claims/appends, including a claim whose append fails.
 
 ## Reference
+
+### `LootTableEvents::MODIFY_DROPS`
+
+Fabric: `LootTableEvents.MODIFY_DROPS` (NeoForge: global loot modifiers). Runs on a server for the items about to drop from a block a player, an explosion or a mob broke, a mob that died, or a player's use; other breaks (leaves decaying, a piston) are not heard. It runs even when `drops` is empty. Edit `context.drops`; a stack left with a count of 0 does not drop.
+
+```rust
+use pluto_lib::LootTableEvents;
+
+LootTableEvents::MODIFY_DROPS.register(|context| {
+    context.drops.borrow_mut().retain(|slot| slot.item.to_string() != "minecraft:rotten_flesh");
+});
+```
+
+### `LootDrops`
+
+What is about to drop. `table` is the loot table rolled (empty when none), `dimension` the level, `origin` where they drop, `block` the block's position when a block broke, `entity` the mob's entity id and type (the mob that died, or the entity a player's use dropped them from), `player` the uuid of the player who broke the block or killed the mob when the game knows them, `tool` what broke the block or what the player used (`None` when the game reports none), `explosion` the radius of the explosion that broke the block, `used` whether a player's use dropped them, `drops` the stacks, as item slots a callback edits, and `actions` the `EntityAction`s for the player (the main hand's stack is edited as it is when they land; dropped when `player` is `None`).
+
+```rust
+use pluto_lib::{LootDrops, LootTableEvents};
+
+fn from_mob(context: &LootDrops) -> bool {
+    context.entity.is_some() && context.block.is_none() && !context.used
+}
+LootTableEvents::MODIFY_DROPS.register(|context| {
+    let _ = (&context.table, &context.dimension, context.origin, context.player, &context.tool, context.explosion, context.actions.borrow().len());
+    if from_mob(context) && context.drops.borrow().is_empty() { return; }
+});
+```
 
 ### `LivingDropInfo`
 

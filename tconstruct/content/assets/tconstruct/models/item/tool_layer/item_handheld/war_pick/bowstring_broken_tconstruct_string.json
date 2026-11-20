@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/war_pick/bowstring_broken_tconstruct_string"
+  }
+}
