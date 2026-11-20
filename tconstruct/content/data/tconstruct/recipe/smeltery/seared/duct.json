@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:seared_brick",
+    "C": [
+      "minecraft:gold_ingot"
+    ]
+  },
+  "pattern": [
+    "# #",
+    "C C",
+    "# #"
+  ],
+  "result": {
+    "id": "tconstruct:seared_duct"
+  }
+}

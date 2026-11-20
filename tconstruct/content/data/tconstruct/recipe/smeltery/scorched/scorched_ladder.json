@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": [
+      "tconstruct:scorched_stone",
+      "tconstruct:polished_scorched_stone",
+      "tconstruct:scorched_bricks",
+      "tconstruct:scorched_road",
+      "tconstruct:chiseled_scorched_bricks"
+    ],
+    "b": "tconstruct:scorched_brick"
+  },
+  "pattern": [
+    "b b",
+    "b b",
+    "BBB"
+  ],
+  "result": {
+    "id": "tconstruct:scorched_ladder",
+    "count": 4
+  }
+}

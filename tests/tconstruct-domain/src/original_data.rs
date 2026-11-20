@@ -2524,3 +2524,55 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
     table.interact(&world.now, &mut slots, &mut hand, &mut Vec::new());
     assert_eq!(hand.map(|stack| stack.item.to_string()), Some("tconstruct:blank_sand_cast".to_owned()), "the shipped sand cast pickup recipe");
 }
+
+/// The crafting, smelting and stonecutting recipes the importer converted for the smeltery blocks, in the game's recipe format: every one
+/// makes something this port declares (or vanilla), reads only items it declares or vanilla ones, and a shaped one defines every key its
+/// pattern uses. The obtaining chain of the casting loop (grout, seared bricks, seared stone, drains, ducts, tanks, table, basin, faucet,
+/// channel, melter, heater) is present.
+#[test]
+fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct");
+    let declared = |name: &str| ["block", "item"].iter().any(|kind| content.join(format!("horizon/{kind}/{name}.json")).exists());
+    let known = |id: &str| match id.split_once(':') { Some(("minecraft", _)) => true, Some(("tconstruct", name)) => declared(name), _ => false };
+    fn collect(node: &Value, out: &mut Vec<String>) {
+        match node {
+            Value::String(text) => out.push(text.clone()),
+            Value::Array(list) => list.iter().for_each(|entry| collect(entry, out)),
+            _ => panic!("an ingredient is a string or a list: {node}"),
+        }
+    }
+    let mut count = 0;
+    let mut stack = vec![content.join("recipe")];
+    let mut made = std::collections::BTreeSet::new();
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(dir).expect("recipe folder") {
+            let path = entry.unwrap().path();
+            if path.is_dir() { stack.push(path); continue; }
+            let recipe: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON");
+            let result = recipe["result"]["id"].as_str().expect("a result id");
+            assert!(known(result), "{path:?} makes {result}");
+            made.insert(result.to_owned());
+            let mut ingredients = Vec::new();
+            match recipe["type"].as_str().unwrap() {
+                "minecraft:crafting_shaped" => {
+                    let key = recipe["key"].as_object().unwrap();
+                    for row in recipe["pattern"].as_array().unwrap() {
+                        for letter in row.as_str().unwrap().chars().filter(|letter| *letter != ' ') { assert!(key.contains_key(&letter.to_string()), "{path:?} uses {letter}"); }
+                    }
+                    key.values().for_each(|value| collect(value, &mut ingredients));
+                }
+                "minecraft:crafting_shapeless" => recipe["ingredients"].as_array().unwrap().iter().for_each(|value| collect(value, &mut ingredients)),
+                "minecraft:smelting" | "minecraft:stonecutting" => collect(&recipe["ingredient"], &mut ingredients),
+                other => panic!("{path:?} has the unreviewed type {other}"),
+            }
+            for ingredient in ingredients.iter().filter(|text| !text.starts_with('#')) { assert!(known(ingredient), "{path:?} needs {ingredient}"); }
+            count += 1;
+        }
+    }
+    assert_eq!(count, 83, "the smeltery's crafting recipes the importer converts; the rest name items this port does not declare yet");
+    for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
+                 "seared_faucet", "seared_channel", "seared_melter", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel",
+                 "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast"] {
+        assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
+    }
+}

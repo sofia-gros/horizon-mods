@@ -35,7 +35,10 @@ CONTENT_PATHS = (
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # Crafting, smelting and stonecutting recipes of the smeltery blocks, converted to the game's own recipe format by the importer.
+    re.compile(r'data/tconstruct/recipe(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
+CRAFTING_RECIPE_TYPES = {'minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting'}
 FLUID_RECIPE_TYPES = {
     'tconstruct:melting', 'tconstruct:ore_melting', 'tconstruct:damagable_melting', 'tconstruct:material_melting', 'tconstruct:melting_fuel',
     'tconstruct:entity_melting', 'tconstruct:alloy', 'tconstruct:material_fluid', 'tconstruct:molding_table', 'tconstruct:item_part_builder',
@@ -45,8 +48,8 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
-LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of'}
-LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count'}
+LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property'}
+LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
@@ -257,6 +260,10 @@ def checked_content(root, version):
                 continue
             if '/loot_table/' in name:
                 check_loot(item, name)
+                continue
+            if name.startswith('data/tconstruct/recipe/'):
+                if not isinstance(item, dict) or item.get('type') not in CRAFTING_RECIPE_TYPES or not isinstance(item.get('result'), dict) or not str(item['result'].get('id', '')).count(':') == 1:
+                    raise ValueError(f'only reviewed crafting, smelting and stonecutting recipes are allowed here: {name}')
                 continue
             if '/worldgen/' in name:
                 if not isinstance(item, dict):

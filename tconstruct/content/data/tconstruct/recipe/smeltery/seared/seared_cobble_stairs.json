@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "tconstruct:seared_cobble"
+  },
+  "pattern": [
+    "B  ",
+    "BB ",
+    "BBB"
+  ],
+  "group": "tconstruct:seared_cobble_stairs",
+  "result": {
+    "id": "tconstruct:seared_cobble_stairs",
+    "count": 4
+  }
+}

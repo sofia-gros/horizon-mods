@@ -128,9 +128,9 @@ assert_eq!(ParticleFactoryRegistry::item(&particle).unwrap().item, "minecraft:cl
 
 ## Reference
 
-### `World::ticking`, `with_ticking_dimension`
+### `World::ticking`
 
-`World::ticking() -> Option<World>` is the world of the block entity being ticked (Minecraft: `BlockEntity.getLevel`); `with_ticking_dimension(dimension, || ...)` is the scope the host opens around a ticker.
+`World::ticking() -> Option<World>` is the world of the block entity being ticked (Minecraft: `BlockEntity.getLevel`); `None` outside a ticker.
 
 ```rust
 use pluto_lib::{with_ticking_dimension, World};
@@ -138,13 +138,58 @@ assert!(World::ticking().is_none());
 with_ticking_dimension("minecraft:the_nether", || assert_eq!(World::ticking().unwrap().dimension, "minecraft:the_nether"));
 ```
 
-### `World::read_region`, `Region`
+### `with_ticking_dimension`
 
-`read_region(from, to) -> Option<Region>` (Minecraft: `Level.hasChunksAt` then `getBlockState` over the box; corners in any order); `Region::state(pos)` the state read there and `Region::bounds()` the corners given.
+`with_ticking_dimension(dimension, || ...)` is the scope the host opens around a ticker, so that `World::ticking` answers.
+
+```rust
+use pluto_lib::{with_ticking_dimension, World};
+with_ticking_dimension("minecraft:overworld", || assert!(World::ticking().is_some()));
+```
+
+### `World::read_region`
+
+`read_region(from, to) -> Option<Region>` (Minecraft: `Level.hasChunksAt` then `getBlockState` over the box; corners in any order); `None` unless every block is loaded.
 
 ```rust
 use pluto_lib::World;
 assert!(World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).is_none(), "outside a world scope nothing is loaded");
+```
+
+### `Region`
+
+The blocks `read_region` read: `state(pos)` and `bounds()`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert!(World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).is_some()));
+```
+
+### `Region::state`
+
+`fn state(&self, pos: BlockPos) -> Option<&BlockState>`. The state read at `pos`, `None` outside the box.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    let region = World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).unwrap();
+    assert!(region.state([0, 0, 0]).is_some() && region.state([5, 5, 5]).is_none());
+});
+```
+
+### `Region::bounds`
+
+`fn bounds(&self) -> (BlockPos, BlockPos)`. The corners given to `read_region`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    let region = World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).unwrap();
+    assert_eq!(region.bounds(), ([0, 0, 0], [1, 1, 1]));
+});
 ```
 
 ### `ParticleFactoryRegistry`
@@ -316,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -412,4 +457,37 @@ use pluto_lib::{BlockState, Identifier, World};
 
 let stone = BlockState::new(Identifier::new("minecraft", "stone").unwrap());
 assert!(!World::new("minecraft:overworld").set_block_state([0, 64, 0], &stone), "outside a callback nothing is set");
+```
+
+### `World::block_entity_data`
+
+`fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound>`. The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); `None` where there is none, the chunk is not loaded or the call is made outside a callback. Source-ready: the host's `WorldOps` has to answer it (`block_entity_data`); until then it is `None`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let mut ops = MemoryWorldOps::default();
+let mut data = NbtCompound::new();
+data.insert("master".to_owned(), Nbt::IntArray(vec![0, 64, 0]));
+ops.entities.insert(("minecraft:overworld".to_owned(), [1, 64, 0]), data);
+let world = World::new("minecraft:overworld");
+assert!(world.block_entity_data([1, 64, 0]).is_none(), "outside a world scope");
+with_world(&mut ops, || assert!(world.block_entity_data([1, 64, 0]).unwrap().contains_key("master")));
+```
+
+### `World::merge_block_entity_data`
+
+`fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool`. Merges `data` into the saved data of the block entity at `pos`: each key given replaces the same key, the others stay. A controller uses it to tell the blocks of its structure who their master is. False if there is no block entity there, outside a callback, or when the host does not implement `WorldOps::merge_block_entity_data` (the adapter is not written).
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let mut ops = MemoryWorldOps::default();
+ops.entities.insert(("minecraft:overworld".to_owned(), [1, 64, 0]), NbtCompound::new());
+let mut master = NbtCompound::new();
+master.insert("master".to_owned(), Nbt::IntArray(vec![0, 64, 0]));
+let world = World::new("minecraft:overworld");
+assert!(!world.merge_block_entity_data([1, 64, 0], &master), "outside a world scope");
+with_world(&mut ops, || assert!(world.merge_block_entity_data([1, 64, 0], &master)));
+assert_eq!(ops.entities.len(), 1);
 ```

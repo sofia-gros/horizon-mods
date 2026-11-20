@@ -2,6 +2,8 @@
   "values": [
     "tconstruct:cobalt_ore",
     "tconstruct:raw_cobalt_block",
-    "tconstruct:ichor_slime_dirt"
+    "tconstruct:ichor_slime_dirt",
+    "tconstruct:seared_duct",
+    "tconstruct:scorched_duct"
   ]
 }

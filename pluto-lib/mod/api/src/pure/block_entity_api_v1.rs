@@ -112,7 +112,7 @@ pub(crate) fn set_menu_data(data: &mut NbtCompound, index: usize, value: i32) {
 }
 
 /// The fluid in tank `index` of saved data, if it holds any.
-fn read_fluid(data: &NbtCompound, index: usize) -> Option<FluidStack> {
+pub(crate) fn read_fluid(data: &NbtCompound, index: usize) -> Option<FluidStack> {
     let tank = data.get("fluids")?.as_list()?.get(index)?.as_compound()?;
     let fluid = tank.get("Fluid")?.as_str()?;
     let amount = tank.get("Amount")?.as_i64()?;
@@ -123,7 +123,7 @@ fn read_fluid(data: &NbtCompound, index: usize) -> Option<FluidStack> {
 }
 
 /// Puts `stack` in tank `index` of saved data, or empties the tank with `None`; the tanks before it are kept (empty if there are none yet).
-fn write_fluid(data: &mut NbtCompound, index: usize, stack: Option<FluidStack>) {
+pub(crate) fn write_fluid(data: &mut NbtCompound, index: usize, stack: Option<FluidStack>) {
     let mut tanks: Vec<Nbt> = match data.get("fluids") {
         Some(Nbt::List(list)) => list.clone(),
         _ => Vec::new(),
@@ -230,6 +230,55 @@ pub struct BlockUseOutcome {
     pub give: Vec<ItemSlot>,
 }
 
+
+/// Which fluids a block that forwards its fluid storage lets through (see [`BlockEntityType::fluid_forward`]).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FluidFilter {
+    /// Everything the target holds or takes.
+    Any,
+    /// Only this fluid: fills and drains of another fluid are refused, and only tanks that are empty or hold it are listed.
+    Only(Identifier),
+    /// Nothing moves; only the last tank is listed, and only while it is empty.
+    Closed,
+}
+
+/// Where a forwarding block's fluid storage really is, and what passes through it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FluidForward {
+    /// The block entity whose storage answers for this block.
+    pub target: BlockPos,
+    /// What passes.
+    pub filter: FluidFilter,
+}
+
+/// A drain asked of a block entity's own fluid rule: what [`BlockEntityType::fluid_drainer`] receives.
+pub struct BlockEntityDrain<'a> {
+    /// The block entity's position.
+    pub pos: BlockPos,
+    /// The saved data; changes are kept only when `execute` is true.
+    pub data: &'a mut NbtCompound,
+    /// The item slots; changes are kept only when `execute` is true.
+    pub items: &'a mut Vec<Option<ItemSlot>>,
+    /// The fluid asked for, or `None` for whatever the block gives first.
+    pub wanted: Option<Identifier>,
+    /// The most millibuckets to take.
+    pub amount: u32,
+    /// False when the caller only asks what would come out.
+    pub execute: bool,
+}
+
+impl BlockEntityDrain<'_> {
+    /// The fluid in tank `index` of the data being drained.
+    pub fn fluid_in(&self, index: usize) -> Option<FluidStack> {
+        read_fluid(self.data, index)
+    }
+
+    /// Puts `stack` in tank `index`, or empties it with `None`.
+    pub fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>) {
+        write_fluid(self.data, index, stack);
+    }
+}
+
 /// A client-only block entity tick. Saved/synchronized data is read-only;
 /// client_data belongs to this client entity instance, is never serialized or
 /// sent to the server, and is discarded when the instance unloads or is replaced.
@@ -245,6 +294,9 @@ type ClientTicker = Arc<dyn Fn(&mut BlockEntityClientTick<'_>) + Send + Sync>;
 type Ticker = Arc<dyn Fn(&mut BlockEntityTick<'_>) + Send + Sync>;
 type Filler = Arc<dyn Fn(&mut BlockEntityFill<'_>) -> u32 + Send + Sync>;
 type User = Arc<dyn Fn(&mut BlockEntityUse<'_>) -> crate::pure::base::action_result::ActionResult + Send + Sync>;
+type Forwarder = Arc<dyn Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<FluidForward> + Send + Sync>;
+type Reader = Arc<dyn Fn(&NbtCompound) -> Vec<super::neighbour_api_v1::NeighbourTank> + Send + Sync>;
+type Drainer = Arc<dyn Fn(&mut BlockEntityDrain<'_>) -> Option<FluidStack> + Send + Sync>;
 type UpdateTag = Arc<dyn Fn(&NbtCompound) -> NbtCompound + Send + Sync>;
 
 /// The kind of block entity a block has (Minecraft: `BlockEntityType`).
@@ -264,12 +316,15 @@ pub struct BlockEntityType {
     update_tag: Option<UpdateTag>,
     filler: Option<Filler>,
     user: Option<User>,
+    forward: Option<Forwarder>,
+    reader: Option<Reader>,
+    drainer: Option<Drainer>,
 }
 
 impl BlockEntityType {
     /// A block entity type for `block`, with no data, no ticker and nothing sent to clients.
     pub fn new(block: Identifier) -> Self {
-        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None, filler: None, user: None }
+        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None, filler: None, user: None, forward: None, reader: None, drainer: None }
     }
 
     /// The same type under another id.
@@ -336,6 +391,28 @@ impl BlockEntityType {
         self
     }
 
+    /// The same type, whose fluid storage is another block entity's (a drain in a wall answers for the controller behind it; Fabric: a
+    /// `FluidStorage.SIDED` lookup that returns the storage of another position). `forward` is asked with the saved data and item slots; `None`
+    /// means this block has no storage of its own either. The [`FluidFilter`] narrows what passes.
+    pub fn fluid_forward(mut self, forward: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<FluidForward> + Send + Sync + 'static) -> Self {
+        self.forward = Some(Arc::new(forward));
+        self
+    }
+
+    /// The same type, with its own way of listing its tanks (`Storage.iterator`, `IFluidHandler.getFluidInTank`): `reader` makes the list from the
+    /// saved data. Without one the declared tanks are listed.
+    pub fn fluid_reader(mut self, reader: impl Fn(&NbtCompound) -> Vec<super::neighbour_api_v1::NeighbourTank> + Send + Sync + 'static) -> Self {
+        self.reader = Some(Arc::new(reader));
+        self
+    }
+
+    /// The same type, with its own rule for fluid taken out of it (`Storage.extract`, `IFluidHandler.drain`): `drainer` answers what comes out and may
+    /// change the saved data. Without one the first declared tank that holds fluid (or the one named) is drained.
+    pub fn fluid_drainer(mut self, drainer: impl Fn(&mut BlockEntityDrain<'_>) -> Option<FluidStack> + Send + Sync + 'static) -> Self {
+        self.drainer = Some(Arc::new(drainer));
+        self
+    }
+
     /// The same type, with `user` run when a player uses the block (right click): it may exchange items with the hand and the slots. Its
     /// answer is the use's answer; `Pass` leaves it to the game.
     pub fn on_use(mut self, user: impl Fn(&mut BlockEntityUse<'_>) -> crate::pure::base::action_result::ActionResult + Send + Sync + 'static) -> Self {
@@ -379,6 +456,64 @@ impl BlockEntityTypeRegistry {
         }
         let (mut data, mut items) = (data.clone(), items.clone());
         Some(filler(&mut BlockEntityFill { pos, data: &mut data, items: &mut items, fluid, face, execute }))
+    }
+
+    /// Where the fluid storage of the block entity of `block` really is, from its [`BlockEntityType::fluid_forward`] hook; `None` when the block
+    /// has no hook or the hook says it forwards nowhere.
+    pub fn forward_of(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<FluidForward> {
+        (Self::get(block)?.forward?)(data, items)
+    }
+
+    /// Whether the block has a forwarding hook (its fluid storage may be another block's).
+    pub fn forwards(block: &str) -> bool {
+        Self::get(block).is_some_and(|t| t.forward.is_some())
+    }
+
+    /// The tanks of the block entity of `block` as its [`BlockEntityType::fluid_reader`] lists them, or the declared tanks (with what the saved data
+    /// holds) when it has none; `None` when the block has neither.
+    pub fn read_tanks(block: &str, data: &NbtCompound) -> Option<Vec<super::neighbour_api_v1::NeighbourTank>> {
+        let entity_type = Self::get(block)?;
+        if let Some(reader) = entity_type.reader {
+            return Some(reader(data));
+        }
+        if entity_type.tanks.is_empty() {
+            return None;
+        }
+        Some(entity_type.tanks.iter().enumerate().map(|(index, capacity)| super::neighbour_api_v1::NeighbourTank { fluid: read_fluid(data, index), capacity: *capacity }).collect())
+    }
+
+    /// Takes up to `amount` millibuckets out of the block entity of `block` over the given data and slots: through its
+    /// [`BlockEntityType::fluid_drainer`], or, without one, from the first declared tank that holds fluid (or holds `wanted`). `None` when the block has no
+    /// tanks; `Some(None)` when nothing came out. With `execute` false the data and slots are left unchanged.
+    pub fn drain_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, wanted: Option<Identifier>, amount: u32, execute: bool) -> Option<Option<FluidStack>> {
+        let entity_type = Self::get(block)?;
+        let run = |data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>| -> Option<Option<FluidStack>> {
+            if let Some(drainer) = &entity_type.drainer {
+                return Some(drainer(&mut BlockEntityDrain { pos, data, items, wanted: wanted.clone(), amount, execute }));
+            }
+            if entity_type.tanks.is_empty() {
+                return None;
+            }
+            for index in 0..entity_type.tanks.len() {
+                let Some(held) = read_fluid(data, index) else { continue };
+                if wanted.as_ref().is_some_and(|wanted| *wanted != held.fluid) {
+                    continue;
+                }
+                let taken = held.amount.min(amount);
+                if taken == 0 {
+                    return Some(None);
+                }
+                let left = held.amount - taken;
+                write_fluid(data, index, (left > 0).then(|| FluidStack { fluid: held.fluid.clone(), amount: left }));
+                return Some(Some(FluidStack { fluid: held.fluid, amount: taken }));
+            }
+            Some(None)
+        };
+        if execute {
+            return run(data, items);
+        }
+        let (mut data, mut items) = (data.clone(), items.clone());
+        run(&mut data, &mut items)
     }
 
     /// Runs the [`BlockEntityType::on_use`] hook of `block` for a player holding `held` (`None`: an empty hand); `None` when the block has no hook.

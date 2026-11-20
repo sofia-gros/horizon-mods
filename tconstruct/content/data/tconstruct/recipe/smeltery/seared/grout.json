@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:clay_ball",
+    "#minecraft:sand",
+    "minecraft:gravel"
+  ],
+  "result": {
+    "id": "tconstruct:grout",
+    "count": 2
+  }
+}

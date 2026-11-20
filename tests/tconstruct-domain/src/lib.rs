@@ -199,6 +199,10 @@ mod smeltery;
 mod smeltery_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
 mod smeltery_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]
+mod tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_io.rs"]
+mod smeltery_io;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]
