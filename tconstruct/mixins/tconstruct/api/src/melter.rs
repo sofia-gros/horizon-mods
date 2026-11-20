@@ -335,24 +335,32 @@ impl<'a> Live<'a> {
     pub(crate) fn new(data: &'a Data, item_tags: Option<&'a pluto_lib::RegistryLookup>, pos: BlockPos) -> Self { Live { data, item_tags, pos, below: None } }
 }
 
+/// What the item melts into in a container with the given ore rate, and the byproducts a foundry also gets (`byproduct_rate`).
+pub(crate) fn melt_stack(data: &Data, item_tags: Option<&pluto_lib::RegistryLookup>, stack: &ItemSlot, ore_rate: &OreRate, byproduct_rate: &OreRate) -> Option<(Melt, Vec<(Identifier, i32)>)> {
+    let recipes = &data.recipes;
+    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    if let Some(recipe) = recipes.find_melting(&stack.item, &in_tag, false) {
+        // A damageable item melts by what is left of it; with no maximum to scale by, only an undamaged one melts.
+        let damage = match (stack.damage, stack.max_damage) {
+            (_, Some(max)) => Some((stack.damage as i32, max)),
+            (0, None) => None,
+            (_, None) if matches!(recipe.kind, crate::melting_recipes::MeltingKind::Damageable { .. }) => return None,
+            _ => None,
+        };
+        let amount = recipe.output_amount(ore_rate, damage);
+        let byproducts = recipe.byproducts.iter().zip(recipe.byproduct_amounts(byproduct_rate, damage))
+            .filter_map(|(output, amount)| Some((output.resolve(&data.tags)?, amount))).collect();
+        return Some((Melt { time: recipe.time, temperature: recipe.temperature, fluid: recipe.output.resolve(&data.tags)?, amount }, byproducts));
+    }
+    let material = part_material(&stack.custom_data);
+    let (recipe, cost) = recipes.find_material_melting(&stack.item, &material)?;
+    let byproducts = recipe.byproducts.iter().zip(recipe.byproduct_amounts(cost)).filter_map(|(output, amount)| Some((output.resolve(&data.tags)?, amount))).collect();
+    Some((Melt { time: recipe.time(cost), temperature: recipe.temperature, fluid: recipe.result.resolve(&data.tags)?, amount: recipe.output_amount(cost) }, byproducts))
+}
+
 impl Surroundings for Live<'_> {
     fn melt(&self, stack: &ItemSlot) -> Option<Melt> {
-        let recipes = &self.data.recipes;
-        let in_tag = |item: &Identifier, tag: &Identifier| self.item_tags.and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
-        if let Some(recipe) = recipes.find_melting(&stack.item, &in_tag, false) {
-            // A damageable item melts by what is left of it; with no maximum to scale by, only an undamaged one melts.
-            let damage = match (stack.damage, stack.max_damage) {
-                (_, Some(max)) => Some((stack.damage as i32, max)),
-                (0, None) => None,
-                (_, None) if matches!(recipe.kind, crate::melting_recipes::MeltingKind::Damageable { .. }) => return None,
-                _ => None,
-            };
-            let amount = recipe.output_amount(&OreRate::MELTER, damage);
-            return Some(Melt { time: recipe.time, temperature: recipe.temperature, fluid: recipe.output.resolve(&self.data.tags)?, amount });
-        }
-        let material = part_material(&stack.custom_data);
-        let (recipe, cost) = recipes.find_material_melting(&stack.item, &material)?;
-        Some(Melt { time: recipe.time(cost), temperature: recipe.temperature, fluid: recipe.result.resolve(&self.data.tags)?, amount: recipe.output_amount(cost) })
+        melt_stack(self.data, self.item_tags, stack, &OreRate::MELTER, &OreRate::FOUNDRY_BYPRODUCT).map(|(melt, _)| melt)
     }
 
     fn liquid_fuel(&self, fluid: &Identifier) -> Option<LiquidFuel> {

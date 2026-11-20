@@ -473,11 +473,12 @@ ASSET_TARGET = ROOT / 'tconstruct/content/assets/tconstruct'
 BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
 HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
 # Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
-SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
-SMELTERY_GUI_TEXTURES = ['melter', 'heater']
+SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
+SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
-PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank'}
+# tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
+PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture'}
 
 
 def qualify(reference):
@@ -554,7 +555,7 @@ def copy_client_assets():
         converted = {}
         for key, value in read(asset_source(f'models/{path}.json')).items():
             # render_type: 26.x derives the render layer from the texture's alpha (its own slime block model has none).
-            if key in ('loader', 'retextured', '__comment', 'render_type'):
+            if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids'):
                 continue
             if key == 'parent':
                 value = import_model(value)
@@ -1126,14 +1127,14 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'TERRACOTTA_BROWN': 48, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
-             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'WARPED_STEM': 56}
+MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
 DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT_BLUE', 'ender': 'TERRACOTTA_ORANGE'}
 # Plain items: TinkerWorld's with Item.Properties (TooltipItem only adds the lang tooltip text) and TinkerCommons' tinker slime
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
-WORLD_ITEMS = ['raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
+WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
 # TinkerSmeltery's casts: registerCast(name) makes <name>_cast (gold), <name>_sand_cast and <name>_red_sand_cast, all plain items
 # (PartCastItem only adds the part's tooltip); the arrow cast and the two blank casts are single plain items.
@@ -1176,16 +1177,36 @@ def world_blocks():
 
 
 def smeltery_blocks():
-    """name -> declaration of the melter and the heater (TinkerSmeltery: the `seared` controller properties, light 13
-    while active; the melter adds noOcclusion). ControllerBlock declares facing, active and in_structure on both."""
-    def controller(occludes):
-        properties = {'hardness': 8.0, 'explosion_resistance': 28.0, 'sounds': 'minecraft:iron_block', 'map_color': MAP_COLOR['COLOR_GRAY'], 'requires_tool': True}
+    """name -> declaration of the melter, the heater, the two heating structure controllers and the plain structure blocks
+    (TinkerSmeltery: the `seared` and `scorched` controller properties, light 13 while active; the melter adds noOcclusion;
+    `searedSolidProps`/`scorchedSolidProps` for the building blocks, which add the `in_structure` state of SearedBlock). The slab,
+    stair, wall and fence variants, the pillar blocks, glass, ladders and every block with a block entity of its own are other units."""
+    def controller(occludes, color, sounds, hardness, resistance):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
         if not occludes:
             properties['occludes'] = False
         return {'template': 'minecraft:stone', 'properties': properties,
                 'state_properties': {'active': {'type': 'boolean'}, 'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}, 'in_structure': {'type': 'boolean'}},
                 'state_light': {'property': 'active', 'values': {'false': 0, 'true': 13}}, 'item': True}
-    blocks = {'seared_melter': controller(False), 'seared_heater': controller(True)}
+
+    def structure_block(color, sounds, hardness, resistance, light=0):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if light:
+            properties['light'] = light
+        return {'template': 'minecraft:stone', 'properties': properties, 'state_properties': {'in_structure': {'type': 'boolean'}}, 'item': True}
+
+    blocks = {
+        'seared_melter': controller(False, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
+        'seared_heater': controller(True, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
+        'smeltery_controller': controller(True, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
+        'foundry_controller': controller(True, 'TERRACOTTA_BROWN', 'minecraft:basalt', 9.0, 35.0),
+    }
+    for name in ['seared_stone', 'seared_cobble', 'seared_paver', 'seared_bricks', 'seared_cracked_bricks', 'seared_fancy_bricks', 'seared_triangle_bricks']:
+        blocks[name] = structure_block('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0)
+    blocks['seared_lamp'] = structure_block('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0, 15)
+    for name in ['scorched_bricks', 'scorched_road', 'chiseled_scorched_bricks']:
+        blocks[name] = structure_block('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0)
+    blocks['scorched_lamp'] = structure_block('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0, 15)
     # the pouring blocks: searedNonSolidProps(METAL) strength 3/9 and scorchedNonSolidProps(BASALT) 2.5/8, both noOcclusion and
     # requiring the correct tool; their block states are the original's (TableBlock facing + has_item, FaucetBlock facing,
     # ChannelBlock down/powered and one of none/in/out per side). Waterlogging is left out (no fluid logging here).
@@ -1272,7 +1293,11 @@ def upgrade_loot(node):
             terms = [upgrade_condition(term) for term in value]
             result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
         elif key == 'functions':
-            result['modifier'] = [upgrade_function(function) for function in value]
+            # The heating controllers' tables also copy the block entity's name and the retexture (mantle:fill_retextured_block);
+            # neither exists here (no named or retextured controllers), so those functions are dropped and the plain drop stays.
+            kept = [upgrade_function(function) for function in value if function['function'] not in ('minecraft:copy_name', 'mantle:fill_retextured_block')]
+            if kept:
+                result['modifier'] = kept
         elif key == 'bonus_rolls' and value == 0:
             continue  # the default
         elif key in ('type', 'name', 'random_sequence', 'rolls'):

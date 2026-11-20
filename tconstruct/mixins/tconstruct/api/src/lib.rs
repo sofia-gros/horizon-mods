@@ -93,6 +93,11 @@ mod casting;
 mod faucet;
 mod channel;
 mod casting_blocks;
+mod multiblock;
+mod smeltery_tank;
+mod smeltery;
+mod smeltery_menu;
+mod smeltery_blocks;
 mod config;
 mod common;
 
@@ -107,6 +112,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     faucet::register();
     channel::register();
     casting_blocks::register();
+    smeltery_menu::register();
+    smeltery_blocks::register();
     creative::register();
     fluids::register();
     break_speed_hook::register();

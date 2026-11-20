@@ -189,6 +189,16 @@ mod faucet;
 mod channel;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/casting_blocks.rs"]
 mod casting_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/multiblock.rs"]
+mod multiblock;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_tank.rs"]
+mod smeltery_tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery.rs"]
+mod smeltery;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_menu.rs"]
+mod smeltery_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
+mod smeltery_blocks;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]
