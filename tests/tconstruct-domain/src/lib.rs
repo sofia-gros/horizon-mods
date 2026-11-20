@@ -117,6 +117,8 @@ mod tool_damage_hook;
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
 mod melee_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/severing.rs"]
+mod severing;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_recycling.rs"]
 mod part_recycling;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]

@@ -62,7 +62,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (127, 90), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (126, 88), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
@@ -845,6 +845,45 @@ fn shipped_constant_enchantments_give_the_tool_enchantment_levels() {
     assert_eq!(with("tconstruct:respiration", 1).get("minecraft:respiration"), Some(&1));
     assert_eq!(with("tconstruct:swift_sneak", 1).get("minecraft:swift_sneak"), Some(&1));
     assert!(with("tconstruct:sharpness", 2).is_empty(), "a modifier without enchantment modules gives none");
+}
+
+#[test]
+fn looting_enchants_a_melee_tool_by_its_level_and_severing_reports_its_level() {
+    use crate::{modifier_entries::List, tool_stack::{enchantments, looting, rebuild_stats, severing_levels, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let sword = &world.tools.iter().find(|(id, _)| id.path() == "sword").unwrap().1;
+    let sword_id = Identifier::parse("tconstruct:sword").unwrap();
+    // The looting module's tool condition names the melee tag, so the held item and its tags are needed.
+    let tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:sword"], &[("tconstruct:modifiable/melee", &["tconstruct:sword"])]).unwrap();
+    let env = Environment { definition: Some(sword), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&sword_id), item_tags: Some(&tags) };
+    let with = |modifier: &str, level: i32| {
+        let mut tool = ItemSlot::new(sword_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    // LevelingInt.EACH_LEVEL: the plain number in the module's data is the looting for each level of the modifier.
+    assert_eq!(looting(&with("tconstruct:looting", 3).custom_data, &env), 3);
+    assert_eq!(enchantments(&with("tconstruct:respiration", 2).custom_data, &env).get("minecraft:respiration"), Some(&2), "a constant enchantment's number is also for each level");
+    assert_eq!(looting(&with("tconstruct:sharpness", 2).custom_data, &env), 0);
+    assert_eq!(severing_levels(&with("tconstruct:severing", 2).custom_data, &env), vec![2.0]);
+    assert!(severing_levels(&with("tconstruct:sharpness", 2).custom_data, &env).is_empty());
+}
+
+#[test]
+fn shipped_severing_recipes_load_without_problems_and_the_creeper_gives_its_head() {
+    let files = recursive_files("tools/severing", "tools/severing");
+    assert_eq!(files.len(), 31, "the 38 original recipes less the 7 that read the entity's own state");
+    let recipes = crate::severing::Recipes::load(&files);
+    assert_eq!((recipes.len(), recipes.problems.len()), (31, 0), "{:?}", recipes.problems);
+    let none = |_: &Identifier| false;
+    let creeper = Identifier::parse("minecraft:creeper").unwrap();
+    let mut drops = Vec::new();
+    recipes.process(&creeper, &none, false, 1.0, 0.0, &mut drops, &mut || 0.0);
+    assert!(drops.iter().any(|slot| slot.item.to_string() == "minecraft:creeper_head"), "{drops:?}");
 }
 
 #[test]

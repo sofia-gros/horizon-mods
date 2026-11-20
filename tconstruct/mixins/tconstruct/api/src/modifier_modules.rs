@@ -130,6 +130,8 @@ pub(crate) enum Module {
     MobDisguise { module: crate::mob_disguise::MobDisguise },
     /// EdibleModule: a tool with a hunger stat can be eaten with a right click.
     Edible,
+    /// SeveringModule: when the mob it kills drops no head, the severing recipes for the mob may add their item (ProcessLootModifierHook).
+    Severing,
     /// EdibleConsumeDurabilityModule: eating the tool wears it.
     EdibleWear { usage: crate::edible::DurabilityUsage, condition: Condition },
     /// EdibleCureRandomEffectModule: eating the tool cures one of the eater's effects.
@@ -262,6 +264,25 @@ fn float(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
         Some(_) => Err(format!("{key} must be a number")),
     }
 }
+/// LevelingIntModule.FIELD: the `level` field is a leveling int whose plain number means the amount for each level (LevelingInt.EACH_LEVEL),
+/// or an object with `flat` and `each_level` parts; absent, it is the level itself. Returns (flat, each_level).
+fn leveling_int(fields: &Map<String, Value>) -> Result<(f32, f32), String> {
+    match fields.get("level") {
+        None | Some(Value::Null) => Ok((0.0, 1.0)),
+        Some(Value::Number(number)) => Ok((0.0, number.as_f64().ok_or("level must be a number")? as f32)),
+        Some(Value::Object(level)) => Ok((float(level, "flat")?, float(level, "each_level")?)),
+        Some(_) => Err("level must be a number or a leveling value".into()),
+    }
+}
+/// A predicate field that is absent or the always-true `mantle:any`; a module with any other predicate depends on state its event lacks.
+fn is_any_predicate(fields: &Map<String, Value>, key: &str) -> bool {
+    match fields.get(key) {
+        None | Some(Value::Null) => true,
+        Some(Value::Object(predicate)) => predicate.get("type").and_then(Value::as_str) == Some("mantle:any"),
+        Some(_) => false,
+    }
+}
+
 /// ModuleWithKey.FIELD: an optional persistent-data key, the modifier's ID when absent.
 fn optional_key(fields: &Map<String, Value>) -> Result<Option<Identifier>, String> {
     match fields.get("key").filter(|value| !value.is_null()) { None => Ok(None), Some(_) => identifier(fields, "key").map(Some) }
@@ -566,14 +587,17 @@ impl Module {
             }
             "tconstruct:constant_enchantment" | "tconstruct:enchantment_ignoring_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip" | "tconstruct:protection")) && (kind == "tconstruct:enchantment_ignoring_protection" || !hooks.iter().any(|bound| bound.to_string() == "tconstruct:protection")) => {
                 let name = identifier(fields, "name")?.to_string();
-                // `level` is a plain number (a flat level) or a leveling value with flat and each_level parts.
-                let (flat, each) = match fields.get("level") {
-                    Some(Value::Number(number)) => (number.as_f64().ok_or("level must be a number")? as f32, 0.0),
-                    Some(Value::Object(level)) => (float(level, "flat")?, float(level, "each_level")?),
-                    _ => return Err("level must be a number or a leveling value".into()),
-                };
+                let (flat, each) = leveling_int(fields)?;
                 Self::Enchantment { name, flat, each, ignoring: kind == "tconstruct:enchantment_ignoring_protection", condition: Condition::decode(fields)? }
             }
+            // LootingModule.Weapon: the looting level the tool adds when it kills. The game takes the looting of the killer's weapon from the weapon's own
+            // enchantments, so a module whose holder, target and damage source predicates accept everything is exactly a constant looting enchantment.
+            "tconstruct:weapon_looting" if only("tconstruct:weapon_looting") => {
+                if !["holder", "target", "damage_source"].iter().all(|key| is_any_predicate(fields, key)) { return Ok(None); }
+                let (flat, each) = leveling_int(fields)?;
+                Self::Enchantment { name: "minecraft:looting".to_owned(), flat, each, ignoring: false, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:severing" if only("tconstruct:process_loot") => Self::Severing,
             "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::AdjustDamage::decode(fields)? else { return Ok(None); };
                 Self::AdjustDamage { module, condition: Condition::decode(fields)? }
@@ -680,7 +704,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -890,6 +914,8 @@ impl Module {
     pub fn is_mining_capacity(&self) -> bool { matches!(self, Self::CapacityMining { .. }) }
     /// Whether this is a loot to capacity module.
     pub fn is_loot_capacity(&self) -> bool { matches!(self, Self::CapacityLoot { .. }) }
+    /// The severing module's effective level of its modifier, None for any other module.
+    pub fn severing_level(&self, entry: &Entry) -> Option<f32> { matches!(self, Self::Severing).then(|| entry.effective_level()) }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.

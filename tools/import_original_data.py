@@ -175,6 +175,26 @@ def copy_recycling_recipes():
     return count
 
 
+SEVERING_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/severing'
+SEVERING_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/severing'
+
+
+def copy_severing_recipes():
+    """The severing recipes that turn a mob type into an item, byte for byte. The recipes whose output depends on the entity's own state
+    (ageable, mooshroom, player, sheep and snow golem) are left out: the loot event reports no such state."""
+    if SEVERING_TARGET.exists():
+        shutil.rmtree(SEVERING_TARGET)
+    count = 0
+    for path in sorted(SEVERING_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:severing':
+            continue
+        destination = SEVERING_TARGET / path.relative_to(SEVERING_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_part_builder_recipes():
     """The part builder recipes that make tool parts from materials, byte for byte. The sand and
     red sand cast recipes belong to the smeltery and come with it."""
@@ -1213,7 +1233,7 @@ def main():
     worn_textures, worn_rows = copy_armor_worn_assets()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names]
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_fluid_recipes() + copy_fluid_tags()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
 
 
