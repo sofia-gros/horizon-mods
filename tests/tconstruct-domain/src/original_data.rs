@@ -2422,3 +2422,32 @@ fn the_host_fluid_tags_hold_only_defined_fluids_and_match_the_recipe_copy_withou
     assert!(host.contains(&id("tconstruct:molten_iron"), &id("tconstruct:chemthrower_effects/entity")));
     assert!(host.contains(&id("minecraft:lava"), &id("tconstruct:swasher/drowned")));
 }
+
+#[test]
+fn a_melter_on_the_shipped_data_burns_coal_from_below_and_melts_an_ingot_and_a_part() {
+    use crate::{heating::MELTER_CAPACITY, melter::{Live, State, Tank}, smeltery_data::Data, tool_materials::MaterialVariant};
+    use pluto_lib::{with_neighbours, FluidStack, ItemSlot, MemoryNeighbourOps};
+    let data = Data { recipes: fluid_recipes(false), tags: fluid_tags(), recipes_loaded: true, tags_loaded: true };
+    assert!(data.loaded());
+    let item_tags = pluto_lib::fixtures::registry_with_tags(&["minecraft:iron_ingot"], &[("forge:ingots/iron", &["minecraft:iron_ingot"])]).unwrap();
+    // The heater below holds coal; the melter holds an iron ingot and an iron pick head.
+    let mut world = MemoryNeighbourOps::default();
+    world.containers.insert([0, 63, 0], vec![Some(ItemSlot::new(id("minecraft:coal"), 1))]);
+    let mut head = ItemSlot::new(id("tconstruct:pick_head"), 1);
+    crate::tool_materials::set_part_material(&mut head, &MaterialVariant::parse("tconstruct:iron").unwrap());
+    let mut items = vec![Some(ItemSlot::new(id("minecraft:iron_ingot"), 1)), Some(head), None];
+    let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
+    with_neighbours(&mut world, || {
+        let mut live = Live::new(&data, Some(&item_tags), [0, 64, 0]);
+        // The shipped solid fuel gives 800 C at rate 8, and coal burns 1600 ticks of which a quarter counts.
+        for _ in 0..3 { state.step(&mut items, &mut tank, &mut live); }
+        assert_eq!((state.fuel.temperature, state.fuel.rate), (800, 8));
+        assert_eq!((state.slots[0].required_time, state.slots[0].required_temp), (600, 800), "the shipped iron ingot recipe: time 60, 800 C");
+        assert_eq!((state.slots[1].required_time, state.slots[1].required_temp), (850, 800), "a pick head melts in the time of 180 mB of iron");
+        // 400 burn units last 400 passes: the ingot finishes at pass 76, the head (850 at rate 8) at pass 108
+        for _ in 0..4 * 110 { state.step(&mut items, &mut tank, &mut live); }
+    });
+    assert!(items[0].is_none() && items[1].is_none(), "both melted");
+    assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 + 180 }));
+    assert!(world.containers[&[0, 63, 0]][0].is_none(), "the one coal was burned");
+}

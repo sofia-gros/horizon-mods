@@ -472,8 +472,12 @@ ASSET_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconst
 ASSET_TARGET = ROOT / 'tconstruct/content/assets/tconstruct'
 BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
 HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
+# Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
+SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater']
+SMELTERY_GUI_TEXTURES = ['melter', 'heater']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
-PLAIN_LOADERS = {'mantle:retextured'}
+# tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
+PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank'}
 
 
 def qualify(reference):
@@ -572,6 +576,17 @@ def copy_client_assets():
     shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'license')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
         variants = read(asset_source(f'blockstates/{name}.json')).get('variants', {})
+        if name in SMELTERY_STATE_BLOCKS:
+            # The controllers declare facing/active/in_structure themselves, so the original's variants apply as they are.
+            if any(needs_loader(variant['model']) for variant in variants.values()):
+                skipped.append(name)
+                continue
+            converted = {key: {**variant, 'model': import_model(variant['model'])} for key, variant in variants.items()}
+            write(f'blockstates/{name}.json', {'variants': converted})
+            first = converted[next(iter(converted))]
+            item_model = asset_source(f'models/item/{name}.json').exists()
+            write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else first['model']}})
+            continue
         if sorted(variants) == ['facing=east', 'facing=north', 'facing=south', 'facing=west']:
             variant = dict(variants['facing=north'])
         elif list(variants) == ['']:  # a block with no state of its own: its one model
@@ -585,6 +600,8 @@ def copy_client_assets():
         write(f'blockstates/{name}.json', {'variants': {'': variant}})
         item_model = asset_source(f'models/item/{name}.json').exists()
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else variant['model']}})
+    for texture in SMELTERY_GUI_TEXTURES:
+        import_texture(f'tconstruct:gui/{texture}')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
         if not asset_source(f'models/item/{name}.json').exists() or needs_loader(f'tconstruct:item/{name}'):
             skipped.append(name)
@@ -1097,7 +1114,7 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
              'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'WARPED_STEM': 56}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
@@ -1140,9 +1157,57 @@ def world_blocks():
     return blocks
 
 
+def smeltery_blocks():
+    """name -> declaration of the melter and the heater (TinkerSmeltery: the `seared` controller properties, light 13
+    while active; the melter adds noOcclusion). ControllerBlock declares facing, active and in_structure on both."""
+    def controller(occludes):
+        properties = {'hardness': 8.0, 'explosion_resistance': 28.0, 'sounds': 'minecraft:iron_block', 'map_color': MAP_COLOR['COLOR_GRAY'], 'requires_tool': True}
+        if not occludes:
+            properties['occludes'] = False
+        return {'template': 'minecraft:stone', 'properties': properties,
+                'state_properties': {'active': {'type': 'boolean'}, 'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}, 'in_structure': {'type': 'boolean'}},
+                'state_light': {'property': 'active', 'values': {'false': 0, 'true': 13}}, 'item': True}
+    return {'seared_melter': controller(False), 'seared_heater': controller(True)}
+
+
+def write_vanilla_fuels():
+    """Vanilla's burn times (ForgeHooks.getBurnTime falls back to the furnace fuel map for the melter's heater): the
+    `minecraft:cooking_fuel` item component of the pinned base export, its burn time provider evaluated for an ordinary
+    (not fast-cooking) block. The host exposes no burn time to mods, so the table is data of the pinned game version."""
+    base = ROOT / '.local/base-26.3'
+    providers = base / 'data/minecraft/context_int_provider'
+
+    def evaluate(reference):
+        name = reference.split(':', 1)[1]
+        node = json.loads((providers / f'{name}.json').read_text(encoding='utf-8'))
+        return value(node)
+
+    def value(node):
+        if isinstance(node, (int, float)):
+            return node
+        if isinstance(node, str):
+            return evaluate(node)
+        kind = node['type']
+        if kind == 'minecraft:div':
+            return int(value(node['left']) / value(node['right']))
+        if kind == 'minecraft:conditional':
+            return value(node['on_false'])  # block/fast_cooking is the only condition and does not hold
+        if kind == 'minecraft:constant':
+            return value(node['value'])
+        raise SystemExit(f'burn time provider {kind} is not known')
+
+    items = json.loads((base / 'items.json').read_text(encoding='utf-8'))
+    fuels = {name: value(item['minecraft:cooking_fuel']['burn_time']) for name, item in sorted(items.items()) if 'minecraft:cooking_fuel' in item}
+    lines = ['//! Vanilla furnace fuels of the pinned game version: item and burn time in ticks (the `minecraft:cooking_fuel` item',
+             '//! component, evaluated for an ordinary block). Generated from the pinned base export by tools/import_original_data.py.',
+             '', 'pub(crate) const FUELS: &[(&str, i32)] = &['] + [f'    ("{name}", {ticks}),' for name, ticks in fuels.items()] + ['];']
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/vanilla_fuels.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(fuels)
+
+
 def write_world_declarations():
     """Block and item declarations of the world units, written beside the hand-written station ones."""
-    blocks = world_blocks()
+    blocks = {**world_blocks(), **smeltery_blocks()}
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
     for name in WORLD_ITEMS:
@@ -1348,9 +1413,10 @@ def main():
     tags = copy_tags() + copy_damage_tags() + copy_fluid_host_tags(fluid_names)
     write_damage_vanilla()
     languages = copy_lang()
+    fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
     models, textures, unrendered = copy_client_assets()
-    world_loot = copy_world_loot(sorted(world_blocks()))
+    world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
     part_names, part_models, part_textures = copy_part_assets()
@@ -1359,7 +1425,7 @@ def main():
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names]
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

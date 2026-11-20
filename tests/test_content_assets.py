@@ -409,6 +409,9 @@ class ContentAssets(unittest.TestCase):
         used = set()
         for path in (ASSETS / 'models').rglob('*.json'):
             used |= {split(t)[1] for t in load(path).get('textures', {}).values() if split(t)[0] == 'tconstruct'}
+        # GUI textures are drawn by the screens' Rust code, not by models: the sprite names the sources use.
+        sources = ''.join(path.read_text(encoding='utf-8') for path in (ROOT / 'tconstruct/mixins/tconstruct/api/src').glob('*.rs'))
+        used |= {f'gui/{name}' for name in re.findall(r'"tconstruct:gui/([a-z_]+)"', sources)}
         present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
                    if not p.relative_to(ASSETS / 'textures').as_posix().startswith('entity/equipment/')}
         self.assertEqual(present, used)

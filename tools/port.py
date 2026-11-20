@@ -52,7 +52,7 @@ FEATURE_TYPES = {'minecraft:ore'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
-BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
+BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
 
 
@@ -296,6 +296,13 @@ def checked_content(root, version):
                 raise ValueError(f'invalid components in {name}')
             if '/block/' in name and not isinstance(item.get('properties', {}), dict):
                 raise ValueError(f'block properties must be an object: {name}')
+            if '/block/' in name:
+                declared = item.get('state_properties', {})
+                if not isinstance(declared, dict) or any(not isinstance(spec, dict) or spec.get('type') not in ('boolean', 'enum') for spec in declared.values()):
+                    raise ValueError(f'block state properties must be booleans or enums: {name}')
+                light = item.get('state_light')
+                if light is not None and (not isinstance(light, dict) or light.get('property') not in declared or not isinstance(light.get('values'), dict)):
+                    raise ValueError(f'state_light must select by a declared property: {name}')
     digest = hashlib.sha256()
     for name, payload in sorted(files.items()):
         digest.update(name.encode() + b'\x00' + payload + b'\x00')

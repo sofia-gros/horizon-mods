@@ -171,6 +171,16 @@ mod melting_recipes;
 mod casting_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_recipes.rs"]
 mod fluid_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_data.rs"]
+mod smeltery_data;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/vanilla_fuels.rs"]
+mod vanilla_fuels;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melter.rs"]
+mod melter;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melter_menu.rs"]
+mod melter_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melter_blocks.rs"]
+mod melter_blocks;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]
