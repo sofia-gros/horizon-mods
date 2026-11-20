@@ -177,6 +177,8 @@ pub struct BlockEntityFill<'a> {
     pub items: &'a mut Vec<Option<ItemSlot>>,
     /// What is offered.
     pub fluid: FluidStack,
+    /// The face of this block the fluid comes through (`None` when the caller does not say, as the original's handler answers a null side).
+    pub face: Option<super::block_api_v1::Direction>,
     /// False when the caller only asks how much would be taken: the changes are thrown away, so the hook may run the same code for both.
     pub execute: bool,
 }
@@ -370,13 +372,13 @@ impl BlockEntityTypeRegistry {
 
     /// Offers `fluid` to the block entity of `block` with the saved `data` and `items`: how much its [`BlockEntityType::fluid_filler`] takes, or
     /// `None` when the block has no filler (the host fills the declared tanks). With `execute` false the changes the filler makes are thrown away.
-    pub fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, execute: bool) -> Option<u32> {
+    pub fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, face: Option<super::block_api_v1::Direction>, execute: bool) -> Option<u32> {
         let filler = Self::get(block)?.filler?;
         if execute {
-            return Some(filler(&mut BlockEntityFill { pos, data, items, fluid, execute }));
+            return Some(filler(&mut BlockEntityFill { pos, data, items, fluid, face, execute }));
         }
         let (mut data, mut items) = (data.clone(), items.clone());
-        Some(filler(&mut BlockEntityFill { pos, data: &mut data, items: &mut items, fluid, execute }))
+        Some(filler(&mut BlockEntityFill { pos, data: &mut data, items: &mut items, fluid, face, execute }))
     }
 
     /// Runs the [`BlockEntityType::on_use`] hook of `block` for a player holding `held` (`None`: an empty hand); `None` when the block has no hook.
@@ -611,12 +613,12 @@ mod tests {
         BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:plain_tank")).fluid_tanks([1000]));
         let (mut data, mut items) = (NbtCompound::new(), vec![None]);
         let lava = |amount| FluidStack { fluid: id("minecraft:lava"), amount };
-        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), false), Some(50));
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), None, false), Some(50));
         assert!(data.is_empty(), "a simulation changes nothing");
-        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), true), Some(50));
-        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), true), Some(40), "90 is the most it takes");
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), None, true), Some(50));
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), None, true), Some(40), "90 is the most it takes");
         assert!(has_fluid_filler("test:basin") && !has_fluid_filler("test:plain_tank"));
-        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:plain_tank", [0; 3], &mut data, &mut items, lava(5), true), None, "no filler: the host fills the tanks");
+        assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:plain_tank", [0; 3], &mut data, &mut items, lava(5), None, true), None, "no filler: the host fills the tanks");
         let stick = ItemSlot::new(id("minecraft:stick"), 1);
         let out = BlockEntityTypeRegistry::use_block("test:basin", [0; 3], &mut data, &mut items, Some(stick.clone()), false).unwrap();
         assert_eq!((out.result, out.held, out.give, items[0].clone()), (ActionResult::Success, None, vec![stick.clone()], Some(stick)));

@@ -89,6 +89,10 @@ mod vanilla_fuels;
 mod melter;
 mod melter_menu;
 mod melter_blocks;
+mod casting;
+mod faucet;
+mod channel;
+mod casting_blocks;
 mod config;
 mod common;
 
@@ -99,6 +103,10 @@ pub fn hooks() -> pluto_lib::ModHooks {
     worktable_menu::register();
     melter_menu::register();
     melter_blocks::register();
+    casting::register();
+    faucet::register();
+    channel::register();
+    casting_blocks::register();
     creative::register();
     fluids::register();
     break_speed_hook::register();

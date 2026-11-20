@@ -181,6 +181,14 @@ mod melter;
 mod melter_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melter_blocks.rs"]
 mod melter_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting.rs"]
+mod casting;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/faucet.rs"]
+mod faucet;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/channel.rs"]
+mod channel;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting_blocks.rs"]
+mod casting_blocks;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]

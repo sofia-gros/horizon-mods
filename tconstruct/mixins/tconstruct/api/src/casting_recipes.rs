@@ -236,7 +236,7 @@ impl MaterialCasting {
 
 /// MoldingRecipe: a material item on the table, with an optional pattern, becomes the result (sand casts, clay casts).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Molding { pub id: Identifier, pub material: Ingredient, pub pattern: Option<Ingredient>, pub pattern_consumed: bool, pub result: ItemOutput }
+pub(crate) struct Molding { pub table: bool, pub id: Identifier, pub material: Ingredient, pub pattern: Option<Ingredient>, pub pattern_consumed: bool, pub result: ItemOutput }
 
 impl Molding {
     pub(crate) fn decode(id: &Identifier, fields: &Map<String, Value>) -> Result<Self, String> {
@@ -244,6 +244,7 @@ impl Molding {
         let pattern = optional_ingredient(fields.get("pattern"))?;
         let consumed = flag(fields, "pattern_consumed")?;
         Ok(Self {
+            table: true,
             id: id.clone(),
             material: Ingredient::decode(fields.get("material").ok_or("material missing")?)?,
             // a recipe with no pattern never consumes one

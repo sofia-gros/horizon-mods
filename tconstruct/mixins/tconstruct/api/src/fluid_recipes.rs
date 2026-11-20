@@ -103,7 +103,11 @@ impl Recipes {
             "tconstruct:entity_melting" => self.entity_melting.push(EntityMelting::decode(id, fields)?),
             "tconstruct:alloy" => self.alloys.push(Alloy::decode(id, fields)?),
             "tconstruct:material_fluid" => self.material_casting.add_fluid(MaterialFluid::decode(id, fields)?),
-            "tconstruct:molding_table" | "tconstruct:molding_basin" => self.molding.push(Molding::decode(id, fields)?),
+            "tconstruct:molding_table" | "tconstruct:molding_basin" => {
+                let mut molding = Molding::decode(id, fields)?;
+                molding.table = kind == "tconstruct:molding_table";
+                self.molding.push(molding);
+            }
             "tconstruct:item_part_builder" => self.part_builder.push(id.clone()),
             kind if LEFT_OUT.contains(&kind) => self.left_out.push((id.clone(), kind.to_owned())),
             kind if kind.starts_with("tconstruct:") && (kind.contains("casting") || kind.contains("duplication") || kind.contains("filling")) => {

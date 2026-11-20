@@ -554,12 +554,12 @@ BlockEntityTypeRegistry::register(BlockEntityType::new(basin).fluid_tanks([1000]
 }));
 let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 500 };
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
-assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:basin", [0, 64, 0], &mut data, &mut items, lava, true), Some(90));
+assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:basin", [0, 64, 0], &mut data, &mut items, lava, None, true), Some(90));
 ```
 
 ### `BlockEntityFill`
 
-What a fluid filler receives: `pos`, the saved `data`, the item `items`, the `fluid` offered and `execute`. With `execute` false the caller only asks how much would be taken and the changes are thrown away, so the hook can run the same code either way. `fluid_in(index)` and `set_fluid(index, stack)` read and write a tank.
+What a fluid filler receives: `pos`, the saved `data`, the item `items`, the `fluid` offered, the `face` it comes through (`None` when not said) and `execute`. With `execute` false the caller only asks how much would be taken and the changes are thrown away, so the hook can run the same code either way. `fluid_in(index)` and `set_fluid(index, stack)` read and write a tank.
 
 ```rust
 use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
@@ -571,14 +571,14 @@ fn take_all(fill: &mut BlockEntityFill<'_>) -> u32 {
 }
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 250 };
-let mut fill = BlockEntityFill { pos: [0, 64, 0], data: &mut data, items: &mut items, fluid: water, execute: true };
+let mut fill = BlockEntityFill { pos: [0, 64, 0], data: &mut data, items: &mut items, fluid: water, face: None, execute: true };
 assert_eq!(take_all(&mut fill), 250);
 assert_eq!(fill.fluid_in(0).unwrap().amount, 250);
 ```
 
 ### `BlockEntityTypeRegistry::fill_fluid`
 
-`fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, execute: bool) -> Option<u32>`. Offers `fluid` to the block's filler over the given data and slots: the amount taken, or `None` when the block has no filler (the host then fills the declared tanks). With `execute` false the data and slots are left unchanged.
+`fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, face: Option<Direction>, execute: bool) -> Option<u32>`. Offers `fluid`, coming through `face`, to the block's filler over the given data and slots: the amount taken, or `None` when the block has no filler (the host then fills the declared tanks). With `execute` false the data and slots are left unchanged.
 
 ```rust
 use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, FluidStack, Identifier, NbtCompound};
@@ -586,8 +586,8 @@ use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, FluidStack, Identifier
 BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example", "sink").unwrap()).fluid_filler(|fill| fill.fluid.amount));
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 40 };
-assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:sink", [0; 3], &mut data, &mut items, water.clone(), false), Some(40));
-assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:plain", [0; 3], &mut data, &mut items, water, false), None);
+assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:sink", [0; 3], &mut data, &mut items, water.clone(), None, false), Some(40));
+assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:plain", [0; 3], &mut data, &mut items, water, None, false), None);
 ```
 
 ### `BlockEntityType::on_use`
@@ -656,7 +656,7 @@ use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10 };
-let fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water, execute: false };
+let fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water, face: None, execute: false };
 assert_eq!(fill.fluid_in(0), None);
 ```
 
@@ -669,7 +669,7 @@ use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10 };
-let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water.clone(), execute: true };
+let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water.clone(), face: None, execute: true };
 fill.set_fluid(0, Some(water));
 assert_eq!(fill.fluid_in(0).unwrap().amount, 10);
 ```
