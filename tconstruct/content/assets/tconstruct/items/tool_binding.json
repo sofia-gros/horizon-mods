@@ -1,0 +1,307 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+      {
+        "when": "amethyst_bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_amethyst_bronze"
+        }
+      },
+      {
+        "when": "ancient_hide",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_ancient_hide"
+        }
+      },
+      {
+        "when": "blazing_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_blazing_bone"
+        }
+      },
+      {
+        "when": "bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_bone"
+        }
+      },
+      {
+        "when": "chorus",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "cinderslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_cinderslime"
+        }
+      },
+      {
+        "when": "cobalt",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "copper",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_copper"
+        }
+      },
+      {
+        "when": "darkthread",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_darkthread"
+        }
+      },
+      {
+        "when": "enderslime_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_enderslime_vine"
+        }
+      },
+      {
+        "when": "flint",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_flint"
+        }
+      },
+      {
+        "when": "hepatizon",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_hepatizon"
+        }
+      },
+      {
+        "when": "iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_iron"
+        }
+      },
+      {
+        "when": "jeweled_hide",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_jeweled_hide"
+        }
+      },
+      {
+        "when": "knightly",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightmetal",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_knightmetal"
+        }
+      },
+      {
+        "when": "knightslime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_knightslime"
+        }
+      },
+      {
+        "when": "kobold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_cobalt"
+        }
+      },
+      {
+        "when": "leather",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_leather"
+        }
+      },
+      {
+        "when": "leaves",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_vine"
+        }
+      },
+      {
+        "when": "magnetite",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_steel"
+        }
+      },
+      {
+        "when": "manyullyn",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_manyullyn"
+        }
+      },
+      {
+        "when": "nahuatl",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_nahuatl"
+        }
+      },
+      {
+        "when": "necrotic_bone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_necrotic_bone"
+        }
+      },
+      {
+        "when": "pig_iron",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_pig_iron"
+        }
+      },
+      {
+        "when": "queens_slime",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_queens_slime"
+        }
+      },
+      {
+        "when": "rock",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_rock_stone"
+        }
+      },
+      {
+        "when": "rose_gold",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_rose_gold"
+        }
+      },
+      {
+        "when": "scorched_stone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_scorched_stone"
+        }
+      },
+      {
+        "when": "seared_stone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_seared_stone"
+        }
+      },
+      {
+        "when": "shulker",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_chorus"
+        }
+      },
+      {
+        "when": "skyslime_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_skyslime_vine"
+        }
+      },
+      {
+        "when": "slimesteel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_slimesteel"
+        }
+      },
+      {
+        "when": "slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_slimewood_greenheart"
+        }
+      },
+      {
+        "when": "steel",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_steel"
+        }
+      },
+      {
+        "when": "string",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_string"
+        }
+      },
+      {
+        "when": "twisting_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_twisting_vine"
+        }
+      },
+      {
+        "when": "venombone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_venombone"
+        }
+      },
+      {
+        "when": "vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_vine"
+        }
+      },
+      {
+        "when": "weeping_vine",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_weeping_vine"
+        }
+      },
+      {
+        "when": "whitestone",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_whitestone"
+        }
+      },
+      {
+        "when": "wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/tool_binding/parts/tool_binding_tconstruct_wood"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "tconstruct:item/part/tool_binding/parts/tool_binding"
+    }
+  }
+}

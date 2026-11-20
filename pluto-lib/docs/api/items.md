@@ -83,6 +83,25 @@ ItemUseRegistry::register(
 
 A player who is not hungry cannot start a feeding item unless you add `.can_always_eat()`. When one is used up, the remainder is handed back (the use is refused if it would not fit).
 
+### Deciding per stack
+
+`ItemUse` answers for every stack of an item alike. When the answer depends on the stack (a tool that is edible only while it carries a hunger value, with an eating time of its own), register a `StackUse` instead. The game asks its callbacks with the stack's damage, max damage and custom data; a stack `can_use` refuses is left to the game, with its own use time, pose and rules.
+
+```rust
+use pluto_lib::{Food, Identifier, ItemUseRegistry, StackUse, UseAction};
+
+ItemUseRegistry::register_stack(
+    Identifier::new("example", "lunchbox").unwrap(),
+    StackUse::new(UseAction::Eat)
+        .can_use(|stack| stack.custom_data.contains_key("snacks"))
+        .use_time(|stack| if stack.damage > 10 { 64 } else { 32 })
+        .food(|_| Some(Food { nutrition: 2, saturation: 0.4 }))
+        .requires_hunger(),
+);
+```
+
+`.food` feeds the player when the use completes, before `UseItemFinishCallback` is called; a callback that wants the player's amount to depend on the player (or to wear the stack) leaves `.food` out, feeds with `done.player.add_food`, and changes the hand through `done.replacement`. Register an item with `register` or `register_stack`, not both.
+
 > **Use with Caution.** `with_lines` is available only while this context is being dispatched by the game. It returns `None` for a manually invoked event or if the same list is already borrowed. Nested tooltips have separate lists. Legacy `added` entries are appended after all callbacks; they are not part of the editable list during dispatch.
 
 ## Reference
@@ -420,7 +439,7 @@ assert_eq!(potion.remainder.unwrap().0.to_string(), "minecraft:glass_bottle");
 
 ### `EnderMaskContext`
 
-A query with `item: String`, `stack: Option<StackData>`, `wearer_uuid: Option<u128>` and `observer_entity: Option<u32>`. Missing context is not a fabricated empty stack or ID zero.
+A query with `item: String`, `stack: Option<StackData>`, `wearer_uuid: Option<u128>` and `observer_entity: Option<u32>`. Missing context is not a fabricated empty stack or ID zero. `stack` is the helmet the wearer wore as of their last tick when it carries custom data (what a mod's own armor keeps its state in), and `None` otherwise.
 
 ```rust
 use pluto_lib::EnderMaskContext;
@@ -511,6 +530,90 @@ let tonic = Identifier::new("example", "tonic").unwrap();
 ItemUseRegistry::register(tonic.clone(), ItemUse::new(32, UseAction::Drink));
 ItemUseRegistry::register(tonic, ItemUse::new(40, UseAction::Drink)); // replaces
 assert_eq!(ItemUseRegistry::get("example:tonic").unwrap().use_time, 40);
+```
+
+### `ItemUseRegistry::register_stack`
+
+`fn register_stack(item: Identifier, behavior: StackUse)`. Makes `item` usable over time, decided per stack. Registering the same item again replaces the earlier entry. The use time and pose are asked where the game asks them, a use of a stack the registration accepts never starts for a player who is not hungry when `requires_hunger` is set, and the food is given when it completes.
+
+```rust
+use pluto_lib::{Identifier, ItemUseRegistry, StackUse, UseAction};
+
+let id = Identifier::new("example", "flask").unwrap();
+ItemUseRegistry::register_stack(id.clone(), StackUse::new(UseAction::Drink).use_time(|_| 20));
+ItemUseRegistry::register_stack(id, StackUse::new(UseAction::Drink).use_time(|_| 40)); // replaces
+assert!(ItemUseRegistry::stack_use("example:flask").is_some());
+```
+
+### `ItemUseRegistry::stack_use`
+
+`fn stack_use(item: &str) -> Option<StackUse>`. The per-stack use registered for an item id such as `example:flask`, or `None`.
+
+```rust
+use pluto_lib::ItemUseRegistry;
+
+assert!(ItemUseRegistry::stack_use("example:never_registered").is_none());
+```
+
+### `StackUse`
+
+How one stack of an item is used over time, decided per stack (Fabric: `getMaxUseTime(ItemStack)`). It has no public fields: build it with `StackUse::new` and the chained methods.
+
+```rust
+use pluto_lib::{StackUse, UseAction};
+
+let use_it = StackUse::new(UseAction::Eat).can_use(|stack| stack.damage == 0).use_time(|_| 16);
+assert!(format!("{use_it:?}").contains("Eat"));
+```
+
+### `StackUse::new`
+
+`fn new(action: UseAction) -> StackUse`. A use in the given pose that every stack may start, for 0 ticks (so nothing happens until `use_time` says otherwise), with no food.
+
+```rust
+use pluto_lib::{StackUse, UseAction};
+
+let _plain = StackUse::new(UseAction::Drink);
+```
+
+### `StackUse::can_use`
+
+`fn can_use(self, can_use: impl Fn(&StackData) -> bool + Send + Sync + 'static) -> StackUse`. Whether this registration applies to the stack (a broken tool, a tool without the stat that makes it edible). A refused stack is left to the game: its own use time, pose and rules, usually no use at all. It runs often, when a use starts and as the hand draws one in use: answer from the stack alone and cheaply.
+
+```rust
+use pluto_lib::{StackUse, UseAction};
+
+let _only_whole = StackUse::new(UseAction::Eat).can_use(|stack| stack.damage == 0);
+```
+
+### `StackUse::use_time`
+
+`fn use_time(self, use_time: impl Fn(&StackData) -> i32 + Send + Sync + 'static) -> StackUse`. The ticks this stack's use takes. Only asked for a stack `can_use` accepts; 0 or less means the stack is not used over time.
+
+```rust
+use pluto_lib::{StackUse, UseAction};
+
+let _slow_when_worn = StackUse::new(UseAction::Eat).use_time(|stack| 16 + stack.damage as i32);
+```
+
+### `StackUse::food`
+
+`fn food(self, food: impl Fn(&StackData) -> Option<Food> + Send + Sync + 'static) -> StackUse`. What completing the use feeds for this stack (`None` feeds nothing). The player is fed on the server before `UseItemFinishCallback` is called. Do not also register a plain `ItemUse` with food for the item.
+
+```rust
+use pluto_lib::{Food, StackUse, UseAction};
+
+let _fed = StackUse::new(UseAction::Eat).food(|stack| Some(Food { nutrition: stack.count as i32, saturation: 0.3 }));
+```
+
+### `StackUse::requires_hunger`
+
+`fn requires_hunger(self) -> StackUse`. A player who is not hungry (food level 20) cannot start using the stack unless they are in creative mode (Fabric: the `canEat(false)` check of a food item). Use it for a stack whose finish callback feeds the player itself.
+
+```rust
+use pluto_lib::{StackUse, UseAction};
+
+let _only_when_hungry = StackUse::new(UseAction::Eat).requires_hunger();
 ```
 
 ### `ItemUseRegistry::get`

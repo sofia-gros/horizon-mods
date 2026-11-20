@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/scythe/head_broken_tconstruct_cobalt"
+  }
+}

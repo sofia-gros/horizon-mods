@@ -163,6 +163,26 @@ The client item definition uses the registered item ID as its custom `minecraft:
 
 > **Use with Caution.** Registration, owned definition transport and the actual decoder/parts/bounds/submit/worn helpers are pure-tested with trace host types. Source adapters extend the native special renderer, but native codec behavior, geometry conversion/baking, combined attachment approval, resource reload and rendered pixels remain unverified. Registration creates neither items nor textures. Register before first collection; duplicate, vanilla-item and late registrations reject. Native layers come from the loader's shared entity-model document when provided, otherwise from the current resource root; the document path does not reread the file. Both source loading routes extend custom geometry. The shared-document adapter passes the full fixed-pin plan and diagnostic host/API typechecks; native model baking, reload behavior and rendered pixels remain unverified. Mod layers must exist in EntityModelLayerRegistry. Each ItemRenderer owns fresh model trees, while sprites are looked up for the actual draw. A failed geometry batch publishes no custom prefix; claimed custom models with missing geometry/textures do not draw a vanilla-player substitute. Vanilla kinds and unrelated special renderers retain native fallback.
 
+## Worn Armor Layers
+
+An equipment asset (`assets/<namespace>/equipment/<id>.json`) names one fixed list of layers for every stack of an item. A piece whose look follows its own data (a tool-built piece that takes its textures from its materials) registers an `ArmorRenderer` for its item. The renderer receives the worn stack and the layer set (`humanoid` or `humanoid_leggings`) and answers the layers in draw order. The item still needs an equipment asset (its `equippable.asset_id`); that asset's list is what draws when the renderer declines.
+
+```rust
+use pluto_lib::{ArmorLayer, ArmorRenderer, Identifier};
+
+ArmorRenderer::register(&[Identifier::parse("example:suit").unwrap()], |context| {
+    let material = context.stack.custom_model_data.as_ref()?.strings.first()?.clone();
+    Some(vec![
+        ArmorLayer { texture: Identifier::parse("example:suit/base").unwrap(), tint: None },
+        ArmorLayer { texture: Identifier::parse(&format!("example:suit/{material}")).unwrap(), tint: Some(0xCC9966) },
+    ])
+});
+```
+
+A layer texture is `namespace:path` for `assets/<namespace>/textures/entity/equipment/<humanoid or humanoid_leggings>/<path>.png`; the game packs every texture under a content namespace's `textures/entity` folder, so no equipment asset has to list it. The glint, trim, OptiFine armour rules and emissive overlays keep working over the answered list.
+
+> **Use with Caution.** Registration, the answer-to-sprite translation and the host-layer decline rules are pure-tested. The worn-armour resolvers of the player, other players, mobs and armor stands are source-declared direct edits (`pluto-armor-worn-layers`, `pluto-armor-stand-worn-layers`) at their layer-list lookup with a bridge module in the item renderer; none of it is native-compiled or seen in a game. Worn wings are not asked. A stack carrying `minecraft:dyed_color` replaces the `tint` of its tinted layers (the game's dyeable-layer rule); untinted layers stay white. The renderer runs every frame for each worn piece: keep it short and allocation-light.
+
 ## Reference
 
 > **Use with Caution.** The current native submit route draws `Mod` block entities only. Native-recognized custom names such as `*_head`/`*_skull` become native skull entities before the mod factory is consulted; registering a renderer here alone cannot make those reach this route. The general registered-custom-only factory-priority policy is pure-tested; predicate/hook/guard declarations exist in source, but the guard deliberately rejects unset actual plan fingerprints and native compilation remains unverified. Failed claimed factories do not delegate back to native name classification. The head render core's pure pose tests do not establish native rendering.
@@ -589,4 +609,68 @@ use pluto_lib::{BlockEntityRendererRegistry, Identifier};
 assert!(!BlockEntityRendererRegistry::has("example:undrawn"));
 BlockEntityRendererRegistry::register(Identifier::new("example", "undrawn").unwrap(), |_| {});
 assert!(BlockEntityRendererRegistry::has("example:undrawn"));
+```
+
+### `ArmorLayerKind`
+
+The layer set a renderer is asked for: `Humanoid` (helmet, chestplate, boots) or `HumanoidLeggings`. The texture folder under `textures/entity/equipment` has the same name.
+
+```rust
+use pluto_lib::ArmorLayerKind;
+assert_ne!(ArmorLayerKind::Humanoid, ArmorLayerKind::HumanoidLeggings);
+```
+
+### `ArmorRenderContext`
+
+What a renderer is asked: `stack` is the worn stack as the item renderer sees it (custom data, model data, damage) and `kind` the layer set being drawn.
+
+```rust
+use pluto_lib::{ArmorLayerKind, ArmorRenderContext, StackData};
+let context = ArmorRenderContext { stack: StackData { item: "example:suit".into(), count: 1, ..Default::default() }, kind: ArmorLayerKind::Humanoid };
+assert_eq!(context.stack.item, "example:suit");
+assert_eq!(context.kind, ArmorLayerKind::Humanoid);
+```
+
+### `ArmorLayer`
+
+One drawn layer: `texture` names the equipment texture as an equipment asset does (`namespace:path`, no `textures/` and no `.png`; such a name makes the game keep the equipment asset's own layers) and `tint` is `Some(0xRRGGBB)` to multiply into it or `None`.
+
+```rust
+use pluto_lib::{ArmorLayer, Identifier};
+let layer = ArmorLayer { texture: Identifier::parse("example:suit/base").unwrap(), tint: Some(0x336699) };
+assert_eq!(layer.texture.path(), "suit/base");
+assert_eq!(layer.tint, Some(0x336699));
+```
+
+### `ArmorRenderer`
+
+The Fabric-style registry of worn armor renderers (`ArmorRenderer.register`). It does not declare an item, an equipment asset or a texture.
+
+```rust
+use pluto_lib::{ArmorRenderer, Identifier};
+ArmorRenderer::register(&[Identifier::parse("example:plain_suit").unwrap()], |_| None);
+```
+
+### `ArmorRenderer::register`
+
+`fn register(items: &[Identifier], renderer: impl Fn(&ArmorRenderContext) -> Option<Vec<ArmorLayer>> + Send + Sync + 'static)` gives each item the renderer. A later registration replaces an earlier one. The renderer returns the layers in draw order or `None` to leave the equipment asset; it may register renderers itself.
+
+```rust
+use pluto_lib::{ArmorLayer, ArmorRenderer, Identifier};
+let item = Identifier::parse("example:cloak").unwrap();
+ArmorRenderer::register(&[item], |_| Some(vec![ArmorLayer { texture: Identifier::parse("example:cloak/plain").unwrap(), tint: None }]));
+```
+
+### `ArmorRenderer::layers`
+
+`fn layers(context: &ArmorRenderContext) -> Option<Vec<ArmorLayer>>` asks the stack item's renderer outside the registry lock: `None` for no registration or a decline. The game's adapter calls the same lookup.
+
+```rust
+use pluto_lib::{ArmorLayer, ArmorLayerKind, ArmorRenderContext, ArmorRenderer, Identifier, StackData};
+ArmorRenderer::register(&[Identifier::parse("example:mantle").unwrap()], |context| {
+    (context.kind == ArmorLayerKind::Humanoid).then(|| vec![ArmorLayer { texture: Identifier::parse("example:mantle/top").unwrap(), tint: None }])
+});
+let ask = |kind| ArmorRenderContext { stack: StackData { item: "example:mantle".into(), count: 1, ..Default::default() }, kind };
+assert_eq!(ArmorRenderer::layers(&ask(ArmorLayerKind::Humanoid)).unwrap().len(), 1);
+assert_eq!(ArmorRenderer::layers(&ask(ArmorLayerKind::HumanoidLeggings)), None);
 ```

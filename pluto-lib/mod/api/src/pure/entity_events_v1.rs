@@ -8,6 +8,7 @@ use super::block_entity_api_v1::ItemSlot;
 pub use super::entity_spawn_api::{MobSpawnInfo,MobSpawnPreparation,MobSpawnCompletion,MobSpawnAction,MobSpawnCallback};
 use super::base::Event;
 use super::player_api::StackData;
+use super::base::{Nbt, NbtCompound};
 
 /// An entity entering or leaving a world.
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +42,29 @@ pub struct ServerEntityEvents;
 impl ServerEntityEvents {
     pub const ENTITY_LOAD: &'static Event<EntityInfo, ()> = &ENTITY_LOAD;
     pub const ENTITY_UNLOAD: &'static Event<EntityInfo, ()> = &ENTITY_UNLOAD;
+    /// A player is about to shear a mob (Bukkit: `PlayerShearEntityEvent`; Fabric has no counterpart). Set `cancel` to stop the shearing,
+    /// or queue `actions` for the player. Server only; heard before the shears act, so a later callback may still cancel the shearing. The game
+    /// reports only a guest's shearing on the owner's LAN world: the world owner's own shearing is heard by no hook.
+    pub const SHEAR: &'static Event<ShearAttempt, ()> = &SHEAR;
+}
+
+/// A player about to shear a mob, heard on a server before the shearing happens.
+#[derive(Clone, Debug)]
+pub struct ShearAttempt {
+    /// The player's uuid and name.
+    pub player: u128,
+    pub name: String,
+    /// The mob's entity id.
+    pub entity: i32,
+    /// Whether the shears are in the off hand.
+    pub off_hand: bool,
+    /// The stack in that hand (its damage, max damage and custom data); None for an empty hand.
+    pub tool: Option<StackData>,
+    /// Set to true to stop the shearing.
+    pub cancel: Cell<bool>,
+    /// The actions to do to the player (`Attacker`), which callbacks add to; they land when the shearing is heard, even when a later
+    /// callback cancels it.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// What a living entity is doing, as the game reports it when a player's weapon hits a mob.
@@ -58,6 +82,69 @@ pub struct EntityState {
     pub fire_immune: bool,
     /// The ids of the effects on it, such as `minecraft:poison`.
     pub effects: Vec<String>,
+    /// Each effect on it as (id, amplifier): the amplifier is the level less one, 0 for level I. Lists the same effects as `effects`.
+    pub effect_levels: Vec<(String, i32)>,
+    /// Its health points, and its maximum (the `minecraft:max_health` attribute); None when the game did not report them.
+    pub health: Option<f32>,
+    pub max_health: Option<f32>,
+    /// The biome it stands in, such as `minecraft:plains`; None when the game did not report it.
+    pub biome: Option<String>,
+    /// That biome's temperature at its height, as `Biome.getTemperature` reports it; None for a biome PlutoLib has no temperature for.
+    pub biome_temperature: Option<f32>,
+    /// Whether its eyes are in water (`minecraft:water`, a waterlogged block, kelp or seagrass), as opposed to `in_water`, which a touch of water sets.
+    pub eyes_in_water: bool,
+    /// Whether rain falls on it: it is raining, the sky is open above it and the biome rains rather than snows or stays dry.
+    pub rain_exposed: bool,
+    /// The share of its armor slots (head, chest, legs, feet) holding armor, 0.0 to 1.0, as `LivingEntity.getArmorCoverPercentage`; None when unknown.
+    pub armor_coverage: Option<f32>,
+    /// Whether it crouches: a player holding sneak. A mob never does.
+    pub crouching: bool,
+    /// Its height, the y of its feet; None when the game did not report it.
+    pub y: Option<f64>,
+    /// The block light and the sky light at the block it stands in, each 0 to 15 as `Level.getBrightness` reports them for the two layers;
+    /// None when the game did not report them. The sky light is the raw one: `sky_darken` is what daylight takes off it.
+    pub block_light: Option<u8>,
+    pub sky_light: Option<u8>,
+    /// How much of the sky light the time of day and the weather take off, 0 to 11 (`Level.getSkyDarken`); 0 where there is no weather or day.
+    pub sky_darken: u8,
+}
+
+impl EntityState {
+    /// The level of the effect `id` on it (the amplifier plus one), or 0 when it does not have the effect or the game did not report levels.
+    pub fn effect_level(&self, id: &str) -> i32 {
+        self.effect_levels.iter().find(|(effect, _)| effect == id).map_or(0, |(_, amplifier)| amplifier.saturating_add(1))
+    }
+}
+
+/// `Level.getSkyDarken`: how much of the sky light the weather and the time of day take off, 0 (noon, clear) to 11 (midnight, in a thunderstorm).
+/// `rain` and `thunder` are the levels from 0.0 to 1.0 and `day_time` the world's time of day in ticks.
+pub fn sky_darken(rain: f32, thunder: f32, day_time: i64) -> u8 {
+    // `DimensionType.timeOfDay`: the fraction of the day, eased so the sun lingers near the horizon.
+    let fraction = (day_time as f64 / 24000.0 - 0.25).rem_euclid(1.0);
+    let eased = 0.5 - (fraction * std::f64::consts::PI).cos() / 2.0;
+    let time_of_day = ((fraction * 2.0 + eased) / 3.0) as f32;
+    let rain_factor = 1.0 - f64::from(rain.clamp(0.0, 1.0) * 5.0) / 16.0;
+    let thunder_factor = 1.0 - f64::from(thunder.clamp(0.0, 1.0) * 5.0) / 16.0;
+    let brightness = 0.5 + 2.0 * f64::from((time_of_day * (2.0 * std::f32::consts::PI)).cos()).clamp(-0.25, 0.25);
+    ((1.0 - brightness * rain_factor * thunder_factor) * 11.0) as u8
+}
+
+/// A status effect's category (`MobEffectCategory`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EffectCategory { Beneficial, Harmful, Neutral }
+
+/// The category of a vanilla status effect id (`minecraft:speed`); None for an id that is not vanilla's. A vanilla effect can be cured with milk.
+pub fn effect_category(id: &str) -> Option<EffectCategory> {
+    use EffectCategory::*;
+    Some(match id.strip_prefix("minecraft:")? {
+        "speed" | "haste" | "strength" | "instant_health" | "jump_boost" | "regeneration" | "resistance" | "fire_resistance" | "water_breathing"
+        | "invisibility" | "night_vision" | "health_boost" | "absorption" | "saturation" | "luck" | "slow_falling" | "conduit_power"
+        | "dolphins_grace" | "hero_of_the_village" => Beneficial,
+        "slowness" | "mining_fatigue" | "instant_damage" | "nausea" | "blindness" | "hunger" | "weakness" | "poison" | "wither" | "levitation"
+        | "unluck" | "bad_omen" | "darkness" | "trial_omen" | "raid_omen" | "infested" | "oozing" | "weaving" | "wind_charged" => Harmful,
+        "glowing" => Neutral,
+        _ => return None,
+    })
 }
 
 /// A status effect for a callback to put on the mob a weapon hit.
@@ -83,8 +170,13 @@ pub struct WeaponHit {
     /// What the player and the mob were doing as the hit landed; None when the game could not tell.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// The armor the attacking player wore as of their last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces
+    /// carrying custom data. Empty when the player is not known (with several players online only the named player's armor is known).
+    pub armor: Vec<(String, StackData)>,
     /// The effects to put on the mob, which callbacks add to.
     pub effects: RefCell<Vec<EffectGrant>>,
+    /// The actions to do to the player (`Attacker`) or the mob (`Victim`), which callbacks add to; they land before the hit's damage.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// A server player's tick, heard while the player wears armor that carries custom data.
@@ -99,6 +191,12 @@ pub struct PlayerTick {
     pub effects: Vec<(String, i32, i32)>,
     /// The effects to take off the player, which callbacks add to.
     pub remove_effects: RefCell<Vec<String>>,
+    /// The amounts callbacks add to the base value of the player's attributes, as (attribute id, amount), which callbacks push to every tick
+    /// for as long as they want them: an amount no callback names any more is taken off again.
+    pub attribute_additions: RefCell<Vec<(String, f64)>>,
+    /// The actions to do to the ticking player, as `Attacker`, which callbacks add to; they land at the end of the tick. Only a player the host
+    /// can name by entity id is reached (the acting player, or a guest).
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -107,6 +205,145 @@ pub struct CounterDamage {
     /// The damage type id, such as `minecraft:thorns`.
     pub damage_type: String,
     pub amount: f32,
+}
+
+/// Which party of a hit an [`EntityAction`] is done to. In a weapon hit the attacker is the player and the victim the mob; in a hit on a
+/// player (`WearerHit`) the attacker is the mob and the victim the wearer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ActionTarget {
+    Attacker,
+    Victim,
+}
+
+/// How a [`EntityAction::Knockback`] picks the way the target is pushed.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum KnockbackDirection {
+    /// Away from the other party of the hit, as the game's own damage knockback pushes.
+    AwayFromOther,
+    /// Against the way the target faces, as `Entity.knockback(strength, -sin(yaw), cos(yaw))` pushes.
+    AgainstFacing,
+}
+
+/// Something for a callback to do to one party of a hit, which the game does after the callbacks ran (a weapon hit's before its damage
+/// lands, a hit on a player's on the player's next tick). Each action is guarded: one the target cannot take (a fire-immune mob, a player
+/// for the actions that only reach mobs, an entity the host cannot reach) is skipped silently.
+#[derive(Clone, Debug, PartialEq)]
+pub enum EntityAction {
+    /// `Entity.setSecondsOnFire`: the target burns for `seconds`, when that is longer than it already burns. Skipped for fire-immune
+    /// mobs; players are reached only when the host can reach them (the acting player).
+    SetFire { target: ActionTarget, seconds: i32 },
+    /// `LivingEntity.heal`: gives the target `amount` health, cut to its maximum. Reaches mobs and players.
+    Heal { target: ActionTarget, amount: f32 },
+    /// Freezes a mob: the ticks frozen become the larger of 140 (the ticks that freeze it) and what it has, plus `ticks`, and its fire goes
+    /// out (`Entity.setTicksFrozen` and `clearFire`). Mobs only, and not the kinds the game makes freeze-immune.
+    Freeze { target: ActionTarget, ticks: i32 },
+    /// `LivingEntity.knockback`: pushes a mob with `strength` along the horizontal plane, and up when it stands on the ground. Mobs only
+    /// (the host cannot push a player); the mob's own knockback resistance is not applied.
+    Knockback { target: ActionTarget, strength: f64, direction: KnockbackDirection },
+    /// `LivingEntity.addEffect`: puts a status effect on the target, a player or a mob. An effect id the game does not know is skipped;
+    /// `amplifier` is the level less one and `duration` is in ticks, and an effect with a negative amplifier or no duration is not given.
+    AddEffect { target: ActionTarget, effect: String, amplifier: i32, duration: i32 },
+    /// Edits the custom data of the stack a player carries in `slot` (`ItemStack.set(DataComponents.CUSTOM_DATA, ..)`), when that stack is
+    /// still of `item`. Players only: a mob target, a slot that holds another item and an edit that changes nothing are skipped. Acts on
+    /// the stack as it is when the action lands, not as the callback saw it, so wear that happened in between stays.
+    EditStackData { target: ActionTarget, slot: StackSlot, item: String, edits: Vec<StackDataEdit> },
+    /// `LivingEntity.hurt`: deals the target `amount` damage of `damage_type` with no attacker, as the host's hurt call does (armor, effects,
+    /// invulnerability time and the damage hooks all hear it, so a callback hears its own hurt). A mod's own damage type id works once its
+    /// data pack declares it (`data/<namespace>/damage_type/<name>.json`). Players and mobs; one the host cannot reach is skipped.
+    Hurt { target: ActionTarget, amount: f32, damage_type: String },
+    /// Sets how many ticks an active effect has left on a player, keeping its level and flags: shortens or lengthens it. An effect the target
+    /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
+    /// the game's own rules for giving an effect apply.
+    SetEffectDuration { target: ActionTarget, effect: String, duration: i32 },
+}
+
+/// Which stack of a player an [`EntityAction::EditStackData`] edits.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StackSlot { MainHand, OffHand, Feet, Legs, Chest, Head }
+
+/// One change to a stack's custom data: `value` is put at `path` (compound keys from the root, the compounds on the way made as needed), or
+/// the entry at `path` is removed when `value` is None.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StackDataEdit {
+    pub path: Vec<String>,
+    pub value: Option<Nbt>,
+}
+
+/// Applies `edits` in order to `data`; true when any of them changed it. An edit with an empty path is skipped; one whose path runs
+/// through a value that is not a compound replaces that value with a compound.
+pub(crate) fn edit_custom_data(data: &mut NbtCompound, edits: &[StackDataEdit]) -> bool {
+    let before = data.clone();
+    for edit in edits {
+        let Some((leaf, parents)) = edit.path.split_last() else { continue };
+        let mut at = &mut *data;
+        let mut present = true;
+        for key in parents {
+            if edit.value.is_none() && !matches!(at.get(key), Some(Nbt::Compound(_))) { present = false; break; }
+            let entry = at.entry(key.clone()).or_insert_with(|| Nbt::Compound(NbtCompound::new()));
+            if !matches!(entry, Nbt::Compound(_)) { *entry = Nbt::Compound(NbtCompound::new()); }
+            let Nbt::Compound(inner) = entry else { unreachable!("made a compound just above") };
+            at = inner;
+        }
+        if !present { continue; }
+        match &edit.value { Some(value) => { at.insert(leaf.clone(), value.clone()); } None => { at.remove(leaf); } }
+    }
+    *data != before
+}
+
+/// The number the host calls a player's stack by (`Inventory` slot numbers): the selected hotbar slot for the main hand, 100 (feet) to 103
+/// (head) for armor, -106 for the off hand.
+pub(crate) fn carried_slot_number(slot: StackSlot, selected: u8) -> i32 {
+    match slot {
+        StackSlot::MainHand => i32::from(selected.min(8)),
+        StackSlot::OffHand => -106,
+        StackSlot::Feet => 100,
+        StackSlot::Legs => 101,
+        StackSlot::Chest => 102,
+        StackSlot::Head => 103,
+    }
+}
+
+/// The slot an armor slot name of `armor` lists (`feet`, `legs`, `chest`, `head`) stands for.
+pub fn armor_stack_slot(name: &str) -> Option<StackSlot> {
+    Some(match name { "feet" => StackSlot::Feet, "legs" => StackSlot::Legs, "chest" => StackSlot::Chest, "head" => StackSlot::Head, _ => return None })
+}
+
+/// The ticks a mob that burns for `current` ticks burns for after burning for `seconds` more, or None when that changes nothing (the new
+/// fire is not longer, the seconds are not positive, or the target is fire-immune).
+pub(crate) fn fire_ticks_after(current: i32, seconds: i32, fire_immune: bool) -> Option<i32> {
+    let ticks = seconds.checked_mul(20)?;
+    (!fire_immune && seconds > 0 && ticks > current.max(0)).then_some(ticks)
+}
+
+/// Whether a mob type can be frozen: the kinds of the game's `freeze_immune_entity_types` tag cannot.
+pub(crate) fn can_freeze(kind: &str) -> bool {
+    !matches!(kind, "minecraft:stray" | "minecraft:polar_bear" | "minecraft:snow_golem")
+}
+
+/// The ticks frozen a mob has after being frozen for `ticks` more, when it had `current`: a mob already frozen keeps its count, one below
+/// the 140 ticks that freeze it starts from them. None for ticks that are not positive.
+pub(crate) fn frozen_ticks_after(current: i32, ticks: i32) -> Option<i32> {
+    (ticks > 0).then(|| current.max(140).saturating_add(ticks))
+}
+
+/// What a knockback adds to a mob's velocity, as `LivingEntity.knockback(strength, x, z)` does it: `strength` along the horizontal plane
+/// against the direction (x, z), and up by the strength (at most 0.4) when the mob stands on the ground. None for no strength or no direction.
+pub(crate) fn knockback_delta(strength: f64, x: f64, z: f64, on_ground: bool) -> Option<[f64; 3]> {
+    let length = x.hypot(z);
+    if !(strength.is_finite() && strength > 0.0 && length.is_finite() && length >= 1.0e-5) { return None; }
+    Some([-x / length * strength, if on_ground { strength.min(0.4) } else { 0.0 }, -z / length * strength])
+}
+
+/// The direction (x, z) `Entity.knockback` takes for a push against the way something faces at `yaw` degrees: (-sin, cos).
+pub(crate) fn facing_direction(yaw: f32) -> (f64, f64) {
+    let angle = f64::from(yaw).to_radians();
+    (-angle.sin(), angle.cos())
+}
+
+/// The health a living entity has after being healed by `amount`, which the host then cuts to the maximum. None for an amount that is
+/// not a positive number.
+pub(crate) fn healed_health(current: f32, amount: f32) -> Option<f32> {
+    (amount.is_finite() && amount > 0.0 && current.is_finite()).then(|| current + amount)
 }
 
 /// A mob hurting the player, heard on a server as the hit starts (before armor wears and the damage lands).
@@ -129,6 +366,8 @@ pub struct WearerHit {
     pub self_effects: RefCell<Vec<EffectGrant>>,
     /// The damage to deal to the mob, which callbacks add to; it lands on the player's next tick, as hurt by the player.
     pub counter_damage: RefCell<Vec<CounterDamage>>,
+    /// The actions to do to the mob (`Attacker`) or the wearer (`Victim`), which callbacks add to; they land on the player's next tick.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// Damage about to be applied, which callbacks may change (NeoForge: `LivingDamageEvent.Pre`).
@@ -146,6 +385,9 @@ pub struct DamageModification {
     /// When a player's weapon hit a mob: what the player and the mob were doing as the hit landed; None otherwise.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// The actions to do to the damaged player (`Victim`), which callbacks add to; they land on the player's next tick (only for a player
+    /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 /// Knockback about to be applied to a living entity, which callbacks may change or cancel (NeoForge: `LivingKnockBackEvent`).
@@ -190,8 +432,33 @@ pub struct ItemDamage {
     /// in `stack`, and then the game wears it by 0. When the stack is not in the main inventory (a worn armor piece) it is not
     /// written and the game wears the stack by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left.
     pub replacement: RefCell<Option<ItemSlot>>,
+    /// What the player was doing as the stack wore (health, surroundings, the level of their effects); None when the game did not name them.
+    pub holder: Option<EntityState>,
 }
 
+/// How far a mob sees a player, about to be scaled for the kind of mob that is looking (NeoForge: `LivingVisibilityEvent`). It is
+/// heard on a server each time a mob works out its range for a player who wears armor carrying custom data (a mod's own armor keeps its
+/// state there); the game's own factors (sneaking, invisibility, worn heads) are already in the range and a callback only scales it
+/// further. Nothing is heard for a player wearing no such armor.
+#[derive(Clone, Debug)]
+pub struct VisibilityModification {
+    /// The wearer's uuid.
+    pub wearer: u128,
+    /// The type id of the mob that is looking, such as `minecraft:skeleton`.
+    pub observer: String,
+    /// What the wearer wore as of their last tick, as (slot, stack) for `feet`, `legs`, `chest` and `head` (only pieces carrying custom data).
+    pub armor: Vec<(String, StackData)>,
+    /// Changes whenever what any player wears changes, so a callback may keep what it worked out from `armor` for as long as it stays
+    /// the same. It is never 0.
+    pub armor_revision: u64,
+    /// The factor on the mob's range now (a `Cell`: change it with `set`; 1 leaves the range whole, 0.5 halves it, 0 hides the wearer);
+    /// each callback sees the last one's. NeoForge's `modifyVisibility` multiplies, so a callback usually sets it to its product with the
+    /// factor it wants.
+    pub multiplier: Cell<f64>,
+}
+
+static MODIFY_VISIBILITY: Event<VisibilityModification, ()> = Event::void();
+static SHEAR: Event<ShearAttempt, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
@@ -222,12 +489,62 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
     /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
+    /// NeoForge: `LivingVisibilityEvent`. How far a mob sees a player in armor carrying custom data: scale it with `multiplier.set`. Server only.
+    pub const MODIFY_VISIBILITY: &'static Event<VisibilityModification, ()> = &MODIFY_VISIBILITY;
 }
 
 /// The effects the callbacks take off the player on their tick.
 pub(crate) fn player_tick(tick: &PlayerTick) -> Vec<String> {
     PLAYER_TICK.invoke(tick);
     tick.remove_effects.borrow_mut().drain(..).collect()
+}
+
+/// The actions the callbacks queued on the player's tick, taken after `player_tick`.
+pub(crate) fn take_tick_actions(tick: &PlayerTick) -> Vec<EntityAction> {
+    tick.actions.borrow_mut().drain(..).collect()
+}
+
+static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+static TICKING: std::sync::Mutex<std::collections::BTreeSet<u128>> = std::sync::Mutex::new(std::collections::BTreeSet::new());
+
+/// Whether the player's tick is heard: while they wear armor carrying custom data, and for one tick after the last such piece comes off, so
+/// that what the callbacks kept for the armor (an attribute amount) is let go.
+pub(crate) fn tick_wanted(player: u128, armor_worn: bool) -> bool {
+    let Ok(mut ticking) = TICKING.lock() else { return armor_worn };
+    if armor_worn { ticking.insert(player); true } else { ticking.remove(&player) }
+}
+
+/// The changes to a player's attribute bases for the amounts `wanted` (summed per attribute): (attribute, change, the total then applied).
+/// Nothing is recorded until `attribute_applied` is told the host took the change.
+pub(crate) fn attribute_changes(player: u128, wanted: &[(String, f64)]) -> Vec<(String, f64, f64)> {
+    let mut totals: std::collections::BTreeMap<&str, f64> = std::collections::BTreeMap::new();
+    for (attribute, amount) in wanted { *totals.entry(attribute).or_insert(0.0) += amount; }
+    let Ok(applied) = ATTRIBUTES.lock() else { return Vec::new() };
+    let mut changes = Vec::new();
+    for (attribute, total) in &totals {
+        let held = applied.get(&(player, (*attribute).to_owned())).copied().unwrap_or(0.0);
+        if *total != held { changes.push(((*attribute).to_owned(), total - held, *total)); }
+    }
+    for ((who, attribute), held) in applied.iter() {
+        if *who == player && *held != 0.0 && !totals.contains_key(attribute.as_str()) { changes.push((attribute.clone(), -held, 0.0)); }
+    }
+    changes
+}
+
+/// Records that the host took a change: the player's total for the attribute is now `total`.
+pub(crate) fn attribute_applied(player: u128, attribute: &str, total: f64) {
+    if let Ok(mut applied) = ATTRIBUTES.lock() {
+        if total == 0.0 { applied.remove(&(player, attribute.to_owned())); } else { applied.insert((player, attribute.to_owned()), total); }
+    }
+}
+
+/// What a player who leaves holds on their attributes (to take off), forgotten.
+pub(crate) fn forget_attributes(player: u128) -> Vec<(String, f64)> {
+    if let Ok(mut ticking) = TICKING.lock() { ticking.remove(&player); }
+    let Ok(mut applied) = ATTRIBUTES.lock() else { return Vec::new() };
+    let held: Vec<(String, f64)> = applied.iter().filter(|((who, _), _)| *who == player).map(|((_, attribute), held)| (attribute.clone(), *held)).collect();
+    applied.retain(|(who, _), _| *who != player);
+    held
 }
 
 /// The effects the callbacks put on a mob that hurt the player (`wearer`, the entity id of the player the armor is attributed to); the ones for
@@ -238,7 +555,20 @@ pub(crate) fn wearer_hit(hit: &WearerHit, wearer: Option<i32>) -> Vec<EffectGran
     if !own.is_empty() { if let Ok(mut queue) = SELF_EFFECTS.lock() { queue.extend(own); } }
     let damage: Vec<(i32, i32, CounterDamage)> = hit.counter_damage.borrow_mut().drain(..).filter_map(|damage| wearer.map(|wearer| (wearer, hit.attacker, damage))).collect();
     if !damage.is_empty() { if let Ok(mut queue) = COUNTER_DAMAGE.lock() { queue.extend(damage); } }
+    let actions: Vec<(i32, i32, EntityAction)> = hit.actions.borrow_mut().drain(..).filter_map(|action| wearer.map(|wearer| (wearer, hit.attacker, action))).collect();
+    if !actions.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
     hit.effects.borrow_mut().drain(..).collect()
+}
+
+/// The actions for the parties of hits on wearers, with the wearer's entity id and the mob's.
+static ENTITY_ACTIONS: std::sync::Mutex<Vec<(i32, i32, EntityAction)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the actions queued for the hits on the wearer `wearer`, as (mob, action); other players' stay queued.
+pub(crate) fn take_wearer_actions(wearer: i32) -> Vec<(i32, EntityAction)> {
+    let Ok(mut queue) = ENTITY_ACTIONS.lock() else { return Vec::new() };
+    let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *queue).into_iter().partition(|(owner, _, _)| *owner == wearer);
+    *queue = rest;
+    mine.into_iter().map(|(_, mob, action)| (mob, action)).collect()
 }
 
 /// The effects for a wearer that hits have queued, with the wearer's entity id.
@@ -277,6 +607,17 @@ pub(crate) fn armor_of_the_only_wearer() -> Vec<(String, StackData)> {
 pub(crate) fn weapon_hit(hit: &WeaponHit) -> Vec<EffectGrant> {
     WEAPON_HIT.invoke(hit);
     hit.effects.borrow_mut().drain(..).collect()
+}
+
+/// What the callbacks decided about a shearing: whether it goes ahead, and the actions queued for the player.
+pub(crate) fn shear(attempt: &ShearAttempt) -> (bool, Vec<EntityAction>) {
+    SHEAR.invoke(attempt);
+    (!attempt.cancel.get(), attempt.actions.borrow_mut().drain(..).collect())
+}
+
+/// The actions the callbacks queued on a weapon hit, taken after `weapon_hit`.
+pub(crate) fn take_weapon_actions(hit: &WeaponHit) -> Vec<EntityAction> {
+    hit.actions.borrow_mut().drain(..).collect()
 }
 
 /// The knockback after the callbacks as (strength, x, z), or None when a callback cancelled it.
@@ -318,9 +659,127 @@ pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Opt
     PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target, std::time::Instant::now())));
 }
 
+/// The state of each player wearing armor that carries custom data, as of their last tick, by entity id: the damage event that
+/// follows a hit on them reports it as `target_state` when the hit brought no state of its own.
+static WEARER_STATES: std::sync::Mutex<std::collections::BTreeMap<i32, EntityState>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records the state of the player `entity` as of this tick; None forgets it.
+pub(crate) fn remember_wearer_state(entity: i32, state: Option<EntityState>) {
+    let Ok(mut states) = WEARER_STATES.lock() else { return };
+    match state { Some(state) => { states.insert(entity, state); } None => { states.remove(&entity); } }
+}
+
+fn wearer_state(entity: i32) -> Option<EntityState> { WEARER_STATES.lock().ok()?.get(&entity).cloned() }
+
+/// What the vanilla biomes are like: (id without `minecraft:`, base temperature, whether it has precipitation). A data pack's biome is not here.
+const BIOME_CLIMATES: &[(&str, f32, bool)] = &[
+    ("badlands", 2.0, false), ("eroded_badlands", 2.0, false), ("wooded_badlands", 2.0, false), ("desert", 2.0, false), ("savanna", 2.0, false),
+    ("savanna_plateau", 1.0, false), ("windswept_savanna", 1.1, false),
+    ("bamboo_jungle", 0.95, true), ("jungle", 0.95, true), ("sparse_jungle", 0.95, true),
+    ("beach", 0.8, true), ("snowy_beach", 0.05, true), ("stony_shore", 0.2, true),
+    ("birch_forest", 0.6, true), ("old_growth_birch_forest", 0.6, true), ("dark_forest", 0.7, true), ("forest", 0.7, true), ("flower_forest", 0.7, true),
+    ("pale_garden", 0.7, true), ("cherry_grove", 0.5, true), ("meadow", 0.5, true),
+    ("cold_ocean", 0.5, true), ("deep_cold_ocean", 0.5, true), ("deep_ocean", 0.5, true), ("ocean", 0.5, true), ("lukewarm_ocean", 0.5, true),
+    ("deep_lukewarm_ocean", 0.5, true), ("warm_ocean", 0.5, true), ("deep_frozen_ocean", 0.5, true), ("frozen_ocean", 0.0, true),
+    ("dripstone_caves", 0.8, true), ("lush_caves", 0.5, true), ("deep_dark", 0.8, true),
+    ("end_barrens", 0.5, false), ("end_highlands", 0.5, false), ("end_midlands", 0.5, false), ("small_end_islands", 0.5, false), ("the_end", 0.5, false), ("the_void", 0.5, false),
+    ("nether_wastes", 2.0, false), ("crimson_forest", 2.0, false), ("warped_forest", 2.0, false), ("soul_sand_valley", 2.0, false), ("basalt_deltas", 2.0, false),
+    ("frozen_peaks", -0.7, true), ("grove", -0.2, true), ("jagged_peaks", -0.7, true), ("snowy_slopes", -0.3, true), ("stony_peaks", 1.0, true),
+    ("frozen_river", 0.0, true), ("river", 0.5, true), ("swamp", 0.8, true), ("mangrove_swamp", 0.8, true),
+    ("ice_spikes", 0.0, true), ("snowy_plains", 0.0, true), ("snowy_taiga", -0.5, true), ("taiga", 0.25, true), ("old_growth_pine_taiga", 0.3, true),
+    ("old_growth_spruce_taiga", 0.25, true), ("mushroom_fields", 0.9, true), ("plains", 0.8, true), ("sunflower_plains", 0.8, true),
+    ("windswept_forest", 0.2, true), ("windswept_gravelly_hills", 0.2, true), ("windswept_hills", 0.2, true),
+];
+
+/// The base temperature and whether it has precipitation, for a vanilla biome id (`minecraft:plains`); None for any other.
+pub(crate) fn biome_climate(biome: &str) -> Option<(f32, bool)> {
+    let name = biome.strip_prefix("minecraft:")?;
+    BIOME_CLIMATES.iter().find(|(id, _, _)| *id == name).map(|(_, temperature, rain)| (*temperature, *rain))
+}
+
+/// `Biome.getTemperature` at height `y`: above y 80 the air cools by 0.05 per 40 blocks. The game adds a noise term of at most about 0.01
+/// to that (and a noise to frozen biomes), which is left out.
+pub(crate) fn temperature_at(base: f32, y: i32) -> f32 {
+    if y > 80 { base - (y - 80) as f32 * 0.05 / 40.0 } else { base }
+}
+
+/// Whether rain falls on a spot: it is raining, the sky light there is full (nothing above it) and the biome rains; a biome PlutoLib
+/// does not know is taken to rain, and one that is cooler than 0.15 at that height snows instead.
+pub(crate) fn rain_exposed(raining: bool, sky_light: u8, biome: Option<&str>, y: i32) -> bool {
+    if !raining || sky_light < 15 { return false; }
+    match biome.and_then(biome_climate) {
+        Some((temperature, precipitation)) => precipitation && temperature_at(temperature, y) >= 0.15,
+        None => true,
+    }
+}
+
+/// Whether the block `id` holds water in its own right: water, a bubble column, or a plant that grows under water.
+pub(crate) fn holds_water(id: &str, waterlogged: bool) -> bool {
+    waterlogged || matches!(id, "minecraft:water" | "minecraft:bubble_column" | "minecraft:kelp" | "minecraft:kelp_plant" | "minecraft:seagrass" | "minecraft:tall_seagrass")
+}
+
+/// What an entity's saved data (`Entity.saveWithoutId`) says: its health, its maximum health and the share of its armor slots filled.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32> }
+
+fn number(value: &super::base::Nbt) -> Option<f64> {
+    use super::base::Nbt;
+    Some(match value { Nbt::Float(v) => f64::from(*v), Nbt::Double(v) => *v, Nbt::Int(v) => f64::from(*v), Nbt::Short(v) => f64::from(*v), Nbt::Byte(v) => f64::from(*v), Nbt::Long(v) => *v as f64, _ => return None })
+}
+
+/// Reads an entity's saved data. The maximum health is the saved `minecraft:max_health` attribute: its base value with the saved modifiers
+/// applied (add value, then multiplied base, then multiplied total); None when the data holds no such attribute.
+pub(crate) fn saved_facts(data: &super::base::NbtCompound) -> SavedFacts {
+    use super::base::Nbt;
+    let health = data.get("Health").and_then(number).map(|health| health as f32);
+    let max_health = data.get("attributes").and_then(|list| match list { Nbt::List(list) => Some(list), _ => None }).and_then(|list| {
+        list.iter().find_map(|attribute| {
+            let Nbt::Compound(attribute) = attribute else { return None };
+            if !matches!(attribute.get("id"), Some(Nbt::String(id)) if id == "minecraft:max_health") { return None; }
+            let base = attribute.get("base").and_then(number)?;
+            let (mut add, mut base_multiplier, mut total_multiplier) = (0.0, 0.0, 1.0);
+            if let Some(Nbt::List(modifiers)) = attribute.get("modifiers") {
+                for modifier in modifiers {
+                    let Nbt::Compound(modifier) = modifier else { continue };
+                    let amount = modifier.get("amount").and_then(number).unwrap_or(0.0);
+                    match modifier.get("operation") {
+                        Some(Nbt::String(operation)) if operation == "add_multiplied_base" => base_multiplier += amount,
+                        Some(Nbt::String(operation)) if operation == "add_multiplied_total" => total_multiplier *= 1.0 + amount,
+                        _ => add += amount,
+                    }
+                }
+            }
+            Some(((base + add) * (1.0 + base_multiplier) * total_multiplier) as f32)
+        })
+    });
+    // The `equipment` compound names a slot only while it holds something.
+    let armor_coverage = match data.get("equipment") {
+        Some(Nbt::Compound(equipment)) => Some(armor_coverage(["head", "chest", "legs", "feet"].iter().filter(|slot| {
+            matches!(equipment.get(**slot), Some(Nbt::Compound(stack)) if !matches!(stack.get("id"), Some(Nbt::String(id)) if id == "minecraft:air"))
+        }).count())),
+        _ => None,
+    };
+    SavedFacts { health, max_health, armor_coverage }
+}
+
+/// `LivingEntity.getArmorCoverPercentage` for `filled` of the four armor slots.
+pub(crate) fn armor_coverage(filled: usize) -> f32 { filled.min(4) as f32 / 4.0 }
+
 /// A player is attacking `entity` with `stack`: remembered for the damage that follows in the same call.
 pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
     PENDING_ATTACK.with(|pending| *pending.borrow_mut() = stack.map(|s| (entity, s)));
+}
+
+/// Changes whenever the armor any player wears changes; see `VisibilityModification::armor_revision`.
+static ARMOR_REVISION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+/// The armor the player with entity id `entity` wore as of their last tick; the game names the local player of a single-player world as
+/// entity 0, which is the only wearer when one is known.
+pub(crate) fn armor_worn_by(entity: i32) -> Vec<(String, StackData)> {
+    let Ok(worn) = ARMOR.lock() else { return Vec::new() };
+    if let Some((_, pieces)) = worn.get(&entity) { return pieces.clone(); }
+    if entity == 0 && worn.len() == 1 { return worn.values().next().map(|(_, pieces)| pieces.clone()).unwrap_or_default(); }
+    Vec::new()
 }
 
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
@@ -329,12 +788,39 @@ static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(Strin
 /// Records what the player (`entity`) wears; an empty list forgets it.
 pub(crate) fn remember_armor(uuid: u128, entity: i32, armor: Vec<(String, StackData)>) {
     let Ok(mut worn) = ARMOR.lock() else { return };
-    if armor.is_empty() { worn.remove(&entity); } else { worn.insert(entity, (uuid, armor)); }
+    if armor.is_empty() {
+        if worn.remove(&entity).is_some() { ARMOR_REVISION.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
+    } else if worn.get(&entity).map(|(known, pieces)| (*known, pieces)) != Some((uuid, &armor)) {
+        worn.insert(entity, (uuid, armor));
+        ARMOR_REVISION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// The piece (`feet`, `legs`, `chest` or `head`) the player with `uuid` wore as of their last tick, when it carries custom data.
+pub(crate) fn worn_piece(uuid: u128, slot: &str) -> Option<StackData> {
+    let worn = ARMOR.lock().ok()?;
+    worn.values().find(|(known, _)| *known == uuid)?.1.iter().find(|(name, _)| name == slot).map(|(_, stack)| stack.clone())
+}
+
+/// The factor on how far a mob of type `observer` sees the player `wearer`: 1 when the player wears no armor carrying custom data.
+pub(crate) fn modify_visibility(wearer: u128, observer: &str) -> f64 {
+    let Ok(worn) = ARMOR.lock() else { return 1.0 };
+    let Some((_, armor)) = worn.values().find(|(known, _)| *known == wearer) else { return 1.0 };
+    let armor = armor.clone();
+    drop(worn);
+    let modification = VisibilityModification { wearer, observer: observer.to_owned(), armor, armor_revision: ARMOR_REVISION.load(std::sync::atomic::Ordering::Relaxed), multiplier: Cell::new(1.0) };
+    MODIFY_VISIBILITY.invoke(&modification);
+    let factor = modification.multiplier.get();
+    if factor.is_finite() { factor.max(0.0) } else { 1.0 }
 }
 
 /// Forgets a player who left.
 pub(crate) fn forget_armor(uuid: u128) {
-    if let Ok(mut worn) = ARMOR.lock() { worn.retain(|_, (known, _)| *known != uuid); }
+    if let Ok(mut worn) = ARMOR.lock() {
+        let gone: Vec<i32> = worn.iter().filter(|(_, (known, _))| *known == uuid).map(|(entity, _)| *entity).collect();
+        worn.retain(|_, (known, _)| *known != uuid);
+        for entity in gone { remember_wearer_state(entity, None); }
+    }
 }
 
 /// The amount after the callbacks; the stack of the attack that is being applied to `damage.entity`, if there is one.
@@ -350,7 +836,7 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
         }
     });
     let armor = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(_, pieces)| pieces.clone())).unwrap_or_default();
-    let (attacker_state, target_state) = PENDING_STATES.with(|pending| {
+    let (attacker_state, mut target_state) = PENDING_STATES.with(|pending| {
         let mut pending = pending.borrow_mut();
         match pending.take() {
             Some((entity, attacker, target, at)) if entity == damage.entity && at.elapsed() < HIT_STATES_LIFETIME => (attacker, target),
@@ -358,8 +844,13 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
             other => { *pending = other; (None, None) }
         }
     });
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state };
+    // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
+    if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
+    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
     MODIFY_DAMAGE.invoke(&modification);
+    // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
+    let actions: Vec<(i32, i32, EntityAction)> = modification.actions.borrow_mut().drain(..).map(|action| (damage.entity, damage.attacker, action)).collect();
+    if !actions.is_empty() && !modification.armor.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
     modification.amount.get()
 }
 
@@ -370,6 +861,27 @@ pub(crate) fn allow_damage(damage: &LivingDamage) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_shearing_can_be_cancelled_and_queues_actions_for_the_player() {
+        ServerEntityEvents::SHEAR.register(|attempt| {
+            if attempt.entity != 8181 { return; }
+            if attempt.tool.as_ref().is_some_and(|tool| tool.item == "example:cutters") {
+                attempt.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 0, duration: 40 });
+            }
+            if attempt.off_hand { attempt.cancel.set(true); }
+        });
+        let attempt = |item: Option<&str>, off_hand| ShearAttempt {
+            player: 1, name: "shearer".into(), entity: 8181, off_hand,
+            tool: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }),
+            cancel: Cell::new(false), actions: RefCell::new(Vec::new()),
+        };
+        let (allowed, actions) = shear(&attempt(Some("example:cutters"), false));
+        assert!(allowed);
+        assert_eq!(actions, vec![EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 0, duration: 40 }]);
+        let (allowed, actions) = shear(&attempt(Some("minecraft:shears"), true));
+        assert!(!allowed && actions.is_empty(), "the off hand's shearing is cancelled and queues nothing");
+    }
 
     #[test]
     fn modify_damage_carries_the_armor_a_player_wore_and_forgets_it_on_logout() {
@@ -383,6 +895,38 @@ mod tests {
         forget_armor(99);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![vec!["head:example:helmet".to_string()], Vec::<String>::new()]);
+    }
+
+    #[test]
+    fn visibility_scales_only_for_a_wearer_of_custom_data_armor_and_the_revision_follows_the_armor() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_VISIBILITY.register(move |look| {
+            if look.wearer != 31337 { return; }
+            log.lock().unwrap().push(look.armor_revision);
+            if look.observer == "minecraft:skeleton" && look.armor.iter().any(|(slot, piece)| slot == "head" && piece.item == "example:mask") {
+                look.multiplier.set(look.multiplier.get() * 0.25);
+            }
+        });
+        let piece = |item: &str| StackData { item: item.into(), count: 1, ..StackData::default() };
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 1.0, "a player with no cached armor is not asked about");
+        remember_armor(31337, 4141, vec![("head".into(), piece("example:mask"))]);
+        assert_eq!(worn_piece(31337, "head").map(|stack| stack.item), Some("example:mask".to_string()));
+        assert!(worn_piece(31337, "feet").is_none() && worn_piece(1, "head").is_none());
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 0.25);
+        assert_eq!(modify_visibility(31337, "minecraft:zombie"), 1.0);
+        remember_armor(31337, 4141, vec![("head".into(), piece("example:mask"))]);
+        assert_eq!(modify_visibility(31337, "minecraft:zombie"), 1.0);
+        remember_armor(31337, 4141, vec![("head".into(), piece("example:hat"))]);
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 1.0, "the armor changed");
+        forget_armor(31337);
+        assert_eq!(modify_visibility(31337, "minecraft:skeleton"), 1.0);
+        let revisions = seen.lock().unwrap().clone();
+        assert!(revisions.iter().all(|revision| *revision != 0));
+        assert_eq!(revisions.len(), 4);
+        assert_eq!(revisions[0], revisions[1], "the same armor keeps its revision");
+        assert_eq!(revisions[1], revisions[2], "re-reporting identical armor keeps it too");
+        assert!(revisions[3] > revisions[2], "changed armor takes a new one");
     }
 
     #[test]
@@ -401,7 +945,7 @@ mod tests {
         assert_eq!(modify_knockback(&push(Some(hammer.clone()), None)), Some((0.8, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, None)), Some((0.4, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, Some(hammer))), None);
-        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None) };
+        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None };
         assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None)));
         assert_eq!(modify_item_damage(&wear("example:shield", 3)), None);
     }
@@ -432,10 +976,26 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, effects: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
+    }
+
+    #[test]
+    fn the_armor_a_weapon_hit_carries_is_the_attacking_players_as_of_their_last_tick() {
+        let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
+        remember_armor(0xA11CE, 4343, vec![("head".into(), helmet.clone())]);
+        assert_eq!(armor_worn_by(4343), vec![("head".to_owned(), helmet.clone())]);
+        assert!(armor_worn_by(4344).is_empty(), "an unknown player wears nothing known");
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, weapon: None, attacker_state: None, target_state: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        assert!(weapon_hit(&hit).is_empty());
+        assert_eq!(*seen.lock().unwrap(), vec![1]);
+        forget_armor(0xA11CE);
+        assert!(armor_worn_by(4343).is_empty(), "a player who left is forgotten");
     }
 
     #[test]
@@ -446,10 +1006,61 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
             }
         });
-        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor, effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
+        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor, effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
         assert_eq!(wearer_hit(&hit(vec![("head".into(), helmet)]), Some(7)), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
         assert!(wearer_hit(&hit(Vec::new()), Some(7)).is_empty());
+    }
+
+    #[test]
+    fn actions_on_a_hit_on_the_wearer_wait_for_the_next_tick_and_a_weapon_hit_hands_its_own_over() {
+        ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
+            if hit.attacker == 6161 { hit.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Attacker, seconds: 4 }); }
+        });
+        ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
+            if hit.entity == 6262 { hit.actions.borrow_mut().push(EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }); }
+        });
+        let hit = WearerHit { attacker: 6161, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        wearer_hit(&hit, Some(41));
+        assert!(take_wearer_actions(42).is_empty(), "another player's tick takes nothing");
+        assert_eq!(take_wearer_actions(41), vec![(6161, EntityAction::SetFire { target: ActionTarget::Attacker, seconds: 4 })]);
+        assert!(take_wearer_actions(41).is_empty(), "the queue is emptied once taken");
+        wearer_hit(&hit, None);
+        assert!(take_wearer_actions(41).is_empty(), "a hit with no known wearer queues nothing");
+        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        weapon_hit(&weapon);
+        assert_eq!(take_weapon_actions(&weapon), vec![EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }]);
+        assert!(take_weapon_actions(&weapon).is_empty());
+    }
+
+    #[test]
+    fn the_action_guards_follow_the_games_own_rules() {
+        assert_eq!(fire_ticks_after(0, 5, false), Some(100));
+        assert_eq!(fire_ticks_after(100, 5, false), None, "a fire that is not longer changes nothing");
+        assert_eq!(fire_ticks_after(-1, 1, false), Some(20), "a mob that does not burn reports 0 or less");
+        assert_eq!(fire_ticks_after(0, 5, true), None, "fire-immune mobs do not burn");
+        assert_eq!(fire_ticks_after(0, 0, false), None);
+        assert!(!can_freeze("minecraft:stray") && !can_freeze("minecraft:snow_golem") && can_freeze("minecraft:zombie"));
+        assert_eq!(frozen_ticks_after(0, 80), Some(220), "a mob starts from the 140 ticks that freeze it");
+        assert_eq!(frozen_ticks_after(200, 80), Some(280), "a frozen mob keeps what it has");
+        assert_eq!(frozen_ticks_after(0, 0), None);
+        assert_eq!(healed_health(5.0, 2.5), Some(7.5));
+        assert_eq!(healed_health(5.0, 0.0), None);
+        assert_eq!(healed_health(5.0, f32::NAN), None);
+    }
+
+    #[test]
+    fn knockback_pushes_against_the_direction_and_lifts_a_mob_on_the_ground() {
+        assert_eq!(knockback_delta(0.5, 0.0, 2.0, true), Some([0.0, 0.4_f64.min(0.5), -0.5]));
+        assert_eq!(knockback_delta(0.3, 3.0, 0.0, false), Some([-0.3, 0.0, 0.0]));
+        assert_eq!(knockback_delta(0.3, 3.0, 0.0, true).map(|delta| delta[1]), Some(0.3), "lifted by the strength below 0.4");
+        assert!(knockback_delta(0.0, 1.0, 0.0, true).is_none() && knockback_delta(1.0, 0.0, 0.0, true).is_none());
+        let (x, z) = facing_direction(0.0);
+        assert!(x.abs() < 1e-12 && (z - 1.0).abs() < 1e-12, "yaw 0 faces south");
+        let [dx, _, dz] = knockback_delta(1.0, x, z, false).unwrap();
+        assert!(dx.abs() < 1e-12 && (dz + 1.0).abs() < 1e-12, "a mob facing south is pushed north");
+        let (x, z) = facing_direction(90.0);
+        assert!((x + 1.0).abs() < 1e-12 && z.abs() < 1e-9, "yaw 90 faces west");
     }
 
     #[test]
@@ -457,14 +1068,14 @@ mod tests {
         ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
             if hit.attacker == 9595 { hit.self_effects.borrow_mut().push(EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }); }
         });
-        let hit = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
+        let hit = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         hit.counter_damage.borrow_mut().push(CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.0 });
         assert!(wearer_hit(&hit, Some(31)).is_empty(), "nothing goes on the attacker");
         assert!(take_counter_damage(32).is_empty() && take_self_effects(32).is_empty(), "another player's tick takes nothing");
         assert_eq!(take_counter_damage(31), vec![(9595, CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.0 })]);
         assert_eq!(take_self_effects(31), vec![EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }]);
         assert!(take_self_effects(31).is_empty(), "the queue is emptied once taken");
-        let unattributed = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()) };
+        let unattributed = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         wearer_hit(&unattributed, None);
         assert!(take_self_effects(31).is_empty(), "a hit with no known wearer queues nothing");
     }
@@ -475,9 +1086,37 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
+    }
+
+    #[test]
+    fn attribute_amounts_are_applied_once_and_taken_off_when_no_callback_names_them() {
+        let wanted = vec![("minecraft:knockback_resistance".to_string(), 0.1), ("minecraft:knockback_resistance".to_string(), 0.05)];
+        let first = attribute_changes(31, &wanted);
+        assert_eq!(first.len(), 1);
+        assert!((first[0].1 - 0.15).abs() < 1e-12 && (first[0].2 - 0.15).abs() < 1e-12);
+        attribute_applied(31, &first[0].0, first[0].2);
+        assert!(attribute_changes(31, &wanted).is_empty(), "an amount already applied is not applied again");
+        let less = attribute_changes(31, &wanted[..1]);
+        assert!((less[0].1 + 0.05).abs() < 1e-12);
+        attribute_applied(31, &less[0].0, less[0].2);
+        let gone = attribute_changes(31, &[]);
+        assert!((gone[0].1 + 0.1).abs() < 1e-12 && gone[0].2 == 0.0);
+        attribute_applied(31, &gone[0].0, 0.0);
+        assert!(attribute_changes(31, &[]).is_empty());
+        attribute_applied(31, "minecraft:armor", 2.0);
+        assert_eq!(forget_attributes(31), vec![("minecraft:armor".to_string(), 2.0)]);
+        assert!(forget_attributes(31).is_empty());
+    }
+
+    #[test]
+    fn a_player_is_ticked_while_armor_is_worn_and_once_after() {
+        assert!(!tick_wanted(32, false));
+        assert!(tick_wanted(32, true));
+        assert!(tick_wanted(32, false), "one more tick to let go of what the armor kept");
+        assert!(!tick_wanted(32, false));
     }
 
     #[test]
@@ -495,5 +1134,147 @@ mod tests {
         let hit = |amount| LivingDamage { entity: 1, kind: "minecraft:zombie".into(), damage_type: "minecraft:generic".into(), attacker: -1, direct: -1, amount };
         assert!(allow_damage(&hit(3.0)));
         assert!(!allow_damage(&hit(500.0)));
+    }
+    #[test]
+    fn stack_edits_set_nested_values_and_remove_them_and_report_whether_anything_changed() {
+        let edit = |path: &[&str], value: Option<Nbt>| StackDataEdit { path: path.iter().map(|key| key.to_string()).collect(), value };
+        let mut data = NbtCompound::new();
+        assert!(edit_custom_data(&mut data, &[edit(&["persistent", "mod:bar"], Some(Nbt::Int(40)))]), "the compounds on the way are made");
+        let Some(Nbt::Compound(persistent)) = data.get("persistent") else { panic!("persistent compound") };
+        assert_eq!(persistent.get("mod:bar"), Some(&Nbt::Int(40)));
+        assert!(!edit_custom_data(&mut data, &[edit(&["persistent", "mod:bar"], Some(Nbt::Int(40))), edit(&[], Some(Nbt::Int(1))), edit(&["absent", "key"], None)]), "the same value, no path and a missing entry change nothing");
+        assert!(!data.contains_key("absent"), "removing does not make the compounds it would run through");
+        assert!(edit_custom_data(&mut data, &[edit(&["persistent", "mod:bar"], Some(Nbt::Int(10))), edit(&["persistent", "mod:other"], Some(Nbt::Int(5))), edit(&["persistent", "mod:other"], None)]));
+        let Some(Nbt::Compound(persistent)) = data.get("persistent") else { panic!("persistent compound") };
+        assert_eq!((persistent.get("mod:bar"), persistent.contains_key("mod:other")), (Some(&Nbt::Int(10)), false));
+        data.insert("flat".into(), Nbt::Int(1));
+        assert!(edit_custom_data(&mut data, &[edit(&["flat", "inner"], Some(Nbt::Int(2)))]), "a value in the way becomes a compound");
+        assert!(matches!(data.get("flat"), Some(Nbt::Compound(_))));
+    }
+
+    #[test]
+    fn stack_slots_map_to_the_hosts_inventory_numbers() {
+        assert_eq!(carried_slot_number(StackSlot::MainHand, 3), 3);
+        assert_eq!(carried_slot_number(StackSlot::MainHand, 200), 8, "never past the hotbar");
+        assert_eq!([StackSlot::Feet, StackSlot::Legs, StackSlot::Chest, StackSlot::Head].map(|slot| carried_slot_number(slot, 0)), [100, 101, 102, 103]);
+        assert_eq!(carried_slot_number(StackSlot::OffHand, 0), -106);
+        assert_eq!(armor_stack_slot("chest"), Some(StackSlot::Chest));
+        assert_eq!(armor_stack_slot("body"), None);
+    }
+
+    #[test]
+    fn a_damage_callbacks_actions_wait_for_the_wearers_next_tick() {
+        remember_armor(77, 7777, vec![("chest".into(), StackData { item: "example:plate".into(), count: 1, ..StackData::default() })]);
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 7777 { return; }
+            hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: StackSlot::Chest, item: "example:plate".into(), edits: vec![StackDataEdit { path: vec!["bar".into()], value: Some(Nbt::Int(3)) }] });
+        });
+        let hit = |entity| LivingDamage { entity, kind: "minecraft:player".into(), damage_type: "minecraft:freeze".into(), attacker: -1, direct: -1, amount: 2.0 };
+        modify_damage(&hit(7777));
+        modify_damage(&hit(7778));
+        assert!(take_wearer_actions(7778).is_empty(), "a callback that only listens for one wearer queues for that one");
+        let queued = take_wearer_actions(7777);
+        assert_eq!(queued.len(), 1);
+        assert!(matches!(&queued[0], (-1, EntityAction::EditStackData { slot: StackSlot::Chest, .. })));
+        assert!(take_wearer_actions(7777).is_empty());
+        forget_armor(77);
+    }
+
+    #[test]
+    fn an_effect_level_is_the_amplifier_plus_one() {
+        let state = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
+        assert_eq!((state.effect_level("minecraft:poison"), state.effect_level("minecraft:speed")), (2, 0));
+    }
+
+    #[test]
+    fn the_climate_of_a_vanilla_biome_cools_with_height_and_decides_rain() {
+        assert_eq!(biome_climate("minecraft:plains"), Some((0.8, true)));
+        assert_eq!(biome_climate("minecraft:desert"), Some((2.0, false)));
+        assert_eq!(biome_climate("example:glow_fields"), None);
+        assert_eq!(temperature_at(0.8, 80), 0.8);
+        assert!((temperature_at(0.8, 120) - 0.75).abs() < 1e-6, "0.05 cooler for 40 blocks above y 80");
+        assert!(rain_exposed(true, 15, Some("minecraft:plains"), 64));
+        assert!(!rain_exposed(true, 15, Some("minecraft:desert"), 64), "a desert has no rain");
+        assert!(!rain_exposed(true, 15, Some("minecraft:snowy_plains"), 64), "a cold biome snows");
+        assert!(!rain_exposed(true, 15, Some("minecraft:plains"), 700), "the air that high is too cold for rain");
+        assert!(!rain_exposed(true, 14, Some("minecraft:plains"), 64), "a roof shuts the rain out");
+        assert!(!rain_exposed(false, 15, Some("minecraft:plains"), 64));
+        assert!(rain_exposed(true, 15, Some("example:glow_fields"), 64), "an unknown biome is taken to rain");
+        assert!(holds_water("minecraft:kelp", false) && holds_water("minecraft:stone", true) && !holds_water("minecraft:air", false));
+    }
+
+    #[test]
+    fn saved_data_gives_health_the_modified_maximum_and_armor_coverage() {
+        use super::super::base::{Nbt, NbtCompound};
+        let compound = |entries: Vec<(&str, Nbt)>| -> NbtCompound { entries.into_iter().map(|(key, value)| (key.to_owned(), value)).collect() };
+        let stack = |id: &str| Nbt::Compound(compound(vec![("id", Nbt::String(id.into())), ("count", Nbt::Int(1))]));
+        let data = compound(vec![
+            ("Health", Nbt::Float(7.5)),
+            ("attributes", Nbt::List(vec![
+                Nbt::Compound(compound(vec![("id", Nbt::String("minecraft:movement_speed".into())), ("base", Nbt::Double(0.2))])),
+                Nbt::Compound(compound(vec![("id", Nbt::String("minecraft:max_health".into())), ("base", Nbt::Double(20.0)), ("modifiers", Nbt::List(vec![
+                    Nbt::Compound(compound(vec![("amount", Nbt::Double(4.0)), ("operation", Nbt::String("add_value".into()))])),
+                    Nbt::Compound(compound(vec![("amount", Nbt::Double(0.5)), ("operation", Nbt::String("add_multiplied_base".into()))])),
+                    Nbt::Compound(compound(vec![("amount", Nbt::Double(1.0)), ("operation", Nbt::String("add_multiplied_total".into()))])),
+                ]))])),
+            ])),
+            ("equipment", Nbt::Compound(compound(vec![("head", stack("minecraft:iron_helmet")), ("feet", stack("minecraft:air")), ("mainhand", stack("minecraft:stick"))]))),
+        ]);
+        // (20 + 4) * (1 + 0.5) * (1 + 1).
+        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25) });
+        assert_eq!(saved_facts(&NbtCompound::new()), SavedFacts::default(), "data that says nothing reports nothing");
+        assert_eq!(armor_coverage(9), 1.0);
+    }
+
+    #[test]
+    fn a_hit_on_a_wearer_reports_the_state_remembered_at_their_last_tick() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| {
+            if hit.damage.entity == 515151 { log.lock().unwrap().push(hit.target_state.as_ref().and_then(|state| state.health)); }
+        });
+        let damage = LivingDamage { entity: 515151, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 3, direct: 3, amount: 4.0 };
+        let piece = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
+        remember_armor(5151, 515151, vec![("chest".into(), piece)]);
+        modify_damage(&damage);
+        remember_wearer_state(515151, Some(EntityState { health: Some(12.0), max_health: Some(20.0), ..EntityState::default() }));
+        modify_damage(&damage);
+        // A state that came with the hit wins over the remembered one.
+        hit_states(515151, None, Some(EntityState { health: Some(3.0), ..EntityState::default() }));
+        modify_damage(&damage);
+        forget_armor(5151);
+        modify_damage(&damage);
+        assert_eq!(*seen.lock().unwrap(), [None, Some(12.0), Some(3.0), None], "forgetting the wearer forgets the state");
+    }
+
+    #[test]
+    fn the_sky_is_darkest_at_midnight_and_a_storm_darkens_the_day() {
+        assert_eq!(sky_darken(0.0, 0.0, 6000), 0, "clear noon");
+        assert_eq!(sky_darken(0.0, 0.0, 18000), 11, "clear midnight");
+        assert_eq!(sky_darken(0.0, 0.0, 6000 + 24000 * 3), 0, "the day count does not matter");
+        // 1 - 1.0 * (1 - 5/16) * (1 - 5/16) = 0.5273, times 11 and cut.
+        assert_eq!(sky_darken(1.0, 1.0, 6000), 5, "a thunderstorm at noon");
+        assert_eq!(sky_darken(1.0, 0.0, 6000), 3, "rain alone at noon");
+        assert!((0..24000).step_by(500).all(|time| sky_darken(0.0, 0.0, time) <= 11));
+    }
+
+    #[test]
+    fn effects_are_categorised_for_the_vanilla_ids_only() {
+        assert_eq!(effect_category("minecraft:regeneration"), Some(EffectCategory::Beneficial));
+        assert_eq!(effect_category("minecraft:poison"), Some(EffectCategory::Harmful));
+        assert_eq!(effect_category("minecraft:glowing"), Some(EffectCategory::Neutral));
+        assert_eq!(effect_category("tconstruct:momentum_armor"), None, "another mod's effect is not vanilla's to categorise");
+    }
+
+    #[test]
+    fn a_tick_hears_its_callbacks_and_hands_back_the_actions_they_queued() {
+        ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+            if tick.entity != 6262 { return; }
+            tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
+        });
+        let tick = PlayerTick { player: 1, entity: 6262, armor: Vec::new(), effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        player_tick(&tick);
+        assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
+        assert!(take_tick_actions(&tick).is_empty(), "taken once");
     }
 }

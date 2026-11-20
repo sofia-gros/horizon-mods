@@ -23,7 +23,14 @@ impl Identifier { fn parse(s: &str)->Result<Self, ()> { Ok(Self(s.into())) } }
 impl std::fmt::Display for Identifier {
     fn fmt(&self, f:&mut std::fmt::Formatter<'_>)->std::fmt::Result { f.write_str(&self.0) }
 }
-mod pure { pub mod base { pub(crate) use crate::Identifier; } }
+mod pure {
+    pub mod base { pub(crate) use crate::Identifier; }
+    pub mod player_api {
+        // Only the stack's own custom_model_data matters to slots; the fixture stacks carry none.
+        #[derive(Clone, Debug, PartialEq, Default)]
+        pub struct CustomModelData { pub strings: Vec<String> }
+    }
+}
 #[derive(Clone, Debug, PartialEq)]
 pub enum Nbt { Int(i32), IntArray(Vec<i32>) }
 type NbtCompound = BTreeMap<String, Nbt>;
@@ -39,6 +46,7 @@ impl Extra { fn set_other(&mut self, key:&str, tag:Option<Tag>) {
         ("minecraft:max_damage", None) => self.max=None,
         ("minecraft:custom_data", Some(Tag::Compound(v))) => self.custom=v,
         ("minecraft:custom_data", None) => self.custom.clear(),
+        ("minecraft:custom_model_data", None) => {}
         _ => panic!("unexpected component"),
     }
 } }
@@ -52,8 +60,10 @@ impl ItemStack {
     fn data_mut(&mut self)->&mut Extra { &mut self.extra }
     fn tidy(&mut self) {}
 }
-struct PublicData { count:u32, damage:u32, max_damage:Option<i32>, custom_data:NbtCompound }
-fn read_stack(s:&ItemStack)->PublicData { PublicData {count:s.count,damage:s.damage,max_damage:s.extra.max,custom_data:s.extra.custom.clone()} }
+struct PublicData { count:u32, damage:u32, max_damage:Option<i32>, custom_data:NbtCompound, custom_model_data:Option<pure::player_api::CustomModelData> }
+fn read_stack(s:&ItemStack)->PublicData { PublicData {count:s.count,damage:s.damage,max_damage:s.extra.max,custom_data:s.extra.custom.clone(),custom_model_data:None} }
+fn read_custom_model_data(_:&ItemStack)->Option<pure::player_api::CustomModelData> { None }
+fn custom_model_data_tag(_:&Option<pure::player_api::CustomModelData>)->Option<Tag> { None }
 fn compound_to_tag(c:&NbtCompound)->NbtCompound { c.clone() }
 /* PUBLIC */
 /* ADAPTER */

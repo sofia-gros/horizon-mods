@@ -57,20 +57,36 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_swap.rs',
                 'mixins/tconstruct_native/api/src/tool_build.rs',
                 'mixins/tconstruct_native/api/src/tool_parts.rs',
+                'mixins/tconstruct_native/api/src/armor_textures.rs',
+                'mixins/tconstruct_native/api/src/armor_worn.rs',
                 'mixins/tconstruct_native/api/src/tool_mining.rs',
                 'mixins/tconstruct_native/api/src/mining_speed.rs',
                 'mixins/tconstruct_native/api/src/break_speed_hook.rs',
                 'mixins/tconstruct_native/api/src/melee_damage.rs',
+                'mixins/tconstruct_native/api/src/entity_facts.rs',
                 'mixins/tconstruct_native/api/src/knockback.rs',
                 'mixins/tconstruct_native/api/src/melee_hook.rs',
+                'mixins/tconstruct_native/api/src/conditional_stat.rs',
                 'mixins/tconstruct_native/api/src/protection.rs',
                 'mixins/tconstruct_native/api/src/protection_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_damage_hook.rs',
                 'mixins/tconstruct_native/api/src/weapon_effect.rs',
                 'mixins/tconstruct_native/api/src/thorns.rs',
+                'mixins/tconstruct_native/api/src/hit_actions.rs',
+                'mixins/tconstruct_native/api/src/capacity.rs',
                 'mixins/tconstruct_native/api/src/effect_immunity.rs',
+                'mixins/tconstruct_native/api/src/tool_inventory.rs',
                 'mixins/tconstruct_native/api/src/effect_immunity_hook.rs',
+                'mixins/tconstruct_native/api/src/unequip_hook.rs',
+                'mixins/tconstruct_native/api/src/max_armor.rs',
+                'mixins/tconstruct_native/api/src/max_armor_hook.rs',
+                'mixins/tconstruct_native/api/src/wearer_modules.rs',
+                'mixins/tconstruct_native/api/src/mob_disguise.rs',
+                'mixins/tconstruct_native/api/src/mob_disguise_hook.rs',
+                'mixins/tconstruct_native/api/src/edible.rs',
+                'mixins/tconstruct_native/api/src/edible_hook.rs',
                 'mixins/tconstruct_native/api/src/weapon_effect_hook.rs',
+                'mixins/tconstruct_native/api/src/block_break_hook.rs',
                 'mixins/tconstruct_native/api/src/damage_tags.rs',
                 'mixins/tconstruct_native/api/src/damage_vanilla.rs',
                 'mixins/tconstruct_native/api/src/part_recycling.rs',
@@ -82,16 +98,24 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/part_builder_menu.rs',
                 'mixins/tconstruct_native/api/src/worktable_menu.rs',
                 'mixins/tconstruct_native/api/src/creative_parts.rs',
+                'mixins/tconstruct_native/api/src/creative_tools.rs',
                 'mixins/tconstruct_native/api/src/creative.rs',
                 'mixins/tconstruct_native/api/src/material_stats.rs',
                 'mixins/tconstruct_native/api/src/material_snapshot.rs',
                 'mixins/tconstruct_native/api/src/material_sync.rs',
+                'mixins/tconstruct_native/api/src/model_flags.rs',
                 'mixins/tconstruct_native/api/src/tool_materials.rs',
                 'mixins/tconstruct_native/api/src/tool_stats.rs',
                 'mixins/tconstruct_native/api/src/tool_definitions.rs',
                 'mixins/tconstruct_native/api/src/common.rs',
                 'mixins/tconstruct_native/api/src/config.rs',
                 'mixins/tconstruct_native/api/src/conditions.rs',
+                'mixins/tconstruct_native/api/src/fluid_values.rs',
+                'mixins/tconstruct_native/api/src/heating.rs',
+                'mixins/tconstruct_native/api/src/fluid_ingredient.rs',
+                'mixins/tconstruct_native/api/src/melting_recipes.rs',
+                'mixins/tconstruct_native/api/src/casting_recipes.rs',
+                'mixins/tconstruct_native/api/src/fluid_recipes.rs',
                 'mixins/tconstruct_native/api/src/tables/mod.rs',
                 'mixins/tconstruct_native/api/src/tables/lazy_result.rs',
                 'mixins/tconstruct_native/api/src/tables/input_consumption.rs',
@@ -160,6 +184,25 @@ class CleanPort(unittest.TestCase):
             with self.assertRaises(ValueError):
                 port.checked_content(self.root, version)
         block.write_text(newline='\n', data=json.dumps({'template': 'minecraft:stone'}), encoding='utf-8')
+        # World data keeps to the reviewed shapes: loot kinds, ore features, add_features modifiers, and own entries in vanilla block tags.
+        data = self.root / port.CONTENT / 'data'
+        loot = data / 'tconstruct/loot_table/blocks/cobalt_ore.json'
+        feature = data / 'tconstruct/worldgen/feature/cobalt_ore_small.json'
+        modifier = data / 'tconstruct/neoforge/biome_modifier/cobalt_ore.json'
+        tag = data / 'minecraft/tags/block/mineable/pickaxe.json'
+        for path, bad in ((loot, lambda t: t.replace('minecraft:apply_bonus', 'mantle:fill_retextured_block')),
+                          (loot, lambda t: t.replace('minecraft:tool/can_silk_touch', 'minecraft:random_chance')),
+                          (loot, lambda t: json.dumps({'type': 'minecraft:block', 'pools': []})),
+                          (feature, lambda t: t.replace('minecraft:ore', 'minecraft:tree')),
+                          (modifier, lambda t: t.replace('neoforge:add_features', 'neoforge:add_spawns')),
+                          (tag, lambda t: json.dumps({'values': ['minecraft:stone']})),
+                          (tag, lambda t: json.dumps({'values': [{'id': 'othermod:ore', 'required': False}]}))):
+            good = path.read_text(encoding='utf-8')
+            path.write_text(newline='\n', data=bad(good), encoding='utf-8')
+            with self.assertRaises(ValueError, msg=path.name):
+                port.checked_content(self.root, version)
+            path.write_text(newline='\n', data=good, encoding='utf-8')
+        port.checked_content(self.root, version)
         with self.assertRaises(ValueError):
             port.checked_content(self.root, '9.9.9')  # manifest version must match the native product
 

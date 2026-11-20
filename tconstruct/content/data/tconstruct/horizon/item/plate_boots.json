@@ -1,1 +1,1 @@
-{"template":"minecraft:iron_boots","max_stack_size":1}
+{"template":"minecraft:iron_boots","max_stack_size":1,"components":{"minecraft:equippable":{"asset_id":"tconstruct:plate","equip_sound":"minecraft:item.armor.equip_iron","slot":"feet"}}}

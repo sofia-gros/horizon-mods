@@ -228,6 +228,70 @@ impl ItemUse {
     }
 }
 
+type StackCheck = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> bool + Send + Sync>;
+type StackTime = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> i32 + Send + Sync>;
+type StackFood = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> Option<Food> + Send + Sync>;
+
+/// How one stack of an item is used over time, decided per stack (Fabric: `Item.getMaxUseTime(ItemStack)` and `Item.use` reading the stack's
+/// components, which `ItemUse` cannot express because it answers for every stack of the item alike). Build it with [`StackUse::new`] and the
+/// chained methods, then register it with [`ItemUseRegistry::register_stack`].
+#[derive(Clone)]
+pub struct StackUse {
+    action: UseAction,
+    can_use: StackCheck,
+    use_time: StackTime,
+    food: Option<StackFood>,
+    requires_hunger: bool,
+}
+
+impl std::fmt::Debug for StackUse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StackUse").field("action", &self.action).field("food", &self.food.is_some()).field("requires_hunger", &self.requires_hunger).finish()
+    }
+}
+
+impl StackUse {
+    /// A use in the given pose that every stack may start, for 0 ticks (so nothing happens until [`StackUse::use_time`] says otherwise), with no
+    /// food.
+    pub fn new(action: UseAction) -> Self {
+        Self { action, can_use: std::sync::Arc::new(|_| true), use_time: std::sync::Arc::new(|_| 0), food: None, requires_hunger: false }
+    }
+
+    /// The same, where `can_use` decides whether this registration applies to the stack (a broken tool, a tool without the stat that makes it
+    /// edible). A stack it refuses is left to the game: its own use time, pose and rules (usually no use at all). It runs often (when a use
+    /// starts and as the hand draws one in use): answer from the stack alone and cheaply.
+    pub fn can_use(mut self, can_use: impl Fn(&super::player_api::StackData) -> bool + Send + Sync + 'static) -> Self {
+        self.can_use = std::sync::Arc::new(can_use);
+        self
+    }
+
+    /// The same, with the ticks this stack's use takes (Fabric: `getMaxUseTime(stack)`). Only asked for a stack `can_use` accepts; a time of 0
+    /// or less means the stack is not used over time.
+    pub fn use_time(mut self, use_time: impl Fn(&super::player_api::StackData) -> i32 + Send + Sync + 'static) -> Self {
+        self.use_time = std::sync::Arc::new(use_time);
+        self
+    }
+
+    /// The same, feeding what `food` answers for the stack when the use completes (None feeds nothing). The player is fed on the server once the
+    /// use is done, before the finish event is called. Do not also register a plain [`ItemUse`] with food for the same item.
+    pub fn food(mut self, food: impl Fn(&super::player_api::StackData) -> Option<Food> + Send + Sync + 'static) -> Self {
+        self.food = Some(std::sync::Arc::new(food));
+        self
+    }
+
+    /// The same, but a player who is not hungry (food level 20) cannot start using the stack unless they are in creative mode (Fabric: the
+    /// `canEat(false)` check of a food item). Use it for a stack whose finish callback feeds the player itself.
+    pub fn requires_hunger(mut self) -> Self {
+        self.requires_hunger = true;
+        self
+    }
+
+    /// The pose while using.
+    pub(crate) fn action(&self) -> UseAction { self.action }
+}
+
+static STACK_USES: Mutex<Option<HashMap<String, StackUse>>> = Mutex::new(None);
+
 static ITEM_USES: Mutex<Option<HashMap<String, ItemUse>>> = Mutex::new(None);
 static SINK: OnceLock<fn(&str, &ItemUse)> = OnceLock::new();
 
@@ -260,6 +324,20 @@ impl ItemUseRegistry {
     pub fn get(item: &str) -> Option<ItemUse> {
         ITEM_USES.lock().ok()?.as_ref()?.get(item).cloned()
     }
+
+    /// Makes `item` usable over time, decided per stack (see [`StackUse`]). Registering the same item again replaces the earlier entry. An item
+    /// registers either this or [`ItemUseRegistry::register`], not both. The game side asks it where it asks the item's use time and pose, when a
+    /// use starts, and when it finishes (see `UseItemFinishCallback`).
+    pub fn register_stack(item: Identifier, behavior: StackUse) {
+        if let Ok(mut all) = STACK_USES.lock() {
+            all.get_or_insert_with(HashMap::new).insert(item.to_string(), behavior);
+        }
+    }
+
+    /// The per-stack use registered for `item`, if any.
+    pub fn stack_use(item: &str) -> Option<StackUse> {
+        STACK_USES.lock().ok()?.as_ref()?.get(item).cloned()
+    }
 }
 
 /// The use time the game should use for `item`: the registered one, else the game's own.
@@ -270,6 +348,37 @@ pub(crate) fn use_duration(item: &str, game_default: i32) -> i32 {
 /// The pose for `item`: the registered one, else None (the game keeps its own).
 pub(crate) fn use_animation(item: &str) -> Option<UseAction> {
     ItemUseRegistry::get(item).map(|behavior| behavior.action)
+}
+
+/// Whether `item` has a per-stack use, so the game side reads the stack only for those items.
+pub(crate) fn has_stack_use(item: &str) -> bool {
+    STACK_USES.lock().ok().is_some_and(|all| all.as_ref().is_some_and(|all| all.contains_key(item)))
+}
+
+/// The pose of `stack` when its item has a per-stack use that accepts the stack; None leaves the game's own pose.
+pub(crate) fn stack_use_action(stack: &super::player_api::StackData) -> Option<UseAction> {
+    let behavior = ItemUseRegistry::stack_use(&stack.item)?;
+    (behavior.can_use)(stack).then(|| behavior.action())
+}
+
+/// The use time of `stack` when its item has a per-stack use that accepts the stack (never below 0); None leaves the game's own time.
+pub(crate) fn stack_use_duration(stack: &super::player_api::StackData) -> Option<i32> {
+    let behavior = ItemUseRegistry::stack_use(&stack.item)?;
+    (behavior.can_use)(stack).then(|| (behavior.use_time)(stack).max(0))
+}
+
+/// Whether the player may start using `stack`: false only for a per-stack use that accepts the stack and needs hunger when the player has
+/// none and is not in creative mode. True otherwise: a stack the use refuses is left to the game.
+pub(crate) fn stack_use_may_start(stack: &super::player_api::StackData, hungry: bool, creative: bool) -> bool {
+    let Some(behavior) = ItemUseRegistry::stack_use(&stack.item) else { return true };
+    !((behavior.can_use)(stack) && behavior.requires_hunger && !hungry && !creative)
+}
+
+/// What completing the use of `stack` feeds, when its item has a per-stack use that feeds.
+pub(crate) fn stack_use_food(stack: &super::player_api::StackData) -> Option<Food> {
+    let behavior = ItemUseRegistry::stack_use(&stack.item)?;
+    if !(behavior.can_use)(stack) { return None; }
+    behavior.food.as_ref().and_then(|food| food(stack))
 }
 
 #[cfg(test)]
@@ -286,6 +395,43 @@ mod tests {
         assert_eq!(use_animation("test:other"), None);
         ItemUseRegistry::register(Identifier::new("test", "wheel").unwrap(), ItemUse::new(10, UseAction::Drink).food(4, 0.5));
         assert_eq!(ItemUseRegistry::get("test:wheel"), Some(ItemUse::new(10, UseAction::Drink).food(4, 0.5)));
+    }
+
+    #[test]
+    fn a_stack_use_decides_per_stack_whether_how_long_and_what_it_feeds() {
+        // An item whose stacks are edible only when they carry a `hunger` value in their data.
+        fn hunger(stack: &StackData) -> i32 {
+            match stack.custom_data.get("hunger") { Some(crate::pure::base::Nbt::Int(value)) => *value, _ => 0 }
+        }
+        let stack = |value: i32| {
+            let mut stack = StackData { item: "test:tool".into(), count: 1, ..Default::default() };
+            if value != 0 { stack.custom_data.insert("hunger".into(), crate::pure::base::Nbt::Int(value)); }
+            stack
+        };
+        assert!(!has_stack_use("test:tool"));
+        assert_eq!(stack_use_duration(&stack(3)), None, "an item with no per-stack use is left to the game");
+        assert!(stack_use_may_start(&stack(0), false, false));
+        ItemUseRegistry::register_stack(
+            Identifier::new("test", "tool").unwrap(),
+            StackUse::new(UseAction::Eat)
+                .can_use(|stack| hunger(stack) > 0)
+                .use_time(|stack| 8 * hunger(stack))
+                .food(|stack| Some(Food { nutrition: hunger(stack), saturation: 0.5 }))
+                .requires_hunger(),
+        );
+        assert!(has_stack_use("test:tool"));
+        assert_eq!((stack_use_action(&stack(1)), stack_use_action(&stack(0))), (Some(UseAction::Eat), None), "the pose follows the stack too");
+        assert_eq!(use_animation("test:tool"), None, "the per-item pose is for plain registrations");
+        assert_eq!((stack_use_duration(&stack(0)), stack_use_duration(&stack(1)), stack_use_duration(&stack(4))), (None, Some(8), Some(32)), "a refused stack keeps the game's time");
+        assert_eq!(stack_use_food(&stack(0)), None, "a refused stack feeds nothing");
+        assert_eq!(stack_use_food(&stack(3)), Some(Food { nutrition: 3, saturation: 0.5 }));
+        assert!(stack_use_may_start(&stack(0), false, false), "a refused stack is left to the game, hungry or not");
+        assert!(!stack_use_may_start(&stack(2), false, false), "no hunger, no eating");
+        assert!(stack_use_may_start(&stack(2), true, false));
+        assert!(stack_use_may_start(&stack(2), false, true), "creative players eat when full");
+        ItemUseRegistry::register_stack(Identifier::new("test", "tool").unwrap(), StackUse::new(UseAction::Drink).use_time(|_| -5));
+        assert_eq!(stack_use_duration(&stack(0)), Some(0), "an accepted stack with a negative time is no use at all");
+        assert!(stack_use_may_start(&stack(0), false, false), "the default accepts every stack and needs no hunger");
     }
 
     #[test]

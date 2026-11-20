@@ -63,7 +63,7 @@ pub(crate) fn register() {
                     tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).ok().map(|_| worn)
                 });
                 if let Ok(Some(worn)) = worn {
-                    used.player.update_stack(slot, &StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone() });
+                    used.player.update_stack(slot, &StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone() });
                 }
             }
         }

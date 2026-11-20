@@ -94,12 +94,23 @@ pub fn hooks() -> Box<dyn Hooks> {
                 None=>None,
                 Some(value)=>Some(i32::try_from(value.as_i64()?).ok()?),
             };
+            let custom_model_data=match components.get("minecraft:custom_model_data") {
+                None=>None,
+                Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+                    Tag::Compound(data)=>Some(player_api::CustomModelData::from_nbt(&compound_from_tag(&data))),
+                    _=>return None,
+                },
+            };
             crate::pure::color_provider_api_v1::ColorProviderRegistry::item_color(
                 &crate::pure::color_provider_api_v1::ItemColorContext {
-                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data},tint_index,
+                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data},tint_index,
                 })
         },
     ).expect("PlutoLib item colour provider installs once before native rendering");
+    horizon_client::item_render::pluto_armor_layers::set_provider(
+        crate::pure::armor_renderer_api_v1::has_renderer,
+        |item,count,components,kind| crate::pure::armor_renderer_api_v1::host_layers(worn_stack(item,count,components)?,kind),
+    ).expect("PlutoLib armor layer provider installs once before native rendering");
     horizon_client::mobs::pluto_entity_particles::set_provider(
         crate::pure::particle_factory_registry::entity_particle_from_host,
     ).expect("PlutoLib entity particle provider installs once");
@@ -161,8 +172,9 @@ pub fn hooks() -> Box<dyn Hooks> {
                 attacker_state: entity_events_v1::EntityState {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
+                    ..entity_events_v1::EntityState::default()
                 },
-                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()), counter_damage: std::cell::RefCell::new(Vec::new()),
+                armor: entity_events_v1::armor_of_the_only_wearer(), effects: std::cell::RefCell::new(Vec::new()), self_effects: std::cell::RefCell::new(Vec::new()), counter_damage: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
             };
             // The damage event that follows carries the attacker's state, for the protection that conditions on it.
             let wearer = entity_events_v1::only_wearer_entity();
@@ -170,6 +182,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
     }).expect("PlutoLib player hurt sink installs once");
+    horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
+        factor: entity_events_v1::modify_visibility,
+    }).expect("PlutoLib player visibility sink installs once");
     horizon_client::mobs::pluto_living_entity_access::set_sink(horizon_client::mobs::pluto_living_entity_access::Sink {
         attributes:|kind| {
             let kind=Identifier::parse(kind).map_err(|e|e.to_string())?;
@@ -230,7 +245,7 @@ pub fn hooks() -> Box<dyn Hooks> {
     }).expect("PlutoLib entity type provider installs once before native table loading");
     horizon_client::entry::pluto_block::set_mask_dispatcher(|item, wearer, observer| {
         item_api_v1::ender_mask(&item_api_v1::EnderMaskContext {
-            item: item.to_owned(), stack: None, wearer_uuid: Some(wearer), observer_entity: Some(observer),
+            item: item.to_owned(), stack: entity_events_v1::worn_piece(wearer, "head").filter(|stack| stack.item == item), wearer_uuid: Some(wearer), observer_entity: Some(observer),
         })
     }).expect("PlutoLib item mask dispatcher installs once");
     horizon_client::entry::pluto_entity_spawn_access::set_provider(
@@ -390,7 +405,20 @@ fn read_stack(stack: &ItemStack) -> player_api::StackData {
         Some(Tag::Int(value)) => Some(*value),
         _ => None,
     };
-    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data }
+    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data, custom_model_data: read_custom_model_data(stack) }
+}
+
+/// The stack's own `minecraft:custom_model_data` component as PlutoLib's `CustomModelData`, None when it has none.
+fn read_custom_model_data(stack: &ItemStack) -> Option<player_api::CustomModelData> {
+    match stack.data().and_then(|d| d.other("minecraft:custom_model_data")) {
+        Some(Tag::Compound(compound)) => Some(player_api::CustomModelData::from_nbt(&compound_from_tag(compound))),
+        _ => None,
+    }
+}
+
+/// The component value for `data`: None (remove the component) when there is none or it is empty.
+fn custom_model_data_tag(data: &Option<player_api::CustomModelData>) -> Option<Tag> {
+    data.as_ref().filter(|data| !data.is_empty()).map(|data| Tag::Compound(compound_to_tag(&data.to_nbt())))
 }
 
 fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,resource_loader_v0::RegistryLookup>)
@@ -413,19 +441,21 @@ fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,reso
             .map_err(|e|format!("invalid item prototype NBT: {e}"))?;
         if used!=prototype.custom_data.len() { return Err("trailing item prototype NBT".into()); }
         let Some(Nbt::Compound(custom_data))=strict(&tag) else { return Err("unsupported item prototype custom data".into()) };
-        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data })
+        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data,custom_model_data:None })
     }).collect::<Result<Vec<_>,String>>()?;
     crate::pure::item_registry::ItemRegistrySnapshot::decode(lookup,stacks)?
         .with_crafting_remainders(defaults.iter().map(|prototype|(prototype.id.clone(),prototype.crafting_remainder.clone())).collect()).map(Some)
 }
 
-/// Writes count, damage, max damage and custom data of `new` onto `stack` (the item is not changed).
+/// Writes count, damage, max damage, custom data and custom model data of `new` onto `stack` (the item is not changed).
 fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
     stack.count = new.count;
     stack.damage = new.damage;
     // the stack's own durability: a component the game reads before the item's
     stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
     stack.data_mut().set_other("minecraft:custom_data", (!new.custom_data.is_empty()).then(|| Tag::Compound(compound_to_tag(&new.custom_data))));
+    // the stack's own model selection: the item definition reads it, so it must travel with the stack
+    stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&new.custom_model_data));
     stack.tidy();
 }
 
@@ -863,6 +893,120 @@ fn cancel_if(handled: bool) -> Flow {
     if handled { Flow::Cancel } else { Flow::Continue }
 }
 
+/// Puts an effect on the player `uuid` through the host, which reaches the world's owner by their uuid as it reaches a guest. An effect
+/// with a negative amplifier or no duration is not given.
+fn give_effect(host: &mut dyn Host, uuid: u128, effect: String, amplifier: i32, duration: i32) {
+    if duration <= 0 || amplifier < 0 { return; }
+    host.add_effect(uuid, &horizon_client::game::NativeEffect { id: effect, amplifier: u8::try_from(amplifier).unwrap_or(u8::MAX), duration, ambient: false, particles: true });
+}
+
+/// Does `actions` to the player `uuid`, the `Attacker` of each: the effects by uuid, the rest as entity actions when the host can name the
+/// player's entity (a guest, or the acting player); those are skipped otherwise.
+fn apply_player_actions(host: &mut dyn Host, uuid: u128, actions: Vec<entity_events_v1::EntityAction>) {
+    let mut rest = Vec::new();
+    for action in actions {
+        match action {
+            entity_events_v1::EntityAction::AddEffect { target: entity_events_v1::ActionTarget::Attacker, effect, amplifier, duration } => give_effect(host, uuid, effect, amplifier, duration),
+            other => rest.push(other),
+        }
+    }
+    if rest.is_empty() { return; }
+    let found = host.acting_player().filter(|acting| acting.uuid == uuid).map(|acting| (acting.entity_id, acting.dimension.to_string()))
+        .or_else(|| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (player.entity_id, player.dimension.to_string())));
+    let Some((entity, dimension)) = found else { return };
+    apply_entity_actions(host, &dimension, entity, -1, rest);
+}
+
+/// What the world around an entity says about it: the biome it stands in and the temperature there, whether rain falls on it and whether
+/// its eyes are in water. `block` is the block it stands in and `eyes` where its eyes are.
+fn read_surroundings(host: &mut dyn Host, state: &mut entity_events_v1::EntityState, block: [i32; 3], eyes: Option<[f64; 3]>) {
+    let biome = host.biome(block);
+    let (rain, thunder) = host.weather();
+    let raining = rain > 0.2;
+    let (block_light, sky_light) = host.light(block);
+    state.block_light = Some(block_light);
+    state.sky_light = Some(sky_light);
+    state.sky_darken = entity_events_v1::sky_darken(rain, thunder, host.day_time());
+    state.y = Some(f64::from(block[1]));
+    state.rain_exposed = entity_events_v1::rain_exposed(raining, sky_light, biome.as_deref(), block[1]);
+    state.biome_temperature = biome.as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, block[1]));
+    state.biome = biome;
+    if let Some(eyes) = eyes {
+        let eye_block = [eyes[0].floor() as i32, eyes[1].floor() as i32, eyes[2].floor() as i32];
+        let waterlogged = host.block_property(eye_block, "waterlogged").as_deref() == Some("true");
+        state.eyes_in_water = entity_events_v1::holds_water(&host.block(eye_block), waterlogged);
+    }
+}
+
+/// The state of a server player: what the player list says, their effects with levels, their health and maximum, the armor they wear and
+/// the world around them. A player's eyes are taken 1.62 blocks above their feet.
+fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::NativeServerPlayer) -> entity_events_v1::EntityState {
+    let effects = host.effects(player.uuid).unwrap_or_default();
+    use horizon_client::mod_api::EquipmentSlot;
+    let worn = [host.player_equipment(player.uuid, EquipmentSlot::Head).is_some(), host.player_equipment(player.uuid, EquipmentSlot::Chest).is_some(),
+        host.player_equipment(player.uuid, EquipmentSlot::Legs).is_some(), host.player_equipment(player.uuid, EquipmentSlot::Feet).is_some()]
+        .into_iter().filter(|worn| *worn).count();
+    let mut state = entity_events_v1::EntityState {
+        kind: "minecraft:player".to_owned(),
+        sprinting: player.sprinting,
+        on_ground: player.on_ground,
+        effects: effects.iter().map(|effect| effect.id.clone()).collect(),
+        effect_levels: effects.iter().map(|effect| (effect.id.clone(), i32::from(effect.amplifier))).collect(),
+        health: Some(player.health),
+        max_health: host.attribute(player.uuid, "minecraft:max_health").map(|(_, value)| value as f32),
+        armor_coverage: Some(entity_events_v1::armor_coverage(worn)),
+        crouching: player.sneaking,
+        ..entity_events_v1::EntityState::default()
+    };
+    let [x, y, z] = player.position;
+    let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
+    read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
+    // The height of the feet, not of the block they stand in.
+    state.y = Some(y);
+    // The player list has no flag for water; the block they stand in does.
+    state.in_water = entity_events_v1::holds_water(&host.block(block), host.block_property(block, "waterlogged").as_deref() == Some("true"));
+    state
+}
+
+/// What the break hook read before the block went, kept for the end of the same break.
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer }
+static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
+
+/// The acting player, their dimension and main-hand stack, and the block at `pos`, as the block break events report them.
+fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::BlockBreakContext {
+    let acting = host.acting_player();
+    let dimension = acting.as_ref().map(|player| player.dimension.to_string()).unwrap_or_default();
+    let state = match host.level(&dimension) { Some(level) => host.level_block_state(level, pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
+    let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack));
+    events_interaction_v0::BlockBreakContext {
+        pos, dimension, state,
+        player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+        held, actions: std::cell::RefCell::new(Vec::new()),
+    }
+}
+
+/// Reports the earlier breaks of the player `uuid` to `AFTER`: the game has no hook at the end of a break, so each allowed break waits until the
+/// player's next tick (or their next break) and is heard then if the block at its position is no longer the one that was there. `held` is the
+/// stack the player holds now, and the actions the callbacks queue are done to the player.
+fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
+    let due: Vec<PendingBreak> = match PENDING_BREAKS.lock() {
+        Ok(mut pending) => { let (due, rest) = std::mem::take(&mut *pending).into_iter().partition(|entry| entry.player.uuid == uuid); *pending = rest; due }
+        Err(_) => return,
+    };
+    for entry in due {
+        let now = match host.level(&entry.dimension) { Some(level) => host.level_block_state(level, entry.pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
+        // An unreadable block or one that is still the same means the break did not happen (another mod cancelled it later).
+        if now.is_none() || now == entry.state { continue; }
+        let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
+        let context = events_interaction_v0::BlockBreakContext {
+            pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, actions: std::cell::RefCell::new(Vec::new()),
+        };
+        scoped(host, || events_interaction_v0::after_block_break(&context));
+        let actions = context.actions.take();
+        if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
+    }
+}
+
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
     Some(match tag {
         Tag::End => return None,
@@ -898,6 +1042,117 @@ fn tag_from_nbt(nbt: &Nbt) -> Tag {
     }
 }
 
+/// Edits the custom data of the stack the acting player carries in `slot` (`Host::carried_stack` by the inventory's slot numbers: the selected
+/// hotbar slot, 100 to 103 for armor, -106 for the off hand), when it is still of `item`; the whole stack goes back through the same
+/// `slot_of` / `write_slot` pair the item-wear adapter uses, so every other component stays as the game had it.
+fn edit_player_stack(host: &mut dyn Host, selected: u8, slot: entity_events_v1::StackSlot, item: &str, edits: &[entity_events_v1::StackDataEdit]) {
+    let number = entity_events_v1::carried_slot_number(slot, selected);
+    let Some(stack) = host.carried_stack(number) else { return };
+    if &*stack.item != item || stack.count == 0 { return; }
+    let Some(mut held) = slot_of(&*stack) else { return };
+    if !entity_events_v1::edit_custom_data(&mut held.custom_data, edits) { return; }
+    write_slot(stack, &held);
+}
+
+/// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
+/// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
+fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
+    use entity_events_v1::{ActionTarget, EntityAction, KnockbackDirection};
+    let id_of = |target: ActionTarget| if target == ActionTarget::Attacker { attacker } else { victim };
+    // Where an entity or a player is: the player list names players by entity id (0 for the owner of a single-player world).
+    fn position_of(host: &dyn Host, id: i32) -> Option<[f64; 3]> {
+        if let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) {
+            if let Some(position) = host.entity_position(entity) { return Some(position); }
+        }
+        host.acting_player().filter(|acting| acting.entity_id == id || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id)).map(|player| player.position)
+    }
+    for action in actions {
+        match action {
+            EntityAction::SetFire { target, seconds } => {
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                let immune = host.entity_fire_immune(entity).unwrap_or(false);
+                let current = host.entity_fire_ticks(entity).unwrap_or(0);
+                if let Some(ticks) = entity_events_v1::fire_ticks_after(current, seconds, immune) { host.entity_set_fire(entity, ticks); }
+            }
+            EntityAction::Heal { target, amount } => {
+                let id = id_of(target);
+                // A player is healed through their status; a mob through its health in its data (the host cuts both to the maximum).
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                if let Some(player) = player {
+                    if let Some(health) = entity_events_v1::healed_health(player.health, amount) { host.set_player_status(player.uuid, Some(health), None, None); }
+                    continue;
+                }
+                let Ok(mob) = u32::try_from(id) else { continue };
+                let Some(entity) = host.entity(mob) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                let Some(data) = host.entity_nbt(entity) else { continue };
+                let current = data.iter().find(|(key, _)| key.to_string_lossy() == "Health").and_then(|(_, tag)| match tag { Tag::Float(bits) => Some(f32::from_bits(*bits)), _ => None });
+                if let Some(health) = current.and_then(|current| entity_events_v1::healed_health(current, amount)) { host.set_mob_health(dimension, mob, health); }
+            }
+            EntityAction::Freeze { target, ticks } => {
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                let Some(kind) = host.entity_kind(entity) else { continue };
+                if kind == "minecraft:player" || !entity_events_v1::can_freeze(&kind) { continue; }
+                let Some(data) = host.entity_nbt(entity) else { continue };
+                let current = data.iter().find(|(key, _)| key.to_string_lossy() == "TicksFrozen").and_then(|(_, tag)| match tag { Tag::Int(value) => Some(*value), _ => None }).unwrap_or(0);
+                let Some(frozen) = entity_events_v1::frozen_ticks_after(current, ticks) else { continue };
+                let mut merge = Compound::new();
+                merge.insert("TicksFrozen".into(), Tag::Int(frozen));
+                host.entity_merge_nbt(entity, merge);
+                // Freezing puts the fire out.
+                host.entity_set_fire(entity, 0);
+            }
+            EntityAction::Knockback { target, strength, direction } => {
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                let (x, z) = match direction {
+                    KnockbackDirection::AgainstFacing => match host.entity_rotation(entity) { Some([yaw, _]) => entity_events_v1::facing_direction(yaw), None => continue },
+                    KnockbackDirection::AwayFromOther => {
+                        let other = if target == ActionTarget::Attacker { victim } else { attacker };
+                        let (Some(from), Some(here)) = (position_of(host, other), host.entity_position(entity)) else { continue };
+                        (from[0] - here[0], from[2] - here[2])
+                    }
+                };
+                let on_ground = host.entity_on_ground(entity).unwrap_or(false);
+                if let Some(delta) = entity_events_v1::knockback_delta(strength, x, z, on_ground) { host.entity_push(entity, delta); }
+            }
+            EntityAction::EditStackData { target, slot, item, edits } => {
+                // Only the player acting in this hook has a stack the host hands out; a hit on a player lands on that player's own tick.
+                let id = id_of(target);
+                let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) else { continue };
+                edit_player_stack(host, selected, slot, &item, &edits);
+            }
+            EntityAction::Hurt { target, amount, damage_type } => {
+                // A player or a mob, hurt with no attacker; the host refuses an entity it cannot hurt (a creative player, a dead mob).
+                let Ok(entity) = u32::try_from(id_of(target)) else { continue };
+                host.hurt_entity(dimension, entity, amount, &damage_type, None);
+            }
+            EntityAction::SetEffectDuration { target, effect, duration } => {
+                if duration <= 0 { continue; }
+                let id = id_of(target);
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                let Some(player) = player else { continue };
+                // The effect keeps its level and flags: it is taken off and given back with the new time (adding a shorter one over it would keep the longer).
+                let Some(kept) = host.effects(player.uuid).and_then(|all| all.into_iter().find(|active| active.id == effect)) else { continue };
+                host.remove_effect(player.uuid, &effect);
+                host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: kept.id, amplifier: kept.amplifier, duration, ambient: kept.ambient, particles: kept.particles });
+            }
+            EntityAction::AddEffect { target, effect, amplifier, duration } => {
+                let id = id_of(target);
+                // A player gets the effect through the host; a mob through the same hand-off the weapon-hit effects use.
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                if let Some(player) = player { give_effect(host, player.uuid, effect, amplifier, duration); continue; }
+                if duration <= 0 || amplifier < 0 { continue; }
+                if let Ok(mob) = u32::try_from(id) { horizon_client::entry::pluto_mob_effect_access::push(mob, &effect, duration, amplifier); }
+            }
+        }
+    }
+}
+
 fn compound_from_tag(compound: &Compound) -> NbtCompound {
     compound.iter().filter_map(|(key, tag)| Some((key.to_string_lossy(), nbt_from_tag(tag)?))).collect()
 }
@@ -916,6 +1171,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.tool = read_tool(stack);
     slot.attribute_modifiers = read_attribute_modifiers(stack);
     slot.enchantments = read_enchantments(stack);
+    slot.custom_model_data = data.custom_model_data;
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -949,6 +1205,10 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
             let compound: NbtCompound = levels.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
             Tag::Compound(compound_to_tag(&compound))
         }));
+    }
+    // The stack's own model selection: the item definition's `select`/`range_dispatch`/`condition` read it from here.
+    if slot.custom_model_data != read_custom_model_data(stack) {
+        stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&slot.custom_model_data));
     }
     stack.tidy();
 }
@@ -1066,6 +1326,33 @@ fn model_from_native(part: &horizon_client::mod_api::ModelPart) -> ModelPart {
     model.visible = part.visible;
     model.skip_draw = part.skip_draw;
     model
+}
+/// A worn stack as the item renderer's merged components describe it: the same fields the item colour provider hands a mod.
+fn worn_stack(item:&str,count:i32,components:&std::collections::BTreeMap<String,serde_json::Value>)->Option<player_api::StackData> {
+    let count=u32::try_from(count).ok()?;
+    let custom_data=match components.get("minecraft:custom_data") {
+        None=>NbtCompound::new(),
+        Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+            Tag::Compound(data)=>compound_from_tag(&data),
+            _=>return None,
+        },
+    };
+    let damage=match components.get("minecraft:damage") {
+        None=>0,
+        Some(value)=>u32::try_from(value.as_u64()?).ok()?,
+    };
+    let max_damage=match components.get("minecraft:max_damage") {
+        None=>None,
+        Some(value)=>Some(i32::try_from(value.as_i64()?).ok()?),
+    };
+    let custom_model_data=match components.get("minecraft:custom_model_data") {
+        None=>None,
+        Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+            Tag::Compound(data)=>Some(player_api::CustomModelData::from_nbt(&compound_from_tag(&data))),
+            _=>return None,
+        },
+    };
+    Some(player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data})
 }
 fn skull_model_to_native(part:&horizon_client::mod_api::ModelPart)->horizon_client::entry::pluto_block::SkullModelPart {
     let p=part.store_pose();
@@ -1568,12 +1855,34 @@ impl Hooks for PlutoHooks {
     }
 
     fn use_duration(&self, _host: &dyn Host, event: &mut UseDurationEvent<'_>) {
-        event.duration = item_api_v1::use_duration(&event.stack.item, event.duration);
+        // An item with a per-stack use answers from the stack's own data (read only for those items: this is asked every frame a use is drawn).
+        event.duration = if item_api_v1::has_stack_use(&event.stack.item) {
+            item_api_v1::stack_use_duration(&read_stack(event.stack)).unwrap_or(event.duration)
+        } else {
+            item_api_v1::use_duration(&event.stack.item, event.duration)
+        };
+    }
+
+    /// A per-stack use refuses a stack it cannot use, and a hungry-only one refuses a full player who is not in creative mode.
+    fn living_entity_use_item_start(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingEntityUseItemStartEvent<'_>) -> Flow {
+        if event.entity.is_some() || !item_api_v1::has_stack_use(&event.stack.item) { return Flow::Continue; }
+        let stack = read_stack(event.stack);
+        let acting = host.acting_player();
+        let (hungry, creative) = match &acting {
+            Some(player) => (host.player_food(player.uuid).is_none_or(|(level, _, _)| level < 20), player.game_mode == 1),
+            None => (true, false),
+        };
+        if item_api_v1::stack_use_may_start(&stack, hungry, creative) { Flow::Continue } else { Flow::Cancel }
     }
 
     fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
         use item_api_v1::UseAction;
-        if let Some(action) = item_api_v1::use_animation(&event.stack.item) {
+        let action = if item_api_v1::has_stack_use(&event.stack.item) {
+            item_api_v1::stack_use_action(&read_stack(event.stack))
+        } else {
+            item_api_v1::use_animation(&event.stack.item)
+        };
+        if let Some(action) = action {
             *event.animation = match action {
                 UseAction::None => UseAnimation::None,
                 UseAction::Eat => UseAnimation::Eat,
@@ -1727,6 +2036,57 @@ impl Hooks for PlutoHooks {
         if allowed { Flow::Continue } else { Flow::Cancel }
     }
 
+    fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
+        if !projectile_events_v1::launch_heard() { return; }
+        let launch = projectile_events_v1::ProjectileLaunch { player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned() };
+        scoped(host, || projectile_events_v1::launched(&launch));
+    }
+
+    fn entity_shoot_bow(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::EntityShootBowEvent<'_>) {
+        if !projectile_events_v1::shot_heard() { return; }
+        let player = event.player;
+        // The bow is in one of the shooter's hands: the callbacks get both stacks, as the knockback hook gives them.
+        let main_hand = host.held_stack(player).map(|stack| read_stack(&stack));
+        let off_hand = host.player_equipment(player, horizon_client::mod_api::EquipmentSlot::OffHand).map(|stack| read_stack(&stack));
+        let shot = projectile_events_v1::BowShot { player, name: event.name.to_owned(), projectile: event.projectile, force: event.force, main_hand, off_hand, actions: std::cell::RefCell::new(Vec::new()) };
+        let actions = scoped(host, || projectile_events_v1::shot(&shot));
+        if !actions.is_empty() { apply_player_actions(host, player, actions); }
+    }
+
+    fn player_shear_entity(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::PlayerShearEntityEvent<'_>) -> Flow {
+        let player = event.player;
+        let held = if event.off_hand { host.player_equipment(player, horizon_client::mod_api::EquipmentSlot::OffHand) } else { host.held_stack(player) };
+        let attempt = entity_events_v1::ShearAttempt {
+            player, name: event.name.to_owned(), entity: event.entity_id, off_hand: event.off_hand, tool: held.map(|stack| read_stack(&stack)),
+            cancel: std::cell::Cell::new(false), actions: std::cell::RefCell::new(Vec::new()),
+        };
+        let (allowed, actions) = scoped(host, || entity_events_v1::shear(&attempt));
+        if !actions.is_empty() { apply_player_actions(host, player, actions); }
+        cancel_if(!allowed)
+    }
+
+    fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_>) {
+        // The game's own death-loot path (pluto-living-drops-game) calls the hook for a mob's table drops; heads claimed through the living-drops
+        // callbacks are appended outside it, so this hook only sees and changes the stacks the game passes here.
+        if !loot_api_v2::drops_heard() { return; }
+        let Some(slots) = event.drops.iter().map(slot_of).collect::<Option<Vec<ItemSlot>>>() else { return };
+        let before = slots.clone();
+        let context = &*event.context;
+        let drops = loot_api_v2::LootDrops {
+            table: context.table.to_owned(), dimension: context.dimension.to_owned(), origin: context.origin,
+            block: context.block.as_ref().map(|(pos, _)| *pos),
+            entity: context.entity.as_ref().map(|(id, kind)| (*id, (*kind).to_owned())),
+            player: context.player, tool: context.tool.map(|stack| read_stack(stack)), explosion: context.explosion, used: context.used,
+            drops: std::cell::RefCell::new(slots), actions: std::cell::RefCell::new(Vec::new()),
+        };
+        let after = scoped(host, || loot_api_v2::modify_drops(&drops));
+        let actions = drops.actions.take();
+        if let (Some(player), false) = (drops.player, actions.is_empty()) { apply_player_actions(host, player, actions); }
+        if after != before {
+            *event.drops = after.into_iter().filter_map(|slot| native_slot(Some(slot))).collect();
+        }
+    }
+
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
         for (usage, level) in command_api_v2::collect() {
             event.commands.push(if level == 0 { NativeCommand::new(&usage) } else { NativeCommand::op(&usage, level) });
@@ -1811,6 +2171,7 @@ impl Hooks for PlutoHooks {
     fn player_tick(&self, host: &mut dyn Host, _event: &mut horizon_client::mod_api::PlayerTickEvent) {
         // Damage hooks get no host, so the armor a player wears is read here each tick for them to find.
         let Some(player) = host.acting_player() else { return };
+        flush_block_breaks(host, player.uuid);
         let mut armor = Vec::new();
         for (name, slot) in [("feet", horizon_client::mod_api::EquipmentSlot::Feet), ("legs", horizon_client::mod_api::EquipmentSlot::Legs), ("chest", horizon_client::mod_api::EquipmentSlot::Chest), ("head", horizon_client::mod_api::EquipmentSlot::Head)] {
             let Some(stack) = host.player_equipment(player.uuid, slot) else { continue };
@@ -1819,11 +2180,23 @@ impl Hooks for PlutoHooks {
         }
         // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
         let worn = armor.clone();
+        // The state of a wearer, for the damage event of a hit on them (their health and surroundings as of this tick).
+        let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
+        entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
-        if !worn.is_empty() {
+        if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()) };
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             for id in entity_events_v1::player_tick(&tick) { host.remove_effect(player.uuid, &id); }
+            // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
+            let own = entity_events_v1::take_tick_actions(&tick);
+            if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }
+            // The amounts the armor adds to the player's attributes move the base value by the change since the last tick.
+            let wanted = tick.attribute_additions.take();
+            for (attribute, change, total) in entity_events_v1::attribute_changes(player.uuid, &wanted) {
+                let Some((base, _)) = host.attribute(player.uuid, &attribute) else { continue };
+                if host.set_attribute_base(player.uuid, &attribute, base + change) { entity_events_v1::attribute_applied(player.uuid, &attribute, total); }
+            }
         }
         // Damage the armor's thorns deal to the mobs that hit the wearer lands here, as hurt by the player.
         for (mob, damage) in entity_events_v1::take_counter_damage(player.entity_id) {
@@ -1833,6 +2206,10 @@ impl Hooks for PlutoHooks {
                 host.hurt_entity(&player.dimension, target, damage.amount, &damage.damage_type, u32::try_from(player.entity_id).ok());
                 COUNTER_HURT.with(|flag| flag.set(false));
             }
+        }
+        // Actions the armor's counters do to the mob that hit the wearer (fire, freezing, knockback) land here too.
+        for (mob, action) in entity_events_v1::take_wearer_actions(player.entity_id) {
+            apply_entity_actions(host, &player.dimension, mob, player.entity_id, vec![action]);
         }
         // Effects the armor's counters put on the wearer land here, where a host is at hand.
         for grant in entity_events_v1::take_self_effects(player.entity_id) {
@@ -1846,6 +2223,10 @@ impl Hooks for PlutoHooks {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
         entity_events_v1::forget_armor(uuid);
+        // The base values are saved with the player, so what the armor added is taken off before they go (best effort: the host may no longer reach them).
+        for (attribute, held) in entity_events_v1::forget_attributes(uuid) {
+            if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base - held); }
+        }
         scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 
@@ -1887,11 +2268,32 @@ impl Hooks for PlutoHooks {
     fn living_entity_use_item_finish(&self, host: &mut dyn Host, event: &mut LivingEntityUseItemFinishEvent<'_>) {
         if event.entity.is_some() { return; }
         let Some(player) = host.acting_player() else { return };
+        let used = read_stack(event.stack);
+        let server_player = player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() };
+        // What a per-stack use feeds is given before the callbacks run, as the game gives a consumable's food before the finish event.
+        if let Some(food) = item_api_v1::stack_use_food(&used) {
+            scoped(&mut *host, || server_player.add_food(food.nutrition, food.saturation));
+        }
         let context = events_interaction_v0::UseItemFinishContext {
             item: event.stack.item.to_string(),
-            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            player: server_player,
+            stack: used,
+            hand: match event.hand {
+                horizon_client::mod_api::Hand::Main => events_interaction_v0::Hand::Main,
+                horizon_client::mod_api::Hand::Off => events_interaction_v0::Hand::Off,
+            },
+            slot: event.result.as_ref().and_then(slot_of),
+            replacement: std::cell::RefCell::new(None),
+            dimension: player.dimension.to_string(),
+            position: player.position,
+            creative: player.game_mode == 1,
         };
-        scoped(host, || events_interaction_v0::use_item_finish(&context));
+        // A stack a callback put in the hand replaces what the hand holds; a count of 0 empties it.
+        if let Some(replacement) = scoped(host, || events_interaction_v0::use_item_finish(&context)) {
+            let mut stack = event.result.clone().unwrap_or_else(|| ItemStack::new(&replacement.item.to_string(), replacement.count.max(1)));
+            write_slot(&mut stack, &replacement);
+            *event.result = if replacement.count == 0 { None } else { Some(stack) };
+        }
     }
 
     fn break_speed(&self, host: &dyn Host, event: &mut BreakSpeedEvent) {
@@ -1928,8 +2330,23 @@ impl Hooks for PlutoHooks {
         cancel_if(events_interaction_v0::attack_entity(event.entity, event.kind, event.pos))
     }
 
-    fn destroy_block(&self, _host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
-        cancel_if(!events_interaction_v0::before_block_break(event.pos))
+    fn destroy_block(&self, host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
+        if !events_interaction_v0::block_break_heard() { return Flow::Continue; }
+        let context = break_context(host, event.pos);
+        if let Some(player) = &context.player { flush_block_breaks(host, player.uuid); }
+        let allowed = scoped(host, || events_interaction_v0::before_block_break(&context));
+        let actions = context.actions.take();
+        if let (Some(player), false) = (&context.player, actions.is_empty()) { apply_player_actions(host, player.uuid, actions); }
+        // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
+        let pending = match (allowed, context.player) {
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension, state: context.state, player }),
+            _ => None,
+        };
+        if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
+            if waiting.len() >= 64 { waiting.remove(0); }
+            waiting.push(pending);
+        }
+        cancel_if(!allowed)
     }
 
     fn tooltip(&self, _host: &dyn Host, event: &mut TooltipEvent<'_>) {
@@ -2071,45 +2488,80 @@ impl Hooks for PlutoHooks {
     fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
         if COUNTER_HURT.with(|flag| flag.get()) { return Flow::Continue; }
         // A player's weapon hit on a mob: what both were doing is remembered for the damage event that follows in the same call.
-        let state_of = |host: &dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
+        let state_of = |host: &mut dyn Host, id: i32| -> Option<entity_events_v1::EntityState> {
             let entity = host.entity(u32::try_from(id).ok()?)?;
-            Some(entity_events_v1::EntityState {
+            let effects = host.entity_effects(entity).unwrap_or_default();
+            let mut state = entity_events_v1::EntityState {
                 kind: host.entity_kind(entity)?,
                 sprinting: host.entity_is_sprinting(entity).unwrap_or(false),
                 on_ground: host.entity_on_ground(entity).unwrap_or(true),
                 in_water: host.entity_is_in_water(entity).unwrap_or(false),
                 fire_ticks: host.entity_fire_ticks(entity).unwrap_or(0),
                 fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
-                effects: host.entity_effects(entity).map(|effects| effects.into_iter().map(|(id, _, _)| id).collect()).unwrap_or_default(),
-            })
+                effects: effects.iter().map(|(id, _, _)| id.clone()).collect(),
+                // The mob's effects come as (id, ticks left, amplifier).
+                effect_levels: effects.into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect(),
+                ..entity_events_v1::EntityState::default()
+            };
+            // Health, the maximum and the armor worn are read from the mob's saved data.
+            if let Some(data) = host.entity_nbt(entity) {
+                let saved = entity_events_v1::saved_facts(&compound_from_tag(&data));
+                state.health = saved.health;
+                state.max_health = saved.max_health;
+                state.armor_coverage = saved.armor_coverage;
+            }
+            let eyes = host.entity_eye_position(entity);
+            if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }
+            // The height of the feet, not of the block they stand in.
+            if let Some(position) = host.entity_position(entity) { state.y = Some(position[1]); }
+            Some(state)
         };
         // The attacking player is not an entity the game's handles reach in a single-player world, so their state comes from the
-        // server's list of players: what that list says (sprinting, on the ground) and their effects.
-        let player_state = |host: &dyn Host| -> Option<entity_events_v1::EntityState> {
+        // server's list of players: what that list says (sprinting, on the ground, health) and their effects.
+        let player_state = |host: &mut dyn Host| -> Option<entity_events_v1::EntityState> {
             // The player list names the attacker by entity id (0 for the owner of a single-player world, who is the acting player).
             let player = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
                 .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing))?;
-            Some(entity_events_v1::EntityState {
-                kind: "minecraft:player".to_owned(),
-                sprinting: player.sprinting,
-                on_ground: player.on_ground,
-                in_water: false,
-                fire_ticks: 0,
-                fire_immune: false,
-                effects: host.effects(player.uuid).map(|effects| effects.into_iter().map(|effect| effect.id).collect()).unwrap_or_default(),
-            })
+            Some(player_entity_state(host, &player))
         };
-        let attacker_state = state_of(host, event.causing).or_else(|| player_state(host));
-        let target_state = state_of(host, event.entity);
+        let attacker_state = state_of(&mut *host, event.causing).or_else(|| player_state(&mut *host));
+        let target_state = state_of(&mut *host, event.entity);
         entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
-            attacker_state, target_state, effects: std::cell::RefCell::new(Vec::new()),
+            attacker_state, target_state, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {
                 horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
+        // The actions the mods queued (fire, freezing, healing, knockback) are done before the hit's damage lands.
+        let actions = entity_events_v1::take_weapon_actions(&hit);
+        // The effects a tool puts on its own holder go to the attacking player, named as the player state above names them.
+        let (own_effects, actions): (Vec<_>, Vec<_>) = actions.into_iter().partition(|action| matches!(action, entity_events_v1::EntityAction::AddEffect { target: entity_events_v1::ActionTarget::Attacker, .. }));
+        if !own_effects.is_empty() {
+            let attacker = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.uuid)
+                .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing).map(|player| player.uuid));
+            if let Some(uuid) = attacker {
+                for action in own_effects {
+                    if let entity_events_v1::EntityAction::AddEffect { effect, amplifier, duration, .. } = action { give_effect(host, uuid, effect, amplifier, duration); }
+                }
+            }
+        }
+        // Edits of the attacking player's own stacks are done now, to the player named as the player state names them.
+        let (own_edits, actions): (Vec<_>, Vec<_>) = actions.into_iter().partition(|action| matches!(action, entity_events_v1::EntityAction::EditStackData { target: entity_events_v1::ActionTarget::Attacker, .. }));
+        if !own_edits.is_empty() {
+            if let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.selected_slot) {
+                for action in own_edits {
+                    if let entity_events_v1::EntityAction::EditStackData { slot, item, edits, .. } = action { edit_player_stack(host, selected, slot, &item, &edits); }
+                }
+            }
+        }
+        if !actions.is_empty() {
+            if let Some(dimension) = host.acting_player().map(|acting| acting.dimension) {
+                apply_entity_actions(host, &dimension, event.causing, event.entity, actions);
             }
         }
         Flow::Continue
@@ -2151,7 +2603,11 @@ impl Hooks for PlutoHooks {
         let stack = found.as_ref().map(read_stack);
         let slot = found.as_ref().and_then(slot_of);
         let before = stack.clone();
-        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None) };
+        // What the player was doing, for a callback that asks (their health, surroundings and effects).
+        let holder = host.acting_player().filter(|acting| acting.uuid == player)
+            .or_else(|| host.server_players().into_iter().find(|listed| listed.uuid == player))
+            .map(|listed| player_entity_state(host, &listed));
+        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None), holder };
         match entity_events_v1::modify_item_damage(&wear) {
             Some((amount, replacement)) => {
                 event.amount = amount;

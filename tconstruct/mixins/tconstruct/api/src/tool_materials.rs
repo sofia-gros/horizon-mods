@@ -85,6 +85,48 @@ pub(crate) fn part_material(data: &NbtCompound) -> MaterialVariant {
 }
 pub(crate) fn set_part_material(stack: &mut ItemSlot, material: &MaterialVariant) {
     stack.custom_data.insert("Material".into(), Nbt::String(material.to_string()));
+    sync_model(stack);
+}
+
+/// The sprite key of one material slot for the item definitions' `select` on `custom_model_data`: the material id path without
+/// its namespace (`wood`, `rose_gold`); empty for an unknown material, which has no sprite of its own.
+fn model_key(material: &MaterialVariant) -> String {
+    let unknown = MaterialVariant::unknown().material_id();
+    match material.material_id() {
+        Some(id) if Some(&id) != unknown.as_ref() => id.path().to_owned(),
+        _ => String::new(),
+    }
+}
+/// What a stack's `custom_model_data.strings` hold, from its `custom_data`: for a tool, one `model_key` per `tic_materials` entry in
+/// slot order; for a tool part, its `Material` alone. None for data with neither (an empty material list included).
+pub(crate) fn model_strings(data: &NbtCompound) -> Option<Vec<String>> {
+    if let Some(Nbt::List(_)) = data.get(crate::tool_stack::TAG_MATERIALS) {
+        let list = MaterialList::from_nbt(data.get(crate::tool_stack::TAG_MATERIALS));
+        return Some(list.as_slice().iter().map(model_key).collect()).filter(|strings: &Vec<String>| !strings.is_empty());
+    }
+    data.get("Material").and_then(Nbt::as_str).filter(|text| !text.is_empty()).map(|text| vec![MaterialVariant::parse(text).map(|m| model_key(&m)).unwrap_or_default()])
+}
+/// The overlay flags of a tool (`model_flags::OVERLAY_BASE + i` for `OVERLAYS[i]`): which of the modifiers the tool models draw a sprite for are among its
+/// crafted modifiers (`tic_upgrades`, the original's `getUpgrades`). The flags before `OVERLAY_BASE` are use-time facts written elsewhere and are kept.
+fn sync_overlay_flags(flags: &mut Vec<bool>, data: &NbtCompound) {
+    use crate::model_flags::{OVERLAYS, OVERLAY_BASE};
+    flags.truncate(OVERLAY_BASE);
+    let lit: Vec<usize> = crate::tool_stack::upgrades(data).entries().iter().filter(|entry| entry.level > 0)
+        .filter_map(|entry| OVERLAYS.iter().position(|id| *id == entry.id.to_string())).collect();
+    if let Some(last) = lit.iter().max() {
+        flags.resize(OVERLAY_BASE + last + 1, false);
+        for position in lit { flags[OVERLAY_BASE + position] = true; }
+    }
+    while flags.last() == Some(&false) { flags.pop(); }
+}
+/// Keeps the stack's `custom_model_data` in step with its tool data; every write of `tic_materials`, `tic_upgrades` or `Material` on a stack
+/// goes through here (directly or through `tool_slot::sync_visuals`). The game cannot look inside `custom_data`, so item models select on this:
+/// `strings` hold the sprite key of each material slot, `flags` the modifier overlays. Other lists and flags the stack's model data carries are kept.
+pub(crate) fn sync_model(stack: &mut ItemSlot) {
+    let mut model = stack.custom_model_data.take().unwrap_or_default();
+    model.strings = model_strings(&stack.custom_data).unwrap_or_default();
+    sync_overlay_flags(&mut model.flags, &stack.custom_data);
+    stack.custom_model_data = Some(model).filter(|model| !model.is_empty());
 }
 pub(crate) fn verify_part_material(stack: &mut ItemSlot, registry: &Definitions) {
     let original = part_material(&stack.custom_data);
@@ -180,5 +222,25 @@ mod tests {
         stack.custom_data.insert("Material".into(), Nbt::Int(5));
         verify_part_material(&mut stack, &registry);
         assert_eq!(stack.custom_data["Material"], Nbt::Int(5), "invalid/unknown tags are not rewritten");
+    }
+    #[test]
+    fn crafted_modifiers_with_a_sprite_light_their_overlay_flag_and_keep_use_flags() {
+        use crate::model_flags::{BLOCKING, OVERLAYS, OVERLAY_BASE};
+        let upgrades = crate::modifier_entries::List::default()
+            .with_modifier(Identifier::parse("tconstruct:diamond").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("tconstruct:no_sprite_for_this").unwrap(), 2).unwrap()
+            .with_modifier(Identifier::parse("tconstruct:haste").unwrap(), 3).unwrap();
+        let mut stack = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        stack.custom_data.insert(crate::tool_stack::TAG_UPGRADES.into(), upgrades.to_nbt());
+        stack.custom_model_data.get_or_insert_with(Default::default).flags = vec![true];
+        sync_model(&mut stack);
+        let flags = stack.custom_model_data.clone().unwrap().flags;
+        let position = |name: &str| OVERLAY_BASE + OVERLAYS.iter().position(|id| *id == name).unwrap();
+        assert!(flags[BLOCKING], "the use-time flags stay");
+        assert_eq!(flags.iter().enumerate().filter(|(_, lit)| **lit).map(|(index, _)| index).collect::<Vec<_>>(),
+                   vec![BLOCKING, position("tconstruct:diamond"), position("tconstruct:haste")]);
+        stack.custom_data.remove(crate::tool_stack::TAG_UPGRADES);
+        sync_model(&mut stack);
+        assert_eq!(stack.custom_model_data.unwrap().flags, vec![true], "a removed modifier clears its flag and the trailing falses are dropped");
     }
 }

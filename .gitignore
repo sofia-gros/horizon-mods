@@ -5,3 +5,6 @@ __pycache__/
 
 /tconstruct/target/
 /tconstruct/mixins/tconstruct/api/library/target/
+
+# cargo output of the domain test crate
+tests/tconstruct-domain/target/

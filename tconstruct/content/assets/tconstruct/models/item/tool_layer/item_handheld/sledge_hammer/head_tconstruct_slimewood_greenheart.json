@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/sledge_hammer/head_tconstruct_slimewood_greenheart"
+  }
+}

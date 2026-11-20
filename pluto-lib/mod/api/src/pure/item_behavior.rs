@@ -8,7 +8,7 @@ use super::player_api::StackData;
 #[derive(Clone, Debug)]
 pub struct EnderMaskContext {
     pub item: String,
-    /// Full worn stack when available; the native AI snapshot currently has only its ID.
+    /// The worn helmet as of the wearer's last tick, when it carries custom data; the native AI snapshot itself has only its ID.
     pub stack: Option<StackData>,
     pub wearer_uuid: Option<u128>,
     pub observer_entity: Option<u32>,

@@ -45,7 +45,7 @@ pub(crate) fn register() {
         };
         let changed = with_held_tool(held, |env, stack| {
             let base = 1.0 + tool_stack::stat(&stack.custom_data, Stat::AttackDamage);
-            tool_stack::melee_damage(&stack.custom_data, env, base, amount, &in_tag)
+            tool_stack::melee_damage(&stack.custom_data, env, base, amount, &in_tag, &crate::entity_facts::Entities { attacker: hit.attacker_state.as_ref(), target: hit.target_state.as_ref() })
         });
         if log {
             eprintln!("Tinkers: melee hit on {} with {}: {} -> {:?} (entity type tags captured: {}; attacker sprinting: {:?}; target fire ticks: {:?})",

@@ -1,6 +1,6 @@
 //! ToolContextPredicate, the subset the original ships in modifier data (SlimeKnights, MIT; see LICENSE):
-//! mantle:tag, mantle:set, mantle:inverted, mantle:and, mantle:or, tconstruct:has_modifier and
-//! tconstruct:has_persistent_key. Any other predicate type is rejected, never treated as true.
+//! mantle:tag, mantle:set, mantle:inverted, mantle:and, mantle:or, tconstruct:has_modifier,
+//! tconstruct:has_persistent_key and tconstruct:has_hook (the tool trait hooks). Any other predicate type is rejected, never treated as true.
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
 
@@ -22,6 +22,8 @@ pub(crate) enum Predicate {
     /// The same over every modifier in a modifier tag.
     HasModifierTag { tag: Identifier, min: i32, max: i32, check: Check },
     HasPersistentKey(Identifier),
+    /// tconstruct:has_hook: the tool's definition has this hook.
+    HasHook(Identifier),
 }
 
 /// What a predicate may ask about a tool. With no item (previews outside a tool stack), item-based
@@ -40,6 +42,8 @@ pub(crate) struct Facts<'a> {
     pub persistent_numbers: &'a dyn Fn(&Identifier) -> Vec<(String, f64)>,
     /// ToolTraitHook.addTraits of the tool's definition and materials for an alternate hook (rebalanced_trait, trim_trait).
     pub hook_traits: &'a dyn Fn(&Identifier) -> Vec<crate::material_traits::ModifierEntry>,
+    /// HasToolHookPredicate: whether the tool's definition carries the hook.
+    pub has_hook: &'a dyn Fn(&Identifier) -> bool,
 }
 
 fn id(value: &Value) -> Result<Identifier, String> {
@@ -70,6 +74,12 @@ impl Predicate {
             }
             "mantle:and" => Self::And(list("predicates")?),
             "mantle:or" => Self::Or(list("predicates")?),
+            "tconstruct:has_hook" => {
+                let hook = id(object.get("hook").ok_or("hook missing")?)?;
+                // The definition data records only the tool trait hooks; another hook cannot be answered.
+                if !matches!(hook.to_string().as_str(), "tconstruct:tool_traits" | "tconstruct:rebalanced_trait" | "tconstruct:trim_trait") { return Err(format!("unimplemented tool predicate has_hook for {hook}")); }
+                Self::HasHook(hook)
+            }
             "tconstruct:has_persistent_key" => Self::HasPersistentKey(id(object.get("key").ok_or("key missing")?)?),
             "tconstruct:has_modifier" => {
                 let matcher = object.get("modifier").and_then(Value::as_object).ok_or("modifier must be an object")?;
@@ -108,6 +118,7 @@ impl Predicate {
             Self::And(all) => all.iter().all(|p| p.matches(facts)),
             Self::Or(any) => any.iter().any(|p| p.matches(facts)),
             Self::HasPersistentKey(key) => (facts.has_persistent_key)(key),
+            Self::HasHook(hook) => (facts.has_hook)(hook),
             Self::HasModifierTag { tag, min, max, check } => {
                 let level = (facts.tag_level)(tag, *check);
                 if *min == 0 && *max == 0 { level == 0 } else if (*min, *max) == (1, 32767) { level > 0 } else { (*min..=*max).contains(&level) }
@@ -127,7 +138,7 @@ mod tests {
     use serde_json::json;
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool, level: &'a dyn Fn(&Identifier, Check) -> i32,
-        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new() } }
+        key: &'a dyn Fn(&Identifier) -> bool) -> Facts<'a> { Facts { item, in_tag, level, tag_level: &|_, _| 0, has_persistent_key: key, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false } }
     #[test]
     fn every_shipped_predicate_shape_decodes_and_evaluates_over_tool_facts() {
         let pickaxe = id("tconstruct:pickaxe");

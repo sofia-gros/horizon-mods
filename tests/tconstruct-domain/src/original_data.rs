@@ -59,8 +59,24 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     registry.reload(&files("modifiers"), &conditions());
     assert!(registry.problems.is_empty(), "modifiers that do not decode: {:#?}", registry.problems);
     let unbound = (0..).zip(registry.dynamic_ids()).filter(|(_, id)| registry.get(id).is_some_and(|modifier| !modifier.unbound.is_empty())).count();
-    // The baseline of modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert!(unbound <= 300, "{unbound} modifiers carry unported modules");
+    let mut kinds = std::collections::BTreeSet::new();
+    for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
+    // Modifiers with at least one unported module; it only shrinks as modules are ported.
+    assert_eq!((unbound, kinds.len()), (127, 90), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
+    for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
+    // reads the attacker's held items: none of those is reported.
+    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "lifesteal", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
+    assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
+    assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
+    assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
+    for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
+    // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
+    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
@@ -103,6 +119,39 @@ fn a_pickaxe_of_shipped_wood_builds_repairs_and_breaks_through_the_station_dispa
 }
 
 #[test]
+fn the_model_strings_of_a_shipped_pickaxe_follow_its_material_slots_through_a_head_swap_and_a_part_carries_its_material() {
+    use crate::tool_station::{lookup, Context, Input, Outcome};
+    use crate::tool_materials::MaterialVariant;
+    let world = world();
+    let tools: Vec<(Identifier, &Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty())
+        .map(|(id, data)| (id.clone(), data)).collect();
+    let item_max = |_: &Identifier| 1;
+    let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+    let part = |item: &str, material: &str| Some(Input::Part { item: Identifier::parse(item).unwrap(), material: MaterialVariant::parse(material).unwrap() });
+    let strings = |slot: &pluto_lib::ItemSlot| slot.custom_model_data.as_ref().map(|data| data.strings.clone());
+    let inputs = [part("tconstruct:pick_head", "tconstruct:stone"), part("tconstruct:tool_handle", "tconstruct:wood"), part("tconstruct:tool_binding", "tconstruct:iron"), None];
+    let Outcome::Crafted(built) = lookup(&ctx, None, &inputs).unwrap() else { panic!("the shipped pickaxe did not build") };
+    assert_eq!(crate::tool_stack::materials(&built.result.custom_data, true).get(0).to_string(), "tconstruct:stone");
+    assert_eq!(strings(&built.result), Some(vec!["stone".to_owned(), "wood".to_owned(), "iron".to_owned()]), "one sprite key per material slot, in slot order");
+    // Swapping the head rewrites the first key and leaves the others.
+    let swap = [part("tconstruct:pick_head", "tconstruct:iron"), None, None, None];
+    let Outcome::Crafted(swapped) = lookup(&ctx, Some(&built.result), &swap).unwrap() else { panic!("the head did not swap") };
+    assert_eq!(strings(&swapped.result), Some(vec!["iron".to_owned(), "wood".to_owned(), "iron".to_owned()]));
+    // Wear and repair rebuild the visuals without disturbing the keys.
+    let mut worn = swapped.result.clone();
+    crate::tool_slot::damage_slot(&mut worn, &ctx.environment(&built.result.item, tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1), 3, true, true, None, &mut || 1.0).unwrap();
+    assert_eq!(strings(&worn), strings(&swapped.result));
+    // A part's only key is its material; an unknown material has none, and a stack with no materials has no data at all.
+    let mut head = pluto_lib::ItemSlot::new(Identifier::parse("tconstruct:pick_head").unwrap(), 1);
+    crate::tool_materials::set_part_material(&mut head, &MaterialVariant::parse("tconstruct:rose_gold").unwrap());
+    assert_eq!(strings(&head), Some(vec!["rose_gold".to_owned()]));
+    crate::tool_materials::set_part_material(&mut head, &MaterialVariant::unknown());
+    assert_eq!(strings(&head), Some(vec![String::new()]));
+    let plain = pluto_lib::ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    assert_eq!(crate::tool_materials::model_strings(&plain.custom_data), None);
+}
+
+#[test]
 fn shipped_stat_boost_modifiers_change_a_rebuilt_pickaxe() {
     use crate::{modifier_entries::List, tool_stack::{rebuild_stats, stat, Environment, TAG_UPGRADES, TAG_MATERIALS}, tool_stats::Stat};
     use pluto_lib::{Nbt, NbtCompound};
@@ -128,6 +177,77 @@ fn shipped_stat_boost_modifiers_change_a_rebuilt_pickaxe() {
     // The modifiers themselves are recorded in the tool's modifier list.
     let Nbt::List(listed) = &sharp["tic_modifiers"] else { panic!() };
     assert!(listed.iter().any(|entry| matches!(entry, Nbt::Compound(c) if c.get("name") == Some(&Nbt::String("tconstruct:sharpness".into())))));
+}
+
+#[test]
+fn every_shipped_disguise_binds_and_a_worn_piece_halves_the_range_per_level_for_its_mob() {
+    use crate::{mob_disguise, modifier_entries::List, tool_stack::{mob_disguises, rebuild_stats, volatile_flag, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{Nbt, NbtCompound};
+    let world = world();
+    let disguises: Vec<Identifier> = files("modifiers").into_iter().map(|(id, _)| id).filter(|id| id.path().ends_with("_disguise")).collect();
+    assert_eq!(disguises.len(), 14, "the original ships fourteen disguises");
+    for id in &disguises {
+        let modifier = world.registry.get(id).expect("the shipped disguise loads");
+        assert!(modifier.unbound.is_empty(), "{id} has unported modules: {:?}", modifier.unbound);
+        let found: Vec<_> = modifier.mob_disguise_modules().collect();
+        assert_eq!(found.len(), 1, "{id} is one mob_disguise module");
+        let entity = found[0].mob_disguise(&crate::modifier_entries::Entry::new(id.clone(), 1)).unwrap().0;
+        assert_eq!(entity.to_string(), format!("minecraft:{}", id.path().trim_end_matches("_disguise")), "{id} disguises as its own mob");
+    }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let piece = |upgrades: &[(&str, i32)]| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (id, level) in upgrades { list = list.with_modifier(Identifier::parse(id).unwrap(), *level).unwrap(); }
+        nbt.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        nbt
+    };
+    // Enderman disguise II and skeleton disguise I on one piece, a second skeleton disguise on another: counts add per mob type.
+    let first = piece(&[("tconstruct:enderman_disguise", 2), ("tconstruct:skeleton_disguise", 1)]);
+    let second = piece(&[("tconstruct:skeleton_disguise", 1)]);
+    let counts = mob_disguise::count(mob_disguises(&first, &env).into_iter().chain(mob_disguises(&second, &env)));
+    assert_eq!(mob_disguise::visibility_factor(&counts, "minecraft:enderman"), 0.25);
+    assert_eq!(mob_disguise::visibility_factor(&counts, "minecraft:skeleton"), 0.25);
+    assert_eq!(mob_disguise::visibility_factor(&counts, "minecraft:zombie"), 1.0);
+    assert!(volatile_flag(&first, crate::mob_disguise_hook::ENDERMASK), "the enderman disguise makes the piece an ender mask");
+    assert!(!volatile_flag(&second, crate::mob_disguise_hook::ENDERMASK));
+    assert!(mob_disguises(&piece(&[]), &env).is_empty());
+}
+
+#[test]
+fn shipped_worn_helmet_given_without_stats_is_built_by_its_first_wear_and_keeps_the_ender_mask_flag() {
+    // The smoke scenario MOB DISGUISE: a plate helmet of [cobalt, iron] handed over with no tic_stats, then worn down once.
+    use crate::{modifier_entries::List, tool_slot, tool_stack::{is_broken, is_initialized, volatile_flag, Environment, TAG_MATERIALS, TAG_MODIFIERS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let disguise = Identifier::parse("tconstruct:enderman_disguise").unwrap();
+    let given = |key: &str| {
+        let mut slot = ItemSlot::new(helmet_id.clone(), 1);
+        slot.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:cobalt", "tconstruct:iron"].map(|m| Nbt::String(m.into())).to_vec()));
+        slot.custom_data.insert(key.into(), List::default().with_modifier(disguise.clone(), 1).unwrap().to_nbt());
+        assert!(!is_initialized(&slot.custom_data));
+        slot
+    };
+    // Saved as an upgrade (the input of a rebuild), the first wear builds the piece, which is not broken and carries the flag.
+    let mut worn = given(TAG_UPGRADES);
+    let hit = tool_slot::damage_slot(&mut worn, &env, 1, true, true, None, &mut || 1.0).unwrap();
+    assert!(is_initialized(&worn.custom_data) && !is_broken(&worn.custom_data), "{:?}", worn.custom_data);
+    assert_eq!((hit.applied, hit.broke), (1, false));
+    assert!(worn.max_damage.is_some_and(|max| max > 2), "a real durability, not the 1-point default: {:?}", worn.max_damage);
+    assert!(volatile_flag(&worn.custom_data, crate::mob_disguise_hook::ENDERMASK), "{:?}", worn.custom_data);
+    // tic_modifiers is a rebuild's output, never its input: a piece given only that list loses it, as in the original.
+    let mut output_only = given(TAG_MODIFIERS);
+    tool_slot::damage_slot(&mut output_only, &env, 1, true, true, None, &mut || 1.0).unwrap();
+    assert!(!is_broken(&output_only.custom_data) && !volatile_flag(&output_only.custom_data, crate::mob_disguise_hook::ENDERMASK));
 }
 
 #[test]
@@ -549,7 +669,7 @@ fn shipped_jagged_and_stonebound_change_melee_damage_with_the_tools_lost_durabil
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 3).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(damage));
-        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|_| false)
+        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|_| false, &Default::default())
     };
     assert_eq!(hit("tconstruct:jagged", 0), 10.0, "a fresh jagged tool changes nothing");
     assert!(hit("tconstruct:jagged", 40) > 10.0, "a worn jagged tool hits harder: {}", hit("tconstruct:jagged", 40));
@@ -569,7 +689,7 @@ fn shipped_smite_and_bane_of_sssss_add_damage_only_to_the_right_targets() {
         tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 2).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
-        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|tag: &Identifier| tags.contains(&tag.to_string().as_str()))
+        melee_damage(&tool.custom_data, &env, 2.0, 10.0, &|tag: &Identifier| tags.contains(&tag.to_string().as_str()), &Default::default())
     };
     assert!(hit("tconstruct:smite", &["minecraft:undead"]) > 10.0, "smite boosts undead targets");
     assert_eq!(hit("tconstruct:smite", &["minecraft:arthropod"]), 10.0, "smite leaves other targets alone");
@@ -650,11 +770,12 @@ fn shipped_protection_modifiers_add_protection_against_the_sources_they_name() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id(damage_type);
-        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags, attacker_in_tag: &|_| false }, 0.0)
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() }, 0.0)
     };
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:mob_attack", false), 2.5, "protection gives 1.25 a level");
     assert_eq!(protection_of("tconstruct:protection", 2, "minecraft:out_of_world", false), 0.0, "void damage bypasses protection");
-    assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:lava", false), 3.0);
+    // The running value starts at the game's enchantment points in the hook; from 0 the enchantment's 2 fire points come off its own 3.
+    assert_eq!(protection_of("tconstruct:fire_protection", 1, "minecraft:lava", false), 1.0);
     // Iron plating and maille bring their own projectile protection, so an arrow is measured against a helmet with an unrelated modifier.
     let iron_alone = protection_of("tconstruct:sharpness", 1, "minecraft:arrow", true);
     assert!(iron_alone > 0.0, "iron armor protects against projectiles by itself");
@@ -844,7 +965,7 @@ fn shipped_protection_that_names_the_attacker_asks_what_it_is_and_was_doing() {
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = id("minecraft:mob_attack");
         let in_tag = |tag: &Identifier| if tag.namespace() == STATE_NAMESPACE { state_in_tag(tag, Some(attacker), None) } else { undead && tag.to_string() == "minecraft:undead" };
-        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag }, 0.0)
+        protection(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag, entities: Default::default() }, 0.0)
     };
     let calm = EntityState { kind: "minecraft:husk".into(), on_ground: true, ..EntityState::default() };
     let burning = EntityState { fire_ticks: 40, ..calm.clone() };
@@ -896,6 +1017,89 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
 }
 
 #[test]
+fn shipped_decay_and_magnetic_put_their_effect_on_the_holder_of_a_swing_a_shot_and_for_magnetic_a_shearing() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, usage_effects, Environment, TAG_MATERIALS, TAG_UPGRADES}, weapon_effect::Usage};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    for id in ["tconstruct:decay", "tconstruct:magnetic"] {
+        assert!(world.registry.get(&Identifier::parse(id).unwrap()).is_some_and(|modifier| modifier.unbound.is_empty()), "{id} is fully bound");
+    }
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let tool_with = |modifier: &str, level: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let effects = |tool: &ItemSlot, usage: Usage, roll: f32| usage_effects(&tool.custom_data, &env, usage, &mut || roll)
+        .into_iter().map(|grant| (grant.effect.to_string(), grant.amplifier, grant.duration)).collect::<Vec<_>>();
+    let wither = |amplifier| vec![("minecraft:wither".to_string(), amplifier, 120)];
+    // decay: wither at the level, 120 ticks, a quarter of the time; swung or shot, not for shearing (it names no shear hook).
+    let decay = tool_with("tconstruct:decay", 2);
+    assert_eq!(effects(&decay, Usage::MeleeHit, 0.1), wither(1));
+    assert_eq!(effects(&decay, Usage::Launch { primary: true }, 0.1), wither(1));
+    assert!(effects(&decay, Usage::MeleeHit, 0.3).is_empty(), "a roll over 25% spares the holder");
+    assert!(effects(&decay, Usage::Shear { target: true }, 0.0).is_empty());
+    assert!(effects(&decay, Usage::Launch { primary: false }, 0.0).is_empty(), "only the primary arrow of a shot");
+    // magnetic: always, for every use (its hooks default to all): the original's own effect at level 1 for 40 ticks.
+    let magnetic = tool_with("tconstruct:magnetic", 1);
+    for usage in [Usage::MeleeHit, Usage::Launch { primary: true }, Usage::Shear { target: true }] {
+        assert_eq!(effects(&magnetic, usage, 0.99), vec![("tconstruct:magnetic".to_string(), 0, 40)], "{usage:?}");
+    }
+    // A tool with neither has nothing to put on its holder.
+    assert!(usage_effects(&tool_with("tconstruct:sharpness", 1).custom_data, &env, Usage::MeleeHit, &mut || 0.0).is_empty());
+}
+
+#[test]
+fn shipped_fiery_freezing_and_springy_act_on_the_mob_hit_and_on_the_mob_that_hits_the_wearer() {
+    use crate::{modifier_entries::List, tool_stack::{attack_actions, counter_actions, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ActionTarget, EntityAction, ItemSlot, KnockbackDirection, Nbt};
+    let world = world();
+    let tool_with = |tool: &str, material: &str, parts: usize, upgrades: &[(&str, i32)]| {
+        let definition = &world.tools.iter().find(|(id, _)| id.path() == tool).unwrap().1;
+        let item = Identifier::parse(&format!("tconstruct:{tool}")).unwrap();
+        let tags = pluto_lib::fixtures::registry_with_tags(&[&item.to_string()], &[("tconstruct:modifiable/armor", &[item.to_string().as_str()][..])]).unwrap();
+        let env = Environment { definition: Some(definition), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+            item_tags_loaded: true, item: Some(&item), item_tags: Some(&tags) };
+        let mut stack = ItemSlot::new(item.clone(), 1);
+        stack.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(vec![Nbt::String(material.into()); parts]));
+        let mut list = List::default();
+        for (id, level) in upgrades { list = list.with_modifier(Identifier::parse(id).unwrap(), *level).unwrap(); }
+        stack.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut stack.custom_data, &env).unwrap());
+        (stack, tags)
+    };
+    let (helmet, helmet_tags) = tool_with("plate_helmet", "tconstruct:iron", 2, &[("tconstruct:fiery", 2), ("tconstruct:freezing", 1), ("tconstruct:springy", 2)]);
+    let helmet_definition = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let env = Environment { definition: Some(helmet_definition), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&helmet_tags) };
+    let none = |_: &Identifier| false;
+    let attacker = ActionTarget::Attacker;
+    // Armor that counters: a low roll lands all three (30%, 15% and 30% at these levels); fire burns the constant second, freezing adds
+    // two seconds of 40 ticks, and springy pushes the constant half against the way the mob faces.
+    let landed = counter_actions(&helmet.custom_data, &env, &none, &mut || 0.0);
+    assert!(landed.contains(&EntityAction::SetFire { target: attacker, seconds: 1 }), "{landed:?}");
+    assert!(landed.contains(&EntityAction::Freeze { target: attacker, ticks: 80 }), "{landed:?}");
+    assert!(landed.contains(&EntityAction::Knockback { target: attacker, strength: 0.5, direction: KnockbackDirection::AgainstFacing }), "{landed:?}");
+    assert_eq!(landed.len(), 3, "{landed:?}");
+    assert!(counter_actions(&helmet.custom_data, &env, &none, &mut || 0.99).is_empty(), "a high roll lands none of them");
+    // A tool that is not armor counters nothing: the counters ask for the armor tag.
+    let (pickaxe, _) = tool_with("pickaxe", "tconstruct:wood", 3, &[("tconstruct:fiery", 2), ("tconstruct:freezing", 1)]);
+    let pickaxe_definition = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let pickaxe_env = Environment { definition: Some(pickaxe_definition), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    assert!(counter_actions(&pickaxe.custom_data, &pickaxe_env, &none, &mut || 0.0).is_empty());
+    // The hit: five seconds of fire a level, and (4 + 4 a level) seconds of freezing at 40 ticks each.
+    let hit = attack_actions(&pickaxe.custom_data, &pickaxe_env);
+    assert!(hit.contains(&EntityAction::SetFire { target: ActionTarget::Victim, seconds: 10 }), "{hit:?}");
+    assert!(hit.contains(&EntityAction::Freeze { target: ActionTarget::Victim, ticks: 320 }), "{hit:?}");
+}
+
+#[test]
 fn shipped_block_damage_modules_block_the_sources_they_name() {
     use crate::{damage_tags::DamageTags, modifier_entries::List, protection::DamageSource, tool_stack::{blocks_damage, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
     use pluto_lib::{ItemSlot, Nbt};
@@ -913,10 +1117,1182 @@ fn shipped_block_damage_modules_block_the_sources_they_name() {
         tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), 1).unwrap().to_nbt());
         assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
         let damage_type = Identifier::parse(damage_type).unwrap();
-        blocks_damage(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false })
+        blocks_damage(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() })
     };
     assert!(blocked("tconstruct:long_fall", "minecraft:fall"), "long fall blocks fall damage");
     assert!(!blocked("tconstruct:long_fall", "minecraft:mob_attack"), "and nothing else");
     assert!(blocked("tconstruct:frost_walker", "minecraft:hot_floor"), "frost walker blocks magma damage");
     assert!(!blocked("tconstruct:frost_walker", "minecraft:fall"), "and not a fall");
+}
+
+#[test]
+fn shipped_projectile_protection_and_magnet_take_the_largest_and_the_total_over_worn_boots() {
+    use crate::{max_armor, modifier_entries::List, tool_stack::{armor_levels, max_armor_claims, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let boots_id = Identifier::parse("tconstruct:plate_boots").unwrap();
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&boots_id), item_tags: None };
+    let piece = |modifier: &str, level: i32| {
+        let mut tool = ItemSlot::new(boots_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let (low, high) = (piece("tconstruct:projectile_protection", 1), piece("tconstruct:projectile_protection", 3));
+    let claims: Vec<_> = [&low, &high].iter().flat_map(|tool| max_armor_claims(&tool.custom_data, &env)).collect();
+    assert_eq!(claims.len(), 2, "{claims:?}");
+    let amounts = max_armor::strongest(claims);
+    assert_eq!(amounts.len(), 1, "{amounts:?}");
+    assert_eq!(amounts[0].0, "minecraft:knockback_resistance");
+    // The plate boots carry two levels of their own, so the pieces are at levels 3 and 5: the larger counts once, not 8.
+    assert!((amounts[0].1 - 0.25).abs() < 1e-6, "{amounts:?}");
+    // The attributes the host lacks leave the other max armor modifiers unbound, so they claim nothing.
+    let dragon = max_armor_claims(&piece("tconstruct:dragonborn", 2).custom_data, &env);
+    assert!(dragon.iter().all(|claim| format!("{claim:?}").contains("projectile_protection")), "only the boots' own projectile protection claims: {dragon:?}");
+    // Armor levels add up over the pieces under their key.
+    let (a, b) = (piece("tconstruct:magnetic", 1), piece("tconstruct:magnetic", 2));
+    let totals = max_armor::totals([&a, &b].iter().flat_map(|tool| armor_levels(&tool.custom_data, &env)));
+    assert_eq!(totals[&Identifier::parse("tconstruct:magnet").unwrap()], 3);
+    let belt = piece("tconstruct:soul_belt", 1);
+    assert_eq!(armor_levels(&belt.custom_data, &env), vec![(Identifier::parse("tconstruct:soul_belt").unwrap(), 1)]);
+}
+
+#[test]
+fn shipped_inventory_modifiers_give_a_tool_its_slots_filters_and_stored_stacks() {
+    use crate::{modifier_entries::List, tool_inventory::{Items, MenuKey, TOTAL_SLOTS}, tool_stack::{inventory, inventory_slots, rebuild_stats, with_persistent, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let boots_id = Identifier::parse("tconstruct:plate_boots").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_boots"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_boots"])]).unwrap();
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&boots_id), item_tags: Some(&armor_tags) };
+    let build = |mods: &[(&str, i32)]| {
+        let mut tool = ItemSlot::new(boots_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (modifier, level) in mods { list = list.with_modifier(Identifier::parse(modifier).unwrap(), *level).unwrap(); }
+        tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        tool
+    };
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let max_stack = |_: &Identifier| 64;
+    let in_tag = |item: &Identifier, tag: &Identifier| (tag.path() == "slimeball_ammo" && item.path() == "slime_ball") || (tag.path() == "throwable" && item.path() == "snowball");
+    let fits = |_: &Identifier| true;
+    let no_handler = |_: &ItemSlot| false;
+    let items = Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &fits, has_item_handler: &no_handler };
+    // The pocket gives 3 slots a level under its own key; the tool belt 3 plus one a level.
+    let pockets = build(&[("tconstruct:pocket", 2)]);
+    assert_eq!(inventory_slots(&pockets.custom_data), 6);
+    assert_eq!(inventory(&pockets.custom_data, &env).slots(), 6);
+    let belt = build(&[("tconstruct:tool_belt", 1)]);
+    assert_eq!(inventory_slots(&belt.custom_data), 4);
+    // Every modifier counts, and the last one's slots come first.
+    let both = build(&[("tconstruct:pocket", 1), ("tconstruct:tool_belt", 1)]);
+    assert_eq!(inventory_slots(&both.custom_data), 7);
+    let Some(Nbt::Compound(volatile)) = both.custom_data.get("tic_volatile_data") else { panic!("no volatile data") };
+    assert_eq!(volatile.get(TOTAL_SLOTS), Some(&Nbt::Int(7)));
+    let handler = inventory(&both.custom_data, &env);
+    let mut tool = both.clone();
+    with_persistent(&mut tool.custom_data, |persistent| {
+        let rest = handler.insert_item(&items, persistent, 0, ItemSlot::new(id("minecraft:stick"), 70), false);
+        assert_eq!(rest.map(|rest| rest.count), Some(6), "a slot holds a stack of 64 by default");
+        handler.insert_item(&items, persistent, 6, ItemSlot::new(id("minecraft:apple"), 1), false);
+    });
+    let Some(Nbt::Compound(persistent)) = tool.custom_data.get("tic_persistent") else { panic!("no persistent data") };
+    assert!(persistent.contains_key("tconstruct:tool_belt") && persistent.contains_key("tconstruct:pockets"), "each modifier's stacks sit under its own key");
+    // Filters and limits come from the data.
+    let sliver = inventory(&build(&[("tconstruct:sliver", 1)]).custom_data, &env);
+    assert!(sliver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:slime_ball"), 1)) && !sliver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:stick"), 1)));
+    assert_eq!(sliver.slot_limit(0), 32);
+    assert_eq!(sliver.pattern(0, false).map(ToString::to_string).as_deref(), Some("tconstruct:slimeball"));
+    assert_eq!(sliver.pattern(0, true), None);
+    let sleeves = inventory(&build(&[("tconstruct:sleeves", 1)]).custom_data, &env);
+    assert!(sleeves.is_item_valid(&items, 2, &ItemSlot::new(id("minecraft:snowball"), 1)) && sleeves.slot_limit(2) == 16);
+    let minimap = inventory(&build(&[("tconstruct:minimap", 1)]).custom_data, &env);
+    assert!(minimap.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:filled_map"), 1)) && !minimap.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:paper"), 1)));
+    assert_eq!(minimap.slot_limit(0), 1);
+    let frame = inventory(&build(&[("tconstruct:item_frame", 2)]).custom_data, &env);
+    assert_eq!((frame.slots(), frame.slot_limit(5)), (6, 1));
+    assert_eq!(inventory(&build(&[("tconstruct:shield_strap", 1)]).custom_data, &env).slots(), 1);
+    // The menu modules are bound; the quiver inventories (another module) stay unbound.
+    let keys = |modifier: &str| world.registry.get(&id(modifier)).map(|modifier| modifier.inventory_menu_keys()).unwrap_or_default();
+    assert_eq!(keys("tconstruct:pocket"), vec![MenuKey::Any]);
+    assert_eq!(keys("tconstruct:shield_strap"), vec![MenuKey::Shift]);
+    assert_eq!(keys("tconstruct:tool_belt"), vec![MenuKey::Shift]);
+    assert_eq!(keys("tconstruct:crafting_table"), vec![MenuKey::Any]);
+    assert_eq!(inventory_slots(&build(&[("tconstruct:bulk_quiver", 1)]).custom_data), 0);
+}
+
+/// A rebuilt wood pickaxe carrying `modifier` at `level` (no item context, so every stat is supported).
+fn stat_tool(world: &World, modifier: &str, level: i32) -> pluto_lib::NbtCompound {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::Nbt;
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let mut nbt = pluto_lib::NbtCompound::new();
+    nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    nbt.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+    assert!(rebuild_stats(&mut nbt, &env).unwrap());
+    nbt
+}
+#[test]
+fn shipped_conditional_stat_and_power_bind_exactly_the_modules_whose_inputs_are_reported() {
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let unbound = |name: &str, kind: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().any(|id| id.to_string() == kind);
+    // Holder state (airborne), tool data (durability, stat, persistent data) and the projectile data are held.
+    for name in ["airborne", "dragonshot", "maintained", "overwield", "war_charge"] { assert!(!unbound(name, "tconstruct:conditional_stat"), "{name}"); }
+    // Health, an effect level and the biome temperature of the holder are reported with the hit.
+    for name in ["ambush", "antitoxin", "flamestance", "invariant", "raging", "temperate"] { assert!(!unbound(name, "tconstruct:conditional_stat"), "{name}"); }
+    // So are the health, rain and armor coverage of the target.
+    for name in ["fins", "holy", "rebound", "ambush", "shock", "valiant"] { assert!(!unbound(name, "tconstruct:conditional_power"), "{name}"); }
+    // The melee modules over the same facts, and the damage adjustment over the wearer health.
+    for name in ["ambush", "antitoxin", "flamestance", "invariant", "raging", "shock", "valiant"] { assert!(!unbound(name, "tconstruct:conditional_melee_damage"), "{name}"); }
+    for name in ["warded", "dragonheart"] { assert!(!unbound(name, "tconstruct:adjust_damage"), "{name}"); }
+}
+#[test]
+fn shipped_conditional_stats_follow_the_holder_state_and_the_tool_data() {
+    use crate::{melee_damage::state_in_tag, tool_stack::{conditional_stat, durability, Environment, TAG_DAMAGE, TAG_PERSISTENT}, tool_stats::Stat};
+    use pluto_lib::{EntityState, Nbt, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let value = |tool: &NbtCompound, stat: Stat, holder: &EntityState| conditional_stat(tool, &env, stat, &|tag| state_in_tag(tag, Some(holder), None), &crate::entity_facts::Entities { attacker: Some(holder), target: None });
+    let grounded = EntityState { on_ground: true, ..EntityState::default() };
+    let jumping = EntityState { on_ground: false, ..EntityState::default() };
+    let swimming = EntityState { on_ground: false, in_water: true, ..EntityState::default() };
+    // airborne: +0.1 velocity while in the air (not in water).
+    let airborne = stat_tool(&world, "tconstruct:airborne", 1);
+    assert_eq!(value(&airborne, Stat::Velocity, &grounded), 1.0);
+    assert!((value(&airborne, Stat::Velocity, &jumping) - 1.1).abs() < 1e-6);
+    assert_eq!(value(&airborne, Stat::Velocity, &swimming), 1.0, "AIRBORNE excludes swimming");
+    assert_eq!(value(&airborne, Stat::DrawSpeed, &jumping), 1.0, "another stat is left alone");
+    // dragonshot: +1 projectile damage per level while airborne.
+    let dragonshot = stat_tool(&world, "tconstruct:dragonshot", 2);
+    assert_eq!(value(&dragonshot, Stat::ProjectileDamage, &jumping), 4.0);
+    assert_eq!(value(&dragonshot, Stat::ProjectileDamage, &grounded), 2.0);
+    // overwield: 0.06 per point of overslime, up to the modifier level, on velocity and draw speed.
+    let mut overwield = stat_tool(&world, "tconstruct:overwield", 2);
+    let mut persistent = NbtCompound::new();
+    persistent.insert("tconstruct:overslime".into(), Nbt::Int(5));
+    overwield.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    assert!((value(&overwield, Stat::Velocity, &grounded) - 1.12).abs() < 1e-6);
+    assert!((value(&overwield, Stat::DrawSpeed, &grounded) - 1.12).abs() < 1e-6);
+    // war charge: 0.01 velocity per point of stored charge.
+    let mut charged = stat_tool(&world, "tconstruct:war_charge", 1);
+    let mut persistent = NbtCompound::new();
+    persistent.insert("tconstruct:war_charge".into(), Nbt::Float(50.0));
+    charged.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    assert!((value(&charged, Stat::Velocity, &grounded) - 1.5).abs() < 1e-6);
+    // maintained: 0.08 velocity per level, scaled by the share of durability above half.
+    let mut maintained = stat_tool(&world, "tconstruct:maintained", 2);
+    assert!((value(&maintained, Stat::Velocity, &grounded) - 1.16).abs() < 1e-5, "{}", value(&maintained, Stat::Velocity, &grounded));
+    let worn = durability(&maintained) * 3 / 4;
+    maintained.insert(TAG_DAMAGE.into(), Nbt::Int(worn));
+    assert_eq!(value(&maintained, Stat::Velocity, &grounded), 1.0, "below half the bonus is gone");
+}
+#[test]
+fn shipped_conditional_power_follows_the_target_and_the_projectile() {
+    use crate::{conditional_stat::PowerContext, melee_damage::state_in_tag, tool_stack::{power_hit, power_shoot, Environment}};
+    use pluto_lib::{EntityState, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let shot = |modifier: &str, level: i32, target: EntityState, tags: &'static [&'static str], launch: &dyn Fn(&mut NbtCompound)| {
+        let tool = stat_tool(&world, modifier, level);
+        let mut arrow = NbtCompound::new();
+        power_shoot(&tool, &env, false, &mut arrow);
+        launch(&mut arrow);
+        let target_in_tag = |tag: &Identifier| tags.contains(&tag.to_string().as_str()) || state_in_tag(tag, None, Some(&target));
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &target_in_tag, entities: crate::entity_facts::Entities { attacker: None, target: Some(&target) } };
+        power_hit(&tool, &env, &mut arrow, &context, 2.0)
+    };
+    let dry = EntityState::default();
+    let wet = EntityState { in_water: true, ..EntityState::default() };
+    let nothing = |_: &mut NbtCompound| {};
+    assert_eq!(shot("tconstruct:fins", 2, wet, &[], &nothing), 4.0, "fins: +1 power per level against a target in water");
+    assert_eq!(shot("tconstruct:fins", 2, dry.clone(), &[], &nothing), 2.0);
+    assert_eq!(shot("tconstruct:holy", 2, dry.clone(), &["minecraft:undead"], &nothing), 3.5, "holy: +0.75 per level against the undead");
+    assert_eq!(shot("tconstruct:holy", 2, dry.clone(), &[], &nothing), 2.0);
+    // rebound: half a point per bounce and level, from the bounce count of the arrow.
+    let bounced = |arrow: &mut NbtCompound| { arrow.insert("tconstruct:bounce".into(), pluto_lib::Nbt::Float(3.0)); };
+    assert_eq!(shot("tconstruct:rebound", 2, dry, &[], &bounced), 5.0);
+}
+
+/// The reported facts of an entity in a biome of 0.8, at `health` of 20.
+fn facts(health: f32) -> pluto_lib::EntityState {
+    pluto_lib::EntityState { health: Some(health), max_health: Some(20.0), biome_temperature: Some(0.8), ..pluto_lib::EntityState::default() }
+}
+
+#[test]
+fn shipped_melee_modules_read_health_temperature_effect_level_water_and_armor() {
+    use crate::{entity_facts::Entities, melee_damage::state_in_tag, tool_stack::{melee_damage, Environment}};
+    use pluto_lib::EntityState;
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    // A hit of damage 10 with `modifier` at `level`; the attacker and target as PlutoLib would report them.
+    let hit = |modifier: &str, level: i32, attacker: Option<&EntityState>, target: Option<&EntityState>| {
+        let tool = stat_tool(&world, modifier, level);
+        melee_damage(&tool, &env, 2.0, 10.0, &|tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE && state_in_tag(tag, attacker, target), &Entities { attacker, target })
+    };
+    let near = |left: f32, right: f32| assert!((left - right).abs() < 1e-4, "{left} != {right}");
+    // raging: (11 - health) / 10 clamped to 0..1, times 2.5 a level.
+    near(hit("tconstruct:raging", 2, Some(&facts(1.0)), None), 15.0);
+    near(hit("tconstruct:raging", 2, Some(&facts(6.0)), None), 12.5);
+    near(hit("tconstruct:raging", 2, Some(&facts(20.0)), None), 10.0);
+    near(hit("tconstruct:raging", 2, None, None), 15.0); // no attacker reported: the fallback health is 0
+    // ambush: a level of damage for an attacker at full health plus 0.6 a level for a target at full health.
+    let hurt = facts(5.0);
+    near(hit("tconstruct:ambush", 2, Some(&facts(20.0)), Some(&facts(20.0))), 13.2);
+    near(hit("tconstruct:ambush", 2, Some(&facts(20.0)), Some(&hurt)), 12.0);
+    near(hit("tconstruct:ambush", 2, Some(&hurt), Some(&facts(20.0))), 11.2);
+    near(hit("tconstruct:ambush", 2, Some(&hurt), Some(&hurt)), 10.0);
+    near(hit("tconstruct:ambush", 2, None, None), 13.2); // neither reported: the fallbacks are 1 and 0.6, a full-health pair
+    // flamestance: the attacker's biome temperature above 0.75 adds damage; the fallback of 2 applies when it is not known.
+    let desert = EntityState { biome_temperature: Some(2.0), ..EntityState::default() };
+    let tundra = EntityState { biome_temperature: Some(0.0), ..EntityState::default() };
+    near(hit("tconstruct:flamestance", 1, Some(&desert), None), 11.25);
+    near(hit("tconstruct:flamestance", 1, Some(&tundra), None), 9.25);
+    near(hit("tconstruct:flamestance", 1, None, None), 11.25);
+    // invariant: 1.28 a level at 0.75 and less the further the temperature is from it.
+    let mild = EntityState { biome_temperature: Some(0.75), ..EntityState::default() };
+    near(hit("tconstruct:invariant", 1, Some(&mild), None), 11.6);
+    near(hit("tconstruct:invariant", 1, Some(&desert), None), 10.0);
+    // antitoxin: only while poisoned, (effect level + 0.5) a level.
+    let poisoned = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
+    near(hit("tconstruct:antitoxin", 1, Some(&poisoned), None), 12.5);
+    near(hit("tconstruct:antitoxin", 1, Some(&EntityState::default()), None), 10.0);
+    // shock: 2 a level against a target in water, 1 in the rain, none when dry.
+    let wet = EntityState { in_water: true, ..EntityState::default() };
+    let diver = EntityState { eyes_in_water: true, ..EntityState::default() };
+    let rained_on = EntityState { rain_exposed: true, ..EntityState::default() };
+    near(hit("tconstruct:shock", 2, None, Some(&wet)), 14.0);
+    near(hit("tconstruct:shock", 2, None, Some(&diver)), 14.0);
+    near(hit("tconstruct:shock", 2, None, Some(&rained_on)), 12.0);
+    near(hit("tconstruct:shock", 2, None, Some(&EntityState::default())), 10.0);
+    near(hit("tconstruct:shock", 2, None, None), 14.0);
+    // valiant: 1.6 a level times the share of the target armor slots that are filled (the fallback is a full set).
+    let armored = EntityState { armor_coverage: Some(0.5), ..EntityState::default() };
+    near(hit("tconstruct:valiant", 1, None, Some(&armored)), 10.8);
+    near(hit("tconstruct:valiant", 1, None, None), 11.6);
+}
+
+#[test]
+fn shipped_stat_and_power_modules_read_the_holder_and_target_facts() {
+    use crate::{conditional_stat::PowerContext, entity_facts::Entities, melee_damage::state_in_tag, tool_stack::{conditional_stat, power_hit, power_shoot, Environment}, tool_stats::Stat};
+    use pluto_lib::{EntityState, NbtCompound};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let near = |left: f32, right: f32| assert!((left - right).abs() < 1e-4, "{left} != {right}");
+    let stat = |modifier: &str, level: i32, stat: Stat, holder: &EntityState| {
+        let tool = stat_tool(&world, modifier, level);
+        conditional_stat(&tool, &env, stat, &|tag| state_in_tag(tag, Some(holder), None), &Entities { attacker: Some(holder), target: None })
+    };
+    // raging: projectile damage (base 2) rises by a level as health falls to 1.
+    near(stat("tconstruct:raging", 2, Stat::ProjectileDamage, &facts(1.0)), 4.0);
+    near(stat("tconstruct:raging", 2, Stat::ProjectileDamage, &facts(20.0)), 2.0);
+    // ambush: half a point of projectile damage a level at full health.
+    near(stat("tconstruct:ambush", 2, Stat::ProjectileDamage, &facts(20.0)), 3.0);
+    near(stat("tconstruct:ambush", 2, Stat::ProjectileDamage, &facts(3.0)), 2.0);
+    // temperate: draw speed rises as the biome drops below 0.75.
+    near(stat("tconstruct:temperate", 1, Stat::DrawSpeed, &EntityState { biome_temperature: Some(0.2), ..EntityState::default() }), 1.0 + 0.55 * 0.12);
+    near(stat("tconstruct:temperate", 1, Stat::DrawSpeed, &EntityState { biome_temperature: Some(1.5), ..EntityState::default() }), 1.0);
+    // antitoxin: a poisoned holder draws faster.
+    let poisoned = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 0)], ..EntityState::default() };
+    near(stat("tconstruct:antitoxin", 1, Stat::DrawSpeed, &poisoned), 1.0 + 1.5 * 0.1);
+    near(stat("tconstruct:antitoxin", 1, Stat::DrawSpeed, &EntityState::default()), 1.0);
+    // Power against a target.
+    let shot = |modifier: &str, level: i32, target: &EntityState| {
+        let tool = stat_tool(&world, modifier, level);
+        let mut arrow = NbtCompound::new();
+        power_shoot(&tool, &env, false, &mut arrow);
+        let target_in_tag = |tag: &Identifier| state_in_tag(tag, None, Some(target));
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &target_in_tag, entities: Entities { attacker: None, target: Some(target) } };
+        power_hit(&tool, &env, &mut arrow, &context, 2.0)
+    };
+    near(shot("tconstruct:shock", 2, &EntityState { in_water: true, ..EntityState::default() }), 4.0);
+    near(shot("tconstruct:shock", 2, &EntityState { rain_exposed: true, ..EntityState::default() }), 3.0);
+    near(shot("tconstruct:shock", 2, &EntityState::default()), 2.0);
+    near(shot("tconstruct:valiant", 2, &EntityState { armor_coverage: Some(0.5), ..EntityState::default() }), 2.8);
+    near(shot("tconstruct:ambush", 2, &facts(20.0)), 2.5);
+    near(shot("tconstruct:ambush", 2, &facts(9.0)), 2.0);
+}
+
+#[test]
+fn shipped_warded_and_dragonheart_adjust_the_damage_by_the_wearers_health() {
+    use crate::{damage_tags::DamageTags, entity_facts::Entities, modifier_entries::List, protection::DamageSource, tool_stack::{adjust_damage, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{EntityState, ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let adjusted = |modifier: &str, level: i32, damage_type: &str, wearer: Option<&EntityState>, amount: f32| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = Identifier::parse(damage_type).unwrap();
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
+        adjust_damage(&tool.custom_data, &env, &source, &Entities { attacker: None, target: wearer }, amount)
+    };
+    let whole = facts(20.0);
+    let hurt = facts(12.0);
+    // warded: at full health each level takes a point off a hit, never below 1 and never raising it.
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&whole), 5.0), 3.0);
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&whole), 1.5), 1.0);
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&whole), 0.5), 0.5);
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", Some(&hurt), 5.0), 5.0, "not at full health");
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:mob_attack", None, 5.0), 5.0, "a wearer that was not reported is not at full health");
+    assert_eq!(adjusted("tconstruct:warded", 2, "minecraft:out_of_world", Some(&whole), 5.0), 5.0, "damage that cannot be protected against");
+    // dragonheart: a hit is capped at the maximum health less two points a level (at least 1), for a wearer with 2 or more.
+    assert_eq!(adjusted("tconstruct:dragonheart", 1, "minecraft:mob_attack", Some(&hurt), 30.0), 18.0);
+    assert_eq!(adjusted("tconstruct:dragonheart", 1, "minecraft:mob_attack", Some(&hurt), 5.0), 5.0);
+    let frail = EntityState { max_health: Some(1.0), ..facts(1.0) };
+    assert_eq!(adjusted("tconstruct:dragonheart", 1, "minecraft:mob_attack", Some(&frail), 30.0), 30.0, "under 2 maximum health the module does not apply");
+}
+
+#[test]
+fn a_range_condition_reads_a_variable_of_the_entity() {
+    use crate::melee_damage::{state_in_tag, TargetCondition};
+    use serde_json::json;
+    let range = |min: Option<f32>, max: Option<f32>, interval: &str| {
+        let mut condition = json!({"type": "tconstruct:variable_range", "variable": {"type": "tconstruct:attribute", "attribute": "minecraft:generic.max_health"}, "interval": interval});
+        if let Some(min) = min { condition["min"] = json!(min); }
+        if let Some(max) = max { condition["max"] = json!(max); }
+        TargetCondition::decode_for("target", Some(&condition)).unwrap().expect("a max health range decodes")
+    };
+    let holds = |condition: &TargetCondition, max_health: Option<f32>| {
+        let state = pluto_lib::EntityState { max_health, ..Default::default() };
+        condition.matches(&|tag: &Identifier| state_in_tag(tag, None, Some(&state)))
+    };
+    let at_least_two = range(Some(2.0), None, "right_open");
+    assert!(holds(&at_least_two, Some(2.0)) && holds(&at_least_two, Some(40.0)) && !holds(&at_least_two, Some(1.9)) && !holds(&at_least_two, None));
+    let under_ten = range(None, Some(10.0), "left_open");
+    assert!(holds(&under_ten, Some(10.0)) && holds(&under_ten, Some(-5.0)) && !holds(&under_ten, Some(10.5)));
+    let open = range(Some(2.0), Some(4.0), "open");
+    assert!(holds(&open, Some(3.0)) && !holds(&open, Some(2.0)) && !holds(&open, Some(4.0)));
+    let light = json!({"type": "tconstruct:variable_range", "variable": "tconstruct:light", "min": 1.0});
+    assert!(TargetCondition::decode_for("target", Some(&light)).unwrap().is_none(), "light is not reported");
+}
+
+#[test]
+fn shipped_capacity_shields_soak_tool_wear_from_their_bar_and_every_filler_but_launch_capacity_is_bound() {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound};
+    let world = world();
+    let boots = &world.tools.iter().find(|(id, _)| id.path() == "plate_boots").unwrap().1;
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: None, item_tags: None };
+    let unbound = |name: &str| world.registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(Identifier::to_string).collect::<Vec<_>>();
+    assert!(unbound("tconstruct:barkskin").is_empty(), "the bar and its shield are both bound");
+    assert!(unbound("tconstruct:stoneshield").is_empty(), "loot to capacity is bound to the loot of a mined block");
+    assert!(unbound("tconstruct:frostshield").is_empty(), "damage to capacity is bound to the wearer's damage event");
+    assert!(unbound("tconstruct:overwield") == ["tconstruct:launch_capacity"], "overwield's melee and mining drains are bound, its launch drain is not");
+    assert!(unbound("tconstruct:war_charge") == ["tconstruct:launch_capacity"], "no event reports a shot's stack for an edit");
+    let tool = |modifier: &str, level: i32, stored: i32| {
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:plate_boots").unwrap(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let mut persistent = NbtCompound::new();
+        persistent.insert(modifier.into(), Nbt::Int(stored));
+        tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        tool
+    };
+    let stored = |tool: &ItemSlot, modifier: &str| match &tool.custom_data[TAG_PERSISTENT] { Nbt::Compound(data) => data.get(modifier).map_or(0, |value| value.as_i64().unwrap() as i32), _ => 0 };
+    for modifier in ["tconstruct:barkskin", "tconstruct:frostshield"] {
+        let mut worn = tool(modifier, 1, 10);
+        assert_eq!(crate::capacity::absorb(&mut worn.custom_data, &env, None, 4, &mut || 0.0), 0, "{modifier}");
+        assert_eq!(stored(&worn, modifier), 6);
+        assert_eq!(crate::capacity::absorb(&mut worn.custom_data, &env, None, 10, &mut || 0.0), 4);
+        assert_eq!(stored(&worn, modifier), 0);
+    }
+    // The wear goes through the stack path too: the shield keeps the tool whole and the persistent data follows.
+    let mut worn = tool("tconstruct:stoneshield", 1, 20);
+    let outcome = crate::tool_slot::damage_slot(&mut worn, &env, 5, true, true, None, &mut || 0.0).unwrap();
+    assert_eq!((outcome.applied, stored(&worn, "tconstruct:stoneshield")), (0, 15));
+}
+
+#[test]
+fn shipped_mining_capacity_and_loot_to_capacity_edit_the_bars_of_the_tool_that_broke_the_block() {
+    use crate::{modifier_entries::List, tool_stack::{loot_capacity, mining_capacity_edits, rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_STATS, TAG_UPGRADES}, weapon_effect::Usage};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound, StackDataEdit};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let item = Identifier::parse("tconstruct:pickaxe").unwrap();
+    let tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:pickaxe"], &[("tconstruct:modifiable/harvest", &["tconstruct:pickaxe"][..])]).unwrap();
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&item), item_tags: Some(&tags) };
+    let tool = |modifier: &str, level: i32, persistent: &[(&str, i32)]| {
+        let mut tool = ItemSlot::new(item.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let mut data = NbtCompound::new();
+        for (key, value) in persistent { data.insert((*key).into(), Nbt::Int(*value)); }
+        tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(data));
+        tool
+    };
+    let set = |key: &str, value: i32| StackDataEdit { path: vec![TAG_PERSISTENT.to_string(), key.to_string()], value: Some(Nbt::Int(value)) };
+    // overwield spends one overslime a level as the dig starts (it runs before the break), and nothing after it.
+    let mut overwield = tool("tconstruct:overwield", 2, &[("tconstruct:overslime", 50)]);
+    let Some(Nbt::Compound(stats)) = overwield.custom_data.get_mut(TAG_STATS) else { panic!("rebuilt stats") };
+    stats.insert("tconstruct:overslime".into(), Nbt::Float(100.0));
+    assert_eq!(mining_capacity_edits(&overwield.custom_data, &env, true), vec![set("tconstruct:overslime", 48)]);
+    assert!(mining_capacity_edits(&overwield.custom_data, &env, false).is_empty());
+    let mut empty = overwield.clone();
+    let Some(Nbt::Compound(persistent)) = empty.custom_data.get_mut(TAG_PERSISTENT) else { panic!("persistent data") };
+    persistent.insert("tconstruct:overslime".into(), Nbt::Int(1));
+    assert_eq!(mining_capacity_edits(&empty.custom_data, &env, true), vec![StackDataEdit { path: vec![TAG_PERSISTENT.to_string(), "tconstruct:overslime".to_string()], value: None }], "a drained bar is removed");
+    // war charge gains one after a break, only while the tool holds a crossbow ammo key.
+    let charged = tool("tconstruct:war_charge", 1, &[("tconstruct:crossbow_ammo", 1), ("tconstruct:war_charge", 4)]);
+    assert_eq!(mining_capacity_edits(&charged.custom_data, &env, false), vec![set("tconstruct:war_charge", 5)]);
+    assert!(mining_capacity_edits(&charged.custom_data, &env, true).is_empty());
+    assert!(mining_capacity_edits(&tool("tconstruct:war_charge", 1, &[("tconstruct:war_charge", 4)]).custom_data, &env, false).is_empty(), "no ammo key, no gain");
+    // stoneshield eats the stone of the loot into its bar: 40% a stone at level 2, three points a stone.
+    let shield = tool("tconstruct:stoneshield", 2, &[]);
+    let in_tag = |item: &Identifier, tag: &Identifier| tag.to_string() == "tconstruct:stoneshields" && item.path() == "cobblestone";
+    let loot = || vec![ItemSlot::new(Identifier::parse("minecraft:cobblestone").unwrap(), 3), ItemSlot::new(Identifier::parse("minecraft:diamond").unwrap(), 1)];
+    let mut rolls = [0.1, 0.9, 0.3].into_iter();
+    let mut dropped = loot();
+    let edits = loot_capacity(&shield.custom_data, &env, &mut dropped, &in_tag, &mut || rolls.next().unwrap());
+    assert_eq!(edits, vec![set("tconstruct:stoneshield", 6)], "two of the three stones are eaten");
+    assert_eq!(dropped.iter().map(|slot| (slot.item.path().to_string(), slot.count)).collect::<Vec<_>>(), [("cobblestone".to_string(), 1), ("diamond".to_string(), 1)]);
+    let mut all = loot();
+    assert_eq!(loot_capacity(&shield.custom_data, &env, &mut all, &in_tag, &mut || 0.0), vec![set("tconstruct:stoneshield", 9)]);
+    assert_eq!(all.len(), 1, "only the diamond is left");
+    let mut untouched = loot();
+    assert!(loot_capacity(&tool("tconstruct:sharpness", 1, &[]).custom_data, &env, &mut untouched, &in_tag, &mut || 0.0).is_empty());
+    assert_eq!(untouched, loot(), "a tool without the module leaves the loot alone");
+    // The block-break half of the tool usage effects: decay names no such hook, magnetic hears every one.
+    assert!(crate::tool_stack::usage_effects(&tool("tconstruct:decay", 1, &[]).custom_data, &env, Usage::BlockBreak, &mut || 0.0).is_empty());
+    let magnetic = crate::tool_stack::usage_effects(&tool("tconstruct:magnetic", 1, &[]).custom_data, &env, Usage::BlockBreak, &mut || 0.99);
+    assert_eq!(magnetic.iter().map(|grant| (grant.effect.to_string(), grant.duration)).collect::<Vec<_>>(), [("tconstruct:magnetic".to_string(), 40)]);
+}
+
+/// A rebuilt tool of a shipped definition carrying `upgrades`.
+fn upgraded(world: &World, tool: &str, upgrades: &[(&str, i32)]) -> pluto_lib::ItemSlot {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let env = env_of(world, tool);
+    let mut stack = ItemSlot::new(Identifier::new("tconstruct", tool).unwrap(), 1);
+    if env.has_materials { stack.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec())); }
+    let mut list = List::default();
+    for (modifier, level) in upgrades { list = list.with_modifier(Identifier::parse(modifier).unwrap(), *level).unwrap(); }
+    stack.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+    assert!(rebuild_stats(&mut stack.custom_data, &env).unwrap());
+    stack
+}
+fn env_of<'a>(world: &'a World, tool: &str) -> crate::tool_stack::Environment<'a> {
+    let definition = &world.tools.iter().find(|(id, _)| id.path() == tool).unwrap().1;
+    crate::tool_stack::Environment { definition: Some(definition), has_materials: !definition.tool_parts().is_empty(), materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None }
+}
+
+#[test]
+fn shipped_tanned_limits_the_wear_of_ordinary_use_to_one_point() {
+    let world = world();
+    let plain = upgraded(&world, "pickaxe", &[]);
+    let tanned = upgraded(&world, "pickaxe", &[("tconstruct:tanned", 1)]);
+    let env = env_of(&world, "pickaxe");
+    let wear = |stack: &pluto_lib::ItemSlot, amount| crate::tool_stack::reduce_damage(&stack.custom_data, &env, None, amount, &mut || panic!("a range rolls nothing"));
+    assert_eq!(wear(&plain, 7), 7);
+    assert_eq!(wear(&tanned, 7), 1, "a range with max 1 clamps ordinary use");
+    assert_eq!(wear(&tanned, 1), 1);
+    // A cause that is a modifier outside the bypass tag is clamped too; with no modifier tags loaded none is in a tag.
+    let cause = Identifier::parse("tconstruct:unknown").unwrap();
+    assert_eq!(crate::tool_stack::reduce_damage(&tanned.custom_data, &env, Some(&cause), 4, &mut || 0.0), 1);
+}
+
+#[test]
+fn shipped_overlord_copies_a_tenth_of_the_final_durability_into_overslime_per_level() {
+    use pluto_lib::Nbt;
+    let world = world();
+    let stat = |stack: &pluto_lib::ItemSlot, name: &str| match stack.custom_data.get(crate::tool_stack::TAG_STATS) {
+        Some(Nbt::Compound(stats)) => stats.get(&format!("tconstruct:{name}")).and_then(Nbt::as_f64).map(|value| value as f32),
+        _ => None,
+    };
+    assert_eq!(stat(&upgraded(&world, "pickaxe", &[]), "overslime"), None);
+    let one = upgraded(&world, "pickaxe", &[("tconstruct:overlord", 1)]);
+    let three = upgraded(&world, "pickaxe", &[("tconstruct:overlord", 3)]);
+    // The copy runs after the durability penalty (-15% per level), so it sees the reduced durability.
+    for (stack, level) in [(&one, 1.0_f32), (&three, 3.0)] {
+        let durability = stat(stack, "durability").unwrap();
+        let overslime = stat(stack, "overslime").unwrap();
+        assert!((overslime - durability * 0.1 * level).abs() < 0.01, "level {level}: {overslime} of {durability}");
+    }
+    let plain = stat(&upgraded(&world, "pickaxe", &[]), "durability").unwrap();
+    assert!(stat(&one, "durability").unwrap() < plain, "the durability penalty applies");
+}
+
+#[test]
+fn shipped_soulspeed_is_a_soul_speed_enchantment_and_trim_adds_a_slot_only_without_a_trim_hook() {
+    use crate::tool_stack::{enchantments, TAG_VOLATILE};
+    use pluto_lib::Nbt;
+    let world = world();
+    let soul = upgraded(&world, "pickaxe", &[("tconstruct:soulspeed", 1)]);
+    assert_eq!(enchantments(&soul.custom_data, &env_of(&world, "pickaxe")).get("minecraft:soul_speed"), Some(&1));
+    let defense = |stack: &pluto_lib::ItemSlot| match stack.custom_data.get(TAG_VOLATILE) {
+        Some(Nbt::Compound(data)) => data.get("defense").and_then(Nbt::as_i64).unwrap_or(0),
+        _ => 0,
+    };
+    assert_eq!(defense(&upgraded(&world, "pickaxe", &[("tconstruct:trim", 1)])), 1, "a tool with no trim trait hook gets a defense slot");
+    assert_eq!(defense(&upgraded(&world, "slime_helmet", &[("tconstruct:trim", 1)])), 0, "a tool whose definition binds the trim trait hook does not");
+}
+
+#[test]
+fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_stay_unbound() {
+    use crate::tool_stack::attribute_entries;
+    use pluto_lib::Nbt;
+    let world = world();
+    let amounts = |modifier: &str, level: i32, slot: &str| -> Vec<(String, f64)> {
+        let stack = upgraded(&world, "pickaxe", &[(modifier, level)]);
+        attribute_entries(&stack.custom_data, &env_of(&world, "pickaxe"), &[slot]).iter().map(|entry| {
+            let (Some(Nbt::String(kind)), Some(Nbt::Double(amount))) = (entry.get("type"), entry.get("amount")) else { panic!("an attribute entry") };
+            (kind.clone(), *amount)
+        }).collect()
+    };
+    let reach = amounts("tconstruct:reach", 2, "mainhand");
+    assert!(reach.contains(&("minecraft:block_interaction_range".into(), 2.0)) && reach.contains(&("minecraft:entity_interaction_range".into(), 2.0)), "{reach:?}");
+    assert_eq!(amounts("tconstruct:step_up", 2, "feet"), vec![("minecraft:step_height".to_string(), 1.0)]);
+    let sky = amounts("tconstruct:skyfall", 1, "mainhand");
+    let gravity = sky.iter().find(|(kind, _)| kind == "minecraft:gravity").expect("gravity").1;
+    assert!((gravity - -0.15).abs() < 1e-6, "{sky:?}");
+    assert!(sky.contains(&("minecraft:safe_fall_distance".into(), 1.0)));
+    // Attributes the host has no counterpart for are not published; the modifier keeps them unbound.
+    assert!(amounts("tconstruct:double_jump", 1, "feet").is_empty());
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
+    assert!(unbound("tconstruct:reach").is_empty() && unbound("tconstruct:step_up").is_empty() && unbound("tconstruct:skyfall").is_empty());
+    assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
+    assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
+    // The modules that need host data this port does not receive stay unbound.
+    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:tank", "stat_boost"), ("tconstruct:experienced", "volatile_float")] {
+        assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
+    }
+    assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());
+}
+
+#[test]
+fn shipped_fire_protection_takes_back_the_vanilla_points_its_enchantment_gave() {
+    use crate::{damage_tags::DamageTags, modifier_entries::List, protection::{damage_after_protection, host_enchantment_points, DamageSource}, tool_stack::{enchantments, protection, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{EntityState, ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    // The helmet, the points the game's enchantment protection counted for it, and the running protection the modifiers leave.
+    let run = |modifier: &str, level: i32, damage_type: &str, attacker: Option<&EntityState>| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        let damage_type = id(damage_type);
+        let in_tag = |tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE && crate::melee_damage::state_in_tag(tag, attacker, None);
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag, entities: Default::default() };
+        let vanilla = host_enchantment_points([&enchantments(&tool.custom_data, &env)], &source);
+        (vanilla, protection(&tool.custom_data, &env, &source, vanilla))
+    };
+    // Fire protection I is 2 vanilla points against fire, which come off again before its own 3 are added.
+    assert_eq!(run("tconstruct:fire_protection", 1, "minecraft:lava", None), (2.0, 3.0));
+    // Iron plating brings its own projectile and melee protection, so the unrelated baseline is measured with an unrelated modifier.
+    let base = |damage_type: &str| run("tconstruct:sharpness", 1, damage_type, None).1;
+    assert_eq!(run("tconstruct:fire_protection", 1, "minecraft:arrow", None), (0.0, base("minecraft:arrow")), "no fire, no points either way");
+    assert_eq!(run("tconstruct:fire_protection", 1, "minecraft:sonic_boom", None), (0.0, base("minecraft:sonic_boom")), "damage that bypasses enchantments counts none");
+    assert_eq!(run("tconstruct:blast_protection", 1, "minecraft:explosion", None).0, 2.0, "blast protection is 2 points a level against explosions");
+    let (vanilla, total) = run("tconstruct:fireborn", 1, "minecraft:lava", None);
+    assert_eq!((vanilla, total), (14.0, 0.0), "fireborn's level 7 is all taken back");
+    // The event's damage already had the vanilla points: they are undone, then the modifiers' protection applies.
+    assert!((damage_after_protection(10.0, 2.0, 3.0, 20.0) - 10.0 / 0.92 * 0.88).abs() < 1e-4);
+    assert!((damage_after_protection(8.0, 14.0, 0.0, 20.0) - 8.0 / (1.0 - 14.0 / 25.0)).abs() < 1e-4, "ignoring the whole enchantment gives the damage back");
+    // Scorch protection protects against a fire-immune attacker only.
+    let immune = EntityState { kind: "minecraft:blaze".into(), fire_immune: true, ..EntityState::default() };
+    let normal = EntityState { kind: "minecraft:husk".into(), ..EntityState::default() };
+    assert_eq!(run("tconstruct:scorch_protection", 2, "minecraft:mob_attack", Some(&immune)), (0.0, base("minecraft:mob_attack") + 2.5));
+    assert_eq!(run("tconstruct:scorch_protection", 2, "minecraft:mob_attack", Some(&normal)), (0.0, base("minecraft:mob_attack")));
+    assert_eq!(run("tconstruct:scorch_protection", 2, "minecraft:mob_attack", None), (0.0, base("minecraft:mob_attack")), "an unknown attacker is not fire immune");
+}
+
+#[test]
+fn shipped_revenge_names_the_effect_that_unequipping_takes_off() {
+    use crate::{modifier_entries::List, tool_stack::{effects_cleared_on_unequip, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let cleared = |modifier: &str| {
+        let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id(modifier), 1).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        effects_cleared_on_unequip(&tool.custom_data, &env)
+    };
+    assert_eq!(cleared("tconstruct:revenge"), vec![id("minecraft:strength")]);
+    assert!(cleared("tconstruct:fire_protection").is_empty());
+}
+
+#[test]
+fn shipped_frostshield_turns_freezing_damage_into_bar_and_overwield_drains_overslime_on_a_hit() {
+    use crate::{damage_tags::DamageTags, modifier_entries::List, overslime, protection::DamageSource, tool_stack::{damage_capacity, melee_capacity_edits, rebuild_stats, Environment, TAG_MATERIALS, TAG_PERSISTENT, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt, NbtCompound, StackDataEdit};
+    let mut world = world();
+    for modifier in overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let persist = |modifier: &str| vec![TAG_PERSISTENT.to_string(), modifier.to_string()];
+
+    // Frostshield on boots: freezing damage fills the bar by its amount and the wearer is spared that much.
+    let boots = &world.tools.iter().find(|(tool, _)| tool.path() == "plate_boots").unwrap().1;
+    let env = Environment { definition: Some(boots), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None };
+    let frost = |stored: i32| {
+        let mut tool = ItemSlot::new(id("tconstruct:plate_boots"), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(id("tconstruct:frostshield"), 1).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        if stored > 0 {
+            let mut persistent = NbtCompound::new();
+            persistent.insert("tconstruct:frostshield".into(), Nbt::Int(stored));
+            tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        }
+        tool
+    };
+    let taken = |tool: &ItemSlot, damage_type: &str, amount: f32| {
+        let damage_type = id(damage_type);
+        damage_capacity(&tool.custom_data, &env, &DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() }, amount)
+    };
+    let set = |edits: &[StackDataEdit], value: i32| edits == [StackDataEdit { path: persist("tconstruct:frostshield"), value: Some(Nbt::Int(value)) }];
+    let (left, edits) = taken(&frost(0), "minecraft:freeze", 3.0);
+    assert!(left == 0.0 && set(&edits, 3), "3 freezing damage fill 3 of an empty bar: {left} {edits:?}");
+    let (left, edits) = taken(&frost(10), "minecraft:freeze", 2.5);
+    assert!(left == -0.5 && set(&edits, 13), "the amount is rounded up to whole bar points and the surplus comes off the damage as the original does: {left} {edits:?}");
+    let (left, edits) = taken(&frost(0), "minecraft:mob_attack", 3.0);
+    assert!(left == 3.0 && edits.is_empty(), "only the freezing source fills the bar");
+    let capacity = crate::capacity::Bar::decode(serde_json::json!({"each_level":100,"multiplier":"tconstruct:durability"}).as_object().unwrap()).unwrap().unwrap().capacity(&frost(0).custom_data, &crate::modifier_entries::Entry::new(id("tconstruct:frostshield"), 1));
+    assert!(capacity > 3);
+    let (left, edits) = taken(&frost(capacity - 1), "minecraft:freeze", 3.0);
+    assert!(left == 2.0 && set(&edits, capacity), "a nearly full bar takes one point, capped, and the wearer the rest: {left} {edits:?}");
+    let (left, edits) = taken(&frost(capacity), "minecraft:freeze", 3.0);
+    assert!(left == 3.0 && edits.is_empty(), "a full bar leaves the damage to the wearer");
+
+    // Overwield on a pickaxe: each hit drains overslime by the level; an emptied bar loses its key.
+    let pickaxe = &world.tools.iter().find(|(tool, _)| tool.path() == "pickaxe").unwrap().1;
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None };
+    let wield = |level: i32, stored: i32| {
+        let mut tool = ItemSlot::new(id("tconstruct:pickaxe"), 1);
+        tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+        tool.custom_data.insert(TAG_UPGRADES.into(), List::default().with_modifier(overslime::id(), 1).unwrap().with_modifier(id("tconstruct:overwield"), level).unwrap().to_nbt());
+        assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+        if stored > 0 {
+            let mut persistent = NbtCompound::new();
+            persistent.insert("tconstruct:overslime".into(), Nbt::Int(stored));
+            tool.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        }
+        tool
+    };
+    let hit = |tool: &ItemSlot| melee_capacity_edits(&tool.custom_data, &env, &|_| false, &|_| false);
+    let drained = |edits: &[StackDataEdit], value: Option<i32>| edits == [StackDataEdit { path: persist("tconstruct:overslime"), value: value.map(Nbt::Int) }];
+    assert!(drained(&hit(&wield(2, 30)), Some(28)), "level 2 drains 2 a hit");
+    assert!(drained(&hit(&wield(1, 1)), None), "a drained bar loses its key");
+    assert!(hit(&wield(1, 0)).is_empty(), "an empty bar has nothing to drain");
+}
+
+/// An edible pickaxe through the shipped modifiers: the rebuilt stats, the meal the conditional stats make of them, and what eating costs the tool.
+fn edible_pickaxe<R>(upgrades: &[(&str, i32)], charge_tagged: bool, run: impl FnOnce(&crate::tool_stack::Environment, &pluto_lib::ItemSlot) -> R) -> R {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
+    let id = Identifier::parse("tconstruct:pickaxe").unwrap();
+    let members: &[&str] = if charge_tagged { &["tconstruct:pickaxe"] } else { &[] };
+    let tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:pickaxe"], &[("tconstruct:modifiable/interactable/charge", members)]).unwrap();
+    let env = Environment { definition: Some(pickaxe), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&id), item_tags: Some(&tags) };
+    let mut slot = ItemSlot::new(id.clone(), 1);
+    slot.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
+    let mut list = List::default();
+    for (modifier, level) in upgrades { list = list.with_modifier(Identifier::parse(modifier).unwrap(), *level).unwrap(); }
+    slot.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+    assert!(rebuild_stats(&mut slot.custom_data, &env).unwrap());
+    run(&env, &slot)
+}
+
+#[test]
+fn the_shipped_edible_family_binds_all_but_the_representative_item() {
+    let mut registry = Registry::default();
+    registry.reload(&files("modifiers"), &conditions());
+    let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
+    assert!(unbound("tconstruct:edible").is_empty(), "the edible module and its tooltip trait are bound");
+    for name in ["tasty", "savory", "scrumptious"] {
+        assert_eq!(unbound(&format!("tconstruct:{name}")), vec!["tconstruct:edible_representative_item"], "{name} keeps only the particles-and-Diet module unbound");
+    }
+}
+
+#[test]
+fn an_eaten_tool_feeds_the_rounded_stats_and_runs_each_modifiers_edible_effects_in_order() {
+    use crate::{edible::Effect, edible_hook::meal, tool_stack::{edible, stat}, tool_stats::Stat};
+    // tasty II: hunger +1 a level, saturation +0.6, counter chance +0.15 a level, wearing 5 + 5 a level.
+    edible_pickaxe(&[("tconstruct:tasty", 2)], true, |env, tool| {
+        let nbt = &tool.custom_data;
+        assert_eq!((stat(nbt, Stat::Hunger), stat(nbt, Stat::EatDuration)), (2.0, 16.0), "the eat duration keeps its default of 16 ticks");
+        assert!((stat(nbt, Stat::Saturation) - 0.6).abs() < 1e-6 && (stat(nbt, Stat::EdibleCounterChance) - 0.3).abs() < 1e-6);
+        let eaten = meal(nbt, env).expect("a tasty tool is a meal");
+        assert_eq!((eaten.nutrition, eaten.effects), (2, vec![Effect::ConsumeDurability(15)]));
+        assert!((eaten.saturation - 0.6).abs() < 1e-6);
+    });
+    // savory I: wears 4 + 4, then cures one effect; the representative item is unbound and adds nothing.
+    edible_pickaxe(&[("tconstruct:savory", 1)], true, |env, tool| {
+        assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::CureRandomEffect]));
+        assert!((stat(&tool.custom_data, Stat::Saturation) - 0.4).abs() < 1e-6);
+    });
+    // scrumptious I: wears 5 + 3, then removes poison.
+    edible_pickaxe(&[("tconstruct:scrumptious", 1)], true, |env, tool| {
+        let poison = Identifier::parse("minecraft:poison").unwrap();
+        assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::RemoveEffect(poison)]));
+    });
+    // Two different modifiers add their hunger and run their effects in modifier order.
+    edible_pickaxe(&[("tconstruct:tasty", 1), ("tconstruct:scrumptious", 1)], true, |env, tool| {
+        let eaten = meal(&tool.custom_data, env).unwrap();
+        assert_eq!(eaten.nutrition, 2);
+        assert_eq!(eaten.effects.len(), 3, "tasty's wear, scrumptious's wear and the poison cure: {:?}", eaten.effects);
+    });
+    // A plain tool is no meal.
+    edible_pickaxe(&[("tconstruct:sharpness", 1)], true, |env, tool| {
+        assert_eq!(edible(&tool.custom_data, env), None);
+        assert_eq!(meal(&tool.custom_data, env), None);
+    });
+}
+
+#[test]
+fn eating_wears_the_tool_but_not_for_a_creative_eater_and_a_tool_outside_the_valid_tags_gets_no_hunger() {
+    use crate::{edible_hook::{meal, pay}, tool_slot, tool_stack::{damage, stat}, tool_stats::Stat};
+    edible_pickaxe(&[("tconstruct:tasty", 1)], true, |env, tool| {
+        let eaten = meal(&tool.custom_data, env).unwrap();
+        let before = damage(&tool.custom_data);
+        let worn = pay(&eaten, tool, env, false);
+        assert_eq!(damage(&worn.custom_data) - before, 10, "tasty I wears 5 + 5");
+        assert_eq!(worn.damage, tool.damage + 10, "the slot's bar follows the tool's damage");
+        assert_eq!(pay(&eaten, tool, env, true), *tool, "a creative eater pays nothing");
+        // eating cannot wear past what is left: the tool breaks instead
+        let mut nearly_gone = tool.clone();
+        tool_slot::direct_damage_slot(&mut nearly_gone, env, tool_slot::remaining(tool) - 3, true).unwrap();
+        let broken = pay(&eaten, &nearly_gone, env, false);
+        assert!(tool_slot::broken(&broken), "the last 3 points of durability are all eating can take");
+    });
+    // Hunger applies only to the tools EdibleModule.VALID_TOOLS names (charging tools and armor).
+    edible_pickaxe(&[("tconstruct:tasty", 1)], false, |env, tool| {
+        assert_eq!(stat(&tool.custom_data, Stat::Hunger), 0.0);
+        assert_eq!(crate::edible_hook::meal(&tool.custom_data, env), None, "a tool with no hunger rounds to no meal");
+    });
+}
+
+#[test]
+fn the_items_eaten_by_a_right_click_are_the_tools_in_the_shipped_charge_tag() {
+    fn members(tag: &str, found: &mut std::collections::BTreeSet<String>) {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/tags/item").join(format!("{tag}.json"));
+        let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|_| panic!("tag file {path:?}"))).unwrap();
+        for entry in value["values"].as_array().unwrap() {
+            let id = entry.as_str().or_else(|| entry["id"].as_str()).unwrap();
+            match id.strip_prefix("#tconstruct:") { Some(nested) => members(nested, found), None => { found.insert(id.to_owned()); } }
+        }
+    }
+    let mut charge = std::collections::BTreeSet::new();
+    members("modifiable/interactable/charge", &mut charge);
+    // The original's other-mod minotaur axe is not a tool here.
+    let tools: std::collections::BTreeSet<String> = crate::tool_parts::tool_items().map(|id| id.to_string()).collect();
+    let charge: std::collections::BTreeSet<String> = charge.into_iter().filter(|id| tools.contains(id)).collect();
+    let used: std::collections::BTreeSet<String> = crate::edible_hook::USE_ITEMS.iter().map(|path| format!("tconstruct:{path}")).collect();
+    assert_eq!(used, charge, "the edible use covers exactly the charging tools, and no armor");
+}
+
+/// A plate helmet carrying `modifiers`, with the armor tags a protection condition asks about, ready for the wearer tests.
+fn armor_helmet(world: &World, modifiers: &[(&str, i32)]) -> (pluto_lib::ItemSlot, pluto_lib::ItemSlot) {
+    use crate::{modifier_entries::List, tool_stack::{rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::Nbt;
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"]), ("tconstruct:modifiable/armor/helmets", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let mut tool = pluto_lib::ItemSlot::new(helmet_id.clone(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+    let mut list = List::default();
+    for (name, level) in modifiers { list = list.with_modifier(Identifier::parse(&format!("tconstruct:{name}")).unwrap(), *level).unwrap(); }
+    tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    (tool.clone(), tool)
+}
+
+/// The plate helmet's definition, the armor item tags and the environment the wearer tests run the modifiers in.
+macro_rules! helmet_env {
+    ($world:ident, $env:ident) => {
+        let helmet = &$world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+        let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+        let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"]), ("tconstruct:modifiable/armor/helmets", &["tconstruct:plate_helmet"])]).unwrap();
+        let $env = crate::tool_stack::Environment { definition: Some(helmet), has_materials: true, materials: &$world.materials, modifiers: &$world.registry, item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    };
+}
+
+#[test]
+fn shipped_armor_protection_reads_the_wearers_health_light_height_and_stance() {
+    use crate::{damage_tags::DamageTags, protection::DamageSource, tool_stack::protection};
+    use pluto_lib::EntityState;
+    let world = world();
+    helmet_env!(world, env);
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let damage_type = Identifier::parse("minecraft:mob_attack").unwrap();
+    // The protection the modifier gives over what iron plate gives by itself, for a wearer in the state `wearer` (None: no wearer reported).
+    let gain = |modifier: &str, level: i32, wearer: Option<&EntityState>| {
+        let of = |name: &str, level: i32| {
+            let (tool, _) = armor_helmet(&world, &[(name, level)]);
+            let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: crate::entity_facts::Entities { attacker: None, target: wearer } };
+            protection(&tool.custom_data, &env, &source, 0.0)
+        };
+        of(modifier, level) - of("sharpness", 1)
+    };
+    let close = |value: f32, wanted: f32| assert!((value - wanted).abs() < 1e-4, "{value} is not {wanted}");
+    // Vital: more protection the lower the health, from 11 points down: (11 - 4) / 10 of 2.5 a level.
+    let health = |health: f32| EntityState { health: Some(health), max_health: Some(20.0), ..EntityState::default() };
+    close(gain("vital_protection", 1, Some(&health(4.0))), 1.75);
+    close(gain("vital_protection", 1, Some(&health(20.0))), 0.0);
+    close(gain("vital_protection", 1, None), 2.5);
+    // Loyal: protection for each empty armor slot, (1 - coverage) * 10.
+    close(gain("loyal", 1, Some(&EntityState { armor_coverage: Some(0.25), ..EntityState::default() })), 7.5);
+    close(gain("loyal", 1, Some(&EntityState { armor_coverage: Some(1.0), ..EntityState::default() })), 0.0);
+    // Nightmare: 0.125 a level for each point of light below 10, the sky light less what the night takes, or the block light if that is brighter.
+    let lit = |sky: u8, darken: u8, block: u8| EntityState { sky_light: Some(sky), sky_darken: darken, block_light: Some(block), ..EntityState::default() };
+    close(gain("nightmare_protection", 1, Some(&lit(15, 11, 2))), 0.75);
+    close(gain("nightmare_protection", 1, Some(&lit(15, 11, 8))), 0.25);
+    close(gain("nightmare_protection", 1, Some(&lit(15, 0, 0))), 0.0);
+    // Stance: dragonborn in the air, shulking while crouching.
+    close(gain("dragonborn", 2, Some(&EntityState { on_ground: false, ..EntityState::default() })), 4.0);
+    close(gain("dragonborn", 2, Some(&EntityState { on_ground: true, ..EntityState::default() })), 0.0);
+    close(gain("dragonborn", 2, Some(&EntityState { on_ground: false, in_water: true, ..EntityState::default() })), 0.0);
+    close(gain("shulking", 2, Some(&EntityState { crouching: true, ..EntityState::default() })), 5.0);
+    close(gain("shulking", 2, Some(&EntityState::default())), 0.0);
+    close(gain("shulking", 2, None), 0.0);
+    // A turtle shell's helmet protects while the eyes are in water, 2.5 a level; the feet in water protect the legs and boots instead.
+    close(gain("turtle_shell", 2, Some(&EntityState { eyes_in_water: true, ..EntityState::default() })), 5.0);
+    close(gain("turtle_shell", 2, Some(&EntityState { in_water: true, ..EntityState::default() })), 0.0);
+    // Temperature: flamestance adds the biome temperature less 0.75.
+    close(gain("flamestance", 1, Some(&EntityState { biome_temperature: Some(2.0), ..EntityState::default() })), 1.25);
+    close(gain("flamestance", 1, Some(&EntityState { biome_temperature: Some(0.0), ..EntityState::default() })), -0.75);
+    // Depth: 1.25 a level, grown linearly below y 64 (half the maximum bonus of 1 at y 32), a penalty above the neutral range.
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(32.0), ..EntityState::default() })), 1.25);
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(70.0), ..EntityState::default() })), 0.0);
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(112.0), ..EntityState::default() })), -0.625);
+    close(gain("depth_protection", 2, Some(&EntityState { y: Some(200.0), ..EntityState::default() })), -2.5);
+}
+
+#[test]
+fn shipped_overshield_turns_overslime_into_protection_and_the_edit_takes_it_off_the_piece() {
+    use crate::{damage_tags::DamageTags, protection::DamageSource, tool_stack::{protection_with_edits, TAG_PERSISTENT}};
+    use pluto_lib::{Nbt, StackDataEdit};
+    let mut world = world();
+    for modifier in crate::overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    helmet_env!(world, env);
+    let (tags, _) = DamageTags::load(&damage_tag_stacks());
+    let (_, mut tool) = armor_helmet(&world, &[("overslime", 1), ("overshield", 1)]);
+    crate::overslime::set_amount(&mut tool.custom_data, 10);
+    assert_eq!(crate::overslime::amount(&tool.custom_data), 10, "the overslime modifier gives the piece room for it");
+    let run = |damage_type: &str, tool: &pluto_lib::ItemSlot| {
+        let damage_type = Identifier::parse(damage_type).unwrap();
+        let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
+        protection_with_edits(&tool.custom_data, &env, &source, 0.0)
+    };
+    // 1.25 a level, for the 2 overslime a level it spends, out of the 10 on the piece.
+    let (value, edits) = run("minecraft:mob_attack", &tool);
+    let (base, _) = { let (plain, _) = armor_helmet(&world, &[("overslime", 1)]); run("minecraft:mob_attack", &plain) };
+    assert!((value - base - 1.25).abs() < 1e-4, "{value} {base}");
+    assert_eq!(edits, vec![StackDataEdit { path: vec![TAG_PERSISTENT.into(), "tconstruct:overslime".into()], value: Some(Nbt::Int(8)) }]);
+    // With only 1 left it gives half of the protection and uses it up (the key goes).
+    crate::overslime::set_amount(&mut tool.custom_data, 1);
+    let (value, edits) = run("minecraft:mob_attack", &tool);
+    assert!((value - base - 0.625).abs() < 1e-4, "{value} {base}");
+    assert_eq!(edits, vec![StackDataEdit { path: vec![TAG_PERSISTENT.into(), "tconstruct:overslime".into()], value: None }]);
+    // Damage that bypasses invulnerability is not protected against and spends nothing.
+    let (value, edits) = run("minecraft:out_of_world", &tool);
+    assert!((value - base).abs() < 1e-4 && edits.is_empty());
+}
+
+#[test]
+fn shipped_rebuff_heals_by_regeneration_and_wears_the_piece_while_restore_stays_before_armor() {
+    use crate::{damage_tags::DamageTags, protection::DamageSource, tool_stack::restores, wearer_modules::{wear_edits, Restore}};
+    use pluto_lib::{Nbt, StackDataEdit};
+    let world = world();
+    helmet_env!(world, env);
+    let (tags, _) = DamageTags::load(&damage_tag_stacks());
+    let damage_type = Identifier::parse("minecraft:mob_attack").unwrap();
+    let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
+    let (tool, _) = armor_helmet(&world, &[("rebuff", 2)]);
+    // Rebuff always lands; level 2 heals half the damage as regeneration at effect level 2 (25 ticks a point) and costs 2 wear.
+    let found = restores(&tool.custom_data, &env, &source, 10.0, &mut || 0.0);
+    assert_eq!(found, vec![(Identifier::parse("tconstruct:rebuff").unwrap(), Restore { duration: 125, wear: 2 })]);
+    assert!(restores(&tool.custom_data, &env, &source, 1.0, &mut || 0.0).is_empty(), "half of 1 damage is not a whole point of health");
+    // The wear edits put the piece's damage up by what the module costs.
+    let edits = wear_edits(&tool.custom_data, &env, &Identifier::parse("tconstruct:rebuff").unwrap(), 2, &mut || 1.0);
+    assert!(edits.contains(&StackDataEdit { path: vec!["Damage".into()], value: Some(Nbt::Int(2)) }), "{edits:?}");
+    // Restore is the same module on the other hook: left unbound, it does nothing here.
+    let (restore, _) = armor_helmet(&world, &[("restore", 1)]);
+    assert!(restores(&restore.custom_data, &env, &source, 10.0, &mut || 0.0).is_empty());
+}
+
+#[test]
+fn shipped_entangled_hurts_and_boon_of_sssss_shortens_the_wearers_beneficial_effects_when_the_piece_comes_off() {
+    use crate::tool_stack::unequip_effects;
+    use pluto_lib::EffectCategory;
+    let world = world();
+    helmet_env!(world, env);
+    let on_unequip = |modifiers: &[(&str, i32)]| unequip_effects(&armor_helmet(&world, modifiers).0.custom_data, &env);
+    assert_eq!(on_unequip(&[("entangled", 1)]).0, [("tconstruct:entangled".to_owned(), 1.0)]);
+    assert_eq!(on_unequip(&[("entwined", 1)]).0, [("tconstruct:entangled".to_owned(), 2.0)], "entwined uses the entangled damage type for 2");
+    let (hurts, cuts) = on_unequip(&[("boon_of_sssss", 2)]);
+    assert!(hurts.is_empty());
+    assert_eq!(cuts.len(), 1);
+    assert_eq!(cuts[0].0, EffectCategory::Beneficial);
+    assert!((cuts[0].1 - 0.4).abs() < 1e-5, "0.2 of the time a level");
+    assert!(on_unequip(&[("sharpness", 1)]) == (Vec::new(), Vec::new()));
+}
+
+#[test]
+fn shipped_solar_powered_cancels_tool_wear_by_the_sky_light_around_the_holder() {
+    use crate::tool_stack::reduce_damage;
+    use pluto_lib::EntityState;
+    let world = world();
+    helmet_env!(world, env);
+    let (tool, _) = armor_helmet(&world, &[("solar_powered", 1)]);
+    // (0.01 * level + 0.04) of the sky light, as a chance for each point: 5 times the light as a percentage.
+    let dealt = |holder: Option<&EntityState>, roll: f32| crate::entity_facts::with_holder(holder, || reduce_damage(&tool.custom_data, &env, None, 5, &mut || roll));
+    let sky = |light: u8, darken: u8| EntityState { sky_light: Some(light), sky_darken: darken, ..EntityState::default() };
+    assert_eq!(dealt(Some(&sky(15, 11)), 0.1), 0, "light 4 is a 20% chance and a roll of 0.1 is under it");
+    assert_eq!(dealt(Some(&sky(15, 11)), 0.5), 5, "a roll of 0.5 is not");
+    assert_eq!(dealt(Some(&sky(15, 0)), 0.5), 0, "full daylight is a 75% chance");
+    assert_eq!(dealt(Some(&sky(0, 0)), 0.0), 5, "no sky light, no reduction");
+    assert_eq!(dealt(None, 0.5), 0, "nobody named: the fallback light of 15");
+}
+
+fn fluid_tag_files() -> Vec<(Identifier, Value)> {
+    let base = root().join("fluid_tags");
+    let mut found = Vec::new();
+    for namespace in std::fs::read_dir(&base).expect("fluid tag folder") {
+        let namespace = namespace.unwrap().path();
+        let space = namespace.file_name().unwrap().to_str().unwrap().to_owned();
+        fn walk(dir: &std::path::Path, relative: String, space: &str, out: &mut Vec<(Identifier, Value)>) {
+            for entry in std::fs::read_dir(dir).expect("folder") {
+                let path = entry.unwrap().path();
+                let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                if path.is_dir() { walk(&path, format!("{relative}{name}/"), space, out); continue; }
+                if let Some(stem) = name.strip_suffix(".json") {
+                    out.push((Identifier::new(space, &format!("{relative}{stem}")).unwrap(), serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON")));
+                }
+            }
+        }
+        walk(&namespace, String::new(), &space, &mut found);
+    }
+    found
+}
+
+/// Every condition decodes through the production tree and holds: what a pack that has every other mod's ingots would load.
+struct EverythingOn(crate::conditions::Context);
+impl crate::materials::Conditions for EverythingOn {
+    type Parsed = crate::conditions::Condition;
+    fn decode(&self, json: &Value) -> Result<Self::Parsed, String> { self.0.decode(json) }
+    fn test(&self, _: &Self::Parsed) -> Result<bool, String> { Ok(true) }
+}
+
+fn fluid_tags() -> crate::fluid_ingredient::FluidTags { crate::fluid_ingredient::FluidTags::load(&fluid_tag_files()) }
+fn fluid_recipes(everything_on: bool) -> crate::fluid_recipes::Recipes {
+    let files = recursive_files("fluids", "fluids");
+    assert_eq!(files.len(), 1858, "melting, casting, alloy, fuel, entity and molding recipes outside the compat folder");
+    if everything_on { crate::fluid_recipes::Recipes::load(&files, &EverythingOn(conditions())) } else { crate::fluid_recipes::Recipes::load(&files, &conditions()) }
+}
+fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
+
+#[test]
+fn shipped_fluid_tags_flatten_and_only_two_unshipped_references_are_left_out() {
+    let files = fluid_tag_files();
+    assert_eq!(files.len(), 130, "the tconstruct, forge and mantle fluid tag files");
+    let tags = fluid_tags();
+    assert_eq!(tags.problems, vec![
+        "fluid tag tconstruct:chemthrower_effects/entity: unknown tag forge:milk".to_owned(),
+        "fluid tag tconstruct:hide_in_creative_tanks: unknown tag c:hidden_from_recipe_viewers".to_owned()], "milk is a Forge tag and the recipe viewer tag a Fabric one");
+    // the Forge tag names the Tinkers tag, which lists the source fluid before the flowing one
+    assert_eq!(tags.members(&id("forge:molten_iron")).unwrap(), &vec![id("tconstruct:molten_iron"), id("tconstruct:flowing_molten_iron")]);
+    assert!(tags.contains(&id("tconstruct:flowing_molten_debris"), &id("tconstruct:molten_debris")));
+}
+
+#[test]
+fn every_shipped_fluid_recipe_decodes_whatever_its_conditions_and_only_unported_ingredients_are_left_out() {
+    let recipes = fluid_recipes(true);
+    let mut problems = recipes.problems.clone();
+    problems.sort();
+    // Display-only potion casts need item components, and a block-tag cast needs the item-to-block link: both are host work.
+    assert_eq!(problems.len(), 2, "{problems:#?}");
+    assert!(problems[0].ends_with("unimplemented ingredient type mantle:potion_display") && problems[1].ends_with("unimplemented ingredient type tconstruct:block_tag"), "{problems:#?}");
+    assert_eq!(recipes.left_out.len(), 35, "21 tool casting, 10 part swapping and 4 potion tipping recipes need the tool domain");
+    let kinds: std::collections::BTreeSet<&str> = recipes.left_out.iter().map(|(_, kind)| kind.as_str()).collect();
+    assert!(kinds.iter().all(|kind| crate::fluid_recipes::LEFT_OUT.contains(kind)), "{kinds:?}");
+    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); 652 of 654 casting recipes decode
+    assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (819, 48, 2, true, 32, 24));
+    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (652, 58, 39, 34, 112));
+}
+
+#[test]
+fn shipped_melting_and_cooling_times_follow_the_original_formula() {
+    use crate::{casting_recipes::CastingKind, fluid_ingredient::Source, fluid_values::{calc_cooling_time, calc_time_for_amount}, melting_recipes::MeltingKind};
+    let recipes = fluid_recipes(true);
+    // The generator gives a plain melting recipe sqrt(ingots) * T^0.585 unless its author overrode the time (clay, glass, ores...).
+    let plain: Vec<_> = recipes.melting.iter().filter(|recipe| recipe.kind == MeltingKind::Plain).collect();
+    let agree = plain.iter().filter(|recipe| calc_time_for_amount(recipe.temperature, recipe.output.amount) == recipe.time).count();
+    assert_eq!((plain.len(), agree), (481, 293), "the other 188 carry an authored time");
+    // Casting uses the same formula on the casting fluid's temperature, from the fluid's material_fluid recipe.
+    let temperature_of = |source: &Source| recipes.material_casting.casting.iter()
+        .find(|fluid| fluid.fluid.options.iter().any(|(own, _)| own == source)).map(|fluid| fluid.temperature);
+    let (mut agree_cast, mut bottles, mut other) = (0, 0, Vec::new());
+    for recipe in &recipes.casting {
+        let (CastingKind::Item { .. }, Some(fluid)) = (&recipe.kind, &recipe.fluid) else { continue };
+        let [(source, amount)] = fluid.options.as_slice() else { continue };
+        let Some(temperature) = temperature_of(source) else { continue };
+        if calc_cooling_time(temperature, *amount) == recipe.cooling_time { agree_cast += 1; }
+        else if recipe.cooling_time == 1 { bottles += 1; }
+        else { other.push(recipe.id.to_string()); }
+    }
+    assert_eq!((agree_cast, bottles, other.len()), (338, 7, 0), "the 7 bottle casts take 1 tick by design: {other:?}");
+}
+
+#[test]
+fn a_shipped_iron_ingot_melts_in_a_melter_on_lava_and_the_fluid_alloys_in_a_smeltery() {
+    use crate::{fluid_values::OreRate, heating::{Finished, Fuel, MeltingSlot}, melting_recipes::AlloyTank};
+    let recipes = fluid_recipes(false);
+    let tags = fluid_tags();
+    let in_item_tag = |item: &Identifier, tag: &Identifier| tag.to_string() == "forge:ingots/iron" && item.path() == "iron_ingot";
+    let in_fluid_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    let ingot = recipes.find_melting(&id("minecraft:iron_ingot"), &in_item_tag, false).expect("the shipped recipe melts an iron ingot");
+    assert_eq!((ingot.temperature, ingot.time, ingot.output.amount), (800, 60, 90));
+    assert_eq!(ingot.output.resolve(&tags), Some(id("tconstruct:molten_iron")), "the forge tag prefers the source fluid");
+    assert!(recipes.find_melting(&id("minecraft:iron_nugget"), &in_item_tag, false).is_none(), "an item no recipe names does not melt");
+
+    // The shipped lava fuel: 50 mB burns for 100 at 1000 C and rate 10. An ingot needs 600 progress, so 60 passes of
+    // four ticks and one more to finish: 244 ticks, a little over 12 seconds.
+    let lava = recipes.find_fuel(&id("minecraft:lava"), &in_fluid_tag).expect("lava is a fuel");
+    assert_eq!((lava.amount(&id("minecraft:lava"), &in_fluid_tag), lava.duration, lava.temperature, lava.rate), (50, 100, 1000, 10));
+    let mut fuel = Fuel::default();
+    assert_eq!(fuel.try_liquid(50, 50, lava.duration, lava.temperature, lava.rate, true), 1000);
+    let mut slot = MeltingSlot::default();
+    slot.set_stack(Some((Some((ingot.time, ingot.temperature)), false)));
+    let (mut passes, mut fluid) = (0, 0);
+    while slot.occupied {
+        slot.heat(fuel.temperature, fuel.rate, &mut || { fluid = ingot.output_amount(&OreRate::MELTER, None); Finished::Filled });
+        fuel.decrease(1);
+        passes += 1;
+        assert!(passes < 200, "the slot never finished");
+    }
+    assert_eq!((passes, fluid), (61, 90));
+    assert!(fuel.has_fuel(), "100 burn units outlast the 61 passes: one fill of lava smelts an ingot with fuel to spare");
+
+    // Rose gold: copper and gold, 90 each, at 550 C, make 180. The smeltery holds both and a lot of iron.
+    struct Tank { fluids: Vec<(Identifier, i32)>, temperature: i32 }
+    impl AlloyTank for Tank {
+        fn tanks(&self) -> usize { self.fluids.len() }
+        fn fluid_in_tank(&self, tank: usize) -> Option<(Identifier, i32)> { self.fluids.get(tank).filter(|(_, amount)| *amount > 0).cloned() }
+        fn temperature(&self) -> i32 { self.temperature }
+        fn can_fit(&self, output: &(Identifier, i32), removed: i32) -> bool { output.1 - removed <= 10_000 - self.fluids.iter().map(|(_, amount)| amount).sum::<i32>() }
+        fn drain(&mut self, _: usize, fluid: &Identifier, amount: i32) -> i32 {
+            let entry = self.fluids.iter_mut().find(|(own, _)| own == fluid).unwrap();
+            entry.1 -= amount;
+            amount
+        }
+        fn fill(&mut self, fluid: &Identifier, amount: i32) -> i32 {
+            match self.fluids.iter_mut().find(|(own, _)| own == fluid) { Some(entry) => entry.1 += amount, None => self.fluids.push((fluid.clone(), amount)) }
+            amount
+        }
+    }
+    let mut tank = Tank { fluids: vec![(id("tconstruct:molten_iron"), 900), (id("tconstruct:molten_gold"), 200), (id("tconstruct:molten_copper"), 90)], temperature: 1000 };
+    let matching: Vec<String> = recipes.matching_alloys(&tank, &tags).iter().map(|alloy| alloy.id.to_string()).collect();
+    assert_eq!(matching, vec!["tconstruct:fluids/smeltery/alloys/molten_rose_gold".to_owned()], "only copper plus gold is in the tank");
+    let rose = recipes.matching_alloys(&tank, &tags)[0];
+    assert!(rose.perform(&mut tank, &tags));
+    assert_eq!(tank.fluids, vec![(id("tconstruct:molten_iron"), 900), (id("tconstruct:molten_gold"), 110), (id("tconstruct:molten_copper"), 0), (id("tconstruct:molten_rose_gold"), 180)]);
+    assert!(!rose.can_perform(&tank, &tags), "the copper is used up");
+    // an alloy is also refused below its temperature
+    tank.fluids[2].1 = 90;
+    assert!(rose.can_perform(&tank, &tags));
+    tank.temperature = 549;
+    assert!(!rose.can_perform(&tank, &tags));
+}
+
+#[test]
+fn the_shipped_netherite_alloy_is_the_cheaper_one_by_default_and_obsidian_keeps_its_water() {
+    let tags = fluid_tags();
+    let recipes = fluid_recipes(false);
+    let netherite = recipes.alloys.iter().find(|alloy| alloy.id.path().ends_with("molten_netherite")).expect("netherite alloy");
+    let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    let amounts: Vec<i32> = netherite.inputs.iter().map(|input| input.fluid.options[0].1).collect();
+    assert_eq!(amounts, vec![40, 20], "cheaper_netherite_alloy defaults on: 20 gold for 10 netherite instead of 40");
+    assert_eq!(netherite.temperature, 1250);
+    let obsidian = recipes.alloys.iter().find(|alloy| alloy.id.path().ends_with("molten_obsidian")).expect("obsidian alloy");
+    assert_eq!(obsidian.inputs.iter().map(|input| input.catalyst).collect::<Vec<_>>(), vec![true, false]);
+    assert!(obsidian.inputs[0].fluid.test(&id("minecraft:water"), 250, &in_tag) && !obsidian.inputs[0].fluid.test(&id("minecraft:water"), 249, &in_tag));
+}
+
+#[test]
+fn a_shipped_pick_head_melts_by_its_casting_cost_and_a_golem_melts_into_iron() {
+    use crate::tool_materials::MaterialVariant;
+    let tags = fluid_tags();
+    let recipes = fluid_recipes(false);
+    let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    // A pick head costs two ingots of its material to cast (table_casting_material), so it melts into 180 mB in the time of a 180 mB casting.
+    let head = id("tconstruct:pick_head");
+    let iron = MaterialVariant::parse("tconstruct:iron").unwrap();
+    let (melting, cost) = recipes.find_material_melting(&head, &iron).expect("iron parts melt");
+    assert_eq!((cost, melting.temperature, melting.output_amount(cost), melting.time(cost)), (2, 800, 180, 85));
+    assert!(recipes.find_material_melting(&id("minecraft:stick"), &iron).is_none(), "an item that is not a casting part does not melt by material");
+    assert!(recipes.find_material_melting(&head, &MaterialVariant::parse("tconstruct:wood").unwrap()).is_none(), "wood has no molten form");
+    // The casting side agrees: iron is the fluid that casts into iron, at the same cost and cooling time.
+    let casting = recipes.material_casting.casting_fluid(&id("tconstruct:molten_iron"), &in_tag).expect("molten iron casts a material");
+    assert_eq!(casting.output.material_id(), Some(id("tconstruct:iron")));
+    assert_eq!(crate::casting_recipes::MaterialCasting::cooling_time(casting, cost, &id("tconstruct:molten_iron"), &in_tag), melting.time(cost));
+    let in_entity_tag = |_: &Identifier, _: &Identifier| false;
+    let golem = recipes.entity_melting.iter().find(|recipe| recipe.entity.matches(&id("minecraft:iron_golem"), &in_entity_tag)).expect("golems melt");
+    assert_eq!((golem.damage, golem.output.amount, golem.output.resolve(&tags)), (4, 10, Some(id("tconstruct:molten_iron"))));
+    assert!(recipes.entity_melting.iter().all(|recipe| recipe.damage >= 1));
+}
+
+#[test]
+fn shipped_sand_cast_patterns_and_molding_recipes_load() {
+    use crate::part_builder_recipes::Recipes;
+    let files = recursive_files("fluids", "fluids");
+    let patterns = Recipes::load(&files, &EverythingOn(conditions()));
+    assert!(patterns.problems.is_empty(), "{:#?}", patterns.problems);
+    assert_eq!(patterns.len(), 112, "the sand, red sand and clay cast patterns of the part builder");
+    // Pressing a cast into sand: a molding recipe on the casting table turns a part into its sand cast.
+    let recipes = fluid_recipes(false);
+    let sand_cast = recipes.molding.iter().find(|recipe| recipe.id.path() == "fluids/smeltery/sand_cast_pickup").expect("sand cast pickup");
+    assert!(sand_cast.pattern.is_none() && !sand_cast.pattern_consumed);
+    assert_eq!(sand_cast.result.source, crate::fluid_ingredient::Source::Id(id("tconstruct:blank_sand_cast")));
 }

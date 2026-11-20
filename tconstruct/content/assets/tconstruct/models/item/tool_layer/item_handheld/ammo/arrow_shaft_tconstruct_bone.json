@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/tool/ammo/arrow_shaft_tconstruct_bone"
+  }
+}

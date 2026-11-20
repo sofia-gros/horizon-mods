@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/01",
+  "textures": {
+    "layer0": "tconstruct:item/tool/battlesign/head_tconstruct_hepatizon"
+  }
+}

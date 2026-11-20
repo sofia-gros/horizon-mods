@@ -1,8 +1,9 @@
 //! ProtectionModule from SlimeKnights (MIT; see LICENSE): armor modifiers that add protection against
 //! damage sources, and the way their sum changes the damage taken (ToolEvents.livingHurt, ArmorUtil).
-//! Only sources and formulas over data this port holds are decoded: a module that names the wearing entity, or a formula variable
-//! about one (temperature, light, health, equipment), stays unbound. The attacking entity is asked by its entity type tags and what it
-//! was doing (burning, in the air), as for melee damage.
+//! Only sources, wearer conditions and formulas over data this port holds are decoded: the wearer is the `target` of the hit, as PlutoLib
+//! reported it as of their last tick (health, temperature, light, height, crouching, water, armor coverage), so a condition or formula variable
+//! on anything else stays unbound. The attacking entity is asked by its entity type tags and what it was doing (burning, in the air), as for
+//! melee damage.
 use crate::{damage_tags::DamageTags, mining_speed::StatFormula};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -15,11 +16,18 @@ pub(crate) struct DamageSource<'a> {
     pub tags: &'a DamageTags,
     /// Answers the attacker's entity type tags and, as pseudo tags, what it was doing; false for everything when the attacker is unknown.
     pub attacker_in_tag: &'a dyn Fn(&Identifier) -> bool,
+    /// What the attacker and the wearer (as the `target`) were doing, as PlutoLib reported them; both None for a source with no entities.
+    pub entities: crate::entity_facts::Entities<'a>,
+}
+
+impl DamageSource<'_> {
+    /// Answers the wearer's pseudo state tags (`tconstruct_state:target/crouching`) from what was reported of them.
+    pub fn wearer_in_tag(&self, tag: &Identifier) -> bool { crate::melee_damage::state_in_tag(tag, self.entities.attacker, self.entities.target) }
 }
 
 /// IJsonPredicate over the damage source.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>) }
+pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>), Attacker(crate::melee_damage::TargetCondition) }
 
 impl SourceCondition {
     /// `None` when the predicate needs state this port does not hold (the attacker's type, say).
@@ -52,6 +60,11 @@ impl SourceCondition {
                 let inner = fields.and_then(|f| f.get("inverted_type")).ok_or("inverted predicate needs inverted_type")?;
                 match Self::decode(inner)? { Some(condition) => Self::Not(Box::new(condition)), None => return Ok(None) }
             }
+            // The entity that caused the damage, by its type tags and what it was doing; the direct entity of an arrow is not reported.
+            "mantle:attacker" => {
+                if fields.and_then(|f| f.get("which")).and_then(Value::as_str) != Some("causing") { return Ok(None); }
+                match crate::melee_damage::TargetCondition::decode_for("attacker", fields.and_then(|f| f.get("entity_type")))? { Some(condition) => Self::Attacker(condition), None => return Ok(None) }
+            }
             "mantle:and" => match list("predicates")? { Some(all) => Self::And(all), None => return Ok(None) },
             "mantle:or" => match list("predicates")? { Some(any) => Self::Or(any), None => return Ok(None) },
             _ => return Ok(None),
@@ -69,29 +82,55 @@ impl SourceCondition {
             Self::Not(inner) => !inner.matches(source),
             Self::And(all) => all.iter().all(|condition| condition.matches(source)),
             Self::Or(any) => any.iter().any(|condition| condition.matches(source)),
+            Self::Attacker(condition) => condition.matches(source.attacker_in_tag),
         }
     }
 }
 
 /// The module's damage source and protection formula (`value` is the running protection, `level` the modifier level).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Protection { source: SourceCondition, attacker: crate::melee_damage::TargetCondition, formula: StatFormula }
+pub(crate) struct Protection { source: SourceCondition, wearer: crate::melee_damage::TargetCondition, attacker: crate::melee_damage::TargetCondition, formula: StatFormula }
 
 impl Protection {
     /// `None` for a module this port cannot evaluate.
     pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
-        // The wearing entity and the attacker are conditions on live entities.
-        if fields.get("wearing_entity").is_some_and(|value| !value.is_null()) { return Ok(None); }
+        let Some(wearer) = crate::melee_damage::TargetCondition::decode_for("target", fields.get("wearing_entity"))? else { return Ok(None); };
         let Some(attacker) = crate::melee_damage::TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
         let source = match fields.get("damage_source") { None | Some(Value::Null) => SourceCondition::Any, Some(value) => match SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
-        let Some(formula) = StatFormula::decode(fields, &["level", "protection", "multiplier", "base"])? else { return Ok(None); };
-        Ok(Some(Self { source, attacker, formula }))
+        // A variable of the formula reads the wearer (`which: target`). The entity that caused the damage is not reported as a mob's hit lands, so a
+        // variable of the attacker stays unbound rather than always taking its fallback.
+        let reads_attacker = fields.get("variables").and_then(Value::as_object).is_some_and(|variables| variables.values().any(|variable| variable.get("which").and_then(Value::as_str) == Some("attacker")));
+        if reads_attacker { return Ok(None); }
+        let Some(formula) = StatFormula::decode_in(fields, &["level", "protection", "multiplier", "base"], crate::mining_speed::EntityScope::Hit)? else { return Ok(None); };
+        Ok(Some(Self { source, wearer, attacker, formula }))
     }
 
     pub fn source(&self) -> &SourceCondition { &self.source }
+    /// Whether the wearer passes the module's `wearing_entity` condition.
+    pub fn wearer_matches(&self, source: &DamageSource) -> bool { self.wearer.matches(&|tag| source.wearer_in_tag(tag)) }
     /// Whether the attacker passes the module's condition on it.
     pub fn attacker_matches(&self, source: &DamageSource) -> bool { self.attacker.matches(source.attacker_in_tag) }
     pub fn formula(&self) -> &StatFormula { &self.formula }
+}
+
+/// AdjustDamageModule: changes the damage a wearer is about to take, while the wearer (`holder`, read as the `target` of the hit) and the
+/// damage source pass their conditions. The formula runs over the level and the damage so far (`protection`), as the original's does.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct AdjustDamage { holder: crate::melee_damage::TargetCondition, source: SourceCondition, formula: StatFormula }
+
+impl AdjustDamage {
+    /// `None` when the holder, the source or a formula variable needs a fact this port does not hold.
+    pub fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(holder) = crate::melee_damage::TargetCondition::decode_for("target", fields.get("holder"))? else { return Ok(None); };
+        let source = match fields.get("damage_source") { None | Some(Value::Null) => SourceCondition::Any, Some(value) => match SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
+        let formula = StatFormula::decode_in(fields, &["level", "protection", "multiplier", "base"], crate::mining_speed::EntityScope::Hit)?;
+        Ok(formula.map(|formula| Self { holder, source, formula }))
+    }
+    /// ModifyDamageModifierHook.modifyDamageTaken: the damage after the module; `holder_in_tag` answers the wearer's pseudo state tags.
+    pub fn apply(&self, entry: &crate::modifier_entries::Entry, tool: &crate::mining_speed::ToolView, source: &DamageSource, holder_in_tag: &dyn Fn(&Identifier) -> bool, amount: f32) -> f32 {
+        if !self.source.matches(source) || !self.holder.matches(holder_in_tag) { return amount; }
+        self.formula.eval(entry, tool, amount, 1.0, 0.0)
+    }
 }
 
 /// Protection that stops counting: vanilla's cap on the sum, 20 points of the 25 that would stop all damage.
@@ -110,4 +149,26 @@ pub(crate) fn damage_after_protection(damage: f32, vanilla: f32, total: f32, cap
     if vanilla > 0.0 { damage /= 1.0 - vanilla.clamp(0.0, 20.0) / 25.0; }
     if total != 0.0 && damage > 0.0 { damage *= 1.0 - total.clamp(-20.0, cap) / 25.0; }
     damage
+}
+
+/// Enchantment.getDamageProtection for the protection enchantments, the points the game's own enchantment protection gives a level
+/// against a damage source (0 for any other enchantment and for damage that bypasses invulnerability).
+pub(crate) fn enchantment_points(enchantment: &str, level: i32, source: &DamageSource) -> f32 {
+    if level <= 0 || source.tags.contains_vanilla("bypasses_invulnerability", source.damage_type) { return 0.0; }
+    let (factor, tag) = match enchantment {
+        "minecraft:protection" => return level as f32,
+        "minecraft:fire_protection" => (2, "is_fire"),
+        "minecraft:feather_falling" => (3, "is_fall"),
+        "minecraft:blast_protection" => (2, "is_explosion"),
+        "minecraft:projectile_protection" => (2, "is_projectile"),
+        _ => return 0.0,
+    };
+    if source.tags.contains_vanilla(tag, source.damage_type) { (level * factor) as f32 } else { 0.0 }
+}
+
+/// The points the game's enchantment protection gave the damage from the worn pieces' enchantments (each piece's levels per enchantment,
+/// as the modifiers give them): none for damage that bypasses enchantments.
+pub(crate) fn host_enchantment_points<'a>(pieces: impl IntoIterator<Item = &'a std::collections::BTreeMap<String, i32>>, source: &DamageSource) -> f32 {
+    if source.tags.contains_vanilla("bypasses_enchantments", source.damage_type) { return 0.0; }
+    pieces.into_iter().flat_map(|levels| levels.iter()).map(|(name, level)| enchantment_points(name, *level, source)).sum()
 }
