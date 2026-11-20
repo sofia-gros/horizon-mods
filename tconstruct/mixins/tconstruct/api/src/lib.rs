@@ -91,6 +91,7 @@ mod melter_menu;
 mod melter_blocks;
 mod multiblock;
 mod smeltery_tank;
+mod smeltery;
 mod config;
 mod common;
 

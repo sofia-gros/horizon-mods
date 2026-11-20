@@ -185,6 +185,8 @@ mod melter_blocks;
 mod multiblock;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_tank.rs"]
 mod smeltery_tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery.rs"]
+mod smeltery;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]
