@@ -79,9 +79,15 @@ def main():
     def put(item, material, container_slot):
         """Give a part, pick it from the player's inventory and drop it in a container slot."""
         ctl('command', f'give @s tconstruct:{item}[custom_data={{Material:"tconstruct:{material}"}}] 1')
-        ctl('wait', '5')
-        inv = ctl('screen')['slots']
-        source = next(s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == f'tconstruct:{item}')
+        # The first stack after a world start can take longer than a few ticks (recipe unlock work), so wait until it shows up.
+        source = None
+        for _ in range(12):
+            ctl('wait', '5')
+            inv = ctl('screen')['slots']
+            source = next((s['slot'] for s in inv if s['slot'] < 36 and s.get('item') == f'tconstruct:{item}'), None)
+            if source is not None:
+                break
+        assert source is not None, f'the given {item} never reached the inventory'
         ctl('click-slot', source)
         bounds = ui_slots()[container_slot]
         ctl('click-at', bounds[0] + 8, bounds[1] + 8)
