@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/molten_ender_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 1072721
+      }
+    ]
+  }
+}

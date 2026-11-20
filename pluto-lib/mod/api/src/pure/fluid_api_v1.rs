@@ -1,8 +1,9 @@
 //! Fluids a mod defines: their id and how they look and behave (Fabric: `FluidVariantAttributes`; Forge: `FluidType`). The fluid
 //! itself is data here: tanks hold it by id (see `BlockEntityType::fluid_tanks`), screens and renderers draw it with its colour.
 //!
-//! Horizon does not yet have source or flowing blocks of a mod's fluid, nor buckets of one: a definition can say it wants them, which is
-//! kept and does nothing until the game offers them (see the support matrix).
+//! Horizon has no fluid kind for a mod. A definition can ask for source and flowing blocks in the world (`with_world_blocks`) and a bucket
+//! (`with_bucket`): PlutoLib then runs the block's flow and the bucket's placing and picking up itself (see `fluid_world_api_v1`), on a block
+//! the mod declares in its content files. Without them a fluid exists only in tanks.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -30,6 +31,30 @@ impl Default for FluidAttributes {
     }
 }
 
+/// How a fluid flows in the world (Forge: `ForgeFlowingFluid.Properties`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FluidFlow {
+    /// Game ticks between two steps of the flow (`tickRate`; water 5, lava 30 in the overworld).
+    pub tick_delay: u16,
+    /// Levels lost for each block the fluid flows (`levelDecreasePerBlock`; the source is 8, so 1 flows seven blocks and 8 none).
+    pub level_drop: u8,
+    /// How many blocks away the fluid looks for a place to go down when it has to choose a direction (`slopeFindDistance`).
+    pub slope_distance: u8,
+}
+
+impl FluidFlow {
+    /// The flow of an ordinary fluid: a step every 5 game ticks, one level lost per block and a way down looked for four blocks away.
+    pub const fn standard() -> Self {
+        FluidFlow { tick_delay: 5, level_drop: 1, slope_distance: 4 }
+    }
+}
+
+impl Default for FluidFlow {
+    fn default() -> Self {
+        Self::standard()
+    }
+}
+
 /// A fluid a mod defines.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FluidDef {
@@ -37,16 +62,22 @@ pub struct FluidDef {
     pub id: Identifier,
     /// How it looks and behaves.
     pub attributes: FluidAttributes,
-    /// The fluid wants a source and a flowing block in the world (stub: the game has none yet).
+    /// The fluid has a block in the world with a source (`level` 0) and flowing cells, which PlutoLib flows. The mod declares the block.
     pub world_blocks: bool,
-    /// The fluid wants a bucket (stub: the game has none yet).
+    /// The fluid has a bucket item (`<id>_bucket`) that holds 1000 and places or picks up the source when the fluid has world blocks.
     pub bucket: bool,
+    /// How the fluid flows.
+    pub flow: FluidFlow,
+    /// The sound event a bucket makes taking the fluid up; `minecraft:item.bucket.fill` when none.
+    pub bucket_fill_sound: Option<String>,
+    /// The sound event a bucket makes pouring the fluid out; `minecraft:item.bucket.empty` when none.
+    pub bucket_empty_sound: Option<String>,
 }
 
 impl FluidDef {
     /// A fluid with water's attributes, no world blocks and no bucket.
     pub fn new(id: Identifier) -> Self {
-        Self { id, attributes: FluidAttributes::default(), world_blocks: false, bucket: false }
+        Self { id, attributes: FluidAttributes::default(), world_blocks: false, bucket: false, flow: FluidFlow::standard(), bucket_fill_sound: None, bucket_empty_sound: None }
     }
 
     /// The key of the fluid's name in the language files: `fluid.<namespace>.<path>` (`fluid.tconstruct.molten_iron`).
@@ -84,15 +115,31 @@ impl FluidDef {
         self
     }
 
-    /// The same fluid, wanting source and flowing blocks in the world. Kept; does nothing until the game has mod fluid blocks.
+    /// The same fluid, with source and flowing blocks in the world. Registering it gives the block (the fluid's own id, declared in the
+    /// mod's content with a `level` state) its flow behaviour.
     pub fn with_world_blocks(mut self) -> Self {
         self.world_blocks = true;
         self
     }
 
-    /// The same fluid, wanting a bucket. Kept; does nothing until the game has mod fluid buckets.
+    /// The same fluid, with a bucket `<id>_bucket` (declared in the mod's content): a container of 1000 millibuckets that becomes an empty
+    /// bucket, and, with world blocks, places and picks up the source.
     pub fn with_bucket(mut self) -> Self {
         self.bucket = true;
+        self
+    }
+
+    /// The same fluid, flowing a step every `tick_delay` game ticks, losing `level_drop` levels a block and looking `slope_distance` blocks for
+    /// a way down.
+    pub fn flow(mut self, tick_delay: u16, level_drop: u8, slope_distance: u8) -> Self {
+        self.flow = FluidFlow { tick_delay, level_drop, slope_distance };
+        self
+    }
+
+    /// The same fluid, with the sound events its bucket makes taking it up and pouring it out.
+    pub fn bucket_sounds(mut self, fill: &str, empty: &str) -> Self {
+        self.bucket_fill_sound = Some(fill.to_owned());
+        self.bucket_empty_sound = Some(empty.to_owned());
         self
     }
 }
@@ -156,8 +203,16 @@ impl FluidRegistry {
 
     /// Defines a fluid. Registering the same id again replaces the earlier definition.
     pub fn register(def: FluidDef) {
+        let (world_blocks, bucket) = (def.world_blocks, def.bucket);
+        let behaviour = def.clone();
         if let Ok(mut all) = FLUIDS.lock() {
             all.get_or_insert_with(HashMap::new).insert(def.id.to_string(), def);
+        }
+        if world_blocks {
+            super::fluid_world_api_v1::FluidWorld::register_behaviour(&behaviour);
+        }
+        if bucket {
+            super::fluid_world_api_v1::register_bucket(&behaviour);
         }
     }
 

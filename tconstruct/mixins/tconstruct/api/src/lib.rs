@@ -79,6 +79,8 @@ mod conditions;
 mod fluid_values;
 mod fluid_defs;
 mod fluids;
+mod fluid_transfers;
+mod fluid_items;
 mod heating;
 mod fluid_ingredient;
 mod melting_recipes;
@@ -120,6 +122,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     smeltery_io::register();
     creative::register();
     fluids::register();
+    fluid_items::register();
     break_speed_hook::register();
     melee_hook::register();
     lifesteal_hook::register();

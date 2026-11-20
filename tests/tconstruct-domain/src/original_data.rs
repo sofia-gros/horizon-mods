@@ -2569,10 +2569,51 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 83, "the smeltery's crafting recipes the importer converts; the rest name items this port does not declare yet");
+    assert_eq!(count, 84, "the smeltery's crafting recipes (the copper can came with the fluid items) the importer converts; the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel",
-                 "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast"] {
+                 "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can"] {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
     }
+}
+
+/// The world fluid content the importer wrote agrees with what PlutoLib flows: for each of the 70 fluids with a block, the block `<name>_fluid`
+/// declares the `level` property with the values PlutoLib reads (and an outline on the source only), its blockstate maps every level to a model
+/// that exists, and its bucket item is declared, modelled and defined; none is declared for the potion and powdered snow.
+#[test]
+fn the_world_fluid_content_matches_what_plutolib_flows() {
+    use pluto_lib::{FluidRegistry, FluidWorld};
+    crate::fluids::register();
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content");
+    let read = |relative: String| -> Value { serde_json::from_slice(&std::fs::read(root.join(&relative)).unwrap_or_else(|_| panic!("{relative} is missing"))).expect("valid JSON") };
+    let mut checked = 0;
+    for def in FluidRegistry::registered().into_iter().filter(|fluid| fluid.id.namespace() == "tconstruct") {
+        let name = def.id.path().to_owned();
+        let block = FluidWorld::block_id(&def.id);
+        let declared = root.join(format!("data/tconstruct/horizon/block/{}.json", block.path())).exists();
+        assert_eq!(declared, def.world_blocks, "{name}: a block is declared exactly for the fluids PlutoLib flows");
+        assert_eq!(root.join(format!("data/tconstruct/horizon/item/{name}_bucket.json")).exists(), def.bucket, "{name}: bucket");
+        if !declared { continue; }
+        let declaration = read(format!("data/tconstruct/horizon/block/{}.json", block.path()));
+        let values: Vec<&str> = declaration["state_properties"][FluidWorld::LEVEL]["values"].as_array().unwrap().iter().map(|value| value.as_str().unwrap()).collect();
+        assert_eq!(values, FluidWorld::BLOCK_LEVELS, "{name}: the level property");
+        assert_eq!(declaration["default_state"][FluidWorld::LEVEL], "0");
+        assert_eq!(declaration["collision_shapes"]["default"].as_array().unwrap().len(), 0, "{name}: no collision");
+        for level in FluidWorld::BLOCK_LEVELS {
+            let shape = declaration["shapes"]["values"][level].as_array().unwrap();
+            assert_eq!(!shape.is_empty(), level == "0", "{name}: only the source has an outline");
+        }
+        assert_eq!(declaration["properties"]["light"].as_u64().unwrap_or(0), u64::from(crate::fluid_defs::FLUIDS.iter().find(|spec| spec.name == name).unwrap().block_light));
+        let state = read(format!("assets/tconstruct/blockstates/{}.json", block.path()));
+        for level in FluidWorld::BLOCK_LEVELS {
+            let model = state["variants"][format!("level={level}")]["model"].as_str().unwrap();
+            let path = model.strip_prefix("tconstruct:").unwrap();
+            let model = read(format!("assets/tconstruct/models/{path}.json"));
+            let texture = model["textures"]["fluid"].as_str().unwrap().strip_prefix("tconstruct:").unwrap();
+            assert!(root.join(format!("assets/tconstruct/textures/{texture}.png")).exists(), "{name}: still texture {texture}");
+        }
+        assert!(root.join(format!("assets/tconstruct/items/{name}_bucket.json")).exists() && root.join(format!("assets/tconstruct/models/item/{name}_bucket.json")).exists());
+        checked += 1;
+    }
+    assert_eq!(checked, 70);
 }

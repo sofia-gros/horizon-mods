@@ -1,0 +1,41 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "fluid": "tconstruct:fluid/molten/glass/still",
+    "particle": "tconstruct:fluid/molten/glass/still"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        14.2222,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#fluid"
+        },
+        "up": {
+          "texture": "#fluid"
+        },
+        "north": {
+          "texture": "#fluid"
+        },
+        "south": {
+          "texture": "#fluid"
+        },
+        "west": {
+          "texture": "#fluid"
+        },
+        "east": {
+          "texture": "#fluid"
+        }
+      }
+    }
+  ]
+}

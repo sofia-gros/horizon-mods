@@ -1,0 +1,41 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "fluid": "tconstruct:fluid/slime/ender/still",
+    "particle": "tconstruct:fluid/slime/ender/still"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        5.3333,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#fluid"
+        },
+        "up": {
+          "texture": "#fluid"
+        },
+        "north": {
+          "texture": "#fluid"
+        },
+        "south": {
+          "texture": "#fluid"
+        },
+        "west": {
+          "texture": "#fluid"
+        },
+        "east": {
+          "texture": "#fluid"
+        }
+      }
+    }
+  ]
+}

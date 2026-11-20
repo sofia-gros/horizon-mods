@@ -20,6 +20,8 @@ pub(crate) mod entity_spawn_api;
 pub mod entity_type_api;
 pub mod events_interaction_v0;
 pub mod fluid_api_v1;
+pub mod fluid_item_api_v1;
+pub mod fluid_world_api_v1;
 pub mod i18n_api;
 pub mod item_api_v1;
 pub(crate) mod item_behavior;

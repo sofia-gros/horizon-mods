@@ -1,0 +1,41 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "fluid": "tconstruct:fluid/molten/ore/cobalt/still",
+    "particle": "tconstruct:fluid/molten/ore/cobalt/still"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        1.7778,
+        16
+      ],
+      "faces": {
+        "down": {
+          "texture": "#fluid"
+        },
+        "up": {
+          "texture": "#fluid"
+        },
+        "north": {
+          "texture": "#fluid"
+        },
+        "south": {
+          "texture": "#fluid"
+        },
+        "west": {
+          "texture": "#fluid"
+        },
+        "east": {
+          "texture": "#fluid"
+        }
+      }
+    }
+  ]
+}

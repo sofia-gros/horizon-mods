@@ -55,7 +55,7 @@ FEATURE_TYPES = {'minecraft:ore'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
-BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light'}
+BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light', 'default_state', 'shapes', 'collision_shapes'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
 
 

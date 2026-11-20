@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/meat_soup_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 14695989
+      }
+    ]
+  }
+}
