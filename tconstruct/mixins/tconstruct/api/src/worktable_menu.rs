@@ -13,7 +13,7 @@ use crate::{
     worktable_recipes::Removals,
 };
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
+    BlockEntityType, BlockEntityTypeRegistry, FluidItems, FluidStack, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
     ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction,
 };
 
@@ -73,14 +73,32 @@ fn display_name(modifier: &Identifier) -> String {
     }).collect::<Vec<_>>().join(" ")
 }
 
+/// What each input slot's stack holds as a fluid container, as PlutoLib reports it.
+fn input_contents(items: &[Option<ItemSlot>]) -> Vec<Option<FluidStack>> {
+    (1..=INPUT_COUNT).map(|slot| items.get(slot).cloned().flatten().and_then(|stack| FluidItems::contents(&stack))).collect()
+}
+
+/// The input stacks' facts for recipe matching: their fluid contents, read against the smeltery's fluid
+/// tags (without the smeltery data the tag form cannot match, as the contents then belong to no known tag).
+fn input_facts<'a>(held: &'a [Option<FluidStack>], data: Option<&'a crate::smeltery_data::Data>) -> Vec<crate::material_recipes::StackFacts<'a>> {
+    held.iter().map(|held| crate::material_recipes::StackFacts {
+        fluid: held.as_ref().map(|held| (&held.fluid, held.amount as i32)),
+        fluid_tags: data.map(|data| &data.tags),
+        ..Default::default()
+    }).collect()
+}
+
 /// What the slots and the selected modifier craft.
 pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Option<Computation> {
     let tool = items.get(TOOL_SLOT).cloned().flatten();
     let inputs: Vec<Option<(Identifier, u32)>> = (1..=INPUT_COUNT).map(|slot| items.get(slot).cloned().flatten().map(|stack| (stack.item, stack.count))).collect();
+    let data = common::smeltery_data().and_then(|data| data.read().ok());
+    let held = input_contents(items);
+    let facts = input_facts(&held, data.as_deref());
     with_context(|ctx, removals, salvages, in_tag, modifier_in_tag| {
         let empty = Computation { buttons: Vec::new(), selected: None, result: None, leftovers: Vec::new() };
         let Some(tool) = tool.as_ref() else { return empty; };
-        let Some(recipe) = removals.find(&(tool.item.clone(), tool.count), &inputs, in_tag) else { return empty; };
+        let Some(recipe) = removals.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag) else { return empty; };
         let buttons: Vec<Identifier> = recipe.options(tool, modifier_in_tag).into_iter().take(MAX_BUTTONS).collect();
         let selected_index = selected.and_then(|name| buttons.iter().position(|button| button.to_string() == name));
         let result = selected_index.and_then(|index| {
@@ -104,8 +122,11 @@ fn craft_once(menu: &mut dyn MenuAccess, selected: Option<&str>) -> Option<ItemS
     let amounts = with_context(|_, removals, _, in_tag, _| {
         let tool = items[TOOL_SLOT].as_ref()?;
         let inputs: Vec<Option<(Identifier, u32)>> = (1..=INPUT_COUNT).map(|slot| items[slot].as_ref().map(|stack| (stack.item.clone(), stack.count))).collect();
-        let recipe = removals.find(&(tool.item.clone(), tool.count), &inputs, in_tag)?;
-        let taken = crate::modifier_recipes::check_match(&recipe.inputs, &inputs, in_tag)?;
+        let data = common::smeltery_data().and_then(|data| data.read().ok());
+        let held = input_contents(&items);
+        let facts = input_facts(&held, data.as_deref());
+        let recipe = removals.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag)?;
+        let taken = crate::modifier_recipes::check_match_facts(&recipe.inputs, &inputs, &facts, in_tag)?;
         let mut amounts = vec![0u32; INPUT_COUNT];
         for (slot, ingredient) in taken.into_iter().zip(&recipe.inputs) { amounts[slot] += ingredient.amount; }
         Some(amounts)

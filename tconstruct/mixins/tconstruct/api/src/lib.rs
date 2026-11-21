@@ -2,6 +2,7 @@
 mod tables;
 mod materials;
 mod damage_vanilla;
+mod instrument_tags;
 mod damage_tags;
 mod protection;
 mod protection_hook;

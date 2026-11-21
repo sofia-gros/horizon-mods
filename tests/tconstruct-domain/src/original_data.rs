@@ -309,19 +309,28 @@ pub(crate) fn recursive_files(folder: &str, prefix: &str) -> Vec<(Identifier, Va
 }
 
 #[test]
-fn shipped_material_recipes_load_and_only_goat_horn_recipes_are_left_out() {
+fn shipped_material_recipes_load_without_problems_and_horns_match_by_instrument() {
     let files = recursive_files("tools/materials", "tools/materials");
     assert_eq!(files.len(), 176);
     let recipes = crate::material_recipes::Recipes::load(&files, &conditions());
-    // Instrument (goat horn) ingredients need item components, which this port does not read.
-    assert!(recipes.problems.iter().all(|problem| problem.contains("unimplemented ingredient type tconstruct:instrument") || problem.contains("registry minecraft:instrument unavailable")), "{:#?}", recipes.problems);
-    assert!(!recipes.problems.is_empty() && recipes.len() > 60, "{} loaded, {} problems", recipes.len(), recipes.problems.len());
+    assert!(recipes.problems.is_empty(), "{:#?}", recipes.problems);
+    assert!(recipes.len() > 60, "{} loaded", recipes.len());
     // Tag-gated recipes (planks, logs) stay off while the item tags are empty, as their conditions say;
     // item-keyed recipes resolve: the mod's own blazewood and vanilla flint.
     let blazewood = recipes.find(&Identifier::parse("tconstruct:blazewood").unwrap(), &|_, _| false).expect("blazewood");
     assert_eq!(blazewood.material.to_string(), "tconstruct:blazewood");
     let flint = recipes.find(&Identifier::parse("minecraft:flint").unwrap(), &|_, _| false).expect("flint");
     assert_eq!(flint.material.to_string(), "tconstruct:flint");
+    // The goat horn variants answer only a horn carrying their instrument; the default horn recipe's
+    // condition (every goat horn is a variant horn) keeps it out, so a plain horn matches nothing.
+    let horn = Identifier::parse("minecraft:goat_horn").unwrap();
+    let none = |_: &Identifier, _: &Identifier| false;
+    assert!(recipes.find(&horn, &none).is_none());
+    for (instrument, material) in [("minecraft:sing_goat_horn", "tconstruct:horn#minecraft.sing_goat_horn"), ("minecraft:ponder_goat_horn", "tconstruct:horn#minecraft.ponder_goat_horn")] {
+        let instrument = Identifier::parse(instrument).unwrap();
+        let facts = crate::material_recipes::StackFacts { instrument: Some(&instrument), ..Default::default() };
+        assert_eq!(recipes.find_facts(&horn, &none, &facts).expect("the horn variant").material.to_string(), material);
+    }
 }
 
 #[test]
@@ -460,11 +469,22 @@ fn the_shipped_salvage_returns_the_slot_when_a_sharpness_level_is_removed() {
 }
 
 #[test]
-fn the_shipped_sponge_removal_loads_and_the_venom_one_waits_for_fluid_containers() {
+fn the_shipped_sponge_and_venom_removals_load_and_the_venom_one_matches_a_filled_container() {
     let removals = crate::worktable_recipes::Removals::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
-    assert_eq!(removals.len(), 1, "{:?}", removals.problems);
-    assert_eq!(removals.problems.len(), 1);
-    assert!(removals.problems[0].contains("remove_modifier_venom"), "{:?}", removals.problems);
+    assert_eq!(removals.len(), 2, "{:?}", removals.problems);
+    assert!(removals.problems.is_empty(), "{:?}", removals.problems);
+    // The venom removal takes a container holding venom: a bucket of it (1000) or a bottle (250).
+    let tags = crate::fluid_ingredient::FluidTags::load(&[(Identifier::parse("tconstruct:venom").unwrap(), serde_json::json!({"values": ["tconstruct:venom", "tconstruct:flowing_venom"]}))]);
+    let venom = Identifier::parse("tconstruct:venom").unwrap();
+    let in_tag = |item: &Identifier, tag: &Identifier| tag.to_string() == "tconstruct:modifiable" && item.to_string() == "tconstruct:pickaxe";
+    let tool = (Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+    let facts = |amount: i32| [crate::material_recipes::StackFacts { fluid: Some((&venom, amount)), fluid_tags: Some(&tags), ..Default::default() }];
+    let bucket = [Some((Identifier::parse("tconstruct:venom_bucket").unwrap(), 1))];
+    let bottle = [Some((Identifier::parse("tconstruct:venom_bottle").unwrap(), 1))];
+    assert!(removals.find_facts(&tool, &bucket, &facts(1000), &in_tag).is_some_and(|recipe| recipe.id.to_string().contains("remove_modifier_venom")), "a bucket of venom");
+    assert!(removals.find_facts(&tool, &bottle, &facts(250), &in_tag).is_some(), "a bottle of venom is enough");
+    assert!(removals.find_facts(&tool, &bucket, &facts(100), &in_tag).is_none(), "100 of venom is neither a bucket nor a bottle");
+    assert!(removals.find(&tool, &bucket, &in_tag).is_none(), "a container whose contents are unknown matches nothing");
 }
 
 #[test]

@@ -1,7 +1,10 @@
 //! MaterialRecipe: the item -> material recipes (SlimeKnights, MIT; see LICENSE).
 //! Loaded from the pack's recipes/tools/materials folder with the same data-condition tree as
-//! materials. Ingredient types this port lacks (instrument variants, which need item components)
-//! leave their recipe out with a reported problem instead of matching everything or nothing silently.
+//! materials. An ingredient type this port lacks leaves its recipe out with a reported problem
+//! instead of matching everything or nothing silently. Facts about a stack that an ingredient
+//! reads beyond its item (the instrument it carries, the fluid it holds) are the caller's to
+//! report through `StackFacts`; a caller that cannot know them matches as the original would
+//! match a stack without them.
 use crate::{materials::Conditions, tool_materials::MaterialVariant};
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
 use serde_json::Value;
@@ -23,6 +26,14 @@ pub(crate) enum Ingredient {
     /// tconstruct:no_container (NoContainerIngredient): the nested ingredient, but only an item with no crafting remainder
     /// (an empty fluid container). The remainder is an item property the caller reports to `matches_with_remainder`.
     NoContainer(Box<Ingredient>),
+    /// tconstruct:instrument (InstrumentIngredient): the item carrying an instrument: a named one,
+    /// or (with `ignore`) any registered instrument outside that instrument tag, or no instrument
+    /// at all. The stack's instrument is a fact the caller reports through `StackFacts`.
+    Instrument { item: Identifier, instrument: Option<Identifier>, ignore: Option<Identifier> },
+    /// mantle:fluid_container (FluidContainerIngredient): a container holding at least the fluid
+    /// ingredient's amount of one of its fluids. What a stack holds is a fact the caller reports
+    /// through `StackFacts`, with the fluid tags to read it against.
+    FluidContainer(crate::fluid_ingredient::FluidIngredient),
 }
 
 /// The synthetic tag standing for "the tool's definition binds this hook".
@@ -77,6 +88,24 @@ impl Ingredient {
                     let tag = id(fields.get("tag").ok_or("tag missing")?)?;
                     Ok(Self::Tag(Identifier::new("tconstruct", &format!("block_tags/{}/{}", tag.namespace(), tag.path())).map_err(|e| e.to_string())?))
                 }
+                // InstrumentIngredient: the item, and one of a named instrument or an instrument tag to ignore;
+                // the serializer reads the instrument first when both are named, and requires one of them.
+                Some("tconstruct:instrument") => {
+                    let item = id(fields.get("item").ok_or("item missing")?)?;
+                    let instrument = fields.get("instrument").map(id).transpose()?;
+                    let ignore = if instrument.is_none() { fields.get("ignore").map(id).transpose()? } else { None };
+                    if instrument.is_none() && ignore.is_none() { return Err("an instrument ingredient names an instrument or an ignore tag".into()); }
+                    Ok(Self::Instrument { item, instrument, ignore })
+                }
+                // FluidContainerIngredient: the fluid ingredient is flattened into the same object; the display stack
+                // only names what recipe viewers show, so it is checked for shape and not read.
+                Some("mantle:fluid_container") => {
+                    if let Some(display) = fields.get("display") { display.as_object().ok_or("display must be an object")?; }
+                    let mut fluid = fields.clone();
+                    fluid.remove("type");
+                    fluid.remove("display");
+                    Ok(Self::FluidContainer(crate::fluid_ingredient::FluidIngredient::decode(&Value::Object(fluid))?))
+                }
                 Some(other) => Err(format!("unimplemented ingredient type {other}")),
             },
             _ => Err("ingredient must be an object or a nonempty array".into()),
@@ -84,19 +113,69 @@ impl Ingredient {
     }
     /// Matches an item that has no crafting remainder (every ordinary item and an empty container).
     pub fn matches(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
-        self.matches_with_remainder(item, in_tag, false)
+        self.matches_facts(item, in_tag, &StackFacts::default())
     }
     /// `has_remainder` is whether the stack has a crafting remainder item, which only no_container looks at.
     pub fn matches_with_remainder(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, has_remainder: bool) -> bool {
+        self.matches_facts(item, in_tag, &StackFacts { has_remainder, ..StackFacts::default() })
+    }
+    /// Matches with everything the caller knows about the stack carrying the item (see `StackFacts`).
+    pub fn matches_facts(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, facts: &StackFacts) -> bool {
         match self {
             Self::Item(own) => own == item,
             Self::Tag(tag) => in_tag(item, tag),
-            Self::Any(members) => members.iter().any(|member| member.matches_with_remainder(item, in_tag, has_remainder)),
-            Self::Difference { base, subtracted } => base.matches_with_remainder(item, in_tag, has_remainder) && !subtracted.matches_with_remainder(item, in_tag, has_remainder),
-            Self::Intersection(children) => children.iter().all(|child| child.matches_with_remainder(item, in_tag, has_remainder)),
-            Self::NoContainer(nested) => !has_remainder && nested.matches_with_remainder(item, in_tag, has_remainder),
+            Self::Any(members) => members.iter().any(|member| member.matches_facts(item, in_tag, facts)),
+            Self::Difference { base, subtracted } => base.matches_facts(item, in_tag, facts) && !subtracted.matches_facts(item, in_tag, facts),
+            Self::Intersection(children) => children.iter().all(|child| child.matches_facts(item, in_tag, facts)),
+            Self::NoContainer(nested) => !facts.has_remainder && nested.matches_facts(item, in_tag, facts),
+            Self::Instrument { item: own, instrument, ignore } => {
+                if own != item { return false; }
+                match (instrument, facts.instrument) {
+                    (Some(want), Some(have)) => want == have,
+                    (Some(_), None) => false,
+                    // A stack naming an instrument the registry does not know carries no instrument as far as
+                    // the original is concerned (it resolves the key against the registry first).
+                    (None, Some(have)) => instrument_registered(have) && !instrument_in_tag(have, ignore.as_ref().expect("an instrument or an ignore tag")),
+                    (None, None) => true,
+                }
+            }
+            Self::FluidContainer(fluid) => match facts.fluid {
+                Some((held, amount)) => fluid.test(held, amount, &|fluid, tag| facts.fluid_tags.is_some_and(|tags| tags.contains(fluid, tag))),
+                None => false,
+            },
         }
     }
+}
+
+/// What a caller knows about a stack beyond its item: whether it has a crafting remainder (which only
+/// no_container reads), the instrument it carries (which only the instrument ingredient reads), and the
+/// fluid it holds as a container with the fluid tags to read it against (which only the fluid container
+/// ingredient reads). A fact left unset reads as the stack not having the thing.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct StackFacts<'a> {
+    pub has_remainder: bool,
+    pub instrument: Option<&'a Identifier>,
+    pub fluid: Option<(&'a Identifier, i32)>,
+    pub fluid_tags: Option<&'a crate::fluid_ingredient::FluidTags>,
+}
+
+/// The instrument a stack carries, from its `instrument` data string (InstrumentIngredient's tag): None when
+/// the stack names none or the name does not parse, as the original's tryParse reads both the same way.
+pub(crate) fn instrument_of(stack: &pluto_lib::ItemSlot) -> Option<Identifier> {
+    match stack.custom_data.get("instrument") { Some(pluto_lib::Nbt::String(text)) => Identifier::parse(text).ok(), _ => None }
+}
+
+/// Whether the instrument registry of the pinned data holds this instrument (instrument_tags.rs).
+fn instrument_registered(instrument: &Identifier) -> bool {
+    let name = instrument.to_string();
+    crate::instrument_tags::REGISTRY.iter().any(|own| *own == name.as_str())
+}
+
+/// Whether an instrument is in an instrument tag of the pinned data (instrument_tags.rs).
+fn instrument_in_tag(instrument: &Identifier, tag: &Identifier) -> bool {
+    let (name, tag) = (instrument.to_string(), tag.to_string());
+    crate::instrument_tags::TAGS.iter().find(|(own, _)| *own == tag.as_str())
+        .is_some_and(|(_, members)| members.iter().any(|member| *member == name.as_str()))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -211,6 +290,10 @@ impl Recipes {
     pub fn find(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Recipe> {
         self.recipes.iter().find(|recipe| recipe.ingredient.matches(item, in_tag))
     }
+    /// `find` with the facts of the stack carrying the item (its instrument, the fluid it holds).
+    pub fn find_facts(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, facts: &StackFacts) -> Option<&Recipe> {
+        self.recipes.iter().find(|recipe| recipe.ingredient.matches_facts(item, in_tag, facts))
+    }
     pub fn len(&self) -> usize { self.recipes.len() }
 }
 
@@ -288,13 +371,13 @@ mod tests {
             (id("tconstruct:tools/materials/a"), recipe(json!({"item":"minecraft:iron_ingot"}), "tconstruct:pig_iron", 1, 1)),
             (id("tconstruct:tools/materials/off"), json!({"type":"tconstruct:material","conditions":[false],"ingredient":{"item":"minecraft:gold_ingot"},"material":"tconstruct:gold","needed":1,"value":1})),
             (id("tconstruct:tools/materials/block"), recipe(json!({"item":"minecraft:iron_block"}), "tconstruct:iron", 1, 9)),
-            (id("tconstruct:tools/materials/horn"), recipe(json!({"type":"tconstruct:instrument","item":"minecraft:goat_horn"}), "tconstruct:horn", 1, 4)),
+            (id("tconstruct:tools/materials/horn"), recipe(json!({"type":"tconstruct:instrument","instrument":"minecraft:sing_goat_horn","item":"minecraft:goat_horn"}), "tconstruct:horn", 1, 4)),
             (id("tconstruct:tools/materials/bad"), recipe(json!({"item":"minecraft:iron_nugget"}), "tconstruct:iron", 0, 1)),
             (id("tconstruct:tools/materials/other"), json!({"type":"tconstruct:material_melting"})),
         ];
         let recipes = Recipes::load(&files, &Flags);
-        assert_eq!(recipes.len(), 3, "a, b and block; conditions, other types and bad data do not load");
-        assert_eq!(recipes.problems.len(), 2, "{:?}", recipes.problems);
+        assert_eq!(recipes.len(), 4, "a, b, block and horn; conditions, other types and bad data do not load");
+        assert_eq!(recipes.problems.len(), 1, "{:?}", recipes.problems);
         let none = |_: &Identifier, _: &Identifier| false;
         // Two recipes share an ingredient: the first in id order wins.
         assert_eq!(recipes.find(&id("minecraft:iron_ingot"), &none).unwrap().material.to_string(), "tconstruct:pig_iron");
@@ -302,5 +385,35 @@ mod tests {
         // value 9 of needed 1 per item: 9 * amount / 3 / 1.
         let block = recipes.find(&id("minecraft:iron_block"), &none).unwrap();
         assert!((block.scale_repair(30.0) - 90.0).abs() < 1e-4);
+        // The horn recipe answers only a horn carrying its instrument.
+        let sing = id("minecraft:sing_goat_horn");
+        let horn = recipes.find_facts(&id("minecraft:goat_horn"), &none, &StackFacts { instrument: Some(&sing), ..StackFacts::default() }).expect("the sing horn");
+        assert_eq!(horn.material.to_string(), "tconstruct:horn");
+        assert!(recipes.find(&id("minecraft:goat_horn"), &none).is_none(), "a horn without its instrument matches no variant recipe");
+    }
+    #[test]
+    fn instrument_ingredients_match_the_stack_instrument_and_fluid_containers_match_their_contents() {
+        let none = |_: &Identifier, _: &Identifier| false;
+        let horn = id("minecraft:goat_horn");
+        let sing = Ingredient::decode(&json!({"type":"tconstruct:instrument","instrument":"minecraft:sing_goat_horn","item":"minecraft:goat_horn"})).unwrap();
+        let (sing_id, ponder_id) = (id("minecraft:sing_goat_horn"), id("minecraft:ponder_goat_horn"));
+        assert!(sing.matches_facts(&horn, &none, &StackFacts { instrument: Some(&sing_id), ..StackFacts::default() }));
+        assert!(!sing.matches_facts(&horn, &none, &StackFacts { instrument: Some(&ponder_id), ..StackFacts::default() }));
+        assert!(!sing.matches_facts(&horn, &none, &StackFacts::default()), "a named instrument must be carried");
+        assert!(!sing.matches_facts(&id("minecraft:stick"), &none, &StackFacts { instrument: Some(&sing_id), ..StackFacts::default() }), "the item must be the horn");
+        // The default horn: any registered instrument outside the variant tag, or no instrument at all.
+        let any = Ingredient::decode(&json!({"type":"tconstruct:instrument","ignore":"tconstruct:variant_horns","item":"minecraft:goat_horn"})).unwrap();
+        assert!(!any.matches_facts(&horn, &none, &StackFacts { instrument: Some(&sing_id), ..StackFacts::default() }), "sing is a variant horn");
+        assert!(any.matches_facts(&horn, &none, &StackFacts::default()), "no instrument is fine when none is named");
+        let unknown = id("minecraft:not_an_instrument");
+        assert!(!any.matches_facts(&horn, &none, &StackFacts { instrument: Some(&unknown), ..StackFacts::default() }), "an unregistered instrument is no instrument");
+        assert!(Ingredient::decode(&json!({"type":"tconstruct:instrument","item":"minecraft:goat_horn"})).is_err(), "one of instrument or ignore is required");
+        // A fluid container: the stack must hold enough of a fluid of the tag.
+        let tags = crate::fluid_ingredient::FluidTags::load(&[(id("tconstruct:venom"), json!({"values": ["tconstruct:venom"]}))]);
+        let container = Ingredient::decode(&json!({"type":"mantle:fluid_container","amount":250,"display":{"item":"tconstruct:venom_bottle"},"tag":"tconstruct:venom"})).unwrap();
+        let venom = id("tconstruct:venom");
+        assert!(container.matches_facts(&id("tconstruct:venom_bottle"), &none, &StackFacts { fluid: Some((&venom, 250)), fluid_tags: Some(&tags), ..StackFacts::default() }));
+        assert!(!container.matches_facts(&id("tconstruct:venom_bottle"), &none, &StackFacts { fluid: Some((&venom, 249)), fluid_tags: Some(&tags), ..StackFacts::default() }));
+        assert!(!container.matches_facts(&id("tconstruct:venom_bottle"), &none, &StackFacts::default()), "an item known to hold nothing matches nothing");
     }
 }

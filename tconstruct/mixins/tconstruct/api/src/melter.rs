@@ -173,7 +173,7 @@ impl State {
                 emptied |= result == Finished::Filled;
                 result
             });
-            if emptied { self.empty(items, index); }
+            if emptied { self.consume(items, index, env); }
         }
     }
 
@@ -186,13 +186,25 @@ impl State {
                 emptied |= result == Finished::Filled;
                 result
             });
-            if emptied { self.empty(items, index); }
+            if emptied { self.consume(items, index, env); }
         }
     }
 
-    fn empty(&mut self, items: &mut [Option<ItemSlot>], index: usize) {
-        if let Some(slot) = items.get_mut(index) { *slot = None; }
-        self.keys[index] = None;
+    /// One item of the slot has melted. The original's slot limit is 1 (MeltingModuleInventory.getSlotLimit),
+    /// so its setStack(EMPTY) removes exactly that one item; a stack the host let in melts one item at a
+    /// time and the rest stay, starting over as a fresh insert would (setStack re-runs its setup).
+    fn consume(&mut self, items: &mut [Option<ItemSlot>], index: usize, env: &dyn Surroundings) {
+        let Some(slot) = items.get_mut(index) else { return };
+        let Some(stack) = slot.as_mut() else { self.keys[index] = None; return; };
+        stack.count = stack.count.saturating_sub(1);
+        if stack.count == 0 {
+            *slot = None;
+            self.keys[index] = None;
+            return;
+        }
+        let next = stack.clone();
+        self.slots[index].set_stack(Some((env.melt(&next).map(|melt| (melt.time, melt.temperature)), false)));
+        self.keys[index] = Some(key_of(&next));
     }
 
     /// FuelModule.findFuel(consume): liquid fuel first (it usually goes hotter), then solid. Returns the temperature found, 0 for none.
@@ -453,6 +465,23 @@ mod tests {
         run(&mut state, &mut items, &mut tank, &mut world, 4 * 75 - 1 + 1);
         assert!(items[0].is_none(), "the finished ingot leaves the slot");
         assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }));
+    }
+
+    #[test]
+    fn a_stack_in_a_slot_melts_one_item_at_a_time_and_keeps_the_rest() {
+        // The original's slot limit is 1, so a stack only exists when the host put it there directly;
+        // it melts one item at a time (the recipe's output is a fixed amount, never scaled by count).
+        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 2))] }) };
+        let mut items = vec![Some(ItemSlot::new(id("minecraft:iron_ingot"), 4)), None, None];
+        let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
+        // one ingot is 76 heating passes of 4 ticks (75 to reach 600 at rate 8, one to finish); run past the first
+        run(&mut state, &mut items, &mut tank, &mut world, 4 * 80);
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }), "one ingot's worth, not the stack's");
+        assert_eq!(items[0].as_ref().unwrap().count, 3, "the rest of the stack stays in the slot");
+        // the rest follow one at a time: three more ingots at 76 passes each
+        run(&mut state, &mut items, &mut tank, &mut world, 4 * 80 * 3);
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 360 }));
+        assert!(items[0].is_none(), "the last ingot leaves the slot empty");
     }
 
     #[test]

@@ -107,6 +107,8 @@ mod weapon_effect_hook;
 mod block_break_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
 mod damage_vanilla;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/instrument_tags.rs"]
+mod instrument_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_tags.rs"]
 mod damage_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/protection.rs"]
