@@ -1623,3 +1623,65 @@ target = "horizon_client::game::creatures::Game<'_>::handle_mob_events_reusable"
 kind = "HEAD"
 helper = "pluto-explosion-flush-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Native inventory gates for the pure advancement/recipe forwarders in the
+# API package (hooks.rs, behind the `native-inventory-glue` feature). This is
+# the transport subset migrated from the retired pluto_native_creative
+# package: the shared inventory API crate, its client-library export, the
+# component/stack views the item-predicate boundary uses, and the
+# advancement event source/sink in the game module. The legacy package's
+# remaining boundaries (advancement trigger/index replacements, the
+# crafting-match veto, the station ingredient parser, recipe placement) stay
+# native-preserved under the retained guards and are not composed here.
+# Rename record: the stack-storage module below is named `pluto_stack_store`
+# in this bundle, not the legacy `pluto_stack_storage` — that name is
+# reserved by the wire-snapshot guard for the native-preserved module, and
+# the copied component view references the module under its new name.
+
+[[crate]]
+id = "pluto-inventory-api"
+path = "inventory-api"
+dependent = "horizon-client-lib"
+
+[[module]]
+id = "pluto-inventory"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_inventory"
+source = "pluto-inventory-export.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-component-view"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_component_view"
+source = "pluto-component-view.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-stack-storage"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_store"
+source = "pluto-stack-storage.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-advancement-events"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_events"
+source = "pluto-advancement-events.rs"
+
+[[module]]
+id = "pluto-advancement-event-source"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_event_source"
+source = "pluto-advancement-event-source.rs"
+visibility = "pub"
+
+# The only host-shaped item predicate boundary. Consumers see PlutoLib facts.
+[[injection]]
+id = "pluto-item-predicate"
+target = "horizon_client_lib::advancements::item"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-predicate-head.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }, { name = "w", ty = "&dyn World", value = "w" }]

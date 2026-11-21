@@ -344,7 +344,7 @@ pub fn hooks() -> Box<dyn Hooks> {
         );
     });
     // The pure advancement/recipe forwarders install into the native
-    // inventory gates owned by the pluto_native_creative package; see
+    // inventory gates carried by the pluto_lib bundle; see
     // install_native_inventory_forwarders.
     install_native_inventory_forwarders();
     Box::new(PlutoHooks)
@@ -353,10 +353,10 @@ pub fn hooks() -> Box<dyn Hooks> {
 /// Install the pure advancement/recipe forwarders into the host's native
 /// inventory gates (`horizon_client::pluto_inventory` and
 /// `horizon_client::game::pluto_advancement_event_source`). Those gates are
-/// provided by the pluto_native_creative package, which the clean
-/// pluto_lib bundle does not ship, so the installs sit behind the
+/// attachments of this bundle (migrated from the retired
+/// pluto_native_creative package), so the installs sit behind the
 /// `native-inventory-glue` feature: a composition that includes the
-/// gates enables it; the standalone bundle does not.
+/// bundle's attachments enables it; a standalone API build does not.
 #[cfg(feature = "native-inventory-glue")]
 fn install_native_inventory_forwarders() {
     horizon_client::pluto_inventory::advancements::predicates::register_item_predicate(
@@ -379,8 +379,8 @@ fn install_native_inventory_forwarders() {
     .expect("PlutoLib recipe assembly forwarder installs once");
 }
 
-/// Without the native inventory gates (the standalone pluto_lib bundle)
-/// there is nothing to install into; the pure registries are unaffected.
+/// Without the native inventory gates (a standalone API build) there is
+/// nothing to install into; the pure registries are unaffected.
 #[cfg(not(feature = "native-inventory-glue"))]
 fn install_native_inventory_forwarders() {}
 
@@ -528,6 +528,10 @@ fn recipe_assembly_forward(
             }
             Form::Shapeless => recipe_api_v1::RecipeForm::Shapeless,
             Form::Special => recipe_api_v1::RecipeForm::Special,
+            // Cooking recipes never assemble in a crafting grid, and the
+            // pure registry models grid forms only: no provider evaluation
+            // applies, so the native result stands.
+            Form::Cooking => return Decision::Pass,
         },
         result_item: request.recipe.template.and_then(|t| t.item),
         result_count: request.recipe.template.map_or(0, |t| t.count),
