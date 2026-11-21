@@ -11,8 +11,10 @@
 //! host work, see the support matrix).
 //! The bottles and the soup are drunk (32 ticks, the soup feeds 8 hunger at 0.6 saturation modifier) and the bottles give the effects of
 //! TinkerFood. Not ported, each named: the magma bottle's 15 seconds of fire (a finish callback cannot set an entity on fire), the effects
-//! of Tinkers that are not ported yet are skipped by the game when given, the splash and lingering bottles and the potion bucket (they need
-//! potion contents on stacks and the potion fluid), the tooltips with the
+//! of Tinkers that are not ported yet are skipped by the game when given, the splash and lingering bottles (brewing and the cauldron
+//! interactions that make them have no PlutoLib registry), drinking the potion bucket (nothing here can read a potion's contents out of
+//! a stack's tag, so its effects at 2.5 times and the empty bucket it leaves are unported; the bucket as a container is registered with
+//! the fluids, its tag the fluid's own), the tooltips with the
 //! fluid, the fluid layer of the copper can's model, the sound of a transfer, and trading with the drains and ducts of a smeltery (their
 //! use hook cannot reach the master's tank).
 use crate::{

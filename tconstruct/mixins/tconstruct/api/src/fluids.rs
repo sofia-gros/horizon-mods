@@ -4,7 +4,9 @@
 //! into `fluid_defs`), and its name is the original's `fluid.tconstruct.<name>` translation. The 70 that have a block there (all but the
 //! potion and powdered snow, which are `unplacable`) are world fluids with a bucket: the block `<name>_fluid` (the original's block ids), its stepped models and the bucket item `<name>_bucket` are
 //! the importer's content, the flow is the family's of FluidDeferredRegisterExtension (slime 50 ticks, stone 40, metal 30, gem 45, glass
-//! 30, the level drop and slope distance of each) and PlutoLib flows the block and runs the bucket. Fluids with a negative density (ichor,
+//! 30, the level drop and slope distance of each) and PlutoLib flows the block and runs the bucket. The potion is `unplacable` too, but
+//! its bucket is its own item and carries the fluid's tag as the item's own data (the original's `PotionBucketItem`), where powdered
+//! snow's bucket is the vanilla item, registered in `fluid_items`. Fluids with a negative density (ichor,
 //! molten cinderslime) rise, as the original's inverted fluids do. Entity contact (`BurningLiquidBlock`, `MobEffectLiquidBlock`) runs
 //! through the fluid block's `entity_inside`: the callback queues the contact actions and PlutoLib applies them once the
 //! movement seams are done with the entity (a mob's effect and fire land; a hurt and anything aimed at the player still
@@ -28,6 +30,7 @@ fn definition(spec: &FluidSpec) -> FluidDef {
         .flow(spec.tick_delay, spec.level_drop, spec.slope_distance);
     if spec.placeable { def = def.with_world_blocks(); }
     if spec.bucket { def = def.with_bucket(); }
+    if spec.bucket_tagged { def = def.bucket_carries_tag(); }
     // FluidType sounds: the hot builder uses the lava bucket's, the others the water bucket's (PlutoLib's default)
     if spec.hot { def = def.bucket_sounds("minecraft:item.bucket.fill_lava", "minecraft:item.bucket.empty_lava"); }
     def
@@ -94,12 +97,16 @@ mod tests {
     use pluto_lib::{BlockBehaviors, FluidItems, FluidStack, FluidWorld, ItemSlot, MemoryBlockView};
 
     #[test]
-    fn the_72_fluids_register_with_blocks_and_buckets_but_the_potion_and_powdered_snow() {
+    fn the_72_fluids_register_with_blocks_and_buckets_but_the_powdered_snow() {
         register();
         let all = definitions();
         assert_eq!(all.len(), 72);
         assert_eq!(all.iter().filter(|def| def.world_blocks).count(), 70);
-        assert_eq!(all.iter().filter(|def| def.bucket).count(), 70);
+        assert_eq!(all.iter().filter(|def| def.bucket).count(), 71);
+        let potion = FluidRegistry::get("tconstruct:potion").unwrap();
+        assert!(potion.bucket && potion.bucket_carries_tag && !potion.world_blocks, "the potion's bucket is its own and carries the tag");
+        let snow = FluidRegistry::get("tconstruct:powdered_snow").unwrap();
+        assert!(!snow.bucket && !snow.bucket_carries_tag && !snow.world_blocks, "powdered snow's bucket is the vanilla item, not the fluid's own");
         let unplaced: Vec<_> = all.iter().filter(|def| !def.world_blocks).map(|def| def.id.path().to_owned()).collect();
         assert_eq!(unplaced, ["powdered_snow", "potion"]);
         assert!(BlockBehaviors::get("tconstruct:molten_iron_fluid").is_some());
@@ -124,7 +131,16 @@ mod tests {
             let filled = FluidItems::fill(&empty, &FluidStack { fluid: id(name), amount: 1000, tag: None });
             assert_eq!(filled.container.item.to_string(), format!("tconstruct:{name}_bucket"), "the empty bucket knows every bucket");
         }
-        assert_eq!(FluidItems::fill(&empty, &FluidStack { fluid: id("potion"), amount: 1000, tag: None }).amount, 0);
+        // the potion's bucket carries the fluid's tag as the item's own data (PotionBucketItem: the stack's tag is the fluid's)
+        let mut tag = pluto_lib::NbtCompound::new();
+        tag.insert("Potion".to_owned(), pluto_lib::Nbt::String("minecraft:healing".to_owned()));
+        let tagged = FluidStack { fluid: id("potion"), amount: 1000, tag: Some(tag.clone()) };
+        let filled = FluidItems::fill(&empty, &tagged);
+        assert_eq!((filled.amount, filled.container.item.to_string(), filled.container.custom_data.clone()), (1000, "tconstruct:potion_bucket".to_owned(), tag));
+        assert_eq!(FluidItems::contents(&filled.container), Some(tagged.clone()));
+        let drained = FluidItems::drain(&filled.container, None, 1000).unwrap();
+        assert_eq!(drained.fluid, tagged);
+        assert_eq!(drained.container.unwrap().item.to_string(), "minecraft:bucket");
     }
 
     #[test]

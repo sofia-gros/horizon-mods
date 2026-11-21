@@ -326,8 +326,11 @@ impl State {
     }
 }
 
-/// The vanilla burn time of an item in ticks (0 for none): the item must burn for more than 3 ticks to be fuel, as the quarter is what counts.
+/// The burn time of an item in ticks (0 for none): the vanilla table, plus the original's own fuel event
+/// (`FluidEvents.onFurnaceFuel`: a blazing blood bucket burns for 30000, half again a lava bucket's 20000).
+/// The item must burn for more than 3 ticks to be fuel, as the quarter is what counts.
 pub(crate) fn burn_time(item: &Identifier) -> i32 {
+    if item.to_string() == "tconstruct:blazing_blood_bucket" { return 30_000; }
     let name = item.to_string();
     vanilla_fuels::FUELS.binary_search_by(|(own, _)| (*own).cmp(name.as_str())).map_or(0, |position| vanilla_fuels::FUELS[position].1)
 }
@@ -337,9 +340,10 @@ pub(crate) fn heater_accepts(item: &str) -> bool {
     Identifier::parse(item).is_ok_and(|item| burn_time(&item) > 3)
 }
 
-/// The vanilla container a burned fuel item leaves (`Item.getCraftingRemainingItem`): only the lava bucket is a vanilla fuel with one.
+/// The container a burned fuel item leaves (`Item.getCraftingRemainingItem`): a bucket item leaves the empty
+/// bucket, and the only bucket fuels are the lava bucket and the blazing blood bucket.
 pub(crate) fn fuel_remainder(item: &Identifier) -> Option<Identifier> {
-    (item.to_string() == "minecraft:lava_bucket").then(|| Identifier::parse("minecraft:bucket").expect("valid id"))
+    matches!(item.to_string().as_str(), "minecraft:lava_bucket" | "tconstruct:blazing_blood_bucket").then(|| Identifier::parse("minecraft:bucket").expect("valid id"))
 }
 
 /// The neighbour below, reached through PlutoLib's neighbour queries on its top face.
@@ -642,5 +646,10 @@ mod tests {
         assert!(heater_accepts("minecraft:coal") && !heater_accepts("minecraft:stone") && !heater_accepts("not an id"));
         assert!(heater_accepts("minecraft:oak_button"), "100 ticks of burn time is a positive quarter");
         assert_eq!(fuel_remainder(&id("minecraft:lava_bucket")), Some(id("minecraft:bucket")));
+        // the original's own fuel event (FluidEvents.onFurnaceFuel): a blazing blood bucket burns half again a lava bucket's
+        assert_eq!(burn_time(&id("tconstruct:blazing_blood_bucket")), 30_000);
+        assert!(heater_accepts("tconstruct:blazing_blood_bucket"));
+        assert_eq!(fuel_remainder(&id("tconstruct:blazing_blood_bucket")), Some(id("minecraft:bucket")));
+        assert_eq!(fuel_remainder(&id("minecraft:coal")), None);
     }
 }

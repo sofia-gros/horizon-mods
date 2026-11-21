@@ -64,7 +64,9 @@ pub(crate) fn host_tank(data: &NbtCompound, index: usize) -> Option<FluidStack> 
     let name = tank.get("Fluid")?.as_str()?;
     let amount = tank.get("Amount")?.as_i64()?;
     if name == "minecraft:empty" || amount <= 0 { return None; }
-    Some(FluidStack { fluid: Identifier::parse(name).ok()?, amount: amount as u32, tag: None })
+    // the tag is optional in the saved tank format, absent in data written before stacks carried one
+    let tag = tank.get("Tag").and_then(|tag| tag.as_compound().cloned());
+    Some(FluidStack { fluid: Identifier::parse(name).ok()?, amount: amount as u32, tag })
 }
 
 /// The block state variant of `variants` the canvas's state asks for: the first whose properties all match, else
@@ -189,10 +191,17 @@ fn render_tank(render: &mut BlockEntityRender<'_>) {
     let tank = crate::tank::Tank::read(render.data, capacity);
     let Some(held) = &tank.fluid else { return };
     let Some(visual) = visual(&held.fluid) else { return };
-    let Some(cuboids) = render_data::fluid_cuboids(render.block) else { return };
     let canvas = &mut *render.canvas;
+    // the lanterns have no `block_fluids` data: their fluid is the model's own (LANTERN_FLUID), hanging or standing
+    let cuboids: &[Cuboid] = match render_data::fluid_cuboids(render.block) {
+        Some(variants) => variant_data(variants, canvas),
+        None if crate::lantern::LANTERNS.contains(&path) => {
+            if canvas.state_property("hanging").as_deref() == Some("true") { &LANTERN_FLUID_HANGING } else { &LANTERN_FLUID }
+        }
+        None => return,
+    };
     let scale = held.amount as f32 / capacity as f32;
-    for cuboid in variant_data(cuboids, canvas) { draw_cuboid(canvas, &scaled(cuboid, scale, true, visual.gas), &visual); }
+    for cuboid in cuboids { draw_cuboid(canvas, &scaled(cuboid, scale, true, visual.gas), &visual); }
 }
 
 /// GaugeBlockEntityRenderer: the fluid of the tank behind the gauge, in the gauge's own fluid cuboids,
@@ -210,6 +219,12 @@ fn render_gauge(render: &mut BlockEntityRender<'_>) {
     let scale = held.amount as f32 / capacity as f32;
     for cuboid in variant_data(cuboids, canvas) { draw_cuboid(canvas, &scaled(cuboid, scale, true, visual.gas), &visual); }
 }
+
+/// The lanterns' model fluid (the `fluid` of the original's `models/block/template/lantern.json`, and of
+/// `lantern_hanging.json` one step higher): the box inside the lantern's glass, on its five outer faces. The
+/// original draws it in the model in ten steps of the fill; it is scaled continuously here, as the tanks' are.
+const LANTERN_FLUID: [Cuboid; 1] = [Cuboid { from: [5.05, 1.0, 5.05], to: [10.95, 6.0, 10.95], faces: &[Face { dir: "up", flowing: false, rotation: 0 }, Face { dir: "north", flowing: false, rotation: 0 }, Face { dir: "south", flowing: false, rotation: 0 }, Face { dir: "west", flowing: false, rotation: 0 }, Face { dir: "east", flowing: false, rotation: 0 }] }];
+const LANTERN_FLUID_HANGING: [Cuboid; 1] = [Cuboid { from: [5.05, 2.0, 5.05], to: [10.95, 7.0, 10.95], faces: &[Face { dir: "up", flowing: false, rotation: 0 }, Face { dir: "north", flowing: false, rotation: 0 }, Face { dir: "south", flowing: false, rotation: 0 }, Face { dir: "west", flowing: false, rotation: 0 }, Face { dir: "east", flowing: false, rotation: 0 }] }];
 
 /// The fluid plates of the io blocks' model (`models/block/template/io_fluid`): a thin plate just outside
 /// every face but the back (north as authored, against the smeltery), each showing the model's `fluid`
@@ -282,7 +297,7 @@ fn render_casting(render: &mut BlockEntityRender<'_>) {
                 Some(Some(stack)) => Some(stack.clone()),
                 _ => match (&state.recipe, &fluid) {
                     (Some(recipe), Some(fluid)) if state.timer > 0 => {
-                        crate::casting::recipe_output(station, recipe, render.items.first().and_then(|slot| slot.as_ref()), &fluid.fluid)
+                        crate::casting::recipe_output(station, recipe, render.items.first().and_then(|slot| slot.as_ref()), fluid)
                     }
                     _ => None,
                 },
@@ -483,6 +498,7 @@ pub(crate) fn register() {
     for name in &tanks {
         BlockEntityRendererRegistry::register(Identifier::new("tconstruct", name).expect("valid tank block id"), render_tank);
     }
+    on(&crate::lantern::LANTERNS, render_tank);
     on(&["seared_table", "scorched_table", "seared_basin", "scorched_basin"], render_casting);
     on(&crate::faucet::BLOCKS, render_faucet);
     on(&crate::channel::BLOCKS, render_channel);
@@ -547,7 +563,7 @@ mod tests {
             let mut render = BlockEntityRender { pos: [0, 64, 0], block, data, items, canvas: &mut recorder };
             match block {
                 "tconstruct:seared_melter" => render_melter(&mut render),
-                "tconstruct:seared_ingot_tank" | "tconstruct:seared_fuel_tank" => render_tank(&mut render),
+                "tconstruct:seared_ingot_tank" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_lantern" => render_tank(&mut render),
                 "tconstruct:seared_table" => render_casting(&mut render),
                 "tconstruct:seared_faucet" => render_faucet(&mut render),
                 "tconstruct:seared_channel" => render_channel(&mut render),
@@ -581,6 +597,30 @@ mod tests {
         // an empty melter draws nothing but the turn
         let log = run("tconstruct:seared_melter", &NbtCompound::new(), &[], vec![("facing", "north")]);
         assert_eq!(log, ["push", "pop"]);
+    }
+
+    #[test]
+    fn a_lantern_draws_its_fluid_in_the_models_box_scaled_by_its_fifty() {
+        let mut tank = NbtCompound::new();
+        tank.insert("FluidName".into(), Nbt::String("tconstruct:molten_iron".into()));
+        tank.insert("Amount".into(), Nbt::Int(25));
+        let mut data = NbtCompound::new();
+        data.insert("tank".into(), Nbt::Compound(tank));
+        let log = run("tconstruct:seared_lantern", &data, &[], vec![]);
+        // half of the lantern's fifty: the model box [5.05, 1, 5.05] to [10.95, 6, 10.95] filled to half its height (top at 3.5/16)
+        let sprite = "tconstruct:fluid/molten/ore/iron/still";
+        assert_eq!(log, [
+            format!("quad {sprite} [0.3156, 0.2188, 0.3156] [0.3156, 0.2188, 0.6844] [0.6844, 0.2188, 0.6844] [0.6844, 0.2188, 0.3156] uv [5.05, 5.05, 10.95, 10.95] tint FFFFFF"),
+            format!("quad {sprite} [0.6844, 0.2188, 0.3156] [0.6844, 0.0625, 0.3156] [0.3156, 0.0625, 0.3156] [0.3156, 0.2188, 0.3156] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
+            format!("quad {sprite} [0.3156, 0.2188, 0.6844] [0.3156, 0.0625, 0.6844] [0.6844, 0.0625, 0.6844] [0.6844, 0.2188, 0.6844] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
+            format!("quad {sprite} [0.3156, 0.2188, 0.3156] [0.3156, 0.0625, 0.3156] [0.3156, 0.0625, 0.6844] [0.3156, 0.2188, 0.6844] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
+            format!("quad {sprite} [0.6844, 0.2188, 0.6844] [0.6844, 0.0625, 0.6844] [0.6844, 0.0625, 0.3156] [0.6844, 0.2188, 0.3156] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
+        ]);
+        // hanging, the box stands one step higher (its top at 4.5/16 when half full); empty, nothing is drawn
+        let log = run("tconstruct:seared_lantern", &data, &[], vec![("hanging", "true")]);
+        assert_eq!(log.len(), 5);
+        assert!(log.iter().all(|line| line.contains("0.2812") || line.contains("0.1250")), "the hanging box runs from 2/16 to 4.5/16: {log:?}");
+        assert!(run("tconstruct:seared_lantern", &NbtCompound::new(), &[], vec![]).is_empty());
     }
 
     #[test]

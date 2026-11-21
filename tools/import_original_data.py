@@ -560,7 +560,8 @@ def fluid_registrations():
         rows.append({'name': name, **values, 'color': int(info.get('color', 'FFFFFFFF'), 16), 'still': info.get('still'),
                      'drop': drop, 'slope': slope, 'tick': int(override.group(1)) if override else tick,
                      'hot': base.group(1) == 'hot', 'block': block,
-                     'bucket': block is not None})
+                     'bucket': block is not None or 'PotionBucketItem' in rest,
+                     'bucket_tagged': 'PotionBucketItem' in rest})
     return rows
 
 
@@ -572,7 +573,9 @@ def write_fluid_defs():
     setters), the tint is the colour of the generated mantle fluid_texture (white when it has none). The names are the
     original's `fluid.tconstruct.<name>` translations, already in the lang files. The flow is the family's of
     FluidDeferredRegisterExtension (level decrease, slope distance, tick rate), the block light and contact rule are those of
-    `createBurning` / `createEffect`, and a fluid with no block (`unplacable`: the potion and powdered snow) has neither block nor bucket here."""
+    `createBurning` / `createEffect`, and a fluid with no block (`unplacable`) has no block here: powdered snow has
+    no bucket of its own either (its bucket is the vanilla item), while the potion has one, its own item, and the
+    bucket carries the fluid's tag (`bucket_tagged`: the registration's `PotionBucketItem` factory)."""
     rows = fluid_registrations()
     if len(rows) != 72 or len({row['name'] for row in rows}) != 72:
         raise SystemExit(f"expected the original's 72 distinct fluids, found {len(rows)}")
@@ -582,9 +585,10 @@ def write_fluid_defs():
              '#[derive(Clone, Copy, Debug, PartialEq)]',
              'pub(crate) enum Contact { None, Burning { seconds: i32, damage: f32 }, Effect { effect: &\'static str, amplifier: i32, duration: i32 } }', '',
              '/// One fluid: id path (namespace tconstruct), kelvin, luminance, density, viscosity and tint (0xAARRGGBB); whether it has a block and a bucket,',
-             '/// its flow (tick delay, level drop per block, slope distance), the sounds of its bucket (`hot`: the lava ones), the light of its block and its contact rule.',
+             '/// and whether the bucket carries the fluid tag; its flow (tick delay, level drop per block, slope distance), the sounds of its',
+             '/// bucket (`hot`: the lava ones), the light of its block and its contact rule.',
              "pub(crate) struct FluidSpec { pub name: &'static str, pub temperature: i32, pub luminance: u8, pub density: i32, pub viscosity: i32, pub color: u32,",
-             '    pub placeable: bool, pub bucket: bool, pub tick_delay: u16, pub level_drop: u8, pub slope_distance: u8, pub hot: bool, pub block_light: u8, pub contact: Contact }',
+             '    pub placeable: bool, pub bucket: bool, pub bucket_tagged: bool, pub tick_delay: u16, pub level_drop: u8, pub slope_distance: u8, pub hot: bool, pub block_light: u8, pub contact: Contact }',
              '', 'pub(crate) const FLUIDS: &[FluidSpec] = &[']
     for row in rows:
         block = row['block']
@@ -593,7 +597,7 @@ def write_fluid_defs():
             kind = block['contact']
             contact = f'Contact::Burning {{ seconds: {kind[1]}, damage: {kind[2]:.1f} }}' if kind[0] == 'burning' else f'Contact::Effect {{ effect: "{kind[1]}", amplifier: {kind[2]}, duration: {kind[3]} }}'
         lines.append(f"    FluidSpec {{ name: \"{row['name']}\", temperature: {row['temperature']}, luminance: {row['light']}, density: {row['density']}, viscosity: {row['viscosity']}, "
-                     f"color: 0x{row['color']:08X}, placeable: {str(block is not None).lower()}, bucket: {str(row['bucket']).lower()}, tick_delay: {row['tick']}, level_drop: {row['drop']}, "
+                     f"color: 0x{row['color']:08X}, placeable: {str(block is not None).lower()}, bucket: {str(row['bucket']).lower()}, bucket_tagged: {str(row['bucket_tagged']).lower()}, tick_delay: {row['tick']}, level_drop: {row['drop']}, "
                      f"slope_distance: {row['slope']}, hot: {str(row['hot']).lower()}, block_light: {block['light'] if block else 0}, contact: {contact} }},")
     lines.append('];')
     FLUID_DEFS_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
@@ -707,12 +711,24 @@ def write_render_data():
 def write_fluid_world():
     """The content of the fluids that are blocks and buckets: for each fluid with a block, the block declaration (the vanilla glass template, no
     collision, a `level` state 0 to 8 and an outline only on the source, so an empty bucket can reach it), its block state and nine stepped
-    models over the still texture of the original's fluid texture, and the bucket item (a plain item stacking to 1) with its model. The
-    still textures come from the original's resources. Runs after copy_client_assets, which clears the folders it writes into."""
+    models over the still texture of the original's fluid texture, and the bucket item (a plain item stacking to 1) with its model. A
+    bucket without a block (the potion) gets its bucket item alone. The still textures come from the original's resources.
+    Runs after copy_client_assets, which clears the folders it writes into."""
+
+    def write_bucket(name, tinted, color):
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_bucket.json', {'template': 'minecraft:paper', 'max_stack_size': 1}, compact=True)
+        write_json(ASSET_TARGET / 'models/item' / f'{name}_bucket.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket'}})
+        item = {'type': 'minecraft:model', 'model': f'tconstruct:item/{name}_bucket'}
+        if tinted:
+            item['tints'] = [{'type': 'minecraft:constant', 'value': color & 0xFFFFFF}]
+        write_json(ASSET_TARGET / 'items' / f'{name}_bucket.json', {'model': item})
+
     count = 0
     for row in fluid_registrations():
         block, name = row['block'], row['name']
         if block is None:
+            if row['bucket']:
+                write_bucket(name, row['color'] != 0xFFFFFFFF, row['color'])
             continue
         still = row['still']
         if still is None or not still.startswith('tconstruct:'):
@@ -747,12 +763,7 @@ def write_fluid_world():
             write_json(ASSET_TARGET / 'models/block/fluid' / name / f'level_{level}.json', model)
             variants[f'level={level}'] = {'model': f'tconstruct:block/fluid/{name}/level_{level}'}
         write_json(ASSET_TARGET / 'blockstates' / f'{name}_fluid.json', {'variants': variants})
-        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_bucket.json', {'template': 'minecraft:paper', 'max_stack_size': 1}, compact=True)
-        write_json(ASSET_TARGET / 'models/item' / f'{name}_bucket.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket'}})
-        item = {'type': 'minecraft:model', 'model': f'tconstruct:item/{name}_bucket'}
-        if tinted:
-            item['tints'] = [{'type': 'minecraft:constant', 'value': row['color'] & 0xFFFFFF}]
-        write_json(ASSET_TARGET / 'items' / f'{name}_bucket.json', {'model': item})
+        write_bucket(name, tinted, row['color'])
         count += 1
     return count
 

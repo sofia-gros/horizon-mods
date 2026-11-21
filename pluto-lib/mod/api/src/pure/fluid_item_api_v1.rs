@@ -27,6 +27,10 @@ enum Kind {
     Portion { key: String, amount: u32 },
     /// Always holds `amount` of `fluid`; draining it hands back `empty` (or nothing).
     Constant { fluid: Identifier, amount: u32, empty: Option<Identifier> },
+    /// Always holds `amount` of `fluid` with the stack's own custom data as the fluid's tag (the item is the
+    /// container and its tag is the fluid stack's tag, as a potion bucket's is); draining it hands the tag back
+    /// with the fluid and hands back `empty` (or nothing).
+    TaggedConstant { fluid: Identifier, amount: u32, empty: Option<Identifier> },
     /// Holds nothing but becomes a filled item when `amount` of an accepted fluid goes in.
     Fills(Vec<FillRule>),
 }
@@ -36,10 +40,13 @@ struct FillRule {
     accepts: FluidAccepts,
     amount: u32,
     filled: Identifier,
+    /// The filled stack takes the fluid's tag as its own custom data (the filled item is a tagged container of
+    /// the fluid, see [`FluidItemDef::tagged_constant`]); without it the filled stack keeps the empty one's data.
+    carry_tag: bool,
 }
 
 /// One kind of item that holds fluid and how it holds it. Build it with [`FluidItemDef::tank`], [`FluidItemDef::portion`],
-/// [`FluidItemDef::constant`] or [`FluidItemDef::empty_container`] and register it with [`FluidItems::register`].
+/// [`FluidItemDef::constant`], [`FluidItemDef::tagged_constant`] or [`FluidItemDef::empty_container`] and register it with [`FluidItems::register`].
 #[derive(Clone)]
 pub struct FluidItemDef {
     /// The item this describes, such as `example:can`.
@@ -65,16 +72,41 @@ impl FluidItemDef {
         Self { item, kind: Kind::Constant { fluid, amount, empty } }
     }
 
+    /// An item that always holds `amount` of `fluid` together with a tag: the stack's own custom data is the fluid's
+    /// tag, so a stack with no custom data holds the plain fluid and any other stack holds the fluid with that tag.
+    /// Emptied it becomes `empty` (an empty bucket) or vanishes. Filling happens on the empty item's side (see
+    /// [`FluidItemDef::empty_container_tagged`]).
+    pub fn tagged_constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> Self {
+        Self { item, kind: Kind::TaggedConstant { fluid, amount, empty } }
+    }
+
     /// An empty item (a glass bottle, a bucket, a bowl) that becomes `filled` when `amount` millibuckets of a fluid `accepts` goes in. Chain
     /// [`FluidItemDef::fills`] for further fillings of the same item.
     pub fn empty_container(item: Identifier, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> Self {
-        Self { item, kind: Kind::Fills(vec![FillRule { accepts: Arc::new(accepts), amount, filled }]) }
+        Self { item, kind: Kind::Fills(vec![FillRule { accepts: Arc::new(accepts), amount, filled, carry_tag: false }]) }
+    }
+
+    /// An empty item that becomes `filled` when `amount` millibuckets of a fluid `accepts` goes in, taking the fluid's
+    /// tag as the filled stack's own custom data (the filled item is a tagged container of the fluid, see
+    /// [`FluidItemDef::tagged_constant`]). Chain [`FluidItemDef::fills`] or [`FluidItemDef::fills_tagged`] for further
+    /// fillings of the same item.
+    pub fn empty_container_tagged(item: Identifier, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> Self {
+        Self { item, kind: Kind::Fills(vec![FillRule { accepts: Arc::new(accepts), amount, filled, carry_tag: true }]) }
     }
 
     /// The same empty item with one more filling, tried after the earlier ones. Does nothing to other kinds of item.
     pub fn fills(mut self, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> Self {
         if let Kind::Fills(rules) = &mut self.kind {
-            rules.push(FillRule { accepts: Arc::new(accepts), amount, filled });
+            rules.push(FillRule { accepts: Arc::new(accepts), amount, filled, carry_tag: false });
+        }
+        self
+    }
+
+    /// The same empty item with one more filling, tried after the earlier ones, whose filled stack takes the fluid's
+    /// tag as its own custom data. Does nothing to other kinds of item.
+    pub fn fills_tagged(mut self, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> Self {
+        if let Kind::Fills(rules) = &mut self.kind {
+            rules.push(FillRule { accepts: Arc::new(accepts), amount, filled, carry_tag: true });
         }
         self
     }
@@ -196,6 +228,7 @@ impl FluidItems {
                 Some(FluidStack { fluid, amount: amount.saturating_mul(count), tag })
             }
             Kind::Constant { fluid, amount, .. } => Some(FluidStack { fluid: fluid.clone(), amount: amount.saturating_mul(count), tag: None }),
+            Kind::TaggedConstant { fluid, amount, .. } => Some(FluidStack { fluid: fluid.clone(), amount: amount.saturating_mul(count), tag: stack_tag(stack) }),
             Kind::Fills(_) => None,
         }
     }
@@ -207,7 +240,7 @@ impl FluidItems {
         match &def.kind {
             Kind::Tank { capacity, scaled, .. } => capacity.saturating_mul(if *scaled { count } else { 1 }),
             Kind::Portion { amount, .. } => amount.saturating_mul(count),
-            Kind::Constant { amount, .. } => *amount,
+            Kind::Constant { amount, .. } | Kind::TaggedConstant { amount, .. } => *amount,
             Kind::Fills(rules) => rules.iter().map(|rule| rule.amount).max().unwrap_or(0),
         }
     }
@@ -250,7 +283,7 @@ impl FluidItems {
                 write_portion(&mut container.custom_data, key, &fluid.fluid, fluid.tag.as_ref());
                 Filled { amount: total, container }
             }
-            Kind::Constant { .. } => none,
+            Kind::Constant { .. } | Kind::TaggedConstant { .. } => none,
             Kind::Fills(rules) => {
                 if count != 1 {
                     return none;
@@ -258,6 +291,7 @@ impl FluidItems {
                 let Some(rule) = rules.iter().find(|rule| (rule.accepts)(&fluid.fluid) && fluid.amount >= rule.amount) else { return none };
                 let mut container = stack.clone();
                 container.item = rule.filled.clone();
+                if rule.carry_tag { container.custom_data = fluid.tag.clone().unwrap_or_default(); }
                 Filled { amount: rule.amount, container }
             }
         }
@@ -310,6 +344,18 @@ impl FluidItems {
                     left
                 });
                 Some(Drained { fluid: FluidStack { fluid: fluid.clone(), amount: *amount, tag: None }, container })
+            }
+            Kind::TaggedConstant { fluid, amount, empty } => {
+                if count != 1 || max < *amount || wanted.is_some_and(|wanted| wanted != fluid) {
+                    return None;
+                }
+                let container = empty.as_ref().map(|item| {
+                    let mut left = stack.clone();
+                    left.item = item.clone();
+                    left.custom_data = NbtCompound::new();
+                    left
+                });
+                Some(Drained { fluid: FluidStack { fluid: fluid.clone(), amount: *amount, tag: stack_tag(stack) }, container })
             }
             Kind::Fills(_) => None,
         }
@@ -371,6 +417,11 @@ impl FluidItems {
         }
         Some((Some(filled.container), taken, false))
     }
+}
+
+/// The fluid tag a tagged container's stack carries: its whole custom data, or none when it carries none.
+fn stack_tag(stack: &ItemSlot) -> Option<NbtCompound> {
+    (!stack.custom_data.is_empty()).then(|| stack.custom_data.clone())
 }
 
 fn read_tank(data: &NbtCompound, key: &str) -> Option<(Identifier, u32, Option<NbtCompound>)> {
@@ -589,6 +640,34 @@ mod tests {
         assert_eq!(FluidItems::contents(&can.container), Some(FluidStack { amount: 90, ..potion }));
         let plain = FluidItems::fill(&stack("fi_test:tagged_can", 1), &fluid("fi_test:iron", 90));
         assert_eq!(plain.container.custom_data.get_string("fluid"), Some("fi_test:iron"), "a plain fluid keeps the bare-string form");
+    }
+
+    #[test]
+    fn a_tagged_bucket_holds_its_fluid_with_the_stacks_own_tag_and_an_empty_bucket_takes_the_tag_on_filling() {
+        let bucket = id("fi_test:potion_bucket");
+        let empty_bucket = id("fi_test:bucket");
+        FluidItems::register(FluidItemDef::tagged_constant(bucket.clone(), id("fi_test:potion"), 1000, Some(empty_bucket.clone())));
+        FluidItems::register(FluidItemDef::empty_container_tagged(empty_bucket.clone(), |fluid| fluid.path() == "potion", 1000, bucket.clone()));
+        let mut tag = NbtCompound::new();
+        tag.insert("Potion".to_owned(), Nbt::String("minecraft:healing".to_owned()));
+        let potion = FluidStack { fluid: id("fi_test:potion"), amount: 1000, tag: Some(tag.clone()) };
+        // an empty bucket filled with a tagged stack of the fluid takes the tag as its own data
+        let filled = FluidItems::fill(&stack("fi_test:bucket", 1), &potion);
+        assert_eq!((filled.amount, filled.container.item.clone(), filled.container.custom_data.clone()), (1000, bucket.clone(), tag.clone()));
+        assert_eq!(FluidItems::contents(&filled.container), Some(potion.clone()), "the bucket holds the fluid with the tag");
+        assert_eq!(FluidItems::capacity(&filled.container), 1000);
+        // a bucket with no data holds the plain fluid, and one filled from a plain stack stays plain
+        assert_eq!(FluidItems::contents(&stack("fi_test:potion_bucket", 1)), Some(FluidStack { tag: None, ..potion.clone() }));
+        let plain = FluidItems::fill(&stack("fi_test:bucket", 1), &FluidStack { tag: None, ..potion.clone() });
+        assert_eq!(plain.amount, 1000);
+        assert!(plain.container.custom_data.is_empty());
+        // draining hands the tag back with the fluid and leaves a plain empty bucket
+        let drained = FluidItems::drain(&filled.container, None, 1000).unwrap();
+        assert_eq!(drained.fluid, potion);
+        let left = drained.container.unwrap();
+        assert_eq!((left.item, left.custom_data.is_empty()), (empty_bucket, true));
+        assert_eq!(FluidItems::drain(&filled.container, Some(&id("fi_test:water")), 1000), None, "another fluid is not in it");
+        assert_eq!(FluidItems::fill(&filled.container, &potion).amount, 0, "a full bucket takes nothing");
     }
 
     #[test]

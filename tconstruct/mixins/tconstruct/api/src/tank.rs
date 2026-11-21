@@ -4,7 +4,7 @@
 //! that a broken tank keeps its fluid (the loot table copies it). The block's `light` state follows the fluid's light level and the
 //! comparator reads the fill. Putting fluid in and out with a held bucket, the placed item's fluid, the comparator update and the fluid
 //! drawn in the model need the host (items with fluid, the placement stack, block updates, a renderer).
-use crate::fluid_values::{BUCKET, INGOT};
+use crate::fluid_values::{BUCKET, INGOT, LANTERN_CAPACITY};
 use pluto_lib::{
     BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, FluidRegistry, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound,
     NbtCompoundExt, NeighbourTank, World,
@@ -21,7 +21,9 @@ pub(crate) fn blocks() -> Vec<(String, i32)> {
 }
 
 /// The capacity of the tank block or tank item called `name` (`TankBlockEntity.getCapacity(Item)`: a block item asks its block).
+/// The lanterns are tank blocks of the same family (their block entity extends the tanks'), of the lantern capacity.
 pub(crate) fn capacity_of(name: &str) -> Option<i32> {
+    if crate::lantern::LANTERNS.contains(&name) { return Some(LANTERN_CAPACITY); }
     blocks().into_iter().find(|(block, _)| block == name).map(|(_, capacity)| capacity)
 }
 
@@ -201,6 +203,7 @@ mod tests {
     #[test]
     fn a_tank_holds_one_fluid_up_to_its_block_capacity_and_the_capacities_are_the_originals() {
         assert_eq!((capacity_of("seared_fuel_tank"), capacity_of("scorched_ingot_gauge"), capacity_of("seared_stone")), (Some(4000), Some(4320), None));
+        assert_eq!((capacity_of("seared_lantern"), capacity_of("scorched_lantern")), (Some(50), Some(50)), "the lanterns are tanks of the lantern capacity");
         assert_eq!(blocks().len(), 8);
         let mut tank = Tank::empty(4000);
         assert_eq!(tank.fill(&id("minecraft:lava"), 3000, false), 3000);
