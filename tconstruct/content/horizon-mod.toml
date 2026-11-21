@@ -1,6 +1,6 @@
 id = "tconstruct"
 name = "Tinkers' Construct content"
-version = "0.0.0"
+version = "0.0.1"
 api = "0.2"
 side = "both"
 capabilities = ["registries"]
