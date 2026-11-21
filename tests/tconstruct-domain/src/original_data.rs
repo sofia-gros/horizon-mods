@@ -3000,3 +3000,66 @@ fn shipped_player_added_enchantments_count_in_the_pieces_vanilla_protection_poin
     assert_eq!(host_enchantment_points(&[carried], &source), host_enchantment_points(&[given], &source) + 4.0,
         "the hook's vanilla points include the player-added enchantment, so it is not protected twice");
 }
+
+#[test]
+fn shipped_loot_modifiers_load_in_the_global_order_and_apply() {
+    let mut shipped = files("../loot_modifiers");
+    shipped.extend(files("../loot_modifiers/lustrous").into_iter().map(|(id, value)| {
+        (Identifier::new("tconstruct", &format!("lustrous/{}", id.path())).unwrap(), value)
+    }));
+    assert_eq!(shipped.len(), 21);
+    let modifiers = crate::loot_modifiers::Modifiers::load(&shipped);
+    assert!(modifiers.problems.is_empty(), "{:?}", modifiers.problems);
+    assert_eq!(modifiers.len(), 21);
+    // The imported global list names the same modifiers in the same order the engine runs them.
+    let global: Value = serde_json::from_slice(&std::fs::read(root().join("../../forge/loot_modifiers/global_loot_modifiers.json")).unwrap()).expect("valid JSON");
+    let listed: Vec<&str> = global["entries"].as_array().unwrap().iter().map(|entry| entry.as_str().unwrap()).collect();
+    assert_eq!(listed, crate::loot_modifiers::ORDER.to_vec());
+
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    // An iron ore break with a lustrous tool: of all 21, only the iron lustrous modifier fires.
+    let context = crate::loot_modifiers::Context {
+        table: "minecraft:blocks/iron_ore",
+        has_block: true,
+        has_entity: false,
+        entity: None,
+        block_in_tag: &|tag| *tag == id("forge:ores/iron"),
+        entity_in_tag: &|_| false,
+        item_in_tag: &|item, tag| *item == id("minecraft:iron_ore") && *tag == id("forge:ores/iron"),
+        tag_filled: &|_| true,
+        tag_preference: &|tag| (*tag == id("forge:nuggets/iron")).then(|| id("minecraft:iron_nugget")),
+        tool_level: &|modifier| if *modifier == id("tconstruct:lustrous") { 1 } else { 0 },
+        tool_looting: 0,
+        chrysophilite: 0.0,
+        config: &|_| None,
+        explosion: None,
+    };
+    let mut loot = vec![pluto_lib::ItemSlot::new(id("minecraft:raw_iron"), 1)];
+    modifiers.apply(&context, &mut loot, &mut || 0.0);
+    assert_eq!(loot.len(), 2);
+    assert_eq!(loot[1].item, id("minecraft:iron_nugget"));
+    assert_eq!(loot[1].count, 2);
+
+    // A wither skeleton's bones become necrotic bones while the config allows it.
+    let skeleton = id("minecraft:wither_skeleton");
+    let context = crate::loot_modifiers::Context {
+        table: "minecraft:entities/wither_skeleton",
+        has_block: false,
+        has_entity: true,
+        entity: Some(&skeleton),
+        block_in_tag: &|_| false,
+        entity_in_tag: &|_| false,
+        item_in_tag: &|_, _| false,
+        tag_filled: &|_| false,
+        tag_preference: &|_| None,
+        tool_level: &|_| 0,
+        tool_looting: 0,
+        chrysophilite: 0.0,
+        config: &|prop| (prop == "wither_bone_drop").then_some(true),
+        explosion: None,
+    };
+    let mut loot = vec![pluto_lib::ItemSlot::new(id("minecraft:bone"), 2)];
+    modifiers.apply(&context, &mut loot, &mut || 0.0);
+    assert_eq!(loot[0].item, id("tconstruct:necrotic_bone"));
+    assert_eq!(loot[0].count, 2);
+}

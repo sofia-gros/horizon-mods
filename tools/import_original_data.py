@@ -251,6 +251,10 @@ def copy_recycling_recipes():
 
 SEVERING_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/severing'
 SEVERING_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/severing'
+LOOT_MODIFIER_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/loot_modifiers'
+LOOT_MODIFIER_TARGET = ROOT / 'tconstruct/content/data/tconstruct/loot_modifiers'
+GLOBAL_LOOT_MODIFIER_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/forge/loot_modifiers/global_loot_modifiers.json'
+GLOBAL_LOOT_MODIFIER_TARGET = ROOT / 'tconstruct/content/data/forge/loot_modifiers/global_loot_modifiers.json'
 
 
 def copy_severing_recipes():
@@ -267,6 +271,22 @@ def copy_severing_recipes():
         shutil.copyfile(path, destination)
         count += 1
     return count
+
+
+def copy_loot_modifiers():
+    """The global loot modifiers and the list that orders them, byte for byte. The list keeps its Forge-era
+    folder: the port's own loot engine reads it to learn the order the modifiers run in."""
+    if LOOT_MODIFIER_TARGET.exists():
+        shutil.rmtree(LOOT_MODIFIER_TARGET)
+    count = 0
+    for path in sorted(LOOT_MODIFIER_SOURCE.rglob('*.json')):
+        destination = LOOT_MODIFIER_TARGET / path.relative_to(LOOT_MODIFIER_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    GLOBAL_LOOT_MODIFIER_TARGET.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(GLOBAL_LOOT_MODIFIER_SOURCE, GLOBAL_LOOT_MODIFIER_TARGET)
+    return count + 1
 
 
 def copy_part_builder_recipes():
@@ -2572,7 +2592,7 @@ def main():
     worn_textures, worn_rows = copy_armor_worn_assets()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
 
 

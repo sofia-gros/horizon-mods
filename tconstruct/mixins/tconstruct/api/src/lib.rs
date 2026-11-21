@@ -68,6 +68,8 @@ mod weapon_effect_hook;
 mod block_break_hook;
 mod severing;
 mod severing_hook;
+mod loot_modifiers;
+mod loot_modifier_hook;
 mod melee_hook;
 mod melee_instrument;
 mod kinetic_hook;
@@ -163,6 +165,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     weapon_effect_hook::register();
     block_break_hook::register();
     severing_hook::register();
+    loot_modifier_hook::register();
     effect_immunity_hook::register();
     unequip_hook::register();
     update_health_hook::register();

@@ -139,6 +139,10 @@ mod kinetic_hook;
 mod lifesteal_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/severing.rs"]
 mod severing;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/loot_modifiers.rs"]
+mod loot_modifiers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/loot_modifier_hook.rs"]
+mod loot_modifier_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_recycling.rs"]
 mod part_recycling;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]
