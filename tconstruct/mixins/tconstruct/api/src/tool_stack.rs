@@ -131,6 +131,12 @@ pub(crate) fn looting(nbt: &NbtCompound, env: &Environment) -> i32 {
     enchantments(nbt, env).get("minecraft:looting").copied().unwrap_or(0).max(0)
 }
 
+/// ArmorLootingModifierHook over one worn piece: the looting its modifiers add to its wearer's kills while it sits in `slot`
+/// (ArmorLootingModifierHook.getLooting runs every other worn piece's modules into the kill's looting total).
+pub(crate) fn armor_looting(nbt: &NbtCompound, env: &Environment, slot: &str) -> i32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.armor_looting(entry, facts, slot)).sum())
+}
+
 /// The tool actions the tool's modifiers perform on a right click, in modifier order.
 pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())

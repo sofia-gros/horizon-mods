@@ -170,6 +170,10 @@ impl Modifier {
     pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
         self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()
     }
+    /// ArmorLootingModifierHook over this modifier's modules for a piece worn in `slot`: the looting they add together.
+    pub fn armor_looting(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str) -> i32 {
+        self.modules.iter().map(|module| module.armor_looting(entry, facts, slot)).sum()
+    }
     /// The tool actions this modifier's transform modules perform on a right click.
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()

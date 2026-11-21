@@ -167,6 +167,8 @@ pub(crate) enum Module {
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
+    /// LootingModule.Armor: a worn piece adds this looting to its wearer's kills while it sits in one of the listed slots.
+    ArmorLooting { flat: f32, each: f32, slots: Vec<String>, condition: Condition },
     /// ClearEffectOnUnequipModule: taking the armor off takes the effect off its wearer.
     ClearEffectOnUnequip { effect: Identifier, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
@@ -622,6 +624,16 @@ impl Module {
                 let (flat, each) = leveling_int(fields)?;
                 Self::Enchantment { name: "minecraft:looting".to_owned(), flat, each, ignoring: false, condition: Condition::decode(fields)? }
             }
+            // LootingModule.Armor: a worn piece adds its level to the looting of its wearer's kills in the listed slots. The loot
+            // flows of this port carry no holder, target or damage source, so only the ANY forms bind (as for weapon looting).
+            "tconstruct:armor_looting" if only("tconstruct:armor_looting") => {
+                if !["holder", "target", "damage_source"].iter().all(|key| is_any_predicate(fields, key)) { return Ok(None); }
+                let (flat, each) = leveling_int(fields)?;
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                    .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::ArmorLooting { flat, each, slots, condition: Condition::decode(fields)? }
+            }
             "tconstruct:severing" if only("tconstruct:process_loot") => Self::Severing,
             "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::AdjustDamage::decode(fields)? else { return Ok(None); };
@@ -734,7 +746,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1023,6 +1035,14 @@ impl Module {
         let Self::Enchantment { name, flat, each, condition, .. } = self else { return None; };
         let level = (flat + each * entry.effective_level()) as i32;
         (level > 0 && condition.matches(entry, facts)).then(|| (name.clone(), level))
+    }
+    /// ArmorLootingModifierHook for one worn piece: the looting this module adds while the piece sits in `slot`
+    /// (LootingModule.Armor.updateArmorLooting: the slot must be listed and the condition must match).
+    pub fn armor_looting(&self, entry: &Entry, facts: &Facts, slot: &str) -> i32 {
+        let Self::ArmorLooting { flat, each, slots, condition } = self else { return 0; };
+        if !slots.iter().any(|listed| listed.as_str() == slot) || !condition.matches(entry, facts) { return 0; }
+        let level = (flat + each * entry.effective_level()) as i32;
+        if level > 0 { level } else { 0 }
     }
     /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
     pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
