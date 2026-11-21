@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
 //! drains, and anvils, none of which exist yet), the books, food, glass, platforms and gadgets of the general tab,
-//! lanterns, gauges of other kinds, chutes, cannons, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
+//! lanterns, gauges of other kinds, cannons, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -92,7 +92,7 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     let mut add = |list: &[&str]| names.extend(list.iter().map(|name| (*name).to_owned()));
     add(&["grout", "seared_brick", "nether_grout", "scorched_brick", "copper_can"]);
     add(&["seared_melter", "seared_heater", "smeltery_controller", "foundry_controller"]);
-    add(&["seared_drain", "seared_duct", "scorched_drain", "scorched_duct"]);
+    add(&["seared_drain", "seared_duct", "seared_chute", "scorched_drain", "scorched_duct", "scorched_chute"]);
     let smeltery = group("smeltery", "Tinkers' Smeltery", item("smeltery_controller"));
     let tank = |kind: &str| -> Vec<ItemStack> {
         let mut stacks: Vec<ItemStack> = crate::tank::TYPES.iter().map(|(name, _)| item(&format!("{kind}_{name}"))).collect();

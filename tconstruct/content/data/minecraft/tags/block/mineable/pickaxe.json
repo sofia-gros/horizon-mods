@@ -59,10 +59,12 @@
     "tconstruct:seared_heater",
     "tconstruct:seared_melter",
     "tconstruct:seared_drain",
+    "tconstruct:seared_chute",
     "tconstruct:smeltery_controller",
     "tconstruct:seared_duct",
     "tconstruct:scorched_duct",
     "tconstruct:scorched_drain",
+    "tconstruct:scorched_chute",
     "tconstruct:foundry_controller",
     "tconstruct:modifier_worktable"
   ]
