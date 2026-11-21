@@ -233,6 +233,12 @@ mod rendering;
 mod fluid_transfers;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_items.rs"]
 mod fluid_items;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/throwables.rs"]
+mod throwables;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/glow_block.rs"]
+mod glow_block;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/piggyback.rs"]
+mod piggyback;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]
@@ -247,3 +253,5 @@ mod visuals;
 mod world_block_tests;
 #[cfg(test)]
 mod armor_building;
+#[cfg(test)]
+mod gadget_data;

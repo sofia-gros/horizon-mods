@@ -17,7 +17,7 @@ BUNDLE = Path('tconstruct/mixins/tconstruct')
 CONTENT = Path('tconstruct/content')
 # Content-mod inputs are discovered on disk but each must match one reviewed shape.
 CONTENT_PATHS = (
-    re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:de_de|en_us|es_ar|es_cl|es_es|es_mx|fr_fr|id_id|it_it|ja_jp|ko_kr|lzh|pl_pl|pt_br|ru_ru|sv_se|tr_tr|uk_ua|zh_cn|zh_tw)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'),
+    re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:de_de|en_us|es_ar|es_cl|es_es|es_mx|fr_fr|id_id|it_it|ja_jp|ko_kr|lzh|pl_pl|pt_br|ru_ru|sv_se|tr_tr|uk_ua|zh_cn|zh_tw)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu|entity_type|mob_effect)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),

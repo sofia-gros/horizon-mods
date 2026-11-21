@@ -115,6 +115,9 @@ mod casting_tank;
 mod proxy_tank;
 mod smeltery_io;
 mod rendering;
+mod throwables;
+mod glow_block;
+mod piggyback;
 mod config;
 mod common;
 
@@ -141,6 +144,9 @@ pub fn hooks() -> pluto_lib::ModHooks {
     proxy_tank::register();
     smeltery_io::register();
     rendering::register();
+    throwables::register();
+    glow_block::register();
+    piggyback::register();
     creative::register();
     fluids::register();
     fluid_items::register();
