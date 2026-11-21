@@ -247,3 +247,5 @@ mod visuals;
 mod world_block_tests;
 #[cfg(test)]
 mod armor_building;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/commands.rs"]
+mod commands;

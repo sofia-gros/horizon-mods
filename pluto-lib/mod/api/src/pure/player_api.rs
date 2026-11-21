@@ -77,6 +77,10 @@ pub trait PlayerOps {
     fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
         false
     }
+    /// The player's selected hotbar slot (0 to 8); None if unknown.
+    fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        None
+    }
 }
 
 /// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
@@ -344,6 +348,16 @@ impl ServerPlayer {
         with_current(false, |ops| ops.update_stack(self.uuid, slot, &new.item, new))
     }
 
+    /// The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
+    pub fn selected_slot(&self) -> Option<i32> {
+        with_current(None, |ops| ops.selected_slot(self.uuid))
+    }
+
+    /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
+    pub fn main_hand_stack(&self) -> Option<StackData> {
+        self.selected_slot().and_then(|slot| self.stack(slot))
+    }
+
     /// Empty slots in the 36-slot main inventory (Fabric: counting `PlayerInventory.getEmptySlot`). 0 outside a callback.
     pub fn empty_slots(&self) -> u32 {
         with_current(0, |ops| ops.empty_slots(self.uuid))
@@ -377,6 +391,8 @@ pub struct MemoryPlayerOps {
     pub food: Option<FoodStatus>,
     /// The main inventory slots of every player, by player; a missing player has none.
     pub stacks: std::collections::HashMap<u128, Vec<Option<StackData>>>,
+    /// The selected hotbar slot of every player (0 to 8).
+    pub selected_slot: i32,
 }
 
 impl MemoryPlayerOps {
@@ -490,6 +506,9 @@ impl PlayerOps for MemoryPlayerOps {
             }
             _ => false,
         }
+    }
+    fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        Some(self.selected_slot)
     }
 }
 

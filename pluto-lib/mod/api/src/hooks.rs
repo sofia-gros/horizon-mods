@@ -1077,6 +1077,10 @@ impl PlayerOps for HostOps {
         }
     }
 
+    fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        self.host().acting_player().map(|acting| i32::from(acting.selected_slot))
+    }
+
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
         let _ = player; // inside a callback the host reaches the acting player, who is the one the PlutoLib handle names
         (0..36).filter_map(|slot| self.host().carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()

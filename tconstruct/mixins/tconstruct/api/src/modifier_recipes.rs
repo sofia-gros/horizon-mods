@@ -361,6 +361,8 @@ impl Recipes {
         self.recipes.iter().find(|recipe| recipe.allow_crystal && matches!(recipe.kind, Kind::Single | Kind::Incremental { .. }) && &recipe.result == modifier && recipe.tools.matches(tool, in_tag))
     }
     pub fn len(&self) -> usize { self.recipes.len() }
+    /// Every loaded recipe, for reports that enumerate recipe usage per modifier.
+    pub fn all(&self) -> &[Recipe] { &self.recipes }
 }
 
 /// The crystal item and the NBT key holding its modifier.

@@ -14,6 +14,8 @@ pub(crate) struct Modifier {
     pub id: Identifier,
     pub priority: i32,
     pub level_display: Identifier,
+    /// The `unique` level display's parameters (unique_until, first_unique), when it has them.
+    pub level_display_unique: Option<(i32, bool)>,
     pub tooltips: BTreeSet<String>,
     pub translation_key: Option<String>,
     modules: Vec<crate::modifier_modules::Module>,
@@ -64,12 +66,27 @@ impl Modifier {
     pub fn decode(name: Identifier, value: &Value) -> Result<Self, String> {
         let fields = value.as_object().ok_or("modifier must be an object")?;
         let priority = fields.get("priority").filter(|v| !v.is_null()).map(integer).transpose()?.unwrap_or(i32::MIN);
+        let mut display_unique = None;
         let display = match fields.get("level_display").filter(|v| !v.is_null()) {
             None => Identifier::new("tconstruct", "default").unwrap(),
-            Some(Value::Object(fields)) => id(fields.get("type").ok_or("level display type missing")?)?,
+            Some(Value::Object(fields)) => {
+                let kind = id(fields.get("type").ok_or("level display type missing")?)?;
+                if kind.path() == "unique" {
+                    // The unique display's parameters decide the name per level, so they are
+                    // retained for name rendering; map_level's formula is not.
+                    let until = fields.get("unique_until").filter(|v| !v.is_null()).map(integer).transpose()?.ok_or("unique level display needs unique_until")?;
+                    let first = match fields.get("first_unique") {
+                        None | Some(Value::Null) => false,
+                        Some(Value::Bool(value)) => *value,
+                        Some(_) => return Err("first_unique must be a boolean".into()),
+                    };
+                    display_unique = Some((until, first));
+                }
+                kind
+            }
             Some(value) => id(value)?,
         };
-        // map_level and unique carry parameters that only the (unported) renderer reads.
+        // map_level carries parameters that only the (unported) renderer reads.
         if display.namespace() != "tconstruct" || !["default", "single_level", "no_levels", "pluses", "map_level", "unique"].contains(&display.path()) {
             return Err(format!("unimplemented level display {display}"));
         }
@@ -113,7 +130,7 @@ impl Modifier {
             }
         }
         Ok(Self { id: name, priority: if priority == i32::MIN { 100 } else { priority },
-            level_display: display, tooltips, translation_key, modules, unbound, empty_sentinel: false })
+            level_display: display, level_display_unique: display_unique, tooltips, translation_key, modules, unbound, empty_sentinel: false })
     }
     /// Whether any module of this modifier adds nested traits (it has a MODIFIER_TRAITS binding).
     /// Every module, in definition order.
