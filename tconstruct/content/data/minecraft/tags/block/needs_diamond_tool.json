@@ -1,6 +1,10 @@
 {
   "values": [
     "tconstruct:obsidian_pane",
+    "tconstruct:nahuatl",
+    "tconstruct:nahuatl_slab",
+    "tconstruct:nahuatl_stairs",
+    "tconstruct:nahuatl_fence",
     "tconstruct:queens_slime_block",
     "tconstruct:manyullyn_block",
     "tconstruct:hepatizon_block",

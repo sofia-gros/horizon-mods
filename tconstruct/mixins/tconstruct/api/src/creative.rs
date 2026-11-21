@@ -5,7 +5,8 @@
 //! creative_parts.rs, creative_tools.rs and creative_fluids.rs; a datapack's extra materials are not listed. A tool stack carries only
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
-//! drains, and anvils, none of which exist yet), the books, food, clear tinted glass, platforms and gadgets of the general tab,
+//! drains, and anvils, none of which exist yet), the books, the rest of the food, clear tinted glass and gadgets of the general
+//! tab,
 //! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
@@ -47,14 +48,18 @@ pub(crate) fn tools_group() -> ItemGroup {
 }
 
 /// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
-/// then TinkerCommons' glass section and bars (the clear and stained glass in GlassColor order, the soul glass, the panes in the
-/// same order, gold bars, obsidian pane; the clear tinted glass is not declared), then the metals of TinkerMaterials.addTabItems,
-/// which the general tab calls (its non-metal materials are not declared): the loose nuggets where the original puts them and,
-/// per metal, the block, the ingot and the nugget.
-pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern",
+/// then TinkerCommons' food (the cheese ingot and block; the bacon and the jeweled apple are not declared), its glass section
+/// and bars (the clear and stained glass in GlassColor order, the soul glass, the panes in the same order, gold bars, obsidian
+/// pane; the clear tinted glass is not declared) and its platforms (the copper ones in weathering order, then their waxed
+/// forms, then iron, gold and cobalt), then TinkerMaterials.addTabItems, which the general tab calls: its firewood sets (the
+/// block, its slab, stairs and fence), the loose nuggets where the original puts them and, per metal, the block, the ingot
+/// and the nugget (its other non-metal materials are not declared).
+pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern", "cheese_ingot", "cheese_block",
     "clear_glass", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "soul_glass",
     "clear_glass_pane", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane", "soul_glass_pane",
     "gold_bars", "obsidian_pane",
+    "copper_platform", "exposed_copper_platform", "weathered_copper_platform", "oxidized_copper_platform", "waxed_copper_platform", "waxed_exposed_copper_platform", "waxed_weathered_copper_platform", "waxed_oxidized_copper_platform", "iron_platform", "gold_platform", "cobalt_platform",
+    "nahuatl", "nahuatl_slab", "nahuatl_stairs", "nahuatl_fence", "blazewood", "blazewood_slab", "blazewood_stairs", "blazewood_fence",
     "copper_nugget", "cobalt_block", "cobalt_ingot", "cobalt_nugget", "steel_block", "steel_ingot", "steel_nugget", "debris_nugget", "slimesteel_block", "slimesteel_ingot", "slimesteel_nugget", "amethyst_bronze_block", "amethyst_bronze_ingot", "amethyst_bronze_nugget", "rose_gold_block", "rose_gold_ingot", "rose_gold_nugget", "pig_iron_block", "pig_iron_ingot", "pig_iron_nugget", "cinderslime_block", "cinderslime_ingot", "cinderslime_nugget", "queens_slime_block", "queens_slime_ingot", "queens_slime_nugget", "manyullyn_block", "manyullyn_ingot", "manyullyn_nugget", "hepatizon_block", "hepatizon_ingot", "hepatizon_nugget", "netherite_nugget", "knightmetal_block", "knightmetal_ingot", "knightmetal_nugget", "knightslime_block", "knightslime_ingot", "knightslime_nugget"];
 
 pub(crate) fn general_group() -> ItemGroup {

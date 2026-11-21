@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "minecraft:copper_ingot"
+    ],
+    ".": [
+      "tconstruct:copper_nugget"
+    ]
+  },
+  "pattern": [
+    "#.#",
+    ". .",
+    "#.#"
+  ],
+  "result": {
+    "id": "tconstruct:copper_platform",
+    "count": 4
+  }
+}

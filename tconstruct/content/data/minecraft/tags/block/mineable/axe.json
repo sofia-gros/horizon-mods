@@ -1,5 +1,13 @@
 {
   "values": [
+    "tconstruct:blazewood",
+    "tconstruct:blazewood_slab",
+    "tconstruct:blazewood_stairs",
+    "tconstruct:blazewood_fence",
+    "tconstruct:nahuatl",
+    "tconstruct:nahuatl_slab",
+    "tconstruct:nahuatl_stairs",
+    "tconstruct:nahuatl_fence",
     "tconstruct:tinker_station",
     "tconstruct:part_builder"
   ]
