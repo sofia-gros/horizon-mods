@@ -129,7 +129,8 @@ fn register_chest(name: &'static str, kind: Kind) {
     let id = Identifier::new("tconstruct", name).expect("valid chest id");
     let slots = kind.slots();
     let mut layout = ScreenLayout::new(176.0, 252.0).inventory_at(8.0, 170.0);
-    for _ in 0..slots { layout = layout.hidden_slot(); }
+    // The whole grid is in the menu; the current page positions it.
+    for _ in 0..slots { layout = layout.dynamic_slot(); }
     let window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(move |rule| {
             rule.max_stack = kind.limit();

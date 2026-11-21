@@ -3135,7 +3135,22 @@ impl Hooks for PlutoHooks {
         let mut screen = NativeScreen::default();
         screen.width = layout.width;
         screen.height = layout.height;
-        screen.slots = layout.slots;
+        // The host reads a slot with no position as not in the menu at all: it hides the slot on
+        // the server too, so a click on it never reaches the block entity. A dynamic slot is in
+        // the menu — only its position waits on the menu's state — so it keeps a position here,
+        // off the panel where nothing is drawn or clicked, until the dynamic-slot refresh
+        // replaces it with the state's own answer. A hidden slot keeps no position and stays
+        // out of the menu.
+        screen.slots = layout
+            .slots
+            .iter()
+            .zip(&layout.dynamic)
+            .map(|(slot, dynamic)| match slot {
+                Some(position) => Some(*position),
+                None if *dynamic => Some([-10000.0, -10000.0]),
+                None => None,
+            })
+            .collect();
         screen.inventory_y = layout.inventory_y;
         screen.inventory_x = layout.inventory_x;
         screen.own_labels = layout.own_labels;

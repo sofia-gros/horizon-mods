@@ -208,7 +208,8 @@ fn register_station(name: &'static str, input_count: usize) {
     let result_slot = input_count + 1;
     let slot_count = result_slot + 1;
     let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0);
-    for _ in 0..input_count + 1 { layout = layout.hidden_slot(); }
+    // The tool slot and the inputs are in the menu; the selected layout positions them.
+    for _ in 0..input_count + 1 { layout = layout.dynamic_slot(); }
     layout = layout.slot(RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32);
     let mut window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(move |rule| { if rule.slot == result_slot { rule.may_place = false; } })
