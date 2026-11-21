@@ -4,8 +4,11 @@
 //! cooling timer, molding with the player's hand (sand and clay casts, picking a cast up) and the comparator strength.
 //! `State` is the whole block entity as plain data (saved in the block entity's own data); `Env` is what it asks of the recipes.
 //! A held fluid container empties into the tank or fills from it first (`State::transfer`, over PlutoLib's fluid items); the item swap
-//! only runs for a table without fluid. Not ported here, each named where it would go: the `has_item` block state, redstone swapping,
-//! sounds and particles (a ticker has no world scope), the hopper face rules, potion recipes and retextured casting's texture.
+//! only runs for a table without fluid. The `has_item` block state follows the slots from the ticker (the original sets it in
+//! `setItem`), and retextured casting sets the result's texture. Not ported here, each named where it would go: redstone swapping
+//! (nothing here reads the neighbour signal), sounds and particles (no such hook), the hopper face rules (a hopper's rules cannot
+//! be stated: the menu's `on_accepts` is told only the item, the slot and the face — not the tank or the slots it must consult —
+//! these blocks have no menu to hang it on, and there is no take rule at all), and the potion recipes.
 //! Tool casting, part swapping and tipped clearing run through the tool domain (unit 7). Tipping is the one casting kind that
 //! cannot match: which potion was poured is the fluid's NBT, and a tank's fluid stack carries only the fluid and its amount,
 //! the same gap as the potion recipes.
@@ -18,7 +21,7 @@ use crate::{
 };
 use pluto_lib::{
     BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot,
-    Nbt, NbtCompound, NbtCompoundExt, RegistryLookup, TransferDirection,
+    Nbt, NbtCompound, NbtCompoundExt, RegistryLookup, TransferDirection, World,
 };
 
 pub(crate) const INPUT: usize = 0;
@@ -500,7 +503,8 @@ impl Env for Live<'_> {
         let recipe = self.data.recipes.casting.iter().find(|recipe| recipe.station == self.station && recipe.id == *id)?;
         let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
         match &recipe.kind {
-            CastingKind::Item { result } | CastingKind::Retextured { result } => self.output(result),
+            CastingKind::Item { result } => self.output(result),
+            CastingKind::Retextured { result } => self.output(result).map(|made| retextured(made, cast)),
             // the cast comes out again, a copy of itself
             CastingKind::Duplication => cast.cloned(),
             CastingKind::Material { result, .. } | CastingKind::Composite { result, .. } => {
@@ -592,6 +596,34 @@ pub(crate) fn recipe_output(station: Station, recipe: &Identifier, cast: Option<
     with_live(station, |env| env.assemble(recipe, cast, fluid)).flatten()
 }
 
+/// `CastingBlockEntity.setItem`'s block state: `has_item` is whether either slot holds a stack.
+pub(crate) fn has_item(items: &[Option<ItemSlot>]) -> bool {
+    items.get(INPUT).is_some_and(Option::is_some) || items.get(OUTPUT).is_some_and(Option::is_some)
+}
+
+/// Keeps the block's `has_item` state at what the slots hold. The original sets it in `setItem`, on every
+/// change however it happens; the ticker is the one place here that sees every change — its own, the use
+/// hook's and a hopper's — at most a tick late.
+fn sync_has_item(tick: &BlockEntityTick<'_>) {
+    let Some(world) = World::ticking() else { return };
+    let Some(state) = world.get_block_state(tick.pos) else { return };
+    let text = if has_item(tick.items) { "true" } else { "false" };
+    if state.property("has_item").is_some_and(|current| current != text) { world.set_block_state(tick.pos, &state.with("has_item", text)); }
+}
+
+/// `RetexturedCastingRecipe.assemble`, with Mantle's `RetexturedHelper.setTexture`: the result takes the
+/// texture of the cast block, kept in the stack's custom data under `texture` as the block's id (the key
+/// and value the original's block entities save under `TAG_TEXTURE`). The original asks the cast's item
+/// whether it is a block item; this host's registry snapshots cover items, fluids and entity types but not
+/// blocks, so that test cannot be made — every cast the shipped retextured recipes take is a block (the
+/// smeltery and foundry brick tags), so a cast the recipe accepted names the texture here.
+pub(crate) fn retextured(mut result: ItemSlot, cast: Option<&ItemSlot>) -> ItemSlot {
+    if let Some(cast) = cast {
+        result.custom_data.insert("texture".to_owned(), Nbt::String(cast.item.to_string()));
+    }
+    result
+}
+
 fn tick_casting(tick: &mut BlockEntityTick<'_>, station: Station) {
     with_live(station, |env| {
         let mut state = State::load(tick.data, tick.fluid(0));
@@ -599,6 +631,7 @@ fn tick_casting(tick: &mut BlockEntityTick<'_>, station: Station) {
         state.save(tick.data);
         tick.set_fluid(0, state.fluid.clone());
     });
+    sync_has_item(tick);
 }
 
 fn fill_casting(fill: &mut BlockEntityFill<'_>, station: Station, require_cast: bool) -> u32 {
@@ -704,6 +737,22 @@ mod tests {
 
     fn pour(state: &mut State, items: &mut Vec<Option<ItemSlot>>, fluid_id: &str, amount: u32, require_cast: bool) -> u32 {
         state.fill(&Recipes, items, &fluid(fluid_id, amount), require_cast)
+    }
+
+    #[test]
+    fn has_item_follows_either_slot_and_a_retextured_result_takes_the_casts_texture() {
+        let mut items: Vec<Option<ItemSlot>> = vec![None, None];
+        assert!(!has_item(&items));
+        items[INPUT] = Some(stack("t:blank_cast"));
+        assert!(has_item(&items));
+        items[INPUT] = None;
+        items[OUTPUT] = Some(stack("t:iron_ingot"));
+        assert!(has_item(&items), "the finished item counts too: the original's setItem covers both slots");
+        let cast = stack("tconstruct:seared_bricks");
+        let made = retextured(stack("tconstruct:smeltery_controller"), Some(&cast));
+        assert_eq!(made.custom_data.get("texture"), Some(&Nbt::String("tconstruct:seared_bricks".to_owned())));
+        let plain = retextured(stack("tconstruct:smeltery_controller"), None);
+        assert!(plain.custom_data.is_empty(), "no cast, no texture");
     }
 
     #[test]

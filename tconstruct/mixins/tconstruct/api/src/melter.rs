@@ -2,8 +2,9 @@
 //! FuelModule and SolidFuelModule (MIT; see LICENSE): three item slots that heat into one tank, fuel found in the
 //! block below, and the 4-tick cycle (tick 0 finds fuel, tick 2 heats or cools). `heating.rs` holds the slot and fuel
 //! state machines; this ties them to the item slots, the tank, the recipes and the neighbour below.
-//! Block states (`active`, `in_structure`) are not driven from here: a ticker cannot change its block, and the
-//! structure test is "a container or tank sits below" rather than the `fuel_tanks` block tag.
+//! The block states follow the original: `in_structure` is the block behaviour's (the `fuel_tanks` tag below,
+//! in `melter_blocks`), and this cycle drives `active` — its own and the fuel tank below's — at its third tick
+//! while formed, through the ticking world the host opens around a ticker (`Surroundings::set_active`).
 use crate::{
     fluid_values::OreRate,
     heating::{Finished, Fuel, MeltingSlot, MELTER_CAPACITY, MELTER_SLOTS},
@@ -11,10 +12,12 @@ use crate::{
     tool_materials::part_material,
     vanilla_fuels,
 };
-use pluto_lib::{BlockEntityTick, BlockPos, Direction, FluidRegistry, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, Neighbours};
+use pluto_lib::{BlockEntityTick, BlockPos, Direction, FluidRegistry, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, Neighbours, World};
 
 pub(crate) const SLOTS: usize = MELTER_SLOTS as usize;
 pub(crate) const MELTING_TAG: &str = "melting";
+/// The block tag a fuel source below the melter must be in (`TinkerTags.Blocks.FUEL_TANKS`).
+const FUEL_TANKS: &str = "tconstruct:fuel_tanks";
 
 /// What an item in a slot melts into, from the recipe that matches it (IMeltingRecipe: time, temperature, getOutput).
 #[derive(Clone, Debug, PartialEq)]
@@ -51,8 +54,15 @@ pub(crate) trait Surroundings {
     fn burn_ticks(&self, item: &Identifier) -> i32;
     /// The item a burned fuel item leaves behind (a lava bucket's bucket).
     fn remainder(&self, item: &Identifier) -> Option<Identifier>;
-    /// None where nothing holds fuel: the melter is then not "in a structure".
+    /// The container or tank the fuel comes from; none where the block below holds neither (the fuel module
+    /// then finds no handlers, whatever the structure state).
     fn source(&mut self) -> Option<&mut dyn FuelSource>;
+    /// Whether the melter is in its tiny structure: the block below is in the `fuel_tanks` tag, which the
+    /// block's `in_structure` state already says (`MelterBlockEntity.isFormed`).
+    fn formed(&self) -> bool;
+    /// `MelterBlockEntity.tick`'s block update: the melter's `active` state takes `active`, and so does the
+    /// block below while it is a fuel tank with an `active` state of its own (a heater lights with its melter).
+    fn set_active(&mut self, active: bool);
 }
 
 /// The output tank (FluidTankAnimated over the melter's capacity).
@@ -248,21 +258,30 @@ impl State {
         0
     }
 
-    /// MelterBlockEntity.tick, one game tick.
+    /// MelterBlockEntity.tick, one game tick: the cycle only runs in a structure (the fuel tank below, by
+    /// tag); outside one, the third tick still burns stored fuel down or cools the slots, but nothing is
+    /// heated and no new fuel is found.
     pub(crate) fn step(&mut self, items: &mut [Option<ItemSlot>], tank: &mut Tank, env: &mut dyn Surroundings) {
         self.sync(items, env);
+        let formed = env.formed();
         match self.tick {
-            0 => {
-                if env.source().is_some() && !self.fuel.has_fuel() {
+            0 if formed => {
+                if !self.fuel.has_fuel() {
                     let found = self.find_fuel(false, env);
                     if self.can_heat(found) { self.find_fuel(true, env); }
                 }
             }
             2 => {
-                if env.source().is_some() && self.fuel.has_fuel() {
-                    self.heat(items, tank, env);
-                    self.fuel.decrease(1);
-                } else if self.fuel.has_fuel() {
+                let has_fuel = self.fuel.has_fuel();
+                if formed {
+                    env.set_active(has_fuel);
+                    if has_fuel {
+                        self.heat(items, tank, env);
+                        self.fuel.decrease(1);
+                    } else {
+                        self.cool(items, tank, env);
+                    }
+                } else if has_fuel {
                     self.fuel.decrease(1);
                 } else {
                     self.cool(items, tank, env);
@@ -399,6 +418,30 @@ impl Surroundings for Live<'_> {
         let pos = self.pos;
         self.below.get_or_insert_with(|| Below::of(pos)).as_mut().map(|below| below as &mut dyn FuelSource)
     }
+
+    fn formed(&self) -> bool {
+        // an explicit `in_structure` decides; where no state can be read — the pure fixtures, which drive
+        // this env with no ticking world at all — the melter is the formed one over its fuel source. In a
+        // live ticker the host always opens the world scope, so the state is always there to read.
+        World::ticking().and_then(|world| world.get_block_state(self.pos))
+            .and_then(|state| state.property("in_structure").map(|value| value == "true"))
+            .unwrap_or(true)
+    }
+
+    fn set_active(&mut self, active: bool) {
+        let flag = if active { "true" } else { "false" };
+        let Some(world) = World::ticking() else { return };
+        if let Some(state) = world.get_block_state(self.pos) {
+            if state.property("active") != Some(flag) { world.set_block_state(self.pos, &state.with("active", flag)); }
+        }
+        // the block below shows the same flame state while it is a fuel tank (MelterBlockEntity.tick)
+        let (below, _) = Neighbours::beside(self.pos, Direction::Down);
+        if let Some(state) = world.get_block_state(below) {
+            if state.is_in_tag(FUEL_TANKS) && state.property("active").is_some_and(|value| value != flag) {
+                world.set_block_state(below, &state.with("active", flag));
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -432,7 +475,8 @@ mod tests {
     }
 
     /// Iron ingots melt (60, 800 C, 90 mB of molten iron); lava and the solid fuel burn as the shipped recipes say.
-    struct World { source: Option<Source> }
+    /// `formed` is the structure state the block reports; `active` records every block update the cycle asks for.
+    struct World { source: Option<Source>, formed: bool, active: Vec<bool> }
     impl Surroundings for World {
         fn melt(&self, stack: &ItemSlot) -> Option<Melt> {
             (stack.item.path() == "iron_ingot").then(|| Melt { time: 60, temperature: 800, fluid: id("tconstruct:molten_iron"), amount: 90 })
@@ -444,6 +488,8 @@ mod tests {
         fn burn_ticks(&self, item: &Identifier) -> i32 { burn_time(item) }
         fn remainder(&self, item: &Identifier) -> Option<Identifier> { fuel_remainder(item) }
         fn source(&mut self) -> Option<&mut dyn FuelSource> { self.source.as_mut().map(|source| source as &mut dyn FuelSource) }
+        fn formed(&self) -> bool { self.formed }
+        fn set_active(&mut self, active: bool) { self.active.push(active); }
     }
 
     fn ingot() -> Option<ItemSlot> { Some(ItemSlot::new(id("minecraft:iron_ingot"), 1)) }
@@ -453,7 +499,7 @@ mod tests {
 
     #[test]
     fn solid_fuel_in_the_block_below_melts_an_ingot_in_the_cycle_the_original_runs() {
-        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 2))] }) };
+        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 2))] }), formed: true, active: Vec::new() };
         let mut items = vec![ingot(), None, None];
         let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
         // tick 0 finds the fuel (an ingot can heat at the solid fuel's 800 C), tick 2 heats once
@@ -471,7 +517,7 @@ mod tests {
     fn a_stack_in_a_slot_melts_one_item_at_a_time_and_keeps_the_rest() {
         // The original's slot limit is 1, so a stack only exists when the host put it there directly;
         // it melts one item at a time (the recipe's output is a fixed amount, never scaled by count).
-        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 2))] }) };
+        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 2))] }), formed: true, active: Vec::new() };
         let mut items = vec![Some(ItemSlot::new(id("minecraft:iron_ingot"), 4)), None, None];
         let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
         // one ingot is 76 heating passes of 4 ticks (75 to reach 600 at rate 8, one to finish); run past the first
@@ -487,7 +533,7 @@ mod tests {
     #[test]
     fn liquid_fuel_burns_before_solid_fuel_and_a_full_tank_holds_the_item_until_there_is_room() {
         let lava = FluidStack { fluid: id("minecraft:lava"), amount: 100 };
-        let mut world = World { source: Some(Source { fluid: Some(lava), items: vec![Some(ItemSlot::new(id("minecraft:coal"), 1))] }) };
+        let mut world = World { source: Some(Source { fluid: Some(lava), items: vec![Some(ItemSlot::new(id("minecraft:coal"), 1))] }), formed: true, active: Vec::new() };
         let mut items = vec![ingot(), None, None];
         let mut tank = Tank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: MELTER_CAPACITY as u32 - 80 }), capacity: MELTER_CAPACITY };
         let mut state = State::default();
@@ -508,7 +554,7 @@ mod tests {
 
     #[test]
     fn without_a_fuel_block_the_melter_only_cools_and_a_replaced_item_restarts() {
-        let mut world = World { source: None };
+        let mut world = World { source: None, formed: false, active: Vec::new() };
         let mut items = vec![ingot(), None, None];
         let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
         run(&mut state, &mut items, &mut tank, &mut world, 1);
@@ -528,7 +574,7 @@ mod tests {
 
     #[test]
     fn state_survives_a_save_and_the_menu_publishes_what_the_screen_draws() {
-        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 1))] }) };
+        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 1))] }), formed: true, active: Vec::new() };
         let mut items = vec![ingot(), None, None];
         let (mut state, mut tank) = (State::default(), Tank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 180 }), capacity: MELTER_CAPACITY });
         run(&mut state, &mut items, &mut tank, &mut world, 7);
@@ -546,6 +592,44 @@ mod tests {
         assert_eq!((menu[0], menu[2], menu[3]), (state.fuel.fuel, 800, 8));
         assert_eq!((menu[4], menu[5], menu[6], menu[7]), (state.slots[0].current_time, 600, 800, 1));
         assert_eq!(menu[DATA_TANK_AMOUNT], 180);
+    }
+
+    #[test]
+    fn an_unformed_melter_finds_no_fuel_and_does_not_heat_even_over_a_container() {
+        // the block below holds fuel but is no fuel tank (a chest, say): the tiny structure is not formed, so
+        // the cycle never runs — the original gates everything but cooling and fuel burn-down on isFormed
+        let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 2))] }), formed: false, active: Vec::new() };
+        let mut items = vec![ingot(), None, None];
+        let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
+        run(&mut state, &mut items, &mut tank, &mut world, 8);
+        assert!(!state.fuel.has_fuel(), "no fuel is found outside a structure");
+        assert_eq!(world.source.as_ref().unwrap().items[0].as_ref().unwrap().count, 2, "the coal below is untouched");
+        assert_eq!(state.slots[0].current_time, 0, "nothing heats");
+        assert!(world.active.is_empty(), "the active state is the formed cycle's to drive");
+        // fuel already burning still burns down at the third tick, without heating
+        state.fuel.fuel = 40;
+        state.fuel.temperature = 800;
+        state.fuel.rate = 8;
+        run(&mut state, &mut items, &mut tank, &mut world, 4);
+        assert_eq!(state.fuel.fuel, 39, "one burn-down at tick 2 of the cycle");
+        assert_eq!(state.slots[0].current_time, 0, "still nothing heats");
+    }
+
+    #[test]
+    fn a_formed_melter_reports_its_active_state_at_the_third_tick_of_the_cycle() {
+        let mut world = World { source: None, formed: true, active: Vec::new() };
+        let mut items = vec![ingot(), None, None];
+        let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
+        // one tick of fuel: the third tick lights the block and burns it, the next cycle's third tick puts it out
+        state.fuel.fuel = 1;
+        state.fuel.temperature = 800;
+        state.fuel.rate = 8;
+        run(&mut state, &mut items, &mut tank, &mut world, 3);
+        assert_eq!(world.active, vec![true], "lit while fuel burns");
+        assert_eq!(state.slots[0].current_time, 8, "the same pass heated the ingot");
+        run(&mut state, &mut items, &mut tank, &mut world, 4);
+        assert_eq!(world.active, vec![true, false], "out once the fuel is gone");
+        assert_eq!(state.slots[0].current_time, 3, "and the ingot cools again (8 - 5)");
     }
 
     #[test]

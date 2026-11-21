@@ -3,8 +3,11 @@
 //! answers a faucet, channel or pipe with the controller's tank; a duct does the same for one fluid only, the fluid of the container in
 //! its slot. The structure tells these blocks their master (`master` in their saved data, written when the structure forms and cleared
 //! when a block leaves it), and a servant that already answers to another controller blocks a second structure (`isValidMaster`).
-//! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing, the drain's displayed fluid and
-//! the duct's slot synchronisation packet are not ported. A chute is registered and keeps its master like a drain, but its item reach is
+//! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing is not ported (it is
+//! model data, which the host does not take from a block entity). The fluids the drain and the duct display are ported in the
+//! port's form: the drain's ticker mirrors its master's first tank fluid into its own data under `display` (the controller
+//! notifies its drains in the original), the duct's renderer reads the fluid of the container in its slot from its synced
+//! items, and `rendering::render_io` draws both. A chute is registered and keeps its master like a drain, but its item reach is
 //! not: PlutoLib forwards a neighbour's fluid query (`fluid_forward`) and offers no item forward to answer an item query with the
 //! master's inventory, so a chute exposes no items. A neighbour's fluid query on these blocks is answered by
 //! PlutoLib's host adapter through `FluidStorage` over the loaded block entities, because their storage is their saved data read through
@@ -14,8 +17,8 @@ use crate::{
     tank::{Fluid, Tank},
 };
 use pluto_lib::{
-    BlockEntityDrain, BlockEntityFill, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidFilter, FluidForward, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound,
-    NbtCompoundExt, NeighbourTank, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
+    BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, Direction, FluidFilter, FluidForward, FluidStack, Identifier,
+    ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Neighbours, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
 };
 
 const DUCT_BACKGROUND: &str = "tconstruct:gui/duct";
@@ -124,11 +127,53 @@ pub(crate) fn duct_filter(items: &[Option<ItemSlot>]) -> FluidFilter {
     }
 }
 
+/// The saved display fluid of a drain: the master's first tank fluid, as a `FluidName`/`Amount` compound.
+pub(crate) const TAG_DISPLAY: &str = "display";
+
+/// The fluid a drain shows, read from its saved display compound.
+pub(crate) fn display_of(data: &NbtCompound) -> Option<Fluid> {
+    let tag = data.get_compound(TAG_DISPLAY)?;
+    let name = tag.get_string("FluidName")?;
+    let amount = tag.get_int("Amount", 0) as i32;
+    if amount <= 0 || name == "minecraft:empty" { return None; }
+    Some(Fluid { fluid: Identifier::parse(name).ok()?, amount })
+}
+
+/// Keeps a drain's `display` at the given fluid (none clears it); answers whether anything changed.
+/// `IDisplayFluidListener.notifyDisplayFluidUpdated` arrives as a notification in the original — the
+/// controller calls its drains when the tank's order changes — so this is the mirror it would write.
+pub(crate) fn set_display(data: &mut NbtCompound, fluid: Option<FluidStack>) -> bool {
+    let wanted = fluid.filter(|fluid| fluid.amount > 0).map(|fluid| {
+        let mut tag = NbtCompound::new();
+        tag.insert("FluidName".to_owned(), Nbt::String(fluid.fluid.to_string()));
+        tag.insert("Amount".to_owned(), Nbt::Int(fluid.amount.min(i32::MAX as u32) as i32));
+        tag
+    });
+    let changed = data.get_compound(TAG_DISPLAY) != wanted.as_ref();
+    if changed {
+        match wanted {
+            Some(tag) => { data.insert(TAG_DISPLAY.to_owned(), Nbt::Compound(tag)); }
+            None => { data.remove(TAG_DISPLAY); }
+        }
+    }
+    changed
+}
+
+/// A drain's ticker: its display follows its master's tank, read through the neighbour queries like the
+/// smeltery window reads its fuel tanks (the master's first fluid is its display fluid).
+fn tick_drain(tick: &mut BlockEntityTick<'_>) {
+    let first = master_of(tick.data)
+        .and_then(|master| Neighbours::fluid_tanks(master, Direction::Up))
+        .and_then(|tanks| tanks.into_iter().next())
+        .and_then(|tank| tank.fluid);
+    set_display(tick.data, first);
+}
+
 pub(crate) fn register() {
     for name in DRAINS {
         let block = Identifier::new("tconstruct", name).expect("valid drain id");
-        // a drain answers with the whole tank of its master
-        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })));
+        // a drain answers with the whole tank of its master, and shows its first fluid
+        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().ticker(tick_drain).fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })));
     }
     for name in CHUTES {
         let block = Identifier::new("tconstruct", name).expect("valid chute id");
@@ -231,6 +276,51 @@ mod tests {
             let kind = BlockEntityTypeRegistry::get(&format!("tconstruct:{name}")).expect("chute block entity type");
             assert_eq!(kind.block.to_string(), format!("tconstruct:{name}"));
         }
+    }
+
+    #[test]
+    fn a_drains_display_is_its_masters_first_fluid_and_follows_the_order() {
+        let mut data = master_data(Some([0, 1, 0]));
+        assert!(set_display(&mut data, Some(fluid("tconstruct:molten_iron", 1000))));
+        assert_eq!(display_of(&data), Some(Fluid { fluid: id("tconstruct:molten_iron"), amount: 1000 }));
+        assert!(!set_display(&mut data, Some(fluid("tconstruct:molten_iron", 1000))), "an unchanged display is not rewritten");
+        assert!(set_display(&mut data, Some(fluid("tconstruct:molten_gold", 500))), "the tank's order changed: the new first fluid shows");
+        assert_eq!(display_of(&data), Some(Fluid { fluid: id("tconstruct:molten_gold"), amount: 500 }));
+        assert!(set_display(&mut data, None), "an empty tank shows nothing");
+        assert_eq!(display_of(&data), None);
+    }
+
+    #[test]
+    fn a_drain_tick_reads_its_master_through_the_neighbour_queries() {
+        let mut world = world();
+        let mut data = master_data(Some([0, 1, 0]));
+        let mut items: Vec<Option<ItemSlot>> = Vec::new();
+        {
+            let mut reach = Reach(&mut world);
+            pluto_lib::with_neighbours(&mut reach, || {
+                tick_drain(&mut BlockEntityTick { pos: [1, 1, 0], data: &mut data, items: &mut items });
+            });
+        }
+        assert_eq!(display_of(&data), Some(Fluid { fluid: id("tconstruct:molten_iron"), amount: 1000 }), "the controller's first fluid");
+        // the first fluid drained away: the second becomes the display
+        assert_eq!(FluidStorage::new(&mut world).drain([0, 1, 0], None, 1000, true), Some(fluid("tconstruct:molten_iron", 1000)));
+        {
+            let mut reach = Reach(&mut world);
+            pluto_lib::with_neighbours(&mut reach, || {
+                tick_drain(&mut BlockEntityTick { pos: [1, 1, 0], data: &mut data, items: &mut items });
+            });
+        }
+        assert_eq!(display_of(&data), Some(Fluid { fluid: id("tconstruct:molten_gold"), amount: 1000 }));
+        // a freed drain shows nothing
+        let mut freed = master_data(None);
+        freed.insert(TAG_DISPLAY.to_owned(), data.get(TAG_DISPLAY).unwrap().clone());
+        {
+            let mut reach = Reach(&mut world);
+            pluto_lib::with_neighbours(&mut reach, || {
+                tick_drain(&mut BlockEntityTick { pos: [1, 1, 0], data: &mut freed, items: &mut items });
+            });
+        }
+        assert_eq!(display_of(&freed), None);
     }
 
     /// A neighbour reach that answers from the fluid storage of the world: what the host's adapter has to do.

@@ -23,7 +23,12 @@
 //!   casting table, none for the melter and the basin), at the position, rotation and size of its RenderItem data.
 //! - `FluidTankAnimated`'s render offset (the easing of the drawn height when the amount changes) is client tank
 //!   state the host does not keep; heights are drawn at the amount itself.
-//! - The smeltery's error-block highlight is a debug overlay tied to the player holding the book; it is not drawn.
+//! - The smeltery's error-block highlight is not drawn: the original draws it as a translucent shape (red for
+//!   ten seconds after an error update, or an outline while the player holds the book for the debug view), and
+//!   the canvas has neither alpha nor a line or outline primitive — every quad it draws carries a sprite. The
+//!   error position itself is already in the controller's synced data (`lastError`), so a canvas that gains
+//!   such a primitive can draw it without new data plumbing. The matching message on use is likewise
+//!   undelivered: no block entity use or menu context here carries a player to send it to.
 use crate::render_data::{self, Cuboid, Face};
 use pluto_lib::{
     BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, Direction, FluidRegistry, FluidStack, Identifier, ItemDisplayContext, ItemSlot,
@@ -190,6 +195,60 @@ fn render_tank(render: &mut BlockEntityRender<'_>) {
     for cuboid in variant_data(cuboids, canvas) { draw_cuboid(canvas, &scaled(cuboid, scale, true, visual.gas), &visual); }
 }
 
+/// GaugeBlockEntityRenderer: the fluid of the tank behind the gauge, in the gauge's own fluid cuboids,
+/// filled to the mirrored amount of the mirrored capacity. The mirror is the gauge ticker's work
+/// (`gauge::set_mirror`); the original's renderer reads the neighbour's tank through the block entity's
+/// cached handler instead, which a renderer here cannot do (it sees only its own block entity).
+fn render_gauge(render: &mut BlockEntityRender<'_>) {
+    let capacity = render.data.get_int("capacity", 0) as i32;
+    if capacity <= 0 { return; }
+    let tank = crate::tank::Tank::read(render.data, capacity);
+    let Some(held) = &tank.fluid else { return };
+    let Some(visual) = visual(&held.fluid) else { return };
+    let Some(cuboids) = render_data::fluid_cuboids(render.block) else { return };
+    let canvas = &mut *render.canvas;
+    let scale = held.amount as f32 / capacity as f32;
+    for cuboid in variant_data(cuboids, canvas) { draw_cuboid(canvas, &scaled(cuboid, scale, true, visual.gas), &visual); }
+}
+
+/// The fluid plates of the io blocks' model (`models/block/template/io_fluid`): a thin plate just outside
+/// every face but the back (north as authored, against the smeltery), each showing the model's `fluid`
+/// texture. The block's own model draws them with the placeholder black texture; the renderer draws the
+/// real fluid over them, as the original's fluid texture loader does with the display fluid.
+const IO_PLATES: [Cuboid; 5] = [
+    Cuboid { from: [-0.9, 4.0, 4.0], to: [0.0, 12.0, 12.0], faces: &[Face { dir: "west", flowing: false, rotation: 0 }] },
+    Cuboid { from: [16.0, 4.0, 4.0], to: [16.9, 12.0, 12.0], faces: &[Face { dir: "east", flowing: false, rotation: 0 }] },
+    Cuboid { from: [4.0, 4.0, 16.0], to: [12.0, 12.0, 16.9], faces: &[Face { dir: "south", flowing: false, rotation: 0 }] },
+    Cuboid { from: [4.0, 16.0, 4.0], to: [12.0, 16.9, 12.0], faces: &[Face { dir: "up", flowing: false, rotation: 0 }] },
+    Cuboid { from: [4.0, -0.9, 4.0], to: [12.0, 0.0, 12.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }] },
+];
+
+/// Draws the io plates in `visual`, turned to the block's facing. The plate is the whole window: the
+/// original's model fluid is not scaled by the amount.
+fn draw_io_fluid(canvas: &mut dyn BlockEntityCanvas, visual: &Visual) {
+    let facing = canvas.state_property("facing").unwrap_or_else(|| "north".to_owned());
+    canvas.push();
+    rotate_to_facing(canvas, &facing);
+    for plate in &IO_PLATES { draw_cuboid(canvas, plate, visual); }
+    canvas.pop();
+}
+
+/// The drain's display: the fluid its master's tank shows first, mirrored into its data by its ticker
+/// (`smeltery_io::display_of`).
+fn render_drain(render: &mut BlockEntityRender<'_>) {
+    let Some(held) = crate::smeltery_io::display_of(render.data) else { return };
+    let Some(visual) = visual(&held.fluid) else { return };
+    draw_io_fluid(&mut *render.canvas, &visual);
+}
+
+/// The duct's display: the fluid of the container in its slot (`DuctBlockEntity`'s model data), read from
+/// the synced items like the original's slot synchronisation keeps the model updated.
+fn render_duct(render: &mut BlockEntityRender<'_>) {
+    let Some(held) = render.items.first().and_then(Option::as_ref).and_then(crate::smeltery_io::container_fluid) else { return };
+    let Some(visual) = visual(&held.fluid) else { return };
+    draw_io_fluid(&mut *render.canvas, &visual);
+}
+
 /// CastingBlockEntityRenderer: the fluid on the table or in the basin and the items on it, turned to the block's
 /// facing. A tank the recipe has filled is drawn whole (the original fades it out over the last 10% of cooling —
 /// no alpha here, so it is drawn solid, as is the recipe's output fading in: the output slot's item, or, while
@@ -344,6 +403,18 @@ fn render_controller(render: &mut BlockEntityRender<'_>) {
     if xd < 0 || zd < 0 || yd <= 0 { return; }
     let mut tank = crate::smeltery_tank::SmelteryTank::default();
     if let Some(tag) = render.data.get_compound("tank") { tank.read(tag); }
+    // the controller's own window (`models/block/template/controller_fluid`): the tank's first fluid, the
+    // block entity's display fluid, on the plate proud of the front face — the unformed model has no window,
+    // which the in-structure check above already answers for
+    if let Some(first) = tank.fluids().first() {
+        if let Some(visual) = visual(&first.fluid) {
+            let facing = canvas.state_property("facing").unwrap_or_else(|| "north".to_owned());
+            canvas.push();
+            rotate_to_facing(canvas, &facing);
+            draw_cuboid(canvas, &CONTROLLER_WINDOW, &visual);
+            canvas.pop();
+        }
+    }
     canvas.push();
     canvas.translate([min_in[0] as f32, min_in[1] as f32, min_in[2] as f32]);
     // SmelteryTankRenderer.renderFluids: layers in tank order from the floor, 1000 units to a block of height
@@ -387,6 +458,10 @@ fn render_controller(render: &mut BlockEntityRender<'_>) {
     canvas.pop();
 }
 
+/// The fluid window of a heating controller's model (`models/block/template/controller_fluid`): the plate
+/// proud of the front face (north as authored), showing the display fluid.
+const CONTROLLER_WINDOW: Cuboid = Cuboid { from: [3.0, 10.0, -1.0], to: [13.0, 15.0, 0.0], faces: &[Face { dir: "north", flowing: false, rotation: 0 }] };
+
 /// Every face of a cuboid, for boxes the renderers build themselves (the smeltery's fluid layers).
 const ALL_FACES: [Face; 6] = [
     Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "up", flowing: false, rotation: 0 },
@@ -395,8 +470,8 @@ const ALL_FACES: [Face; 6] = [
 ];
 
 /// Registers every renderer of this unit (the blocks of `SmelteryClientEvents.registerRenderers` that this port
-/// has block entities for; the alloyer, the fluid cannons, the gauge, the casting tank and the proxy tank have no
-/// block entity here yet, so they have nothing to draw).
+/// has block entities for; the alloyer, the fluid cannons, the casting tank and the proxy tank have no renderer
+/// here yet, so they have nothing to draw).
 pub(crate) fn register() {
     let on = |names: &[&str], renderer: fn(&mut BlockEntityRender<'_>)| {
         for name in names {
@@ -412,6 +487,9 @@ pub(crate) fn register() {
     on(&crate::faucet::BLOCKS, render_faucet);
     on(&crate::channel::BLOCKS, render_channel);
     on(&[crate::smeltery_menu::SMELTERY, crate::smeltery_menu::FOUNDRY], render_controller);
+    on(&[crate::gauge::RENDERING_GAUGE], render_gauge);
+    on(&crate::smeltery_io::DRAINS, render_drain);
+    on(&crate::smeltery_io::DUCTS, render_duct);
 }
 
 #[cfg(test)]
@@ -474,6 +552,9 @@ mod tests {
                 "tconstruct:seared_faucet" => render_faucet(&mut render),
                 "tconstruct:seared_channel" => render_channel(&mut render),
                 "tconstruct:smeltery_controller" => render_controller(&mut render),
+                "tconstruct:obsidian_gauge" => render_gauge(&mut render),
+                "tconstruct:seared_drain" => render_drain(&mut render),
+                "tconstruct:seared_duct" => render_duct(&mut render),
                 _ => panic!("no test renderer for {block}"),
             }
         }
@@ -623,9 +704,53 @@ mod tests {
         assert!(log.iter().any(|line| line == "translate [0.5000, 0.5000, 0.5000]"), "{log:?}");
         assert!(log.iter().any(|line| line == "translate [0.5000, 0.5000, 1.5000]"), "{log:?}");
         assert!(log.iter().any(|line| line == "item minecraft:gold_ingot x1 None"), "{log:?}");
+        // the controller's own window shows the first fluid (the display fluid) on its front plate
+        assert!(log.iter().any(|line| line.starts_with("quad tconstruct:fluid/molten/ore/iron/still [0.8125, 0.9375, -0.0625]") && line.contains("uv [3.00, 1.00, 13.00, 6.00]")), "{log:?}");
         // unformed: nothing at all
         let log = run("tconstruct:smeltery_controller", &data, &items, vec![("in_structure", "false"), ("facing", "south")]);
         assert!(log.is_empty());
+    }
+
+    #[test]
+    fn the_gauge_draws_the_mirrored_tank_behind_it_filled_to_its_share() {
+        let mut tank = NbtCompound::new();
+        tank.insert("FluidName".into(), Nbt::String("tconstruct:molten_iron".into()));
+        tank.insert("Amount".into(), Nbt::Int(2160));
+        let mut data = NbtCompound::new();
+        data.insert("tank".into(), Nbt::Compound(tank));
+        data.insert("capacity".into(), Nbt::Int(4320));
+        let log = run("tconstruct:obsidian_gauge", &data, &[], vec![("facing", "north")]);
+        // the north variant is a flat plate at the back of the gauge: half full, it reaches half its height
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 1, "{log:?}");
+        assert!(quads[0].starts_with("quad tconstruct:fluid/molten/ore/iron/still"), "{}", quads[0]);
+        assert!(quads[0].contains("[0.6875, 0.3750, 0.9688]"), "the plate's lower corner: {}", quads[0]);
+        assert!(quads[0].contains("uv [5.00, 7.50, 11.00, 10.00]"), "{}", quads[0]);
+        // no mirror (nothing behind, or an empty tank): nothing
+        assert!(run("tconstruct:obsidian_gauge", &NbtCompound::new(), &[], vec![("facing", "north")]).is_empty());
+    }
+
+    #[test]
+    fn a_drain_and_a_duct_draw_their_display_fluid_on_the_io_plates() {
+        let mut display = NbtCompound::new();
+        display.insert("FluidName".into(), Nbt::String("tconstruct:molten_iron".into()));
+        display.insert("Amount".into(), Nbt::Int(1000));
+        let mut data = NbtCompound::new();
+        data.insert("display".into(), Nbt::Compound(display));
+        let log = run("tconstruct:seared_drain", &data, &[], vec![("facing", "south")]);
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 5, "one plate a face but the back: {log:?}");
+        assert!(quads.iter().all(|line| line.contains("tconstruct:fluid/molten/ore/iron/still")), "{log:?}");
+        assert!(log.iter().any(|line| line.starts_with("rotate [0.0000, 1.0000, 0.0000] 180.0")), "turned to the facing: {log:?}");
+        // a duct shows the fluid of the container in its slot: a lava bucket shows lava
+        let items = [Some(stack("minecraft:lava_bucket"))];
+        let log = run("tconstruct:seared_duct", &NbtCompound::new(), &items, vec![("facing", "north")]);
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 5, "{log:?}");
+        assert!(quads.iter().all(|line| line.contains("minecraft:block/lava_still")), "{log:?}");
+        // an empty duct and a drain with no display draw nothing
+        assert!(run("tconstruct:seared_duct", &NbtCompound::new(), &[None], vec![("facing", "north")]).is_empty());
+        assert!(run("tconstruct:seared_drain", &NbtCompound::new(), &[], vec![("facing", "north")]).is_empty());
     }
 
     #[test]
@@ -659,10 +784,11 @@ mod tests {
         register();
         for block in ["tconstruct:seared_melter", "tconstruct:seared_ingot_tank", "tconstruct:scorched_fuel_gauge", "tconstruct:seared_table",
                       "tconstruct:scorched_basin", "tconstruct:seared_faucet", "tconstruct:scorched_channel", "tconstruct:smeltery_controller",
-                      "tconstruct:foundry_controller"] {
+                      "tconstruct:foundry_controller", "tconstruct:obsidian_gauge", "tconstruct:seared_drain", "tconstruct:scorched_drain",
+                      "tconstruct:seared_duct", "tconstruct:scorched_duct"] {
             assert!(BlockEntityRendererRegistry::has(block), "{block}");
         }
-        // no block entity in this port yet: nothing to draw
-        assert!(!BlockEntityRendererRegistry::has("tconstruct:obsidian_gauge"));
+        // no renderer in this port yet: nothing to draw
+        assert!(!BlockEntityRendererRegistry::has("tconstruct:scorched_alloyer"));
     }
 }
