@@ -182,15 +182,17 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
         });
     }
     let list = tool_materials(&tool.custom_data, definition.material_stat_types().is_some());
-    let can_repair = |material: &Identifier| definition.is_repair_material(&list, material);
+    let env = ctx.environment(&tool.item, definition);
+    // MaterialRepairToolHook.canRepairWith: the definition's own repair materials, or any modifier's.
+    let can_repair = |material: &Identifier| definition.is_repair_material(&list, material) || crate::tool_stack::modifier_is_repair_material(&tool.custom_data, &env, material);
     if !tool_repair::matches(&tool.custom_data, true, &slots, can_repair) { return Ok(Outcome::NoMatch); }
     if !is_broken(&tool.custom_data) && damage(&tool.custom_data) == 0 {
         return Ok(Outcome::Failure("recipe.tconstruct.tool_repair.fully_repaired".to_owned()));
     }
-    let env = ctx.environment(&tool.item, definition);
     let mut result = tool.clone();
     result.count = 1;
-    let amount_for = |material: &Identifier| definition.repair_amount(&list, material, ctx.materials);
+    // MaterialRepairToolHook.getRepairAmount: the larger of the definition's amount and the modifiers'.
+    let amount_for = |material: &Identifier| definition.repair_amount(&list, material, ctx.materials).max(crate::tool_stack::modifier_repair_amount(&tool.custom_data, &env, material) as f32);
     let factor = |value: f32| crate::tool_stack::repair_factor(&tool.custom_data, &env, value);
     let Some(plan) = tool_repair::plan(damage(&tool.custom_data), &slots, amount_for, factor) else { return Ok(Outcome::NoMatch); };
     tool_slot::repair_slot(&mut result, &env, plan.repaired)?;
@@ -215,18 +217,19 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
     let env = ctx.environment(&tool.item, definition);
     // MaterialCastingLookup.getItemCost needs casting recipes, which are not loaded: no part cost,
     // so a swap repairs only when the caller forces it (never here).
-    let max_stack = (ctx.item_max)(&tool.item).min(16);
-    Ok(match tool_swap::swap_material(&tool.custom_data, i32::try_from(tool.count).unwrap_or(1), &env, material, index, 0, false, max_stack)? {
+    let item_max = (ctx.item_max)(&tool.item);
+    let max_stack = item_max.min(16);
+    Ok(match tool_swap::swap_material(&tool.custom_data, i32::try_from(tool.count).unwrap_or(1), &env, material, index, 0, false, max_stack, item_max)? {
         tool_swap::Outcome::Pass => Outcome::NoMatch,
         tool_swap::Outcome::Failure(key) => Outcome::Failure(key),
-        tool_swap::Outcome::Success { tool: data, size } => {
+        tool_swap::Outcome::Success { tool: data, size, shrink } => {
             let mut result = tool.clone();
             result.custom_data = data;
             result.count = u32::try_from(size).unwrap_or(1);
             tool_slot::sync_visuals(&mut result, &env)?;
             let mut consumed = vec![0; inputs.len()];
             consumed[slot] = 1;
-            Outcome::Crafted(Crafted { result, consumed, tool_shrink: max_stack, leftover: Vec::new() })
+            Outcome::Crafted(Crafted { result, consumed, tool_shrink: shrink, leftover: Vec::new() })
         }
     })
 }

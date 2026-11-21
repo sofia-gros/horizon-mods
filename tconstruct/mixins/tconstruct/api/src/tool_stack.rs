@@ -552,8 +552,15 @@ pub(crate) fn try_validate(nbt: &NbtCompound, env: &Environment) -> Option<Strin
 
 /// The tool's item handler: every inventory module of its modifiers, the last modifier first (ToolInventoryCapability).
 pub(crate) fn inventory(nbt: &NbtCompound, env: &Environment) -> crate::tool_inventory::ToolInventory {
+    // ModifiableBowItem.isBallista, which a quiver's validity asks about: the ballistas tag and the flag set.
+    let ballista = match (env.item, env.item_tags) {
+        (Some(item), Some(tags)) => tags.get_tag(&Identifier::parse("tconstruct:modifiable/ranged/ballistas").expect("valid tag")).is_some_and(|members| members.contains(item)),
+        _ => false,
+    } && volatile_flag(nbt, "tconstruct:ballista");
     with_tool_facts(nbt, env, |saved, facts| {
-        crate::tool_inventory::ToolInventory::new(saved.iter().rev().flat_map(|(entry, modifier)| modifier.inventory_parts(entry, facts)).collect())
+        let mut parts: Vec<crate::tool_inventory::Part> = saved.iter().rev().flat_map(|(entry, modifier)| modifier.inventory_parts(entry, facts)).collect();
+        if ballista { for part in &mut parts { if part.is_quiver() { part.note_ballista(); } } }
+        crate::tool_inventory::ToolInventory::new(parts)
     })
 }
 
@@ -599,6 +606,55 @@ pub(crate) fn repair_factor(nbt: &NbtCompound, env: &Environment, mut factor: f3
         }
         factor
     })
+}
+
+/// CraftCountModifierHook.maxStackSize: how many of the tool one craft produces. A tool whose item stacks to
+/// one never runs the hooks; the composed chain multiplies in modifier order and stops at zero or below,
+/// and the result never exceeds the item's own maximum.
+pub(crate) fn max_stack_size(nbt: &NbtCompound, env: &Environment, item_max: i32, count: i32) -> i32 {
+    if item_max == 1 { return 1; }
+    let amount = with_tool_facts(nbt, env, |saved, facts| {
+        let mut amount = count as f32;
+        for (entry, modifier) in saved {
+            amount = modifier.craft_count(entry, facts, amount);
+            if amount <= 0.0 { return 0.0; }
+        }
+        amount
+    });
+    if amount <= 0.0 { 0 } else { (amount as i32).min(item_max) }
+}
+
+/// MaterialRepairModifierHook over the tool's modifiers: whether any of them repairs with `material`.
+pub(crate) fn modifier_is_repair_material(nbt: &NbtCompound, env: &Environment, material: &Identifier) -> bool {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.is_repair_material(entry, facts, material)))
+}
+
+/// The repair a material stack gives through the tool's modifiers alone (the caller takes the larger of this
+/// and the definition's own amount, as MaterialRepairToolHook does).
+pub(crate) fn modifier_repair_amount(nbt: &NbtCompound, env: &Environment, material: &Identifier) -> i32 {
+    let durability_of = |material: &Identifier, stat: &Identifier| crate::tool_definitions::repair_durability_of(env.materials, material, stat);
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.material_repair_amount(entry, facts, material, &durability_of)).sum())
+}
+
+/// The materials the tool's modifiers add as repair materials (MaterialRepairModifierHook.addRepairMaterials).
+pub(crate) fn modifier_repair_materials(nbt: &NbtCompound, env: &Environment) -> Vec<Identifier> {
+    with_tool_facts(nbt, env, |saved, _facts| saved.iter().flat_map(|(_, modifier)| modifier.repair_materials().cloned()).collect())
+}
+
+/// VolatileFloatModule on a launched projectile: each module's value added onto the projectile's persistent
+/// data under its flag. No live caller yet: the launch event reports no stack to write to (the projectile
+/// power helpers above are in the same position).
+pub(crate) fn launch_volatile_floats(nbt: &NbtCompound, env: &Environment, projectile: &mut NbtCompound) {
+    let floats = with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.projectile_floats(entry, facts)).collect::<Vec<_>>());
+    for (flag, amount) in floats {
+        let previous = projectile.get(&flag.to_string()).and_then(Nbt::as_f64).unwrap_or(0.0) as f32;
+        projectile.insert(flag.to_string(), Nbt::Float(previous + amount));
+    }
+}
+
+/// UpdateHealthModule over a worn piece: the health delta for a change in `slot`, going on or coming off.
+pub(crate) fn update_health_delta(nbt: &NbtCompound, env: &Environment, slot: &str, equipped: bool) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.update_health(entry, facts, slot, equipped)).sum())
 }
 
 /// StatsNBT.getInt(DURABILITY): default 1 when the stat is absent.

@@ -25,7 +25,8 @@ pub(crate) fn create_tool(env: &Environment, materials: &MaterialList, empty_sen
     Ok(nbt)
 }
 
-/// CraftCountModifierHook.maxStackSize with no modifier hooks: single-stack items stay at 1.
+/// CraftCountModifierHook.maxStackSize with no modifier hooks running (the base the chain multiplies):
+/// single-stack items stay at 1. The full hook over a built tool is tool_stack::max_stack_size.
 pub(crate) fn craft_count(item_max: i32, count: f32) -> i32 {
     if item_max == 1 { return 1; }
     if count <= 0.0 { return 0; }
@@ -82,9 +83,9 @@ pub(crate) fn build(
     }
     let list = MaterialList::from_variants(materials);
     let tool = create_tool(env, &list, false)?;
-    // Only recipes with real parts consult the craft-count chain.
+    // Only recipes with real parts consult the craft-count chain (over the tool just built).
     let count = if parts > 0 && item_max > 1 {
-        let count = craft_count(item_max, output_count as f32);
+        let count = crate::tool_stack::max_stack_size(&tool, env, item_max, output_count);
         if count <= 0 { return Ok(Built::Failure(NO_COUNT.to_owned())); }
         count
     } else { output_count.min(item_max) };

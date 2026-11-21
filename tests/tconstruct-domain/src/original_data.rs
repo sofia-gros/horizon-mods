@@ -79,16 +79,22 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (121, 84), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (118, 80), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk transform (no walk event) is not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
     // reads the attacker's held items: none of those is reported.
     for unbound in ["tool_action_walk_transform", "embellishment", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
     for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The craft count, material repair, volatile float and quiver inventory modules are bound; revitalizing's
+    // update health binds for its armor slots but its hand module stays unbound (held tools are not reported).
+    for bound in ["craft_count", "material_repair", "volatile_float", "quiver_inventory"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    assert!(kinds.contains("tconstruct:update_health"), "update_health is still unbound for the hand slots");
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
     assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
     assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
+    for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    assert_eq!(unbound_of("revitalizing"), ["tconstruct:update_health"], "the armor update health binds; the hand one is not reported");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
@@ -1260,7 +1266,7 @@ fn shipped_inventory_modifiers_give_a_tool_its_slots_filters_and_stored_stacks()
     };
     let id = |text: &str| Identifier::parse(text).unwrap();
     let max_stack = |_: &Identifier| 64;
-    let in_tag = |item: &Identifier, tag: &Identifier| (tag.path() == "slimeball_ammo" && item.path() == "slime_ball") || (tag.path() == "throwable" && item.path() == "snowball");
+    let in_tag = |item: &Identifier, tag: &Identifier| (tag.path() == "slimeball_ammo" && item.path() == "slime_ball") || (tag.path() == "throwable" && item.path() == "snowball") || (tag.path() == "arrows" && matches!(item.path(), "arrow" | "tipped_arrow"));
     let fits = |_: &Identifier| true;
     let no_handler = |_: &ItemSlot| false;
     let items = Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &fits, has_item_handler: &no_handler };
@@ -1298,13 +1304,18 @@ fn shipped_inventory_modifiers_give_a_tool_its_slots_filters_and_stored_stacks()
     let frame = inventory(&build(&[("tconstruct:item_frame", 2)]).custom_data, &env);
     assert_eq!((frame.slots(), frame.slot_limit(5)), (6, 1));
     assert_eq!(inventory(&build(&[("tconstruct:shield_strap", 1)]).custom_data, &env).slots(), 1);
-    // The menu modules are bound; the quiver inventories (another module) stay unbound.
+    // The menu modules are bound, and so are the quiver inventories: the bulk quiver gives two slots a level
+    // that take arrows (the boots are no crossbow or ballista, so nothing else is ammunition for them).
     let keys = |modifier: &str| world.registry.get(&id(modifier)).map(|modifier| modifier.inventory_menu_keys()).unwrap_or_default();
     assert_eq!(keys("tconstruct:pocket"), vec![MenuKey::Any]);
     assert_eq!(keys("tconstruct:shield_strap"), vec![MenuKey::Shift]);
     assert_eq!(keys("tconstruct:tool_belt"), vec![MenuKey::Shift]);
     assert_eq!(keys("tconstruct:crafting_table"), vec![MenuKey::Any]);
-    assert_eq!(inventory_slots(&build(&[("tconstruct:bulk_quiver", 1)]).custom_data), 0);
+    assert_eq!(inventory_slots(&build(&[("tconstruct:bulk_quiver", 1)]).custom_data), 2);
+    let quiver = inventory(&build(&[("tconstruct:bulk_quiver", 1)]).custom_data, &env);
+    assert!(quiver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:arrow"), 1)) && !quiver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:stick"), 1)));
+    assert!(!quiver.is_item_valid(&items, 0, &ItemSlot::new(id("minecraft:firework_rocket"), 1)));
+    assert_eq!(inventory_slots(&build(&[("tconstruct:trick_quiver", 1)]).custom_data), 3);
 }
 
 /// A rebuilt wood pickaxe carrying `modifier` at `level` (no item context, so every stat is supported).
@@ -1776,9 +1787,11 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
     assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
     // The modules that need host data this port does not receive stay unbound.
-    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:tank", "stat_boost"), ("tconstruct:experienced", "volatile_float")] {
+    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:tank", "stat_boost")] {
         assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
     }
+    // Experienced's volatile float is bound now; only its experience multiplier attribute has no counterpart.
+    assert_eq!(unbound("tconstruct:experienced"), vec!["tconstruct:attribute"]);
     assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());
 }
 
