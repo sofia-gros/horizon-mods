@@ -16,6 +16,7 @@ use horizon_client::mod_api::{
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
+#[cfg(feature = "native-inventory-glue")]
 use crate::pure::advancement_api_v1;
 use crate::pure::recipe_api_v1;
 use crate::pure::player_api::{self, PlayerOps};
@@ -342,6 +343,22 @@ pub fn hooks() -> Box<dyn Hooks> {
             },
         );
     });
+    // The pure advancement/recipe forwarders install into the native
+    // inventory gates owned by the pluto_native_creative package; see
+    // install_native_inventory_forwarders.
+    install_native_inventory_forwarders();
+    Box::new(PlutoHooks)
+}
+
+/// Install the pure advancement/recipe forwarders into the host's native
+/// inventory gates (`horizon_client::pluto_inventory` and
+/// `horizon_client::game::pluto_advancement_event_source`). Those gates are
+/// provided by the pluto_native_creative package, which the clean
+/// pluto_lib bundle does not ship, so the installs sit behind the
+/// `native-inventory-glue` feature: a composition that includes the
+/// gates enables it; the standalone bundle does not.
+#[cfg(feature = "native-inventory-glue")]
+fn install_native_inventory_forwarders() {
     horizon_client::pluto_inventory::advancements::predicates::register_item_predicate(
         horizon_client::pluto_inventory::advancements::predicates::PredicateRegistration {
             id: "pluto_lib:advancement_api_v1",
@@ -360,14 +377,19 @@ pub fn hooks() -> Box<dyn Hooks> {
         },
     )
     .expect("PlutoLib recipe assembly forwarder installs once");
-    Box::new(PlutoHooks)
 }
+
+/// Without the native inventory gates (the standalone pluto_lib bundle)
+/// there is nothing to install into; the pure registries are unaffected.
+#[cfg(not(feature = "native-inventory-glue"))]
+fn install_native_inventory_forwarders() {}
 
 /// The native half of the pure advancement API's item predicates: the host's
 /// dispatch consults only the native inventory-api registry, so this
 /// forwarder carries evaluations into the pure registry, converting the
 /// native component facts into the pure snapshot. A pure conflict fails
 /// closed, exactly as the host dispatch treats a native one.
+#[cfg(feature = "native-inventory-glue")]
 fn advancement_predicate_forward(
     request: &horizon_client::pluto_inventory::advancements::predicates::PredicateRequest<'_>,
 ) -> horizon_client::pluto_inventory::advancements::predicates::PredicateResult {
@@ -414,6 +436,7 @@ fn advancement_predicate_forward(
 /// patch carries no custom data has an empty compound; a tree that cannot
 /// be represented in pure NBT (an end tag, unpaired UTF-16) is unavailable
 /// rather than partial, and consumers requiring components fail closed.
+#[cfg(feature = "native-inventory-glue")]
 fn advancement_components(
     value: &horizon_client::pluto_inventory::advancements::predicates::ComponentValue,
 ) -> Option<Nbt> {
@@ -427,6 +450,7 @@ fn advancement_components(
     }
 }
 
+#[cfg(feature = "native-inventory-glue")]
 fn advancement_component(
     value: &horizon_client::pluto_inventory::advancements::predicates::ComponentValue,
 ) -> Option<Nbt> {
@@ -461,6 +485,7 @@ fn advancement_component(
 /// take the queued events: the drain runs at the head of the only tick
 /// that evaluates inventory criteria, so the request lands before every
 /// evaluation, and no event submitted since the previous tick is missed.
+#[cfg(feature = "native-inventory-glue")]
 fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_event_source::QueuedEvent> {
     if advancement_api_v1::inventory_component_events_requested() {
         horizon_client::pluto_inventory::advancements::request_pure_inventory_component_events();
@@ -475,6 +500,7 @@ fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_eve
         .collect()
 }
 
+#[cfg(feature = "native-inventory-glue")]
 fn recipe_assembly_interest(
     _: &horizon_client::pluto_inventory::crafting::matching::RecipeFacts<'_>,
 ) -> bool {
@@ -486,6 +512,7 @@ fn recipe_assembly_interest(
 /// forwarder carries evaluations into the pure registry, converting the
 /// native stack facts into pure views. A pure assembly's custom data
 /// compound becomes the native decision's component tree.
+#[cfg(feature = "native-inventory-glue")]
 fn recipe_assembly_forward(
     request: &horizon_client::pluto_inventory::crafting::matching::Request<'_>,
 ) -> horizon_client::pluto_inventory::crafting::assembly::Decision {
@@ -562,6 +589,7 @@ fn recipe_assembly_forward(
 /// Pure NBT as the native component tree (the reverse of
 /// `advancement_component`): strings cross as UTF-16 code units and floats
 /// as their bit patterns, exactly as the native tree stores them.
+#[cfg(feature = "native-inventory-glue")]
 fn nbt_component(
     value: &Nbt,
 ) -> horizon_client::pluto_inventory::advancements::predicates::ComponentValue {
@@ -2077,7 +2105,8 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     }
     // The stack's own enchantments: the host applies them (fortune, silk touch, respiration...) to the holder or wearer.
     if slot.enchantments != read_enchantments(stack) {
-        stack.data_mut().set_other(enchantments_component(stack), slot.enchantments.as_ref().map(|levels| {
+        let component = enchantments_component(stack);
+        stack.data_mut().set_other(component, slot.enchantments.as_ref().map(|levels| {
             let compound: NbtCompound = levels.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
             Tag::Compound(compound_to_tag(&compound))
         }));
@@ -3012,7 +3041,8 @@ impl Hooks for PlutoHooks {
     /// names the item ids it can match (the host keeps the recipe only if
     /// the list is non-empty).
     fn ingredient(&self, event: &mut IngredientEvent<'_>) {
-        if let Some(items) = recipe_api_v1::ingredient_items(event.kind, event.data) {
+        let data = serde_json::Value::Object(event.data.clone());
+        if let Some(items) = recipe_api_v1::ingredient_items(event.kind, &data) {
             event.items.extend(items);
         }
     }
@@ -3025,19 +3055,18 @@ impl Hooks for PlutoHooks {
             return;
         }
         let id = event.stack.item.to_string();
-        let custom = event
-            .stack
-            .data()
-            .and_then(|data| data.custom_data())
-            .map(compound_from_tag)
-            .map(Nbt::Compound);
+        let custom = match event.stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+            Some(Tag::Compound(compound)) => Some(Nbt::Compound(compound_from_tag(compound))),
+            _ => None,
+        };
         let view = recipe_api_v1::StackView {
             id: &id,
             count: event.stack.count,
             damage: event.stack.damage,
             custom_data: custom.as_ref(),
         };
-        if let Some(accepted) = recipe_api_v1::ingredient_test(event.kind, event.data, &view) {
+        let data = serde_json::Value::Object(event.data.clone());
+        if let Some(accepted) = recipe_api_v1::ingredient_test(event.kind, &data, &view) {
             event.accept = accepted;
         }
     }
@@ -3258,7 +3287,8 @@ impl Hooks for PlutoHooks {
         let actions: Vec<entity_events_v1::EntityAction> = hit.actions.borrow_mut().drain(..).collect();
         if !actions.is_empty() {
             let victim = event.entity.and_then(|id| i32::try_from(id).ok()).unwrap_or(-1);
-            apply_entity_actions(host, event.dimension, event.owner, victim, actions);
+            let attacker = i32::try_from(event.owner).ok().unwrap_or(-1);
+            apply_entity_actions(host, event.dimension, attacker, victim, actions);
         }
         // What the callbacks settled on the projectile itself, done as the hook returns: a discard
         // removes it (the game's own remove call, which discards projectiles), a new motion sends it
@@ -3395,7 +3425,7 @@ impl Hooks for PlutoHooks {
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
             slot: event.slot,
             selected: event.selected,
-            stack: host.carried_stack(event.slot).filter(|stack| stack.count > 0).map(read_stack),
+            stack: host.carried_stack(event.slot).filter(|stack| stack.count > 0).map(|stack| read_stack(stack)),
         };
         let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
         let handle = HostHandle::new(host);

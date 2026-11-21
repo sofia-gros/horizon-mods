@@ -10,3 +10,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 # The launcher points this at the Horizon source it builds the game from.
 horizon-client = { git = "https://github.com/horizon-rust/horizon", rev = "441f49d57e344bd56b90fd4af5c4e443ff3937c9", default-features = false }
+# The native inventory gates the advancement/recipe forwarders in
+# hooks.rs install into are provided by the pluto_native_creative
+# package. Enable when composing with that package; the standalone
+# pluto_lib bundle does not ship it.
+[features]
+native-inventory-glue = []
