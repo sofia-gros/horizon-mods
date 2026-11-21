@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
 //! drains, and anvils, none of which exist yet), the books, food, glass, platforms and gadgets of the general tab,
-//! lanterns, gauges of other kinds, chutes, cannons, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
+//! lanterns, chutes, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -101,11 +101,13 @@ pub(crate) fn smeltery_group() -> ItemGroup {
         stacks
     };
     let mut entries: Vec<ItemStack> = names.drain(..).map(|name| item(&name)).collect();
+    entries.extend(["copper_gauge", "obsidian_gauge"].iter().map(|name| item(name)));
     entries.extend(tank("seared"));
     entries.extend(tank("scorched"));
     let mut rest: Vec<String> = Vec::new();
     rest.extend(["seared_faucet", "scorched_faucet", "seared_channel", "scorched_channel"].map(str::to_owned));
     rest.extend(["seared_table", "scorched_table", "seared_basin", "scorched_basin"].map(str::to_owned));
+    rest.extend(["seared_fluid_cannon", "scorched_fluid_cannon", "end_fluid_cannon"].map(str::to_owned));
     rest.extend(building("seared_bricks", &["wall"]));
     rest.extend(building("seared_stone", &[]));
     rest.extend(["seared_cracked_bricks", "seared_fancy_bricks", "seared_triangle_bricks"].map(str::to_owned));

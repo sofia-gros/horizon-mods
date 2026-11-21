@@ -60,10 +60,15 @@
     "tconstruct:seared_melter",
     "tconstruct:seared_drain",
     "tconstruct:smeltery_controller",
+    "tconstruct:seared_fluid_cannon",
+    "tconstruct:copper_gauge",
     "tconstruct:seared_duct",
     "tconstruct:scorched_duct",
+    "tconstruct:scorched_fluid_cannon",
     "tconstruct:scorched_drain",
     "tconstruct:foundry_controller",
+    "tconstruct:obsidian_gauge",
+    "tconstruct:end_fluid_cannon",
     "tconstruct:modifier_worktable"
   ]
 }

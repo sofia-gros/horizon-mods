@@ -1664,7 +1664,7 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
              'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
@@ -1762,6 +1762,7 @@ def smeltery_blocks():
             blocks[name] = {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
                             'state_properties': properties, 'item': True}
     blocks.update(smeltery_unit6_blocks())
+    blocks.update(smeltery_u6b_blocks())
     return blocks
 
 
@@ -1817,8 +1818,34 @@ def smeltery_unit6_blocks():
     return blocks
 
 
+def smeltery_u6b_blocks():
+    """The fluid cannons and the gauges (TinkerSmeltery): a cannon is a tank block of its kind's properties (the end
+    cannon takes the seared ones), adding the six-way `facing` and the redstone `triggered` to the tank's `in_structure`
+    and `light`; a gauge is Mantle's GaugeBlock: map colour none, no collision, strength 0.5, no occlusion, the clicked
+    face as its only state. The outline shape is the template's; the gauge's thin panel is its model's."""
+    facing = {'type': 'enum', 'values': ['down', 'up', 'north', 'south', 'west', 'east']}
+    light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+
+    def cannon(color, sounds, hardness, resistance):
+        return {'template': 'minecraft:stone',
+                'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                'state_properties': {'facing': facing, 'triggered': {'type': 'boolean'}, 'in_structure': {'type': 'boolean'}, 'light': light},
+                'state_light': {'property': 'light', 'values': {str(level): level for level in range(16)}}, 'item': True}
+
+    def gauge():
+        return {'template': 'minecraft:stone',
+                'properties': {'hardness': 0.5, 'explosion_resistance': 0.5, 'sounds': 'minecraft:stone', 'map_color': MAP_COLOR['NONE'], 'requires_tool': True, 'occludes': False},
+                'state_properties': {'facing': facing}, 'collision_shapes': {'default': []}, 'item': True}
+
+    return {'seared_fluid_cannon': cannon('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0),
+            'scorched_fluid_cannon': cannon('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0),
+            'end_fluid_cannon': cannon('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0),
+            'copper_gauge': gauge(), 'obsidian_gauge': gauge()}
+
+
 # Their block states are the original's own (variants or multipart over the template's properties), so they are copied as they are.
 SMELTERY_STATE_BLOCKS += [name for name in smeltery_unit6_blocks() if name not in ('grout', 'nether_grout')]
+SMELTERY_STATE_BLOCKS += list(smeltery_u6b_blocks())
 
 
 def write_vanilla_fuels():
@@ -1992,7 +2019,8 @@ def copy_world_features():
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
 FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
-              'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass']}
+              'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
+              'forge:dusts/redstone': ['minecraft:redstone'], 'forge:glass_panes/colorless': ['minecraft:glass_pane']}
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
 TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}

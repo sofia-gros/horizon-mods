@@ -4,6 +4,7 @@
     "tconstruct:raw_cobalt_block",
     "tconstruct:ichor_slime_dirt",
     "tconstruct:seared_duct",
-    "tconstruct:scorched_duct"
+    "tconstruct:scorched_duct",
+    "tconstruct:scorched_fluid_cannon"
   ]
 }
