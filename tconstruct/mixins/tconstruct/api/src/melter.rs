@@ -401,7 +401,9 @@ pub(crate) fn melt_stack(data: &Data, item_tags: Option<&pluto_lib::RegistryLook
 
 impl Surroundings for Live<'_> {
     fn melt(&self, stack: &ItemSlot) -> Option<Melt> {
-        melt_stack(self.data, self.item_tags, stack, &OreRate::MELTER, &OreRate::FOUNDRY_BYPRODUCT).map(|(melt, _)| melt)
+        // Config.Common.melterOreRate, read per melt as MelterBlockEntity reads .get() per use.
+        let rates = crate::config::ore_rates();
+        melt_stack(self.data, self.item_tags, stack, &rates.melter, &rates.foundry_byproduct).map(|(melt, _)| melt)
     }
 
     fn liquid_fuel(&self, fluid: &Identifier) -> Option<LiquidFuel> {
