@@ -558,10 +558,11 @@ mod tests {
             assert_eq!(found[1].living, Some(crate::smeltery::Living { fire_immune: true, immune: false }));
             assert_eq!(found[2].living, Some(crate::smeltery::Living { fire_immune: false, immune: true }), "fire resistance refuses the melt");
             assert!(entities.hurt(2, true, 2));
+            assert!(entities.hurt(2, false, 2));
             entities.set_item(1, ItemSlot::new(id("minecraft:iron_ingot"), 1));
             entities.discard(1);
         });
-        assert_eq!(ops.hurt, vec![(2, 2.0, "tconstruct:smeltery_magic".to_owned())], "a fire immune entity is hurt by the magic type");
+        assert_eq!(ops.hurt, vec![(2, 2.0, "tconstruct:smeltery_magic".to_owned()), (2, 2.0, "tconstruct:smeltery_heat".to_owned())]);
         assert_eq!(ops.left.len(), 1);
         assert_eq!(ops.discarded, vec![1]);
     }

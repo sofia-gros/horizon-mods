@@ -29,8 +29,8 @@ CONTENT_PATHS = (
     # kept in the mod's own folders (the host's own copy of the tconstruct tags is data/tconstruct/tags/fluid, matched below).
     re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/fluid_tags/(?:tconstruct|forge|mantle)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    # The damage type armor modules hurt their wearer with (data pack damage_type definition), and its entries in the two vanilla tags it joins.
-    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects)\.json'),
+    # Damage types used by armor modules and the smeltery, and their additions to vanilla tags.
+    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects|is_fire|witch_resistant_to)\.json'),
     # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
