@@ -2384,6 +2384,81 @@ def copy_lang():
     return len(LANGUAGES)
 
 
+
+# --- Advancements: the 50 gameplay advancements and their grant functions -------------------
+ADVANCEMENT_GROUPS = ['foundry', 'internal', 'smeltery', 'tools', 'world']
+ADVANCEMENT_KEYS = {'parent', 'display', 'criteria', 'requirements', 'rewards', 'sends_telemetry_event'}
+ADVANCEMENT_DISPLAY_KEYS = {'icon', 'title', 'description', 'frame', 'background', 'show_toast', 'announce_to_chat', 'hidden'}
+
+
+def upgrade_advancement(data, name):
+    """A 1.20.1 advancement in the host's form: the display icon names its item under `id`
+    (the host reads no other icon field, so the icon's NBT is dropped); criteria, requirements
+    and rewards are already the shapes the host's parser reads. Unreviewed keys stop the import."""
+    if not isinstance(data, dict) or set(data) - ADVANCEMENT_KEYS:
+        raise SystemExit(f'advancement {name}: unreviewed keys')
+    result = dict(data)
+    display = result.get('display')
+    if display is not None:
+        if not isinstance(display, dict) or set(display) - ADVANCEMENT_DISPLAY_KEYS:
+            raise SystemExit(f'advancement {name}: unreviewed display keys')
+        display = dict(display)
+        icon = display.get('icon')
+        if icon is not None:
+            if not isinstance(icon, dict) or set(icon) - {'item', 'nbt'} or 'item' not in icon:
+                raise SystemExit(f'advancement {name}: unreviewed icon {icon!r}')
+            display['icon'] = {'id': icon['item']}
+        result['display'] = display
+    return result
+
+
+def copy_advancements():
+    """The gameplay advancements (data/<ns>/advancement, the host's folder name), converted by
+    upgrade_advancement. The recipe unlock advancements beside them are host-format artifacts
+    and stay out. internal/starting_book is a Forge conditional wrapper in the original: the
+    wrapped advancement ships unwrapped, as Forge's loader presents it when the condition
+    holds. The condition is the spawn_with_book config (default true), which the host's
+    advancement loading cannot express, so the config no longer gates the starting book."""
+    source_root = GENERATED_DATA / 'tconstruct/advancements'
+    target_root = CONTENT_DATA / 'tconstruct/advancement'
+    shutil.rmtree(target_root, ignore_errors=True)
+    count = 0
+    for group in ADVANCEMENT_GROUPS:
+        for entry in sorted((source_root / group).glob('*.json')):
+            data = json.loads(entry.read_text(encoding='utf-8'))
+            if 'advancements' in data:
+                entries = data['advancements']
+                if len(entries) != 1 or entries[0].get('conditions') != [{'type': 'tconstruct:config', 'prop': 'spawn_with_book'}]:
+                    raise SystemExit(f'advancement {entry.name}: unreviewed conditional wrapper')
+                data = entries[0]['advancement']
+            write_json(target_root / group / entry.name, upgrade_advancement(data, entry.name))
+            count += 1
+    return count
+
+
+def copy_advancement_functions():
+    """The grant_advancement functions the internal advancements reward, byte for byte
+    (data/<ns>/function, the host's folder name). Each grants one vanilla advancement."""
+    source_root = GENERATED_DATA / 'tconstruct/functions/grant_advancement'
+    target_root = CONTENT_DATA / 'tconstruct/function/grant_advancement'
+    shutil.rmtree(target_root, ignore_errors=True)
+    count = 0
+    for entry in sorted(source_root.glob('*.mcfunction')):
+        destination = target_root / entry.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(entry, destination)
+        count += 1
+    return count
+
+
+def copy_gameplay_loot():
+    """The starting book's reward table: an advancement_reward table giving the book item."""
+    source = GENERATED_DATA / 'tconstruct/loot_tables/gameplay/starting_book.json'
+    table = whole(upgrade_loot(json.loads(source.read_text(encoding='utf-8'))))
+    write_json(CONTENT_DATA / 'tconstruct/loot_table/gameplay/starting_book.json', table)
+    return 1
+
+
 def main():
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
     head = subprocess.run(['git', '-C', str(ROOT / '.local/tconstruct-source'), 'rev-parse', 'HEAD'],
@@ -2443,10 +2518,13 @@ def main():
     part_names, part_models, part_textures = copy_part_assets()
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
     worn_textures, worn_rows = copy_armor_worn_assets()
+    advancements = copy_advancements()
+    advancement_functions = copy_advancement_functions()
+    gameplay_loot = copy_gameplay_loot()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
 
 
 if __name__ == '__main__':
