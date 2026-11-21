@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/13",
+  "textures": {
+    "layer0": "tconstruct:item/tool/swasher/barrel_2_tconstruct_aluminum"
+  }
+}

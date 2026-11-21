@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/02",
+  "textures": {
+    "layer0": "tconstruct:item/tool/sword/handle_tconstruct_bronze"
+  }
+}

@@ -54,10 +54,24 @@
         }
       },
       {
+        "when": "ironwood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shield_core/armor/plate/shield/core_tconstruct_ironwood"
+        }
+      },
+      {
         "when": "nahuatl",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/shield_core/armor/plate/shield/core_tconstruct_nahuatl"
+        }
+      },
+      {
+        "when": "necronium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shield_core/armor/plate/shield/core_tconstruct_necronium"
         }
       },
       {
@@ -86,6 +100,13 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/shield_core/armor/plate/shield/core_tconstruct_slimewood_greenheart"
+        }
+      },
+      {
+        "when": "treated_wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/shield_core/armor/plate/shield/core_tconstruct_treated_wood"
         }
       },
       {

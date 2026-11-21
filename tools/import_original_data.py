@@ -3,8 +3,13 @@
 
 Source: the read-only checkout at .local/tconstruct-source (revision pinned by
 tconstruct/compatibility.json). Files are copied byte for byte, never edited, so the content
-root stays a mechanical projection of the original. Other-mod integration is left out:
-the minotaur axe and every material whose condition depends on external ingot tags.
+root stays a mechanical projection of the original. Other-mod integration is left out
+only where the original registers content on another mod's behalf: the minotaur axe.
+The sixteen integration materials are copied with everything else, condition payload
+included; the port evaluates data conditions at load, so they stay inactive until
+another mod fills their ingot tags (or force_integration_materials is set), as in Java.
+One divergence from Java: this port bakes its creative tabs from the shipped data
+rather than the loaded registry, so the sixteen appear in the tab tables while inactive.
 """
 import json
 from pathlib import Path
@@ -23,12 +28,6 @@ EXCLUDED_TOOLS = {'minotaur_axe'}
 TAG_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tags'
 TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tags'
 TAG_FOLDER_NAMES = {'items': 'item', 'blocks': 'block', 'entity_types': 'entity_type'}
-
-
-def external(condition):
-    """True when a material condition is about ingots another mod must supply."""
-    text = json.dumps(condition)
-    return 'mantle:tag_filled' in text or 'forge:mod_loaded' in text
 
 
 REPAIRABLE = ['head', 'limb', 'plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'skull', 'slime']
@@ -2268,10 +2267,10 @@ def main():
     expected = pins.get('tconstruct_revision') or pins.get('java_revision') or head
     if head != expected:
         raise SystemExit(f'original checkout {head} differs from the pinned {expected}')
+    # No material is excluded: a definition's condition is data the loader evaluates,
+    # not an import-time filter, so the sixteen integration materials ship byte for byte
+    # with the other eighty-eight and simply never select in a vanilla-only world.
     skipped_materials = set()
-    for path in sorted((SOURCE / 'materials/definition').glob('*.json')):
-        if 'condition' in json.loads(path.read_text(encoding='utf-8')) and external(json.loads(path.read_text(encoding='utf-8'))['condition']):
-            skipped_materials.add(path.stem)
     if TARGET.exists():
         shutil.rmtree(TARGET)
     copied = 0
