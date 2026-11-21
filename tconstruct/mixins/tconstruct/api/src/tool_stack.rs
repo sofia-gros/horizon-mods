@@ -191,6 +191,12 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
 }
 
+/// The walk transforms the tool's modifiers perform as their wearer walks, in modifier order: the modifier's id
+/// (the wear cause), the action, the sound and the radius at the entry's effective level.
+pub(crate) fn walk_transforms(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, crate::tool_actions::ToolAction, String, f32)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.walk_transforms(entry, facts)).collect())
+}
+
 /// ToolActionModifierHook over every modifier of the tool: whether one of them lets it perform the named tool action
 /// (a tool actions module such as `item_hook`, `drill_attack`, `grapple_hook` or `shield_disable`).
 pub(crate) fn can_perform_action(nbt: &NbtCompound, env: &Environment, name: &str) -> bool {
@@ -569,6 +575,52 @@ pub(crate) fn overgrowth_tick(nbt: &mut NbtCompound, env: &Environment, holder_t
 pub(crate) fn kinetic_level(nbt: &NbtCompound, env: &Environment) -> i32 {
     if is_broken(nbt) { return 0; }
     saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.kinetic_level(entry))).sum()
+}
+
+/// The recurrent protection modules of a piece: the plain level of each entry whose modifier carries one, with the
+/// module, in modifier order, as SlotInChargeModule totals the equipped pieces. A broken piece's modifiers do not
+/// run, so it contributes nothing.
+pub(crate) fn recurrent_protection(nbt: &NbtCompound, env: &Environment) -> Vec<(i32, crate::wearer_modules::RecurrentProtection)> {
+    if is_broken(nbt) { return Vec::new(); }
+    saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.recurrent_protection(entry))).collect()
+}
+
+/// Whether any of the tool's modifiers lets it block (BlockingModule), so a right click raises it like a shield.
+/// A broken piece's modifiers do not run, so it contributes nothing.
+pub(crate) fn blocking(nbt: &NbtCompound, env: &Environment) -> bool {
+    if is_broken(nbt) { return false; }
+    saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.blocking()))
+}
+
+/// Whether any of the tool's modifiers puts out a lit campfire the tool is used on (ExtinguishCampfireModule).
+pub(crate) fn extinguishes_campfires(nbt: &NbtCompound, env: &Environment) -> bool {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.modules().iter().any(|module| module.extinguishes_campfires(entry, facts))))
+}
+
+/// What the tool's damage on shoot modules hurt its holder by for firing it, in modifier order.
+pub(crate) fn damage_on_shoot(nbt: &NbtCompound, env: &Environment) -> Vec<(String, f32)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.damage_on_shoot(entry, facts))).collect())
+}
+
+/// The infinity supply of a launcher: the first module in modifier order that fires for this shot (one that
+/// skips standard ammo, or whose count the remaining durability cannot pay for, lets the next try, as the
+/// composed bow ammo hook passes an empty result on), as the stack to fire, the durability one shot costs
+/// and the modifier that owns the module (the cause of the wear). None when no module fires.
+pub(crate) fn infinity(nbt: &NbtCompound, env: &Environment, standard_present: bool) -> Option<(pluto_lib::ItemSlot, i32, Identifier)> {
+    let durability = current_durability(nbt);
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                let Some(module) = module.infinity() else { continue; };
+                if module.skips_standard(standard_present) { continue; }
+                let count = module.count(durability);
+                if count == 0 { continue; }
+                let variant = (facts.persistent_string)(&entry.id);
+                return Some((module.supply(count, &variant), module.usage(), entry.id.clone()));
+            }
+        }
+        None
+    })
 }
 
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one

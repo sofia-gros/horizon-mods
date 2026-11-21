@@ -81,6 +81,14 @@ mod conditional_stat;
 mod knockback;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/punch.rs"]
 mod punch;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/projectile_modules.rs"]
+mod projectile_modules;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/shoot_hook.rs"]
+mod shoot_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/blocking_hook.rs"]
+mod blocking_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/walk_hook.rs"]
+mod walk_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect.rs"]
 mod weapon_effect;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/thorns.rs"]

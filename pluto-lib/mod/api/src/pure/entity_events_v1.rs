@@ -185,6 +185,12 @@ pub struct PlayerTick {
     /// The player's uuid and entity id.
     pub player: u128,
     pub entity: i32,
+    /// The dimension the player is in, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The player's feet position.
+    pub position: [f64; 3],
+    /// Whether the player stands on the ground.
+    pub on_ground: bool,
     /// The armor the player wears, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
     pub armor: Vec<(String, StackData)>,
     /// The effects on the player, as (effect id, amplifier, ticks left).
@@ -523,6 +529,7 @@ impl ServerLivingEntityEvents {
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
     /// A server player's tick, heard while they wear armor carrying custom data: take effects off them with `remove_effects`.
+    /// The world scope is open while it runs, so callbacks may read and change blocks around the player.
     pub const PLAYER_TICK: &'static Event<PlayerTick, ()> = &PLAYER_TICK;
     /// A mob hurting the player, as the hit starts: push status effects on the mob with `effects`. Server only.
     pub const WEARER_HIT: &'static Event<WearerHit, ()> = &WEARER_HIT;
@@ -1184,7 +1191,7 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
@@ -1392,7 +1399,7 @@ mod tests {
             if tick.entity != 6262 { return; }
             tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
         });
-        let tick = PlayerTick { player: 1, entity: 6262, armor: Vec::new(), effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, armor: Vec::new(), effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");

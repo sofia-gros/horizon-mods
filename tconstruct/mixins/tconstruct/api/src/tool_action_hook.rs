@@ -1,6 +1,9 @@
 //! Connects the tool action transform modifiers (stripping, pathing, tilling) to PlutoLib's use-item-on-block event:
 //! right-clicking a block with a Tinkers tool whose modifier names an action the block takes turns the block into its
 //! transformed state, plays the sound and wears the tool by one, as ToolActionTransformModule does in the original.
+//! The campfire extinguish module shares the click: a lit campfire the tool is used on goes out, with the extinguish
+//! sound (ExtinguishCampfireModule.transform; its dowse particles have no world operation here). Like the transforms,
+//! only the clicked block is treated, not the tool's AOE neighbours the original's BlockTransformModule also runs.
 use crate::{break_speed_hook::with_held_tool, tool_actions::{replaceable_above, ToolAction}, tool_slot, tool_stack};
 use pluto_lib::{ActionResult, BlockState, Identifier, ItemSlot, StackData, UseItemOnBlockCallback, UseItemOnBlockContext, World};
 
@@ -19,10 +22,24 @@ fn random() -> f32 {
     (x >> 40) as f32 / (1u64 << 24) as f32
 }
 
+/// The sound of a campfire going out (SoundEvents.GENERIC_EXTINGUISH_FIRE).
+const EXTINGUISH_SOUND: &str = "minecraft:entity.generic.extinguish_fire";
+
+/// Whether the state is a lit campfire, the block ExtinguishCampfireModule.transform acts on.
+fn lit_campfire(state: &BlockState) -> bool {
+    matches!(state.block.path(), "campfire" | "soul_campfire") && state.block.namespace() == "minecraft" && state.property("lit") == Some("true")
+}
+
 /// The action the click performs: transforms the block and returns the sound, or None when nothing applies.
-fn perform(used: &UseItemOnBlockContext, actions: &[(ToolAction, String, bool)]) -> Option<String> {
+fn perform(used: &UseItemOnBlockContext, actions: &[(ToolAction, String, bool)], extinguish: bool) -> Option<String> {
     let world = World::new(&used.dimension);
     let state = world.get_block_state(used.pos)?;
+    if extinguish && lit_campfire(&state) {
+        if world.set_block_state(used.pos, &state.clone().with("lit", "false")) {
+            world.play_sound(EXTINGUISH_SOUND, [f64::from(used.pos[0]) + 0.5, f64::from(used.pos[1]) + 0.5, f64::from(used.pos[2]) + 0.5], 1.0, 1.0);
+            return Some(EXTINGUISH_SOUND.to_owned());
+        }
+    }
     let above_pos = [used.pos[0], used.pos[1] + 1, used.pos[2]];
     for (action, sound, require_ground) in actions {
         let above = world.get_block_state(above_pos);
@@ -44,14 +61,14 @@ static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::ne
 pub(crate) fn register() {
     UseItemOnBlockCallback::EVENT.register(|used| {
         let Some(held) = used.held.as_ref() else { return ActionResult::Pass; };
-        let actions = match with_held_tool(held, |env, stack| tool_stack::tool_actions(&stack.custom_data, env)) {
-            Ok(actions) => actions,
+        let (actions, extinguish) = match with_held_tool(held, |env, stack| (tool_stack::tool_actions(&stack.custom_data, env), tool_stack::extinguishes_campfires(&stack.custom_data, env))) {
+            Ok(pair) => pair,
             Err(reason) => {
                 if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) { eprintln!("Tinkers: tool action click on {} left alone: {reason}", held.item); }
                 return ActionResult::Pass;
             }
         };
-        let performed = if actions.is_empty() { None } else { perform(used, &actions) };
+        let performed = if actions.is_empty() && !extinguish { None } else { perform(used, &actions, extinguish) };
         if let Some(sound) = &performed { eprintln!("Tinkers: tool action {sound} at {:?}", used.pos); }
         else if !actions.is_empty() { eprintln!("Tinkers: tool action found no block to transform at {:?} ({} actions)", used.pos, actions.len()); }
         if performed.is_none() { return ActionResult::Pass; }

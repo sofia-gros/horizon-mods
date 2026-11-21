@@ -203,6 +203,10 @@ impl Modifier {
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
     }
+    /// The walk transforms of this modifier, each with the modifier's id (the wear cause), its action, sound and radius.
+    pub fn walk_transforms(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::tool_actions::ToolAction, String, f32)> {
+        self.modules.iter().filter_map(|module| module.walk_transform(entry, facts)).map(|(action, sound, radius)| (entry.id.clone(), action, sound, radius)).collect()
+    }
     /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
     pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
         self.modules.iter().any(|module| module.can_perform_action(entry, facts, name))
