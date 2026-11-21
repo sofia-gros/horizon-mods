@@ -191,6 +191,8 @@ mod melter_menu;
 mod melter_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/world_blocks.rs"]
 mod world_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/world_growth.rs"]
+mod world_growth;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer.rs"]
 mod alloyer;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer_menu.rs"]
@@ -245,5 +247,7 @@ mod station_dispatch;
 mod visuals;
 #[cfg(test)]
 mod world_block_tests;
+#[cfg(test)]
+mod world_growth_tests;
 #[cfg(test)]
 mod armor_building;

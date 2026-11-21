@@ -1672,7 +1672,8 @@ DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT
 # Plain items: TinkerWorld's with Item.Properties (TooltipItem only adds the lang tooltip text) and TinkerCommons' tinker slime
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
 WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball',
-               'earth_slime_crystal', 'sky_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal']
+               'earth_slime_crystal', 'sky_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal',
+               'earth_slime_grass_seeds', 'sky_slime_grass_seeds', 'ichor_slime_grass_seeds', 'ender_slime_grass_seeds', 'blood_slime_grass_seeds']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
 # Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
 # The bottles' and the bowl's models are plain; the copper can's own loader is replaced by write_copper_can below.
@@ -1744,8 +1745,9 @@ def world_w1_blocks():
 
     Behaviour the declarations cannot carry, and where it lives instead: the grass spreading and bonemeal growth
     (SlimeGrassBlock/SlimeNyliumBlock), the saplings growing into trees and huge fungi, the propagule leaves placing a hanging
-    propagule when bonemealed and the vines growing through their stages are random-tick world mechanisms of the growth lane, not
-    block properties. SlimeLeavesBlock measures its decay distance against the tconstruct:slimy_logs tag rather than logs alone;
+    propagule when bonemealed and the vines growing through their stages are registered in the api crate's world_growth module;
+    the declarations here only carry their random_ticks flag, which the original's registrations set with randomTicks() on the
+    grass, the saplings, the propagule and the vines (the fungi get none, as in the original). SlimeLeavesBlock measures its decay distance against the tconstruct:slimy_logs tag rather than logs alone;
     the leaves template's distance behaviour is the host's and the tag distinction is not expressible in a declaration. The signs
     are declared as plain blocks: the original's sign block entities (editable text) have no content declaration, so the signs
     drop and render as in the original but hold no text. Push reactions (the flora and the vines are DESTROY), the flora's render
@@ -1783,16 +1785,16 @@ def world_w1_blocks():
         for dirt in W1_DIRTS:
             # slimeGrassProps: builder(foliage colour, SLIME_BLOCK).strength(2.0).requiresCorrectToolForDrops().randomTicks()
             if nether:  # SlimeNyliumBlock: a plain block
-                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:dirt', color, 'minecraft:slime_block', 2.0, 2.0, True)
+                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:dirt', color, 'minecraft:slime_block', 2.0, 2.0, True, random_ticks=True)
             else:  # SlimeGrassBlock extends SnowyDirtBlock
-                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:grass_block', color, 'minecraft:slime_block', 2.0, 2.0, True)
+                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:grass_block', color, 'minecraft:slime_block', 2.0, 2.0, True, random_ticks=True)
         # saplingProps: builder(foliage colour, FUNGUS in the nether else GRASS).instabreak().noCollission()
         if foliage == 'ender':  # SlimePropaguleBlock: the mangrove propagule states come with the template
-            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:mangrove_propagule', color, 'minecraft:short_grass', 0.0, 0.0, False)
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:mangrove_propagule', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True)
         elif nether:  # SlimeFungusBlock
             blocks[f'{foliage}_slime_sapling'] = declare('minecraft:crimson_fungus', color, 'minecraft:crimson_fungus', 0.0, 0.0, False)
         else:  # SlimeSaplingBlock
-            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:oak_sapling', color, 'minecraft:short_grass', 0.0, 0.0, False)
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:oak_sapling', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True)
         if nether:  # a plain block: builder(foliage colour, WART_BLOCK).strength(1.5)
             blocks[f'{foliage}_slime_leaves'] = declare('minecraft:dirt', color, 'minecraft:nether_wart_block', 1.5, 1.5, False)
         else:  # SlimeLeavesBlock (the propagule leaves for ender): builder(colour, GRASS).strength(1.0).noOcclusion()
@@ -1807,7 +1809,7 @@ def world_w1_blocks():
     for slime in ('sky', 'ender'):
         # SlimeVineBlock: builder(slime colour, GRASS).replaceable().strength(0.75).noCollission().randomTicks(); the growth stage is its own state
         color, _light = SLIME_TYPES[slime]
-        blocks[f'{slime}_slime_vine'] = {**declare('minecraft:vine', color, 'minecraft:short_grass', 0.75, 0.75, False),
+        blocks[f'{slime}_slime_vine'] = {**declare('minecraft:vine', color, 'minecraft:short_grass', 0.75, 0.75, False, random_ticks=True),
                                          'state_properties': {'stage': {'type': 'enum', 'values': ['start', 'middle', 'end']}}}
     # SlimeRootsBlock: builder(COLOR_BLACK, MANGROVE_ROOTS).instrument(BASS).strength(0.7).noOcclusion()
     blocks['enderbark_roots'] = declare('minecraft:mangrove_roots', 'COLOR_BLACK', 'minecraft:mangrove_roots', 0.7, 0.7, False, occludes=False)

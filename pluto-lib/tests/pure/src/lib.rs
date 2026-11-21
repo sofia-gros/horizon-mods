@@ -31,6 +31,28 @@ pub mod fixtures {
     pub fn path_node(c: &super::PathNodeTypeContext<'_>) -> Option<super::PathNodeType> {
         blocks::path_node_type(c)
     }
+    /// Same dispatch the native random-tick hook performs; true when a behaviour answered.
+    pub fn random_tick(block: &str, c: &mut super::TickContext<'_>) -> bool {
+        blocks::random_tick(block, c)
+    }
+    pub fn can_bonemeal(block: &str, c: &super::BonemealContext<'_>) -> Option<bool> {
+        blocks::can_bonemeal(block, c)
+    }
+    pub fn bonemeal_success(block: &str, c: &mut super::TickContext<'_>) -> Option<bool> {
+        blocks::bonemeal_success(block, c)
+    }
+    pub fn on_bonemeal(block: &str, c: &mut super::TickContext<'_>) {
+        blocks::on_bonemeal(block, c)
+    }
+    pub fn survives(block: &str, c: &super::SurviveContext<'_>) -> Option<bool> {
+        blocks::survives(block, c)
+    }
+    pub fn placement(block: &str, c: &super::PlacementContext<'_>) -> super::Placement {
+        blocks::placement(block, c)
+    }
+    pub fn shape_update(block: &str, c: &super::ShapeUpdateContext<'_>) -> Option<super::BlockState> {
+        blocks::shape_update(block, c)
+    }
     /// Same dispatch called by the native server-payload hook; no socket simulation.
     pub fn client_payload(channel: &str, data: &[u8]) {
         super::pure::networking_api_v1::from_server(channel, data);

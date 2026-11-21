@@ -3,11 +3,11 @@
 //! The slime wood sets, slime grass, flora, vines and enderbark roots register nothing here: what of their behaviour is
 //! portable is their vanilla templates' (the importer's declarations, `world_w1_blocks`), and their random-tick growth —
 //! grass spreading and bonemeal growth, the saplings and fungi growing, the vines advancing their stage, the propagule
-//! leaves placing a propagule — is world-mechanism work no behaviour registered in this crate expresses, so it is
-//! documented in the importer rather than faked here.
+//! leaves placing a propagule — is registered in world_growth.rs.
 //! Below them, the geodes and heads: CrystalClusterBlock placement and survival, the budding blocks' piston rule,
-//! SkullBlock rotation and the wall heads' pick. Not expressible yet: budding growth (a later unit; the tick is
-//! declared in the content), the crystal chime on projectile hit (no projectile-hit hook), the head item placing
+//! SkullBlock rotation and the wall heads' pick. Budding growth is registered in
+//! world_growth.rs, which restates the budding piston rule below as registering replaces. Not expressible yet:
+//! the crystal chime on projectile hit (no projectile-hit hook), the head item placing
 //! the wall variant (the content schema's wall blocks are signs), skull rendering and animation (the host has no
 //! skull concept for content blocks) and the enderman head counting as a mask (disguises are modifier-driven).
 use pluto_lib::{AfterFallContext, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, EntityInsideMotionContext, Identifier, ItemStack, PathNodeType, PistonBehavior, Placement};
@@ -46,8 +46,8 @@ pub(crate) fn register() {
             .can_survive(|c| cluster_survives(&c.state, c.pos, c.view))
             .piston_behavior(PistonBehavior::Destroy));
     }
-    // BuddingCrystalBlock is destroyed by pistons too; its random tick is declared in the content, and the growth
-    // it drives is a later unit.
+    // BuddingCrystalBlock is destroyed by pistons too; world_growth.rs registers its growth and restates
+    // this rule, as registering a behaviour replaces the previous one.
     for name in BUDDING {
         BlockBehaviors::register(BlockBehavior::new(id(name)).piston_behavior(PistonBehavior::Destroy));
     }
@@ -72,7 +72,7 @@ pub(crate) const CLUSTERS: [&str; 19] = [
     "steel_cluster", "cobalt_cluster", "knightmetal_cluster",
 ];
 
-/// The BuddingCrystalBlocks (the growth on their declared random tick is a later unit).
+/// The BuddingCrystalBlocks (world_growth.rs registers the growth on their declared random tick).
 pub(crate) const BUDDING: [&str; 4] = ["budding_earth_slime_crystal", "budding_sky_slime_crystal", "budding_ichor_slime_crystal", "budding_ender_slime_crystal"];
 
 /// TinkerHeadType's standing heads, in its order.
