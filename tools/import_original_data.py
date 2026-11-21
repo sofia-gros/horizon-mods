@@ -1664,7 +1664,7 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
+MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'PLANT': 7, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
              'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
@@ -1942,9 +1942,37 @@ def write_vanilla_fuels():
     return len(fuels)
 
 
+def gadget_blocks():
+    """name -> declaration of the gadgets whose behaviour needs no host service this port lacks (TinkerGadgets): the punji
+    sticks and the slime cakes. Punji: builder(MapColor.PLANT, SoundType.GRASS).strength(3.0F).noOcclusion(); its facing and
+    the four connection states are its own (waterlogging is left out, as with the pouring blocks), and the one collision box
+    is the floor shape, as the declaration holds a single default (the host reads per-facing shapes from no key here).
+    The cakes ride the vanilla cake block, whose template carries the bites state and the floor cakes' survival and shapes;
+    theirs is builder(SoundType.WOOL).strength(0.5F) with map colour NONE, and the hanging ichor cake overrides survival in
+    the api crate. The ichor cake's one collision box is its unbitten shape (bites narrow it in the original)."""
+    blocks = {
+        'punji': {'template': 'minecraft:stone',
+                  'properties': {'hardness': 3.0, 'explosion_resistance': 3.0, 'sounds': 'minecraft:grass_block', 'map_color': MAP_COLOR['PLANT'], 'requires_tool': False, 'occludes': False},
+                  'state_properties': {'facing': {'type': 'enum', 'values': ['down', 'up', 'north', 'south', 'west', 'east']},
+                                       'north': {'type': 'boolean'}, 'east': {'type': 'boolean'}, 'northeast': {'type': 'boolean'}, 'northwest': {'type': 'boolean'}},
+                  'default_state': {'facing': 'down', 'north': 'false', 'east': 'false', 'northeast': 'false', 'northwest': 'false'},
+                  'collision_shapes': {'default': [[3, 0, 3, 13, 6, 13]]}, 'item': True},
+    }
+    cake = {'template': 'minecraft:cake',
+            'properties': {'hardness': 0.5, 'explosion_resistance': 0.5, 'sounds': 'minecraft:white_wool', 'map_color': MAP_COLOR['NONE'], 'requires_tool': False},
+            'item': True}
+    for name in ('earth_cake', 'sky_cake', 'ender_cake', 'blood_cake', 'magma_cake'):
+        blocks[name] = cake
+    blocks['ichor_cake'] = {**cake, 'collision_shapes': {'default': [[1, 8, 1, 15, 16, 15]]}}
+    return blocks
+
+
+SMELTERY_STATE_BLOCKS += list(gadget_blocks())
+
+
 def write_world_declarations():
     """Block and item declarations of the world units, written beside the hand-written station ones."""
-    blocks = {**world_blocks(), **smeltery_blocks()}
+    blocks = {**world_blocks(), **smeltery_blocks(), **gadget_blocks()}
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
     for name in WORLD_ITEMS + CAST_ITEMS:
@@ -2032,6 +2060,8 @@ def copy_world_loot(names):
     shutil.rmtree(target, ignore_errors=True)
     for name in names:
         table = whole(upgrade_loot(json.loads((GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name}.json').read_text(encoding='utf-8'))))
+        if 'pools' not in table:
+            table['pools'] = []  # the cakes' tables name no pool: eaten away, they drop nothing, and the shape here requires the list
         write_json(target / 'blocks' / f'{name}.json', table)
     return len(names)
 
@@ -2079,7 +2109,7 @@ GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{colo
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
 FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
-              'forge:dusts/redstone': ['minecraft:redstone'], 'forge:glass_panes/colorless': ['minecraft:glass_pane']}
+              'forge:dusts/redstone': ['minecraft:redstone'], 'forge:dusts/glowstone': ['minecraft:glowstone_dust'], 'forge:glass_panes/colorless': ['minecraft:glass_pane']}
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
 TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}
@@ -2088,7 +2118,8 @@ CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 def copy_crafting_recipes():
     """The crafting, smelting and stonecutting recipes of the smeltery (`smeltery/` in the original's recipe tree: seared and scorched
-    bricks, grout, every structure block, the controllers, tables, drains, ducts and tanks) in the game's recipe format, under the
+    bricks, grout, every structure block, the controllers, tables, drains, ducts and tanks) and of the gadgets (`gadgets/`: of its
+    recipes only punji and the ichor and magma cakes name nothing undeclared today) in the game's recipe format, under the
     original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention tags become the
     vanilla items they stand for, a `forge:difference` stonecutting ingredient is expanded over the original's tag, and the melter's
     `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming an item this port does not declare is left out
@@ -2154,7 +2185,7 @@ def copy_crafting_recipes():
         return ingredient
 
     written, left_out = 0, []
-    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').glob('*.json')):
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').glob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'gadgets').rglob('*.json')):
         tables = path.parent == FLUID_RECIPE_SOURCE / 'tables'
         data = json.loads(path.read_text(encoding='utf-8'))
         # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
@@ -2313,7 +2344,7 @@ def main():
     fluid_blocks = write_fluid_world()
     write_copper_can()
     transfers = write_fluid_transfers()
-    world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
+    world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks(), **gadget_blocks()}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
     copy_cobalt_tags()
