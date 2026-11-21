@@ -37,14 +37,15 @@ impl BookText {
     }
 }
 
-/// An image on a page (Mantle: a page's `image`): the GUI texture `file` and its size in texture pixels.
+/// An image on a page (Mantle: a page's `image`): the GUI texture `file` and its size in texture pixels. A page may
+/// name no size; the size is then 0 and the renderer leaves the image out (it cannot know the texture's extent).
 #[derive(Clone, Debug, PartialEq)]
 pub struct BookImage {
     /// The texture's id, such as `tconstruct:book/images/smeltery.png` (drawn through the canvas's sprite surface).
     pub file: String,
-    /// The image's width in texture pixels.
+    /// The image's width in texture pixels, or 0 when the page names none.
     pub width: u32,
-    /// The image's height in texture pixels.
+    /// The image's height in texture pixels, or 0 when the page names none.
     pub height: u32,
 }
 
@@ -137,8 +138,9 @@ impl BookPage {
     }
 
     /// Decodes one localized page from its JSON (the file the section's page entry names), by its Mantle kind.
-    /// Unknown kinds decode to [`BookPage::Opaque`] with the JSON kept as NBT; a known kind with malformed
-    /// data is an error that names the field.
+    /// Unknown kinds decode to [`BookPage::Opaque`] with the JSON kept as NBT, as does a crafting page in the
+    /// literal-grid form (it names no recipe but carries a grid); a known kind with malformed data is an error
+    /// that names the field.
     pub fn from_json(kind: &str, data: &serde_json::Value) -> Result<Self, String> {
         let title = data.get("title").and_then(serde_json::Value::as_str).map(str::to_owned);
         match kind {
@@ -146,8 +148,8 @@ impl BookPage {
             "mantle:image_text" => {
                 let image = data.get("image").ok_or("image_text page has no image")?;
                 let file = image.get("file").and_then(serde_json::Value::as_str).ok_or("image_text page's image has no file")?;
-                let width = image.get("width").and_then(serde_json::Value::as_u64).ok_or("image_text page's image has no width")?;
-                let height = image.get("height").and_then(serde_json::Value::as_u64).ok_or("image_text page's image has no height")?;
+                let width = image.get("width").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                let height = image.get("height").and_then(serde_json::Value::as_u64).unwrap_or(0);
                 Ok(Self::ImageText {
                     title,
                     image: BookImage { file: file.to_owned(), width: u32::try_from(width).map_err(|_| "image width out of range")?, height: u32::try_from(height).map_err(|_| "image height out of range")? },
@@ -155,7 +157,15 @@ impl BookPage {
                 })
             }
             "mantle:crafting" => {
-                let recipe = data.get("recipe").and_then(serde_json::Value::as_str).ok_or("crafting page has no recipe")?;
+                // A crafting page either names a recipe or spells out a literal grid and result instead; the grid
+                // form references no recipe, so it is kept whole as an opaque page (its title still reads). A page
+                // with neither is malformed, not a grid page.
+                let Some(recipe) = data.get("recipe").and_then(serde_json::Value::as_str) else {
+                    if data.get("grid").is_some() {
+                        return Ok(Self::Opaque { kind: kind.to_owned(), data: json_compound(data) });
+                    }
+                    return Err("crafting page has no recipe".to_owned());
+                };
                 Ok(Self::Crafting {
                     title,
                     recipe: Identifier::parse(recipe).map_err(|e| format!("crafting page's recipe: {e}"))?,

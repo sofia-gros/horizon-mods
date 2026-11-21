@@ -5,7 +5,7 @@
 //! creative_parts.rs, creative_tools.rs and creative_fluids.rs; a datapack's extra materials are not listed. A tool stack carries only
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
-//! drains, and anvils, none of which exist yet), the books, food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
+//! drains, and anvils, none of which exist yet), food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
 //! tank and proxy tank of the smeltery tab, and the geodes and heads
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
@@ -46,9 +46,10 @@ pub(crate) fn tools_group() -> ItemGroup {
     group("tools", "Tinkers' Tools", item("pickaxe")).entries(entries)
 }
 
-/// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
-/// and the soul glass of TinkerCommons' glass section (the clear and stained glass of that section is not declared).
-pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"];
+/// The tables, then the books of TinkerCommons' general tab (TinkerCommons.addTabItems order), then the crafting items of
+/// the general tab that this port declares (the pattern last of the tables), and the soul glass of TinkerCommons' glass
+/// section (the clear and stained glass of that section is not declared).
+pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern", "materials_and_you", "puny_smelting", "mighty_smelting", "tinkers_gadgetry", "fantastic_foundry", "encyclopedia", "soul_glass", "soul_glass_pane"];
 
 pub(crate) fn general_group() -> ItemGroup {
     group("general", "Tinkers' General", item("tinker_station")).entries(GENERAL.iter().map(|name| item(name)))

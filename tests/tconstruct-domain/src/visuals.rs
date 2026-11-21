@@ -161,7 +161,7 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         if tools.contains(name) { "tools" }
         else if parts.contains(name) { "tool_parts" }
         // TinkerTables.addTabItems (the general tab); the Deco tab only holds retextured variants
-        else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
+        else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "materials_and_you", "puny_smelting", "mighty_smelting", "tinkers_gadgetry", "fantastic_foundry", "encyclopedia", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
         // TinkerWorld.addTabItems: ores, slimes and their dirt, the slime wood sets, the foliage and the geode shards
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)

@@ -135,6 +135,8 @@ mod tool_action_hook;
 mod tool_slot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/edible.rs"]
 mod edible;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/books.rs"]
+mod books;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/edible_hook.rs"]
 mod edible_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_station.rs"]
