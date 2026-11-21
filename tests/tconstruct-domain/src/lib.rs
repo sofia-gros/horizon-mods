@@ -247,3 +247,7 @@ mod visuals;
 mod world_block_tests;
 #[cfg(test)]
 mod armor_building;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fancy_gadgets.rs"]
+mod fancy_gadgets;
+#[cfg(test)]
+mod fancy_gadget_tests;

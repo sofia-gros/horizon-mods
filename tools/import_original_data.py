@@ -1029,6 +1029,30 @@ def asset_source(relative):
     return ASSET_SOURCE / relative
 
 
+def gadget_items():
+    """The fancy item frames and armor stands of TinkerGadgets, as item declarations.
+
+    In the original these are items whose use places a hanging or standing entity (the item classes copy the
+    vanilla placement logic of ItemFrameItem/ArmorStandItem; the variant behaviour lives in the entity classes).
+    The declaration templates are therefore the vanilla items themselves: the frame items are registered with
+    plain item properties (stack 64, TinkerGadgets ITEM_PROPS) and the stand items with stacksTo(16). The
+    derived entity types the original registers for the variants (tconstruct:fancy_item_frame,
+    tconstruct:armor_stand) are registered from Rust (api/src/fancy_gadgets.rs); the host has no spawn reach or
+    simulation callbacks for derived types, so a placed item currently yields the vanilla entity. The frame
+    block models and stand item models and textures are pulled in by copy_client_assets like any other item."""
+    frames = {f'{name}_item_frame': {'template': 'minecraft:item_frame'} for name in
+              ('gold', 'reversed_gold', 'diamond', 'manyullyn', 'netherite', 'clear')}
+    stands = {f'{name}_armor_stand': {'template': 'minecraft:armor_stand', 'max_stack_size': 16} for name in
+              ('bamboo', 'bone', 'necrotic_bone', 'clear')}
+    return {**frames, **stands}
+
+
+def write_gadget_declarations():
+    for name, declaration in gadget_items().items():
+        (HORIZON_DECLARATIONS / 'item' / f'{name}.json').write_text(
+            json.dumps(declaration, indent=2) + '\n', encoding='utf-8')
+
+
 def copy_client_assets():
     """Models, textures, item definitions and blockstates of the registered content that needs no per-material
     rendering, converted from the 1.20 resource-pack layout to the pinned 26.x one (SlimeKnights, MIT; see LICENSE).
@@ -2200,12 +2224,15 @@ def copy_world_features():
 # Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
-FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
+FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'], 'forge:gems/diamond': ['minecraft:diamond'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
               'forge:dusts/redstone': ['minecraft:redstone'], 'forge:glass_panes/colorless': ['minecraft:glass_pane']}
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
 TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}
+# Tags of the gadget recipes that stay tag ingredients: the port ships the tag and its members are vanilla items
+# (tconstruct:bones is just minecraft:bone), which the expansion to declared items only would silently drop.
+GADGET_TAGS = {'tconstruct:bones'}
 CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 
@@ -2215,7 +2242,8 @@ def copy_crafting_recipes():
     original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention tags become the
     vanilla items they stand for, a `forge:difference` stonecutting ingredient is expanded over the original's tag, and the melter's
     `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming an item this port does not declare is left out
-    and returned (the foundry's scorched basin, table, drain and chute wait for the gold platform, gold bars and obsidian pane)."""
+    and returned (the foundry's scorched basin, table, drain and chute wait for the gold platform, gold bars and obsidian pane). The `gadgets/`
+    folder is walked the same way: the fancy frames and armor stands convert, the rest waits for its items."""
     shutil.rmtree(CRAFTING_TARGET, ignore_errors=True)
     declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
     tag_files = GENERATED_DATA / 'tconstruct/tags/items'
@@ -2257,7 +2285,7 @@ def copy_crafting_recipes():
             raise KeyError(kind)
         if 'tag' in node:
             tag = node['tag']
-            if tables and tag in TABLE_TAGS:
+            if (tables and tag in TABLE_TAGS) or (gadgets and tag in GADGET_TAGS):
                 return '#' + tag
             if tables and tag == 'forge:rods/wooden':
                 return 'minecraft:stick'
@@ -2277,8 +2305,9 @@ def copy_crafting_recipes():
         return ingredient
 
     written, left_out = 0, []
-    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').glob('*.json')):
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').glob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'gadgets').rglob('*.json')):
         tables = path.parent == FLUID_RECIPE_SOURCE / 'tables'
+        gadgets = (FLUID_RECIPE_SOURCE / 'gadgets') in path.parents
         data = json.loads(path.read_text(encoding='utf-8'))
         # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
         if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured' and not tables):
@@ -2431,6 +2460,7 @@ def main():
     languages = copy_lang()
     fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
+    write_gadget_declarations()
     crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
     fluid_blocks = write_fluid_world()

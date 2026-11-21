@@ -160,8 +160,8 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         let path = name.strip_prefix("tconstruct:").unwrap();
         if tools.contains(name) { "tools" }
         else if parts.contains(name) { "tool_parts" }
-        // TinkerTables.addTabItems (the general tab); the Deco tab only holds retextured variants
-        else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
+        // TinkerTables.addTabItems and the declared gadgets of TinkerGadgets.addTabItems (the general tab); the Deco tab only holds retextured variants
+        else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
         // TinkerWorld.addTabItems: ores, slimes and their dirt, the slime wood sets, the foliage and the geode shards
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)

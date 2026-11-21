@@ -129,6 +129,7 @@
     "api/src/tables/input_consumption.rs",
     "api/src/tables/recipe_selection.rs",
     "api/src/tables/station.rs",
+    "api/src/fancy_gadgets.rs",
     "LICENSE"
   ],
   "cargo_dependencies": ["serde_json", "toml"],
@@ -247,7 +248,7 @@
       "depends_on": ["R2", "R3"],
       "status": "pending",
       "kind": "gameplay",
-      "result": "Use gadgets-guidance scope in R3. Carry/frames/stands/projectiles/food and books depend on common entity/item/UI services. Shared tool/material rendering is already required by R2, not postponed to this task. Validate interactions, presentation and persistent state.",
+      "result": "Use gadgets-guidance scope in R3. Carry/frames/stands/projectiles/food and books depend on common entity/item/UI services. Shared tool/material rendering is already required by R2, not postponed to this task. Validate interactions, presentation and persistent state. Fancy frames and armor stands (lane G4, 2026-11-21): the ten items are declared on the vanilla item templates (stands stack 16), the two derived entity types are registered with the original's sizes and tracking, the tooltip lines and creative entries ship, and four recipes convert (bamboo and bone stands, both reversed gold conversions; the other seven wait for obsidian_pane, the clear glass family and blazewood_slab). The variant entity behaviour and rendering wait for PlutoLib derived-type simulation, interaction and rendering surfaces, which do not exist today, so a placed item currently yields the vanilla entity.",
       "evidence": []
     }
   ]
