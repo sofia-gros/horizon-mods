@@ -1612,7 +1612,7 @@ visibility = "pub"
 
 [[module]]
 id = "pluto-explosion-flush"
-file = "crates/horizon-client/src/game/potions.rs"
+file = "crates/horizon-client/src/game/native_explosions.rs"
 name = "pluto_explosion_flush"
 source = "pluto-explosion-flush.rs"
 visibility = "pub(crate)"

@@ -1,7 +1,7 @@
 // Transport for a mod's request to set off an explosion: the API side queues the request (the
 // mod-facing host has no explosion call; the game's own `native_explode` lives inside the game),
 // and the game's mob-event seam sets the queued blasts off in the level in place (see
-// pluto-explosion-flush in the game's potions module).
+// pluto-explosion-flush in the game's native_explosions module).
 use std::sync::Mutex;
 
 /// What the blast does to the blocks it reaches, in the game's own terms
