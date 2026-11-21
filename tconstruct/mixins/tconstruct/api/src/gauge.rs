@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn the_mirror_keeps_the_tank_behind_in_the_tank_blocks_own_format_and_only_writes_on_change() {
         use pluto_lib::FluidStack;
-        let tank = |amount: u32| Some(NeighbourTank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount }), capacity: 4320 });
+        let tank = |amount: u32| Some(NeighbourTank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount, tag: None }), capacity: 4320 });
         let mut data = NbtCompound::new();
         assert!(set_mirror(&mut data, tank(2160)), "the first mirror is written");
         let held = crate::tank::Tank::read(&data, data.get_int("capacity", 0) as i32);
