@@ -295,6 +295,8 @@ impl Recipes {
         self.recipes.iter().find(|recipe| recipe.ingredient.matches_facts(item, in_tag, facts))
     }
     pub fn len(&self) -> usize { self.recipes.len() }
+    /// Every loaded recipe, in load order (MaterialRecipeCache's full list).
+    pub fn recipes(&self) -> &[Recipe] { &self.recipes }
 }
 
 /// Installs the reload listener. A missing condition context clears the recipes and fails the

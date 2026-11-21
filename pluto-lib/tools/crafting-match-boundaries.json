@@ -24,7 +24,7 @@
       "injection_id": "crafting-match-veto",
       "helper": "crafting-match-veto.rs",
       "file_sha256": "5b014282c68ad2befbfa59f9980fb4b659f258894da76cecb3b7e23bae2324f4",
-      "helper_sha256": "5d721dbe618c13f29698dea2e4438d6057e7b7d9185cb3322622080fca09fcc2"
+      "helper_sha256": "007c502aac2d2b66c54b327db60289836b12a38c0bf928671dee38f7e34051e4"
     }
   ]
 }

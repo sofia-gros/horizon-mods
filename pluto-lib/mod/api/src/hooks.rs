@@ -12,10 +12,12 @@ use horizon_client::mod_api::{
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
+    IngredientEvent, IngredientTestEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::advancement_api_v1;
+use crate::pure::recipe_api_v1;
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use horizon_client::pluto_host_world as horizon_world;
@@ -350,6 +352,14 @@ pub fn hooks() -> Box<dyn Hooks> {
     .expect("PlutoLib advancement predicate forwarder installs once");
     horizon_client::game::pluto_advancement_event_source::set_event_source(advancement_event_source)
         .expect("PlutoLib advancement event source installs once");
+    horizon_client::pluto_inventory::crafting::assembly::register(
+        horizon_client::pluto_inventory::crafting::assembly::Registration {
+            id: "pluto_lib:recipe_api_v1",
+            interest: recipe_assembly_interest,
+            callback: recipe_assembly_forward,
+        },
+    )
+    .expect("PlutoLib recipe assembly forwarder installs once");
     Box::new(PlutoHooks)
 }
 
@@ -463,6 +473,119 @@ fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_eve
             matches: event.matches,
         })
         .collect()
+}
+
+fn recipe_assembly_interest(
+    _: &horizon_client::pluto_inventory::crafting::matching::RecipeFacts<'_>,
+) -> bool {
+    recipe_api_v1::has_assembly_providers()
+}
+
+/// The native half of the pure recipe API's crafting assembly: the host's
+/// crafting gate consults only the native inventory-api registry, so this
+/// forwarder carries evaluations into the pure registry, converting the
+/// native stack facts into pure views. A pure assembly's custom data
+/// compound becomes the native decision's component tree.
+fn recipe_assembly_forward(
+    request: &horizon_client::pluto_inventory::crafting::matching::Request<'_>,
+) -> horizon_client::pluto_inventory::crafting::assembly::Decision {
+    use horizon_client::pluto_inventory::crafting::assembly::Decision;
+    use horizon_client::pluto_inventory::recipe_book::placement::Form;
+    if !recipe_api_v1::has_assembly_providers() {
+        return Decision::Pass;
+    }
+    let facts = recipe_api_v1::RecipeFacts {
+        form: match request.recipe.form {
+            Form::Shaped { width, height } => {
+                recipe_api_v1::RecipeForm::Shaped { width, height }
+            }
+            Form::Shapeless => recipe_api_v1::RecipeForm::Shapeless,
+            Form::Special => recipe_api_v1::RecipeForm::Special,
+        },
+        result_item: request.recipe.template.and_then(|t| t.item),
+        result_count: request.recipe.template.map_or(0, |t| t.count),
+    };
+    let Some(evaluation) = recipe_api_v1::prepare_assembly(&facts) else {
+        return Decision::Pass;
+    };
+    // Owned pure component trees behind the borrowed views, alive for the
+    // synchronous evaluation only.
+    let cell_data: Vec<Option<Nbt>> = request
+        .input
+        .cells
+        .iter()
+        .map(|cell| cell.and_then(|snap| snap.components.and_then(advancement_components)))
+        .collect();
+    let cells: Vec<Option<recipe_api_v1::StackView<'_>>> = request
+        .input
+        .cells
+        .iter()
+        .zip(&cell_data)
+        .map(|(cell, data)| {
+            cell.map(|snap| recipe_api_v1::StackView {
+                id: snap.id,
+                count: snap.count,
+                damage: snap.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let result_data = request
+        .result
+        .and_then(|snap| snap.components.and_then(advancement_components));
+    let result = request.result.map(|snap| recipe_api_v1::StackView {
+        id: snap.id,
+        count: snap.count,
+        damage: snap.damage,
+        custom_data: result_data.as_ref(),
+    });
+    let forwarded = recipe_api_v1::AssemblyRequest {
+        recipe: &facts,
+        grid: recipe_api_v1::GridFacts {
+            width: request.input.width,
+            height: request.input.height,
+            left: request.input.left,
+            top: request.input.top,
+            cells: &cells,
+        },
+        result,
+    };
+    match evaluation.evaluate(&forwarded) {
+        recipe_api_v1::AssemblyOutcome::Native => Decision::Pass,
+        recipe_api_v1::AssemblyOutcome::Denied { .. } => Decision::Deny,
+        recipe_api_v1::AssemblyOutcome::Assembled { custom_data, .. } => Decision::Assemble {
+            custom_data: nbt_component(&Nbt::Compound(custom_data)),
+        },
+    }
+}
+
+/// Pure NBT as the native component tree (the reverse of
+/// `advancement_component`): strings cross as UTF-16 code units and floats
+/// as their bit patterns, exactly as the native tree stores them.
+fn nbt_component(
+    value: &Nbt,
+) -> horizon_client::pluto_inventory::advancements::predicates::ComponentValue {
+    use horizon_client::pluto_inventory::advancements::predicates::{ComponentText, ComponentValue};
+    match value {
+        Nbt::Byte(v) => ComponentValue::Byte(*v),
+        Nbt::Short(v) => ComponentValue::Short(*v),
+        Nbt::Int(v) => ComponentValue::Int(*v),
+        Nbt::Long(v) => ComponentValue::Long(*v),
+        Nbt::Float(v) => ComponentValue::Float(v.to_bits()),
+        Nbt::Double(v) => ComponentValue::Double(v.to_bits()),
+        Nbt::ByteArray(v) => ComponentValue::ByteArray(v.clone()),
+        Nbt::String(v) => ComponentValue::String(ComponentText(v.encode_utf16().collect())),
+        Nbt::List(v) => ComponentValue::List(v.iter().map(nbt_component).collect()),
+        Nbt::Compound(v) => ComponentValue::Compound(
+            v.iter()
+                .map(|(key, value)| {
+                    (ComponentText(key.encode_utf16().collect()), nbt_component(value))
+                })
+                .collect(),
+        ),
+        Nbt::IntArray(v) => ComponentValue::IntArray(v.clone()),
+        Nbt::LongArray(v) => ComponentValue::LongArray(v.clone()),
+    }
 }
 
 fn resolve_dynamic_screen_slots(
@@ -2882,6 +3005,40 @@ impl Hooks for PlutoHooks {
                 write_slot(&mut stack, &s);
                 stack
             });
+        }
+    }
+
+    /// A mod-defined ingredient kind in a recipe file: the pure registry
+    /// names the item ids it can match (the host keeps the recipe only if
+    /// the list is non-empty).
+    fn ingredient(&self, event: &mut IngredientEvent<'_>) {
+        if let Some(items) = recipe_api_v1::ingredient_items(event.kind, event.data) {
+            event.items.extend(items);
+        }
+    }
+
+    /// The craft-time half of a mod-defined ingredient kind: the pure
+    /// registry accepts or refuses this concrete stack; unclaimed kinds
+    /// keep the acceptance the load-time list gave them.
+    fn ingredient_test(&self, event: &mut IngredientTestEvent<'_>) {
+        if !recipe_api_v1::has_ingredient_kinds() {
+            return;
+        }
+        let id = event.stack.item.to_string();
+        let custom = event
+            .stack
+            .data()
+            .and_then(|data| data.custom_data())
+            .map(compound_from_tag)
+            .map(Nbt::Compound);
+        let view = recipe_api_v1::StackView {
+            id: &id,
+            count: event.stack.count,
+            damage: event.stack.damage,
+            custom_data: custom.as_ref(),
+        };
+        if let Some(accepted) = recipe_api_v1::ingredient_test(event.kind, event.data, &view) {
+            event.accept = accepted;
         }
     }
 

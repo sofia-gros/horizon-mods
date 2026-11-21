@@ -2860,6 +2860,14 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
         match node {
             Value::String(text) => out.push(text.clone()),
             Value::Array(list) => list.iter().for_each(|entry| collect(entry, out)),
+            // The shaped-materials conversions keep their material ingredients verbatim: the material
+            // kind names its one item; the material-value kind names none (its items come from the
+            // material recipes at craft time).
+            Value::Object(fields) => match fields.get("type").and_then(Value::as_str) {
+                Some("tconstruct:material") => out.push(fields["item"].as_str().expect("a material ingredient names its item").to_owned()),
+                Some("tconstruct:material_value") => {}
+                _ => panic!("an ingredient is a string, a list or a material ingredient: {node}"),
+            },
             _ => panic!("an ingredient is a string or a list: {node}"),
         }
     }
@@ -2891,7 +2899,7 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 279, "the plain recipes the importer converts, as measured on the merged tree: 103 of the smeltery folder, 15 of the tables, 154 of the commons and 7 of the gadgets (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane; the recipe remainder unit added the platforms, the cheese and the firewood, and with the gold platform the scorched basin; 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; and the four book recipes of the commons, materials and you, puny smelting, fantastic foundry and tinkers gadgetry, with the books unit); the rest name items this port does not declare yet");
+    assert_eq!(count, 289, "the plain recipes the importer converts, as measured on the merged tree: 103 of the smeltery folder, 19 of the tables, 160 of the commons and 7 of the gadgets (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane; the recipe remainder unit added the platforms, the cheese and the firewood, and with the gold platform the scorched basin; 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; and the four book recipes of the commons, materials and you, puny smelting, fantastic foundry and tinkers gadgetry, with the books unit; and 10 more with the shaped-materials pack (the four material anvils and forges of the tables, the five travellers armor pieces and the fake ingot's storage block), whose material ingredients ship verbatim for the shaped-materials consumer); the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_casting_tank", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "scorched_alloyer", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can", "copper_gauge", "seared_fluid_cannon",
@@ -2899,7 +2907,7 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
                  "seared_lantern", "scorched_lantern", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane",
                  "scorched_chute", "scorched_drain", "scorched_proxy_tank", "scorched_table", "end_fluid_cannon", "obsidian_gauge",
                  "cobalt_block", "cobalt_ingot", "copper_nugget", "clear_glass_pane", "gold_bars", "steel_ingot", "queens_slime_ingot", "sky_slime_ball",
-                 "punji", "ichor_cake", "magma_cake", "bamboo_armor_stand", "bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "gold_platform", "iron_platform", "cobalt_platform", "copper_platform", "waxed_copper_platform", "cheese_ingot", "cheese_block", "nahuatl_fence", "blazewood_stairs", "materials_and_you", "puny_smelting", "fantastic_foundry", "tinkers_gadgetry"] {
+                 "punji", "ichor_cake", "magma_cake", "bamboo_armor_stand", "bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "gold_platform", "iron_platform", "cobalt_platform", "copper_platform", "waxed_copper_platform", "cheese_ingot", "cheese_block", "nahuatl_fence", "blazewood_stairs", "materials_and_you", "puny_smelting", "fantastic_foundry", "tinkers_gadgetry", "travelers_boots", "travelers_chestplate", "travelers_helmet", "travelers_leggings", "travelers_shield", "fake_storage_block"] {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
     }
 }

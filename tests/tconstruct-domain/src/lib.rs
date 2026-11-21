@@ -330,5 +330,9 @@ mod fancy_gadget_tests;
 mod advancement_tests;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/commands.rs"]
 mod commands;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/shaped_materials.rs"]
+mod shaped_materials;
+#[cfg(test)]
+mod shaped_materials_tests;
 #[cfg(test)]
 mod gadget_data;

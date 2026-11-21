@@ -245,6 +245,12 @@ pub const MATRIX: &[SupportEntry] = &[
         behaviour: "callbacks are invoked by PlutoLib's player, mob and item movement seams (the seams that dispatch entity_inside_motion), with the level's dimension, the block's full state and the entity's id and kind, on the server side; source-wired, not native or game validated. The native block_entity_inside trait hook is deliberately not the carrier: its generated method receives no host and only a state id, which cannot be resolved to a block state there",
         unblocked_by: "consolidated native build and game validation of the three movement seams; entity families whose movement PlutoLib does not seam (projectiles) are not notified",
     },
+    SupportEntry {
+        api: "recipe_api_v1::register_ingredient_kind / register_assembly",
+        support: Support::Stub,
+        behaviour: "both registries are pure-tested; the game's ingredient dispatch (load-time item lists and craft-time stack tests for mod-defined kinds) and the crafting gate's assembly substitution (a provider's compound replacing the result template's custom data, denial vetoing the match) are source-wired through the native inventory registry and the established crafting-match boundary; native compilation and game validation are pending",
+        unblocked_by: "consolidated native build and game validation of the ingredient hooks and the assembly arm of the crafting-match boundary",
+    },
 ];
 
 /// Rows for a given support class.
