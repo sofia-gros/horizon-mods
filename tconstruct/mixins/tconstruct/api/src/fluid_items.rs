@@ -6,10 +6,13 @@
 //! - the venom, slime and magma bottles (250 of their fluid, a glass bottle back) and the meat soup bowl (250, a bowl back), and powdered
 //!   snow in the vanilla powder snow bucket (ConstantFluidContainerWrapper);
 //! - the transfers the original ships as data (`fluid_transfers`): a glass bottle fills with 250 of a bottle's fluid, a bowl with meat soup.
+//! The tank items with `limitStackSize` also register PlutoLib's per-stack maximum: a stack holding fluid stacks to 16, an empty one
+//! delegates to the item's own maximum (menu stacking honours it today; the game's general stacking seam is PlutoLib's remaining
+//! host work, see the support matrix).
 //! The bottles and the soup are drunk (32 ticks, the soup feeds 8 hunger at 0.6 saturation modifier) and the bottles give the effects of
 //! TinkerFood. Not ported, each named: the magma bottle's 15 seconds of fire (a finish callback cannot set an entity on fire), the effects
 //! of Tinkers that are not ported yet are skipped by the game when given, the splash and lingering bottles and the potion bucket (they need
-//! potion contents on stacks and the potion fluid), a filled tank stack's maximum of 16 (no per-stack stack size), the tooltips with the
+//! potion contents on stacks and the potion fluid), the tooltips with the
 //! fluid, the fluid layer of the copper can's model, the sound of a transfer, and trading with the drains and ducts of a smeltery (their
 //! use hook cannot reach the master's tank).
 use crate::{
@@ -18,8 +21,8 @@ use crate::{
     tank,
 };
 use pluto_lib::{
-    ActionResult, BlockEntityUse, EffectInstance, FluidItemDef, FluidItems, FluidStack, FluidTarget, Identifier, ItemUse, ItemUseRegistry, TransferDirection, UseAction,
-    UseItemFinishCallback,
+    ActionResult, BlockEntityUse, EffectInstance, FluidItemDef, FluidItems, FluidStack, FluidTarget, Identifier, ItemBehavior, ItemBehaviors, ItemUse, ItemUseRegistry,
+    TransferDirection, UseAction, UseItemFinishCallback,
 };
 
 fn id(text: &str) -> Identifier { Identifier::parse(text).expect("fixed item and fluid ids are valid") }
@@ -49,9 +52,9 @@ pub(crate) struct TankTarget { pub fluid: Option<FluidStack>, pub capacity: u32 
 impl FluidTarget for TankTarget {
     fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 {
         let held = self.fluid.as_ref().map_or(0, |held| held.amount);
-        if self.fluid.as_ref().is_some_and(|held| held.fluid != fluid.fluid) { return 0; }
+        if self.fluid.as_ref().is_some_and(|held| !held.same_fluid(fluid)) { return 0; }
         let taken = fluid.amount.min(self.capacity.saturating_sub(held));
-        if execute && taken > 0 { self.fluid = Some(FluidStack { fluid: fluid.fluid.clone(), amount: held + taken }); }
+        if execute && taken > 0 { self.fluid = Some(FluidStack { fluid: fluid.fluid.clone(), amount: held + taken, tag: fluid.tag.clone() }); }
         taken
     }
     fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
@@ -59,9 +62,9 @@ impl FluidTarget for TankTarget {
         if wanted.is_some_and(|wanted| wanted != &held.fluid) { return None; }
         let taken = held.amount.min(amount);
         if taken == 0 { return None; }
-        let out = FluidStack { fluid: held.fluid.clone(), amount: taken };
+        let out = FluidStack { fluid: held.fluid.clone(), amount: taken, tag: held.tag.clone() };
         if execute {
-            self.fluid = (held.amount > taken).then(|| FluidStack { fluid: out.fluid.clone(), amount: held.amount - taken });
+            self.fluid = (held.amount > taken).then(|| FluidStack { fluid: out.fluid.clone(), amount: held.amount - taken, tag: out.tag.clone() });
         }
         Some(out)
     }
@@ -79,9 +82,18 @@ pub(crate) fn use_tank(used: &mut BlockEntityUse<'_>, capacity: u32) -> ActionRe
 }
 
 /// Registers every container, transfer and drink. Called once from the product's hooks (after the fluids, so the buckets' fillings are known).
+/// `TankItem.getMaxStackSize` for the items with `limitStackSize`: a stack holding fluid (its data
+/// carries the `tank` compound) stacks to 16; an empty stack delegates to the item's own maximum.
+pub(crate) fn register_tank_stack_limit(item: Identifier) {
+    let _ = ItemBehaviors::register(ItemBehavior::new(item).max_stack_size(|context| {
+        context.custom_data.contains_key(tank::TAG_TANK).then_some(TANK_FILL_LIMIT)
+    }));
+}
+
 pub(crate) fn register() {
     for (name, capacity) in tank::blocks() {
         FluidItems::register(FluidItemDef::tank(tc(&name), tank::TAG_TANK, capacity as u32).scaled().fill_stack_limit(TANK_FILL_LIMIT));
+        register_tank_stack_limit(tc(&name));
     }
     FluidItems::register(FluidItemDef::portion(tc("copper_can"), "fluid", INGOT as u32));
     FluidItems::register(FluidItemDef::constant(id("minecraft:powder_snow_bucket"), tc("powdered_snow"), 1000, Some(id("minecraft:bucket"))));
@@ -125,7 +137,7 @@ mod tests {
     use pluto_lib::{BlockEntityUse, ItemSlot, NbtCompound};
 
     fn stack(text: &str, count: u32) -> ItemSlot { ItemSlot::new(id(text), count) }
-    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount } }
+    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount, tag: None } }
 
     #[test]
     fn the_shipped_transfers_fill_a_glass_bottle_and_a_bowl_and_empty_the_soup() {

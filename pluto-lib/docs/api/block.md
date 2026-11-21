@@ -933,7 +933,7 @@ assert_eq!(behavior.block().path(), "cushion");
 
 ### `BlockBehavior::entity_inside`
 
-`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. Stub: the callbacks are accepted and not called yet (see the support matrix).
+`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. The player, mob and item movement seams invoke the callbacks on the server side, with the level's dimension, the block's full state and the entity's id and kind (see the support matrix for what is not covered).
 
 ```rust
 use pluto_lib::{BlockBehavior, Identifier};

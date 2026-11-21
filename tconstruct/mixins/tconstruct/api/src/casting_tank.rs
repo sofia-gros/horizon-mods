@@ -50,7 +50,7 @@ fn put_slot(items: &mut [Option<ItemSlot>], index: usize, stack: Option<ItemSlot
 
 /// The tank as a trade partner for `FluidItems::interact`, and back.
 fn target_of(tank: &Tank) -> TankTarget {
-    TankTarget { fluid: tank.fluid.as_ref().map(|fluid| FluidStack { fluid: fluid.fluid.clone(), amount: fluid.amount as u32 }), capacity: CAPACITY as u32 }
+    TankTarget { fluid: tank.fluid.as_ref().map(|fluid| FluidStack { fluid: fluid.fluid.clone(), amount: fluid.amount as u32, tag: None }), capacity: CAPACITY as u32 }
 }
 
 fn apply_target(tank: &mut Tank, target: &TankTarget) {
@@ -148,7 +148,7 @@ fn use_casting_tank(used: &mut BlockEntityUse<'_>) -> ActionResult {
 
 pub(crate) fn read_tank(data: &NbtCompound) -> Vec<NeighbourTank> {
     let tank = tank_of(data);
-    vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32 }), capacity: tank.capacity as u32 }]
+    vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32, tag: None }), capacity: tank.capacity as u32 }]
 }
 
 pub(crate) fn fill_tank(fill: &mut BlockEntityFill<'_>) -> u32 {
@@ -162,7 +162,7 @@ pub(crate) fn drain_tank(drain: &mut BlockEntityDrain<'_>) -> Option<FluidStack>
     let mut tank = tank_of(drain.data);
     let out = tank.drain(drain.wanted.as_ref(), drain.amount.min(i32::MAX as u32) as i32, true)?;
     tank.write(drain.data);
-    Some(FluidStack { fluid: out.fluid, amount: out.amount as u32 })
+    Some(FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
 }
 
 pub(crate) fn register() {
@@ -179,7 +179,8 @@ pub(crate) fn register() {
     // fluid follows on the first tick instead (the placement context names the item, not its data)
     BlockBehaviors::register(BlockBehavior::new(block.clone()).state_for_placement(|c| Placement::State(c.state.clone().with("facing", facing_toward(c.yaw)))));
     // the item is a TankItem of the block's capacity (limitStackSize: a stack above 16 takes no fluid)
-    FluidItems::register(FluidItemDef::tank(block, crate::tank::TAG_TANK, CAPACITY as u32).scaled().fill_stack_limit(16));
+    FluidItems::register(FluidItemDef::tank(block.clone(), crate::tank::TAG_TANK, CAPACITY as u32).scaled().fill_stack_limit(16));
+    crate::fluid_items::register_tank_stack_limit(block);
 }
 
 #[cfg(test)]
@@ -189,7 +190,7 @@ mod tests {
 
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn stack(text: &str, count: u32) -> ItemSlot { ItemSlot::new(id(text), count) }
-    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount } }
+    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount, tag: None } }
 
     fn registered() {
         crate::fluids::register();

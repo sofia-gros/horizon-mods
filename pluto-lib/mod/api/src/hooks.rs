@@ -251,6 +251,14 @@ pub fn hooks() -> Box<dyn Hooks> {
             item: item.to_owned(), stack: entity_events_v1::worn_piece(wearer, "head").filter(|stack| stack.item == item), wearer_uuid: Some(wearer), observer_entity: Some(observer),
         })
     }).expect("PlutoLib item mask dispatcher installs once");
+    horizon_client::entry::pluto_block::set_max_stack_dispatcher(|item, data| {
+        item_api_v1::max_stack_size(&item_api_v1::MaxStackSizeContext {
+            item: item.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item max stack dispatcher installs once");
+    horizon_client::entry::pluto_block::set_schedule_drain(|dimension, edit| {
+        world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
+    });
     horizon_client::entry::pluto_entity_spawn_access::set_provider(
         horizon_client::entry::pluto_entity_spawn_access::Provider {
             enabled:crate::pure::entity_spawn_api::has_callbacks,prepare:native_spawn_prepare,
@@ -589,6 +597,12 @@ impl screen_handler_api_v1::MenuAccess for StagedMenu<'_, '_> {
         }
     }
     fn max_stack_count(&self, stack: &ItemSlot) -> u32 {
+        // A registered per-stack maximum (a filled tank stacks to 16) wins over the item's own.
+        if let Some(limit) = item_api_v1::max_stack_size(&item_api_v1::MaxStackSizeContext {
+            item: stack.item.to_string(), custom_data: stack.custom_data.clone(),
+        }) {
+            return limit;
+        }
         native_slot(Some(stack.clone())).map_or(0, |stack| {
             horizon_client::menu::pluto_menu_actions::max_stack_count(self.env, &stack)
         })
@@ -709,6 +723,12 @@ impl WorldOps for HostWorld {
         changed
     }
 
+    fn schedule_block_tick(&mut self, dimension: &str, pos: [i32; 3], block: &str, delay: i32) -> bool {
+        // The mod-facing host has no scheduling call, so the request is queued and the level's
+        // own tick seams apply it in that dimension (see world_api_v1::queue_block_tick).
+        world_api_v1::queue_block_tick(dimension, pos, block, delay)
+    }
+
     fn block_entity_data(&mut self, dimension: &str, pos: [i32; 3]) -> Option<NbtCompound> {
         let host = self.0.get();
         // `mod_block_entity` reaches the block entities of the level in place; another dimension answers nothing.
@@ -747,7 +767,7 @@ fn host_face(face: block_api_v1::Direction) -> horizon_client::mod_api::Directio
 
 fn fluid_stack_of(fluid: &str, amount: i32) -> Option<FluidStack> {
     let fluid = Identifier::parse(fluid).ok()?;
-    u32::try_from(amount).ok().filter(|&amount| amount > 0).map(|amount| FluidStack { fluid, amount })
+    u32::try_from(amount).ok().filter(|&amount| amount > 0).map(|amount| FluidStack { fluid, amount, tag: None })
 }
 
 /// How much of `offered` the block entity at `pos` takes by its own fluid rule (`BlockEntityType::fluid_filler`); `None` when its block
@@ -1477,6 +1497,33 @@ fn compound_to_tag(compound: &NbtCompound) -> Compound {
     compound.iter().map(|(key, nbt)| (key.as_str().into(), tag_from_nbt(nbt))).collect()
 }
 
+/// A custom data compound from its JSON form, for transports that carry data as JSON (the item
+/// behaviour transport). JSON has no byte or null: booleans read as 0/1 bytes and null as an
+/// empty string; the queries this feeds inspect keys, structure and strings, which JSON keeps.
+fn nbt_from_json(value: &serde_json::Value) -> NbtCompound {
+    match value {
+        serde_json::Value::Object(map) => map.iter().map(|(key, value)| (key.clone(), nbt_value_from_json(value))).collect(),
+        _ => NbtCompound::new(),
+    }
+}
+
+fn nbt_value_from_json(value: &serde_json::Value) -> Nbt {
+    match value {
+        serde_json::Value::Null => Nbt::String(String::new()),
+        serde_json::Value::Bool(flag) => Nbt::Byte(i8::from(*flag)),
+        serde_json::Value::Number(number) => {
+            if let Some(int) = number.as_i64() {
+                if let Ok(int) = i32::try_from(int) { Nbt::Int(int) } else { Nbt::Long(int) }
+            } else {
+                Nbt::Double(number.as_f64().unwrap_or(0.0))
+            }
+        }
+        serde_json::Value::String(text) => Nbt::String(text.clone()),
+        serde_json::Value::Array(values) => Nbt::List(values.iter().map(nbt_value_from_json).collect()),
+        serde_json::Value::Object(_) => Nbt::Compound(nbt_from_json(value)),
+    }
+}
+
 /// A stack as an item slot: item, count, damage, max damage and custom data; None for an item id PlutoLib cannot name.
 fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     let data = read_stack(stack);
@@ -2138,6 +2185,13 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
             block_api_v1::fall_on(&block, &mut context);
             request.damage = context.damage;
         },
+        entity_inside: |notice| {
+            let Some(state) = to_state(&notice.state) else { return };
+            let block = state.block.to_string();
+            block_api_v1::inside(&block, &block_api_v1::EntityInsideContext {
+                dimension: notice.dimension.clone(), state, pos: notice.pos, entity: notice.entity, kind: notice.kind.clone(),
+            });
+        },
         survives,
         placement,
         update_shape,
@@ -2269,7 +2323,7 @@ impl Hooks for PlutoHooks {
         let tanks = block_entity_api_v1::tank_contents(&block, &compound_from_tag(&entity.nbt))?;
         Some(tanks.into_iter().enumerate().map(|(tank, (content, capacity))| NativeFluidTankView {
             tank,
-            content: content.map(|stack| NativeFluidStack { fluid: stack.fluid.to_string(), amount: stack.amount.min(i32::MAX as u32) as i32, components: Compound::new() }),
+            content: content.map(|stack| NativeFluidStack { fluid: stack.fluid.to_string(), amount: stack.amount.min(i32::MAX as u32) as i32, components: stack.tag.as_ref().map(compound_to_tag).unwrap_or_default() }),
             capacity: capacity.min(i32::MAX as u32) as i32,
             can_fill: true,
             can_drain: false,
@@ -2278,7 +2332,8 @@ impl Hooks for PlutoHooks {
 
     fn custom_fluid_fill(&self, host: &mut dyn Host, event: &mut CustomFluidFillEvent<'_>) -> Option<i32> {
         let fluid = Identifier::parse(&event.resource.fluid).ok()?;
-        let offered = FluidStack { fluid, amount: u32::try_from(event.resource.amount).ok()? };
+        let tag = (!event.resource.components.is_empty()).then(|| compound_from_tag(&event.resource.components));
+        let offered = FluidStack { fluid, amount: u32::try_from(event.resource.amount).ok()?, tag };
         let face = event.side.map(|side| direction(side as u8));
         let execute = matches!(event.action, NativeFluidAction::Execute);
         let taken = filler_takes(host, event.pos, face, &offered, execute).unwrap_or(0);

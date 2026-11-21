@@ -89,7 +89,8 @@ pub trait WorldOps {
         false
     }
     /// Asks the game to tick `block` at `pos` after `delay` game ticks (Minecraft: `scheduleTick`); false when the host cannot schedule from
-    /// this callback, which is the default.
+    /// this callback, which is the default. The host adapter accepts the request into [`queue_block_tick`]'s queue, which the level's own
+    /// tick seams apply (see [`apply_pending_block_ticks`]), so a true answer means the tick is scheduled by the next seam in that dimension.
     fn schedule_block_tick(&mut self, _dimension: &str, _pos: BlockPos, _block: &str, _delay: i32) -> bool {
         false
     }
@@ -223,9 +224,10 @@ impl World {
         with_current(false, |ops| ops.set_block_state(&self.dimension, pos, &state.to_string()))
     }
 
-    /// Minecraft: `scheduleTick`. Asks for the block at `pos` to be ticked after `delay` game ticks (its behaviour's `scheduled_tick` runs). False
-    /// when the host cannot schedule from this callback, outside a callback, or for a delay below 1; the caller then relies on the block's own
-    /// random ticks and neighbour updates.
+    /// Minecraft: `scheduleTick`. Asks for the block at `pos` to be ticked after `delay` game ticks (its behaviour's `scheduled_tick` runs). The
+    /// host adapter queues the request and the level's tick seams apply it (see [`queue_block_tick`]), so true means the tick will be scheduled
+    /// in this dimension. False outside a callback or for a delay below 1; the caller then relies on the block's own random ticks and
+    /// neighbour updates.
     pub fn schedule_tick(&self, pos: BlockPos, block: &str, delay: i32) -> bool {
         delay > 0 && with_current(false, |ops| ops.schedule_block_tick(&self.dimension, pos, block, delay))
     }
@@ -241,6 +243,68 @@ impl World {
     pub fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool {
         with_current(false, |ops| ops.merge_block_entity_data(&self.dimension, pos, data))
     }
+}
+
+/// A block tick a host-side callback asked for. The mod-facing host has no call that schedules a
+/// block tick (the native helper exists only inside the game), so the host adapter queues the
+/// request here and the level's own tick seams — the callbacks that run with the level's tick
+/// queue in hand — apply the queued ticks for their dimension (see `apply_pending_block_ticks`).
+/// A request is therefore honoured a few ticks late at most; fluid spread delays run to tens of
+/// ticks, so the first tick of a freshly placed fluid is not measurably delayed.
+struct PendingBlockTick {
+    dimension: String,
+    pos: BlockPos,
+    block: String,
+    delay: i32,
+}
+
+static PENDING_BLOCK_TICKS: std::sync::Mutex<Vec<PendingBlockTick>> = std::sync::Mutex::new(Vec::new());
+
+/// The most requests held at once; past it new requests are refused (and say so) rather than
+/// letting a broken caller grow the queue without bound.
+const MAX_PENDING_BLOCK_TICKS: usize = 4096;
+
+/// Queues a block tick for the level seams to apply. A request for a tick that is already queued
+/// (same dimension, position and block) counts as scheduled, as the game's own queue treats it.
+pub(crate) fn queue_block_tick(dimension: &str, pos: BlockPos, block: &str, delay: i32) -> bool {
+    if delay <= 0 {
+        return false;
+    }
+    let Ok(mut pending) = PENDING_BLOCK_TICKS.lock() else { return false };
+    if pending.iter().any(|tick| tick.dimension == dimension && tick.pos == pos && tick.block == block) {
+        return true;
+    }
+    if pending.len() >= MAX_PENDING_BLOCK_TICKS {
+        return false;
+    }
+    pending.push(PendingBlockTick { dimension: dimension.to_owned(), pos, block: block.to_owned(), delay });
+    true
+}
+
+/// Applies every queued tick for `dimension` through `apply` (the level seam's own scheduling,
+/// which answers false for an unknown block or an unloaded position) and returns how many were
+/// scheduled. Requests the seam refuses are dropped, not kept: the game's queue would refuse
+/// them outright too. Other dimensions' requests stay queued.
+pub(crate) fn apply_pending_block_ticks(dimension: &str, mut apply: impl FnMut(BlockPos, &str, i32) -> bool) -> usize {
+    let Ok(mut pending) = PENDING_BLOCK_TICKS.lock() else { return 0 };
+    let mut rest = Vec::new();
+    let mut mine = Vec::new();
+    for tick in std::mem::take(&mut *pending) {
+        if tick.dimension == dimension {
+            mine.push(tick);
+        } else {
+            rest.push(tick);
+        }
+    }
+    *pending = rest;
+    drop(pending);
+    let mut applied = 0;
+    for tick in mine {
+        if apply(tick.pos, &tick.block, tick.delay) {
+            applied += 1;
+        }
+    }
+    applied
 }
 
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
@@ -340,6 +404,28 @@ mod tests {
             assert!(region.state([5, 5, 5]).is_none());
             assert!(world.read_region([0, 0, 0], [2, 0, 0]).is_none(), "one block of the box is in a chunk that is not loaded");
         });
+    }
+
+    #[test]
+    fn queued_block_ticks_apply_per_dimension_dedupe_and_drop_refusals() {
+        // unique positions: the queue is a process-wide static shared with other tests
+        assert!(queue_block_tick("minecraft:overworld", [9001, 64, 0], "test:fluid", 5));
+        assert!(queue_block_tick("minecraft:overworld", [9001, 64, 0], "test:fluid", 9), "already queued counts as scheduled");
+        assert!(queue_block_tick("minecraft:the_nether", [9001, 64, 0], "test:fluid", 5));
+        assert!(!queue_block_tick("minecraft:overworld", [9002, 64, 0], "test:fluid", 0), "no delay, no tick");
+        let mut seen = Vec::new();
+        let applied = apply_pending_block_ticks("minecraft:overworld", |pos, block, delay| {
+            seen.push((pos, block.to_owned(), delay));
+            block != "test:refused"
+        });
+        assert_eq!(applied, 1, "the duplicate was queued once");
+        assert_eq!(seen, vec![([9001, 64, 0], "test:fluid".to_owned(), 5)], "the first request wins");
+        assert_eq!(apply_pending_block_ticks("minecraft:overworld", |_, _, _| true), 0, "the queue for this dimension is drained");
+        // a refused tick is dropped, and the other dimension's request is still waiting
+        assert!(queue_block_tick("minecraft:overworld", [9003, 64, 0], "test:refused", 5));
+        assert_eq!(apply_pending_block_ticks("minecraft:overworld", |_, _, _| false), 0);
+        assert_eq!(apply_pending_block_ticks("minecraft:overworld", |_, _, _| true), 0, "the refusal was dropped, not retried");
+        assert_eq!(apply_pending_block_ticks("minecraft:the_nether", |_, _, _| true), 1);
     }
 
     #[test]

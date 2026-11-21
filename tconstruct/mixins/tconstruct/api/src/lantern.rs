@@ -28,7 +28,7 @@ fn tick_lantern(tick: &mut BlockEntityTick<'_>) {
 
 pub(crate) fn read_lanterns(data: &NbtCompound) -> Vec<NeighbourTank> {
     let tank = lantern_of(data);
-    vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32 }), capacity: tank.capacity as u32 }]
+    vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32, tag: None }), capacity: tank.capacity as u32 }]
 }
 
 pub(crate) fn fill_lantern(fill: &mut BlockEntityFill<'_>) -> u32 {
@@ -42,7 +42,7 @@ pub(crate) fn drain_lantern(drain: &mut BlockEntityDrain<'_>) -> Option<FluidSta
     let mut tank = lantern_of(drain.data);
     let out = tank.drain(drain.wanted.as_ref(), drain.amount.min(i32::MAX as u32) as i32, true)?;
     tank.write(drain.data);
-    Some(FluidStack { fluid: out.fluid, amount: out.amount as u32 })
+    Some(FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
 }
 
 /// `FluidTransferHelper.interactWithTank`, the trade a tank block entity answers: the held container empties into the
@@ -52,7 +52,7 @@ fn use_lantern(used: &mut pluto_lib::BlockEntityUse<'_>) -> ActionResult {
     impl pluto_lib::FluidTarget for Block {
         fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 { self.0.fill(&fluid.fluid, fluid.amount.min(i32::MAX as u32) as i32, execute).max(0) as u32 }
         fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
-            self.0.drain(wanted, amount.min(i32::MAX as u32) as i32, execute).map(|out| FluidStack { fluid: out.fluid, amount: out.amount as u32 })
+            self.0.drain(wanted, amount.min(i32::MAX as u32) as i32, execute).map(|out| FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
         }
     }
     let mut target = Block(lantern_of(used.data));
@@ -99,7 +99,7 @@ mod tests {
     fn the_hooks_answer_a_neighbours_reads_fills_and_drains() {
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
-        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: fluid_id("minecraft:lava"), amount: 5000 }, face: None, execute: true };
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: fluid_id("minecraft:lava"), amount: 5000, tag: None }, face: None, execute: true };
         assert_eq!(fill_lantern(&mut fill), 50);
         assert_eq!(read_lanterns(&data)[0].fluid.as_ref().unwrap().amount, 50);
         assert_eq!(read_lanterns(&data)[0].capacity, 50);
@@ -116,11 +116,11 @@ mod tests {
         crate::fluids::register();
         register();
         let one = ItemSlot::new(fluid_id("tconstruct:seared_lantern"), 1);
-        let filled = FluidItems::fill(&one, &FluidStack { fluid: fluid_id("minecraft:lava"), amount: 1000 });
+        let filled = FluidItems::fill(&one, &FluidStack { fluid: fluid_id("minecraft:lava"), amount: 1000, tag: None });
         assert_eq!(filled.amount, 50, "one lantern takes its 50");
         // the tank items take no fluid above a stack of 16; the lantern item has no such limit and scales by the stack
         let many = ItemSlot::new(fluid_id("tconstruct:scorched_lantern"), 20);
-        let filled = FluidItems::fill(&many, &FluidStack { fluid: fluid_id("minecraft:lava"), amount: 1000 });
+        let filled = FluidItems::fill(&many, &FluidStack { fluid: fluid_id("minecraft:lava"), amount: 1000, tag: None });
         assert_eq!(filled.amount, 1000, "twenty lanterns of fifty");
         let mut single = filled.container.clone();
         single.count = 1;

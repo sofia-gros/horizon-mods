@@ -121,7 +121,7 @@ impl Game {
 
 fn pour_and_cool(live: &Live, cast: &ItemSlot, fluid: &Identifier) -> (State, Vec<Option<ItemSlot>>, u32) {
     let (mut state, mut items) = (State::default(), vec![Some(cast.clone()), None]);
-    let taken = state.fill(live, &mut items, &FluidStack { fluid: fluid.clone(), amount: 100_000 }, false);
+    let taken = state.fill(live, &mut items, &FluidStack { fluid: fluid.clone(), amount: 100_000, tag: None }, false);
     let cooling = state.cooling.max(0);
     for _ in 0..cooling { state.tick(live, &mut items); }
     (state, items, taken)
@@ -412,7 +412,7 @@ impl pluto_lib::NeighbourOps for FaucetWorld<'_> {
         let held = self.melter.as_mut()?;
         let taken = amount.min(held.amount);
         if taken == 0 { return None; }
-        let out = FluidStack { fluid: held.fluid.clone(), amount: taken };
+        let out = FluidStack { fluid: held.fluid.clone(), amount: taken, tag: held.tag.clone() };
         held.amount -= taken;
         if held.amount == 0 { self.melter = None; }
         Some(out)
@@ -434,7 +434,7 @@ fn a_faucet_click_pours_the_melters_iron_into_the_table_and_the_cast_sets_the_ca
     let game = game();
     let mut world = FaucetWorld {
         live: game.live(Station::Table),
-        melter: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }),
+        melter: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90, tag: None }),
         table: State::default(),
         items: vec![Some(ItemSlot::new(id("tconstruct:ingot_cast"), 1)), None],
     };
@@ -452,7 +452,7 @@ fn a_faucet_click_pours_the_melters_iron_into_the_table_and_the_cast_sets_the_ca
         assert!(!faucet.is_pouring(), "the pour ends when the melter is dry");
     });
     assert_eq!(world.melter, None, "the melter gave up its 90");
-    assert_eq!(world.table.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }));
+    assert_eq!(world.table.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90, tag: None }));
     assert_eq!(world.table.capacity, 90, "the capacity is the ingot recipe's amount, chosen by the cast in the table");
     // the table finishes the loop: cool it, and the ingot lands in the output while the cast stays
     let cooling = world.table.cooling.max(0);

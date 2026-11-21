@@ -37,12 +37,23 @@ pub struct InsideMotion {
 }
 pub type InsideMotionHandler = std::sync::Arc<dyn Fn(&mut InsideMotion) + Send + Sync>;
 pub type AfterFallHandler = std::sync::Arc<dyn Fn(&mut AfterFall) + Send + Sync>;
+/// An entity is inside a block's space: the notification the movement seams hand to the API
+/// crate, which turns it into the block behaviour's `entity_inside` callback. Read-only: the
+/// seams run inside entity movement, where the entity may not be changed.
+pub struct EntityInside {
+    pub dimension: String,
+    pub state: StateInfo,
+    pub pos: [i32; 3],
+    pub entity: i32,
+    pub kind: String,
+}
 #[derive(Clone, Copy)]
 pub struct LandingSink {
     pub has: fn(&str) -> bool,
     pub fall_on: fn(&mut FallOn),
     pub after_fall: fn(&StateInfo) -> Option<AfterFallHandler>,
     pub inside_motion: fn(&StateInfo) -> Option<InsideMotionHandler>,
+    pub entity_inside: fn(&EntityInside),
 }
 static LANDING_SINK: std::sync::RwLock<Option<LandingSink>> = std::sync::RwLock::new(None);
 pub fn set_landing_sink(sink: LandingSink) {
@@ -50,6 +61,19 @@ pub fn set_landing_sink(sink: LandingSink) {
 }
 pub fn landing_sink() -> Option<LandingSink> {
     LANDING_SINK.read().ok().and_then(|slot| *slot)
+}
+
+/// Applies the block ticks host-side callbacks queued because the mod-facing host cannot
+/// schedule (the API crate installs it; the level's tick seams call `drain_schedules` with
+/// their own dimension and editor). Copy the function pointer out before invoking it.
+pub type ScheduleDrain = fn(&str, &mut dyn LevelEdit);
+static SCHEDULE_DRAIN: std::sync::RwLock<Option<ScheduleDrain>> = std::sync::RwLock::new(None);
+pub fn set_schedule_drain(drain: ScheduleDrain) {
+    if let Ok(mut slot) = SCHEDULE_DRAIN.write() { *slot = Some(drain) }
+}
+pub fn drain_schedules(dimension: &str, edit: &mut dyn LevelEdit) {
+    let drain = SCHEDULE_DRAIN.read().ok().and_then(|slot| *slot);
+    if let Some(drain) = drain { drain(dimension, edit); }
 }
 
 pub type FeatureDispatcher=fn(&mut dyn LevelEdit,&str,&serde_json::Value,[i32;3])->Option<bool>;

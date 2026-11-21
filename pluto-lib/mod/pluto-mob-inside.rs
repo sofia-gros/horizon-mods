@@ -11,6 +11,11 @@ fn dispatch(m: &mut Mob, w: &MobWorld<'_>, pos: [i32; 3]) {
     let Some(definition) = w.registry.state(state) else { return };
     let info = StateInfo { block: definition.name.to_string(), properties: definition.properties.iter()
         .map(|(key, value)| (key.to_string(), value.to_string())).collect() };
+    if let Some(dimension) = crate::block_contact::current_level() {
+        (sink.entity_inside)(&transport::EntityInside {
+            dimension: dimension.to_string(), state: info.clone(), pos, entity: m.id as i32, kind: m.kind.id.clone(),
+        });
+    }
     let Some(callback) = (sink.inside_motion)(&info) else { return };
     let mut request = InsideMotion {
         pos, entity: m.id as i32, kind: m.kind.id.clone(), server,

@@ -154,7 +154,7 @@ mod tests {
 
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn stack(text: &str, count: u32) -> ItemSlot { ItemSlot::new(id(text), count) }
-    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount } }
+    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount, tag: None } }
 
     fn registered() {
         crate::fluids::register();

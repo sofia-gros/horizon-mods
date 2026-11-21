@@ -37,7 +37,7 @@ pub(crate) struct State {
     pub last_redstone: bool,
 }
 
-fn sized(stack: &FluidStack, amount: i32) -> FluidStack { FluidStack { fluid: stack.fluid.clone(), amount: amount.max(0) as u32 } }
+fn sized(stack: &FluidStack, amount: i32) -> FluidStack { FluidStack { fluid: stack.fluid.clone(), amount: amount.max(0) as u32, tag: stack.tag.clone() } }
 
 impl State {
     pub(crate) fn is_pouring(&self) -> bool { self.mode != Mode::Off }
@@ -146,7 +146,7 @@ impl State {
     pub(crate) fn load(data: &NbtCompound) -> Self {
         let stack = |key: &str| {
             let tag = data.get(key)?.as_compound()?;
-            Some(FluidStack { fluid: Identifier::parse(tag.get("Fluid")?.as_str()?).ok()?, amount: tag.get("Amount")?.as_i64()?.max(0) as u32 }).filter(|stack| stack.amount > 0)
+            Some(FluidStack { fluid: Identifier::parse(tag.get("Fluid")?.as_str()?).ok()?, amount: tag.get("Amount")?.as_i64()?.max(0) as u32, tag: tag.get("Tag").and_then(|tag| tag.as_compound().cloned()) }).filter(|stack| stack.amount > 0)
         };
         State {
             mode: match data.get_int("state", 0) { 1 => Mode::Pouring, 2 => Mode::Powered, _ => Mode::Off },
@@ -167,6 +167,9 @@ impl State {
                     let mut tag = NbtCompound::new();
                     tag.insert("Fluid".to_owned(), Nbt::String(stack.fluid.to_string()));
                     tag.insert("Amount".to_owned(), Nbt::Int(stack.amount as i32));
+                    if let Some(fluid_tag) = &stack.tag {
+                        tag.insert("Tag".to_owned(), Nbt::Compound(fluid_tag.clone()));
+                    }
                     data.insert(key.to_owned(), Nbt::Compound(tag));
                 }
                 None => { data.remove(key); }
@@ -228,7 +231,7 @@ pub(crate) fn register() {
 mod tests {
     use super::*;
 
-    fn fluid(amount: u32) -> FluidStack { FluidStack { fluid: Identifier::parse("t:molten_iron").unwrap(), amount } }
+    fn fluid(amount: u32) -> FluidStack { FluidStack { fluid: Identifier::parse("t:molten_iron").unwrap(), amount, tag: None } }
 
     /// A source of `source` and a target taking up to `room`.
     struct Pipes { source: u32, room: u32, delivered: u32, output: bool }

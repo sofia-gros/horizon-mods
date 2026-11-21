@@ -79,7 +79,7 @@ impl Tank {
         match &mut self.fluid {
             None => {
                 if amount > self.capacity { return false; }
-                self.fluid = Some(FluidStack { fluid: fluid.clone(), amount: amount as u32 });
+                self.fluid = Some(FluidStack { fluid: fluid.clone(), amount: amount as u32, tag: None });
                 true
             }
             Some(held) if &held.fluid == fluid => {
@@ -510,7 +510,7 @@ mod tests {
         // 600 required at rate 8: 75 passes reach it and one more finishes, 4 ticks each, the first already done
         run(&mut state, &mut items, &mut tank, &mut world, 4 * 75 - 1 + 1);
         assert!(items[0].is_none(), "the finished ingot leaves the slot");
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90, tag: None }));
     }
 
     #[test]
@@ -522,20 +522,20 @@ mod tests {
         let (mut state, mut tank) = (State::default(), Tank { fluid: None, capacity: MELTER_CAPACITY });
         // one ingot is 76 heating passes of 4 ticks (75 to reach 600 at rate 8, one to finish); run past the first
         run(&mut state, &mut items, &mut tank, &mut world, 4 * 80);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }), "one ingot's worth, not the stack's");
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90, tag: None }), "one ingot's worth, not the stack's");
         assert_eq!(items[0].as_ref().unwrap().count, 3, "the rest of the stack stays in the slot");
         // the rest follow one at a time: three more ingots at 76 passes each
         run(&mut state, &mut items, &mut tank, &mut world, 4 * 80 * 3);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 360 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 360, tag: None }));
         assert!(items[0].is_none(), "the last ingot leaves the slot empty");
     }
 
     #[test]
     fn liquid_fuel_burns_before_solid_fuel_and_a_full_tank_holds_the_item_until_there_is_room() {
-        let lava = FluidStack { fluid: id("minecraft:lava"), amount: 100 };
+        let lava = FluidStack { fluid: id("minecraft:lava"), amount: 100, tag: None };
         let mut world = World { source: Some(Source { fluid: Some(lava), items: vec![Some(ItemSlot::new(id("minecraft:coal"), 1))] }), formed: true, active: Vec::new() };
         let mut items = vec![ingot(), None, None];
-        let mut tank = Tank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: MELTER_CAPACITY as u32 - 80 }), capacity: MELTER_CAPACITY };
+        let mut tank = Tank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: MELTER_CAPACITY as u32 - 80, tag: None }), capacity: MELTER_CAPACITY };
         let mut state = State::default();
         run(&mut state, &mut items, &mut tank, &mut world, 3);
         assert_eq!((state.fuel.temperature, state.fuel.rate), (1000, 10), "lava is tried first");
@@ -576,7 +576,7 @@ mod tests {
     fn state_survives_a_save_and_the_menu_publishes_what_the_screen_draws() {
         let mut world = World { source: Some(Source { fluid: None, items: vec![Some(ItemSlot::new(id("minecraft:coal"), 1))] }), formed: true, active: Vec::new() };
         let mut items = vec![ingot(), None, None];
-        let (mut state, mut tank) = (State::default(), Tank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 180 }), capacity: MELTER_CAPACITY });
+        let (mut state, mut tank) = (State::default(), Tank { fluid: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 180, tag: None }), capacity: MELTER_CAPACITY });
         run(&mut state, &mut items, &mut tank, &mut world, 7);
         let mut data = NbtCompound::new();
         let mut copy = items.clone();

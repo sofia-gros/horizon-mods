@@ -50,6 +50,16 @@ ItemBehaviors::register(ItemBehavior::new(Identifier::parse("example:visor").unw
 
 > **Use with Caution.** Native attachment is source-declared, not plan/build/game validated. The current AI snapshot has an item ID, wearer UUID and observer entity ID, but not the full stack: `stack` is `None`. Do not invent stack data; return `None` if a decision requires unavailable data. This adapter affects Enderman gaze, not visibility distance, revenge, or unrelated species. Callbacks run outside registry locks; duplicates fail without replacement.
 
+A maximum stack size callback answers per stack, from the stack's custom data: a filled tank stacks to 16 while an empty one keeps the item's own maximum, which the content-declared default cannot express. `None` (and an answer of 0) retains the item's own maximum.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior, ItemBehaviors};
+ItemBehaviors::register(ItemBehavior::new(Identifier::parse("example:tank").unwrap())
+    .max_stack_size(|query| query.custom_data.contains_key("tank").then_some(16))).unwrap();
+```
+
+> **Use with Caution.** Menu stacking honours the answer today; the game's own stacking (inventory merging, pickup) awaits a host seam at its stack-limit query (see the support matrix). Callbacks run outside registry locks; duplicates fail without replacement.
+
 ## Standing and Wall Block Items
 
 A standing-and-wall item chooses between two blocks while retaining the native placement path. Register the item, standing block, wall block and attachment direction during mod initialization. This describes a Minecraft `StandingAndWallBlockItem`; it is not a callback returning a different block from `state_for_placement`.
@@ -448,6 +458,18 @@ let query = EnderMaskContext { item: "example:visor".into(), stack: None,
 assert!(query.stack.is_none());
 ```
 
+### `MaxStackSizeContext`
+
+A query with `item: String` and `custom_data: NbtCompound` (the stack's own data, empty for none). The count is what is being decided, so it is not part of the query.
+
+```rust
+use pluto_lib::{MaxStackSizeContext, Nbt, NbtCompound};
+let mut data = NbtCompound::new();
+data.insert("tank".into(), Nbt::Compound(NbtCompound::new()));
+let query = MaxStackSizeContext { item: "example:tank".into(), custom_data: data };
+assert!(query.custom_data.contains_key("tank"));
+```
+
 ### `ItemBehavior`
 
 Owned Minecraft item extension registration, cloneable without duplicating callback state.
@@ -475,6 +497,16 @@ let behavior = ItemBehavior::new(Identifier::parse("example:helmet").unwrap());
 use pluto_lib::{Identifier, ItemBehavior};
 let behavior = ItemBehavior::new(Identifier::parse("example:visor").unwrap())
     .is_ender_mask(|query| query.stack.as_ref().map(|stack| stack.damage == 0));
+```
+
+### `ItemBehavior::max_stack_size`
+
+`fn max_stack_size(self, callback: impl Fn(&MaxStackSizeContext) -> Option<u32> + Send + Sync + 'static) -> ItemBehavior`. The most items one stack of this item may hold, for the stack in the context; `None` delegates to the item's own maximum.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:tank").unwrap())
+    .max_stack_size(|query| query.custom_data.contains_key("tank").then_some(16));
 ```
 
 ### `ItemBehaviors`

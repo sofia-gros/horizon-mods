@@ -38,7 +38,7 @@ fn cannon_tank(name: &str, data: &NbtCompound) -> Tank { Tank::read(data, capaci
 
 pub(crate) fn read_tanks(name: &str, data: &NbtCompound) -> Vec<NeighbourTank> {
     let tank = cannon_tank(name, data);
-    vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32 }), capacity: tank.capacity as u32 }]
+    vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32, tag: None }), capacity: tank.capacity as u32 }]
 }
 
 pub(crate) fn fill_tank(name: &str, fill: &mut BlockEntityFill<'_>) -> u32 {
@@ -52,7 +52,7 @@ pub(crate) fn drain_tank(name: &str, drain: &mut BlockEntityDrain<'_>) -> Option
     let mut tank = cannon_tank(name, drain.data);
     let out = tank.drain(drain.wanted.as_ref(), drain.amount.min(i32::MAX as u32) as i32, true)?;
     tank.write(drain.data);
-    Some(FluidStack { fluid: out.fluid, amount: out.amount as u32 })
+    Some(FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
 }
 
 /// The item half of `FluidCannonBlockEntity.interact`: an empty slot takes the whole hand stack, an empty hand takes the
@@ -74,7 +74,7 @@ fn use_cannon(name: &str, used: &mut pluto_lib::BlockEntityUse<'_>) -> ActionRes
     impl pluto_lib::FluidTarget for Block {
         fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 { self.0.fill(&fluid.fluid, fluid.amount.min(i32::MAX as u32) as i32, execute).max(0) as u32 }
         fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
-            self.0.drain(wanted, amount.min(i32::MAX as u32) as i32, execute).map(|out| FluidStack { fluid: out.fluid, amount: out.amount as u32 })
+            self.0.drain(wanted, amount.min(i32::MAX as u32) as i32, execute).map(|out| FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
         }
     }
     let mut target = Block(cannon_tank(name, used.data));
@@ -199,7 +199,7 @@ mod tests {
     fn a_cannon_is_a_tank_of_its_own_capacity_with_an_item_beside_it() {
         let mut data = NbtCompound::new();
         let mut items = vec![None];
-        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 5000 }, face: None, execute: true };
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 5000, tag: None }, face: None, execute: true };
         assert_eq!(fill_tank("end_fluid_cannon", &mut fill), 4000);
         assert_eq!(read_tanks("end_fluid_cannon", &data)[0].fluid.as_ref().unwrap().amount, 4000);
         let mut drain = BlockEntityDrain { pos: [0; 3], data: &mut data, items: &mut items, wanted: None, amount: 2000, execute: true };
@@ -256,7 +256,7 @@ mod tests {
         let mut data = NbtCompound::new();
         assert_eq!(shoot("seared_fluid_cannon", &data, "north"), Shot::NoFluid);
         let mut items = Vec::new();
-        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("minecraft:lava"), amount: 1000 }, face: None, execute: true };
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("minecraft:lava"), amount: 1000, tag: None }, face: None, execute: true };
         fill_tank("seared_fluid_cannon", &mut fill);
         assert_eq!(shoot("seared_fluid_cannon", &data, "north"), Shot::NoEffects);
         assert_eq!(cannon_tank("seared_fluid_cannon", &data).amount(), 1000);

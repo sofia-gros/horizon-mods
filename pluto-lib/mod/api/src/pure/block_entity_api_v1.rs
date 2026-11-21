@@ -82,13 +82,30 @@ impl ItemSlot {
     }
 }
 
-/// Fluid in a tank: which fluid and how many millibuckets (a bucket is a thousand).
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// Fluid in a tank: which fluid, how many millibuckets (a bucket is a thousand) and the fluid's own
+/// tag when it has one (Forge's `FluidStack.tag`): potion contents are the usual case, where the
+/// fluid id alone does not say what the fluid is. Two stacks hold the same fluid only when the id
+/// and the tag both match, so equality is tag-aware; a plain fluid has no tag.
+#[derive(Clone, Debug, PartialEq)]
 pub struct FluidStack {
     /// The fluid, such as `minecraft:water` or a mod's own.
     pub fluid: Identifier,
     /// Millibuckets.
     pub amount: u32,
+    /// The fluid's own tag, or `None` for a plain fluid.
+    pub tag: Option<NbtCompound>,
+}
+
+impl FluidStack {
+    /// A plain stack of `amount` millibuckets of `fluid`, with no tag.
+    pub fn new(fluid: Identifier, amount: u32) -> Self {
+        Self { fluid, amount, tag: None }
+    }
+
+    /// Whether both stacks hold the same fluid with the same tag (the amounts may differ).
+    pub fn same_fluid(&self, other: &FluidStack) -> bool {
+        self.fluid == other.fluid && self.tag == other.tag
+    }
 }
 
 /// What a ticker receives: where the block entity is, its saved data and its item slots, which the ticker may change.
@@ -119,7 +136,9 @@ pub(crate) fn read_fluid(data: &NbtCompound, index: usize) -> Option<FluidStack>
     if fluid == "minecraft:empty" || amount <= 0 {
         return None;
     }
-    Some(FluidStack { fluid: Identifier::parse(fluid).ok()?, amount: amount as u32 })
+    // The tag is optional and absent in data written before stacks carried one: plain fluid then.
+    let tag = tank.get("Tag").and_then(|tag| tag.as_compound().cloned());
+    Some(FluidStack { fluid: Identifier::parse(fluid).ok()?, amount: amount as u32, tag })
 }
 
 /// Puts `stack` in tank `index` of saved data, or empties the tank with `None`; the tanks before it are kept (empty if there are none yet).
@@ -142,6 +161,9 @@ pub(crate) fn write_fluid(data: &mut NbtCompound, index: usize, stack: Option<Fl
             let mut tank = NbtCompound::new();
             tank.insert("Fluid".to_owned(), Nbt::String(stack.fluid.to_string()));
             tank.insert("Amount".to_owned(), Nbt::Int(stack.amount.min(i32::MAX as u32) as i32));
+            if let Some(tag) = stack.tag {
+                tank.insert("Tag".to_owned(), Nbt::Compound(tag));
+            }
             Nbt::Compound(tank)
         }
         _ => empty(),
@@ -509,8 +531,8 @@ impl BlockEntityTypeRegistry {
                     return Some(None);
                 }
                 let left = held.amount - taken;
-                write_fluid(data, index, (left > 0).then(|| FluidStack { fluid: held.fluid.clone(), amount: left }));
-                return Some(Some(FluidStack { fluid: held.fluid, amount: taken }));
+                write_fluid(data, index, (left > 0).then(|| FluidStack { fluid: held.fluid.clone(), amount: left, tag: held.tag.clone() }));
+                return Some(Some(FluidStack { fluid: held.fluid, amount: taken, tag: held.tag }));
             }
             Some(None)
         };
@@ -732,12 +754,29 @@ mod tests {
         let mut items = vec![None, Some(ItemSlot::new(id("minecraft:stick"), 2)), None];
         let mut tick = BlockEntityTick { pos: [0; 3], data: &mut data, items: &mut items };
         assert_eq!(tick.fluid(1), None);
-        tick.set_fluid(1, Some(FluidStack { fluid: id("minecraft:lava"), amount: 250 }));
+        tick.set_fluid(1, Some(FluidStack { fluid: id("minecraft:lava"), amount: 250, tag: None }));
         assert_eq!(tick.fluid(0), None, "the tank before is kept, empty");
-        assert_eq!(tick.fluid(1), Some(FluidStack { fluid: id("minecraft:lava"), amount: 250 }));
+        assert_eq!(tick.fluid(1), Some(FluidStack { fluid: id("minecraft:lava"), amount: 250, tag: None }));
         tick.set_fluid(1, None);
         assert_eq!(tick.fluid(1), None);
         assert_eq!(tick.items[1].as_ref().unwrap().count, 2);
+    }
+
+    #[test]
+    fn a_fluid_tag_round_trips_through_the_saved_data_and_untagged_data_reads_as_a_plain_fluid() {
+        let mut tag = NbtCompound::new();
+        tag.insert("Potion".to_owned(), Nbt::String("minecraft:healing".to_owned()));
+        let mut data = NbtCompound::new();
+        write_fluid(&mut data, 0, Some(FluidStack { fluid: id("minecraft:water"), amount: 250, tag: Some(tag.clone()) }));
+        assert_eq!(read_fluid(&data, 0), Some(FluidStack { fluid: id("minecraft:water"), amount: 250, tag: Some(tag) }));
+        // data written before stacks carried a tag has no Tag entry and reads back plain
+        let mut old = NbtCompound::new();
+        write_fluid(&mut old, 0, Some(FluidStack::new(id("minecraft:water"), 250)));
+        let tanks = old.get("fluids").unwrap().as_list().unwrap();
+        assert!(tanks[0].as_compound().unwrap().get("Tag").is_none());
+        assert_eq!(read_fluid(&old, 0), Some(FluidStack::new(id("minecraft:water"), 250)));
+        // a tagged and an untagged stack of one fluid are not the same fluid
+        assert!(!FluidStack::new(id("minecraft:water"), 1).same_fluid(&FluidStack { fluid: id("minecraft:water"), amount: 1, tag: Some(NbtCompound::new()) }));
     }
 
     #[test]
@@ -760,7 +799,7 @@ mod tests {
                 // takes up to 90 of one fluid
                 let held = fill.fluid_in(0).map_or(0, |held| held.amount);
                 let taken = fill.fluid.amount.min(90 - held);
-                if taken > 0 { fill.set_fluid(0, Some(FluidStack { fluid: fill.fluid.fluid.clone(), amount: held + taken })); }
+                if taken > 0 { fill.set_fluid(0, Some(FluidStack { fluid: fill.fluid.fluid.clone(), amount: held + taken, tag: fill.fluid.tag.clone() })); }
                 taken
             })
             .on_use(|used| {
@@ -771,7 +810,7 @@ mod tests {
             }));
         BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:plain_tank")).fluid_tanks([1000]));
         let (mut data, mut items) = (NbtCompound::new(), vec![None]);
-        let lava = |amount| FluidStack { fluid: id("minecraft:lava"), amount };
+        let lava = |amount| FluidStack { fluid: id("minecraft:lava"), amount, tag: None };
         assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), None, false), Some(50));
         assert!(data.is_empty(), "a simulation changes nothing");
         assert_eq!(BlockEntityTypeRegistry::fill_fluid("test:basin", [0; 3], &mut data, &mut items, lava(50), None, true), Some(50));

@@ -116,7 +116,7 @@ impl<'a> FluidStorage<'a> {
                 let mut taken = 0;
                 for (index, tank) in tanks.iter().enumerate() {
                     let room = match &tank.fluid {
-                        Some(held) if held.fluid != stack.fluid => continue,
+                        Some(held) if !held.same_fluid(stack) => continue,
                         Some(held) => tank.capacity.saturating_sub(held.amount),
                         None => tank.capacity,
                     };
@@ -126,7 +126,7 @@ impl<'a> FluidStorage<'a> {
                     }
                     if execute {
                         let held = read_fluid(&found.data, index).map_or(0, |held| held.amount);
-                        write_fluid(&mut found.data, index, Some(FluidStack { fluid: stack.fluid.clone(), amount: held + part }));
+                        write_fluid(&mut found.data, index, Some(FluidStack { fluid: stack.fluid.clone(), amount: held + part, tag: stack.tag.clone() }));
                     }
                     taken = part;
                     break;
@@ -173,7 +173,7 @@ mod tests {
     }
 
     fn fluid(name: &str, amount: u32) -> FluidStack {
-        FluidStack { fluid: id(name), amount }
+        FluidStack { fluid: id(name), amount, tag: None }
     }
 
     /// A pool block with two declared tanks, a gate that forwards to it (position in its data) letting `filter` through.
@@ -246,7 +246,7 @@ mod tests {
         // one shared tank of 1000 over every fluid, saved under "tank"
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(id("fs:vat"))
-                .fluid_reader(|data| vec![NeighbourTank { fluid: data.get_compound("tank").map(|tag| FluidStack { fluid: id(tag.get_string("fluid").unwrap()), amount: tag.get_int("amount", 0) as u32 }), capacity: 1000 }])
+                .fluid_reader(|data| vec![NeighbourTank { fluid: data.get_compound("tank").map(|tag| FluidStack { fluid: id(tag.get_string("fluid").unwrap()), amount: tag.get_int("amount", 0) as u32, tag: None }), capacity: 1000 }])
                 .fluid_filler(|fill| {
                     let held = fill.data.get_compound("tank").map_or(0, |tag| tag.get_int("amount", 0) as u32);
                     let taken = fill.fluid.amount.min(1000 - held);
@@ -265,7 +265,7 @@ mod tests {
                     let mut left = tag.clone();
                     left.insert("amount".into(), Nbt::Int((held - taken) as i32));
                     drain.data.insert("tank".into(), Nbt::Compound(left));
-                    Some(FluidStack { fluid: id(tag.get_string("fluid")?), amount: taken })
+                    Some(FluidStack { fluid: id(tag.get_string("fluid")?), amount: taken, tag: None })
                 }),
         );
         BlockEntityTypeRegistry::register(BlockEntityType::new(id("fs:loop")).fluid_forward(|_, _| Some(FluidForward { target: [9, 9, 9], filter: FluidFilter::Any })));

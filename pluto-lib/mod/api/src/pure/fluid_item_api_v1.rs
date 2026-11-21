@@ -19,10 +19,11 @@ type FluidAccepts = Arc<dyn Fn(&Identifier) -> bool + Send + Sync>;
 
 #[derive(Clone)]
 enum Kind {
-    /// A variable amount up to `capacity` per item, kept as `{FluidName, Amount}` under `key`. With `scaled`, a stack of `n` items is one
+    /// A variable amount up to `capacity` per item, kept as `{FluidName, Amount, Tag?}` under `key` (the fluid's own tag, when it has one). With `scaled`, a stack of `n` items is one
     /// tank of `n` times the capacity, filled and drained together in steps of `n`.
     Tank { key: String, capacity: u32, scaled: bool, fill_stack_limit: Option<u32> },
-    /// Exactly `amount` per item of one fluid, kept as the fluid's id under `key`: filled and drained whole, never in part.
+    /// Exactly `amount` per item of one fluid, kept as the fluid's id under `key` (a `{FluidName, Tag}` compound when the fluid
+    /// carries a tag): filled and drained whole, never in part.
     Portion { key: String, amount: u32 },
     /// Always holds `amount` of `fluid`; draining it hands back `empty` (or nothing).
     Constant { fluid: Identifier, amount: u32, empty: Option<Identifier> },
@@ -47,7 +48,7 @@ pub struct FluidItemDef {
 }
 
 impl FluidItemDef {
-    /// An item holding any one fluid up to `capacity` millibuckets, kept in the stack's custom data under `key` as `{FluidName, Amount}`
+    /// An item holding any one fluid up to `capacity` millibuckets, kept in the stack's custom data under `key` as `{FluidName, Amount, Tag?}`
     /// (Forge's own fluid stack tag, so an item written by another tool reads the same).
     pub fn tank(item: Identifier, key: &str, capacity: u32) -> Self {
         Self { item, kind: Kind::Tank { key: key.to_owned(), capacity, scaled: false, fill_stack_limit: None } }
@@ -186,15 +187,15 @@ impl FluidItems {
         let count = stack.count.max(1);
         match &def.kind {
             Kind::Tank { key, scaled, .. } => {
-                let (fluid, amount) = read_tank(&stack.custom_data, key)?;
+                let (fluid, amount, tag) = read_tank(&stack.custom_data, key)?;
                 let scale = if *scaled { count } else { 1 };
-                Some(FluidStack { fluid, amount: amount.saturating_mul(scale) })
+                Some(FluidStack { fluid, amount: amount.saturating_mul(scale), tag })
             }
             Kind::Portion { key, amount } => {
-                let fluid = Identifier::parse(stack.custom_data.get_string(key)?).ok()?;
-                Some(FluidStack { fluid, amount: amount.saturating_mul(count) })
+                let (fluid, tag) = read_portion(&stack.custom_data, key)?;
+                Some(FluidStack { fluid, amount: amount.saturating_mul(count), tag })
             }
-            Kind::Constant { fluid, amount, .. } => Some(FluidStack { fluid: fluid.clone(), amount: amount.saturating_mul(count) }),
+            Kind::Constant { fluid, amount, .. } => Some(FluidStack { fluid: fluid.clone(), amount: amount.saturating_mul(count), tag: None }),
             Kind::Fills(_) => None,
         }
     }
@@ -226,10 +227,10 @@ impl FluidItems {
                 }
                 let scale = if *scaled { count } else { 1 };
                 let current = read_tank(&stack.custom_data, key);
-                if current.as_ref().is_some_and(|(held, _)| held != &fluid.fluid) {
+                if current.as_ref().is_some_and(|(held, _, held_tag)| held != &fluid.fluid || held_tag != &fluid.tag) {
                     return none;
                 }
-                let held = current.map_or(0, |(_, amount)| amount);
+                let held = current.map_or(0, |(_, amount, _)| amount);
                 let offered = fluid.amount - fluid.amount % scale;
                 let room = capacity.saturating_mul(scale).saturating_sub(held.saturating_mul(scale));
                 let taken = offered.min(room);
@@ -237,16 +238,16 @@ impl FluidItems {
                     return none;
                 }
                 let mut container = stack.clone();
-                write_tank(&mut container.custom_data, key, Some((&fluid.fluid, (held.saturating_mul(scale) + taken) / scale)));
+                write_tank(&mut container.custom_data, key, Some((&fluid.fluid, (held.saturating_mul(scale) + taken) / scale, fluid.tag.as_ref())));
                 Filled { amount: taken, container }
             }
             Kind::Portion { key, amount } => {
                 let total = amount.saturating_mul(count);
-                if stack.custom_data.get_string(key).is_some() || fluid.amount < total {
+                if read_portion(&stack.custom_data, key).is_some() || fluid.amount < total {
                     return none;
                 }
                 let mut container = stack.clone();
-                container.custom_data.insert(key.clone(), Nbt::String(fluid.fluid.to_string()));
+                write_portion(&mut container.custom_data, key, &fluid.fluid, fluid.tag.as_ref());
                 Filled { amount: total, container }
             }
             Kind::Constant { .. } => none,
@@ -274,7 +275,7 @@ impl FluidItems {
                     return None;
                 }
                 let scale = if *scaled { count } else { 1 };
-                let (fluid, held) = read_tank(&stack.custom_data, key)?;
+                let (fluid, held, tag) = read_tank(&stack.custom_data, key)?;
                 if wanted.is_some_and(|wanted| wanted != &fluid) {
                     return None;
                 }
@@ -285,18 +286,18 @@ impl FluidItems {
                 }
                 let mut container = stack.clone();
                 let left = (held_total - taken) / scale;
-                write_tank(&mut container.custom_data, key, (left > 0).then_some((&fluid, left)));
-                Some(Drained { fluid: FluidStack { fluid, amount: taken }, container: Some(container) })
+                write_tank(&mut container.custom_data, key, (left > 0).then_some((&fluid, left, tag.as_ref())));
+                Some(Drained { fluid: FluidStack { fluid, amount: taken, tag }, container: Some(container) })
             }
             Kind::Portion { key, amount } => {
                 let total = amount.saturating_mul(count);
-                let fluid = Identifier::parse(stack.custom_data.get_string(key)?).ok()?;
+                let (fluid, tag) = read_portion(&stack.custom_data, key)?;
                 if max < total || wanted.is_some_and(|wanted| wanted != &fluid) {
                     return None;
                 }
                 let mut container = stack.clone();
                 container.custom_data.remove(key);
-                Some(Drained { fluid: FluidStack { fluid, amount: total }, container: Some(container) })
+                Some(Drained { fluid: FluidStack { fluid, amount: total, tag }, container: Some(container) })
             }
             Kind::Constant { fluid, amount, empty } => {
                 if count != 1 || max < *amount || wanted.is_some_and(|wanted| wanted != fluid) {
@@ -308,7 +309,7 @@ impl FluidItems {
                     left.custom_data = NbtCompound::new();
                     left
                 });
-                Some(Drained { fluid: FluidStack { fluid: fluid.clone(), amount: *amount }, container })
+                Some(Drained { fluid: FluidStack { fluid: fluid.clone(), amount: *amount, tag: None }, container })
             }
             Kind::Fills(_) => None,
         }
@@ -355,7 +356,7 @@ impl FluidItems {
         if sent == 0 {
             return None;
         }
-        Some((wanted.container, FluidStack { fluid: wanted.fluid.fluid, amount: sent }, true))
+        Some((wanted.container, FluidStack { fluid: wanted.fluid.fluid, amount: sent, tag: wanted.fluid.tag }, true))
     }
 
     fn from_tank(unit: &ItemSlot, target: &mut dyn FluidTarget) -> Option<(Option<ItemSlot>, FluidStack, bool)> {
@@ -372,26 +373,56 @@ impl FluidItems {
     }
 }
 
-fn read_tank(data: &NbtCompound, key: &str) -> Option<(Identifier, u32)> {
+fn read_tank(data: &NbtCompound, key: &str) -> Option<(Identifier, u32, Option<NbtCompound>)> {
     let tag = data.get_compound(key)?;
     let name = tag.get_string("FluidName")?;
     let amount = tag.get_int("Amount", 0);
     if amount <= 0 || name == "minecraft:empty" {
         return None;
     }
-    Some((Identifier::parse(name).ok()?, amount.min(i64::from(i32::MAX)) as u32))
+    // The fluid's own tag rides as a nested `Tag` compound (Forge's fluid stack format); absent in older data.
+    let fluid_tag = tag.get_compound("Tag").cloned();
+    Some((Identifier::parse(name).ok()?, amount.min(i64::from(i32::MAX)) as u32, fluid_tag))
 }
 
-fn write_tank(data: &mut NbtCompound, key: &str, tank: Option<(&Identifier, u32)>) {
+fn write_tank(data: &mut NbtCompound, key: &str, tank: Option<(&Identifier, u32, Option<&NbtCompound>)>) {
     match tank {
-        Some((fluid, amount)) => {
+        Some((fluid, amount, fluid_tag)) => {
             let mut tag = NbtCompound::new();
             tag.insert("FluidName".to_owned(), Nbt::String(fluid.to_string()));
             tag.insert("Amount".to_owned(), Nbt::Int(amount.min(i32::MAX as u32) as i32));
+            if let Some(fluid_tag) = fluid_tag {
+                tag.insert("Tag".to_owned(), Nbt::Compound(fluid_tag.clone()));
+            }
             data.insert(key.to_owned(), Nbt::Compound(tag));
         }
         None => {
             data.remove(key);
+        }
+    }
+}
+
+/// A portion's fluid: a bare id string for a plain fluid, or a `{FluidName, Tag}` compound when the
+/// fluid carries a tag. Data written before portions carried tags is the bare string and reads the same.
+fn read_portion(data: &NbtCompound, key: &str) -> Option<(Identifier, Option<NbtCompound>)> {
+    if let Some(tag) = data.get_compound(key) {
+        let name = tag.get_string("FluidName")?;
+        return Some((Identifier::parse(name).ok()?, tag.get_compound("Tag").cloned()));
+    }
+    let name = data.get_string(key)?;
+    Some((Identifier::parse(name).ok()?, None))
+}
+
+fn write_portion(data: &mut NbtCompound, key: &str, fluid: &Identifier, tag: Option<&NbtCompound>) {
+    match tag {
+        Some(tag) => {
+            let mut compound = NbtCompound::new();
+            compound.insert("FluidName".to_owned(), Nbt::String(fluid.to_string()));
+            compound.insert("Tag".to_owned(), Nbt::Compound(tag.clone()));
+            data.insert(key.to_owned(), Nbt::Compound(compound));
+        }
+        None => {
+            data.insert(key.to_owned(), Nbt::String(fluid.to_string()));
         }
     }
 }
@@ -407,7 +438,7 @@ mod tests {
         ItemSlot::new(id(text), count)
     }
     fn fluid(text: &str, amount: u32) -> FluidStack {
-        FluidStack { fluid: id(text), amount }
+        FluidStack { fluid: id(text), amount, tag: None }
     }
 
     /// A single fluid tank.
@@ -418,12 +449,12 @@ mod tests {
     impl FluidTarget for Tank {
         fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 {
             let current = self.held.as_ref().map_or(0, |held| held.amount);
-            if self.held.as_ref().is_some_and(|held| held.fluid != fluid.fluid) {
+            if self.held.as_ref().is_some_and(|held| !held.same_fluid(fluid)) {
                 return 0;
             }
             let taken = fluid.amount.min(self.capacity - current);
             if execute && taken > 0 {
-                self.held = Some(FluidStack { fluid: fluid.fluid.clone(), amount: current + taken });
+                self.held = Some(FluidStack { fluid: fluid.fluid.clone(), amount: current + taken, tag: fluid.tag.clone() });
             }
             taken
         }
@@ -433,7 +464,7 @@ mod tests {
                 return None;
             }
             let taken = held.amount.min(amount);
-            let out = FluidStack { fluid: held.fluid.clone(), amount: taken };
+            let out = FluidStack { fluid: held.fluid.clone(), amount: taken, tag: held.tag.clone() };
             if execute {
                 held.amount -= taken;
                 if held.amount == 0 {
@@ -464,7 +495,7 @@ mod tests {
         // a stack above the fill limit cannot be filled, but can be drained
         let mut big = stack("fi_test:tank", 17);
         assert_eq!(FluidItems::fill(&big, &fluid("fi_test:lava", 17)).amount, 0);
-        write_tank(&mut big.custom_data, "tank", Some((&id("fi_test:lava"), 10)));
+        write_tank(&mut big.custom_data, "tank", Some((&id("fi_test:lava"), 10, None)));
         assert_eq!(FluidItems::drain(&big, None, 170).unwrap().fluid.amount, 170);
     }
 
@@ -536,6 +567,28 @@ mod tests {
         assert_eq!(FluidItems::interact(Some(&stack("fi_test:g2", 1)), &mut other, TransferDirection::Auto), None, "no filling takes magma");
         assert_eq!(FluidItems::interact(None, &mut full, TransferDirection::Auto), None);
         assert_eq!(FluidItems::interact(Some(&stack("fi_test:stick", 1)), &mut full, TransferDirection::Auto), None);
+    }
+
+    #[test]
+    fn a_fluid_tag_is_kept_by_tanks_and_portions_and_a_different_tag_does_not_mix() {
+        let mut tag = NbtCompound::new();
+        tag.insert("Potion".to_owned(), Nbt::String("minecraft:healing".to_owned()));
+        let potion = FluidStack { fluid: id("minecraft:water"), amount: 500, tag: Some(tag.clone()) };
+        FluidItems::register(FluidItemDef::tank(id("fi_test:tagged_tank"), "tank", 1000));
+        let filled = FluidItems::fill(&stack("fi_test:tagged_tank", 1), &potion);
+        assert_eq!(filled.amount, 500);
+        assert_eq!(FluidItems::contents(&filled.container), Some(potion.clone()), "the tag survives the tank");
+        assert_eq!(FluidItems::fill(&filled.container, &FluidStack::new(id("minecraft:water"), 100)).amount, 0, "an untagged stack of the same fluid does not mix");
+        assert_eq!(FluidItems::fill(&filled.container, &FluidStack { amount: 100, ..potion.clone() }).amount, 100, "the same tag tops up");
+        let drained = FluidItems::drain(&filled.container, None, 250).unwrap();
+        assert_eq!(drained.fluid, FluidStack { amount: 250, ..potion.clone() });
+        // a portion stores a tagged fluid as a compound and reads the bare-string form back as plain
+        FluidItems::register(FluidItemDef::portion(id("fi_test:tagged_can"), "fluid", 90));
+        let can = FluidItems::fill(&stack("fi_test:tagged_can", 1), &FluidStack { amount: 90, ..potion.clone() });
+        assert_eq!(can.amount, 90);
+        assert_eq!(FluidItems::contents(&can.container), Some(FluidStack { amount: 90, ..potion }));
+        let plain = FluidItems::fill(&stack("fi_test:tagged_can", 1), &fluid("fi_test:iron", 90));
+        assert_eq!(plain.container.custom_data.get_string("fluid"), Some("fi_test:iron"), "a plain fluid keeps the bare-string form");
     }
 
     #[test]

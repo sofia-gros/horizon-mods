@@ -96,13 +96,13 @@ mod tests {
     fn a_bucket_of_molten_iron_holds_a_bucket_and_an_empty_bucket_fills_with_it() {
         register();
         let bucket = ItemSlot::new(FluidWorld::bucket_id(&id("molten_iron")), 1);
-        assert_eq!(FluidItems::contents(&bucket), Some(FluidStack { fluid: id("molten_iron"), amount: 1000 }));
+        assert_eq!(FluidItems::contents(&bucket), Some(FluidStack { fluid: id("molten_iron"), amount: 1000, tag: None }));
         let empty = ItemSlot::new(Identifier::parse("minecraft:bucket").unwrap(), 1);
         for name in ["molten_iron", "venom", "fiery_liquid"] {
-            let filled = FluidItems::fill(&empty, &FluidStack { fluid: id(name), amount: 1000 });
+            let filled = FluidItems::fill(&empty, &FluidStack { fluid: id(name), amount: 1000, tag: None });
             assert_eq!(filled.container.item.to_string(), format!("tconstruct:{name}_bucket"), "the empty bucket knows every bucket");
         }
-        assert_eq!(FluidItems::fill(&empty, &FluidStack { fluid: id("potion"), amount: 1000 }).amount, 0);
+        assert_eq!(FluidItems::fill(&empty, &FluidStack { fluid: id("potion"), amount: 1000, tag: None }).amount, 0);
     }
 
     #[test]

@@ -152,13 +152,13 @@ impl State {
         }
         let taken = match &mut self.fluid {
             None => resource.amount.min(CAPACITY as u32),
-            Some(held) if held.fluid != resource.fluid => return 0,
+            Some(held) if !held.same_fluid(&resource) => return 0,
             Some(held) => resource.amount.min((CAPACITY as u32).saturating_sub(held.amount)),
         };
         if taken == 0 { return 0; }
         match &mut self.fluid {
             Some(held) => held.amount += taken,
-            None => self.fluid = Some(FluidStack { fluid: resource.fluid.clone(), amount: taken }),
+            None => self.fluid = Some(FluidStack { fluid: resource.fluid.clone(), amount: taken, tag: resource.tag.clone() }),
         }
         self.locked += taken as i32;
         if let Some(side) = face.filter(|side| SIDES.contains(side)) { self.set_flow(side, true); }
@@ -170,13 +170,13 @@ impl State {
         let usable = self.max_usable().min(rate);
         if usable > 0 {
             if let Some(held) = self.fluid.clone() {
-                let offer = FluidStack { fluid: held.fluid.clone(), amount: usable as u32 };
+                let offer = FluidStack { fluid: held.fluid.clone(), amount: usable as u32, tag: held.tag.clone() };
                 let filled = out.fill(side, &offer, false);
                 if filled > 0 {
-                    let moved = FluidStack { fluid: held.fluid, amount: filled as u32 };
+                    let moved = FluidStack { fluid: held.fluid, amount: filled as u32, tag: held.tag };
                     out.fill(side, &moved, true);
                     let left = held.amount as i32 - filled;
-                    self.fluid = (left > 0).then(|| FluidStack { fluid: moved.fluid, amount: left as u32 });
+                    self.fluid = (left > 0).then(|| FluidStack { fluid: moved.fluid.clone(), amount: left as u32, tag: moved.tag.clone() });
                     self.set_flow(side, true);
                     return true;
                 }
@@ -257,7 +257,7 @@ mod tests {
     use super::*;
     use pluto_lib::MemoryBlockView;
 
-    fn fluid(amount: u32) -> FluidStack { FluidStack { fluid: Identifier::parse("t:molten_iron").unwrap(), amount } }
+    fn fluid(amount: u32) -> FluidStack { FluidStack { fluid: Identifier::parse("t:molten_iron").unwrap(), amount, tag: None } }
     fn channel() -> BlockState { BlockState::parse("tconstruct:seared_channel").unwrap() }
 
     /// Neighbours with room for `room` each, by side.
@@ -284,7 +284,7 @@ mod tests {
         assert_eq!(other.fill(&shape, Some(Direction::North), &fluid(10)), 0, "no connection");
         assert_eq!(other.fill(&shape, Some(Direction::East), &fluid(10)), 10);
         assert!(other.is_flowing(Direction::East), "the side that filled is marked flowing");
-        assert_eq!(other.fill(&shape, Some(Direction::Up), &FluidStack { fluid: Identifier::parse("t:water").unwrap(), amount: 5 }), 0, "one fluid at a time");
+        assert_eq!(other.fill(&shape, Some(Direction::Up), &FluidStack { fluid: Identifier::parse("t:water").unwrap(), amount: 5, tag: None }), 0, "one fluid at a time");
     }
 
     #[test]
