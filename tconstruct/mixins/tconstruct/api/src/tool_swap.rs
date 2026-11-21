@@ -1,8 +1,7 @@
 //! MaterialSwappingRecipe.swapMaterial from SlimeKnights (MIT; see LICENSE).
-//! Computes the swapped tool copy. Consuming the part item, extra requirements,
-//! ToolStack.tryValidate (slot counts and modifier validation), ModifierRemovalHook and
-//! CraftCountModifierHook are the caller's job or unported hooks: no modifier defines them
-//! yet, so the stack-size hook is the identity and no modifier can veto or react.
+//! Computes the swapped tool copy. Consuming the part item and extra requirements are the
+//! caller's job; ToolStack.tryValidate, ModifierRemovalHook and CraftCountModifierHook (over
+//! the original for the shrink, over the copy for the output size) run here.
 use crate::{
     tool_damage, tool_materials::MaterialVariant,
     tool_stack::{damage, materials, rebuild_stats, set_materials_raw, Environment},
@@ -19,16 +18,17 @@ pub(crate) enum Outcome {
     Pass,
     /// RecipeResult.failure with a translation key.
     Failure(String),
-    Success { tool: NbtCompound, size: i32 },
+    Success { tool: NbtCompound, size: i32, shrink: i32 },
 }
 
 /// `part_value` is the part's item cost (MaterialCastingLookup.getItemCost); `max_stack` is the
-/// recipe's max_stack_size. `may_repair` forces a swap on a damaged tool even without a change.
+/// recipe's max_stack_size and `item_max` the result item's own maximum, which the craft-count
+/// hook caps at. `may_repair` forces a swap on a damaged tool even without a change.
 pub(crate) fn swap_material(
     original: &NbtCompound, stack_count: i32, env: &Environment, new_material: &MaterialVariant,
-    index: usize, part_value: i32, mut may_repair: bool, max_stack: i32,
+    index: usize, part_value: i32, mut may_repair: bool, max_stack: i32, item_max: i32,
 ) -> Result<Outcome, String> {
-    let shrink = max_stack;
+    let shrink = crate::tool_stack::max_stack_size(original, env, item_max, max_stack);
     if shrink <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS.to_owned())); }
     let Some(definition) = env.definition else { return Ok(Outcome::Pass); };
     let stat_types = definition.material_stat_types().unwrap_or(&[]);
@@ -62,10 +62,10 @@ pub(crate) fn swap_material(
     if let Some(error) = crate::tool_stack::try_validate(&copy, env) { return Ok(Outcome::Failure(error)); }
     // ModifierRemovalHook.onRemoved: a trait the new material dropped clears its persistent data.
     crate::tool_stack::on_removed(original, &mut copy, env);
-    let output_max = max_stack;
+    let output_max = crate::tool_stack::max_stack_size(&copy, env, item_max, max_stack);
     let size = (stack_count.wrapping_mul(output_max) / shrink).min(output_max);
     if size <= 0 { return Ok(Outcome::Failure(TOO_FEW_INPUTS.to_owned())); }
-    Ok(Outcome::Success { tool: copy, size })
+    Ok(Outcome::Success { tool: copy, size, shrink })
 }
 
 #[cfg(test)]
@@ -112,7 +112,7 @@ mod tests {
         let before = crate::tool_stack::durability(&original);
         tool_damage::damage_tool(&mut original, 10, true, true);
         // Stone head (90 durability) costing 3 items repairs 3*90/3 = 90, capped by the 10 damage.
-        let Outcome::Success { tool: swapped, size } = swap_material(&original, 1, &env, &MaterialVariant::parse("test:stone").unwrap(), 0, 3, false, 1).unwrap()
+        let Outcome::Success { tool: swapped, size, .. } = swap_material(&original, 1, &env, &MaterialVariant::parse("test:stone").unwrap(), 0, 3, false, 1, 64).unwrap()
             else { panic!("expected success") };
         assert_eq!(size, 1);
         assert!(is_initialized(&swapped));
@@ -131,18 +131,18 @@ mod tests {
         let mut nbt = tool(&env, &["test:wood", "test:stone"]);
         let wood = MaterialVariant::parse("test:wood").unwrap();
         // Same variant ("#default" is the same) on an undamaged tool does nothing.
-        assert!(matches!(swap_material(&nbt, 1, &env, &MaterialVariant::parse("test:wood#default").unwrap(), 0, 3, false, 1).unwrap(), Outcome::Pass));
+        assert!(matches!(swap_material(&nbt, 1, &env, &MaterialVariant::parse("test:wood#default").unwrap(), 0, 3, false, 1, 64).unwrap(), Outcome::Pass));
         // Damaged and the head repairs: a same-material swap still repairs.
         tool_damage::damage_tool(&mut nbt, 12, true, true);
-        let Outcome::Success { tool: repaired, .. } = swap_material(&nbt, 1, &env, &wood, 0, 3, false, 1).unwrap() else { panic!() };
+        let Outcome::Success { tool: repaired, .. } = swap_material(&nbt, 1, &env, &wood, 0, 3, false, 1, 64).unwrap() else { panic!() };
         assert_eq!(damage(&repaired), 0);
         // The handle already holds stone, is not repairable and nothing forces it: pass.
-        assert!(matches!(swap_material(&nbt, 1, &env, &MaterialVariant::parse("test:stone").unwrap(), 1, 3, false, 1).unwrap(), Outcome::Pass));
+        assert!(matches!(swap_material(&nbt, 1, &env, &MaterialVariant::parse("test:stone").unwrap(), 1, 3, false, 1, 64).unwrap(), Outcome::Pass));
         // Forcing the repair (manual repair logic) swaps nothing but still heals.
-        let Outcome::Success { tool: forced, .. } = swap_material(&nbt, 1, &env, &MaterialVariant::parse("test:stone").unwrap(), 1, 3, true, 1).unwrap() else { panic!() };
+        let Outcome::Success { tool: forced, .. } = swap_material(&nbt, 1, &env, &MaterialVariant::parse("test:stone").unwrap(), 1, 3, true, 1, 64).unwrap() else { panic!() };
         assert_eq!(damage(&forced), 12 - 0, "a handle has no repair durability, so nothing heals");
-        assert!(matches!(swap_material(&nbt, 1, &env, &wood, 2, 1, false, 1).unwrap(), Outcome::Failure(key) if key.ends_with("too_few_parts")));
-        assert!(matches!(swap_material(&nbt, 1, &env, &wood, 0, 1, false, 0).unwrap(), Outcome::Failure(key) if key.ends_with("too_few_inputs")));
+        assert!(matches!(swap_material(&nbt, 1, &env, &wood, 2, 1, false, 1, 64).unwrap(), Outcome::Failure(key) if key.ends_with("too_few_parts")));
+        assert!(matches!(swap_material(&nbt, 1, &env, &wood, 0, 1, false, 0, 64).unwrap(), Outcome::Failure(key) if key.ends_with("too_few_inputs")));
     }
     #[test]
     fn result_size_scales_with_the_input_stack() {
@@ -151,7 +151,7 @@ mod tests {
         let nbt = tool(&env, &["test:wood", "test:wood"]);
         let stone = MaterialVariant::parse("test:stone").unwrap();
         // max_stack 16 with only 8 tools in the stack gives 8; a full stack is capped at 16.
-        let size = |count| match swap_material(&nbt, count, &env, &stone, 1, 0, false, 16).unwrap() { Outcome::Success { size, .. } => size, _ => panic!() };
+        let size = |count| match swap_material(&nbt, count, &env, &stone, 1, 0, false, 16, 64).unwrap() { Outcome::Success { size, .. } => size, _ => panic!() };
         assert_eq!((size(8), size(16), size(100)), (8, 16, 16));
     }
 }

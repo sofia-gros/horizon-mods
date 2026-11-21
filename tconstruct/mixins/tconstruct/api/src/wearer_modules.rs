@@ -158,6 +158,41 @@ impl DamageOnUnequip {
     }
 }
 
+/// UpdateHealthModule: armor that refreshes its wearer's health when it goes on or comes off, by the bonus the
+/// piece grants (the revitalizing attribute raises the maximum by the same amount, so going on heals and coming
+/// off hurts by that much). Only armor slots are ported: the tick that reports equipment changes reports no
+/// held tools, so a module naming a hand slot stays unbound.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct UpdateHealth { bonus: Leveling, slots: Vec<String> }
+
+impl UpdateHealth {
+    /// `None` for a module naming a hand slot, whose changes no event reports. An unknown slot name rejects.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        // LevelingValue.ZERO when the bonus field is absent.
+        let bonus = match fields.get("bonus").filter(|value| !value.is_null()) {
+            None => Leveling { flat: 0.0, each: 0.0 },
+            Some(value) => Leveling::decode(Some(value), "bonus")?,
+        };
+        let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+            .map(|slot| match slot.as_str() {
+                Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()),
+                _ => Err("unknown equipment slot".to_owned()),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if slots.iter().any(|slot| matches!(slot.as_str(), "mainhand" | "offhand")) { return Ok(None); }
+        Ok(Some(Self { bonus, slots }))
+    }
+
+    /// updateHealth for a change in `slot`: the bonus going on, its negation coming off, and nothing for a slot
+    /// the module does not name. A positive result heals (the game cuts a heal to the maximum, as the original
+    /// caps the raised health); a negative one is dealt as damage of the `tconstruct:update_health` type.
+    pub(crate) fn delta(&self, entry: &Entry, slot: &str, equipped: bool) -> f32 {
+        if !self.slots.iter().any(|named| named == slot) { return 0.0; }
+        let bonus = self.bonus.compute(entry.effective_level());
+        if equipped { bonus } else { -bonus }
+    }
+}
+
 /// ReduceEffectOnUnequipModule: armor that shortens the effects of one category on its wearer when it comes off.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ReduceEffectOnUnequip { category: EffectCategory, percent: Leveling }
@@ -315,6 +350,22 @@ mod tests {
         assert_eq!(shortened(1, 0.9), Some(1), "never below one tick");
         assert_eq!((shortened(-1, 0.4), shortened(0, 0.4)), (None, None), "an endless effect is left alone");
         assert!(ReduceEffectOnUnequip::decode(&fields(json!({"category":"good","percent":{}}))).is_err());
+    }
+
+    #[test]
+    fn update_health_heals_by_the_bonus_going_on_and_hurts_by_it_coming_off() {
+        // The shipped revitalizing: no bonus for the armor slots (the attribute alone raises the maximum there),
+        // 2 per level for the hands.
+        let armor = UpdateHealth::decode(&fields(json!({"slots":["feet","legs","chest","head"]}))).unwrap().unwrap();
+        assert_eq!((armor.delta(&entry(3), "chest", true), armor.delta(&entry(3), "chest", false)), (0.0, 0.0), "no bonus, no change");
+        let hands = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["mainhand","offhand"]}))).unwrap();
+        assert!(hands.is_none(), "held tools are not reported, so a hand module stays unbound");
+        let mixed = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["feet","legs","chest","head"]}))).unwrap().unwrap();
+        assert_eq!(mixed.delta(&entry(2), "feet", true), 4.0);
+        assert_eq!(mixed.delta(&entry(2), "feet", false), -4.0);
+        assert_eq!(mixed.delta(&entry(2), "mainhand", true), 0.0, "a slot the module does not name");
+        assert!(UpdateHealth::decode(&fields(json!({"slots":["pocket"]}))).is_err());
+        assert!(UpdateHealth::decode(&fields(json!({"bonus":2.0,"slots":["feet"]}))).is_err(), "the bonus is a leveling object");
     }
 
     #[test]

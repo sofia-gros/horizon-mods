@@ -386,7 +386,7 @@ impl<'a> Live<'a> {
     fn part_swap_candidate(&self, recipe: &Casting, stack: &ItemSlot, fluid: &Identifier, index: i32, item_cost: i32, allowed: &MaterialPredicate) -> Option<Found> {
         let (fluid_recipe, resolved) = self.part_swap_fluid(stack, fluid, index, allowed)?;
         let env = self.tool_env(&stack.item, self.definition_of(&stack.item)?)?;
-        match crate::tool_swap::swap_material(&stack.custom_data, stack.count as i32, &env, &fluid_recipe.output, resolved, item_cost, false, 1) {
+        match crate::tool_swap::swap_material(&stack.custom_data, stack.count as i32, &env, &fluid_recipe.output, resolved, item_cost, false, 1, 1) {
             Ok(crate::tool_swap::Outcome::Success { .. }) => {}
             _ => return None,
         }
@@ -401,7 +401,8 @@ impl<'a> Live<'a> {
         let (fluid_recipe, resolved) = self.part_swap_fluid(stack, fluid, index, allowed)?;
         let env = self.tool_env(&stack.item, self.definition_of(&stack.item)?)?;
         let may_repair = fluid_recipe.input.is_none();
-        let Ok(crate::tool_swap::Outcome::Success { tool, size }) = crate::tool_swap::swap_material(&stack.custom_data, stack.count as i32, &env, &fluid_recipe.output, resolved, item_cost, may_repair, 1) else { return None };
+        // The casting recipe runs no craft-count hook in the original, so the swap's counts stay at one.
+        let Ok(crate::tool_swap::Outcome::Success { tool, size, .. }) = crate::tool_swap::swap_material(&stack.custom_data, stack.count as i32, &env, &fluid_recipe.output, resolved, item_cost, may_repair, 1, 1) else { return None };
         let mut result = ItemSlot::new(stack.item.clone(), size.max(1) as u32);
         result.custom_data = tool;
         crate::tool_slot::sync_visuals(&mut result, &env).ok()?;

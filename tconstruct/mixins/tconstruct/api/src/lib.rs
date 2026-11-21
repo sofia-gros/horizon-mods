@@ -54,6 +54,7 @@ mod effect_immunity;
 mod tool_inventory;
 mod effect_immunity_hook;
 mod unequip_hook;
+mod update_health_hook;
 mod max_armor;
 mod max_armor_hook;
 mod wearer_modules;
@@ -155,6 +156,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     severing_hook::register();
     effect_immunity_hook::register();
     unequip_hook::register();
+    update_health_hook::register();
     max_armor_hook::register();
     mob_disguise_hook::register();
     edible_hook::register();

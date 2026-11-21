@@ -1,5 +1,5 @@
 //! Data-driven modifier modules with a ModifierCondition (SlimeKnights, MIT; see LICENSE):
-//! volatile_flag, volatile_int, modifier_slot, rarity and stat_boost. Every other module the
+//! volatile_flag, volatile_int, volatile_float, modifier_slot, rarity and stat_boost. Every other module the
 //! original ships is recorded as unbound by the caller; a module of these kinds with a hook
 //! binding or stat Tinkers cannot honor is also unbound, never half-installed.
 use crate::{
@@ -35,6 +35,11 @@ impl Condition {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation { Add, Percent, MultiplyBase, MultiplyConditional, MultiplyAll }
 
+/// MaterialRepairModule's repair amount: the constant `durability` field, or the durability of the repair
+/// material's stats of one type (MaterialRepairModule.getDurability).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum RepairAmount { Constant(i32), StatType(Identifier) }
+
 /// The shipped presentation-only modules. Tinkers has no client text/colour rendering to feed, so these are
 /// recorded with their data and have no effect on game state (in the original they only style names, bars and tooltips).
 #[derive(Clone, Debug, PartialEq)]
@@ -60,6 +65,14 @@ pub(crate) enum Module {
     /// SweepingEdgeModule: a leveling value (no condition) added onto the volatile float `tconstruct:sweep_percent`.
     Sweep { flat: f32, each: f32 },
     Int { id: Identifier, flat: i32, each: i32, condition: Condition },
+    /// VolatileFloatModule: a float added onto the volatile data under its flag (and onto a launched
+    /// projectile's persistent data, the same second half the int and flag modules have).
+    Float { id: Identifier, flat: f32, each: f32, condition: Condition },
+    /// CraftCountModule: multiplies how many of the tool a craft produces (station building and part swapping).
+    CraftCount { flat: f32, each: f32, condition: Condition },
+    /// MaterialRepairModule: a material that repairs the tool, for a constant durability or the durability of
+    /// one of the material's stat types.
+    MaterialRepair { material: Identifier, amount: RepairAmount, condition: Condition },
     Slot { name: String, flat: i32, each: i32, condition: Condition },
     Boost { stat: Stat, operation: Operation, flat: f32, each: f32, condition: Condition },
     /// SetStatModule for the harvest tier: the tier becomes the larger of the current one and this.
@@ -124,6 +137,11 @@ pub(crate) enum Module {
     Lifesteal { module: Box<crate::lifesteal::Lifesteal>, condition: Condition },
     /// InventoryModule: item slots the modifier adds to the tool, kept in its persistent data.
     Inventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
+    /// QuiverInventoryModule: an inventory whose slots take the quiver's ammunition (arrows, and for the right
+    /// tool also fireworks and ballista ammo) instead of a filter's items.
+    QuiverInventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
+    /// UpdateHealthModule: armor that refreshes its wearer's health as it goes on or comes off.
+    UpdateHealth { module: crate::wearer_modules::UpdateHealth, condition: Condition },
     /// InventoryMenuModule: the key that opens the tool's inventory screen.
     InventoryMenu(crate::tool_inventory::MenuKey),
     /// InventorySlotMenuModule: clicking the tool in the player's inventory opens its inventory screen.
@@ -333,6 +351,29 @@ impl Module {
             "tconstruct:volatile_int" if only("tconstruct:volatile_data") => Self::Int {
                 id: identifier(fields, "flag")?, flat: short(fields, "flat")?, each: short(fields, "each_level")?, condition: Condition::decode(fields)?,
             },
+            // The float binds on its volatile data hook, like the flag and the int; a binding of nothing but the
+            // projectile launch hook stays unbound (a flag bound that way is unbound too), as the launched
+            // projectile's persistent data has no consumer yet.
+            "tconstruct:volatile_float" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:projectile_launch"))
+                && (hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:volatile_data")) => Self::Float {
+                id: identifier(fields, "flag")?, flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)?,
+            },
+            "tconstruct:craft_count" if only("tconstruct:craft_count") => {
+                // CraftCountModule: the multiplier is a required leveling value object.
+                let multiplier = fields.get("multiplier").filter(|value| !value.is_null()).ok_or("multiplier missing")?.as_object().ok_or("multiplier must be a leveling value")?;
+                Self::CraftCount { flat: float(multiplier, "flat")?, each: float(multiplier, "each_level")?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:material_repair" if only("tconstruct:material_repair") => {
+                // MaterialRepairModule.LOADER: the either form keyed on durability, then stat_type.
+                let amount = if let Some(value) = fields.get("durability").filter(|value| !value.is_null()) {
+                    let amount = value.as_i64().ok_or("durability must be an integer")?;
+                    if amount < 1 || amount > i64::from(i32::MAX) { return Err("durability must be at least 1".into()); }
+                    RepairAmount::Constant(amount as i32)
+                } else if fields.get("stat_type").is_some_and(|value| !value.is_null()) {
+                    RepairAmount::StatType(identifier(fields, "stat_type")?)
+                } else { return Err("material repair needs a durability or a stat_type".into()); };
+                Self::MaterialRepair { material: identifier(fields, "material")?, amount, condition: Condition::decode(fields)? }
+            }
             "tconstruct:modifier_slot" if only("tconstruct:volatile_data") => {
                 let name = fields.get("name").and_then(Value::as_str).ok_or("name must be a slot name")?;
                 if !name.bytes().all(|byte| matches!(byte, b'a'..=b'z' | b'0'..=b'9' | b'_')) { return Err(format!("invalid modifier slot name {name}")); }
@@ -506,6 +547,18 @@ impl Module {
             "tconstruct:inventory" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:inventory" | "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:slot_stack")) => {
                 match crate::tool_inventory::Inventory::decode(fields)? {
                     Some(module) => Self::Inventory { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:quiver_inventory" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:inventory" | "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:slot_stack")) => {
+                match crate::tool_inventory::Inventory::decode_quiver(fields)? {
+                    Some(module) => Self::QuiverInventory { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:update_health" if only("tconstruct:equipment_change") => {
+                match crate::wearer_modules::UpdateHealth::decode(fields)? {
+                    Some(module) => Self::UpdateHealth { module, condition: Condition::decode(fields)? },
                     None => return Ok(None),
                 }
             }
@@ -741,12 +794,19 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::Inventory { module, condition } => {
+            Self::Float { id, flat, each, condition } => {
+                if condition.matches(entry, facts) {
+                    // VolatileFloatModule.updateVolatileData: the computed value is added onto the flag's.
+                    let previous = data.get(&id.to_string()).and_then(Nbt::as_f64).unwrap_or(0.0) as f32;
+                    data.insert(id.to_string(), Nbt::Float(previous + *flat + *each * entry.effective_level()));
+                }
+            }
+            Self::Inventory { module, condition } | Self::QuiverInventory { module, condition } => {
                 // ToolInventoryCapability.addSlots, when the module's condition holds.
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -767,7 +827,7 @@ impl Module {
             // CapacityBarValidator.onRemoved empties the bar.
             Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
-            Self::Inventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
+            Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -884,8 +944,55 @@ impl Module {
     pub fn shield(&self) -> Option<&crate::capacity::Shield> { match self { Self::DurabilityShield { shield } => Some(shield), _ => None } }
     /// The inventory this module adds to a tool, with its conditions evaluated against the tool.
     pub fn inventory_part(&self, entry: &Entry, facts: &Facts) -> Option<crate::tool_inventory::Part> {
-        let Self::Inventory { module, condition } = self else { return None; };
-        Some(crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts)))
+        match self {
+            Self::Inventory { module, condition } => Some(crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts))),
+            Self::QuiverInventory { module, condition } => {
+                let mut part = crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts));
+                // Whether the tool is a crossbow is a fact of the tool; whether it is a ballista also reads its
+                // volatile data, which the caller notes (tool_stack::inventory).
+                let crossbow = facts.item.is_some_and(|item| (facts.in_tag)(item, &Identifier::parse("tconstruct:modifiable/ranged/crossbows").expect("valid tag")));
+                part.note_tool(crossbow, false);
+                Some(part)
+            }
+            _ => None,
+        }
+    }
+    /// CraftCountModule.modifyCraftCount: the running count multiplied by the module's value, when its
+    /// condition holds (the caller stops the chain at zero, as the composed hook does).
+    pub fn craft_count(&self, entry: &Entry, facts: &Facts, count: f32) -> f32 {
+        let Self::CraftCount { flat, each, condition } = self else { return count; };
+        if condition.matches(entry, facts) { count * (*flat + *each * entry.effective_level()) } else { count }
+    }
+    /// MaterialRepairModule.getRepairAmount for one material stack: the module's amount times the modifier's
+    /// level, for its own material when the condition holds. `durability_of` answers a stat type's durability
+    /// for a material (the definition-level lookup).
+    pub fn material_repair_amount(&self, entry: &Entry, facts: &Facts, material: &Identifier, durability_of: &dyn Fn(&Identifier, &Identifier) -> i32) -> i32 {
+        let Self::MaterialRepair { material: own, amount, condition } = self else { return 0; };
+        if own != material || !condition.matches(entry, facts) { return 0; }
+        let base = match amount { RepairAmount::Constant(amount) => *amount, RepairAmount::StatType(stat) => durability_of(material, stat) };
+        base * entry.level
+    }
+    /// MaterialRepairModule.isRepairMaterial: the material is the module's and the condition holds.
+    pub fn is_repair_material(&self, entry: &Entry, facts: &Facts, material: &Identifier) -> bool {
+        let Self::MaterialRepair { material: own, condition, .. } = self else { return false; };
+        own == material && condition.matches(entry, facts)
+    }
+    /// MaterialRepairModule.addRepairMaterials: the module's material, with no condition check.
+    pub fn repair_material(&self) -> Option<&Identifier> {
+        let Self::MaterialRepair { material, .. } = self else { return None; };
+        Some(material)
+    }
+    /// VolatileFloatModule on a launched projectile: the value it adds to the projectile's persistent data
+    /// under its flag, when its condition holds (the launch event reports no stack to write it to, so this
+    /// half has no live caller yet, like the projectile power helpers).
+    pub fn projectile_float(&self, entry: &Entry, facts: &Facts) -> Option<(Identifier, f32)> {
+        let Self::Float { id, flat, each, condition } = self else { return None; };
+        if condition.matches(entry, facts) { Some((id.clone(), *flat + *each * entry.effective_level())) } else { None }
+    }
+    /// UpdateHealthModule for a change in `slot`: the health delta going on (equipped) or coming off.
+    pub fn update_health(&self, entry: &Entry, facts: &Facts, slot: &str, equipped: bool) -> f32 {
+        let Self::UpdateHealth { module, condition } = self else { return 0.0; };
+        if condition.matches(entry, facts) { module.delta(entry, slot, equipped) } else { 0.0 }
     }
     /// The key that opens the inventory screen, for an inventory menu module.
     pub fn inventory_menu_key(&self) -> Option<crate::tool_inventory::MenuKey> {
@@ -1469,5 +1576,74 @@ mod tests {
         }
         // A well-formed predicate of a type this port lacks leaves just that module unbound.
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","tool":{"type":"tconstruct:has_hook","hook":"x:y"}})).is_none());
+    }
+
+    #[test]
+    fn craft_count_multiplies_the_running_count_by_its_leveling_value() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped cheap (half) and economical (double).
+        let cheap = decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":0.5}})).unwrap();
+        let economical = decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":2.0}})).unwrap();
+        let entry = Entry::new(id("test:count"), 1);
+        assert_eq!(cheap.craft_count(&entry, &f, 16.0), 8.0);
+        assert_eq!(economical.craft_count(&entry, &f, 16.0), 32.0);
+        // Per level on top of the flat part.
+        let leveled = decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":1.0,"each_level":0.5}})).unwrap();
+        assert_eq!(leveled.craft_count(&Entry::new(id("test:count"), 3), &f, 10.0), 25.0);
+        // Another hook binding is not honored, and the multiplier is required.
+        assert!(decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":2.0},"hooks":["tconstruct:volatile_data"]})).is_none());
+        assert!(Module::decode("tconstruct:craft_count", json!({}).as_object().unwrap(), &[]).is_err());
+    }
+
+    #[test]
+    fn material_repair_pays_its_amount_times_the_level_for_its_own_material() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        let no_durability = |_: &Identifier, _: &Identifier| 0;
+        // The shipped stringy: string repairs for a constant 140.
+        let stringy = decode(json!({"type":"tconstruct:material_repair","material":"tconstruct:string","durability":140})).unwrap();
+        let entry = Entry::new(id("tconstruct:stringy"), 2);
+        assert_eq!(stringy.material_repair_amount(&entry, &f, &id("tconstruct:string"), &no_durability), 280);
+        assert_eq!(stringy.material_repair_amount(&entry, &f, &id("tconstruct:wood"), &no_durability), 0, "another material");
+        assert!(stringy.is_repair_material(&entry, &f, &id("tconstruct:string")));
+        assert_eq!(stringy.repair_material(), Some(&id("tconstruct:string")));
+        // The stat type form reads the material's durability for that stat type.
+        let typed = decode(json!({"type":"tconstruct:material_repair","material":"tconstruct:wood","stat_type":"tconstruct:handle"})).unwrap();
+        let durability_of = |_: &Identifier, _: &Identifier| 60;
+        assert_eq!(typed.material_repair_amount(&Entry::new(id("test:typed"), 1), &f, &id("tconstruct:wood"), &durability_of), 60);
+        // The either form needs one of its keys, and a constant is at least 1.
+        assert!(Module::decode("tconstruct:material_repair", json!({"material":"a:b"}).as_object().unwrap(), &[]).is_err());
+        assert!(Module::decode("tconstruct:material_repair", json!({"material":"a:b","durability":0}).as_object().unwrap(), &[]).is_err());
+    }
+
+    #[test]
+    fn volatile_float_adds_onto_the_flag_and_onto_a_projectile() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped experienced: half a point of experience a level, on both hooks.
+        let experienced = decode(json!({"type":"tconstruct:volatile_float","flag":"tconstruct:experience","each_level":0.5,"hooks":["tconstruct:volatile_data","tconstruct:projectile_launch"]})).unwrap();
+        let entry = Entry::new(id("tconstruct:experienced"), 3);
+        let mut data = NbtCompound::new();
+        data.insert("tconstruct:experience".into(), Nbt::Float(1.0));
+        experienced.apply_volatile(&entry, &f, &mut data);
+        assert_eq!(data["tconstruct:experience"], Nbt::Float(2.5), "added onto what the flag held");
+        assert_eq!(experienced.projectile_float(&entry, &f), Some((id("tconstruct:experience"), 1.5)));
+        // A binding of nothing but the launch hook stays unbound, like the flag's.
+        assert!(decode(json!({"type":"tconstruct:volatile_float","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
+        assert!(decode(json!({"type":"tconstruct:volatile_float","flag":"a:b"})).is_some(), "no hooks field binds the default");
+    }
+
+    #[test]
+    fn update_health_binds_for_armor_slots_and_stays_unbound_for_hands() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped revitalizing armor module carries no bonus; the hand one cannot be reported.
+        let armor = decode(json!({"type":"tconstruct:update_health","slots":["feet","legs","chest","head"],"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert_eq!(armor.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "chest", true), 0.0);
+        assert!(decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"],"hooks":["tconstruct:equipment_change"]})).is_none());
+        let bonus = decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["feet"],"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", true), 4.0);
+        assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", false), -4.0);
     }
 }

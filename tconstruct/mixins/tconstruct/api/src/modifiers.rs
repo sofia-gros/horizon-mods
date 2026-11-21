@@ -138,6 +138,31 @@ impl Modifier {
         for module in &self.modules { factor = module.repair_factor(entry, facts, factor); }
         factor
     }
+    /// CraftCountModifierHook for one modifier: the running count after its modules (the caller stops at zero).
+    pub fn craft_count(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, mut count: f32) -> f32 {
+        for module in &self.modules { count = module.craft_count(entry, facts, count); }
+        count
+    }
+    /// MaterialRepairModifierHook.getRepairAmount for one modifier: its modules' amounts added.
+    pub fn material_repair_amount(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, material: &Identifier, durability_of: &dyn Fn(&Identifier, &Identifier) -> i32) -> i32 {
+        self.modules.iter().map(|module| module.material_repair_amount(entry, facts, material, durability_of)).sum()
+    }
+    /// MaterialRepairModifierHook.isRepairMaterial for one modifier.
+    pub fn is_repair_material(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, material: &Identifier) -> bool {
+        self.modules.iter().any(|module| module.is_repair_material(entry, facts, material))
+    }
+    /// MaterialRepairModifierHook.addRepairMaterials for one modifier: every module's material.
+    pub fn repair_materials(&self) -> impl Iterator<Item = &Identifier> {
+        self.modules.iter().filter_map(|module| module.repair_material())
+    }
+    /// The floats this modifier's volatile float modules add to a launched projectile's persistent data.
+    pub fn projectile_floats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, f32)> {
+        self.modules.iter().filter_map(|module| module.projectile_float(entry, facts)).collect()
+    }
+    /// UpdateHealthModule for one modifier and a change in `slot`: the health delta going on or coming off.
+    pub fn update_health(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str, equipped: bool) -> f32 {
+        self.modules.iter().map(|module| module.update_health(entry, facts, slot, equipped)).sum()
+    }
     /// The volatile-data hook with tool facts (item tags, modifier levels, persistent keys).
     pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
         for module in &self.modules { module.apply_volatile(entry, facts, data); }
