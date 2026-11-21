@@ -1,7 +1,11 @@
 //! Block behaviour of the smeltery and foundry controllers, from SlimeKnights ControllerBlock and HeatingControllerBlock (MIT; see
 //! LICENSE): they face the placer and start outside a structure. The structure check, the controller's inventory and what it
-//! drops on breaking (the original also keeps a custom name and a retexture, neither of which exists here) are the block
-//! entity's. Rotating and mirroring a block that is in a structure, particles and the error display are not ported.
+//! drops on breaking are the block entity's. Not ported, each for a named host gap: the custom name and the retexture the
+//! original keeps (both arrive with the placed item, and no hook here hands a placement's item to the block entity — the
+//! same gap as the tank's seeding from its item), rotating and mirroring a block that is in a structure (no block behaviour
+//! hook answers a rotation at all), the fire particles of `animateTick` (no particle hook exists), and the error display
+//! (the message needs a player no use or menu context carries, and the highlight a canvas primitive with alpha or lines;
+//! the error position itself is in the controller's synced data — see `rendering`).
 use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier, Placement};
 
 /// A controller placed: facing the placer, not in a structure (`getStateForPlacement`).
