@@ -167,7 +167,8 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         else if ["copper_nugget", "debris_nugget", "netherite_nugget"].contains(&path)
             || ["nahuatl", "blazewood"].iter().any(|wood| path.strip_prefix(wood).is_some_and(|rest| ["", "_fence", "_slab", "_stairs"].contains(&rest)))
             || ["cobalt", "steel", "slimesteel", "amethyst_bronze", "rose_gold", "pig_iron", "cinderslime", "queens_slime", "manyullyn", "hepatizon", "knightmetal", "knightslime"].iter().any(|metal| path.strip_prefix(metal).is_some_and(|rest| ["_block", "_ingot", "_nugget"].contains(&rest))) { "general" }
-        // TinkerWorld.addTabItems: ores, the heads, slimes and their dirt, the slime wood sets, the foliage, the geodes and the metal shards
+        // TinkerWorld.addTabItems: ores, the heads, slimes and their dirt, the slime wood sets, the foliage, the geodes and the metal shards        // TinkerGadgets.addTabItems is called by the general tab and accepts the piggy backpack
+        else if path == "piggy_backpack" { "general" }
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)
             || path.ends_with("_slime_grass") || path.ends_with("_slime_leaves") || path.ends_with("_slime_sapling") || path.ends_with("_slime_fern")
@@ -187,7 +188,10 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         // block get tab variants only for the compatibility materials, which this port does not ship.
         if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket"
             || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
-            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) || name == "tconstruct:crystalshot" || name == "tconstruct:fake_ingot" || name == "tconstruct:fake_storage_block" {
+            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) || name == "tconstruct:crystalshot" || name == "tconstruct:fake_ingot" || name == "tconstruct:fake_storage_block"
+            // The deprecated throwables are accepted by no addTabItems in the original, and the general tab
+            // (TinkerCommons.addTabItems) never accepts the glow block, so all five are in no tab either.
+            || ["tconstruct:glow_ball", "tconstruct:efln_ball", "tconstruct:flint_shuriken", "tconstruct:quartz_shuriken", "tconstruct:glow"].contains(&name.as_str()) {
             for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
             continue;
         }

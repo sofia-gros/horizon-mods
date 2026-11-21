@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
 //! drains, and anvils, none of which exist yet), the books, food (the cakes and the cheese, which are here), glass (but the clear, stained and soul glass, which are here; the clear tinted glass is not), platforms and
-//! the piggyback and throwable gadgets of the general tab (the fancy frames and armor stands are here),
+//! the gadgets of the general tab (the piggyback and the fancy frames and armor stands are here; the throwables are in no tab, as in the original),
 //! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
@@ -50,14 +50,14 @@ pub(crate) fn tools_group() -> ItemGroup {
 /// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
 /// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
 /// the gadgets of TinkerGadgets.addTabItems that this port declares (the punji, then the fancy frames and armor stands, then the
-/// cakes; the piggyback between them in the original is not declared), then TinkerCommons' food (the cheese ingot and block), its
+/// cakes; the piggyback between them), then TinkerCommons' food (the cheese ingot and block), its
 /// glass section and bars (the clear and stained glass in GlassColor order, the soul glass, the panes in the same order, gold bars,
 /// obsidian pane; the clear tinted glass is not declared) and its platforms (the copper ones in weathering order, then their waxed
 /// forms, then iron, gold and cobalt), then TinkerMaterials.addTabItems, which the general tab calls: its firewood sets (the block,
 /// its slab, stairs and fence), the loose nuggets where the original puts them and, per metal, the block, the ingot and the nugget
 /// (its other non-metal materials are not declared).
 pub(crate) const GENERAL: &[&str] = &["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern",
-    "punji", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "cheese_ingot", "cheese_block",
+    "punji", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "piggy_backpack", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "cheese_ingot", "cheese_block",
     "clear_glass", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "soul_glass",
     "clear_glass_pane", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane", "soul_glass_pane",
     "gold_bars", "obsidian_pane",
