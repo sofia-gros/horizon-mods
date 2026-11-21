@@ -353,7 +353,7 @@ fn shipped_material_recipes_load_without_problems_and_horns_match_by_instrument(
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 357, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel and 16 overslime records");
+    assert_eq!(files.len(), 359, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime and 2 enchantment converting records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
@@ -2706,4 +2706,109 @@ fn the_world_fluid_content_matches_what_plutolib_flows() {
         checked += 1;
     }
     assert_eq!(checked, 70);
+}
+
+fn enchantment_tag_stacks() -> Vec<JsonResourceStack> {
+    let mut stacks = Vec::new();
+    for entry in std::fs::read_dir(root().join("../tags/enchantment/modifier_like")).expect("enchantment tag folder") {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+        if let Some(stem) = name.strip_suffix(".json") {
+            let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON");
+            stacks.push(JsonResourceStack { id: Identifier::new("tconstruct", stem).unwrap(), layers: vec![Ok(value)] });
+        }
+    }
+    stacks.sort_by(|a, b| a.id.cmp(&b.id));
+    stacks
+}
+
+#[test]
+fn shipped_enchantment_map_loads_all_57_mappings_and_resolves_like_the_original() {
+    use crate::enchantment_map::EnchantmentMap;
+    let mut world = world();
+    let value: Value = serde_json::from_slice(&std::fs::read(root().join("enchantments_to_modifiers.json")).unwrap()).expect("valid JSON");
+    let stack = JsonResourceStack { id: Identifier::parse("tconstruct:enchantments_to_modifiers").unwrap(), layers: vec![Ok(value)] };
+    let tag_stacks = enchantment_tag_stacks();
+    assert_eq!(tag_stacks.len(), 21, "the shipped modifier_like tags");
+    let map = EnchantmentMap::load(Some(&stack), &tag_stacks, &|id| world.registry.get(id).is_some());
+    assert!(map.problems.is_empty(), "{:?}", map.problems);
+    assert_eq!(map.counts(), (36, 21), "the shipped file's 57 mappings");
+    // The production wiring loads the same map into the registry without new problems.
+    world.registry.load_enchantment_map(Some(&stack), &tag_stacks);
+    assert!(world.registry.problems.is_empty(), "{:?}", world.registry.problems);
+    assert_eq!(world.registry.enchantment_map.counts(), (36, 21));
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    for (enchantment, modifier) in [("minecraft:efficiency", "tconstruct:haste"), ("minecraft:fortune", "tconstruct:luck"),
+        ("minecraft:looting", "tconstruct:luck"), ("minecraft:luck_of_the_sea", "tconstruct:luck"), ("minecraft:infinity", "tconstruct:crystalshot"),
+        ("minecraft:silk_touch", "tconstruct:silky"), ("minecraft:unbreaking", "tconstruct:reinforced"), ("minecraft:bane_of_arthropods", "tconstruct:bane_of_sssss"),
+        ("minecraft:riptide", "tconstruct:drill_attack"), ("minecraft:impaling", "tconstruct:antiaquatic"), ("minecraft:piercing", "tconstruct:impaling"),
+        ("minecraft:sharpness", "tconstruct:sharpness"), ("minecraft:protection", "tconstruct:protection")] {
+        assert_eq!(map.modifier_for(&id(enchantment)), Some(&id(modifier)), "{enchantment}");
+        assert_eq!(world.registry.modifier_for_enchantment(&id(enchantment)), Some(&id(modifier)), "{enchantment} through the registry");
+    }
+    // The tags name only other mods' enchantments, each optional: membership still resolves from the
+    // shipped files, so a stack carrying one (a datapack could define it) converts through its tag.
+    assert_eq!(map.modifier_for(&id("cyclic:auto_smelt")), Some(&id("tconstruct:autosmelt")));
+    assert_eq!(map.modifier_for(&id("ensorcellation:hunter")), Some(&id("tconstruct:luck")));
+    assert!(map.has_enchantment(&id("tconstruct:luck")));
+    assert!(!map.has_enchantment(&id("tconstruct:overslime")));
+    let equivalents = map.equivalent_enchantments(&|modifier| *modifier == id("tconstruct:luck"), &map.mapped_enchantments());
+    assert_eq!(equivalents, vec![id("minecraft:fortune"), id("minecraft:looting"), id("minecraft:luck_of_the_sea"), id("ensorcellation:hunter")]);
+}
+
+#[test]
+fn shipped_enchantment_converting_recipes_load_and_convert_a_book() {
+    use crate::enchantment_converting::Conversions;
+    use std::collections::BTreeMap;
+    let mut world = world();
+    let value: Value = serde_json::from_slice(&std::fs::read(root().join("enchantments_to_modifiers.json")).unwrap()).expect("valid JSON");
+    let stack = JsonResourceStack { id: Identifier::parse("tconstruct:enchantments_to_modifiers").unwrap(), layers: vec![Ok(value)] };
+    world.registry.load_enchantment_map(Some(&stack), &enchantment_tag_stacks());
+    let conversions = Conversions::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
+    assert!(conversions.problems.is_empty(), "{:?}", conversions.problems);
+    assert_eq!(conversions.recipes.len(), 2, "the book and tool converting recipes");
+    let book_recipe = conversions.recipes.iter().find(|recipe| recipe.match_book).expect("the book recipe");
+    let tool_recipe = conversions.recipes.iter().find(|recipe| !recipe.match_book).expect("the tool recipe");
+    assert!(book_recipe.return_unenchanted && tool_recipe.return_unenchanted);
+    let id = |text: &str| Identifier::parse(text).unwrap();
+    let in_tag = |_: &Identifier, _: &Identifier| false;
+    let inputs = [Some((id("tconstruct:ender_slime_crystal"), 1)), Some((id("minecraft:dragon_breath"), 5))];
+    let book = id("minecraft:enchanted_book");
+    assert!(book_recipe.matches(&book, false, &inputs, &[], &in_tag));
+    assert!(!tool_recipe.matches(&id("tconstruct:pickaxe"), false, &inputs, &[], &in_tag), "a Tinkers tool is not enchantable");
+    assert!(tool_recipe.matches(&id("minecraft:diamond_pickaxe"), true, &inputs, &[], &in_tag), "an enchantable tool matches");
+    // A fortune III book offers a level 1 luck crystal (the book returns), and comes back at fortune II.
+    let enchantments: BTreeMap<String, i32> = [("minecraft:fortune".to_owned(), 3)].into_iter().collect();
+    assert_eq!(book_recipe.options(&enchantments, &world.registry.enchantment_map, &in_tag), vec![(id("tconstruct:luck"), 1)]);
+    let crystal = book_recipe.result(&(id("tconstruct:luck"), 1), &inputs, &[], &in_tag).expect("the crystal");
+    assert_eq!(crystal.custom_data.get("modifier"), Some(&pluto_lib::Nbt::String("tconstruct:luck".into())));
+    let returned = book_recipe.unenchanted_return(&book, &enchantments, &world.registry.enchantment_map, &id("tconstruct:luck")).expect("the book returns");
+    assert_eq!(returned.enchantments.get("minecraft:fortune"), Some(&2));
+}
+
+#[test]
+fn shipped_player_added_enchantments_count_in_the_pieces_vanilla_protection_points() {
+    use crate::{damage_tags::DamageTags, protection::{host_enchantment_points, DamageSource},
+        tool_stack::{carried_enchantments, enchantments, rebuild_stats, set_added_enchantments, Environment, TAG_MATERIALS}};
+    use pluto_lib::{ItemSlot, Nbt};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let (tags, problems) = DamageTags::load(&damage_tag_stacks());
+    assert!(problems.is_empty(), "{problems:?}");
+    let mut tool = ItemSlot::new(helmet_id.clone(), 1);
+    tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:iron"; 2].map(|m| Nbt::String(m.into())).to_vec()));
+    assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
+    // The player added protection IV; whatever the piece's modifiers give, the carried set counts 4 more.
+    let given = enchantments(&tool.custom_data, &env);
+    set_added_enchantments(&mut tool.custom_data, &[("minecraft:protection".to_owned(), 4)].into_iter().collect());
+    let carried = carried_enchantments(&tool.custom_data, &env);
+    assert_eq!(carried.get("minecraft:protection").copied().unwrap_or(0), given.get("minecraft:protection").copied().unwrap_or(0) + 4);
+    let damage_type = Identifier::parse("minecraft:mob_attack").unwrap();
+    let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
+    assert_eq!(host_enchantment_points(&[carried], &source), host_enchantment_points(&[given], &source) + 4.0,
+        "the hook's vanilla points include the player-added enchantment, so it is not protected twice");
 }

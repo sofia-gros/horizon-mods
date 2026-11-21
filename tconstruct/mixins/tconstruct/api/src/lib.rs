@@ -22,6 +22,8 @@ mod part_builder_recipes;
 mod tool_predicate;
 mod modifier_modules;
 mod modifiers;
+mod enchantment_map;
+mod enchantment_converting;
 mod material_stats;
 mod material_snapshot;
 mod material_sync;

@@ -14,6 +14,7 @@ pub(crate) const TAG_STATS: &str = "tic_stats";
 pub(crate) const TAG_MULTIPLIERS: &str = "tic_multipliers";
 pub(crate) const TAG_VOLATILE: &str = "tic_volatile_data";
 pub(crate) const TAG_MODIFIERS: &str = "tic_modifiers";
+pub(crate) const TAG_ADDED_ENCHANTMENTS: &str = "tic_added_enchantments";
 pub(crate) const TAG_DAMAGE: &str = "Damage";
 const TIER_KEY: &str = "tconstruct:harvest_tier";
 
@@ -118,6 +119,34 @@ pub(crate) fn enchantments(nbt: &NbtCompound, env: &Environment) -> std::collect
         for (entry, modifier) in saved { for (name, level) in modifier.enchantments(entry, facts) { let total = levels.entry(name).or_insert(0); *total = total.saturating_add(level); } }
         levels
     })
+}
+
+/// The enchantments a player added to the stack (anvil, enchanting table), as the last slot sync
+/// recorded them in the tool's data. The stack's component carries them next to the ones its
+/// modifiers give, but a damage event reports no components, so this record is the only place a
+/// reader without the slot can still count them.
+pub(crate) fn added_enchantments(nbt: &NbtCompound) -> std::collections::BTreeMap<String, i32> {
+    let mut levels = std::collections::BTreeMap::new();
+    if let Some(Nbt::Compound(entries)) = nbt.get(TAG_ADDED_ENCHANTMENTS) {
+        for (name, value) in entries { if let Some(level) = value.as_i64() { levels.insert(name.clone(), level as i32); } }
+    }
+    levels
+}
+
+/// Records the player-added enchantments (see `added_enchantments`); an empty set removes the key.
+pub(crate) fn set_added_enchantments(nbt: &mut NbtCompound, levels: &std::collections::BTreeMap<String, i32>) {
+    if levels.is_empty() { nbt.remove(TAG_ADDED_ENCHANTMENTS); return; }
+    let mut entries = NbtCompound::new();
+    for (name, level) in levels { entries.insert(name.clone(), Nbt::Int(*level)); }
+    nbt.insert(TAG_ADDED_ENCHANTMENTS.into(), Nbt::Compound(entries));
+}
+
+/// The enchantments the stack carries in full: the ones its modifiers give plus the ones a player
+/// added. This is the set the game applied its own enchantment protection for.
+pub(crate) fn carried_enchantments(nbt: &NbtCompound, env: &Environment) -> std::collections::BTreeMap<String, i32> {
+    let mut levels = enchantments(nbt, env);
+    for (name, level) in added_enchantments(nbt) { *levels.entry(name).or_insert(0) += level; }
+    levels
 }
 
 /// The effective level of each severing module the tool's modifiers carry, in modifier order (SeveringModule, one per module).

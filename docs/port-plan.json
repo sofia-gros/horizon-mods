@@ -21,6 +21,8 @@
     "api/src/tool_predicate.rs",
     "api/src/modifier_modules.rs",
     "api/src/modifiers.rs",
+    "api/src/enchantment_map.rs",
+    "api/src/enchantment_converting.rs",
     "api/src/tool_rebuild.rs",
     "api/src/tool_stack.rs",
     "api/src/tool_damage.rs",

@@ -1,8 +1,9 @@
 //! Connects the protection modules to PlutoLib's damage event: the damage a player takes while wearing Tinkers armor is
 //! reduced (or raised) by the armor's protection modifiers, as ToolEvents.livingHurt does in the original.
 //! The event fires after vanilla's armor and enchantment protection. The enchantment points counted are those of the enchantments the
-//! armor's own modifiers give (the stack carries them, so the game applied them); enchantments a player added are taken as 0 points,
-//! so armor that also carries those is protected by them twice. Modifiers that ignore the enchantment's protection take its points off again.
+//! armor carries in full — the ones its modifiers give (the stack carries them, so the game applied them) plus the ones a player added,
+//! which the last slot sync recorded in the tool's data (tool_slot): the damage event reports no components, so a piece enchanted since
+//! its last sync is counted without the new enchantments until it is next synced. Modifiers that ignore the enchantment's protection take its points off again.
 use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
 use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
@@ -101,8 +102,8 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
         hit.amount.set(0.0);
         return;
     }
-    // The points the game's enchantment protection already took off for the enchantments the pieces' modifiers give.
-    let levels: Vec<_> = hit.armor.iter().filter_map(|(_, piece)| with_held_tool(piece, |env, stack| tool_stack::enchantments(&stack.custom_data, env)).ok()).collect();
+    // The points the game's enchantment protection already took off for the enchantments the pieces carry, given and player-added alike.
+    let levels: Vec<_> = hit.armor.iter().filter_map(|(_, piece)| with_held_tool(piece, |env, stack| tool_stack::carried_enchantments(&stack.custom_data, env)).ok()).collect();
     let vanilla = crate::protection::host_enchantment_points(&levels, source);
     // Each piece's modifiers see the protection so far, feet to head, starting from the enchantment points.
     let mut total = vanilla;
