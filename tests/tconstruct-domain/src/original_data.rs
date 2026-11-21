@@ -2573,10 +2573,13 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
     assert_eq!(hand.map(|stack| stack.item.to_string()), Some("tconstruct:blank_sand_cast".to_owned()), "the shipped sand cast pickup recipe");
 }
 
-/// The crafting, smelting and stonecutting recipes the importer converted for the smeltery blocks, in the game's recipe format: every one
-/// makes something this port declares (or vanilla), reads only items it declares or vanilla ones, and a shaped one defines every key its
-/// pattern uses. The obtaining chain of the casting loop (grout, seared bricks, seared stone, drains, ducts, tanks, table, basin, faucet,
-/// channel, melter, heater) is present; the scorched chute is not among them (its recipe names the obsidian pane, which this port does not declare).
+/// The crafting, smelting, blasting and stonecutting recipes the importer converted from the original's smeltery, tables and common
+/// recipe folders, in the game's recipe format: every one makes something this port declares (or vanilla), reads only items it
+/// declares or vanilla ones, and a shaped one defines every key its pattern uses. The obtaining chain of the casting loop (grout,
+/// seared bricks, seared stone, drains, ducts, tanks, table, basin, faucet, channel, melter, heater) is present, the scorched set
+/// with it (the obsidian pane is declared now), and so are the metals' compaction and the clear glass dyeing of the commons. What
+/// is not here names the platforms, the crafting station, the chests and anvils, the books, the slime crystals or the firewood,
+/// none of which this port declares.
 #[test]
 fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
     let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct");
@@ -2610,19 +2613,21 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
                     key.values().for_each(|value| collect(value, &mut ingredients));
                 }
                 "minecraft:crafting_shapeless" => recipe["ingredients"].as_array().unwrap().iter().for_each(|value| collect(value, &mut ingredients)),
-                "minecraft:smelting" | "minecraft:stonecutting" => collect(&recipe["ingredient"], &mut ingredients),
+                "minecraft:smelting" | "minecraft:blasting" | "minecraft:stonecutting" => collect(&recipe["ingredient"], &mut ingredients),
                 other => panic!("{path:?} has the unreviewed type {other}"),
             }
             for ingredient in ingredients.iter().filter(|text| !text.starts_with('#')) { assert!(known(ingredient), "{path:?} needs {ingredient}"); }
             count += 1;
         }
     }
-    assert_eq!(count, 99, "the smeltery's crafting recipes (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d) the importer converts; the rest name items this port does not declare yet");
+    assert_eq!(count, 241, "the plain recipes the importer converts: 102 of the smeltery folder, 5 of the tables and 134 of the commons (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane); the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_casting_tank", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "scorched_alloyer", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can", "copper_gauge", "seared_fluid_cannon",
                  "tinker_station", "part_builder", "modifier_worktable", "pattern",
-                 "seared_lantern", "scorched_lantern", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane"] {
+                 "seared_lantern", "scorched_lantern", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane",
+                 "scorched_chute", "scorched_drain", "scorched_proxy_tank", "scorched_table", "end_fluid_cannon", "obsidian_gauge",
+                 "cobalt_block", "cobalt_ingot", "copper_nugget", "clear_glass_pane", "gold_bars", "steel_ingot", "queens_slime_ingot", "sky_slime_ball"] {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
     }
 }

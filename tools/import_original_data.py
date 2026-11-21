@@ -1014,7 +1014,9 @@ SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct', 'alloy
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
 # tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
-PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture', 'mantle:connected'}
+# `mantle:item_layer` and `mantle:colored_block` carry nothing but a luminosity hint beyond the
+# textures, so they flatten like the rest; the hint is dropped.
+PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture', 'mantle:connected', 'mantle:item_layer', 'mantle:colored_block'}
 
 
 def qualify(reference):
@@ -1079,6 +1081,9 @@ def copy_client_assets():
 
     def import_model(reference):
         reference = qualify(reference)
+        # Forge's two item parents are the vanilla generated and handheld models under another
+        # name; the tool item definitions already map them so (FORGE_PARENTS, below).
+        reference = FORGE_PARENTS.get(reference, reference)
         namespace, path = reference.split(':', 1)
         if namespace == 'minecraft':
             if not (BASE_ASSETS / 'models' / f'{path}.json').exists():
@@ -1664,14 +1669,20 @@ def copy_armor_worn_assets():
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
-             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56}
+MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'SNOW': 8, 'STONE': 11, 'COLOR_ORANGE': 15, 'COLOR_MAGENTA': 16, 'COLOR_LIGHT_BLUE': 17, 'COLOR_YELLOW': 18, 'COLOR_LIGHT_GREEN': 19,
+             'COLOR_PINK': 20, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_CYAN': 23, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'COLOR_BROWN': 26, 'COLOR_GREEN': 27,
+             'COLOR_RED': 28, 'COLOR_BLACK': 29, 'DIAMOND': 31, 'NETHER': 35, 'TERRACOTTA_WHITE': 36, 'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39,
+             'TERRACOTTA_BROWN': 48, 'TERRACOTTA_BLUE': 47, 'WARPED_STEM': 56, 'WARPED_WART_BLOCK': 58}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
 DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT_BLUE', 'ender': 'TERRACOTTA_ORANGE'}
 # Plain items: TinkerWorld's with Item.Properties (TooltipItem only adds the lang tooltip text) and TinkerCommons' tinker slime
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
 WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
+# The shipped metals of TinkerMaterials (`registerMetal` each: a storage block, an ingot and a nugget; soulsteel has
+# no compaction recipes and stays undeclared, as its fluid's bucket does). Their items are plain items.
+METALS = ['cobalt', 'steel', 'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron', 'cinderslime', 'queens_slime', 'manyullyn', 'hepatizon', 'knightmetal', 'knightslime']
+METAL_ITEMS = [f'{metal}_{part}' for metal in METALS for part in ('ingot', 'nugget')] + ['copper_nugget', 'netherite_nugget', 'debris_nugget']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
 # Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
 # The bottles' and the bowl's models are plain; the copper can's own loader is replaced by write_copper_can below.
@@ -1767,6 +1778,8 @@ def smeltery_blocks():
     blocks.update(smeltery_u6b_blocks())
     blocks.update(smeltery_u6c_blocks())
     blocks.update(smeltery_u6d_blocks())
+    blocks.update(metal_blocks())
+    blocks.update(commons_blocks())
     return blocks
 
 
@@ -1906,6 +1919,78 @@ def smeltery_u6d_blocks():
 
 SMELTERY_STATE_BLOCKS += list(smeltery_u6d_blocks())
 
+def metal_blocks():
+    """The storage blocks of the shipped metals (TinkerMaterials `registerMetal`): `metalBuilder` (metal sound,
+    strength 5, the correct tool) with each metal's own map colour and sound; the ones registered with
+    `noOcclusion` say so. The block classes are not carried: SlimesteelBlock (slimesteel, cinderslime,
+    knightslime) is a slime block — it sticks to slime blocks, negates fall damage and bounces — riding on the
+    same documented host stubs as the world unit's slime blocks; the orientable pig iron block's facing is not
+    declared (the north variant is the block's one model, as for the world unit's facing blocks);
+    KnightMetalBlock's bite is the entity-inside gap of the fluid cannons. The ingots and nuggets are
+    METAL_ITEMS.
+
+    Three of the block models do not come across: slimesteel, cinderslime and knightslime are
+    `forge:composite` models (a solid metal core under a translucent slime shell), which the flat
+    model copy cannot express, so those blocks stand declared with no model, like the scorched proxy
+    tank. The queens slime block and the queens slime ingot and nugget carry luminosity-only Mantle
+    loaders and import flattened (see PLAIN_LOADERS)."""
+    def metal(color, sounds, occludes=True):
+        properties = {'hardness': 5.0, 'explosion_resistance': 5.0, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if not occludes:
+            properties['occludes'] = False
+        return {'template': 'minecraft:stone', 'properties': properties, 'item': True}
+
+    metal_sound, netherite_sound = 'minecraft:iron_block', 'minecraft:netherite_block'
+    return {
+        'cobalt_block': metal('COLOR_BLUE', metal_sound),
+        'steel_block': metal('STONE', metal_sound),
+        'slimesteel_block': metal('WARPED_WART_BLOCK', metal_sound, False),
+        'amethyst_bronze_block': metal('COLOR_PURPLE', metal_sound),
+        'rose_gold_block': metal('TERRACOTTA_WHITE', metal_sound),
+        'pig_iron_block': metal('COLOR_PINK', metal_sound),
+        'cinderslime_block': metal('COLOR_ORANGE', netherite_sound, False),
+        'queens_slime_block': metal('COLOR_GREEN', netherite_sound),
+        'manyullyn_block': metal('COLOR_PURPLE', netherite_sound),
+        'hepatizon_block': metal('TERRACOTTA_BLUE', netherite_sound),
+        'knightmetal_block': metal('GRASS', netherite_sound, False),
+        'knightslime_block': metal('COLOR_BLACK', metal_sound, False),
+    }
+
+
+# The dye colours of the clear stained glass, in GlassColor (dye) order, each with its dye's map colour.
+GLASS_COLORS = [('white', 'SNOW'), ('orange', 'COLOR_ORANGE'), ('magenta', 'COLOR_MAGENTA'), ('light_blue', 'COLOR_LIGHT_BLUE'),
+                ('yellow', 'COLOR_YELLOW'), ('lime', 'COLOR_LIGHT_GREEN'), ('pink', 'COLOR_PINK'), ('gray', 'COLOR_GRAY'),
+                ('light_gray', 'COLOR_LIGHT_GRAY'), ('cyan', 'COLOR_CYAN'), ('purple', 'COLOR_PURPLE'), ('blue', 'COLOR_BLUE'),
+                ('brown', 'COLOR_BROWN'), ('green', 'COLOR_GREEN'), ('red', 'COLOR_RED'), ('black', 'COLOR_BLACK')]
+
+
+def commons_blocks():
+    """TinkerCommons blocks the plain crafting recipes name: the clear glass family, the obsidian pane and the
+    gold bars. Clear glass is the original's `glassBuilder` (strength 0.3, glass sound, no occlusion) on the
+    vanilla glass and glass pane templates; its connected textures ride on the models' `connection` data, which
+    the asset import drops, so the glass keeps its plain texture, as the retextured blocks keep theirs. The
+    obsidian pane is Mantle's BetterPaneBlock at obsidian strength (25/400, stone sound, the correct tool) and
+    the gold bars the vanilla IronBarsBlock (metal sound, strength 3/6, the correct tool)."""
+    def glass(template, color):
+        return {'template': template, 'properties': {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': False, 'occludes': False}, 'item': True}
+
+    blocks = {'clear_glass': glass('minecraft:glass', 'NONE'), 'clear_glass_pane': glass('minecraft:glass_pane', 'NONE')}
+    for name, color in GLASS_COLORS:
+        blocks[f'{name}_clear_stained_glass'] = glass('minecraft:glass', color)
+        blocks[f'{name}_clear_stained_glass_pane'] = glass('minecraft:glass_pane', color)
+    blocks['obsidian_pane'] = {'template': 'minecraft:glass_pane',
+                               'properties': {'hardness': 25.0, 'explosion_resistance': 400.0, 'sounds': 'minecraft:stone', 'map_color': MAP_COLOR['COLOR_BLACK'], 'requires_tool': True, 'occludes': False},
+                               'item': True}
+    blocks['gold_bars'] = {'template': 'minecraft:iron_bars',
+                           'properties': {'hardness': 3.0, 'explosion_resistance': 6.0, 'sounds': 'minecraft:iron_block', 'map_color': MAP_COLOR['NONE'], 'requires_tool': True, 'occludes': False},
+                           'item': True}
+    return blocks
+
+
+# The commons panes and the gold bars: their block states are multipart, copied as they are.
+SMELTERY_STATE_BLOCKS += [name for name in commons_blocks() if name.endswith('_pane') or name == 'gold_bars']
+
+
 
 def write_vanilla_fuels():
     """Vanilla's burn times (ForgeHooks.getBurnTime falls back to the furnace fuel map for the melter's heater): the
@@ -1947,11 +2032,11 @@ def write_world_declarations():
     blocks = {**world_blocks(), **smeltery_blocks()}
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
-    for name in WORLD_ITEMS + CAST_ITEMS:
+    for name in WORLD_ITEMS + CAST_ITEMS + METAL_ITEMS:
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper'}, compact=True)
     for name, stack in FLUID_ITEMS.items():
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper', 'max_stack_size': stack}, compact=True)
-    return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS) + len(FLUID_ITEMS)
+    return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS) + len(METAL_ITEMS) + len(FLUID_ITEMS)
 
 
 def whole(value):
@@ -2074,25 +2159,47 @@ def copy_world_features():
     return len(WORLD_FEATURES) * 2 + len(WORLD_BIOME_MODIFIERS)
 
 
-# Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
+# Forge's convention tags do not exist in the host: the items they stand for in the plain crafting recipes (the vanilla
+# items for the vanilla metals, sand and glass; this port's declared items for the Tinkers metals and the slime balls),
+# each read off the original's generated forge tags.
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
 FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
-              'forge:dusts/redstone': ['minecraft:redstone'], 'forge:glass_panes/colorless': ['minecraft:glass_pane']}
-CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
+              'forge:dusts/redstone': ['minecraft:redstone'], 'forge:glass_panes/colorless': ['minecraft:glass_pane'],
+              'forge:slimeball/earth': ['minecraft:slime_ball'], 'forge:slimeball/sky': ['tconstruct:sky_slime_ball'],
+              'forge:slimeball/ichor': ['tconstruct:ichor_slime_ball'], 'forge:slimeball/ender': ['tconstruct:ender_slime_ball'],
+              'forge:slimeballs': ['minecraft:slime_ball', 'tconstruct:sky_slime_ball', 'tconstruct:ichor_slime_ball', 'tconstruct:ender_slime_ball'],
+              'forge:raw_materials/cobalt': ['tconstruct:raw_cobalt'], 'forge:raw_nuggets/knightmetal': ['tconstruct:knightmetal_shard'],
+              'forge:nuggets/copper': ['tconstruct:copper_nugget'], 'forge:nuggets/netherite': ['tconstruct:netherite_nugget'],
+              'forge:nuggets/netherite_scrap': ['tconstruct:debris_nugget']}
+# The shipped metals' own convention tags: each stands for the one declared item of its metal.
+for _metal in METALS:
+    FORGE_TAGS[f'forge:ingots/{_metal}'] = [f'tconstruct:{_metal}_ingot']
+    FORGE_TAGS[f'forge:nuggets/{_metal}'] = [f'tconstruct:{_metal}_nugget']
+    FORGE_TAGS[f'forge:storage_blocks/{_metal}'] = [f'tconstruct:{_metal}_block']
+# Forge's dye convention: the tag for a colour stands for that colour's dye, which here is the
+# vanilla dye. The clear stained glass dyeing recipes name nothing else undeclared. The anvil
+# metal tag also nests the vanilla netherite storage block through Forge.
+for _color in ('white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray',
+               'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'):
+    FORGE_TAGS[f'forge:dyes/{_color}'] = [f'minecraft:{_color}_dye']
+FORGE_TAGS['forge:storage_blocks/netherite'] = ['minecraft:netherite_block']
+CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:blasting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
 TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}
 CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 
 def copy_crafting_recipes():
-    """The crafting, smelting and stonecutting recipes of the smeltery (`smeltery/` in the original's recipe tree: seared and scorched
-    bricks, grout, every structure block, the controllers, tables, drains, ducts and tanks) in the game's recipe format, under the
-    original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention tags become the
-    vanilla items they stand for, a `forge:difference` stonecutting ingredient is expanded over the original's tag, and the melter's
-    `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming an item this port does not declare is left out
-    and returned (the foundry's scorched basin, table, drain and chute wait for the gold platform, gold bars and obsidian pane)."""
+    """The plain crafting, smelting, blasting and stonecutting recipes of the original's `smeltery/`, `tables/` and `common/`
+    recipe folders (the smeltery's structure blocks and periphery, the stations and their tables, and the commons: the
+    metals' compaction, the clear glass, the slime balls and their blocks) in the game's recipe format, under the
+    original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention
+    tags become the items they stand for, vanilla's own tags stay tags, a `forge:difference` ingredient is expanded over
+    the original's tag, and the melter's `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming
+    an item this port does not declare is left out and returned (the scorched basin waits for the gold platform, the
+    chest, anvil and crafting station recipes for their station blocks, the book recipes for the books)."""
     shutil.rmtree(CRAFTING_TARGET, ignore_errors=True)
     declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
     tag_files = GENERATED_DATA / 'tconstruct/tags/items'
@@ -2107,8 +2214,16 @@ def copy_crafting_recipes():
         result = []
         for entry in json.loads((tag_files / f'{path}.json').read_text(encoding='utf-8'))['values']:
             entry = entry if isinstance(entry, str) else entry['id']
-            result += members(entry[1:], seen + (tag,)) if entry.startswith('#') else [entry]
-        return [item for item in result if item in declared]
+            if entry.startswith('#') and entry[1:].startswith('forge:'):
+                # A tag nested through a Forge tag: what the Forge tag stands for here, no more.
+                # One the port does not carry stands for nothing (the original marks those entries
+                # optional: they are other mods' metals).
+                result += [item for item in FORGE_TAGS.get(entry[1:], []) if known(item)]
+            elif entry.startswith('#'):
+                result += members(entry[1:], seen + (tag,))
+            elif entry in declared:
+                result.append(entry)
+        return result
 
     tables = False
 
@@ -2140,8 +2255,8 @@ def copy_crafting_recipes():
                 return 'minecraft:stick'
             if tag in FORGE_TAGS:
                 return list(FORGE_TAGS[tag])
-            if tag == 'minecraft:sand':
-                return '#minecraft:sand'
+            if tag.startswith('minecraft:'):
+                return '#' + tag
             if tag.startswith('tconstruct:'):
                 return members(tag)
             raise KeyError(tag)
@@ -2154,8 +2269,8 @@ def copy_crafting_recipes():
         return ingredient
 
     written, left_out = 0, []
-    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').glob('*.json')):
-        tables = path.parent == FLUID_RECIPE_SOURCE / 'tables'
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'common').rglob('*.json')):
+        tables = path.is_relative_to(FLUID_RECIPE_SOURCE / 'tables')
         data = json.loads(path.read_text(encoding='utf-8'))
         # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
         if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured' and not tables):
@@ -2169,7 +2284,7 @@ def copy_crafting_recipes():
                 out = {'type': 'minecraft:crafting_shaped', 'key': {key: one(value) for key, value in data['key'].items()}, 'pattern': data['pattern']}
             elif data['type'] == 'minecraft:crafting_shapeless':
                 out = {'type': data['type'], 'ingredients': [one(value) for value in data['ingredients']]}
-            elif data['type'] == 'minecraft:smelting':
+            elif data['type'] in ('minecraft:smelting', 'minecraft:blasting'):
                 out = {'type': data['type'], 'cookingtime': data['cookingtime'], 'experience': data['experience'], 'ingredient': one(data['ingredient'])}
             else:
                 out = {'type': data['type'], 'ingredient': one(data['ingredient'])}

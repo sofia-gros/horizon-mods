@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "tconstruct:manyullyn_nugget"
+    ],
+    "*": "tconstruct:manyullyn_nugget"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "group": "tconstruct:manyullyn_ingot",
+  "result": {
+    "id": "tconstruct:manyullyn_ingot"
+  }
+}

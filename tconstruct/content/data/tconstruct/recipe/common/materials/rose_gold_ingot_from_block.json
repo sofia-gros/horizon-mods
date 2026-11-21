@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "tconstruct:rose_gold_block"
+  ],
+  "group": "tconstruct:rose_gold_ingot",
+  "result": {
+    "id": "tconstruct:rose_gold_ingot",
+    "count": 9
+  }
+}

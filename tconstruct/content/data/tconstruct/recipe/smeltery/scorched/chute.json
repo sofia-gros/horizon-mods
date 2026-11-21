@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:scorched_brick",
+    "C": "tconstruct:obsidian_pane"
+  },
+  "pattern": [
+    "#C#",
+    "   ",
+    "#C#"
+  ],
+  "result": {
+    "id": "tconstruct:scorched_chute"
+  }
+}

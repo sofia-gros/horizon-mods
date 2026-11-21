@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "tconstruct:slimesteel_ingot"
+  ],
+  "group": "tconstruct:slimesteel_nugget",
+  "result": {
+    "id": "tconstruct:slimesteel_nugget",
+    "count": 9
+  }
+}

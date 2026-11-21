@@ -1,0 +1,1 @@
+{"template":"minecraft:glass_pane","properties":{"hardness":25.0,"explosion_resistance":400.0,"sounds":"minecraft:stone","map_color":29,"requires_tool":true,"occludes":false},"item":true}

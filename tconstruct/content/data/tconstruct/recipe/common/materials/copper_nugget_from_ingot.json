@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:copper_ingot"
+  ],
+  "group": "tconstruct:copper_nugget",
+  "result": {
+    "id": "tconstruct:copper_nugget",
+    "count": 9
+  }
+}

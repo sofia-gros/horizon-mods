@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "tconstruct:queens_slime_ingot"
+    ],
+    "*": "tconstruct:queens_slime_ingot"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "group": "tconstruct:queens_slime_block",
+  "result": {
+    "id": "tconstruct:queens_slime_block"
+  }
+}

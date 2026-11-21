@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "O": [
+      "minecraft:slime_ball",
+      "tconstruct:sky_slime_ball",
+      "tconstruct:ichor_slime_ball",
+      "tconstruct:ender_slime_ball"
+    ],
+    "~": "minecraft:string"
+  },
+  "pattern": [
+    "~~ ",
+    "~O ",
+    "  ~"
+  ],
+  "result": {
+    "id": "minecraft:lead",
+    "count": 2
+  }
+}
