@@ -11,7 +11,7 @@ the control endpoint and world readiness (= game started, mod hooks loaded),
 three TConstruct parts and then a flint pickaxe (inventory crafting grid); and the real Part Builder
 block opens a container screen, (5) clean quit.
 """
-import argparse, json, os, subprocess, sys, tempfile, time
+import argparse, json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
@@ -36,10 +36,16 @@ if not (a.resources / 'horizon-resources.json').is_file():
 a.run_dir.mkdir(parents=True, exist_ok=True)
 run = Path(tempfile.mkdtemp(prefix='smoke-', dir=a.run_dir))
 endpoint = run / 'control.json'
-env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off', RUST_MIN_STACK='16777216')
-for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME'):
+# Install the content mod exactly like the other harnesses (tool_build.py): without a
+# game dir carrying horizon-mods/tconstruct the exe launches bare and no mod content
+# (recipes, blocks) exists, so the assertions below can never pass.
+game_dir = run / 'game'
+shutil.copytree(root / 'tconstruct/content', game_dir / 'horizon-mods/tconstruct')
+(game_dir / 'horizon-mods.txt').write_text('mod.tconstruct:true' + chr(10), encoding='utf-8', newline=chr(10))
+env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off', HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216')
+for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'TMP', 'TEMP'):
     folder = run / key.lower(); folder.mkdir(); env[key] = str(folder)
-cmd = [str(a.game.resolve()), '--resources', str(a.resources.resolve()), '--control-socket', str(endpoint), '--offscreen',
+cmd = [str(a.game.resolve()), '--home', env['HORIZON_HOME'], '--game-dir', str(game_dir), '--resources', str(a.resources.resolve()), '--control-socket', str(endpoint), '--offscreen',
        '--world', 'Probe', '--seed', '42', '--creative', '--test-terrain', '--render-distance', '2', '--width', *(('1280', '--height', '720') if a.screenshots else ('640', '--height', '360'))]
 log = (run / 'game.log').open('w')
 proc = subprocess.Popen(cmd, cwd=run, env=env, stdout=log, stderr=subprocess.STDOUT)
