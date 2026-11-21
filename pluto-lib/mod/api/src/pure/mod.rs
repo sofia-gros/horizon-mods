@@ -45,3 +45,4 @@ pub mod trade_offer_helper;
 pub mod world_api_v1;
 pub mod worldgen_api_v1;
 pub mod advancement_api_v1;
+pub mod recipe_api_v1;

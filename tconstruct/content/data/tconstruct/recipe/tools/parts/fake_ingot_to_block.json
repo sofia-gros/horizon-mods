@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": {
+      "type": "tconstruct:material",
+      "item": "tconstruct:fake_ingot",
+      "material": {
+        "type": "tconstruct:has_part",
+        "part": "tconstruct:fake_storage_block"
+      }
+    }
+  },
+  "pattern": [
+    "###",
+    "###",
+    "###"
+  ],
+  "parts": "#",
+  "result": {
+    "id": "tconstruct:fake_storage_block"
+  }
+}

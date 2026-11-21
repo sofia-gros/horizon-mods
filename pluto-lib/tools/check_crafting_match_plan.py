@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Reserve the canonical deny-only crafting-match boundary in a complete plan.
+"""Reserve the canonical crafting-match boundary in a complete plan.
 
-An earlier cancellation could bypass admission; a later rewrite could resurrect
-an output. Reuse the established exclusive-boundary validator without changing
-its placement metadata or relaxing either group's composition requirements.
+An earlier cancellation could bypass admission or assembly; a later rewrite
+could resurrect an output. Reuse the established exclusive-boundary validator
+without changing its placement metadata or relaxing either group's
+composition requirements.
 """
 import importlib.util
 import json

@@ -1,14 +1,44 @@
-// Read-only admission before the native matching/assembly body.
-use super::{Input, Recipe};
+// Read-only admission and provider assembly before the native matching/assembly body.
+use super::{Input, ItemStack, Recipe};
 use crate::pluto_component_view::ItemFacts;
+use horizon_world::nbt::Tag;
 use pluto_inventory_api::{
-    crafting::matching::{self, InputFacts, Outcome, RecipeFacts, Request, TemplateFacts},
+    advancements::predicates::ComponentValue,
+    crafting::{
+        assembly::{self, Outcome as AssemblyOutcome},
+        matching::{self, InputFacts, Outcome, RecipeFacts, Request, TemplateFacts},
+    },
     recipe_book::placement::{Form, Ingredient},
 };
 
-pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Outcome {
-    if !matching::has_providers() {
-        return Outcome::Native;
+pub enum Verdict {
+    Native,
+    Denied,
+    Assembled(ItemStack),
+}
+
+/// The provider's compound as the stack's saved custom data: the template
+/// stack's own component patch with that one component replaced, decoded
+/// back into stack form by the game's own component codec.
+fn with_custom_data(stack: ItemStack, custom_data: ComponentValue) -> ItemStack {
+    let mut components = match crate::item_data::encode_components(&stack) {
+        Some(Tag::Compound(map)) => map,
+        _ => Default::default(),
+    };
+    components.insert(
+        "minecraft:custom_data".into(),
+        crate::pluto_component_view::to_nbt(custom_data),
+    );
+    let (damage, extra) = crate::item_data::decode_components(Some(&Tag::Compound(components)));
+    let mut stack = stack;
+    stack.damage = damage;
+    stack.extra = extra;
+    stack
+}
+
+pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Verdict {
+    if !matching::has_providers() && !assembly::has_providers() {
+        return Verdict::Native;
     }
     let (form, ingredients, template): (_, Option<Vec<Option<&dyn Ingredient>>>, _) = match recipe {
         Recipe::Shaped {
@@ -54,9 +84,11 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Outcome {
             has_components: t.extra.is_some(),
         }),
     };
-    let Some(evaluation) = matching::prepare(&facts) else {
-        return Outcome::Native;
-    };
+    let admission = matching::prepare(&facts);
+    let assemblers = assembly::prepare(&facts);
+    if admission.is_none() && assemblers.is_none() {
+        return Verdict::Native;
+    }
     // Inspect exact cropped cells, not a compressed stack list or synthetic grid.
     // No component capture occurs until at least one policy requests inspection.
     let captures: Vec<_> = input
@@ -70,7 +102,7 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Outcome {
         .collect();
     let result = template.map(|template| template.create());
     let result = result.as_ref().map(ItemFacts::capture);
-    evaluation.evaluate(&Request {
+    let request = Request {
         recipe: &facts,
         input: InputFacts {
             width: input.width,
@@ -80,5 +112,23 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Outcome {
             cells: &cells,
         },
         result: result.as_ref().map(ItemFacts::view),
-    })
+    };
+    if let Some(evaluation) = admission {
+        if matches!(evaluation.evaluate(&request), Outcome::Denied { .. }) {
+            return Verdict::Denied;
+        }
+    }
+    if let Some(evaluation) = assemblers {
+        match evaluation.evaluate(&request) {
+            AssemblyOutcome::Denied { .. } => return Verdict::Denied,
+            AssemblyOutcome::Assembled { custom_data, .. } => {
+                let Some(template) = template else {
+                    return Verdict::Native;
+                };
+                return Verdict::Assembled(with_custom_data(template.create(), custom_data));
+            }
+            AssemblyOutcome::Native => {}
+        }
+    }
+    Verdict::Native
 }

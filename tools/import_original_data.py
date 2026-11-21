@@ -2641,7 +2641,8 @@ FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/g
               'forge:slimeballs': ['minecraft:slime_ball', 'tconstruct:sky_slime_ball', 'tconstruct:ichor_slime_ball', 'tconstruct:ender_slime_ball'],
               'forge:raw_materials/cobalt': ['tconstruct:raw_cobalt'], 'forge:raw_nuggets/knightmetal': ['tconstruct:knightmetal_shard'],
               'forge:nuggets/copper': ['tconstruct:copper_nugget'], 'forge:nuggets/netherite': ['tconstruct:netherite_nugget'],
-              'forge:nuggets/netherite_scrap': ['tconstruct:debris_nugget']}
+              'forge:nuggets/netherite_scrap': ['tconstruct:debris_nugget'],
+              'forge:string': ['minecraft:string'], 'forge:rods/wooden': ['minecraft:stick']}
 # The shipped metals' own convention tags: each stands for the one declared item of its metal.
 for _metal in METALS:
     FORGE_TAGS[f'forge:ingots/{_metal}'] = [f'tconstruct:{_metal}_ingot']
@@ -2769,6 +2770,7 @@ def copy_crafting_recipes():
     written, left_out = 0, []
     for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'gadgets').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'common').rglob('*.json')):
         tables = path.is_relative_to(FLUID_RECIPE_SOURCE / 'tables')
+        gadgets = path.is_relative_to(FLUID_RECIPE_SOURCE / 'gadgets')
         data = json.loads(path.read_text(encoding='utf-8'))
         # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
         if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured' and not tables):
@@ -2792,6 +2794,47 @@ def copy_crafting_recipes():
         if any(value == [] for value in out.get('key', {}).values()) or out.get('ingredient') == []:
             left_out.append((stem, 'empty ingredient'))
             continue
+        if 'group' in data:
+            out['group'] = data['group']
+        out['result'] = {'id': item} if count == 1 else {'id': item, 'count': count}
+        if not known(item):
+            left_out.append((stem, item))
+            continue
+        write_json(CRAFTING_TARGET / f'{stem}.json', out)
+        written += 1
+    # The shaped-materials recipes (the material anvils and forges in `tables/`, the travellers armor in
+    # `tools/`, the fake ingot's storage block): the type resolves its material ingredients against the
+    # material registry at craft time, which no plain conversion can express, so the key's material
+    # ingredients ship verbatim for the port's consumer (api/src/shaped_materials.rs) while the rest of
+    # the recipe converts like any shaped recipe. `parts` and `extra_materials` ship verbatim too: the
+    # game's shaped parser ignores them and the consumer reads them.
+    for path in sorted(FLUID_RECIPE_SOURCE.rglob('*.json')):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('type') != 'tconstruct:crafting_shaped_materials':
+            continue
+        tables = path.is_relative_to(FLUID_RECIPE_SOURCE / 'tables')
+        gadgets = False
+        stem = path.relative_to(FLUID_RECIPE_SOURCE).with_suffix('').as_posix()
+        result = data['result']
+        item = result['item'] if isinstance(result, dict) else result
+        count = result.get('count', 1) if isinstance(result, dict) else data.get('count', 1)
+        def material_or_converted(value):
+            if isinstance(value, list):
+                return [material_or_converted(part) for part in value]
+            if isinstance(value, dict) and value.get('type') in ('tconstruct:material', 'tconstruct:material_value'):
+                named = value.get('item')
+                if named is not None and not known(named):
+                    raise KeyError(named)
+                return value
+            return one(value)
+        try:
+            key = {symbol: material_or_converted(value) for symbol, value in data['key'].items()}
+        except KeyError as missing:
+            left_out.append((stem, str(missing)))
+            continue
+        out = {'type': 'minecraft:crafting_shaped', 'key': key, 'pattern': data['pattern'], 'parts': data['parts']}
+        if 'extra_materials' in data:
+            out['extra_materials'] = data['extra_materials']
         if 'group' in data:
             out['group'] = data['group']
         out['result'] = {'id': item} if count == 1 else {'id': item, 'count': count}
@@ -3020,7 +3063,7 @@ def main():
     fluid_blocks = write_fluid_world()
     write_copper_can()
     transfers = write_fluid_transfers()
-    world_loot = copy_world_loot(sorted({**world_blocks(), **world_geode_blocks(), **smeltery_blocks(), **gadget_blocks()} | {'cast_chest', 'crafting_station', 'fake_storage_block', 'part_chest', 'scorched_anvil', 'tinkers_anvil', 'tinkers_chest'}))
+    world_loot = copy_world_loot(sorted({*world_blocks(), *world_geode_blocks(), *smeltery_blocks(), *gadget_blocks()} | {'cast_chest', 'crafting_station', 'fake_storage_block', 'part_chest', 'scorched_anvil', 'tinkers_anvil', 'tinkers_chest'}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
     copy_cobalt_tags()
