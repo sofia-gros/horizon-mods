@@ -142,7 +142,7 @@ pub(crate) fn register() {
         .on_tooltip(|tip| melter_tooltip(tip.at, tip.data, tip.lines));
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(melter_id).item_slots(SLOTS as u32).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").ticker(tick_melter)
+        BlockEntityType::new(melter_id).item_slots(SLOTS as u32).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").sync_data().ticker(tick_melter)
             .on_use(|used| crate::fluid_items::use_tank(used, MELTER_CAPACITY as u32)),
     );
 

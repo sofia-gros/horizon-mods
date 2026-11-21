@@ -417,7 +417,7 @@ pub(crate) fn register() {
         let _ = title;
         ScreenHandlerRegistry::register(window);
         BlockEntityTypeRegistry::register(
-            BlockEntityType::new(id).item_slots(MAX_SLOTS as u32).menu(&format!("tconstruct:{name}")).ticker(move |tick| tick_controller(kind, tick))
+            BlockEntityType::new(id).item_slots(MAX_SLOTS as u32).menu(&format!("tconstruct:{name}")).sync_data().ticker(move |tick| tick_controller(kind, tick))
                 // the tank answers drains, faucets and pipes (ISmelteryTankHandler.getFluidCapability): see smeltery_io
                 .fluid_reader(crate::smeltery_io::read_controller).fluid_filler(crate::smeltery_io::fill_controller).fluid_drainer(crate::smeltery_io::drain_controller),
         );

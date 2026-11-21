@@ -81,6 +81,7 @@ mod creative;
 mod conditions;
 mod fluid_values;
 mod fluid_defs;
+mod render_data;
 mod fluids;
 mod fluid_transfers;
 mod fluid_items;
@@ -105,6 +106,7 @@ mod smeltery_menu;
 mod smeltery_blocks;
 mod tank;
 mod smeltery_io;
+mod rendering;
 mod config;
 mod common;
 
@@ -123,6 +125,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     smeltery_blocks::register();
     tank::register();
     smeltery_io::register();
+    rendering::register();
     creative::register();
     fluids::register();
     fluid_items::register();

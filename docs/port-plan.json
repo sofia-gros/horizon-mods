@@ -90,6 +90,8 @@
     "api/src/conditions.rs",
     "api/src/fluid_values.rs",
     "api/src/fluid_defs.rs",
+    "api/src/render_data.rs",
+    "api/src/rendering.rs",
     "api/src/fluids.rs",
     "api/src/fluid_transfers.rs",
     "api/src/fluid_items.rs",

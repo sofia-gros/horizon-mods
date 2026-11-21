@@ -413,6 +413,12 @@ fn with_live<R>(station: Station, f: impl FnOnce(&Live<'_>) -> R) -> Option<R> {
     Some(f(&live))
 }
 
+/// What the recipe in progress will make, for the casting renderer (`CastingBlockEntity.getRecipeOutput`, through
+/// the same live recipes the tick uses).
+pub(crate) fn recipe_output(station: Station, recipe: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<ItemSlot> {
+    with_live(station, |env| env.assemble(recipe, cast, fluid)).flatten()
+}
+
 fn tick_casting(tick: &mut BlockEntityTick<'_>, station: Station) {
     with_live(station, |env| {
         let mut state = State::load(tick.data, tick.fluid(0));
