@@ -56,6 +56,14 @@ pub(crate) enum Display {
     VariantName { formatter: Identifier },
     /// StatTooltipModule (tooltip): the stat line it adds.
     StatTooltip { stat: Identifier, condition: Condition },
+    /// BannerModule (display name, tooltip): colours the name by the first stored pattern and lists them.
+    BannerPatterns,
+    /// DyeModule (display name): names the modifier by the dye colour stored on the tool.
+    Dyed,
+    /// TrimModule (display name): formats the name with the trim material and pattern stored on the tool.
+    /// The trim itself is the game's own layer on worn armor; a held tool's trim has no layer to draw on
+    /// here (an armor layer is one texture and a tint, and no stack carries a trim component).
+    Trim,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -206,6 +214,8 @@ pub(crate) enum Module {
     ToolActions { actions: Vec<String>, condition: Condition },
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
+    /// ToolActionWalkerTransformModule: walking turns the ground under a replaceable cell into its transformed state.
+    WalkTransform { action: crate::tool_actions::ToolAction, sound: String, radius: crate::wearer_modules::Leveling, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
     /// LootingModule.Armor: a worn piece adds this looting to its wearer's kills while it sits in one of the listed slots.
@@ -219,6 +229,8 @@ pub(crate) enum Module {
     DepthProtection { module: crate::wearer_modules::DepthProtection, condition: Condition },
     /// OvershieldModule: protection paid for with the overslime on the piece.
     Overshield { module: crate::wearer_modules::Overshield },
+    /// RecurrentProtectionModule (on the modify hurt hook): armor that builds momentum as its wearer takes damage.
+    RecurrentProtection { module: crate::wearer_modules::RecurrentProtection },
     /// RestoreLostHealthModule: armor that turns part of the damage into slow healing. The module runs on the hook it is
     /// bound to: `hurt` as the damage arrives, before armor (the shipped `restore`), `damage` on what armor left (the
     /// shipped `rebuff`, the module type's default binding); a binding to both runs it at both.
@@ -232,6 +244,16 @@ pub(crate) enum Module {
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
     Punch { module: Box<crate::punch::Punch>, condition: Condition },
     ReversePunch { module: Box<crate::punch::ReversePunch> },
+    /// DamageOnShootModule: firing the tool hurts its holder.
+    DamageOnShoot { module: crate::projectile_modules::DamageOnShoot, condition: Condition },
+    /// ExtinguishCampfireModule: a right click that puts out lit campfires.
+    CampfireExtinguish { condition: Condition },
+    /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
+    Blocking,
+    /// InfinityModule: the launcher fires its named ammo without the shooter carrying any, paid for with
+    /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
+    /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
+    Infinity { module: crate::projectile_modules::Infinity },
     MeleeInstrument { module: Box<crate::melee_instrument::MeleeInstrument>, condition: Condition },
     Overgrowth { module: Box<crate::overgrowth::Overgrowth>, condition: Condition },
     Kinetic,
@@ -734,11 +756,25 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            // ExtinguishCampfireModule is a BlockTransformModule like the tool action transform: a right click that puts
+            // out a lit campfire. Like the transform sharing its consumer, only the clicked block is transformed, not the
+            // tool's AOE neighbours (BlockTransformModule.afterBlockUse runs both in the original).
+            "tconstruct:campfire_extinguish" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:aoe_highlight")) => {
+                Self::CampfireExtinguish { condition: Condition::decode(fields)? }
+            }
+            // BlockingModule: a right click raises the tool like a shield (the per-stack use the blocking hook registers).
+            "tconstruct:blocking" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_action")) => Self::Blocking,
             "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
                 let require_ground = match fields.get("require_ground") { Some(Value::Bool(value)) => *value, None | Some(Value::Null) => false, Some(_) => return Err("require_ground must be boolean".into()) };
                 Self::ToolAction { action, sound, require_ground, condition: Condition::decode(fields)? }
+            }
+            // ToolActionWalkerTransformModule (BOOT_WALK + TOOL_ACTION): the boot form of the transform above.
+            "tconstruct:tool_action_walk_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:boot_walk" | "tconstruct:tool_action")) => {
+                let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
+                let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
+                Self::WalkTransform { action, sound, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
             }
             // Presentation-only modules: one block, bound as recorded no-ops (Java: display name, durability display and tooltip hooks only).
             "tconstruct:show_interaction_source" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::InteractionSource),
@@ -751,6 +787,11 @@ impl Module {
                 Self::Display(Display::DurabilityColor { color })
             }
             "tconstruct:stat_tooltip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tooltip") => Self::Display(Display::StatTooltip { stat: identifier(fields, "stat")?, condition: Condition::decode(fields)? }),
+            // The cosmetic modules: presentation in the original too (a coloured or formatted display name, a tooltip of
+            // patterns); their removal halves forget what they stored, which `on_removed` below runs.
+            "tconstruct:banner" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:tooltip")) => Self::Display(Display::BannerPatterns),
+            "tconstruct:dye" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove")) => Self::Display(Display::Dyed),
+            "tconstruct:trim" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove")) => Self::Display(Display::Trim),
             "tconstruct:tool_actions" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tool_action") => {
                 let names = fields.get("tool_actions").and_then(Value::as_array).ok_or("tool_actions must be an array")?;
                 let mut actions = Vec::new();
@@ -794,6 +835,11 @@ impl Module {
             }
             "tconstruct:overshield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 Self::Overshield { module: crate::wearer_modules::Overshield::decode(fields)? }
+            }
+            // Only on the modify hurt hook: this port hears that hook on its modify damage event, whose amount is the
+            // damage after vanilla's armor and enchantment protection, as the original's LivingHurtEvent hands it over.
+            "tconstruct:recurrent_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_hurt" | "tconstruct:tooltip")) => {
+                Self::RecurrentProtection { module: crate::wearer_modules::RecurrentProtection::decode(fields)? }
             }
             // On the modify hurt hook the module works on the damage as it arrives, before armor; on the modify damage hook
             // (the default binding, and the shipped rebuff) on what armor left. A binding to no stage runs nowhere.
@@ -863,6 +909,16 @@ impl Module {
             "tconstruct:overgrowth" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:inventory_tick") => Self::Overgrowth { module: Box::new(crate::overgrowth::Overgrowth::decode(fields)?), condition: Condition::decode(fields)? },
             // KineticModule: being hit feeds the wearer's insatiable effect.
             "tconstruct:kinetic" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked" | "tconstruct:tooltip")) => Self::Kinetic,
+            // DamageOnShootModule: firing the tool hurts its holder (the sling half has no event here; a mob
+            // shooting cannot be hurt back either, as the launch event takes no actions).
+            "tconstruct:damage_on_shoot" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:sling_launch")) => {
+                Self::DamageOnShoot { module: crate::projectile_modules::DamageOnShoot::decode(fields)?, condition: Condition::decode(fields)? }
+            }
+            // InfinityModule: the bow ammo half binds on the ammo event; the removal half is run by the remove paths.
+            "tconstruct:infinity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:remove")) => {
+                let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
+                Self::Infinity { module }
+            }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -925,7 +981,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -947,6 +1003,12 @@ impl Module {
             Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
             // TrickQuiverModule.onRemoved forgets the selected slot.
             Self::TrickQuiver => { persistent.remove("tconstruct:trick_quiver_selected"); }
+            // InfinityModule.onRemoved forgets the stored variant.
+            Self::Infinity { module } => { if let Some(key) = module.variant_key(modifier) { persistent.remove(&key); } }
+            // DyeModule.onRemoved forgets the dye colour, stored under the modifier's own ID.
+            Self::Display(Display::Dyed) => { persistent.remove(&modifier.to_string()); }
+            // TrimModule.onRemoved forgets the trim pattern and material.
+            Self::Display(Display::Trim) => { persistent.remove(&format!("{modifier}_pattern")); persistent.remove(&format!("{modifier}_material")); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
             Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
@@ -1242,6 +1304,20 @@ impl Module {
     /// The level a kinetic module contributes to its modifier's total, None for any other module. The original counts the
     /// plain level here (SlotInChargeModule reads the entry level), not the effective one.
     pub fn kinetic_level(&self, entry: &Entry) -> Option<i32> { matches!(self, Self::Kinetic).then(|| entry.level) }
+    /// A recurrent protection module and the level its entry contributes to the total over the worn pieces,
+    /// None for any other module. The original counts the plain level here too (SlotInChargeModule).
+    pub fn recurrent_protection(&self, entry: &Entry) -> Option<(i32, crate::wearer_modules::RecurrentProtection)> {
+        match self { Self::RecurrentProtection { module } => Some((entry.level, module.clone())), _ => None }
+    }
+    /// What a damage on shoot module hurts the tool's holder by for firing it: the damage type and the amount.
+    pub fn damage_on_shoot(&self, entry: &Entry, facts: &Facts) -> Option<(String, f32)> {
+        let Self::DamageOnShoot { module, condition } = self else { return None; };
+        if condition.matches(entry, facts) { module.hurt(entry) } else { None }
+    }
+    /// The infinity module, if this is one.
+    pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
+        match self { Self::Infinity { module } => Some(module), _ => None }
+    }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.
@@ -1312,16 +1388,35 @@ impl Module {
         let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
     }
+    /// The walk transform this module performs, with its sound and its radius at the entry's effective level
+    /// (ArmorWalkRadiusModule.getRadius; the EXPANDED volatile the original adds is written by no module this port
+    /// binds, so it contributes 0 here as everywhere else the port reads volatile data).
+    pub fn walk_transform(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, f32)> {
+        let Self::WalkTransform { action, sound, radius, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (*action, sound.clone(), radius.compute(entry.effective_level())))
+    }
     /// ToolActionModifierHook.canPerformAction: a tool actions module answers for its named actions, a shears
     /// module for the four shear actions and a fishing module for the cast, each while its condition holds
-    /// (ShearsModule.canPerformAction, FishingModule.canPerformAction).
+    /// (ShearsModule.canPerformAction, FishingModule.canPerformAction); a blocking module performs the shield
+    /// block action, and a walk transform module its own action, while its condition holds.
     pub fn can_perform_action(&self, entry: &Entry, facts: &Facts, name: &str) -> bool {
         match self {
             Self::ToolActions { actions, condition } => condition.matches(entry, facts) && actions.iter().any(|action| action == name),
             Self::Shears { condition, .. } => condition.matches(entry, facts) && matches!(name, "shears_dig" | "shears_harvest" | "shears_carve" | "shears_disarm"),
             Self::Fishing => name == "fishing_rod_cast",
+            // BlockingModule.canPerformAction: a blocking tool performs the shield block action.
+            Self::Blocking => name == "shield_block",
+            // ToolActionWalkerTransformModule.canPerformAction: its own action, while its condition holds.
+            Self::WalkTransform { action, condition, .. } => condition.matches(entry, facts) && action.name() == name,
             _ => false,
         }
+    }
+    /// Whether this is a blocking module (BlockingModule: the tool is raised like a shield on a right click).
+    pub fn blocking(&self) -> bool { matches!(self, Self::Blocking) }
+    /// Whether a campfire extinguish module puts out a lit campfire the tool is used on, when its conditions hold.
+    pub fn extinguishes_campfires(&self, entry: &Entry, facts: &Facts) -> bool {
+        let Self::CampfireExtinguish { condition } = self else { return false; };
+        condition.matches(entry, facts)
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {

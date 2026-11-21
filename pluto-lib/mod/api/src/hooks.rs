@@ -3243,8 +3243,9 @@ impl Hooks for PlutoHooks {
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
         if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
-            for id in entity_events_v1::player_tick(&tick) { host.remove_effect(player.uuid, &id); }
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            // The world scope is open while the tick runs, so a callback may work on the blocks around the player.
+            for id in scoped(host, || entity_events_v1::player_tick(&tick)) { host.remove_effect(player.uuid, &id); }
             // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
             let own = entity_events_v1::take_tick_actions(&tick);
             if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }

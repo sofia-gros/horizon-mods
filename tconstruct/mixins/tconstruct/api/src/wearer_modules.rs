@@ -18,13 +18,13 @@ pub(crate) struct Leveling { flat: f32, each: f32 }
 
 impl Leveling {
     /// A `{flat, each_level}` object (either part may be missing); the whole value may also be absent when `required` is false.
-    fn decode(value: Option<&Value>, name: &str) -> Result<Self, String> {
+    pub(crate) fn decode(value: Option<&Value>, name: &str) -> Result<Self, String> {
         let object = value.and_then(Value::as_object).ok_or_else(|| format!("{name} must be a leveling value"))?;
         Ok(Self { flat: number(object, "flat")?, each: number(object, "each_level")? })
     }
     /// The same fields read straight from a module's own object (LevelingValue.directField).
     fn direct(fields: &Map<String, Value>) -> Result<Self, String> { Ok(Self { flat: number(fields, "flat")?, each: number(fields, "each_level")? }) }
-    fn compute(self, level: f32) -> f32 { self.flat + self.each * level }
+    pub(crate) fn compute(self, level: f32) -> f32 { self.flat + self.each * level }
     /// LevelingInt.compute: the float value cut to an int.
     fn int(self, level: f32) -> i32 { self.compute(level) as i32 }
 }
@@ -134,6 +134,41 @@ impl RestoreLostHealth {
         // Regeneration restores 1 health every 50 ticks at level 1 and faster above (Java masks the shift count to five bits).
         let duration = heal.wrapping_mul(50_i32.wrapping_shr((effect_level - 1) as u32));
         Some(Restore { duration, wear: self.durability_usage.int(level).max(0) })
+    }
+}
+
+/// RecurrentProtectionModule: armor that builds momentum as its wearer takes damage. The momentum the
+/// wearer already has comes straight off the damage; a share of what is left becomes the new momentum
+/// level, granted as the momentum (armor) effect for the module's duration. Only the slot in charge
+/// applies it (SlotInChargeModule), and its level is the total over the equipped pieces, so the grant is
+/// worked out over the pieces a hit reports, as armor levels are. Damage that bypasses invulnerability
+/// neither loses momentum nor builds it; the caller checks that, as the module does.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct RecurrentProtection { percent: Leveling, duration: Leveling }
+
+impl RecurrentProtection {
+    /// The momentum effect for armor (TinkerModifiers.momentumEffect for ToolType.ARMOR).
+    pub(crate) const EFFECT: &str = "tconstruct:momentum_armor";
+
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        // The duration is a LevelingInt: a plain number is the ticks for each level.
+        let duration = match fields.get("duration").filter(|value| !value.is_null()) {
+            Some(Value::Number(number)) => Leveling { flat: 0.0, each: number.as_f64().ok_or("duration must be a number")? as f32 },
+            value => Leveling::decode(value, "duration")?,
+        };
+        Ok(Self { percent: Leveling::decode(fields.get("percent"), "percent")?, duration })
+    }
+
+    /// modifyDamageTaken for the total `level` of the worn pieces and the wearer's current momentum
+    /// level: the damage after the module, and the momentum it grants (amplifier and ticks) when the
+    /// share of the damage is a whole point. The returned damage may go below zero, as the original's
+    /// does; the event takes none then.
+    pub(crate) fn apply(&self, level: i32, momentum: i32, amount: f32) -> (f32, Option<(i32, i32)>) {
+        if level <= 0 { return (amount, None); }
+        let amount = amount - momentum as f32;
+        let reduction = (self.percent.compute(level as f32) * amount) as i32;
+        if reduction <= 0 { return (amount, None); }
+        (amount, Some((reduction - 1, self.duration.int(level as f32))))
     }
 }
 
@@ -389,6 +424,20 @@ mod tests {
         assert_eq!(mixed.delta(&entry(2), "mainhand", true), 0.0, "a slot the module does not name");
         assert!(UpdateHealth::decode(&fields(json!({"slots":["pocket"]}))).is_err());
         assert!(UpdateHealth::decode(&fields(json!({"bonus":2.0,"slots":["feet"]}))).is_err(), "the bonus is a leveling object");
+    }
+
+    #[test]
+    fn recurrent_protection_turns_a_share_of_the_damage_into_momentum_and_spends_the_momentum_it_has() {
+        // The shipped recurrent protection: half the damage becomes momentum, 100 ticks per level.
+        let module = RecurrentProtection::decode(&fields(json!({"duration":{"each_level":100},"percent":{"flat":0.5}}))).unwrap();
+        assert_eq!(module.apply(2, 0, 10.0), (10.0, Some((4, 200))), "half of 10 is 5 points of momentum for 200 ticks");
+        assert_eq!(module.apply(2, 3, 10.0), (7.0, Some((2, 200))), "the 3 momentum come off first, half of the 7 left is 3 points");
+        assert_eq!(module.apply(1, 0, 1.0), (1.0, None), "half of 1 is not a whole point");
+        assert_eq!(module.apply(2, 5, 4.0), (-1.0, None), "more momentum than damage: nothing is granted and the damage goes below zero");
+        assert_eq!(module.apply(0, 0, 10.0), (10.0, None), "no level, no change");
+        let plain = RecurrentProtection::decode(&fields(json!({"duration":40,"percent":{"each_level":0.25}}))).unwrap();
+        assert_eq!(plain.apply(2, 0, 8.0), (8.0, Some((3, 80))), "a plain duration number is the ticks per level");
+        assert!(RecurrentProtection::decode(&fields(json!({"percent":{"flat":0.5}}))).is_err(), "the duration is required");
     }
 
     #[test]

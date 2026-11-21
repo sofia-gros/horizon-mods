@@ -48,6 +48,10 @@ mod entity_facts;
 mod conditional_stat;
 mod knockback;
 mod punch;
+mod projectile_modules;
+mod shoot_hook;
+mod blocking_hook;
+mod walk_hook;
 mod weapon_effect;
 mod thorns;
 mod hit_actions;
@@ -191,6 +195,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     protection_hook::register();
     tool_damage_hook::register();
     weapon_effect_hook::register();
+    shoot_hook::register();
+    walk_hook::register();
     block_break_hook::register();
     severing_hook::register();
     loot_modifier_hook::register();
@@ -204,6 +210,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     armor_interact_hook::register();
     edible_hook::register();
     books::register();
+    // After the edible hook: the shield items' per-stack use is the combined blocking/eating one.
+    blocking_hook::register();
     armor_worn::register();
     fancy_gadgets::register();
     advancements::register();

@@ -6,9 +6,12 @@
 //! Punji (PunjiBlock) sticks to any sturdy face, points away from the block holding it, and joins to
 //! same-facing neighbours along its local north and east. Not ported, each named:
 //! - the contact damage (1, plus fall distance + 1 after a fall, from the cactus source, only for a living
-//!   entity whose box crosses the block's mid-plane on the facing axis): PlutoLib's entity-inside callback
-//!   is a documented stub the host never invokes, and its wired motion callback carries no health, box or
-//!   fall distance. The fluids' contact effects wait on the same gap.
+//!   entity whose box crosses the block's mid-plane on the facing axis): the entity-inside callback does
+//!   fire since FND1 and a Hurt action from it lands, but the pinned host's inside seam
+//!   (pluto-lib/mod/pluto-block-inside.rs over horizon's pluto_block_access transport) fires only for the
+//!   player entity — the original damages any living entity — and the transport carries neither the
+//!   entity's bounding box nor its fall distance, the two numbers the mid-plane test and the fall bonus
+//!   are computed from. Wiring the player-only, box-less half would not be the original's behaviour.
 //! - the 0.4 speed factor: the host's block properties have no speed-factor key.
 //! - waterlogging: left out of the declaration, as with the pouring blocks (no fluid logging here).
 //! - the per-facing collision box: the declaration holds one default box (the floor one, 3,0,3 to 13,6,13);

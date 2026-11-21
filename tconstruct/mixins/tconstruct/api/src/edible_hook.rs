@@ -15,7 +15,8 @@ pub(crate) const USE_ITEMS: [&str; 28] = [
 ];
 
 /// The hunger and eat duration stats of a whole Tinkers tool that carries the edible module; None for anything else, a broken tool included.
-fn eating(stack: &StackData) -> Option<(f32, f32)> {
+/// Shared with the blocking hook, whose registration for the shield items chooses per stack between the two uses.
+pub(crate) fn eating(stack: &StackData) -> Option<(f32, f32)> {
     with_held_tool(stack, |env, tool| {
         tool_stack::edible(&tool.custom_data, env)?;
         Some((tool_stack::stat(&tool.custom_data, Stat::Hunger), tool_stack::stat(&tool.custom_data, Stat::EatDuration)))

@@ -1638,7 +1638,7 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:projectile_hit");
         }
         Module::Display(display) => match display {
-            Display::InteractionSource | Display::MaterialVariantColor { .. } | Display::VariantColor | Display::VariantName { .. } => {
+            Display::InteractionSource | Display::MaterialVariantColor { .. } | Display::VariantColor | Display::VariantName { .. } | Display::BannerPatterns | Display::Dyed | Display::Trim => {
                 out.insert("tconstruct:display_name");
             }
             Display::DurabilityColor { .. } => {
@@ -1736,6 +1736,33 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:general_interact");
             out.insert("tconstruct:tool_action");
             out.insert("tconstruct:equipment_change");
+        }
+        Module::RecurrentProtection { .. } => {
+            out.insert("tconstruct:modify_hurt");
+        }
+        Module::DamageOnShoot { .. } => {
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_thrown");
+            out.insert("tconstruct:sling_launch");
+        }
+        Module::Infinity { .. } => {
+            out.insert("tconstruct:bow_ammo");
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:remove");
+        }
+        Module::CampfireExtinguish { .. } => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
+        Module::Blocking => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_action");
+        }
+        Module::WalkTransform { .. } => {
+            out.insert("tconstruct:boot_walk");
+            out.insert("tconstruct:tool_action");
         }
     }
 }
