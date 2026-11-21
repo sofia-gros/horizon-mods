@@ -319,7 +319,6 @@ fn w1_tag(path: &str, into: &mut BTreeSet<String>) {
         if let Some(reference) = value.strip_prefix("#tconstruct:") { w1_tag(reference, into); } else { into.insert(value); }
     }
 }
-
 const CLUSTERS: [&str; 19] = [
     "earth_slime_crystal_cluster", "small_earth_slime_crystal_bud", "medium_earth_slime_crystal_bud", "large_earth_slime_crystal_bud",
     "sky_slime_crystal_cluster", "small_sky_slime_crystal_bud", "medium_sky_slime_crystal_bud", "large_sky_slime_crystal_bud",

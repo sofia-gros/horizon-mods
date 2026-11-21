@@ -20,6 +20,8 @@ pub(crate) const TAGS: &[(&str, &[&str])] = &[
     ("forge:end_stones", &["minecraft:end_stone"]),
     ("forge:ender_pearls", &["minecraft:ender_pearl"]),
     ("forge:feathers", &["minecraft:feather"]),
+    ("forge:fence_gates/wooden", &["tconstruct:bloodshroom_fence_gate", "tconstruct:enderbark_fence_gate", "tconstruct:greenheart_fence_gate", "tconstruct:skyroot_fence_gate"]),
+    ("forge:fences/wooden", &["tconstruct:bloodshroom_fence", "tconstruct:enderbark_fence", "tconstruct:greenheart_fence", "tconstruct:skyroot_fence"]),
     ("forge:gems", &["minecraft:amethyst_shard", "minecraft:diamond", "minecraft:emerald", "minecraft:lapis_lazuli", "minecraft:quartz"]),
     ("forge:gems/amethyst", &["minecraft:amethyst_shard"]),
     ("forge:gems/diamond", &["minecraft:diamond"]),

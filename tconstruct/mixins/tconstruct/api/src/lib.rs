@@ -108,6 +108,7 @@ mod melter_blocks;
 mod world_blocks;
 mod gadgets;
 mod world_growth;
+mod worldgen;
 mod alloyer;
 mod alloyer_menu;
 mod casting;
@@ -142,6 +143,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     world_blocks::register();
     gadgets::register();
     world_growth::register();
+    worldgen::register();
     alloyer_menu::register();
     casting::register();
     faucet::register();
