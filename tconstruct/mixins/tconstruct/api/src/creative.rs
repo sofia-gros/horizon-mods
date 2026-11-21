@@ -5,8 +5,8 @@
 //! creative_parts.rs, creative_tools.rs and creative_fluids.rs; a datapack's extra materials are not listed. A tool stack carries only
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
-//! drains, and anvils, none of which exist yet), the books, food, glass, platforms and gadgets of the general tab,
-//! lanterns, gauges of other kinds, chutes, cannons, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
+//! drains, and anvils, none of which exist yet), the books, food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
+//! gauges of other kinds, chutes, cannons, tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -46,8 +46,9 @@ pub(crate) fn tools_group() -> ItemGroup {
     group("tools", "Tinkers' Tools", item("pickaxe")).entries(entries)
 }
 
-/// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last).
-pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern"];
+/// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
+/// and the soul glass of TinkerCommons' glass section (the clear and stained glass of that section is not declared).
+pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"];
 
 pub(crate) fn general_group() -> ItemGroup {
     group("general", "Tinkers' General", item("tinker_station")).entries(GENERAL.iter().map(|name| item(name)))
@@ -102,7 +103,9 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     };
     let mut entries: Vec<ItemStack> = names.drain(..).map(|name| item(&name)).collect();
     entries.extend(tank("seared"));
+    entries.push(item("seared_lantern"));
     entries.extend(tank("scorched"));
+    entries.push(item("scorched_lantern"));
     let mut rest: Vec<String> = Vec::new();
     rest.extend(["seared_faucet", "scorched_faucet", "seared_channel", "scorched_channel"].map(str::to_owned));
     rest.extend(["seared_table", "scorched_table", "seared_basin", "scorched_basin"].map(str::to_owned));
@@ -111,11 +114,11 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(["seared_cracked_bricks", "seared_fancy_bricks", "seared_triangle_bricks"].map(str::to_owned));
     rest.extend(building("seared_cobble", &["wall"]));
     rest.extend(building("seared_paver", &[]));
-    rest.extend(["seared_lamp", "seared_ladder", "seared_glass", "seared_tinted_glass", "seared_glass_pane"].map(str::to_owned));
+    rest.extend(["seared_lamp", "seared_ladder", "seared_glass", "seared_tinted_glass", "seared_soul_glass", "seared_glass_pane", "seared_soul_glass_pane"].map(str::to_owned));
     rest.extend(building("scorched_bricks", &["fence"]));
     rest.extend(["chiseled_scorched_bricks", "scorched_stone", "polished_scorched_stone"].map(str::to_owned));
     rest.extend(building("scorched_road", &[]));
-    rest.extend(["scorched_lamp", "scorched_ladder", "scorched_glass", "scorched_tinted_glass", "scorched_glass_pane"].map(str::to_owned));
+    rest.extend(["scorched_lamp", "scorched_ladder", "scorched_glass", "scorched_tinted_glass", "scorched_soul_glass", "scorched_glass_pane", "scorched_soul_glass_pane"].map(str::to_owned));
     rest.extend(casts(""));
     rest.push("blank_sand_cast".to_owned());
     rest.extend(casts("sand_"));

@@ -105,6 +105,7 @@ mod smeltery;
 mod smeltery_menu;
 mod smeltery_blocks;
 mod tank;
+mod lantern;
 mod smeltery_io;
 mod rendering;
 mod config;
@@ -124,6 +125,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     smeltery_menu::register();
     smeltery_blocks::register();
     tank::register();
+    lantern::register();
     smeltery_io::register();
     rendering::register();
     creative::register();

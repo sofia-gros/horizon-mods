@@ -1762,6 +1762,7 @@ def smeltery_blocks():
             blocks[name] = {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
                             'state_properties': properties, 'item': True}
     blocks.update(smeltery_unit6_blocks())
+    blocks.update(smeltery_u6c_blocks())
     return blocks
 
 
@@ -1817,8 +1818,36 @@ def smeltery_unit6_blocks():
     return blocks
 
 
+def smeltery_u6c_blocks():
+    """Lanterns and soul glass (TinkerSmeltery; the two soul glass blocks of TinkerCommons that the smeltery soul glass
+    is crafted and cast from come with them). The lanterns are SearedLanternBlock: the vanilla lantern, its states and
+    shape from the template, plus the `light` state of SearedTankBlock (the block entity keeps it at the held fluid's
+    light) over searedNonSolidProps(SoundType.LANTERN); they are no SearedBlock, so they carry no `in_structure`.
+    Soul glass is the glass of its unit with noCollission and a speed factor (0.1 the smeltery pair, 0.2 the commons
+    pair, whose glassBuilder is strength 0.3, no tool): the host's block declarations have no speed factor key, so
+    that part is not declared; the missing collision is `collision_shapes` of no boxes, as the fluid blocks declare
+    theirs. The commons pane keeps its collision (only its speed factor differs)."""
+    light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+    in_structure = {'type': 'boolean'}
+    blocks = {}
+    for kind, (color, hardness, resistance) in {'seared': ('COLOR_GRAY', 3.0, 9.0), 'scorched': ('TERRACOTTA_BROWN', 2.5, 8.0)}.items():
+        blocks[f'{kind}_lantern'] = {'template': 'minecraft:lantern',
+                                     'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': 'minecraft:lantern', 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                                     'state_properties': {'light': light},
+                                     'state_light': {'property': 'light', 'values': {str(level): level for level in range(16)}},
+                                     'item': True}
+        glass = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False}
+        blocks[f'{kind}_soul_glass'] = {'template': 'minecraft:glass', 'properties': glass, 'state_properties': {'in_structure': in_structure}, 'item': True, 'collision_shapes': {'default': []}}
+        blocks[f'{kind}_soul_glass_pane'] = {'template': 'minecraft:glass_pane', 'properties': glass, 'item': True, 'collision_shapes': {'default': []}}
+    commons = {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR['COLOR_BROWN'], 'requires_tool': False, 'occludes': False}
+    blocks['soul_glass'] = {'template': 'minecraft:glass', 'properties': commons, 'item': True, 'collision_shapes': {'default': []}}
+    blocks['soul_glass_pane'] = {'template': 'minecraft:glass_pane', 'properties': commons, 'item': True}
+    return blocks
+
+
 # Their block states are the original's own (variants or multipart over the template's properties), so they are copied as they are.
 SMELTERY_STATE_BLOCKS += [name for name in smeltery_unit6_blocks() if name not in ('grout', 'nether_grout')]
+SMELTERY_STATE_BLOCKS += list(smeltery_u6c_blocks())
 
 
 def write_vanilla_fuels():
@@ -1991,7 +2020,7 @@ def copy_world_features():
 # Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
-FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
+FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass']}
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.

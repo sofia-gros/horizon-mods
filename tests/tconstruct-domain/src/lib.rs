@@ -209,6 +209,8 @@ mod smeltery_menu;
 mod smeltery_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]
 mod tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/lantern.rs"]
+mod lantern;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_io.rs"]
 mod smeltery_io;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/rendering.rs"]
