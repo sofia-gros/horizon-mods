@@ -93,6 +93,23 @@ def main():
         ctl('click-at', bounds[0] + 8, bounds[1] + 8)
         ctl('wait', '5')
 
+    def open_menu(pos, label):
+        # A single ctl interact is flaky in the current host build: it can answer that no face
+        # of the block is visible even with the player standing in front of it, and the run then
+        # dies before the scenario starts. Retry the open a bounded number of times, the way the
+        # station diagnosis probes did, until the container menu is up.
+        for _ in range(12):
+            try:
+                ctl('interact', *pos, 'up')
+            except RuntimeError:
+                ctl('wait', '5')
+                continue
+            ctl('wait', '10')
+            if ctl('screen')['screen'] == 'container':
+                return
+            ctl('wait', '5')
+        raise AssertionError(label)
+
     result = {'scenarios': []}
     soft_failures = []
     try:
@@ -116,9 +133,7 @@ def main():
         xyz = [int(pos[0] // 1) + 2, int(pos[1] // 1), int(pos[2] // 1)]
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
         ctl('wait', '20')
-        ctl('interact', *xyz, 'up')
-        ctl('wait', '10')
-        assert ctl('screen')['screen'] == 'container', 'the station block did not open a container menu'
+        open_menu(xyz, 'the station block did not open a container menu')
         slots = ui_slots()
         first = min(i for i in slots if i >= 300)
         tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
@@ -170,9 +185,7 @@ def main():
         ctl('command', 'give @s tconstruct:pattern 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
-        ctl('interact', *pb, 'up')
-        ctl('wait', '10')
-        assert ctl('screen')['screen'] == 'container', 'the part builder did not open a container menu'
+        open_menu(pb, 'the part builder did not open a container menu')
         slots = ui_slots()
         first = min(i for i in slots if i >= 300)
         assert {first, first + 1, first + 2} <= set(slots), sorted(slots)
@@ -200,8 +213,7 @@ def main():
         ctl('command', f'setblock {pb[0]} {pb[1]} {pb[2]} minecraft:air')
         ctl('command', f'setblock {pb[0]} {pb[1]} {pb[2]} tconstruct:part_builder')
         ctl('wait', '5')
-        ctl('interact', *pb, 'up')
-        ctl('wait', '10')
+        open_menu(pb, 'the part builder did not reopen a container menu')
         slots = ui_slots()
         first = min(i for i in slots if i >= 300)
         inv = ctl('screen')['slots']
@@ -224,9 +236,7 @@ def main():
         ctl('close')
         wt = [xyz[0] - 2, xyz[1], xyz[2] + 2]
         ctl('command', f'setblock {wt[0]} {wt[1]} {wt[2]} tconstruct:modifier_worktable')
-        ctl('interact', *wt, 'up')
-        ctl('wait', '10')
-        assert ctl('screen')['screen'] == 'container', 'the modifier worktable did not open a container menu'
+        open_menu(wt, 'the modifier worktable did not open a container menu')
         wslots = ui_slots()
         wfirst = min(i for i in wslots if i >= 300)
         assert {wfirst, wfirst + 1, wfirst + 2, wfirst + 3} <= set(wslots), sorted(wslots)
@@ -265,8 +275,7 @@ def main():
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},Damage:20,tic_modifiers:[{level:1,name:"tconstruct:silky"},{level:1,name:"tconstruct:respiration"}]}] 1')
         ctl('command', 'give @s minecraft:oak_planks 8')
         ctl('wait', '5')
-        ctl('interact', *xyz, 'up')
-        ctl('wait', '10')
+        open_menu(xyz, 'the station block did not reopen a container menu')
         slots = ui_slots()
         first = min(i for i in slots if i >= 300)
         tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
@@ -295,8 +304,7 @@ def main():
         ctl('command', 'give @s tconstruct:pickaxe[custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:wood"],tic_stats:{"tconstruct:attack_damage":1.0f,"tconstruct:attack_speed":1.2f,"tconstruct:durability":60.0f,"tconstruct:harvest_tier":"minecraft:wood","tconstruct:mining_speed":2.0f},tic_volatile_data:{upgrades:3,abilities:1}}] 1')
         ctl('command', 'give @s tconstruct:modifier_crystal[custom_data={modifier:"tconstruct:sharpness"}] 1')
         ctl('wait', '5')
-        ctl('interact', *xyz, 'up')
-        ctl('wait', '10')
+        open_menu(xyz, 'the station block did not reopen a container menu')
         slots = ui_slots()
         first = min(i for i in slots if i >= 300)
         tool, inputs, result_slot = first, [first + 1, first + 2, first + 3], first + 5
@@ -319,8 +327,7 @@ def main():
         ctl('command', f'setblock {xyz[0]} {xyz[1]} {xyz[2]} tconstruct:tinker_station')
         ctl('command', 'clear @s')
         ctl('wait', '5')
-        ctl('interact', *xyz, 'up')
-        ctl('wait', '10')
+        open_menu(xyz, 'the station block did not reopen a container menu')
         first = min(i for i in ui_slots() if i >= 300)
         put('helmet_plating', 'cobalt', first + 1)
         put('maille', 'iron', first + 2)
