@@ -37,6 +37,11 @@ CONTENT_PATHS = (
     # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
+    # Slime islands (tools/import_original_data.py): the island structures and their sets, the island biome tags the
+    # structures name, and the binary NBT templates the repalleter produced (payloads are not JSON; shape only).
+    re.compile(r'data/tconstruct/worldgen/(?:structure|structure_set)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/structures/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
+    re.compile(r'data/tconstruct/tags/worldgen/biome(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
@@ -56,7 +61,8 @@ FLUID_RECIPE_TYPES = {
 LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus', 'minecraft:match_tool'}
 LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
-FEATURE_TYPES = {'minecraft:ore'}
+FEATURE_TYPES = {'minecraft:ore', 'minecraft:geode', 'minecraft:tree', 'tconstruct:slime_tree', 'tconstruct:slime_fungus'}
+ISLAND_STRUCTURE_KEYS = {'type', 'biomes', 'step', 'spawn_overrides', 'terrain_adaptation', 'dimension_padding', 'placement', 'templates', 'trees', 'vines', 'grasses'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
 TRIM_MATERIAL_KEYS = {'asset_name', 'description', 'ingredient', 'item_model_index'}
@@ -276,10 +282,24 @@ def checked_content(root, version):
             if '/worldgen/' in name:
                 if not isinstance(item, dict):
                     raise ValueError(f'worldgen data must be a JSON object: {name}')
+                if '/tags/' in name:
+                    if set(item) - {'values', 'replace', 'remove'} or not isinstance(item.get('values'), list):
+                        raise ValueError(f'a worldgen biome tag must be an object with a values list: {name}')
+                    continue
                 if '/worldgen/feature/' in name and item.get('type') not in FEATURE_TYPES:
                     raise ValueError(f'only {sorted(FEATURE_TYPES)} features are reviewed here: {name}')
                 if '/worldgen/placed_feature/' in name and not (isinstance(item.get('feature'), str) and isinstance(item.get('placement'), list)):
                     raise ValueError(f'a placed feature needs a feature and a placement list: {name}')
+                if '/worldgen/structure_set/' in name:
+                    placement = item.get('placement')
+                    if not isinstance(item.get('structures'), list) or not isinstance(placement, dict) or placement.get('type') != 'minecraft:random_spread':
+                        raise ValueError(f'only random-spread structure sets are reviewed here: {name}')
+                if '/worldgen/structure/' in name:
+                    weighted = ('templates', 'trees', 'grasses')
+                    entries_ok = all(isinstance(entry, dict) and isinstance(entry.get('data'), str) and isinstance(entry.get('weight'), int) and entry['weight'] > 0
+                                       for key in weighted for entry in item.get(key, []))
+                    if item.get('type') != 'tconstruct:island' or set(item) - ISLAND_STRUCTURE_KEYS or not entries_ok or not all(isinstance(item.get(key), list) for key in weighted):
+                        raise ValueError(f'only the reviewed island structures are allowed here: {name}')
                 continue
             if '/biome_modifier/' in name:
                 if not isinstance(item, dict) or set(item) != BIOME_MODIFIER_KEYS or item['type'] != 'neoforge:add_features' or not isinstance(item['step'], str):

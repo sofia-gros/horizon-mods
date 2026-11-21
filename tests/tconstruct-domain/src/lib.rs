@@ -243,7 +243,11 @@ mod casting_loop;
 mod station_dispatch;
 #[cfg(test)]
 mod visuals;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/worldgen.rs"]
+mod worldgen;
 #[cfg(test)]
 mod world_block_tests;
+#[cfg(test)]
+mod worldgen_tests;
 #[cfg(test)]
 mod armor_building;

@@ -1661,6 +1661,7 @@ def copy_armor_worn_assets():
 # Source: world/TinkerWorld.java (registrations), shared/block/SlimeType.java, world/block/DirtType.java and the
 # data-generated loot tables, features, biome modifiers and tags of the original.
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
+MAIN_DATA = ROOT / '.local/tconstruct-source/src/main/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
 MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
@@ -1673,7 +1674,28 @@ DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
 WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball',
                'earth_slime_crystal', 'sky_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal']
-WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
+WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large', 'earth_geode', 'sky_geode', 'ichor_geode', 'ender_geode']
+# Configured features with no placed feature of their own: the slime trees and fungi are placed by saplings (the growth
+# unit) and by the island structures' tree markers, and the two ender trees are vanilla `minecraft:tree` features whose
+# Tinkers components (the leave-vines decorator and the extra-root-variants root placer) live in api/src/worldgen.rs.
+WORLD_CONFIGURED_FEATURES = ['earth_slime_tree', 'earth_slime_island_tree', 'sky_slime_tree', 'sky_slime_island_tree',
+                             'ender_slime_tree', 'ender_slime_tree_tall', 'blood_slime_fungus', 'blood_slime_island_fungus', 'ichor_slime_fungus']
+WORLD_STRUCTURES = ['earth_slime_island', 'sky_slime_island', 'ocean_skyslime_island', 'clay_island', 'blood_island', 'end_slime_island']
+WORLD_STRUCTURE_SETS = ['overworld_ocean_island', 'overworld_sky_island', 'nether_ocean_island', 'end_sky_island']
+WORLD_ISLAND_TAGS = ['blood', 'clay', 'earthslime', 'enderslime', 'skyslime']
+# The island template NBTs: the repalleter's output (world/data/StructureRepalleter.java) for the four slime materials
+# is generated data; the hand-authored dirt templates it repalettes from are main resources (the clay island places
+# the dirt templates unchanged).
+WORLD_ISLAND_TEMPLATES = {'blood': 'generated', 'earth': 'generated', 'ender': 'generated', 'sky': 'generated', 'dirt': 'main'}
+ISLAND_SIZES = ['0x1x0', '2x2x4', '4x1x6', '8x1x11', '11x1x11']
+# The sky and ender geode modifiers select biomes with Forge biome predicates (forge:and/or/not), which the neoforge
+# HolderSet form cannot express. The ender predicate (the end, minus the main island) expands exactly to these four
+# biomes; the sky predicate (the overworld, minus its oceans, beaches and rivers) has no exact HolderSet form, so the
+# overworld tag ships and sky geodes also generate under those water biomes.
+WORLD_BIOME_PREDICATES = {
+    'sky_geode': '#minecraft:is_overworld',
+    'ender_geode': ['minecraft:end_highlands', 'minecraft:end_midlands', 'minecraft:small_end_islands', 'minecraft:end_barrens'],
+}
 # Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
 # The bottles' and the bowl's models are plain; the copper can's own loader is replaced by write_copper_can below.
 FLUID_ITEMS = {'venom_bottle': 16, 'earth_slime_bottle': 16, 'sky_slime_bottle': 16, 'ender_slime_bottle': 16, 'ichor_slime_bottle': 16, 'magma_bottle': 16,
@@ -1684,7 +1706,7 @@ CAST_NAMES = ['ingot', 'nugget', 'gem', 'rod', 'repair_kit', 'plate', 'gear', 'c
               'hammer_head', 'broad_axe_head', 'broad_blade', 'large_plate', 'tool_binding', 'tough_binding', 'tool_handle', 'tough_handle',
               'bow_limb', 'bow_grip', 'helmet_plating', 'chestplate_plating', 'leggings_plating', 'boots_plating', 'maille']
 CAST_ITEMS = [f'{name}{kind}_cast' for name in CAST_NAMES for kind in ('', '_sand', '_red_sand')] + ['arrow_cast', 'blank_sand_cast', 'blank_red_sand_cast']
-WORLD_BIOME_MODIFIERS = ['cobalt_ore']
+WORLD_BIOME_MODIFIERS = ['cobalt_ore', 'earth_geode', 'sky_geode', 'ichor_geode', 'ender_geode']
 
 
 def world_blocks():
@@ -2239,14 +2261,20 @@ def copy_world_loot(names):
 
 def upgrade_feature(feature):
     """A 1.20.1 configured feature in 26.3's `worldgen/feature` form: the config is the feature's own body and a plain
-    block state is its name."""
+    block state anywhere inside it (an ore target, a state provider's state, a fungus state) is its name; a state with
+    properties stays an object."""
     body = {'type': feature['type'], **feature['config']}
-    if body['type'] != 'minecraft:ore':
-        raise SystemExit(f'world feature: only minecraft:ore is imported, not {body["type"]}')
-    for target in body['targets']:
-        state = target['state']
-        target['state'] = state['Name'] if list(state) == ['Name'] else state
-    return body
+
+    def convert(node):
+        if isinstance(node, dict):
+            if 'Name' in node and set(node) <= {'Name', 'Properties'} and 'Properties' not in node:
+                return node['Name']
+            return {key: convert(value) for key, value in node.items()}
+        if isinstance(node, list):
+            return [convert(value) for value in node]
+        return node
+
+    return convert(body)
 
 
 def copy_world_features():
@@ -2257,7 +2285,7 @@ def copy_world_features():
     source = GENERATED_DATA / 'tconstruct'
     for name in WORLD_FEATURES:
         feature = upgrade_feature(json.loads((source / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8')))
-        for target in feature['targets']:
+        for target in feature.get('targets', []):
             block = target['state'] if isinstance(target['state'], str) else target['state']['Name']
             if block.startswith('tconstruct:') and not (HORIZON_DECLARATIONS / 'block' / f'{block[len("tconstruct:"):]}.json').exists():
                 raise SystemExit(f'feature {name} places the undeclared block {block}')
@@ -2266,13 +2294,48 @@ def copy_world_features():
         if placed['feature'] != f'tconstruct:{name}':
             raise SystemExit(f'placed feature {name} names {placed["feature"]}')
         write_json(CONTENT_DATA / f'tconstruct/worldgen/placed_feature/{name}.json', placed)
+    for name in WORLD_CONFIGURED_FEATURES:
+        feature = upgrade_feature(json.loads((source / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8')))
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/feature/{name}.json', feature)
     for name in WORLD_BIOME_MODIFIERS:
         modifier = json.loads((source / f'forge/biome_modifier/{name}.json').read_text(encoding='utf-8'))
-        if not modifier['type'].startswith('forge:') or not set(modifier['features']) <= {f'tconstruct:{n}' for n in WORLD_FEATURES}:
+        features = [modifier['features']] if isinstance(modifier['features'], str) else modifier['features']
+        if not modifier['type'].startswith('forge:') or not set(features) <= {f'tconstruct:{n}' for n in WORLD_FEATURES + WORLD_CONFIGURED_FEATURES}:
             raise SystemExit(f'biome modifier {name} is not a forge modifier of the shipped features')
         modifier['type'] = 'neoforge:' + modifier['type'].removeprefix('forge:')
+        if isinstance(modifier['biomes'], dict):
+            modifier['biomes'] = WORLD_BIOME_PREDICATES[name]
         write_json(CONTENT_DATA / f'tconstruct/neoforge/biome_modifier/{name}.json', modifier)
-    return len(WORLD_FEATURES) * 2 + len(WORLD_BIOME_MODIFIERS)
+    return len(WORLD_FEATURES) * 2 + len(WORLD_CONFIGURED_FEATURES) + len(WORLD_BIOME_MODIFIERS) + copy_world_structures()
+
+
+def copy_world_structures():
+    """The slime islands: the six `tconstruct:island` structures and their four random-spread sets ship as the
+    original's data (the consumer codecs are api/src/worldgen.rs), with the five island biome tags and the 25 island
+    template NBTs. The structures' spawn overrides name the slime entity types of the later slime-mob unit; the data
+    ships as the original has it."""
+    source = GENERATED_DATA / 'tconstruct'
+    count = 0
+    for name in WORLD_STRUCTURES:
+        structure = json.loads((source / f'worldgen/structure/{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/structure/{name}.json', structure)
+        count += 1
+    for name in WORLD_STRUCTURE_SETS:
+        structure_set = json.loads((source / f'worldgen/structure_set/{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/structure_set/{name}.json', structure_set)
+        count += 1
+    for name in WORLD_ISLAND_TAGS:
+        tag = json.loads((source / f'tags/worldgen/biome/islands/{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / f'tconstruct/tags/worldgen/biome/islands/{name}.json', tag)
+        count += 1
+    for material, origin in WORLD_ISLAND_TEMPLATES.items():
+        base = (GENERATED_DATA if origin == 'generated' else MAIN_DATA) / 'tconstruct/structures/islands' / material
+        for size in ISLAND_SIZES:
+            target = CONTENT_DATA / f'tconstruct/structures/islands/{material}/{size}.nbt'
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(base / f'{size}.nbt', target)
+            count += 1
+    return count
 
 
 # Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
