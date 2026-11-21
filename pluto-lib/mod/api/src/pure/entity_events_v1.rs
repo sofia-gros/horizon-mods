@@ -308,6 +308,37 @@ pub fn armor_stack_slot(name: &str) -> Option<StackSlot> {
     Some(match name { "feet" => StackSlot::Feet, "legs" => StackSlot::Legs, "chest" => StackSlot::Chest, "head" => StackSlot::Head, _ => return None })
 }
 
+/// One place a player carries a stack, as the wider events that report a player's whole carrying name them: a hand or an armor
+/// slot, or a slot of the main inventory (0 to 35, the hotbar first).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CarriedSlot {
+    /// A hand or an armor slot.
+    Equipment(StackSlot),
+    /// A main-inventory slot, 0 to 35.
+    Inventory(u32),
+}
+
+/// A stack a player carries, with the place it sits in: what an event that enumerates a player's stacks reports for each non-empty
+/// place (an item-damage callback sharing wear with the holder's other tools, an ammo callback looking for a quiver).
+#[derive(Clone, Debug, PartialEq)]
+pub struct CarriedStack {
+    /// Where the stack sits.
+    pub slot: CarriedSlot,
+    /// The stack, with all its components.
+    pub stack: ItemSlot,
+}
+
+/// A whole new stack for a place a player carries, which a callback queues in an event's `edits`: the host writes it after the
+/// callbacks ran (a count of 0 empties the place). Writing a place the event did not list is allowed; the stack lands where it
+/// names, if the host still finds the player there.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CarriedEdit {
+    /// The place to write.
+    pub slot: CarriedSlot,
+    /// The stack to put there.
+    pub stack: ItemSlot,
+}
+
 /// The ticks a mob that burns for `current` ticks burns for after burning for `seconds` more, or None when that changes nothing (the new
 /// fire is not longer, the seconds are not positive, or the target is fire-immune).
 pub(crate) fn fire_ticks_after(current: i32, seconds: i32, fire_immune: bool) -> Option<i32> {
@@ -435,6 +466,17 @@ pub struct ItemDamage {
     pub replacement: RefCell<Option<ItemSlot>>,
     /// What the player was doing as the stack wore (health, surroundings, the level of their effects); None when the game did not name them.
     pub holder: Option<EntityState>,
+    /// The place the worn stack sits in, when the host found it in a hand or an armor slot; None when it was only matched in the
+    /// main inventory (or not found at all).
+    pub worn: Option<CarriedSlot>,
+    /// Every other stack the holder carries, each with its place: the hands and armor the host could read and the main inventory's
+    /// non-empty slots. The worn stack itself is listed too, at `worn`'s place when that is known; a callback sharing the wear
+    /// (or a shield) with the holder's other tools picks from this list and skips that place. Empty when the host could read none.
+    pub carried: Vec<CarriedStack>,
+    /// Whole new stacks for places the holder carries, which callbacks add to: the host writes them after the callbacks ran, so a
+    /// callback can hand a bonus (a shield's charge, kept in the stack's custom data) to one of the `carried` stacks. A count of 0
+    /// empties the place.
+    pub edits: RefCell<Vec<CarriedEdit>>,
 }
 
 /// How far a mob sees a player, about to be scaled for the kind of mob that is looking (NeoForge: `LivingVisibilityEvent`). It is
@@ -627,10 +669,11 @@ pub(crate) fn modify_knockback(modification: &KnockbackModification) -> Option<(
     if modification.cancel.get() { None } else { Some((modification.strength.get(), modification.x.get(), modification.z.get())) }
 }
 
-/// The wear after the callbacks, with the replacement stack a callback set, or None when a callback cancelled it.
-pub(crate) fn modify_item_damage(wear: &ItemDamage) -> Option<(i32, Option<ItemSlot>)> {
+/// The wear after the callbacks, with the replacement stack a callback set and the edits to the holder's other stacks, or None
+/// when a callback cancelled it (the edits are then dropped with the wear).
+pub(crate) fn modify_item_damage(wear: &ItemDamage) -> Option<(i32, Option<ItemSlot>, Vec<CarriedEdit>)> {
     MODIFY_ITEM_DAMAGE.invoke(wear);
-    if wear.cancel.get() { None } else { Some((wear.amount.get(), wear.replacement.borrow_mut().take())) }
+    if wear.cancel.get() { None } else { Some((wear.amount.get(), wear.replacement.borrow_mut().take(), wear.edits.borrow_mut().drain(..).collect())) }
 }
 
 pub(crate) fn entity_loaded(id: u32, kind: &str, dimension: &str) {
@@ -970,9 +1013,39 @@ mod tests {
         assert_eq!(modify_knockback(&push(Some(hammer.clone()), None)), Some((0.8, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, None)), Some((0.4, 1.0, 0.0)));
         assert_eq!(modify_knockback(&push(None, Some(hammer))), None);
-        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None };
-        assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None)));
+        let wear = |item: &str, amount| ItemDamage { player: 1, name: "wearer".into(), item: item.into(), stack: None, slot: None, amount: Cell::new(amount), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None, worn: None, carried: Vec::new(), edits: RefCell::new(Vec::new()) };
+        assert_eq!(modify_item_damage(&wear("example:pickaxe", 3)), Some((2, None, Vec::new())));
         assert_eq!(modify_item_damage(&wear("example:shield", 3)), None);
+    }
+
+    #[test]
+    fn item_wear_reports_the_holders_other_stacks_and_returns_their_edits() {
+        use super::super::base::{Identifier, NbtCompoundExt};
+        ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
+            if wear.name != "sharer" { return; }
+            // Share the wear: hand a charge (kept in custom data) to the first other tool the holder carries.
+            let other = wear.carried.iter().find(|carried| carried.slot != CarriedSlot::Equipment(StackSlot::Chest)).expect("another stack is listed");
+            let mut stack = other.stack.clone();
+            stack.custom_data.insert("shield".into(), super::super::base::Nbt::Int(5));
+            wear.edits.borrow_mut().push(CarriedEdit { slot: other.slot, stack });
+        });
+        let chest = ItemSlot::new(Identifier::parse("example:chestplate").unwrap(), 1);
+        let pick = ItemSlot::new(Identifier::parse("example:pickaxe").unwrap(), 1);
+        let wear = ItemDamage {
+            player: 2, name: "sharer".into(), item: "example:chestplate".into(), stack: None, slot: Some(chest),
+            amount: Cell::new(4), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None,
+            worn: Some(CarriedSlot::Equipment(StackSlot::Chest)),
+            carried: vec![
+                CarriedStack { slot: CarriedSlot::Equipment(StackSlot::Chest), stack: ItemSlot::new(Identifier::parse("example:chestplate").unwrap(), 1) },
+                CarriedStack { slot: CarriedSlot::Inventory(3), stack: pick },
+            ],
+            edits: RefCell::new(Vec::new()),
+        };
+        let (amount, _, edits) = modify_item_damage(&wear).expect("not cancelled");
+        assert_eq!(amount, 4);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].slot, CarriedSlot::Inventory(3), "the edit names the other stack's place, not the worn one's");
+        assert_eq!(edits[0].stack.custom_data.get_int("shield", 0), 5);
     }
 
     #[test]

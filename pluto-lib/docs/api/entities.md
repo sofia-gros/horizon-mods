@@ -631,7 +631,7 @@ A player's item about to lose durability, for a callback to change or cancel. `p
 use pluto_lib::ItemDamage;
 use std::cell::{Cell, RefCell};
 
-let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, slot: None, amount: Cell::new(3), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None };
+let wear = ItemDamage { player: 1, name: "alex".into(), item: "example:pickaxe".into(), stack: None, slot: None, amount: Cell::new(3), cancel: Cell::new(false), replacement: RefCell::new(None), holder: None, worn: None, carried: Vec::new(), edits: RefCell::new(Vec::new()) };
 wear.amount.set(wear.amount.get() - 1);
 assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```

@@ -8,6 +8,8 @@
 use std::cell::Cell;
 use std::marker::PhantomData;
 
+use super::base::Event;
+
 /// What the game can do for a player. Implemented once, in `hooks.rs`, over Horizon's `Host`.
 pub trait PlayerOps {
     /// Queues a bounded mod payload; unsupported hosts must report failure.
@@ -107,6 +109,17 @@ pub struct StackData {
     pub custom_data: crate::pure::base::NbtCompound,
     /// The stack's `minecraft:custom_model_data` component, which item models select on; None for none.
     pub custom_model_data: Option<CustomModelData>,
+    /// The stack's own `minecraft:enchantments` component as enchantment id to level (such as `minecraft:fortune` to 3); empty when
+    /// the stack has none of its own or the game did not report them. Enchantments the item itself grants through its data (a tool's
+    /// modifier-granted levels kept in `custom_data`) are not listed here; this is the component the game itself applies.
+    pub enchantments: std::collections::BTreeMap<String, i32>,
+}
+
+impl StackData {
+    /// The level of enchantment `id` on this stack (0 when it has none), from its own `minecraft:enchantments` component.
+    pub fn enchantment_level(&self, id: &str) -> i32 {
+        self.enchantments.get(id).copied().unwrap_or(0)
+    }
 }
 
 /// The values an item model can select on (Minecraft: the `minecraft:custom_model_data` component, `CustomModelData`). An item definition
@@ -348,6 +361,41 @@ impl ServerPlayer {
     pub fn empty_slots(&self) -> u32 {
         with_current(0, |ops| ops.empty_slots(self.uuid))
     }
+}
+
+/// A key of the player's own keyboard or mouse changed state (NeoForge: `InputEvent.Key`; Bukkit has no equivalent). It is heard on
+/// the client, for the local player only: `key` is the game's own name for the key (the names key bindings use, such as
+/// `key.keyboard.left.shift` or `key.mouse.left`), repeats are not reported, and `pressed` says which way it moved. A callback that
+/// needs the server to act (swapping what worn armor holds, say) sends its own packet with the networking API, as a client key press
+/// can only ever be a hint to the server; the worn stacks themselves are read through the usual player and entity events.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct KeyPress {
+    /// The local player; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// The game's name for the key.
+    pub key: String,
+    /// True when the key went down, false when it came up.
+    pub pressed: bool,
+}
+
+static KEY_PRESS: Event<KeyPress, ()> = Event::void();
+
+/// Key presses of the local player (see [`KeyPress`]).
+pub struct PlayerKeyEvents;
+
+impl PlayerKeyEvents {
+    /// The event: every callback runs, in registration order.
+    pub const EVENT: &'static Event<KeyPress, ()> = &KEY_PRESS;
+}
+
+/// Whether any callback hears key presses (the host adapter skips its work when none does).
+pub(crate) fn key_heard() -> bool {
+    !KEY_PRESS.is_empty()
+}
+
+/// Reports a key press to the callbacks.
+pub(crate) fn key_press(press: &KeyPress) {
+    KEY_PRESS.invoke(press);
 }
 
 /// An in-memory game for tests: the players it knows keep messages, items and attachments in plain collections. Run code that uses

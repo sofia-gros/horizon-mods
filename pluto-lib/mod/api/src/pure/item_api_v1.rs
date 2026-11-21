@@ -11,9 +11,11 @@ use std::sync::{Mutex, OnceLock};
 use super::base::{Event, Identifier};
 pub use super::standing_wall_item::StandingAndWallBlockItem;
 pub use super::item_registry::{ItemRegistry,ItemRegistrySnapshot};
-pub use super::item_behavior::{EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext};
+pub use super::item_behavior::{EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext};
 pub(crate) use super::item_behavior::ender_mask;
 pub(crate) use super::item_behavior::max_stack_size;
+pub(crate) use super::item_behavior::enchantability;
+pub(crate) use super::item_behavior::can_perform_action;
 pub(crate) use super::standing_wall_item::standing_wall_bindings;
 
 /// One tooltip line to add.

@@ -6,6 +6,7 @@
 use std::cell::{Cell, RefCell};
 
 use super::base::{ActionResult, Event};
+use super::block_api_v1::Direction;
 use super::block_entity_api_v1::ItemSlot;
 use super::entity_events_v1::EntityAction;
 use super::player_api::{ServerPlayer, StackData};
@@ -117,6 +118,51 @@ pub struct AttackEntityContext {
     pub pos: [f64; 3],
 }
 
+/// A player used an item on an entity (right click, not an attack): Fabric's `UseEntityCallback`, NeoForge's
+/// `PlayerInteractEvent.EntityInteract`. Heard once for each hand the game tries, the main hand first; the first callback that
+/// does not return `Pass` takes the click and neither the entity's own interaction nor the item's runs.
+#[derive(Clone, Debug, PartialEq)]
+pub struct UseItemOnEntityContext {
+    /// The entity's id.
+    pub entity: i32,
+    /// The entity's type, such as `minecraft:sheep`.
+    pub kind: String,
+    /// The hand the item is used with.
+    pub hand: Hand,
+    /// The stack in that hand, with its damage, max damage, custom data and enchantments; None for an empty hand.
+    pub held: Option<StackData>,
+    /// The player; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to; the game does it right after the callbacks ran.
+    pub actions: RefCell<Vec<EntityAction>>,
+}
+
+/// A player's fishing rod changed state (Bukkit: `PlayerFishEvent`): the cast, a bite, and the reel-ins. The state is the game's
+/// own number: [`FISHING_CAST`] when the bobber goes out, [`FISHING_BITE`] when a fish bites, and 2 to 4 for the reel-ins (a fish
+/// caught, an entity hooked, a plain reel-in). A callback may cancel the state with `cancel` — a cancelled cast throws no bobber,
+/// a cancelled reel-in catches nothing. The rod's own catch loot is the game's; a tool that fishes with its own hook entity (a
+/// combat rod) starts from the item-use events instead and reads this event for the vanilla rod it replaces.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FishingContext {
+    /// The player fishing.
+    pub player: ServerPlayer,
+    /// The state's number (see the type's documentation).
+    pub state: i32,
+    /// The hand holding the rod.
+    pub hand: Hand,
+    /// The rod stack in that hand, with its damage, max damage, custom data and enchantments; None when the game did not read it.
+    pub rod: Option<StackData>,
+    /// Set to true to cancel the state.
+    pub cancel: Cell<bool>,
+    /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to; the game does it right after the callbacks ran.
+    pub actions: RefCell<Vec<EntityAction>>,
+}
+
+/// `FishingContext.state`: the bobber was cast.
+pub const FISHING_CAST: i32 = 0;
+/// `FishingContext.state`: a fish bit.
+pub const FISHING_BITE: i32 = 1;
+
 /// A player breaking a block: what `PlayerBlockBreakEvents` reports (Fabric: world, player, pos, state; the block entity is not given, see
 /// `AFTER`).
 #[derive(Clone, Debug, PartialEq)]
@@ -135,12 +181,30 @@ pub struct BlockBreakContext {
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to. The game does it right after the callbacks ran: for
     /// `BEFORE` even when a callback vetoes the break, for `AFTER` once the break is done. `EditStackData` acts on the main hand as it is then.
     pub actions: RefCell<Vec<EntityAction>>,
+    /// The face of the block the player hit, as the dig that broke it started on that face; None when the game did not report one
+    /// (the break did not start from a dig the host saw). An area-of-effect tool reads its break plane from this face.
+    pub face: Option<Direction>,
+    /// Where the player looks, in degrees (`yRot`, `xRot`) as their last move told the server; 0 when the game names no player.
+    pub yaw: f32,
+    pub pitch: f32,
+    /// More blocks this break takes with it, which `BEFORE` callbacks add to with [`BlockBreakContext::break_extra`]: the game
+    /// breaks them through its own destroy path (their drops and loot are the game's, as for the block itself) at the level's next
+    /// tick seam, a tick late at most. They do not fire break events of their own. Read by nobody in `AFTER` or `CANCELED`.
+    pub extra_breaks: RefCell<Vec<[i32; 3]>>,
 }
 
 impl BlockBreakContext {
     /// A context with only a position, for a game that reports nothing else (and for callbacks that only read `pos`).
     pub fn at(pos: [i32; 3]) -> Self {
-        Self { pos, dimension: String::new(), state: None, player: None, held: None, actions: RefCell::new(Vec::new()) }
+        Self { pos, dimension: String::new(), state: None, player: None, held: None, actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()) }
+    }
+
+    /// Takes the block at `pos` with this break (see `extra_breaks`): the block itself, a duplicate and anything past 64 extra
+    /// blocks are refused.
+    pub fn break_extra(&self, pos: [i32; 3]) {
+        if pos == self.pos { return; }
+        let mut extra = self.extra_breaks.borrow_mut();
+        if extra.len() < 64 && !extra.contains(&pos) { extra.push(pos); }
     }
 }
 
@@ -150,6 +214,8 @@ static USE_ITEM_ON_BLOCK: Event<UseItemOnBlockContext, ActionResult> = Event::fi
 static USE_ITEM_FINISH: Event<UseItemFinishContext, ()> = Event::void();
 static BREAK_SPEED: Event<BreakSpeedContext, ()> = Event::void();
 static ATTACK_ENTITY: Event<AttackEntityContext, ActionResult> = Event::first_not_pass();
+static USE_ITEM_ON_ENTITY: Event<UseItemOnEntityContext, ActionResult> = Event::first_not_pass();
+static FISHING: Event<FishingContext, ()> = Event::void();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
 static AFTER_BLOCK_BREAK: Event<BlockBreakContext, ()> = Event::void();
 static BLOCK_BREAK_CANCELED: Event<BlockBreakContext, ()> = Event::void();
@@ -197,6 +263,22 @@ pub struct AttackEntityCallback;
 
 impl AttackEntityCallback {
     pub const EVENT: &'static Event<AttackEntityContext, ActionResult> = &ATTACK_ENTITY;
+}
+
+/// Fabric: `UseEntityCallback.EVENT`.
+pub struct UseEntityCallback;
+
+impl UseEntityCallback {
+    /// Fabric: `UseEntityCallback.EVENT`.
+    pub const EVENT: &'static Event<UseItemOnEntityContext, ActionResult> = &USE_ITEM_ON_ENTITY;
+}
+
+/// A player's fishing rod changed state (see [`FishingContext`]).
+pub struct PlayerFishEvents;
+
+impl PlayerFishEvents {
+    /// The event: every callback runs, and any one of them may cancel the state.
+    pub const EVENT: &'static Event<FishingContext, ()> = &FISHING;
 }
 
 /// Fabric: `PlayerBlockBreakEvents`.
@@ -248,6 +330,27 @@ pub(crate) fn attack_entity(entity: i32, kind: &str, pos: [f64; 3]) -> bool {
     handled(ATTACK_ENTITY.invoke(&AttackEntityContext { entity, kind: kind.to_owned(), pos }))
 }
 
+/// True when a callback took the click on the entity.
+pub(crate) fn use_item_on_entity(context: &UseItemOnEntityContext) -> bool {
+    handled(USE_ITEM_ON_ENTITY.invoke(context))
+}
+
+/// Whether anyone listens to entity clicks, so the game only reads the player and the stack when someone does.
+pub(crate) fn use_item_on_entity_heard() -> bool {
+    !USE_ITEM_ON_ENTITY.is_empty()
+}
+
+/// True when a callback cancelled the fishing state.
+pub(crate) fn fishing(context: &FishingContext) -> bool {
+    FISHING.invoke(context);
+    context.cancel.get()
+}
+
+/// Whether anyone listens to fishing, so the game only reads the rod when someone does.
+pub(crate) fn fishing_heard() -> bool {
+    !FISHING.is_empty()
+}
+
 /// True when the break may go ahead.
 pub(crate) fn before_block_break(context: &BlockBreakContext) -> bool {
     let allowed = BEFORE_BLOCK_BREAK.invoke(context);
@@ -268,6 +371,50 @@ pub(crate) fn block_break_heard() -> bool {
 /// Whether anyone listens to `AFTER`.
 pub(crate) fn after_block_break_heard() -> bool {
     !AFTER_BLOCK_BREAK.is_empty()
+}
+
+/// An extra break a `BEFORE` callback asked for, waiting for a level seam that can break blocks: the host adapter's break
+/// handler has no call that breaks a block, so it queues the request here and the level's own tick seams — the callbacks that
+/// run with the level's block editor in hand — apply the queued breaks for their dimension (see
+/// `apply_pending_extra_breaks`). A request is therefore honoured a tick late at most.
+struct PendingExtraBreak {
+    dimension: String,
+    pos: [i32; 3],
+}
+
+static PENDING_EXTRA_BREAKS: std::sync::Mutex<Vec<PendingExtraBreak>> = std::sync::Mutex::new(Vec::new());
+
+/// The most requests held at once; past it new requests are refused rather than letting a broken caller grow the queue
+/// without bound.
+const MAX_PENDING_EXTRA_BREAKS: usize = 4096;
+
+/// Queues an extra break for the level seams to apply; a break of the same position in the same dimension already queued
+/// counts as queued. False when the queue is full.
+pub(crate) fn queue_extra_break(dimension: &str, pos: [i32; 3]) -> bool {
+    let Ok(mut pending) = PENDING_EXTRA_BREAKS.lock() else { return false };
+    if pending.iter().any(|queued| queued.dimension == dimension && queued.pos == pos) {
+        return true;
+    }
+    if pending.len() >= MAX_PENDING_EXTRA_BREAKS {
+        return false;
+    }
+    pending.push(PendingExtraBreak { dimension: dimension.to_owned(), pos });
+    true
+}
+
+/// Applies every queued extra break for `dimension` through `apply` (the level seam's own block breaking, which answers
+/// false for an unloaded position) and returns how many were broken. Requests the seam refuses are dropped, not kept.
+/// Other dimensions' requests stay queued.
+pub(crate) fn apply_pending_extra_breaks(dimension: &str, mut apply: impl FnMut([i32; 3]) -> bool) -> usize {
+    let Ok(mut pending) = PENDING_EXTRA_BREAKS.lock() else { return 0 };
+    let mut rest = Vec::new();
+    let mut mine = Vec::new();
+    for queued in std::mem::take(&mut *pending) {
+        if queued.dimension == dimension { mine.push(queued.pos); } else { rest.push(queued); }
+    }
+    *pending = rest;
+    drop(pending);
+    mine.into_iter().filter(|pos| apply(*pos)).count()
 }
 
 #[cfg(test)]
@@ -365,6 +512,7 @@ mod tests {
             player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }),
             held: Some(StackData { item: "test:pick".into(), count: 1, damage: 4, ..Default::default() }),
             actions: RefCell::new(Vec::new()),
+            face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()),
         };
         assert!(after_block_break_heard());
         after_block_break(&context);
@@ -372,5 +520,61 @@ mod tests {
         let quiet = BlockBreakContext { dimension: "test:elsewhere".into(), ..BlockBreakContext::at([0, 0, 0]) };
         after_block_break(&quiet);
         assert!(quiet.actions.borrow().is_empty(), "a callback that does not match queues nothing");
+    }
+
+    #[test]
+    fn an_entity_click_is_taken_by_the_first_callback_that_does_not_pass() {
+        UseEntityCallback::EVENT.register(|click| {
+            if click.kind == "minecraft:sheep" && click.held.as_ref().is_some_and(|held| held.item == "test:kama") { ActionResult::Success } else { ActionResult::Pass }
+        });
+        let click = |kind: &str, item: &str| UseItemOnEntityContext {
+            entity: 5, kind: kind.into(), hand: Hand::Main,
+            held: Some(StackData { item: item.into(), count: 1, ..Default::default() }),
+            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+        };
+        assert!(use_item_on_entity_heard());
+        assert!(use_item_on_entity(&click("minecraft:sheep", "test:kama")), "the kama takes the click on the sheep");
+        assert!(!use_item_on_entity(&click("minecraft:sheep", "minecraft:shears")), "another tool leaves the click to the game");
+        assert!(!use_item_on_entity(&click("minecraft:cow", "test:kama")));
+    }
+
+    #[test]
+    fn a_fishing_state_can_be_cancelled_by_a_callback() {
+        PlayerFishEvents::EVENT.register(|fish| {
+            if fish.player.uuid == 21 && fish.state == FISHING_CAST { fish.cancel.set(true); }
+        });
+        let fish = |state: i32| FishingContext {
+            player: ServerPlayer { uuid: 21, name: "Fisher".into() }, state, hand: Hand::Main,
+            rod: Some(StackData { item: "minecraft:fishing_rod".into(), count: 1, ..Default::default() }),
+            cancel: Cell::new(false), actions: RefCell::new(Vec::new()),
+        };
+        assert!(fishing_heard());
+        assert!(fishing(&fish(FISHING_CAST)), "the cast is cancelled");
+        assert!(!fishing(&fish(FISHING_BITE)), "the bite is not");
+        assert!(!fishing(&fish(2)), "nor is a reel-in");
+    }
+
+    #[test]
+    fn extra_breaks_are_deduped_capped_and_applied_per_dimension() {
+        PlayerBlockBreakEvents::BEFORE.register(|context| {
+            if context.dimension != "test:aoe" { return true; }
+            // A 3x3 plane around the block, on the face's plane (the top face here: the x/z plane).
+            for dx in -1..=1 { for dz in -1..=1 { context.break_extra([context.pos[0] + dx, context.pos[1], context.pos[2] + dz]); } }
+            context.break_extra(context.pos);
+            true
+        });
+        let context = BlockBreakContext { dimension: "test:aoe".into(), face: Some(Direction::Up), ..BlockBreakContext::at([10, 64, 10]) };
+        assert!(before_block_break(&context));
+        let extra = context.extra_breaks.borrow().clone();
+        assert_eq!(extra.len(), 8, "the plane's neighbours, without the block itself or duplicates");
+        for pos in &extra { queue_extra_break("test:aoe", *pos); }
+        assert!(queue_extra_break("test:aoe", extra[0]), "an already queued break counts as queued");
+        queue_extra_break("test:other_dimension", [1, 2, 3]);
+        let mut broken = Vec::new();
+        let applied = apply_pending_extra_breaks("test:aoe", |pos| { broken.push(pos); pos != extra[0] });
+        assert_eq!(applied, 7, "the seam's refusal is dropped, not retried");
+        assert_eq!(broken.len(), 8);
+        assert_eq!(apply_pending_extra_breaks("test:aoe", |_| true), 0, "the queue for this dimension is drained");
+        assert_eq!(apply_pending_extra_breaks("test:other_dimension", |_| true), 1, "other dimensions wait for their own seam");
     }
 }

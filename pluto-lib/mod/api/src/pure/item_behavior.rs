@@ -26,17 +26,52 @@ pub struct MaxStackSizeContext {
     pub custom_data: super::base::NbtCompound,
 }
 
+/// A per-stack enchantability query (Minecraft: `Item.getEnchantmentValue`, NeoForge's stack-sensitive
+/// `getEnchantmentValue(ItemStack)`): how readily the stack takes enchantments at an enchanting table, for
+/// this stack (a tool whose materials decide its enchantability reads them from its custom data). 0 means
+/// the stack cannot be enchanted at a table at all. An answer here is a declaration the game would consult;
+/// no host seam asks the question yet (the native enchanting hooks report a finished enchantment and the
+/// offers' costs, never the item's value, and there is no dispatcher for it as there is for the maximum
+/// stack size), so registering one changes nothing in the game until such a seam exists — a mod that must
+/// keep its tools unenchantable today enforces it in its own enchanting recipes.
+#[derive(Clone, Debug)]
+pub struct EnchantabilityContext {
+    pub item: String,
+    /// The stack's custom data, empty for a stack that carries none.
+    pub custom_data: super::base::NbtCompound,
+}
+
+/// A tool-action query (NeoForge: `ItemStack.canPerformAction(ToolAction)`, the `ToolActions` names such as
+/// `shears_dig`, `shears_harvest`, `shears_carve`, `shears_disarm` and `fishing_rod_cast`): whether this
+/// stack may do `action`. No host seam asks the question yet (nothing in the native hook surface asks an
+/// item what it can do), so registering an answer changes nothing in the game until such a seam exists;
+/// the flows the actions unlock ride the events that do exist (a shearing rides
+/// [`ServerEntityEvents::SHEAR`](super::entity_events_v1::ServerEntityEvents::SHEAR) and the entity
+/// interaction callback) once the game lets the stack start them.
+#[derive(Clone, Debug)]
+pub struct ToolActionContext {
+    pub item: String,
+    /// The action's name, as NeoForge's `ToolActions` name it (lower case, such as `shears_dig`).
+    pub action: String,
+    /// The stack's custom data, empty for a stack that carries none.
+    pub custom_data: super::base::NbtCompound,
+}
+
 type Mask = Arc<dyn Fn(&EnderMaskContext) -> Option<bool> + Send + Sync>;
 type MaxStackSize = Arc<dyn Fn(&MaxStackSizeContext) -> Option<u32> + Send + Sync>;
+type Enchantability = Arc<dyn Fn(&EnchantabilityContext) -> Option<i32> + Send + Sync>;
+type ToolAction = Arc<dyn Fn(&ToolActionContext) -> Option<bool> + Send + Sync>;
 /// Item extension behavior. None from a callback preserves the native answer.
 #[derive(Clone)]
 pub struct ItemBehavior {
     item: Identifier,
     mask: Option<Mask>,
     max_stack_size: Option<MaxStackSize>,
+    enchantability: Option<Enchantability>,
+    tool_action: Option<ToolAction>,
 }
 impl ItemBehavior {
-    pub fn new(item: Identifier) -> Self { Self { item, mask: None, max_stack_size: None } }
+    pub fn new(item: Identifier) -> Self { Self { item, mask: None, max_stack_size: None, enchantability: None, tool_action: None } }
     /// Explicit false disables even a native mask; None delegates to native.
     pub fn is_ender_mask(mut self, callback: impl Fn(&EnderMaskContext) -> Option<bool> + Send + Sync + 'static) -> Self {
         self.mask = Some(Arc::new(callback)); self
@@ -45,6 +80,16 @@ impl ItemBehavior {
     /// item's content-declared maximum. An answer of 0 is treated as no answer.
     pub fn max_stack_size(mut self, callback: impl Fn(&MaxStackSizeContext) -> Option<u32> + Send + Sync + 'static) -> Self {
         self.max_stack_size = Some(Arc::new(callback)); self
+    }
+    /// How readily a stack of this item takes enchantments (see [`EnchantabilityContext`]); None delegates
+    /// to the item's own value. A negative answer is treated as no answer.
+    pub fn enchantability(mut self, callback: impl Fn(&EnchantabilityContext) -> Option<i32> + Send + Sync + 'static) -> Self {
+        self.enchantability = Some(Arc::new(callback)); self
+    }
+    /// Whether a stack of this item may perform the tool action in the context (see
+    /// [`ToolActionContext`]); None delegates to the item's own actions.
+    pub fn can_perform_action(mut self, callback: impl Fn(&ToolActionContext) -> Option<bool> + Send + Sync + 'static) -> Self {
+        self.tool_action = Some(Arc::new(callback)); self
     }
 }
 fn registry() -> &'static Mutex<HashMap<String, ItemBehavior>> {
@@ -70,6 +115,16 @@ pub(crate) fn ender_mask(context: &EnderMaskContext) -> Option<bool> {
 pub(crate) fn max_stack_size(context: &MaxStackSizeContext) -> Option<u32> {
     let callback = registry().lock().ok()?.get(&context.item)?.max_stack_size.clone()?;
     callback(context).filter(|limit| *limit > 0)
+}
+
+pub(crate) fn enchantability(context: &EnchantabilityContext) -> Option<i32> {
+    let callback = registry().lock().ok()?.get(&context.item)?.enchantability.clone()?;
+    callback(context).filter(|value| *value >= 0)
+}
+
+pub(crate) fn can_perform_action(context: &ToolActionContext) -> Option<bool> {
+    let callback = registry().lock().ok()?.get(&context.item)?.tool_action.clone()?;
+    callback(context)
 }
 
 #[cfg(test)]
@@ -107,5 +162,35 @@ mod tests {
         ItemBehaviors::register(ItemBehavior::new(Identifier::parse("stack_test:zero").unwrap())
             .max_stack_size(|_| Some(0))).unwrap();
         assert_eq!(max_stack_size(&MaxStackSizeContext { item: "stack_test:zero".into(), custom_data: NbtCompound::new() }), None);
+    }
+
+    #[test]
+    fn enchantability_answers_by_stack_data_and_delegates_otherwise() {
+        use crate::pure::base::{Nbt, NbtCompound};
+        ItemBehaviors::register(ItemBehavior::new(Identifier::parse("enchant_test:tool").unwrap())
+            .enchantability(|context| if context.custom_data.contains_key("unenchantable") { Some(0) } else { Some(14) })).unwrap();
+        let mut context = EnchantabilityContext { item: "enchant_test:tool".into(), custom_data: NbtCompound::new() };
+        assert_eq!(enchantability(&context), Some(14));
+        context.custom_data.insert("unenchantable".into(), Nbt::Byte(1));
+        assert_eq!(enchantability(&context), Some(0), "zero is a real answer: the stack takes no enchantments");
+        context.item = "enchant_test:other".into();
+        assert_eq!(enchantability(&context), None, "unregistered items delegate");
+        ItemBehaviors::register(ItemBehavior::new(Identifier::parse("enchant_test:negative").unwrap())
+            .enchantability(|_| Some(-3))).unwrap();
+        assert_eq!(enchantability(&EnchantabilityContext { item: "enchant_test:negative".into(), custom_data: NbtCompound::new() }), None, "a negative answer is no answer");
+    }
+
+    #[test]
+    fn tool_action_answers_by_action_name_and_delegates_otherwise() {
+        use crate::pure::base::NbtCompound;
+        ItemBehaviors::register(ItemBehavior::new(Identifier::parse("action_test:kama").unwrap())
+            .can_perform_action(|context| context.action.starts_with("shears_").then_some(true))).unwrap();
+        let context = |action: &str| ToolActionContext { item: "action_test:kama".into(), action: action.into(), custom_data: NbtCompound::new() };
+        assert_eq!(can_perform_action(&context("shears_dig")), Some(true));
+        assert_eq!(can_perform_action(&context("shears_harvest")), Some(true));
+        assert_eq!(can_perform_action(&context("fishing_rod_cast")), None, "an unanswered action delegates");
+        let mut other = context("shears_dig");
+        other.item = "action_test:other".into();
+        assert_eq!(can_perform_action(&other), None, "unregistered items delegate");
     }
 }
