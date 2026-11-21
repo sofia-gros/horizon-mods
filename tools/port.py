@@ -36,7 +36,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/trim_material/[a-z0-9_]+\.json'),
     # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
-    re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/loot_table/entities/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
@@ -53,8 +53,8 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
-LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus'}
-LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data'}
+LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus', 'minecraft:damage_source_properties', 'minecraft:entity_properties'}
+LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data', 'minecraft:looting_enchant', 'minecraft:furnace_smelt'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
@@ -66,7 +66,7 @@ MENU_KEYS = {'slots', 'data_slots', 'results'}
 
 
 def check_loot(item, name):
-    """Block loot tables use only reviewed condition, function and entry kinds (the shapes the importer converts)."""
+    """Block and entity loot tables use only reviewed condition, function and entry kinds (the shapes the importer converts)."""
     def condition(node):
         if node not in ('minecraft:tool/can_silk_touch', 'minecraft:tool/can_shear') and not (isinstance(node, dict) and node.get('type') in LOOT_CONDITIONS):
             raise ValueError(f'unreviewed loot condition in {name}')
@@ -86,8 +86,8 @@ def check_loot(item, name):
         for key in ('pools', 'entries', 'children'):
             for child in node.get(key, []):
                 walk(child)
-    if not isinstance(item, dict) or item.get('type') != 'minecraft:block' or not isinstance(item.get('pools'), list) or not isinstance(item.get('random_sequence'), str):
-        raise ValueError(f'a block loot table needs the block type, pools and a random sequence: {name}')
+    if not isinstance(item, dict) or item.get('type') not in ('minecraft:block', 'minecraft:entity') or not isinstance(item.get('pools'), list) or not isinstance(item.get('random_sequence'), str):
+        raise ValueError(f'a loot table needs the block or entity type, pools and a random sequence: {name}')
     walk(item)
 
 
@@ -282,6 +282,16 @@ def checked_content(root, version):
                     raise ValueError(f'a placed feature needs a feature and a placement list: {name}')
                 continue
             if '/biome_modifier/' in name:
+                if isinstance(item, dict) and item.get('type') == 'neoforge:add_spawns':
+                    spawners = item.get('spawners')
+                    if set(item) != {'type', 'biomes', 'spawners'} or not isinstance(item.get('biomes'), str) or not isinstance(spawners, list) or not spawners or any(
+                            not isinstance(spawner, dict) or set(spawner) != {'type', 'weight', 'minCount', 'maxCount'}
+                            or not isinstance(spawner['type'], str) or spawner['type'].count(':') != 1
+                            or not isinstance(spawner['weight'], int) or spawner['weight'] < 1
+                            or not isinstance(spawner['minCount'], int) or spawner['minCount'] < 0
+                            or not isinstance(spawner['maxCount'], int) or spawner['maxCount'] < spawner['minCount'] for spawner in spawners):
+                        raise ValueError(f'an add_spawns biome modifier names a biome set and reviewed spawner rows: {name}')
+                    continue
                 if not isinstance(item, dict) or set(item) != BIOME_MODIFIER_KEYS or item['type'] != 'neoforge:add_features' or not isinstance(item['step'], str):
                     raise ValueError(f'only neoforge:add_features biome modifiers are reviewed here: {name}')
                 continue

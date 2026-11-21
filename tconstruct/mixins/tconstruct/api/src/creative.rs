@@ -143,12 +143,14 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     smeltery.entries(entries)
 }
 
-/// TinkerWorld.addTabItems for the declared items: ores, then each slime (ball, block, congealed), the slime wood sets with
-/// their saplings and leaves and the enderbark roots, slime dirt, the foliage (tall grass, fern, vine and the five grasses of
-/// each visible foliage type; the slime grass seeds are not declared) and the shards. The wall signs have no item of their own
-/// and the potted flora none at all, so neither is listed.
+/// TinkerWorld.addTabItems for the declared items: ores, then the monsters (the three EntityObjects, whose tab entries are
+/// their spawn eggs), then each slime (ball, block, congealed), the slime wood sets with their saplings and leaves and the
+/// enderbark roots, slime dirt, the foliage (tall grass, fern, vine and the five grasses of each visible foliage type; the
+/// slime grass seeds are not declared) and the shards. The wall signs have no item of their own and the potted flora none
+/// at all, so neither is listed.
 pub(crate) const WORLD: &[&str] = &[
     "cobalt_ore", "raw_cobalt", "raw_cobalt_block",
+    "terracube_spawn_egg", "sky_slime_spawn_egg", "ender_slime_spawn_egg",
     "earth_congealed_slime",
     "sky_slime_ball", "sky_slime", "sky_congealed_slime", "ichor_slime_ball", "ichor_slime", "ichor_congealed_slime", "ender_slime_ball", "ender_slime", "ender_congealed_slime",
     "greenheart_planks", "greenheart_planks_slab", "greenheart_planks_stairs", "greenheart_fence", "greenheart_fence_gate", "greenheart_door", "greenheart_trapdoor", "greenheart_pressure_plate", "greenheart_button", "greenheart_log", "stripped_greenheart_log", "greenheart_wood", "stripped_greenheart_wood", "greenheart_sign", "greenheart_hanging_sign",

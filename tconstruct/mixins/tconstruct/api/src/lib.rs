@@ -96,6 +96,7 @@ mod melter;
 mod melter_menu;
 mod melter_blocks;
 mod world_blocks;
+mod slime_entities;
 mod alloyer;
 mod alloyer_menu;
 mod casting;
@@ -126,6 +127,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     melter_menu::register();
     melter_blocks::register();
     world_blocks::register();
+    slime_entities::register();
     alloyer_menu::register();
     casting::register();
     faucet::register();
