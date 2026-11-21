@@ -389,6 +389,28 @@ impl ToolInventory {
         None
     }
 
+    /// The first stack a quiver draw takes: the first stored stack its own part accepts as ammunition
+    /// (Part::valid — arrows, and what the tool's form adds), in slot order over the parts. The original's
+    /// findStack tests the game's ammo predicate, which for the port's tools is the part's own validity:
+    /// a quiver part holds nothing else, as inserts are validated the same way.
+    pub(crate) fn find_ammo(&self, persistent: &NbtCompound, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<(ItemSlot, usize)> {
+        let mut start = 0;
+        for part in &self.parts {
+            let max = part.slots();
+            if max > 0 {
+                if let Some(list) = compound_list(persistent, &part.key()) {
+                    for compound in list {
+                        let slot = slot_of(compound);
+                        if slot < 0 || slot as usize >= max { continue; }
+                        if let Some(stack) = read_stack(compound).filter(|stack| part.valid(&stack.item, in_tag)) { return Some((stack, start + slot as usize)); }
+                    }
+                }
+            }
+            start += max;
+        }
+        None
+    }
+
     /// Every stack, slot order inside each module.
     pub(crate) fn all_stacks(&self, persistent: &NbtCompound) -> Vec<ItemSlot> {
         let mut stacks = Vec::new();
@@ -496,12 +518,19 @@ pub(crate) fn add_slots(volatile: &mut NbtCompound, count: i32) {
 pub(crate) enum MenuKey { Any, Normal, Shift, Control, Alt }
 
 impl MenuKey {
-    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
-        Ok(match fields.get("on_key").and_then(Value::as_str) {
-            Some("any") => Self::Any, Some("normal") => Self::Normal, Some("shift") => Self::Shift,
-            Some("control") => Self::Control, Some("alt") => Self::Alt,
+    /// One key name, as the loaders spell it (`TooltipKey` in the original).
+    pub(crate) fn from_name(name: &str) -> Result<Self, String> {
+        Ok(match name {
+            "any" => Self::Any, "normal" => Self::Normal, "shift" => Self::Shift,
+            "control" => Self::Control, "alt" => Self::Alt,
             _ => return Err("on_key must be any, normal, shift, control or alt".into()),
         })
+    }
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        match fields.get("on_key").and_then(Value::as_str) {
+            Some(name) => Self::from_name(name),
+            _ => Err("on_key must be any, normal, shift, control or alt".into()),
+        }
     }
     /// The armor keybind: opens when the key modifier held is the required one (any opens for every key).
     pub(crate) fn opens_on_keybind(self, held: MenuKey) -> bool { self == Self::Any || self == held }

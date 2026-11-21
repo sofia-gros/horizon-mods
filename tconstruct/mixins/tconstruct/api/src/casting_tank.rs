@@ -8,14 +8,11 @@
 //!
 //! Not ported, each named: the click split of the original's `use` (a click below 0.6875 of the block's height
 //! trades fluid, above it swaps items) — the use hook carries no hit position, so a fluid trade is tried first
-//! and the item swap second, as the fluid cannons do; the redstone trigger itself — no PlutoLib hook tells a
-//! block entity that a neighbour changed or lets it read the signal, so `handle_redstone` (a rising edge swaps
-//! the slots and plays the click) waits for that wiring, as the casting tables' redstone swapping does;
-//! automation's sided slot rules (in through the input while the output is empty, out of the output only, and
-//! only fluid containers in) — the host's slots take no rules, the processing below simply leaves a stack it
-//! cannot trade with where it lies; the fluid and the items drawn in the block (the render data is already
+//! and the item swap second, as the fluid cannons do; the fluid and the items drawn in the block (the render data is already
 //! generated; the renderer keys tank drawing off `tank::capacity_of`, which does not know this block) and the
 //! placed item's fluid seeding the block entity (the tanks' known gap: the placement stack is not reachable).
+//! The redstone trigger and automation's sided slot rules are wired in register, through the
+//! neighbour-signal and container-rule hooks.
 
 use crate::{
     fluid_items::TankTarget,
@@ -25,7 +22,7 @@ use crate::{
 };
 use pluto_lib::{
     ActionResult, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse,
-    FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Placement, TransferDirection, World,
+    FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Placement, SidedAccess, TransferDirection, TransferMode, World,
 };
 
 pub(crate) const BLOCK: &str = "seared_casting_tank";
@@ -94,8 +91,8 @@ pub(crate) fn swap_slots(items: &mut [Option<ItemSlot>]) {
 }
 
 /// `CastingTankBlockEntity.handleRedstone`: a rising signal swaps the slots (the original schedules the swap
-/// two ticks later) and plays `Sounds.CASTING_CLICKS`; the flag is saved either way. Nothing calls this yet:
-/// the block has no neighbour hook to learn the signal from (see the module notes).
+/// two ticks later; the signal here is heard on a tick seam, so the swap lands on the seam instead) and
+/// plays `Sounds.CASTING_CLICKS`; the flag is saved either way.
 pub(crate) fn handle_redstone(data: &mut NbtCompound, items: &mut [Option<ItemSlot>], has_signal: bool, pos: [i32; 3]) {
     let last = data.get_int(TAG_REDSTONE, 0) != 0;
     if has_signal && !last {
@@ -173,7 +170,17 @@ pub(crate) fn register() {
             .fluid_reader(|data| read_tank(data))
             .fluid_filler(fill_tank)
             .fluid_drainer(drain_tank)
-            .on_use(use_casting_tank),
+            .on_use(use_casting_tank)
+            // CastingTankBlockEntity.handleRedstone, heard through the neighbour-signal hook.
+            .on_signal(|signal| handle_redstone(signal.data, signal.items, signal.powered, signal.pos))
+            // CastingTankBlockEntity's face rules: every face opens the input for placing and the
+            // output for taking; placing composes with the block entity's own validity (both slots
+            // empty, and the stack a fluid container).
+            .sided_access(|_| SidedAccess { insert: vec![INPUT], take: vec![OUTPUT] })
+            .item_transfer_rule(|transfer| match transfer.mode {
+                TransferMode::Insert => transfer.slot == INPUT && can_place_input(transfer.items, &transfer.stack),
+                TransferMode::Take => transfer.slot == OUTPUT,
+            }),
     );
     // CastingTankBlock.getStateForPlacement: facing the placer; the light it also sets from the placed item's
     // fluid follows on the first tick instead (the placement context names the item, not its data)

@@ -1714,6 +1714,29 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:on_attacked");
             out.insert("tconstruct:tooltip");
         }
+        Module::BulkQuiver { .. } => {
+            out.insert("tconstruct:bow_ammo");
+        }
+        Module::TrickQuiver => {
+            out.insert("tconstruct:bow_ammo");
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:remove");
+        }
+        Module::ShieldStrap { .. } | Module::ToolBelt { .. } => {
+            out.insert("tconstruct:armor_interact");
+        }
+        Module::ShareDurability { .. } => {
+            out.insert("tconstruct:tool_damage");
+        }
+        Module::Shears { .. } => {
+            out.insert("tconstruct:entity_interact");
+            out.insert("tconstruct:tool_action");
+        }
+        Module::Fishing => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_action");
+            out.insert("tconstruct:equipment_change");
+        }
     }
 }
 

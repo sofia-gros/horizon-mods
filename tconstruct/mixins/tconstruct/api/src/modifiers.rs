@@ -278,6 +278,11 @@ impl Modifier {
     pub fn inventory_menu_keys(&self) -> Vec<crate::tool_inventory::MenuKey> {
         self.modules.iter().filter_map(|module| module.inventory_menu_key()).collect()
     }
+    /// The quiver draw of this modifier (its first quiver module), if it has one: the draw looks into this
+    /// modifier's own inventory parts, as the original's modules read their own entry's inventory capability.
+    pub fn quiver_draw(&self) -> Option<crate::modifier_modules::QuiverDraw> {
+        self.modules.iter().find_map(|module| module.quiver_draw())
+    }
     /// The max armor attribute modules.
     pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_max_armor_attribute())

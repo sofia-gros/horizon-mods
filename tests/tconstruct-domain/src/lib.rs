@@ -251,6 +251,14 @@ mod smeltery;
 mod smeltery_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/advancements.rs"]
 mod advancements;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/aoe.rs"]
+mod aoe;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/armor_interact_hook.rs"]
+mod armor_interact_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/quiver_hook.rs"]
+mod quiver_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_behavior_hook.rs"]
+mod tool_behavior_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
 mod smeltery_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]
