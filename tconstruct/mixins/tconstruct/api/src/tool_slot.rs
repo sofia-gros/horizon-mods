@@ -96,7 +96,12 @@ pub(crate) fn damage_slot(
 ) -> Result<tool_damage::Damaged, String> {
     // ModifiableItem.verifyTag runs on a stack's first inventory tick, so a worn stack that was never built (a command-given piece,
     // an old save) is built before it takes wear; without it the missing durability reads as 1 and the first hit would break it.
-    if amount > 0 && !is_initialized(&slot.custom_data) && !rebuild(slot, env)? { return Ok(tool_damage::Damaged { applied: 0, broke: false }); }
+    // verifyTag is also ToolStack.ensureHasData: a stack holding fewer materials than it has stat types is filled first
+    // (MissingMaterialsToolHook), even when it was built before, as the tick would have filled it before any wear.
+    if amount > 0 {
+        let filled = crate::tool_stack::ensure_materials(&mut slot.custom_data, env);
+        if (filled || !is_initialized(&slot.custom_data)) && !rebuild(slot, env)? { return Ok(tool_damage::Damaged { applied: 0, broke: false }); }
+    }
     let before = slot.custom_data.clone();
     let outcome = tool_damage::damage_tool_reduced(&mut slot.custom_data, amount, consumes_resources, has_durability_tag,
         // Overslime soaks damage before any other reduction.

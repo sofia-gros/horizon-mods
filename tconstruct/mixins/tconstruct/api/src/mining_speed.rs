@@ -137,7 +137,7 @@ fn float(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
 fn identifier(value: &Value) -> Result<Identifier, String> { Identifier::parse(value.as_str().ok_or("expected an ID string")?).map_err(|e| e.to_string()) }
 
 impl BlockCondition {
-    fn decode(value: &Value) -> Result<Option<Self>, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Option<Self>, String> {
         if let Value::String(tag) = value { return Ok(Some(Self::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?))); }
         let object = value.as_object().ok_or("block predicate must be an object or a tag")?;
         let kind = object.get("type").and_then(Value::as_str).ok_or("block predicate type missing")?;
@@ -164,7 +164,7 @@ impl BlockCondition {
             _ => return Ok(None),
         }))
     }
-    fn matches(&self, block: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
+    pub(crate) fn matches(&self, block: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => in_tag(tag),

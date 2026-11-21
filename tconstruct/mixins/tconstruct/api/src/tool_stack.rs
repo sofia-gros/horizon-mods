@@ -63,6 +63,23 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     Ok(true)
 }
 
+/// ToolStack.ensureHasData's material half: a tool holding fewer materials than it has stat
+/// types is filled (MissingMaterialsToolHook) and the fill is written back; the caller then
+/// rebuilds, as ensureHasData does. This runs on the verifyTag paths (a stack about to be
+/// used), never inside rebuild_stats itself: the original fills on inventory tick, so a
+/// station-built stack keeps exactly the materials it was built with until it is used.
+/// Returns whether a fill was written. Like the original, nothing happens before the
+/// material data is loaded.
+pub(crate) fn ensure_materials(nbt: &mut NbtCompound, env: &Environment) -> bool {
+    let Some(definition) = env.definition else { return false; };
+    if !env.has_materials || !env.materials.server_loaded { return false; }
+    let list = materials(nbt, env.has_materials);
+    match definition.fill_materials(&list, env.materials, &mut || crate::tool_damage_hook::random()) {
+        Some(filled) if filled != list => { set_materials_raw(nbt, &filled); true }
+        _ => false,
+    }
+}
+
 fn apply(nbt: &mut NbtCompound, rebuilt: &Rebuilt) {
     // setModifiers always writes a list, even when empty.
     nbt.insert(TAG_MODIFIERS.into(), Nbt::List(rebuilt.modifiers.iter().map(|(entry, _)| Nbt::Compound(entry.to_nbt())).collect()));
@@ -101,6 +118,9 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
 /// BreakSpeedModifierHook over every modifier of the tool: each conditional mining speed module in
 /// priority order (highest first, ties in modifier order), starting from `speed`.
 pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate::mining_speed::Context, speed: f32) -> f32 {
+    // Definition mining-speed modules compose ahead of the modifier modules below
+    // (MiningSpeedToolHook runs definition modules before modifier hooks).
+    let speed = match env.definition { Some(definition) => definition.modify_mining_speed(context, speed), None => speed };
     with_tool_facts(nbt, env, |saved, facts| {
         let mut modules: Vec<(i32, usize, &crate::modifier_entries::Entry, &crate::modifier_modules::Module)> = Vec::new();
         for (index, (entry, modifier)) in saved.iter().enumerate() {
@@ -861,6 +881,52 @@ mod tests {
         // Healing below durability clears the broken flag.
         set_damage(&mut nbt, 10);
         assert!(!is_broken(&nbt));
+    }
+    #[test]
+    fn ensure_materials_fills_missing_materials_but_rebuild_alone_does_not() {
+        let mut registry = Registry::default();
+        registry.reload(&[], &Always);
+        let (wood, stone) = (Identifier::parse("test:wood").unwrap(), Identifier::parse("test:stone").unwrap());
+        let mut registry_materials = loaded_materials();
+        registry_materials.stats = crate::material_stats::load(&[
+            pluto_lib::JsonResourceStack { id: wood.clone(), layers: vec![
+                Ok(json!({"stats":{"tconstruct:head":{"durability":30},"tconstruct:handle":{"durability":0.5}}})),
+            ] },
+            pluto_lib::JsonResourceStack { id: stone.clone(), layers: vec![
+                Ok(json!({"stats":{"tconstruct:head":{"durability":90},"tconstruct:handle":{"durability":0.5}}})),
+            ] },
+        ], &mut registry_materials.problems);
+        for (id, tier, sort_order) in [(&wood, 1, 1), (&stone, 2, 2)] {
+            registry_materials.materials.insert(id.clone(), crate::materials::Material {
+                id: id.clone(), tier, sort_order, rarity: crate::materials::Rarity::Common, craftable: true, hidden: false,
+            });
+        }
+        registry_materials.visible = vec![wood.clone(), stone.clone()];
+        let data = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:material_stats","stat_types":["tconstruct:head","tconstruct:handle"]},
+            {"type":"tconstruct:default_materials","materials":[
+                {"type":"tconstruct:fixed","material":"test:stone"},
+                {"type":"tconstruct:fixed","material":"test:wood"}
+            ]}
+        ]})).unwrap();
+        let env = Environment { definition: Some(&data), has_materials: true, materials: &registry_materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
+        let names = |nbt: &NbtCompound| materials(nbt, true).as_slice().iter().map(ToString::to_string).collect::<Vec<_>>();
+        // rebuild_stats alone never fills: a station-built stack keeps the materials it was
+        // built with (the original fills on inventory tick, in ensureHasData).
+        let mut nbt = NbtCompound::new();
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        assert!(names(&nbt).is_empty());
+        // ensure_materials (the verifyTag path) fills a bare stack and writes the fill back.
+        let mut nbt = NbtCompound::new();
+        assert!(ensure_materials(&mut nbt, &env));
+        assert_eq!(names(&nbt), vec!["test:stone", "test:wood"]);
+        // A partial list keeps its material and fills only the missing position.
+        let mut nbt = NbtCompound::new();
+        set_materials_raw(&mut nbt, &MaterialList::from_variants(vec![crate::tool_materials::MaterialVariant::parse("test:wood").unwrap()]));
+        assert!(ensure_materials(&mut nbt, &env));
+        assert_eq!(names(&nbt), vec!["test:wood", "test:wood"]);
+        // A full list is left alone.
+        assert!(!ensure_materials(&mut nbt, &env));
     }
     #[test]
     fn mining_component_follows_stored_speed_tier_and_broken_state() {
