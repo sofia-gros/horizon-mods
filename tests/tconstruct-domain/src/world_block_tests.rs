@@ -2,7 +2,7 @@
 //! predicates and CongealedSlimeBlock's landing/contact rules, dispatched
 //! through the registered behaviours the way the host dispatches them.
 
-use pluto_lib::{AfterFallContext, BlockState, EntityInsideMotionContext, FallOnContext, MemoryBlockView, PathNodeType, PathNodeTypeContext};
+use pluto_lib::{AfterFallContext, BlockBehaviors, BlockState, Direction, EntityInsideMotionContext, FallOnContext, MemoryBlockView, PathNodeType, PathNodeTypeContext, PistonBehavior};
 
 const SLIMES: [&str; 3] = ["sky_slime", "ichor_slime", "ender_slime"];
 const CONGEALED: [&str; 4] = ["earth_congealed_slime", "sky_congealed_slime", "ichor_congealed_slime", "ender_congealed_slime"];
@@ -202,4 +202,72 @@ fn congealed_path_node_is_sticky_honey_and_all_seven_blocks_register() {
     // the stick table cover the three slimes; landing damage, the after-fall
     // and inside-motion fixtures (which unwrap their handlers) and the path
     // node cover the four congealed blocks.
+}
+
+const CLUSTERS: [&str; 19] = [
+    "earth_slime_crystal_cluster", "small_earth_slime_crystal_bud", "medium_earth_slime_crystal_bud", "large_earth_slime_crystal_bud",
+    "sky_slime_crystal_cluster", "small_sky_slime_crystal_bud", "medium_sky_slime_crystal_bud", "large_sky_slime_crystal_bud",
+    "ichor_slime_crystal_cluster", "small_ichor_slime_crystal_bud", "medium_ichor_slime_crystal_bud", "large_ichor_slime_crystal_bud",
+    "ender_slime_crystal_cluster", "small_ender_slime_crystal_bud", "medium_ender_slime_crystal_bud", "large_ender_slime_crystal_bud",
+    "steel_cluster", "cobalt_cluster", "knightmetal_cluster",
+];
+const BUDDING: [&str; 4] = ["budding_earth_slime_crystal", "budding_sky_slime_crystal", "budding_ichor_slime_crystal", "budding_ender_slime_crystal"];
+const HEADS: [&str; 9] = ["blaze_head", "enderman_head", "stray_head", "husk_head", "drowned_head", "spider_head", "cave_spider_head", "piglin_brute_head", "zombified_piglin_head"];
+const WALL_HEADS: [&str; 9] = ["blaze_wall_head", "enderman_wall_head", "stray_wall_head", "husk_wall_head", "drowned_wall_head", "spider_wall_head", "cave_spider_wall_head", "piglin_brute_wall_head", "zombified_piglin_wall_head"];
+
+#[test]
+fn clusters_point_along_the_clicked_face_and_keep_their_water() {
+    for (face, name) in [(Direction::Down, "down"), (Direction::Up, "up"), (Direction::North, "north"),
+                         (Direction::South, "south"), (Direction::West, "west"), (Direction::East, "east")] {
+        let placed = crate::world_blocks::cluster_placement(slime("steel_cluster"), face, false);
+        assert_eq!(placed.property("facing"), Some(name), "{name}");
+        assert_eq!(placed.property("waterlogged"), Some("false"), "{name} placed dry");
+        let wet = crate::world_blocks::cluster_placement(slime("steel_cluster"), face, true);
+        assert_eq!(wet.property("waterlogged"), Some("true"), "{name} placed in water");
+    }
+}
+
+#[test]
+fn clusters_survive_only_behind_a_sturdy_block() {
+    let up = crate::world_blocks::cluster_placement(slime("steel_cluster"), Direction::Up, false);
+    let mut view = MemoryBlockView::default();
+    assert!(!crate::world_blocks::cluster_survives(&up, [10, 64, 10], &view), "no support below");
+    view.blocks.insert([10, 63, 10], state("minecraft:stone"));
+    assert!(crate::world_blocks::cluster_survives(&up, [10, 64, 10], &view), "the stone below supports an up cluster");
+    let north = crate::world_blocks::cluster_placement(slime("steel_cluster"), Direction::North, false);
+    assert!(!crate::world_blocks::cluster_survives(&north, [10, 64, 10], &view), "the stone below does not support a north cluster");
+    view.blocks.insert([10, 64, 11], state("minecraft:stone"));
+    assert!(crate::world_blocks::cluster_survives(&north, [10, 64, 10], &view), "the stone behind supports a north cluster");
+}
+
+#[test]
+fn heads_take_the_placers_yaw_segment() {
+    for (yaw, segment) in [(0.0, "0"), (11.0, "0"), (12.0, "1"), (90.0, "4"), (180.0, "8"), (270.0, "12"), (-90.0, "12"), (360.0, "0")] {
+        let placed = crate::world_blocks::head_placement(slime("blaze_head"), yaw);
+        assert_eq!(placed.property("rotation"), Some(segment), "yaw {yaw}");
+    }
+}
+
+#[test]
+fn wall_heads_pick_the_standing_head() {
+    for (wall, head) in WALL_HEADS.iter().zip(HEADS) {
+        let pick = crate::world_blocks::wall_head_pick(&slime(wall)).expect("a wall head picks");
+        assert_eq!(pick.item.to_string(), format!("tconstruct:{head}"), "{wall}");
+        assert_eq!(pick.count, 1, "{wall}");
+    }
+    assert!(crate::world_blocks::wall_head_pick(&slime("blaze_head")).is_none(), "a standing head is not a wall head");
+}
+
+#[test]
+fn geode_and_head_piston_rules_and_registration() {
+    registered();
+    for name in CLUSTERS.iter().chain(&BUDDING).chain(&HEADS) {
+        let behaviour = BlockBehaviors::get(&format!("tconstruct:{name}")).unwrap_or_else(|| panic!("{name} registers a behaviour"));
+        assert_eq!(behaviour.piston_behavior_override(), Some(PistonBehavior::Destroy), "{name} is destroyed by pistons");
+    }
+    // The wall heads register only their pick: a piston moves them normally, as the original leaves them.
+    for name in WALL_HEADS {
+        let behaviour = BlockBehaviors::get(&format!("tconstruct:{name}")).unwrap_or_else(|| panic!("{name} registers a behaviour"));
+        assert_eq!(behaviour.piston_behavior_override(), None, "{name} keeps the normal piston behaviour");
+    }
 }
