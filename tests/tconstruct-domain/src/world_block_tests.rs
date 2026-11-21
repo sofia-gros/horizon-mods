@@ -428,3 +428,206 @@ fn geode_and_head_piston_rules_and_registration() {
         assert_eq!(behaviour.piston_behavior_override(), None, "{name} keeps the normal piston behaviour");
     }
 }
+
+#[test]
+fn crystal_chime_sounds_match_the_originals_blocks() {
+    let chime = crate::world_blocks::chime_sounds;
+    // Every geode block chimes with its geode's chime: the crystal block and the budding block over the
+    // amethyst block hit sound, the cluster and the three buds over the amethyst cluster hit sound.
+    for (geode, sound) in [
+        ("earth", "tconstruct:block.earth_crystal.chime"),
+        ("sky", "tconstruct:block.sky_crystal.chime"),
+        ("ichor", "tconstruct:block.ichor_crystal.chime"),
+        ("ender", "tconstruct:block.ender_crystal.chime"),
+    ] {
+        assert_eq!(chime(&format!("{geode}_slime_crystal_block")), Some(("minecraft:block.amethyst_block.hit", sound)), "{geode} crystal block");
+        assert_eq!(chime(&format!("budding_{geode}_slime_crystal")), Some(("minecraft:block.amethyst_block.hit", sound)), "{geode} budding block");
+        for name in [
+            format!("{geode}_slime_crystal_cluster"),
+            format!("small_{geode}_slime_crystal_bud"),
+            format!("medium_{geode}_slime_crystal_bud"),
+            format!("large_{geode}_slime_crystal_bud"),
+        ] {
+            assert_eq!(chime(&name), Some(("minecraft:block.amethyst_cluster.hit", sound)), "{name}");
+        }
+    }
+    // The metal clusters chime with another geode's chime, over their own sound types.
+    assert_eq!(chime("steel_cluster"), Some(("minecraft:block.metal.hit", "tconstruct:block.sky_crystal.chime")));
+    assert_eq!(chime("cobalt_cluster"), Some(("minecraft:block.netherite_block.hit", "tconstruct:block.ichor_crystal.chime")));
+    assert_eq!(chime("knightmetal_cluster"), Some(("minecraft:block.netherite_block.hit", "tconstruct:block.ender_crystal.chime")));
+    for other in ["earth_slime_crystal", "sky_slime", "earth_congealed_slime", "stone", "budding_earth_slime", "earth_slime_crystal_shard"] {
+        assert_eq!(chime(other), None, "{other} does not chime");
+    }
+}
+
+#[test]
+fn chime_pitch_spans_the_originals_range() {
+    let pitch = crate::world_blocks::chime_pitch;
+    assert_eq!(pitch(0.0), 0.5);
+    assert!((pitch(0.5) - 1.1).abs() < 1e-6);
+    assert!(pitch(0.999) < 1.7, "a draw below 1 stays below 0.5 + 1.2");
+}
+
+#[test]
+fn a_projectile_hit_on_a_crystal_plays_its_hit_sound_then_its_chime() {
+    use pluto_lib::{MemoryWorldOps, ProjectileImpact, with_world};
+    let hit = |entity: Option<u32>| ProjectileImpact {
+        dimension: "minecraft:overworld".into(),
+        projectile: 7,
+        kind: "minecraft:arrow".into(),
+        owner: 1,
+        entity,
+        entity_kind: String::new(),
+        block: [4, 70, 4],
+        face: [0, 1, 0],
+        at: [4.5, 71.0, 4.5],
+    };
+    let mut ops = MemoryWorldOps::default();
+    ops.blocks.insert(("minecraft:overworld".into(), [4, 70, 4]), "tconstruct:earth_slime_crystal_cluster".into());
+    with_world(&mut ops, || {
+        assert!(crate::world_blocks::chime_on_impact(&hit(None)), "the hit itself is never cancelled");
+        assert!(crate::world_blocks::chime_on_impact(&hit(Some(9))), "an entity hit chimes nothing");
+    });
+    assert_eq!(
+        ops.sounds,
+        vec![
+            ("minecraft:block.amethyst_cluster.hit".to_string(), [4.5, 70.5, 4.5]),
+            ("tconstruct:block.earth_crystal.chime".to_string(), [4.5, 70.5, 4.5]),
+        ],
+        "the hit sound plays first, then the chime, both at the block's centre"
+    );
+}
+
+#[test]
+fn head_drop_matches_the_originals_creeper_rule() {
+    use crate::world_blocks::head_drop_for;
+    // TinkerHeadType.fromEntityType: exactly the nine entity types have heads.
+    for (name, kind) in crate::world_blocks::HEAD_TYPES {
+        assert_eq!(head_drop_for(Some("minecraft:creeper"), kind), Some(name), "{kind}");
+    }
+    // A mob with a vanilla head, the creeper itself and a player drop no Tinkers head.
+    for kind in ["minecraft:zombie", "minecraft:skeleton", "minecraft:creeper", "minecraft:player"] {
+        assert_eq!(head_drop_for(Some("minecraft:creeper"), kind), None, "{kind}");
+    }
+    // Only a creeper's kill counts: not a player's, not a fall, not an unknown owner.
+    for killer in [Some("minecraft:player"), Some("minecraft:skeleton"), None] {
+        assert_eq!(head_drop_for(killer, "minecraft:husk"), None, "{killer:?}");
+    }
+}
+
+#[test]
+fn a_charged_creeper_kill_claims_the_skull_and_appends_the_head() {
+    use pluto_lib::{EntityInfo, LivingDropInfo, LivingEntityDrops, StackData};
+    struct Drops {
+        info: LivingDropInfo,
+        eligible: bool,
+        claimed: bool,
+        stacks: Vec<StackData>,
+    }
+    impl LivingEntityDrops for Drops {
+        fn info(&self) -> &LivingDropInfo { &self.info }
+        fn can_drop_head(&self) -> Result<bool, String> { Ok(self.eligible) }
+        fn claim_head_drop(&mut self) -> Result<bool, String> {
+            self.claimed = true;
+            Ok(std::mem::replace(&mut self.eligible, false))
+        }
+        fn append_stack(&mut self, stack: StackData) -> Result<(), String> {
+            self.stacks.push(stack);
+            Ok(())
+        }
+    }
+    let drops = |killer: Option<&str>, kind: &str, eligible: bool| Drops {
+        info: LivingDropInfo {
+            entity: EntityInfo { id: 5, kind: kind.into(), dimension: "minecraft:overworld".into() },
+            position: [0.0; 3],
+            damage_type: Some("minecraft:explosion".into()),
+            killer_type: killer.map(str::to_owned),
+        },
+        eligible,
+        claimed: false,
+        stacks: Vec::new(),
+    };
+    // The config is not loaded in this process, so head drops read at the defaults: every head drops.
+    let mut husk = drops(Some("minecraft:creeper"), "minecraft:husk", true);
+    crate::world_blocks::creeper_head_drop(&mut husk).unwrap();
+    assert!(husk.claimed, "the creeper's skull is claimed before the drop");
+    assert_eq!(husk.stacks.len(), 1);
+    assert_eq!(husk.stacks[0].item, "tconstruct:husk_head");
+    assert_eq!(husk.stacks[0].count, 1);
+    // A creeper that already spent its skull drops nothing, and nothing is claimed.
+    let mut spent = drops(Some("minecraft:creeper"), "minecraft:husk", false);
+    crate::world_blocks::creeper_head_drop(&mut spent).unwrap();
+    assert!(spent.stacks.is_empty());
+    assert!(!spent.claimed);
+    // Other killers and headless types neither claim nor drop.
+    for (killer, kind) in [(Some("minecraft:player"), "minecraft:husk"), (Some("minecraft:creeper"), "minecraft:zombie"), (None, "minecraft:husk")] {
+        let mut other = drops(killer, kind, true);
+        crate::world_blocks::creeper_head_drop(&mut other).unwrap();
+        assert!(other.stacks.is_empty(), "{killer:?} killing {kind}");
+        assert!(!other.claimed, "{killer:?} killing {kind}");
+    }
+}
+
+#[test]
+fn skull_models_match_the_originals_layers_textures_and_geometry() {
+    use pluto_lib::SkullModelAnimation;
+    let models = &crate::world_blocks::HEAD_MODELS;
+    assert_eq!(models.len(), 9);
+    // SkullModelHelper.HEAD_LAYERS: tconstruct:<type>_head#main, and the item is tconstruct:<type>_head.
+    for model in models {
+        assert_eq!(model.layer_id(), format!("tconstruct:{}_head#main", model.name), "{}", model.name);
+        assert_eq!(model.item(), format!("{}_head", model.name), "{}", model.name);
+    }
+    // The registration paths are the same items, in the same order.
+    for (model, path) in models.iter().zip(crate::world_blocks::HEAD_ITEM_PATHS) {
+        assert_eq!(model.item(), path, "{}", model.name);
+    }
+    let by_name = |name: &str| models.iter().find(|model| model.name == name).unwrap();
+    // SKIN_BY_TYPE: three heads read Tinkers textures, the rest vanilla ones.
+    assert_eq!(by_name("enderman").texture, "tconstruct:entity/skull/enderman");
+    assert_eq!(by_name("stray").texture, "tconstruct:entity/skull/stray");
+    assert_eq!(by_name("drowned").texture, "tconstruct:entity/skull/drowned");
+    assert_eq!(by_name("blaze").texture, "minecraft:entity/blaze");
+    assert_eq!(by_name("husk").texture, "minecraft:entity/zombie/husk");
+    // Only the piglin heads animate as piglins.
+    assert_eq!(by_name("piglin_brute").animation, SkullModelAnimation::Piglin);
+    assert_eq!(by_name("zombified_piglin").animation, SkullModelAnimation::Piglin);
+    assert_eq!(by_name("blaze").animation, SkullModelAnimation::None);
+    // Blaze: SkullModel.createMobHeadLayer — one 8x8x8 head cube on a 64x64 texture.
+    let blaze = by_name("blaze").layer_definition();
+    assert_eq!(blaze.texture_size, [64, 64]);
+    assert_eq!(blaze.parts.len(), 1);
+    assert_eq!(blaze.parts[0].0, "head");
+    assert_eq!(blaze.parts[0].1.cubes.len(), 1);
+    assert_eq!(blaze.parts[0].1.cubes[0].origin, [-4.0, -8.0, -4.0]);
+    assert_eq!(blaze.parts[0].1.cubes[0].dimensions, [8.0, 8.0, 8.0]);
+    // Enderman: createHeadLayer(0, 0, 32, 16).
+    assert_eq!(by_name("enderman").layer_definition().texture_size, [32, 16]);
+    // Stray: createHeadHatLayer(0, 16, 32, 32) — a hat cube grown by 0.25 reading at (0, 16).
+    let stray = by_name("stray").layer_definition();
+    assert_eq!(stray.texture_size, [32, 32]);
+    let head = &stray.parts[0].1;
+    assert_eq!(head.children.len(), 1);
+    assert_eq!(head.children[0].0, "hat");
+    assert_eq!(head.children[0].1.cubes[0].texture_offset, [0, 16]);
+    assert_eq!(head.children[0].1.cubes[0].deformation, [0.25; 3]);
+    // Spider: createHeadLayer(32, 4, 64, 32).
+    let spider = by_name("spider").layer_definition();
+    assert_eq!(spider.texture_size, [64, 32]);
+    assert_eq!(spider.parts[0].1.cubes[0].texture_offset, [32, 4]);
+    // Piglin: the 10-wide head with snout and nostrils, and two posed ears, the right one mirrored.
+    let piglin = by_name("piglin_brute").layer_definition();
+    assert_eq!(piglin.texture_size, [64, 64]);
+    let head = &piglin.parts[0].1;
+    assert_eq!(head.cubes.len(), 4);
+    assert_eq!(head.cubes[0].dimensions, [10.0, 8.0, 8.0]);
+    assert_eq!(head.cubes[1].texture_offset, [31, 1]);
+    assert!(head.cubes[3].mirror, "the left nostril is mirrored");
+    assert_eq!(head.children.len(), 2);
+    assert_eq!(head.children[0].0, "left_ear");
+    assert_eq!(head.children[0].1.pose.translation, [4.5, -6.0, 0.0]);
+    assert_eq!(head.children[0].1.pose.rotation, [0.0, 0.0, -0.3491]);
+    assert_eq!(head.children[1].0, "right_ear");
+    assert_eq!(head.children[1].1.pose.translation, [-4.5, -6.0, 0.0]);
+    assert!(head.children[1].1.cubes[0].mirror, "the right ear is mirrored");
+}

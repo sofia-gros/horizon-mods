@@ -1675,6 +1675,44 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:attributes");
             out.insert("tconstruct:equipment_change");
         }
+        Module::Float { .. } => {
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:projectile_launch");
+        }
+        Module::CraftCount { .. } => {
+            out.insert("tconstruct:craft_count");
+        }
+        Module::MaterialRepair { .. } => {
+            out.insert("tconstruct:material_repair");
+        }
+        Module::QuiverInventory { .. } => {
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:validate");
+            out.insert("tconstruct:remove");
+            out.insert("tconstruct:slot_stack");
+        }
+        Module::UpdateHealth { .. } => {
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::Punch { .. } => {
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+        }
+        Module::ReversePunch { .. } => {
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_hit_client");
+        }
+        Module::MeleeInstrument { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:damage_dealt");
+        }
+        Module::Overgrowth { .. } => {
+            out.insert("tconstruct:inventory_tick");
+        }
+        Module::Kinetic => {
+            out.insert("tconstruct:on_attacked");
+        }
     }
 }
 
@@ -2063,6 +2101,7 @@ mod tests {
             max_damage: Some(60),
             custom_data: NbtCompound::new(),
             custom_model_data: None,
+            enchantments: Default::default(),
         })]);
         // The selected-slot op the held-item commands rely on.
         assert_eq!(with_ops(&mut ops, || player.selected_slot()), Some(0));
