@@ -137,6 +137,10 @@ mod config;
 mod common;
 mod fancy_gadgets;
 mod advancements;
+mod aoe;
+mod armor_interact_hook;
+mod quiver_hook;
+mod tool_behavior_hook;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
@@ -185,6 +189,9 @@ pub fn hooks() -> pluto_lib::ModHooks {
     update_health_hook::register();
     max_armor_hook::register();
     mob_disguise_hook::register();
+    tool_behavior_hook::register();
+    quiver_hook::register();
+    armor_interact_hook::register();
     edible_hook::register();
     armor_worn::register();
     fancy_gadgets::register();

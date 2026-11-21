@@ -9,9 +9,9 @@
 //! - The one-kind-per-slot rule spans slots; PlutoLib's slot rule sees one stack at a time, so tag
 //!   validity and the per-slot limit are enforced on every placement, but a second slot of an item
 //!   the chest already holds is not refused. Hopper insertion (on_accepts) has the same limit.
-//! - The tinkers chest's dye colour is set by its block item at placement; there is no placement-data
-//!   hook in PlutoLib's public API, so a placed chest keeps the default colour, and no renderer tints
-//!   it here in any case. For the same reason a broken cast chest drops its contents as items rather
+//! - The tinkers chest's dye colour is seeded from the placed stack's display tag at placement
+//!   (TinkersChestBlockItem.updateCustomBlockEntityTag, through the placement-data hook); no
+//!   renderer tints it here in any case. A broken cast chest drops its contents as items rather
 //!   than keeping them in the dropped chest's data (the original's TinkerData copy).
 //! - The window pages its slots (64 to a page); the original's chest screen scrolls instead.
 use crate::common;
@@ -182,6 +182,18 @@ fn register_chest(name: &'static str, kind: Kind) {
             tick.set_menu_data(0, visual as i32);
             tick.set_menu_data(1, page as i32);
         });
+    if kind == Kind::Tinkers {
+        // TinkersChestBlockItem.updateCustomBlockEntityTag: a chest item carrying a dye colour in its
+        // display tag seeds the placed block entity's colour (TinkersChestBlockEntity's "color"); an
+        // undyed item leaves the default colour unset, as the original leaves it unsaved.
+        entity = entity.on_place(|place| {
+            let Some(Nbt::Compound(display)) = place.stack.custom_data.get("display") else { return; };
+            if display.contains_key("color") {
+                let color = crate::modifier_entries::nbt_int(display.get("color"));
+                place.data.insert("color".to_owned(), Nbt::Int(color));
+            }
+        });
+    }
     if kind != Kind::Tinkers {
         // ChestBlock.use: a held item the chest takes is deposited instead of opening the window.
         entity = entity.on_use(move |used| {

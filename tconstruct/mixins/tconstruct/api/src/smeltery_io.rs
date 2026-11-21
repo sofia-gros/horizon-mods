@@ -7,9 +7,9 @@
 //! model data, which the host does not take from a block entity). The fluids the drain and the duct display are ported in the
 //! port's form: the drain's ticker mirrors its master's first tank fluid into its own data under `display` (the controller
 //! notifies its drains in the original), the duct's renderer reads the fluid of the container in its slot from its synced
-//! items, and `rendering::render_io` draws both. A chute is registered and keeps its master like a drain, but its item reach is
-//! not: PlutoLib forwards a neighbour's fluid query (`fluid_forward`) and offers no item forward to answer an item query with the
-//! master's inventory, so a chute exposes no items. A neighbour's fluid query on these blocks is answered by
+//! items, and `rendering::render_io` draws both. A chute forwards its master's item inventory on every
+//! face, as ChuteBlockEntity forwards the master's item handler capability (its facing is ignored), so an
+//! item query on a chute is answered by the controller's inventory through `item_forward`. A neighbour's fluid query on these blocks is answered by
 //! PlutoLib's host adapter through `FluidStorage` over the loaded block entities, because their storage is their saved data read through
 //! these hooks, which the host's own tank calls cannot serve.
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
 };
 use pluto_lib::{
     BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, Direction, FluidFilter, FluidForward, FluidStack, Identifier,
-    ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Neighbours, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
+    ItemFilter, ItemForward, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Neighbours, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
 };
 
 const DUCT_BACKGROUND: &str = "tconstruct:gui/duct";
@@ -177,8 +177,8 @@ pub(crate) fn register() {
     }
     for name in CHUTES {
         let block = Identifier::new("tconstruct", name).expect("valid chute id");
-        // a chute keeps its master like a drain; its item reach is not registered (no item forward in PlutoLib, see the module notes)
-        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data());
+        // ChuteBlockEntity: the master's item handler answers on every face, the facing ignored.
+        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().item_forward(|data, _| master_of(data).map(|target| ItemForward { target, filter: ItemFilter::Any })));
     }
     for name in DUCTS {
         let block = Identifier::new("tconstruct", name).expect("valid duct id");

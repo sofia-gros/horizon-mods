@@ -146,6 +146,29 @@ pub(crate) enum Module {
     InventoryMenu(crate::tool_inventory::MenuKey),
     /// InventorySlotMenuModule: clicking the tool in the player's inventory opens its inventory screen.
     InventorySlotMenu,
+    /// BulkQuiverModule (BowAmmoModifierHook): the tool fires arrows from its own inventory; when it checks the
+    /// standard arrows first, the quiver is only a backup for when the game found none itself.
+    BulkQuiver { check_standard_arrows: bool },
+    /// TrickQuiverModule (BowAmmoModifierHook): the tool fires the stack in the selected slot of its own inventory.
+    TrickQuiver,
+    /// ShieldStrapModule (ArmorInteractModifierHook): the armor keybind on one of these keys rotates the piece's
+    /// inventory through the off hand. The swap itself is armor_interact_hook's; see there for the server surface.
+    ShieldStrap { keys: Vec<crate::tool_inventory::MenuKey> },
+    /// ToolBeltModule (ArmorInteractModifierHook): the armor keybind on one of these keys swaps the piece's
+    /// inventory with the wearer's main inventory, slot for slot.
+    ToolBelt { keys: Vec<crate::tool_inventory::MenuKey> },
+    /// ShareDurabilityModule (ToolDamageModifierHook): wear on this tool also damages it directly by the consume
+    /// amount, and charges the shield bar of a random other carried tool by the grant amount per point.
+    ShareDurability { shield: Identifier, grant: (i32, i32), consume: (i32, i32) },
+    /// ShearsModule (ToolActionModifierHook): the tool performs the four shear actions while its condition holds.
+    /// The shearing it starts rides the game's shear gates (see tool_behavior_hook); the entity-interact shearing
+    /// of sheep and kin has no gate to ride (the port's item behaviour notes name the match guards), and the
+    /// area shearing around a target needs a nearby-entity enumeration no event offers.
+    Shears { flat: f32, per_level: f32, expanded: f32, condition: Condition },
+    /// FishingModule (ToolActionModifierHook): the tool performs the fishing rod cast action. The cast itself
+    /// spawns the original's own hook entity, which no spawn reach in this tree can create (the projectile and
+    /// book services of the foundation lane are not in this base), so only the action answer is bound.
+    Fishing,
     /// MaxArmorAttributeModule: an attribute worked from the largest level among the worn pieces.
     MaxArmorAttribute { module: Box<crate::max_armor::MaxArmorAttribute>, condition: Condition },
     /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
@@ -214,6 +237,15 @@ pub(crate) enum Module {
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
 const OVERRIDE_MULTIPLIER: &str = "tconstruct:override_multiplier";
+
+/// How a quiver module draws ammunition from its modifier's inventory (BowAmmoModifierHook).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum QuiverDraw {
+    /// BulkQuiverModule: the first ammunition stack; a backup only when it checks the standard arrows.
+    Bulk { check_standard_arrows: bool },
+    /// TrickQuiverModule: the stack in the selected slot, whatever it is.
+    Trick,
+}
 
 /// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
 fn is_known_slot(name: &str) -> bool { !name.is_empty() }
@@ -330,6 +362,33 @@ fn slot_name(fields: &Map<String, Value>, key: &str) -> Result<String, String> {
 
 fn identifier(fields: &Map<String, Value>, key: &str) -> Result<Identifier, String> {
     Identifier::parse(fields.get(key).and_then(Value::as_str).ok_or_else(|| format!("{key} must be an ID string"))?).map_err(|e| e.to_string())
+}
+
+/// LevelingInt.LOADABLE for a required field: a plain number is the per-level amount (the EACH_LEVEL form), an
+/// object names `flat` and `each_level`; both parts are shorts. Returns (flat, each_level).
+fn leveling_int_keyed(fields: &Map<String, Value>, key: &str) -> Result<(i32, i32), String> {
+    let part = |value: &Value| -> Result<i32, String> {
+        let Value::Number(number) = value else { return Err(format!("{key} must be a leveling int")); };
+        let value = crate::materials::number_int(&number.to_string());
+        if (-32768..=32767).contains(&value) { Ok(value) } else { Err(format!("{key} must fit in a short")) }
+    };
+    match fields.get(key).filter(|value| !value.is_null()) {
+        Some(Value::Object(object)) => {
+            let named = |name: &str| match object.get(name).filter(|value| !value.is_null()) { None => Ok(0), Some(value) => part(value) };
+            Ok((named("flat")?, named("each_level")?))
+        }
+        Some(value) => Ok((0, part(value)?)),
+        None => Err(format!("{key} must be a leveling int")),
+    }
+}
+
+/// LevelingInt.compute: `flat + each_level * level`, truncated.
+pub(crate) fn leveling_compute(leveling: (i32, i32), level: f32) -> i32 { (leveling.0 as f32 + leveling.1 as f32 * level) as i32 }
+
+/// The `on_key` list of an armor interact module (ShieldStrapModule/ToolBeltModule read a set of tooltip keys).
+fn key_list(fields: &Map<String, Value>) -> Result<Vec<crate::tool_inventory::MenuKey>, String> {
+    let Some(Value::Array(keys)) = fields.get("on_key").filter(|value| !value.is_null()) else { return Err("on_key must be a list of key names".into()); };
+    keys.iter().map(|key| match key.as_str() { Some(name) => crate::tool_inventory::MenuKey::from_name(name), None => Err("on_key must be a list of key names".into()) }).collect()
 }
 
 impl Module {
@@ -571,6 +630,28 @@ impl Module {
                 Self::InventoryMenu(crate::tool_inventory::MenuKey::decode(fields)?)
             }
             "tconstruct:inventory_slot_menu" if only("tconstruct:slot_stack") => Self::InventorySlotMenu,
+            "tconstruct:bulk_quiver" if only("tconstruct:bow_ammo") => {
+                // BulkQuiverModule.LOADER: the one field defaults to checking the standard arrows.
+                let check = match fields.get("check_standard_arrows").filter(|value| !value.is_null()) {
+                    None => true,
+                    Some(Value::Bool(value)) => *value,
+                    Some(_) => return Err("check_standard_arrows must be a boolean".into()),
+                };
+                Self::BulkQuiver { check_standard_arrows: check }
+            }
+            "tconstruct:trick_quiver" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:general_interact" | "tconstruct:remove")) => Self::TrickQuiver,
+            "tconstruct:shield_strap" if only("tconstruct:armor_interact") => Self::ShieldStrap { keys: key_list(fields)? },
+            "tconstruct:tool_belt" if only("tconstruct:armor_interact") => Self::ToolBelt { keys: key_list(fields)? },
+            "tconstruct:share_durability" if only("tconstruct:tool_damage") => Self::ShareDurability {
+                shield: identifier(fields, "shield")?,
+                grant: leveling_int_keyed(fields, "grant")?,
+                consume: leveling_int_keyed(fields, "consume")?,
+            },
+            "tconstruct:shears" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:tool_action")) => {
+                // ShearsModule.LOADER: three FROM_ZERO floats, all optional, over a modifier condition.
+                Self::Shears { flat: float(fields, "flat")?, per_level: float(fields, "per_level")?, expanded: float(fields, "expanded")?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:fishing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_action" | "tconstruct:equipment_change")) => Self::Fishing,
             "tconstruct:max_armor_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 match crate::max_armor::MaxArmorAttribute::decode(fields)? {
                     Some(module) => Self::MaxArmorAttribute { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -824,7 +905,7 @@ impl Module {
                 // ToolInventoryCapability.addSlots, when the module's condition holds.
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
-            Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
+            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
             Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
@@ -845,6 +926,8 @@ impl Module {
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
             // CapacityBarValidator.onRemoved empties the bar.
             Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
+            // TrickQuiverModule.onRemoved forgets the selected slot.
+            Self::TrickQuiver => { persistent.remove("tconstruct:trick_quiver_selected"); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
             Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
@@ -1016,6 +1099,14 @@ impl Module {
     /// The key that opens the inventory screen, for an inventory menu module.
     pub fn inventory_menu_key(&self) -> Option<crate::tool_inventory::MenuKey> {
         if let Self::InventoryMenu(key) = self { Some(*key) } else { None }
+    }
+    /// The quiver draw this module performs over its own modifier's inventory, if it is a quiver module.
+    pub fn quiver_draw(&self) -> Option<QuiverDraw> {
+        match self {
+            Self::BulkQuiver { check_standard_arrows } => Some(QuiverDraw::Bulk { check_standard_arrows: *check_standard_arrows }),
+            Self::TrickQuiver => Some(QuiverDraw::Trick),
+            _ => None,
+        }
     }
     /// The claim a worn piece makes on an attribute through a max armor attribute module, when its conditions hold.
     pub fn max_armor_candidate(&self, entry: &Entry, facts: &Facts, broken: bool) -> Option<crate::max_armor::Candidate> {
@@ -1200,10 +1291,16 @@ impl Module {
         let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
     }
-    /// ToolActionModifierHook.canPerformAction for a tool actions module (ToolActionsModule): whether `name` is one of its actions.
+    /// ToolActionModifierHook.canPerformAction: a tool actions module answers for its named actions, a shears
+    /// module for the four shear actions and a fishing module for the cast, each while its condition holds
+    /// (ShearsModule.canPerformAction, FishingModule.canPerformAction).
     pub fn can_perform_action(&self, entry: &Entry, facts: &Facts, name: &str) -> bool {
-        let Self::ToolActions { actions, condition } = self else { return false; };
-        condition.matches(entry, facts) && actions.iter().any(|action| action == name)
+        match self {
+            Self::ToolActions { actions, condition } => condition.matches(entry, facts) && actions.iter().any(|action| action == name),
+            Self::Shears { condition, .. } => condition.matches(entry, facts) && matches!(name, "shears_dig" | "shears_harvest" | "shears_carve" | "shears_disarm"),
+            Self::Fishing => name == "fishing_rod_cast",
+            _ => false,
+        }
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {

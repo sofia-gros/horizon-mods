@@ -5,10 +5,9 @@
 //! `State` is the whole block entity as plain data (saved in the block entity's own data); `Env` is what it asks of the recipes.
 //! A held fluid container empties into the tank or fills from it first (`State::transfer`, over PlutoLib's fluid items); the item swap
 //! only runs for a table without fluid. The `has_item` block state follows the slots from the ticker (the original sets it in
-//! `setItem`), and retextured casting sets the result's texture. Not ported here, each named where it would go: redstone swapping
-//! (nothing here reads the neighbour signal), sounds and particles (no such hook), the hopper face rules (a hopper's rules cannot
-//! be stated: the menu's `on_accepts` is told only the item, the slot and the face — not the tank or the slots it must consult —
-//! these blocks have no menu to hang it on, and there is no take rule at all), and the potion recipes.
+//! `setItem`), and retextured casting sets the result's texture. Redstone swapping runs through the
+//! neighbour-signal hook and the hopper face rules through the container-rule hooks (see register).
+//! Not ported here, each named where it would go: sounds and particles (no such hook), and the potion recipes.
 //! Tool casting, part swapping and tipped clearing run through the tool domain (unit 7). Tipping is the one casting kind that
 //! cannot match: which potion was poured is the fluid's NBT, and a tank's fluid stack carries only the fluid and its amount,
 //! the same gap as the potion recipes.
@@ -21,7 +20,7 @@ use crate::{
 };
 use pluto_lib::{
     BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot,
-    Nbt, NbtCompound, NbtCompoundExt, RegistryLookup, TransferDirection, World,
+    Nbt, NbtCompound, NbtCompoundExt, RegistryLookup, SidedAccess, TransferDirection, TransferMode, World,
 };
 
 pub(crate) const INPUT: usize = 0;
@@ -690,6 +689,15 @@ fn use_casting(used: &mut BlockEntityUse<'_>, station: Station, require_cast: bo
     }).unwrap_or(ActionResult::Success)
 }
 
+/// Whether the block's tank (saved in the data's fluid list, tank 0) holds nothing, as
+/// CastingBlockEntity's face rules ask of `tank.isEmpty()`.
+fn tank_empty(data: &NbtCompound) -> bool {
+    let Some(Nbt::List(tanks)) = data.get("fluids") else { return true; };
+    let Some(Nbt::Compound(tank)) = tanks.first() else { return true; };
+    crate::modifier_entries::nbt_int(tank.get("Amount")) <= 0
+        || matches!(tank.get("Fluid"), Some(Nbt::String(fluid)) if fluid == "minecraft:empty")
+}
+
 pub(crate) fn register() {
     for (name, station, require_cast) in BLOCKS {
         let block = Identifier::new("tconstruct", name).expect("valid casting block id");
@@ -697,7 +705,26 @@ pub(crate) fn register() {
             BlockEntityType::new(block).item_slots(SLOTS as u32).fluid_tanks([HOST_CAPACITY]).sync_data()
                 .ticker(move |tick| tick_casting(tick, station))
                 .fluid_filler(move |fill| fill_casting(fill, station, require_cast))
-                .on_use(move |used| use_casting(used, station, require_cast)),
+                .on_use(move |used| use_casting(used, station, require_cast))
+                // CastingBlockEntity.handleRedstone: a rising signal swaps the slots while nothing is
+                // being cast (the original schedules the swap two ticks later; the signal is heard on a
+                // tick seam here, so the swap lands on the seam instead).
+                .on_signal(|signal| {
+                    let mut state = State::load(signal.data, signal.fluid(0));
+                    if signal.powered && !state.redstone { state.swap(signal.items); }
+                    state.redstone = signal.powered;
+                    state.save(signal.data);
+                })
+                // CastingBlockEntity's face rules: every face opens the input for placing and the
+                // output for taking, and both directions require an empty tank; placing also requires
+                // an empty output slot.
+                .sided_access(|_| SidedAccess { insert: vec![INPUT], take: vec![OUTPUT] })
+                .item_transfer_rule(|transfer| match transfer.mode {
+                    TransferMode::Insert => transfer.slot == INPUT
+                        && transfer.items.get(OUTPUT).and_then(Option::as_ref).is_none()
+                        && tank_empty(transfer.data),
+                    TransferMode::Take => transfer.slot == OUTPUT && tank_empty(transfer.data),
+                }),
         );
     }
 }

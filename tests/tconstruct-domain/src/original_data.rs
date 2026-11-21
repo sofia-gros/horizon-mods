@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (111, 74), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (101, 67), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk transform (no walk event) is not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
@@ -178,6 +178,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     for unbound in ["smashing", "overburn"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
     assert!(!unbound_of("overburn").is_empty(), "overburn still carries unported modules");
     assert!(!unbound_of("smashing").is_empty(), "smashing still carries its unported module");
+    // The inventory consumers are bound: the quivers draw through the ammo event, the strap and belt
+    // kinds decode with their interact plan, share durability runs on the wear event, and shears and
+    // fishing answer the tool-action query. Harvest stays unbound (no destroy-with-drops or block-use
+    // re-dispatch reaches a use callback), as does the armor harvest enchantment above.
+    for bound in ["bulk_quiver", "trick_quiver", "shield_strap", "tool_belt", "share_durability", "shears", "fishing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    assert!(kinds.contains("tconstruct:harvest"), "harvest is still unbound");
+    for name in ["bulk_quiver", "trick_quiver", "sliver", "deciduous", "fishing", "shears", "silky_shears", "silky_aoe_shears", "shield_strap", "tool_belt"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
 }
 
 #[test]
@@ -290,9 +297,10 @@ fn a_pickaxe_of_shipped_wood_builds_repairs_and_breaks_through_the_station_dispa
     assert!(crate::tool_stack::stat(data, crate::tool_stats::Stat::MiningSpeed) > 1.0);
     assert_eq!(crate::tool_stack::materials(data, true).as_slice().len(), 3);
     assert!(built.result.max_damage.is_some() && built.result.tool.is_some(), "the slot publishes its bar and mining rules");
-    // The shipped definition also lists what it declares but Tinkers has not ported.
+    // The shipped definition's area module binds now: the pickaxe carries its box iterator.
     let (_, pickaxe) = tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap();
-    assert!(pickaxe.unbound_modules().iter().any(|module| module.path() == "box_aoe"));
+    assert!(pickaxe.aoe().is_some(), "the pickaxe definition binds its aoe_iterator");
+    assert!(!pickaxe.unbound_modules().iter().any(|module| module.path() == "box_aoe"));
 }
 
 #[test]

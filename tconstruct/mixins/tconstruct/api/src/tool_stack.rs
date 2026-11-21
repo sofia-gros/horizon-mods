@@ -699,6 +699,89 @@ pub(crate) fn inventory(nbt: &NbtCompound, env: &Environment) -> crate::tool_inv
 }
 
 /// The slots the tool's volatile data counts (ToolInventoryCapability.TOTAL_SLOTS); the capability exists only above zero.
+/// BowAmmoModifierHook.getAmmo over the tool's own modifiers, in modifier order: the first quiver module that
+/// finds ammunition supplies one of it, already shrunk out of the tool's inventory in `nbt` (findAmmo and
+/// shrinkAmmo run in one step here, as the ammo event's contract has the callback consume its own source).
+/// `vanilla` is the stack the game picked itself (BulkQuiverModule's standardAmmo): a bulk quiver that checks
+/// the standard arrows is a backup and stays silent while it is non-empty. A trick quiver's selection cycling
+/// (InventorySelectionModule.selectNext) is not run here: it rides the tool's use, and the use events report
+/// neither the hand nor the player's crouch state the cycling keys on (see quiver_hook).
+pub(crate) fn draw_quiver_ammo(nbt: &mut NbtCompound, env: &Environment, vanilla: Option<&pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<pluto_lib::ItemSlot> {
+    let ballista = match (env.item, env.item_tags) {
+        (Some(item), Some(tags)) => tags.get_tag(&Identifier::parse("tconstruct:modifiable/ranged/ballistas").expect("valid tag")).is_some_and(|members| members.contains(item)),
+        _ => false,
+    } && volatile_flag(nbt, "tconstruct:ballista");
+    let draws = with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().filter_map(|(entry, modifier)| {
+            let draw = modifier.quiver_draw()?;
+            let mut parts = modifier.inventory_parts(entry, facts);
+            if ballista { for part in &mut parts { if part.is_quiver() { part.note_ballista(); } } }
+            Some((draw, crate::tool_inventory::ToolInventory::new(parts)))
+        }).collect::<Vec<_>>()
+    });
+    for (draw, inventory) in draws {
+        let drawn = with_persistent(nbt, |persistent| {
+            let found = match draw {
+                crate::modifier_modules::QuiverDraw::Bulk { check_standard_arrows } => {
+                    if check_standard_arrows && vanilla.is_some() { return None; }
+                    let (stack, slot) = inventory.find_ammo(persistent, in_tag)?;
+                    // BulkQuiverModule records the drawn slot for its shrink, which happens below in the same step.
+                    persistent.insert("tconstruct:quiver_last_selected".into(), Nbt::Int(slot as i32));
+                    Some((stack, slot))
+                }
+                crate::modifier_modules::QuiverDraw::Trick => {
+                    let selected = crate::modifier_entries::nbt_int(persistent.get("tconstruct:trick_quiver_selected"));
+                    if selected < 0 { return None; }
+                    inventory.stack(persistent, selected as usize).map(|stack| (stack, selected as usize))
+                }
+            };
+            found.map(|(stack, slot)| {
+                let mut rest = stack.clone();
+                rest.count -= 1;
+                inventory.set_stack(persistent, slot, (rest.count > 0).then_some(&rest));
+                let mut supplied = stack;
+                supplied.count = 1;
+                supplied
+            })
+        });
+        if drawn.is_some() { return drawn; }
+    }
+    None
+}
+
+/// One step of an armor keybind interact (ArmorInteractModifierHook), in the merger's order: the strap and
+/// belt modules of every entry in modifier order first (their module priority is the default), then the
+/// inventory menu modules (InventoryMenuModule.getPriority is 75, so a menu opens only when no strap or
+/// belt module answered the key).
+pub(crate) enum InteractPlan {
+    Strap { keys: Vec<crate::tool_inventory::MenuKey>, inventory: crate::tool_inventory::ToolInventory },
+    Belt { keys: Vec<crate::tool_inventory::MenuKey>, inventory: crate::tool_inventory::ToolInventory },
+    Menu { key: crate::tool_inventory::MenuKey },
+}
+
+/// The interact plan of a worn piece: each strap or belt step carries its own modifier's inventory, as the
+/// original's modules read their own entry's inventory capability.
+pub(crate) fn armor_interact_plan(nbt: &NbtCompound, env: &Environment) -> Vec<InteractPlan> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut plan = Vec::new();
+        for (entry, modifier) in saved {
+            let mut inventory: Option<crate::tool_inventory::ToolInventory> = None;
+            for module in modifier.modules() {
+                let step = match module {
+                    crate::modifier_modules::Module::ShieldStrap { keys } => Some(InteractPlan::Strap { keys: keys.clone(), inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
+                    crate::modifier_modules::Module::ToolBelt { keys } => Some(InteractPlan::Belt { keys: keys.clone(), inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
+                    _ => None,
+                };
+                if let Some(step) = step { plan.push(step); }
+            }
+        }
+        for (_, modifier) in saved {
+            for key in modifier.inventory_menu_keys() { plan.push(InteractPlan::Menu { key }); }
+        }
+        plan
+    })
+}
+
 pub(crate) fn inventory_slots(nbt: &NbtCompound) -> i32 {
     match nbt.get(TAG_VOLATILE) { Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get(crate::tool_inventory::TOTAL_SLOTS)), _ => 0 }
 }

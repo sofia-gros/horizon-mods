@@ -12,10 +12,6 @@ pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 /// lists them so a caller can never mistake the definition for fully supported. Every other
 /// unknown module still rejects.
 ///
-/// * Area iterators (box/circle/vein/conditional AOE): PlutoLib's block-break events report the
-///   single broken block and expose no way to break further blocks, and no use context (hit
-///   face, player pitch) reaches a callback, so the iterators have no consumer
-///   (block_break_hook.rs: "An area tool is not ported, so a break harvests one block.").
 /// * Melee extras (melee_particle, sweep_melee, circle_melee): a hit context names only the
 ///   attacker and the victim; PlutoLib has no nearby-entity enumeration, no entity action
 ///   that addresses a third entity, and no way to spawn a named particle at an entity
@@ -30,7 +26,6 @@ pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 ///   current fluid and space and on a melting-recipe lookup at dig time, neither of which
 ///   the mining paths hold.
 const UNBOUND: &[&str] = &[
-    "tconstruct:box_aoe", "tconstruct:circle_aoe", "tconstruct:vein_aoe", "tconstruct:conditional_aoe",
     "tconstruct:melee_particle", "tconstruct:sweep_melee", "tconstruct:circle_melee",
     "tconstruct:attack_interaction", "tconstruct:dual_option_interaction", "tconstruct:toggleable_set_interaction",
     "tconstruct:melting_fluid_effective",
@@ -187,6 +182,8 @@ pub(crate) struct Data {
     /// Trait modules bound to the rebalanced/trim ToolTraitHooks; only swappable_tool_traits asks for them.
     hook_traits: BTreeMap<Identifier, Vec<TraitModule>>,
     effective: Option<crate::tool_mining::Effective>,
+    /// The AOE_ITERATOR binding (box/circle/vein/conditional/tree), when a module claims the hook.
+    aoe: Option<crate::aoe::Iterator>,
     /// MiningSpeedModifierModules in module order (MINING_SPEED composes every module).
     speed: Vec<(crate::mining_speed::BlockCondition, f32)>,
     /// MaxTierModule cap on the harvest tier (MINING_TIER composes by taking the minimum).
@@ -211,6 +208,7 @@ impl Data {
         let mut repairs: Vec<RepairModule> = Vec::new();
         let mut tool_parts: Option<Vec<Identifier>> = None;
         let mut effective: Option<crate::tool_mining::Effective> = None;
+        let mut aoe: Option<crate::aoe::Iterator> = None;
         let mut speed: Vec<(crate::mining_speed::BlockCondition, f32)> = Vec::new();
         let mut max_tier: Option<Identifier> = None;
         let mut missing: Option<MissingModule> = None;
@@ -244,13 +242,14 @@ impl Data {
             let trait_kind = material_trait_kind || kind.to_string() == "tconstruct:traits";
             let repair_kind = kind.to_string() == "tconstruct:material_repair" || kind.to_string() == "tconstruct:statless_part_repair";
             let effective_kind = kind.to_string() == "tconstruct:is_effective";
+            let aoe_kind = matches!(kind.to_string().as_str(), "tconstruct:box_aoe" | "tconstruct:circle_aoe" | "tconstruct:vein_aoe" | "tconstruct:conditional_aoe" | "tconstruct:tree_aoe");
             let speed_kind = kind.to_string() == "tconstruct:mining_speed_modifier";
             let tier_kind = kind.to_string() == "tconstruct:max_tier";
             let missing_kind = matches!(kind.to_string().as_str(), "tconstruct:default_materials" | "tconstruct:remapping_materials");
             // PartStatsModule is MaterialStatsModule plus ToolPartsHook, with parts named by item.
             let parts_kind = kind.to_string() == "tconstruct:part_stats";
             let materials_kind = parts_kind || kind.to_string() == "tconstruct:material_stats";
-            if !empty && !volatile_kind && !action_kind && !trait_kind && !repair_kind && !materials_kind && !effective_kind && !speed_kind && !tier_kind && !missing_kind && !["tconstruct:base_stats", "tconstruct:multiply_stats"].contains(&kind.to_string().as_str()) {
+            if !empty && !volatile_kind && !action_kind && !trait_kind && !repair_kind && !materials_kind && !effective_kind && !aoe_kind && !speed_kind && !tier_kind && !missing_kind && !["tconstruct:base_stats", "tconstruct:multiply_stats"].contains(&kind.to_string().as_str()) {
                 return Err(format!("tool module {kind} has unimplemented hooks"));
             }
             let expected_hook = if volatile_kind { "tconstruct:volatile_data" }
@@ -258,6 +257,7 @@ impl Data {
                 else if trait_kind { "tconstruct:tool_traits" }
                 else if repair_kind { "tconstruct:material_repair" }
                 else if effective_kind { "tconstruct:is_effective" }
+                else if aoe_kind { "tconstruct:aoe_iterator" }
                 else if speed_kind { "tconstruct:mining_speed_modifier" }
                 else if tier_kind { "tconstruct:mining_tier" }
                 else if missing_kind { "tconstruct:missing_materials" } else { "tconstruct:tool_stats" };
@@ -296,6 +296,15 @@ impl Data {
                 // IS_EFFECTIVE has no merger, so a second binding would be ambiguous.
                 if effective.is_some() { return Err("only one effectiveness module may bind is_effective".into()); }
                 effective = Some(crate::tool_mining::Effective::decode(fields)?);
+            } else if aoe_kind {
+                // AOE_ITERATOR has no merger, so a second binding would be ambiguous.
+                if aoe.is_some() { return Err("only one area module may bind aoe_iterator".into()); }
+                match crate::aoe::Iterator::decode(fields)? {
+                    Some(iterator) => aoe = Some(iterator),
+                    // A branch iterator this port does not implement: the module is recorded
+                    // as unbound instead of rejecting the whole definition.
+                    None => { if !unbound.contains(&kind) { unbound.push(kind); } }
+                }
             } else if repair_kind && kind.to_string() == "tconstruct:statless_part_repair" {
                 // StatlessPartRepairModule: IntLoadable FROM_ZERO part index, FROM_ONE amount.
                 let Some(Value::Number(index)) = fields.get("part_index") else { return Err("part_index must be numeric".into()); };
@@ -452,7 +461,7 @@ impl Data {
                 if !stats.iter().any(|previous| same_stat_module(previous, &decoded)) { stats.push(decoded); }
             }
         }
-        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, speed, max_tier, missing, unbound })
+        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, aoe, speed, max_tier, missing, unbound })
     }
 
     /// Definition traits in hook order. Resolution happens against the current
@@ -592,6 +601,8 @@ impl Data {
     }
     /// Modules this definition declares that are recorded but not implemented (see `UNBOUND`).
     pub fn unbound_modules(&self) -> &[Identifier] { &self.unbound }
+    /// ToolHooks.AOE_ITERATOR: the definition's area iterator, when it binds one.
+    pub fn aoe(&self) -> Option<&crate::aoe::Iterator> { self.aoe.as_ref() }
     /// ToolPartsHook.parts: the part items in slot order (empty for tools without a parts module).
     pub fn tool_parts(&self) -> &[Identifier] { &self.parts }
     /// ToolMaterialHook.getStatTypes with the scale of each position.
@@ -691,7 +702,7 @@ impl Definitions {
 /// ToolDefinitions and ArmorDefinitions, excluding other-mod integration.
 /// These are definition identities, not item registrations (slime_chestplate is
 /// intentionally different from the original item's slimy_chestplate identity).
-fn registered() -> BTreeSet<Identifier> {
+pub(crate) fn registered() -> BTreeSet<Identifier> {
     let mut ids: BTreeSet<_> = [
         "pickaxe", "sledge_hammer", "vein_hammer", "mattock", "pickadze", "excavator",
         "hand_axe", "broad_axe", "kama", "scythe", "dagger", "sword", "cleaver",
@@ -862,12 +873,12 @@ mod tests {
     fn unbound_modules_are_listed_not_validated_and_tool_parts_is_real() {
         let data = Data::decode(&json!({"modules":[
             {"type":"tconstruct:part_stats","parts":["tconstruct:pick_head"]},
-            {"type":"tconstruct:box_aoe","anything":"not checked"},
+            {"type":"tconstruct:melee_particle","anything":"not checked"},
             {"type":"tconstruct:fixed_material_name","index":0},
-            {"type":"tconstruct:box_aoe"}
+            {"type":"tconstruct:melee_particle"}
         ]})).unwrap();
         assert_eq!(data.unbound_modules().iter().map(Identifier::to_string).collect::<Vec<_>>(),
-            vec!["tconstruct:box_aoe", "tconstruct:fixed_material_name"], "deduplicated, in order");
+            vec!["tconstruct:melee_particle", "tconstruct:fixed_material_name"], "deduplicated, in order");
         assert!(Data::decode(&json!({"modules":[{"type":"tconstruct:unknown_module"}]})).is_err(), "unlisted modules still reject");
         let shield = Data::decode(&json!({"modules":[{"type":"tconstruct:tool_parts","parts":["tconstruct:shield_core"]}]})).unwrap();
         assert_eq!(shield.tool_parts().len(), 1);
