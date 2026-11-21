@@ -174,3 +174,78 @@ ProjectileEvents::SHOOT_BOW.register(|shot| {
     assert!(shot.actions.borrow().is_empty() || full_draw(shot));
 });
 ```
+
+## Registering a thrown type
+
+A thrown type is a projectile that flies as an item — a copy of the snowball that deals damage: its id is the projectile's entity kind, `item` is what it flies as and drops, and `damage` is what a hit hurts for. Register the types a mod throws once, while it loads:
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+let shuriken = ThrownType::new(
+    Identifier::parse("example:shuriken_thrown").unwrap(),
+    Identifier::parse("example:shuriken").unwrap(),
+    4.0,
+).unwrap();
+ThrownTypeRegistry::register(shuriken).unwrap();
+assert_eq!(ThrownTypeRegistry::get(&Identifier::parse("example:shuriken_thrown").unwrap()).unwrap().damage, 4.0);
+```
+
+> **Use with Caution.** Registration is the trait-mod source of truth, validated as the game validates the content form; delivery to the game's own registry is a wall. The game fills its thrown-type registry once, at startup, from content mods' entity types alone, and no entry or provider seam reaches it for a trait mod, so a type registered here must also be declared in the mod's content entity types to fly in the game. `ThrownTypeRegistry::declarations()` hands over exactly what that declaration needs: each type's id, its `item` and its `damage`, on the `minecraft:snowball` template.
+
+## Spawning projectiles
+
+Spawning goes through the world's summon (see [world](world.md)): any projectile kind loads from its saved data, a registered thrown type included. `spawn_projectile` assembles the data — the kind's own data with `Motion` and `Owner` written from the spawn's fields — and answers the new entity's id, the id its hit is later reported under in `ProjectileEvents::IMPACT`:
+
+```rust
+use pluto_lib::{Identifier, MemoryWorldOps, ProjectileSpawn, World, spawn_projectile, with_world};
+
+let world = World::new("minecraft:overworld");
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:snowball").unwrap(), [0.0, 64.0, 0.0], [1.0, 1.0, 0.0]);
+assert_eq!(spawn_projectile(&world, &spawn), None, "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert_eq!(spawn_projectile(&world, &spawn), Some(1)));
+assert_eq!(ops.summons[0].kind, "minecraft:snowball");
+```
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` summons through the host's `/summon` call; a kind the game cannot load, an unloaded chunk or an out-of-bounds position answers `None`.
+
+### `ThrownType`
+
+A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item` and `damage`. `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
+
+### `ThrownTypeRegistry`
+
+The registry of thrown types. `register` fails, keeping the earlier registration, for a duplicate id or after the declarations have been collected. `get(id)` returns the registered type. `declarations()` returns every registered type, by id, and freezes the registry, as the game's own set-once registry does.
+
+### `ProjectileSpawn`
+
+A projectile to spawn: `kind`, `position`, `motion` (blocks per tick), `owner` (the throwing entity's uuid, if any) and `data`, the kind's own saved data. `ProjectileSpawn::new(kind, position, motion)` starts with no owner and no data; `.owner(uuid)` and `.data(nbt)` add them. `to_nbt()` is the saved data the spawn loads from: the kind's data with `Motion` (a list of three doubles) and `Owner` (a uuid as four ints, most significant first) written from the fields, replacing any in the data.
+
+```rust
+use pluto_lib::{Identifier, Nbt, ProjectileSpawn};
+
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:arrow").unwrap(), [0.0; 3], [0.0, -0.5, 2.0])
+    .owner(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF);
+let nbt = spawn.to_nbt();
+assert_eq!(nbt.get("Motion"), Some(&Nbt::List(vec![Nbt::Double(0.0), Nbt::Double(-0.5), Nbt::Double(2.0)])));
+assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, -0x7766_5545, -0x3322_1101])));
+```
+
+### `spawn_projectile`
+
+`fn spawn_projectile(world: &World, spawn: &ProjectileSpawn) -> Option<u32>`. Spawns the projectile in `world` and returns the new entity's id; `None` when the world cannot summon there or outside a callback that carries a world.
+
+### `spawn_thrown`
+
+`fn spawn_thrown(world: &World, thrown: &Identifier, position: [f64; 3], motion: [f64; 3], owner: Option<u128>, data: NbtCompound) -> Option<u32>`. Spawns a registered thrown type by its id; `None` when no type is registered under `thrown`.
+
+### `uuid_int_array`
+
+`fn uuid_int_array(uuid: u128) -> [i32; 4]`. A uuid as the four ints entity data holds it in (`UUIDUtil.uuidToIntArray`), most significant first.
+
+```rust
+use pluto_lib::uuid_int_array;
+
+assert_eq!(uuid_int_array(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF), [0x0011_2233, 0x4455_6677, -0x7766_5545, -0x3322_1101]);
+```

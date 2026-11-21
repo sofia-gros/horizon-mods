@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
 
-use super::base::{Identifier, IdentifierError, NbtCompound};
+use super::base::{Identifier, IdentifierError, Nbt, NbtCompound};
 use super::block_entity_api_v1::BlockPos;
 
 /// A block with its properties, as `/setblock` writes it: `minecraft:oak_stairs[facing=east,half=bottom]`.
@@ -102,6 +102,13 @@ pub trait WorldOps {
     /// no block entity there or the host cannot.
     fn merge_block_entity_data(&mut self, _dimension: &str, _pos: BlockPos, _data: &NbtCompound) -> bool {
         false
+    }
+    /// Summons an entity of `kind` at `pos` from its saved data `nbt` (Minecraft: `/summon <kind> <pos> <nbt>`; the game writes the
+    /// position itself, so `nbt` needs no `Pos`): the new entity's id, or None when the host cannot summon there — the chunk is not
+    /// loaded, the position is out of bounds, the kind is one the game cannot load, or a callback kept the entity out. The default
+    /// host cannot summon.
+    fn summon_entity(&mut self, _dimension: &str, _kind: &str, _pos: [f64; 3], _nbt: &NbtCompound) -> Option<u32> {
+        None
     }
 }
 
@@ -243,6 +250,14 @@ impl World {
     pub fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool {
         with_current(false, |ops| ops.merge_block_entity_data(&self.dimension, pos, data))
     }
+
+    /// Minecraft: `/summon`. Summons an entity of `kind` (such as `minecraft:item` or a projectile kind) at `pos`, loaded from the
+    /// saved data `nbt` (the game writes the position itself, so `nbt` needs no `Pos`; passengers in the data come along). Returns
+    /// the new entity's id; None when the chunk is not loaded, the position is out of bounds, the kind is one the game cannot load,
+    /// a callback kept the entity out, or the call is made outside a callback that carries a world.
+    pub fn summon(&self, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {
+        with_current(None, |ops| ops.summon_entity(&self.dimension, kind, pos, nbt))
+    }
 }
 
 /// A block tick a host-side callback asked for. The mod-facing host has no call that schedules a
@@ -307,6 +322,19 @@ pub(crate) fn apply_pending_block_ticks(dimension: &str, mut apply: impl FnMut(B
     applied
 }
 
+/// One entity a [`MemoryWorldOps`] was asked to summon, as it was asked.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SummonRecord {
+    /// The dimension summoned into.
+    pub dimension: String,
+    /// The entity kind summoned.
+    pub kind: String,
+    /// Where it was summoned.
+    pub pos: [f64; 3],
+    /// The saved data it was summoned from.
+    pub nbt: NbtCompound,
+}
+
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
 #[derive(Default, Debug)]
 pub struct MemoryWorldOps {
@@ -318,6 +346,8 @@ pub struct MemoryWorldOps {
     pub tags: Vec<(String, String)>,
     /// The saved data of the block entities, by `(dimension, position)`.
     pub entities: BTreeMap<(String, BlockPos), NbtCompound>,
+    /// The entities summoned so far, in order; a summon's id is its 1-based place in this list.
+    pub summons: Vec<SummonRecord>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -351,6 +381,11 @@ impl WorldOps for MemoryWorldOps {
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], _volume: f32, _pitch: f32) -> bool {
         self.sounds.push((sound.to_owned(), at));
         true
+    }
+
+    fn summon_entity(&mut self, dimension: &str, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {
+        self.summons.push(SummonRecord { dimension: dimension.to_owned(), kind: kind.to_owned(), pos, nbt: nbt.clone() });
+        Some(self.summons.len() as u32)
     }
 }
 
@@ -446,5 +481,30 @@ mod tests {
             assert_eq!(world.get_block_state([1, 64, 0]).unwrap().to_string(), "minecraft:air");
         });
         assert_eq!(ops.blocks.len(), 1);
+    }
+
+    #[test]
+    fn summons_reach_the_ops_with_their_data_and_answer_the_new_id_only_inside_a_scope() {
+        let world = World::new("minecraft:overworld");
+        let mut nbt = NbtCompound::new();
+        nbt.insert("Item".into(), Nbt::String("minecraft:stone".into()));
+        assert_eq!(world.summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), None, "outside a scope nothing is summoned");
+        let mut ops = MemoryWorldOps::default();
+        with_world(&mut ops, || {
+            assert_eq!(world.summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), Some(1));
+            assert_eq!(world.summon("minecraft:arrow", [1.0, 65.0, 1.0], &NbtCompound::new()), Some(2));
+        });
+        assert_eq!(ops.summons.len(), 2);
+        assert_eq!(ops.summons[0].kind, "minecraft:item");
+        assert_eq!(ops.summons[0].dimension, "minecraft:overworld");
+        assert_eq!(ops.summons[0].nbt.get("Item"), Some(&Nbt::String("minecraft:stone".into())));
+        // A host that does not implement summoning keeps the default answer.
+        struct NoSummon;
+        impl WorldOps for NoSummon {
+            fn block_state(&mut self, _: &str, _: BlockPos) -> Option<String> { None }
+            fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
+            fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+        }
+        with_world(&mut NoSummon, || assert_eq!(world.summon("minecraft:item", [0.0; 3], &nbt), None));
     }
 }

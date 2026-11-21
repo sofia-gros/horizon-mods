@@ -235,6 +235,7 @@ mod api_pages {
     page!(World, "world.md");
     page!(Worldgen, "worldgen.md");
     page!(Projectile, "projectile.md");
+    page!(Book, "book.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");
