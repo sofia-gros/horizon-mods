@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "modifier": [
+            {
+              "type": "minecraft:copy_custom_data",
+              "source": "block_entity",
+              "ops": [
+                {
+                  "op": "replace",
+                  "source": "Material",
+                  "target": "Material"
+                }
+              ]
+            }
+          ],
+          "name": "tconstruct:fake_storage_block"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "tconstruct:blocks/fake_storage_block"
+}

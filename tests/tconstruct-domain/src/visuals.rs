@@ -161,7 +161,7 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         if tools.contains(name) { "tools" }
         else if parts.contains(name) { "tool_parts" }
         // TinkerTables.addTabItems and the declared gadgets of TinkerGadgets.addTabItems (the general tab); the Deco tab only holds retextured variants
-        else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "soul_glass", "soul_glass_pane",
+        else if ["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "soul_glass", "soul_glass_pane",
                  "punji", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "clear_glass", "clear_glass_pane", "gold_bars", "obsidian_pane", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane"].contains(&path) { "general" }
         // TinkerMaterials.addTabItems, which the general tab calls: the loose nuggets and, per metal, the block, ingot and nugget
         else if ["copper_nugget", "debris_nugget", "netherite_nugget"].contains(&path)
@@ -182,9 +182,11 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         // The potted flora, the wall signs and the wall heads are blocks with no item in the original either, so they are in no tab.
         // The ichor foliage is in no tab either: FoliageType.VISIBLE excludes ichor, and the wood section of the tab
         // accepts only the earth, sky, blood and ender saplings and leaves.
+        // The crystalshot is likewise accepted into no tab (it is only cast), and the fake ingot and fake storage
+        // block get tab variants only for the compatibility materials, which this port does not ship.
         if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket"
             || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
-            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) {
+            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) || name == "tconstruct:crystalshot" || name == "tconstruct:fake_ingot" || name == "tconstruct:fake_storage_block" {
             for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
             continue;
         }

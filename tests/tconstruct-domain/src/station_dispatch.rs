@@ -117,7 +117,7 @@ fn station_previews_a_wood_pickaxe_after_a_real_reload() {
         crate::tool_materials::set_part_material(&mut stack, &crate::tool_materials::MaterialVariant::parse("tconstruct:wood").unwrap());
         items[slot] = Some(stack);
     }
-    assert!(crate::station_menu::refresh_result(&mut items), "the ticker refresh changes the result slot");
+    assert!(crate::station_menu::refresh_result(&mut items, 4), "the ticker refresh changes the result slot");
     let result = items[5].as_ref().expect("a previewed tool in the result slot");
     assert_eq!(result.item.to_string(), "tconstruct:pickaxe");
 }

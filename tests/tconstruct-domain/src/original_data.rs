@@ -510,7 +510,7 @@ fn shipped_material_recipes_load_without_problems_and_horns_match_by_instrument(
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 359, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime and 2 enchantment converting records");
+    assert_eq!(files.len(), 367, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime and 10 enchantment converting records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
@@ -1089,7 +1089,7 @@ fn shipped_tool_recycling_loads_and_a_wood_pickaxe_breaks_into_its_parts() {
     use pluto_lib::{ItemSlot, Nbt};
     let world = world();
     let files = recursive_files("tools/recycling", "tools/recycling");
-    assert_eq!(files.len(), 15);
+    assert_eq!(files.len(), 20, "the fifteen tool recycling recipes and the five damageable ones the station pack ships beside them");
     let recycles = Recycles::load(&files, &conditions());
     // The minotaur axe's record waits on another mod's condition, which never holds here.
     assert_eq!((recycles.len(), recycles.problems.len()), (14, 0), "{:?}", recycles.problems);
@@ -1122,6 +1122,63 @@ fn shipped_tool_recycling_loads_and_a_wood_pickaxe_breaks_into_its_parts() {
     let mut upgraded = tool.clone();
     upgraded.custom_data.insert(crate::tool_stack::TAG_UPGRADES.into(), crate::modifier_entries::List::default().with_modifier(Identifier::parse("tconstruct:sharpness").unwrap(), 1).unwrap().to_nbt());
     assert!(recycles.find(&upgraded, &venom, &in_tag).is_none());
+}
+
+#[test]
+fn shipped_damageable_recycling_loads_and_a_worn_staff_recycles_by_its_remaining_durability() {
+    use crate::damageable_recycling::Recycles;
+    use pluto_lib::ItemSlot;
+    let tools = recursive_files("tools/recycling", "tools/recycling");
+    let tables = recursive_files("tables/recycling", "tables/recycling");
+    assert_eq!((tools.len(), tables.len()), (20, 32));
+    let recycles = Recycles::load_folders(&tools, &tables, &conditions());
+    assert_eq!(recycles.len(), 20, "the five staff recipes and the fifteen unconditional tables recipes; the seventeen twilightforest tables recipes stay unloaded in a vanilla-only world, as their conditions say");
+    assert!(recycles.problems().is_empty(), "{:#?}", recycles.problems());
+    let in_tag = |_: &Identifier, _: &Identifier| false;
+    let first_of = |source: &crate::fluid_ingredient::Source| match source {
+        crate::fluid_ingredient::Source::Id(item) => Some(item.clone()),
+        crate::fluid_ingredient::Source::Tag(_) => None,
+    };
+    let pattern = Identifier::parse("tconstruct:venom_bottle").unwrap();
+    let crystal = Identifier::parse("tconstruct:crystal").unwrap();
+    // The earth staff, undamaged: its results total five, so the crystal comes out whole and the
+    // leftover budget buys the block result (the first other result in pattern order).
+    let mut staff = ItemSlot::new(Identifier::parse("tconstruct:earth_staff").unwrap(), 1);
+    let recipe = recycles.find(&staff, &pattern, 100, &in_tag).expect("the earth staff recipe matches an undamaged staff");
+    assert_eq!(recipe.id.to_string(), "tconstruct:tools/recycling/earth_staff");
+    let made = recipe.assemble(&crystal, &staff, 100, &first_of).expect("a crystal");
+    assert_eq!((made.item.to_string(), made.count), ("tconstruct:earth_slime_crystal".to_string(), 2));
+    let leftover = recipe.leftover(&crystal, &staff, 100, &first_of, &mut || 0.0).expect("a leftover");
+    assert_eq!((leftover.item.to_string(), leftover.count), ("tconstruct:greenheart_log".to_string(), 2));
+    // At a fifth of its durability left, the budget of five shrinks to one; nearly broken, the
+    // recipe no longer matches at all.
+    staff.damage = 80;
+    let made = recipe.assemble(&crystal, &staff, 100, &first_of).expect("a crystal");
+    assert_eq!(made.count, 1);
+    staff.damage = 99;
+    assert!(recycles.find(&staff, &pattern, 100, &in_tag).is_none(), "a budget of zero matches nothing");
+    // The tables folder: a vanilla bow breaks into string and sticks.
+    let bow = ItemSlot::new(Identifier::parse("minecraft:bow").unwrap(), 1);
+    let recipe = recycles.find(&bow, &pattern, 384, &in_tag).expect("the bow recipe matches");
+    let rod = recipe.assemble(&Identifier::parse("tconstruct:rod").unwrap(), &bow, 384, &first_of).expect("sticks");
+    assert_eq!((rod.item.to_string(), rod.count), ("minecraft:stick".to_string(), 3));
+}
+
+#[test]
+fn shipped_station_layouts_load_and_the_tab_order_matches_the_shipped_files() {
+    use crate::station_layouts::Layouts;
+    let files = files("station_layouts");
+    assert_eq!(files.len(), 23);
+    let layouts = Layouts::load(&files, &conditions());
+    assert!(layouts.problems.is_empty(), "{:#?}", layouts.problems);
+    for main in ["tinker_station", "tinkers_anvil", "scorched_anvil"] {
+        assert_eq!(layouts.main_for(main).name.path(), main, "{main} is a main layout");
+    }
+    let tabs = layouts.tabs();
+    assert_eq!(tabs.len(), 20);
+    let names: Vec<String> = tabs.iter().map(|layout| layout.name.path().to_owned()).collect();
+    let order: Vec<String> = crate::station_layout_order::TAB_ORDER.iter().map(|name| (*name).to_owned()).collect();
+    assert_eq!(names, order, "the baked tab order is the shipped layouts' sort order");
 }
 
 #[test]
@@ -2808,11 +2865,11 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 248, "the plain recipes the importer converts: 102 of the smeltery folder, 5 of the tables, 134 of the commons and 7 of the gadgets (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane); the rest name items this port does not declare yet");
+    assert_eq!(count, 258, "the plain recipes the importer converts: 248 of them as counted before the station pack (102 of the smeltery folder, 5 of the tables, 134 of the commons and 7 of the gadgets (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane) and 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_casting_tank", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "scorched_alloyer", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can", "copper_gauge", "seared_fluid_cannon",
-                 "tinker_station", "part_builder", "modifier_worktable", "pattern",
+                 "tinker_station", "part_builder", "modifier_worktable", "pattern", "crafting_station", "tinkers_chest", "part_chest", "cast_chest", "tinkers_anvil", "scorched_anvil",
                  "seared_lantern", "scorched_lantern", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane",
                  "scorched_chute", "scorched_drain", "scorched_proxy_tank", "scorched_table", "end_fluid_cannon", "obsidian_gauge",
                  "cobalt_block", "cobalt_ingot", "copper_nugget", "clear_glass_pane", "gold_bars", "steel_ingot", "queens_slime_ingot", "sky_slime_ball",
@@ -2902,6 +2959,25 @@ fn the_world_fluid_content_matches_what_plutolib_flows() {
     assert_eq!(checked, 70);
 }
 
+/// The shipped modifier tags as resource stacks, nested folders and all (tags/modifiers/...).
+fn modifier_tag_stacks() -> Vec<JsonResourceStack> {
+    fn walk(dir: &std::path::Path, base: &std::path::Path, out: &mut Vec<JsonResourceStack>) {
+        for entry in std::fs::read_dir(dir).expect("modifier tag folder") {
+            let path = entry.unwrap().path();
+            if path.is_dir() { walk(&path, base, out); continue; }
+            if path.extension().and_then(|e| e.to_str()) != Some("json") { continue; }
+            let rel = path.strip_prefix(base).unwrap().to_str().unwrap().replace('\\', "/");
+            let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).expect("valid JSON");
+            out.push(JsonResourceStack { id: Identifier::new("tconstruct", rel.trim_end_matches(".json")).unwrap(), layers: vec![Ok(value)] });
+        }
+    }
+    let base = root().join("tags/modifiers");
+    let mut stacks = Vec::new();
+    walk(&base, &base, &mut stacks);
+    stacks.sort_by(|a, b| a.id.cmp(&b.id));
+    stacks
+}
+
 fn enchantment_tag_stacks() -> Vec<JsonResourceStack> {
     let mut stacks = Vec::new();
     for entry in std::fs::read_dir(root().join("../tags/enchantment/modifier_like")).expect("enchantment tag folder") {
@@ -2958,11 +3034,14 @@ fn shipped_enchantment_converting_recipes_load_and_convert_a_book() {
     let value: Value = serde_json::from_slice(&std::fs::read(root().join("enchantments_to_modifiers.json")).unwrap()).expect("valid JSON");
     let stack = JsonResourceStack { id: Identifier::parse("tconstruct:enchantments_to_modifiers").unwrap(), layers: vec![Ok(value)] };
     world.registry.load_enchantment_map(Some(&stack), &enchantment_tag_stacks());
-    let conversions = Conversions::load(&recursive_files("tools/modifiers", "tools/modifiers"), &conditions());
+    world.registry.load_tags(&modifier_tag_stacks());
+    let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| world.registry.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
+    let files = recursive_files("tools/modifiers", "tools/modifiers");
+    let conversions = Conversions::load(&files, &conditions());
     assert!(conversions.problems.is_empty(), "{:?}", conversions.problems);
-    assert_eq!(conversions.recipes.len(), 2, "the book and tool converting recipes");
-    let book_recipe = conversions.recipes.iter().find(|recipe| recipe.match_book).expect("the book recipe");
-    let tool_recipe = conversions.recipes.iter().find(|recipe| !recipe.match_book).expect("the tool recipe");
+    assert_eq!(conversions.recipes.len(), 10, "the two unenchant recipes and the eight slot-type ones (abilities, upgrades, defense, slotless, as book and tool)");
+    let book_recipe = conversions.recipes.iter().find(|recipe| recipe.match_book && recipe.name == "modifiers").expect("the book recipe");
+    let tool_recipe = conversions.recipes.iter().find(|recipe| !recipe.match_book && recipe.name == "modifiers").expect("the tool recipe");
     assert!(book_recipe.return_unenchanted && tool_recipe.return_unenchanted);
     let id = |text: &str| Identifier::parse(text).unwrap();
     let in_tag = |_: &Identifier, _: &Identifier| false;
@@ -2972,12 +3051,23 @@ fn shipped_enchantment_converting_recipes_load_and_convert_a_book() {
     assert!(!tool_recipe.matches(&id("tconstruct:pickaxe"), false, &inputs, &[], &in_tag), "a Tinkers tool is not enchantable");
     assert!(tool_recipe.matches(&id("minecraft:diamond_pickaxe"), true, &inputs, &[], &in_tag), "an enchantable tool matches");
     // A fortune III book offers a level 1 luck crystal (the book returns), and comes back at fortune II.
+    let modifier_recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
+    let recipe_modifier = |slot: Option<&str>, modifier: &Identifier| modifier_recipes.is_recipe_modifier(slot, modifier);
     let enchantments: BTreeMap<String, i32> = [("minecraft:fortune".to_owned(), 3)].into_iter().collect();
-    assert_eq!(book_recipe.options(&enchantments, &world.registry.enchantment_map, &in_tag), vec![(id("tconstruct:luck"), 1)]);
+    assert_eq!(book_recipe.options(&enchantments, &world.registry.enchantment_map, &in_tag, &recipe_modifier), vec![(id("tconstruct:luck"), 1)]);
     let crystal = book_recipe.result(&(id("tconstruct:luck"), 1), &inputs, &[], &in_tag).expect("the crystal");
     assert_eq!(crystal.custom_data.get("modifier"), Some(&pluto_lib::Nbt::String("tconstruct:luck".into())));
     let returned = book_recipe.unenchanted_return(&book, &enchantments, &world.registry.enchantment_map, &id("tconstruct:luck")).expect("the book returns");
     assert_eq!(returned.enchantments.get("minecraft:fortune"), Some(&2));
+    // The slot-type recipes offer only modifiers a modifier recipe adds for their slot type: the
+    // abilities recipe offers crystalshot for an infinity book (its recipes spend ability slots);
+    // the slotless recipe offers nothing for the fortune book: luck's later levels are slotless
+    // recipes, but luck sits on the slotless extraction blacklist.
+    let ability_book = conversions.recipes.iter().find(|recipe| recipe.match_book && recipe.name == "abilities").expect("the abilities book recipe");
+    let infinity: BTreeMap<String, i32> = [("minecraft:infinity".to_owned(), 1)].into_iter().collect();
+    assert_eq!(ability_book.options(&infinity, &world.registry.enchantment_map, &modifier_in_tag, &recipe_modifier), vec![(id("tconstruct:crystalshot"), 1)]);
+    let slotless_book = conversions.recipes.iter().find(|recipe| recipe.match_book && recipe.name == "slotless").expect("the slotless book recipe");
+    assert!(slotless_book.options(&enchantments, &world.registry.enchantment_map, &modifier_in_tag, &recipe_modifier).is_empty());
 }
 
 #[test]

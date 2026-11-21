@@ -44,6 +44,7 @@
     "tconstruct:hepatizon_block",
     "tconstruct:knightmetal_block",
     "tconstruct:knightslime_block",
+    "tconstruct:fake_storage_block",
     "tconstruct:seared_stone",
     "tconstruct:seared_stone_slab",
     "tconstruct:seared_stone_stairs",
@@ -121,6 +122,9 @@
     "tconstruct:foundry_controller",
     "tconstruct:obsidian_gauge",
     "tconstruct:end_fluid_cannon",
-    "tconstruct:modifier_worktable"
+    "tconstruct:modifier_worktable",
+    "tconstruct:cast_chest",
+    "tconstruct:tinkers_anvil",
+    "tconstruct:scorched_anvil"
   ]
 }

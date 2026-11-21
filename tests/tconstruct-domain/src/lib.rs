@@ -145,6 +145,12 @@ mod loot_modifiers;
 mod loot_modifier_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_recycling.rs"]
 mod part_recycling;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damageable_recycling.rs"]
+mod damageable_recycling;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/station_layouts.rs"]
+mod station_layouts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/station_layout_order.rs"]
+mod station_layout_order;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]
 mod tool_actions;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_action_hook.rs"]
@@ -159,6 +165,10 @@ mod edible_hook;
 mod tool_station;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/station_menu.rs"]
 mod station_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/chests.rs"]
+mod chests;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_station.rs"]
+mod crafting_station;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/worktable_menu.rs"]
 mod worktable_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_menu.rs"]

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "m": [
+      "minecraft:netherite_block"
+    ],
+    "s": "#tconstruct:seared_blocks",
+    "t": "tconstruct:tinker_station"
+  },
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "result": {
+    "id": "tconstruct:tinkers_anvil"
+  }
+}

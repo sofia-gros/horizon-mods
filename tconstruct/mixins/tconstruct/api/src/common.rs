@@ -28,6 +28,10 @@ static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = Onc
 pub(crate) fn removals() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Removals>>> { REMOVALS.get() }
 static CONVERSIONS: OnceLock<Arc<RwLock<crate::enchantment_converting::Conversions>>> = OnceLock::new();
 pub(crate) fn conversions() -> Option<&'static Arc<RwLock<crate::enchantment_converting::Conversions>>> { CONVERSIONS.get() }
+static DAMAGEABLE: OnceLock<Arc<RwLock<crate::damageable_recycling::Recycles>>> = OnceLock::new();
+pub(crate) fn damageable_recycles() -> Option<&'static Arc<RwLock<crate::damageable_recycling::Recycles>>> { DAMAGEABLE.get() }
+static STATION_LAYOUTS: OnceLock<Arc<RwLock<crate::station_layouts::Layouts>>> = OnceLock::new();
+pub(crate) fn station_layouts() -> Option<&'static Arc<RwLock<crate::station_layouts::Layouts>>> { STATION_LAYOUTS.get() }
 static OVERSLIME_RECIPES: OnceLock<Arc<RwLock<crate::overslime::Recipes>>> = OnceLock::new();
 pub(crate) fn overslime_recipes() -> Option<&'static Arc<RwLock<crate::overslime::Recipes>>> { OVERSLIME_RECIPES.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
@@ -47,6 +51,11 @@ pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> {
 pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
 pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
+/// The captured item prototypes of the last reload (each item's default stack), for facts a stack
+/// does not carry itself, such as a vanilla item's own max damage. Captured where the item snapshot
+/// is, in the same reload callbacks; absent outside them and after a server stop.
+static ITEM_PROTOTYPES: RwLock<Option<Arc<pluto_lib::ItemRegistrySnapshot>>> = RwLock::new(None);
+pub(crate) fn item_prototypes() -> Option<Arc<pluto_lib::ItemRegistrySnapshot>> { ITEM_PROTOTYPES.read().expect("item prototypes lock poisoned").clone() }
 /// The item registry snapshot with Forge's convention tags (`forge:ingots/iron`, `forge:glass`...) that the original's recipes name and
 /// nothing in this host defines, each holding the vanilla and Tinkers items it stands for (convention_tags.rs).
 pub(crate) fn with_convention_tags(items: pluto_lib::RegistryLookup) -> pluto_lib::RegistryLookup {
@@ -58,6 +67,7 @@ pub(crate) fn with_convention_tags(items: pluto_lib::RegistryLookup) -> pluto_li
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap()).map(with_convention_tags);
     if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
+    if let Some(prototypes) = pluto_lib::ItemRegistry::snapshot() { *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = Some(Arc::new(prototypes)); }
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
         *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));
     }
@@ -137,6 +147,18 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers enchantment converting listener registration failed");
         CONVERSIONS.set(conversions).expect("Tinkers enchantment conversions already initialized");
+        let damageable_config = config.clone();
+        let damageable = crate::damageable_recycling::register(move || {
+            let config = damageable_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers damageable recycling listener registration failed");
+        DAMAGEABLE.set(damageable).expect("Tinkers damageable recycling already initialized");
+        let layouts_config = config.clone();
+        let layouts = crate::station_layouts::register(move || {
+            let config = layouts_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers station layouts listener registration failed");
+        STATION_LAYOUTS.set(layouts).expect("Tinkers station layouts already initialized");
         let overslime_config = config.clone();
         let overslime = crate::overslime::register(move || {
             let config = overslime_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
@@ -166,6 +188,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         let stopped = materials.clone();
         pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
             *ITEMS.write().expect("item snapshot lock poisoned") = None;
+            *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = None;
             *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;
             *FLUID_SNAPSHOT.write().expect("fluid snapshot lock poisoned") = None;
             let mut state = stopped.write().expect("material registry lock poisoned");

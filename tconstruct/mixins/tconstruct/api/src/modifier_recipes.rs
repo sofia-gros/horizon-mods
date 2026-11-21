@@ -360,6 +360,21 @@ impl Recipes {
     pub fn find_crystal(&self, tool: &Identifier, modifier: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Recipe> {
         self.recipes.iter().find(|recipe| recipe.allow_crystal && matches!(recipe.kind, Kind::Single | Kind::Incremental { .. }) && &recipe.result == modifier && recipe.tools.matches(tool, in_tag))
     }
+    /// ModifierRecipeLookup.isRecipeModifier: some loaded recipe adds `modifier` spending the named
+    /// slot type (none: a slotless recipe). A multilevel recipe registers under its first level's
+    /// slots, as its constructor passes those to the shared base; a slot count of 0 registers as
+    /// slotless (SlotCount.type), which the decoder already rejects, so it cannot occur here.
+    pub fn is_recipe_modifier(&self, slot_type: Option<&str>, modifier: &Identifier) -> bool {
+        self.recipes.iter().any(|recipe| {
+            if &recipe.result != modifier { return false; }
+            let slots = if recipe.levels.is_empty() { recipe.slots.as_ref() } else { recipe.levels[0].slots.as_ref() };
+            match (slot_type, slots) {
+                (None, None) => true,
+                (Some(name), Some((registered, _))) => registered == name,
+                _ => false,
+            }
+        })
+    }
     pub fn len(&self) -> usize { self.recipes.len() }
 }
 

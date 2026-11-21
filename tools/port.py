@@ -19,13 +19,15 @@ CONTENT = Path('tconstruct/content')
 CONTENT_PATHS = (
     re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:de_de|en_us|es_ar|es_cl|es_es|es_mx|fr_fr|id_id|it_it|ja_jp|ko_kr|lzh|pl_pl|pt_br|ru_ru|sv_se|tr_tr|uk_ua|zh_cn|zh_tw)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
-    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/enchantments_to_modifiers\.json'),
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The part builder's damageable recycling recipes of the tables tree (the tools tree's are under recycling above).
+    re.compile(r'data/tconstruct/recipes/tables/recycling(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The smeltery domain's melting, alloy, fuel, casting and molding recipes and the fluid tags they name (tools/import_original_data.py),
     # kept in the mod's own folders (the host's own copy of the tconstruct tags is data/tconstruct/tags/fluid, matched below).
     re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
@@ -474,7 +476,9 @@ def checked_content(root, version):
                 elif '/recipes/tools/severing/' in name:
                     reviewed = ('tconstruct:severing',)
                 elif '/recipes/tools/recycling/' in name:
-                    reviewed = ('tconstruct:part_builder_tool_recycling',)
+                    reviewed = ('tconstruct:part_builder_tool_recycling', 'tconstruct:part_builder_recycling')
+                elif '/recipes/tables/recycling/' in name:
+                    reviewed = ('tconstruct:part_builder_recycling',)
                 else:
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
