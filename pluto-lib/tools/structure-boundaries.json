@@ -371,7 +371,7 @@
       "cancellable": false,
       "bindings": [{"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"}],
       "source_file": "pluto-explosion-flush-head.rs",
-      "source_sha256": "84175506de40f3987d57b342e20a93f6c01f7b4dacbffd15f14c951035b230b7"
+      "source_sha256": "6dc16b4ff140aee61b35b9b0f313d34066802080e4e2c0de4cd513e00be0620c"
     },
     {
       "injection_id": "pluto-mob-inside-motion",
