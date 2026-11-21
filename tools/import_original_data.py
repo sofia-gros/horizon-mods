@@ -54,6 +54,16 @@ def write_creative_parts(skipped):
     parts = re.findall(r'\("([a-z_]+)", "([a-z_]+)"\)', table)
     # RepairKitItem is a material item with its own stat type but is not a ToolPart.
     parts.append(('repair_kit', 'repair_kit'))
+    # FakeIngotItem is a RepairKitItem for the compatibility materials that lack an ingot form (its row is
+    # intersected with that material tag below, and with whether the material is shipped at all).
+    parts.append(('fake_ingot', 'repair_kit'))
+    compat = set()
+    compat_path = TARGET / 'tags/materials/compatibility_metals.json'
+    if compat_path.exists():
+        for entry in json.loads(compat_path.read_text(encoding='utf-8'))['values']:
+            text = entry if isinstance(entry, str) else entry.get('id', '')
+            if text.startswith('tconstruct:') and '/' not in text:
+                compat.add(text.split(':', 1)[1])
     lines = ['//! Tool parts with the visible shipped materials that can make them, in creative-tab order.',
              '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
              'pub(crate) const PARTS: &[(&str, &[&str])] = &[']
@@ -61,6 +71,10 @@ def write_creative_parts(skipped):
         # RepairKitItem.canUseMaterial: the repair kit stat or any stat type of IRepairableMaterialStats
         wanted = {f'tconstruct:{stat}'} | ({f'tconstruct:{name}' for name in REPAIRABLE} if stat == 'repair_kit' else set())
         materials = [name for name in order if wanted & stats.get(name, set())]
+        if item == 'fake_ingot':
+            # FakeIngotItem.canUseMaterial: only the compatibility materials (the missing-item half of the
+            # check needs the loaded material recipes, so a material with an ingot recipe may still be listed).
+            materials = [name for name in materials if name in compat]
         lines.append(f'    ("{item}", &[' + ', '.join(f'"{name}"' for name in materials) + ']),')
     lines.append('];')
     # ModifierCrystalItem.addVariants: every modifier a modifier recipe makes (ModifierRecipeLookup.getRecipeModifierList, sorted by id),
@@ -248,6 +262,59 @@ def copy_recycling_recipes():
         shutil.copyfile(path, destination)
         count += 1
     return count
+
+
+DAMAGEABLE_RECYCLE_SOURCES = [
+    (ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/recycling',
+     ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/recycling'),
+    (ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tables/recycling',
+     ROOT / 'tconstruct/content/data/tconstruct/recipes/tables/recycling'),
+]
+
+
+def copy_damageable_recycling_recipes():
+    """The part builder's damageable recycling recipes (`tconstruct:part_builder_recycling`: a vanilla item or a
+    material-less tool breaks into fixed results, scaled by its remaining durability), byte for byte. They sit
+    beside the tool recycling recipes in the tools tree and alone in the tables tree."""
+    count = 0
+    for source, target in DAMAGEABLE_RECYCLE_SOURCES:
+        for path in sorted(source.rglob('*.json')):
+            if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:part_builder_recycling':
+                continue
+            destination = target / path.relative_to(source)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            count += 1
+    return count
+
+
+LAYOUT_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering/station_layouts'
+LAYOUT_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/station_layouts'
+# The layouts TinkerTables.commonSetup registers as required: the main layout of each station block.
+REQUIRED_LAYOUTS = ['tinker_station', 'tinkers_anvil', 'scorched_anvil']
+
+
+def copy_station_layouts():
+    """The tinker station slot layouts, byte for byte, plus station_layout_order.rs: the tab order of the
+    non-main layouts (StationSlotLayoutLoader's sorted list: by sortIndex, then name), which the window
+    publishes button indices into. A layout without a sortIndex is a station's main layout."""
+    if LAYOUT_TARGET.exists():
+        shutil.rmtree(LAYOUT_TARGET)
+    LAYOUT_TARGET.mkdir(parents=True)
+    layouts = {}
+    for path in sorted(LAYOUT_SOURCE.glob('*.json')):
+        shutil.copyfile(path, LAYOUT_TARGET / path.name)
+        layouts[path.stem] = json.loads(path.read_text(encoding='utf-8'))
+    missing = [name for name in REQUIRED_LAYOUTS if name not in layouts]
+    if missing:
+        raise SystemExit(f'required station layouts missing: {missing}')
+    tabs = sorted((data['sortIndex'], name) for name, data in layouts.items() if 'sortIndex' in data)
+    lines = ['//! The station layouts the window offers as tabs, in the loader\'s order (sortIndex, then name).',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const TAB_ORDER: &[&str] = &[']
+    lines += [f'    "{name}",' for _, name in tabs] + ['];']
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/station_layout_order.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(layouts)
 
 
 SEVERING_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/severing'
@@ -1031,7 +1098,9 @@ SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct', 'alloy
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
 # tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
-PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture', 'mantle:connected'}
+# tconstruct:material_block (the fake storage block) picks the cube's texture from the block's material: the shape stays
+# with its fallback texture, the material texture is a renderer's work.
+PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture', 'mantle:connected', 'tconstruct:material_block'}
 
 
 def qualify(reference):
@@ -1170,7 +1239,17 @@ def copy_client_assets():
     for texture in SMELTERY_GUI_TEXTURES:
         import_texture(f'tconstruct:gui/{texture}')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
-        if not asset_source(f'models/item/{name}.json').exists() or needs_loader(f'tconstruct:item/{name}'):
+        if not asset_source(f'models/item/{name}.json').exists():
+            skipped.append(name)
+            continue
+        if read(asset_source(f'models/item/{name}.json')).get('loader') == 'mantle:nbt_key':
+            # The crystalshot: its texture is chosen by the stack's `variant` data, which no item-model select
+            # here can read; the default texture stands in and the variant textures are left out.
+            model = read(asset_source(f'models/item/{name}.json'))
+            write(f'models/item/{name}.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': import_texture(model['textures']['default'])}})
+            write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': f'tconstruct:item/{name}'}})
+            continue
+        if needs_loader(f'tconstruct:item/{name}'):
             skipped.append(name)
             continue
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
@@ -2095,11 +2174,13 @@ def copy_world_features():
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
 FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
+              'forge:gems/lapis': ['minecraft:lapis_lazuli'], 'forge:chests/wooden': ['minecraft:chest', 'minecraft:trapped_chest'],
+              'forge:workbenches': ['minecraft:crafting_table', 'tconstruct:crafting_station'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
               'forge:dusts/redstone': ['minecraft:redstone'], 'forge:glass_panes/colorless': ['minecraft:glass_pane']}
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
-TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}
+TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks', 'minecraft:logs'}
 CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 
@@ -2117,15 +2198,50 @@ def copy_crafting_recipes():
     def known(item):
         return item in declared or item.startswith('minecraft:')
 
+    def forge_members(tag, seen=()):
+        """The items a Forge convention tag names in the original's own tag providers (its metal storage blocks are
+        Tinkers blocks), or the vanilla items of the convention table when Forge itself generated the tag (the vanilla
+        metals). Anything else is unknown and stops the recipe, as an undeclared item does."""
+        path = tag.split(':', 1)[1]
+        file = GENERATED_DATA / 'forge/tags/items' / f'{path}.json'
+        if tag in seen:
+            raise KeyError(tag)
+        if file.is_file():
+            entries = json.loads(file.read_text(encoding='utf-8'))['values']
+        elif path in VANILLA_CONVENTION:
+            entries = VANILLA_CONVENTION[path]
+        else:
+            raise KeyError(tag)
+        result = []
+        for entry in entries:
+            entry = entry if isinstance(entry, str) else entry['id']
+            if entry.startswith('#forge:'):
+                result += forge_members(entry[1:], seen + (tag,))
+            elif entry.startswith('#'):
+                result += members(entry[1:], seen + (tag,))
+            elif entry in declared or entry.startswith('minecraft:'):
+                result.append(entry)
+        return result
+
     def members(tag, seen=()):
         namespace, path = tag.split(':', 1)
         if namespace != 'tconstruct' or tag in seen:
             raise KeyError(tag)
         result = []
-        for entry in json.loads((tag_files / f'{path}.json').read_text(encoding='utf-8'))['values']:
-            entry = entry if isinstance(entry, str) else entry['id']
-            result += members(entry[1:], seen + (tag,)) if entry.startswith('#') else [entry]
-        return [item for item in result if item in declared]
+        for raw in json.loads((tag_files / f'{path}.json').read_text(encoding='utf-8'))['values']:
+            entry = raw if isinstance(raw, str) else raw['id']
+            try:
+                if entry.startswith('#forge:'):
+                    result += forge_members(entry[1:], seen + (tag,))
+                elif entry.startswith('#'):
+                    result += members(entry[1:], seen + (tag,))
+                else:
+                    result.append(entry)
+            except KeyError:
+                if isinstance(raw, dict) and raw.get('required') is False:
+                    continue  # an optional member from another mod, which is not here
+                raise
+        return [item for item in result if item in declared or item.startswith('minecraft:')]
 
     tables = False
 
@@ -2278,6 +2394,23 @@ def copy_lang():
     return len(LANGUAGES)
 
 
+def fix_stale_item_ids():
+    """The original's generated data names the slime chestplate `slimy_chestplate` in a handful of tags,
+    recipes and lang keys, but the item is registered as `slime_chestplate` (MODEL_ALIASES covers its
+    model), so those references name nothing. Project them onto the registered id wherever the copies
+    landed: the quoted item id in data files, the dotted key form in language files."""
+    fixed = 0
+    for path in (ROOT / 'tconstruct/content').rglob('*.json'):
+        text = path.read_text(encoding='utf-8')
+        updated = text.replace('"tconstruct:slimy_chestplate"', '"tconstruct:slime_chestplate"')
+        if 'lang' in path.parts:
+            updated = updated.replace('tconstruct.slimy_chestplate', 'tconstruct.slime_chestplate')
+        if updated != text:
+            path.write_text(updated, encoding='utf-8')
+            fixed += 1
+    return fixed
+
+
 def main():
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
     head = subprocess.run(['git', '-C', str(ROOT / '.local/tconstruct-source'), 'rev-parse', 'HEAD'],
@@ -2331,7 +2464,7 @@ def main():
     fluid_blocks = write_fluid_world()
     write_copper_can()
     transfers = write_fluid_transfers()
-    world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
+    world_loot = copy_world_loot(sorted(set(world_blocks()) | set(smeltery_blocks()) | {'cast_chest', 'crafting_station', 'fake_storage_block', 'part_chest', 'scorched_anvil', 'tinkers_anvil', 'tinkers_chest'}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
     copy_cobalt_tags()
@@ -2340,8 +2473,10 @@ def main():
     worn_textures, worn_rows = copy_armor_worn_assets()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_fluid_recipes() + copy_fluid_tags() + copy_damageable_recycling_recipes()
+    layouts = copy_station_layouts()
+    stale_fixed = fix_stale_item_ids()
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {stale_fixed} files had the stale slime chestplate id projected; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}')
 
 
 if __name__ == '__main__':

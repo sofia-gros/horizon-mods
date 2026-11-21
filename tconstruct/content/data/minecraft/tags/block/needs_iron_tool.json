@@ -2,9 +2,12 @@
   "values": [
     "tconstruct:cobalt_ore",
     "tconstruct:raw_cobalt_block",
+    "tconstruct:fake_storage_block",
     "tconstruct:ichor_slime_dirt",
     "tconstruct:seared_duct",
     "tconstruct:scorched_duct",
-    "tconstruct:scorched_fluid_cannon"
+    "tconstruct:scorched_fluid_cannon",
+    "tconstruct:tinkers_anvil",
+    "tconstruct:scorched_anvil"
   ]
 }

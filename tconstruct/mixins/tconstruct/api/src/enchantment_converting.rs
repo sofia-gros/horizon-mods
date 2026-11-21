@@ -5,13 +5,13 @@
 //! (`enchantment_map`): the options a stack offers are its enchantments, mapped.
 //! SlimeKnights (MIT; see LICENSE) defines the semantics; this only mirrors them.
 //!
-//! The worktable window still dispatches only the removal recipe (worktable_menu), so this
-//! loader and its result logic are wired into the reload and the registries, not yet into the
-//! window. Two inputs the original reads from the game are supplied by the caller: whether a
+//! The worktable window (worktable_menu) dispatches this recipe beside the removal recipe.
+//! Two inputs the original reads from the game are supplied by the caller: whether a
 //! tool stack is enchantable (Item.isEnchantable — Tinkers' own tools always answer false,
 //! ModifiableItem.isEnchantable, and no PlutoLib API reports another item's answer) and the
 //! stack's enchantments (for a book, its stored enchantments; both are plain slot facts in
-//! every context that has the stack).
+//! every context that has the stack). The slot-type predicate arm likewise reads the loaded
+//! modifier recipes through a caller-supplied lookup (ModifierRecipeLookup).
 use crate::{
     enchantment_map::EnchantmentMap,
     materials::Conditions,
@@ -30,7 +30,7 @@ const BOOK: (&str, &str) = ("minecraft", "book");
 #[derive(Clone, Debug)]
 pub(crate) struct Recipe {
     pub id: Identifier,
-    /// The recipe's display group (`name` in the data; both shipped recipes use "modifiers").
+    /// The recipe's display group (`name` in the data: modifiers, abilities, upgrades, defense, slotless).
     pub name: String,
     pub inputs: Vec<Sized>,
     /// Match enchanted books (true) or enchantable tools (false).
@@ -39,7 +39,63 @@ pub(crate) struct Recipe {
     /// is then level 1 whatever the enchantment's level was.
     pub return_unenchanted: bool,
     /// Which modifiers this recipe may convert to (absent in the data: any).
-    pub predicate: CausePredicate,
+    pub predicate: Predicate,
+}
+
+/// A recipe's modifier predicate (ModifierPredicate): the cause-predicate shapes, plus the
+/// slot-type predicate and the and-composition the shipped converting recipes use. The slot-type
+/// arm matches a modifier that a loaded modifier recipe adds for that slot type (a bare
+/// `"tconstruct:slot_type"` string, or a null slot, means a slotless recipe), which only the
+/// caller's recipe lookup can answer.
+#[derive(Clone, Debug)]
+pub(crate) enum Predicate {
+    Cause(CausePredicate),
+    SlotType(Option<String>),
+    And(Vec<Predicate>),
+}
+
+impl Predicate {
+    fn decode(value: Option<&Value>) -> Result<Self, String> {
+        let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Self::Cause(CausePredicate::Any)); };
+        if let Some(name) = value.as_str() {
+            // A bare string names a singleton predicate; the shipped data uses it for the slotless
+            // slot-type predicate inside the slotless recipes' and-composition.
+            return match name {
+                "tconstruct:slot_type" => Ok(Self::SlotType(None)),
+                _ => Err(format!("unsupported modifier predicate {name}")),
+            };
+        }
+        let object = value.as_object().ok_or("modifier predicate must be an object")?;
+        match object.get("type").and_then(Value::as_str) {
+            Some("tconstruct:slot_type") => {
+                let slot = match object.get("slot") {
+                    None | Some(Value::Null) => None,
+                    Some(Value::String(name)) => {
+                        if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+                            return Err(format!("invalid slot type name {name}"));
+                        }
+                        Some(name.clone())
+                    }
+                    Some(_) => return Err("slot must be a string".into()),
+                };
+                Ok(Self::SlotType(slot))
+            }
+            Some("mantle:and") => {
+                let parts = object.get("predicates").and_then(Value::as_array).ok_or("and predicates must be an array")?;
+                Ok(Self::And(parts.iter().map(|part| Self::decode(Some(part))).collect::<Result<Vec<_>, _>>()?))
+            }
+            _ => Ok(Self::Cause(CausePredicate::decode(Some(value))?.ok_or("unsupported modifier predicate")?)),
+        }
+    }
+
+    fn matches(&self, modifier: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool,
+               recipe_modifier: &dyn Fn(Option<&str>, &Identifier) -> bool) -> bool {
+        match self {
+            Self::Cause(cause) => cause.matches(Some(modifier), in_tag),
+            Self::SlotType(slot) => recipe_modifier(slot.as_deref(), modifier),
+            Self::And(parts) => parts.iter().all(|part| part.matches(modifier, in_tag, recipe_modifier)),
+        }
+    }
 }
 
 impl Recipe {
@@ -49,7 +105,7 @@ impl Recipe {
         let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
             .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
         let boolean = |key: &str| fields.get(key).and_then(Value::as_bool).ok_or_else(|| format!("{key} must be a boolean"));
-        let predicate = CausePredicate::decode(fields.get("modifier_predicate"))?.ok_or("unsupported modifier predicate")?;
+        let predicate = Predicate::decode(fields.get("modifier_predicate"))?;
         Ok(Self { id: id.clone(), name, inputs, match_book: boolean("match_book")?, return_unenchanted: boolean("return_unenchanted")?, predicate })
     }
 
@@ -68,12 +124,13 @@ impl Recipe {
     /// recipe accepts, at the enchantment's level — or at level 1 when the input is returned,
     /// as only one level is converted per craft. Distinct (modifier, level) pairs.
     pub(crate) fn options(&self, enchantments: &BTreeMap<String, i32>, map: &EnchantmentMap,
-                          modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Vec<(Identifier, i32)> {
+                          modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool,
+                          recipe_modifier: &dyn Fn(Option<&str>, &Identifier) -> bool) -> Vec<(Identifier, i32)> {
         let mut options = Vec::new();
         for (name, level) in enchantments {
             let Ok(enchantment) = Identifier::parse(name) else { continue };
             let Some(modifier) = map.modifier_for(&enchantment) else { continue };
-            if !self.predicate.matches(Some(modifier), modifier_in_tag) { continue; }
+            if !self.predicate.matches(modifier, modifier_in_tag, recipe_modifier) { continue; }
             let entry = (modifier.clone(), if self.return_unenchanted { 1 } else { *level });
             if !options.contains(&entry) { options.push(entry); }
         }
@@ -226,7 +283,7 @@ mod tests {
         let map = map();
         let enchantments: BTreeMap<String, i32> = [("minecraft:fortune".to_owned(), 3), ("minecraft:unbreaking".to_owned(), 2)].into_iter().collect();
         // Unbreaking maps to nothing here, so only fortune is offered, at level 1 (the input returns).
-        assert_eq!(recipe.options(&enchantments, &map, &in_tag), vec![(Identifier::parse("tconstruct:luck").unwrap(), 1)]);
+        assert_eq!(recipe.options(&enchantments, &map, &in_tag, &|_, _| false), vec![(Identifier::parse("tconstruct:luck").unwrap(), 1)]);
         let book = Identifier::parse("minecraft:enchanted_book").unwrap();
         let inputs = [Some((Identifier::parse("tconstruct:ender_slime_crystal").unwrap(), 1)), Some((Identifier::parse("minecraft:dragon_breath").unwrap(), 5))];
         assert!(recipe.matches(&book, false, &inputs, &[], &in_tag));

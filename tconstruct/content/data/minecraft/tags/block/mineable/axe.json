@@ -1,6 +1,9 @@
 {
   "values": [
+    "tconstruct:crafting_station",
     "tconstruct:tinker_station",
-    "tconstruct:part_builder"
+    "tconstruct:part_builder",
+    "tconstruct:tinkers_chest",
+    "tconstruct:part_chest"
   ]
 }

@@ -161,7 +161,7 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         if tools.contains(name) { "tools" }
         else if parts.contains(name) { "tool_parts" }
         // TinkerTables.addTabItems (the general tab); the Deco tab only holds retextured variants
-        else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
+        else if ["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
         // TinkerWorld.addTabItems: ores, slimes and their dirt, the geode shards
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path) { "world" }
@@ -170,7 +170,10 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     let mut wrong = Vec::new();
     for name in &declared {
         // Fluid blocks have no item in the original, and its soulsteel bucket is registered but in no tab ("future: soulsteel").
-        if name.ends_with("_fluid") || name == "tconstruct:molten_soulsteel_bucket" {
+        // The crystalshot is likewise accepted into no tab (it is only cast), and the fake ingot and fake storage
+        // block get tab variants only for the compatibility materials, which this port does not ship.
+        if name.ends_with("_fluid") || name == "tconstruct:molten_soulsteel_bucket" || name == "tconstruct:crystalshot"
+            || name == "tconstruct:fake_ingot" || name == "tconstruct:fake_storage_block" {
             for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
             continue;
         }

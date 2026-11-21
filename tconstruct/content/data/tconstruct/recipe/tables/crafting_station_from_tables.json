@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "p": "tconstruct:pattern",
+    "w": [
+      "tconstruct:part_builder",
+      "tconstruct:tinker_station"
+    ]
+  },
+  "pattern": [
+    "p",
+    "w"
+  ],
+  "result": {
+    "id": "tconstruct:crafting_station"
+  }
+}

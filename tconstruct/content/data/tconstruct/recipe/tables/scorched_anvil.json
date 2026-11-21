@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "m": [
+      "minecraft:netherite_block"
+    ],
+    "s": [
+      "tconstruct:scorched_stone",
+      "tconstruct:polished_scorched_stone",
+      "tconstruct:scorched_bricks",
+      "tconstruct:scorched_road",
+      "tconstruct:chiseled_scorched_bricks"
+    ]
+  },
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "result": {
+    "id": "tconstruct:scorched_anvil"
+  }
+}

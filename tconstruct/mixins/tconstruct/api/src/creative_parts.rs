@@ -30,6 +30,7 @@ pub(crate) const PARTS: &[(&str, &[&str])] = &[
     ("shell", &["nautilus", "turtle", "prismarine", "phantom", "magnetite", "kobold", "dragon_scale", "knightly", "shulker"]),
     ("laces", &["string", "leather", "vine", "skyslime_vine", "twisting_vine", "weeping_vine", "cheese", "darkthread", "enderslime_vine", "jeweled_hide"]),
     ("repair_kit", &["string", "wood", "leather", "rock", "flint", "bone", "copper", "bamboo", "chorus", "cactus", "vine", "wool", "iron", "seared_stone", "venombone", "slimewood", "necrotic_bone", "scorched_stone", "whitestone", "skyslime_vine", "skyslimeskin", "slimeskin", "twisting_vine", "weeping_vine", "earthslime", "gold", "gunpowder", "skyslime", "clay", "honey", "phantom", "venom", "slimesteel", "amethyst_bronze", "nahuatl", "obsidian", "pig_iron", "rose_gold", "cobalt", "steel", "darkthread", "ice", "ichorskin", "blaze", "ender_pearl", "ichor", "magma", "cinderslime", "queens_slime", "hepatizon", "manyullyn", "blazing_bone", "knightmetal", "knightslime", "blazewood", "enderslime_vine", "enderslimeskin", "jeweled_hide", "dragon_scale", "enderslime"]),
+    ("fake_ingot", &[]),
 ];
 
 /// Modifiers that get a modifier crystal stack, by id (namespace tconstruct).

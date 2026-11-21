@@ -4,8 +4,8 @@
 //! tab is fixed when the mod starts, before materials load, so the part, tool and crystal lists are the shipped data baked into
 //! creative_parts.rs, creative_tools.rs and creative_fluids.rs; a datapack's extra materials are not listed. A tool stack carries only
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
-//! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
-//! drains, and anvils, none of which exist yet), the books, food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
+//! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers
+//! and drains, whose material variants this port does not build), the books, food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
 //! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
@@ -48,7 +48,7 @@ pub(crate) fn tools_group() -> ItemGroup {
 
 /// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
 /// and the soul glass of TinkerCommons' glass section (the clear and stained glass of that section is not declared).
-pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"];
+pub(crate) const GENERAL: &[&str] = &["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "soul_glass", "soul_glass_pane"];
 
 pub(crate) fn general_group() -> ItemGroup {
     group("general", "Tinkers' General", item("tinker_station")).entries(GENERAL.iter().map(|name| item(name)))

@@ -149,8 +149,10 @@ fn every_part_cast_pours_every_castable_material_into_the_right_part_with_its_ma
         let live = game.live(station);
         for recipe in game.data.recipes.casting.iter().filter(|recipe| recipe.station == station) {
             let CastingKind::Material { result, item_cost } = &recipe.kind else { continue };
-            // the fake ingot and fake storage block parts show a material as an ingot or block; they are not declared yet
-            if !declared.contains(&result.to_string()) { skipped.insert(result.to_string()); continue; }
+            // The fake ingot and fake storage block show a material as an ingot or block. They are declared
+            // as plain items, but their material-item registration (a repair kit for the compatibility
+            // materials, none of which this port ships) is not ported, so they are not material items here.
+            if !declared.contains(&result.to_string()) || result.path() == "fake_ingot" || result.path() == "fake_storage_block" { skipped.insert(result.to_string()); continue; }
             let part = crate::tool_parts::material_items().get(result).cloned().unwrap_or_else(|| panic!("{result} is not a material item"));
             let casts = recipe.cast.as_ref().map(|cast| game.items_of(cast)).unwrap_or_default();
             assert!(!casts.is_empty(), "{}: the cast ingredient names no item the game has", recipe.id);
@@ -185,10 +187,10 @@ fn every_part_cast_pours_every_castable_material_into_the_right_part_with_its_ma
         }
     }
     assert!(poured > 400 && refused > 0, "{poured} castings, {refused} refused");
-    assert_eq!(skipped.into_iter().collect::<Vec<_>>(), ["tconstruct:fake_ingot", "tconstruct:fake_storage_block"], "only the undeclared fake parts are skipped");
+    assert_eq!(skipped.into_iter().collect::<Vec<_>>(), ["tconstruct:fake_ingot", "tconstruct:fake_storage_block"], "only the fake parts are skipped");
     // every tool part and the repair kit has a cast that makes it, of every kind: gold (multi use), sand and red sand
     for (part, _) in crate::creative_parts::PARTS {
-        assert!(parts_seen.contains(&format!("tconstruct:{part}")) || ["bowstring", "arrow_head", "arrow_shaft", "fletching", "shield_core", "ribcage", "shell", "laces"].contains(part),
+        assert!(parts_seen.contains(&format!("tconstruct:{part}")) || ["bowstring", "arrow_head", "arrow_shaft", "fletching", "shield_core", "ribcage", "shell", "laces", "fake_ingot"].contains(part),
             "{part} is never cast: {parts_seen:?}");
     }
     for family in ["", "sand_", "red_sand_"] {
@@ -206,7 +208,9 @@ fn composite_casting_coats_a_part_of_one_material_in_another_and_uses_the_part_u
         let live = game.live(station);
         for recipe in game.data.recipes.casting.iter().filter(|recipe| recipe.station == station) {
             let CastingKind::Composite { result, item_cost, stat_conflict } = &recipe.kind else { continue };
-            if !declared.contains(&result.to_string()) { continue; }
+            // The fake parts are declared as plain items; their material-item registration is not
+            // ported (see the material casting test), so they are not material items here either.
+            if !declared.contains(&result.to_string()) || result.path() == "fake_ingot" || result.path() == "fake_storage_block" { continue; }
             let part = crate::tool_parts::material_items().get(result).cloned().unwrap_or_else(|| panic!("{result} is not a material item"));
             for fluid_recipe in &game.data.recipes.material_casting.composite {
                 let Some(input) = &fluid_recipe.input else { continue };

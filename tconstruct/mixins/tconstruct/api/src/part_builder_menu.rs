@@ -51,9 +51,14 @@ pub(crate) struct Crafted {
 /// The patterns that are not parts: the cast shapes the part builder presses into sand and red sand casts (`smeltery/casts/*/builder_*`).
 const CAST_PATTERNS: &[&str] = &["ingot", "nugget", "gem", "rod", "plate", "gear", "coin", "wire"];
 
-/// The patterns in a fixed order the window and the server agree on: the material items, then the cast shapes.
+/// The remaining patterns the damageable recycling results are keyed by (casting shapes that are
+/// neither parts nor builder casts); they only ever appear as recycling buttons.
+const RECYCLE_PATTERNS: &[&str] = &["block", "crystal", "scale", "shard"];
+
+/// The patterns in a fixed order the window and the server agree on: the material items, then the cast shapes,
+/// then the remaining recycling shapes.
 pub(crate) fn pattern_order() -> Vec<Identifier> {
-    tool_parts::material_items().into_keys().chain(CAST_PATTERNS.iter().map(|name| Identifier::new("tconstruct", name).expect("valid pattern id"))).collect()
+    tool_parts::material_items().into_keys().chain(CAST_PATTERNS.iter().chain(RECYCLE_PATTERNS).map(|name| Identifier::new("tconstruct", name).expect("valid pattern id"))).collect()
 }
 
 /// Runs `read` over the loaded registries and recipes; `None` while any has not loaded.
@@ -103,9 +108,40 @@ fn recycle(items: &[Option<ItemSlot>], selected: Option<&str>) -> Option<Computa
     Some(Computation { buttons, selected: selected_index, crafted })
 }
 
+/// Damageable recycling: an item with no materials of its own (a vanilla tool, a staff) in the material slot
+/// and the recipe's pattern item offer its fixed results as buttons, scaled by the stack's remaining
+/// durability. `None` when the slots are not such a recipe (the ordinary part recipes then apply).
+fn damageable(items: &[Option<ItemSlot>], selected: Option<&str>) -> Option<Computation> {
+    let tool = items.get(MATERIAL_SLOT).cloned().flatten()?;
+    let pattern = items.get(PATTERN_SLOT).cloned().flatten()?;
+    let recycles = common::damageable_recycles()?.read().ok()?;
+    if !recycles.loaded() { return None; }
+    let item_tags = common::item_snapshot();
+    let in_tag = |item: &Identifier, tag: &Identifier| item_tags.as_deref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    // The stack's own max damage: its component when it carries one (a Tinkers tool's durability), else the
+    // item prototype's (a vanilla item's), else 0 for an item that cannot be damaged.
+    let max_damage = tool.max_damage.or_else(|| common::item_prototypes().and_then(|prototypes| prototypes.default_stack(&tool.item)).and_then(|stack| stack.max_damage)).unwrap_or(0);
+    let recipe = recycles.find(&tool, &pattern.item, max_damage, &in_tag)?;
+    let first_of = |source: &crate::fluid_ingredient::Source| match source {
+        crate::fluid_ingredient::Source::Id(item) => Some(item.clone()),
+        crate::fluid_ingredient::Source::Tag(tag) => item_tags.as_deref().and_then(|tags| tags.get_tag(tag)).and_then(|members| members.iter().next().cloned()),
+    };
+    let order = pattern_order();
+    let buttons: Vec<Identifier> = recipe.buttons().into_iter().filter(|part| order.contains(part)).collect();
+    let selected_index = selected.and_then(|name| buttons.iter().position(|button| button.to_string() == name));
+    let crafted = selected_index.and_then(|index| {
+        let result = recipe.assemble(&buttons[index], &tool, max_damage, &first_of)?;
+        let leftover = recipe.leftover(&buttons[index], &tool, max_damage, &first_of, &mut crate::part_recycling::random);
+        let keeps_pattern = in_tag(&pattern.item, &Identifier::new("tconstruct", "patterns/reusable").expect("valid tag"));
+        Some(Crafted { result, items_used: 1, leftover, keeps_pattern })
+    });
+    Some(Computation { buttons, selected: selected_index, crafted })
+}
+
 /// What the slots and the selected pattern craft (slots beyond the first two are ignored).
 pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Option<Computation> {
     if let Some(recycling) = recycle(items, selected) { return Some(recycling); }
+    if let Some(recycling) = damageable(items, selected) { return Some(recycling); }
     let pattern_stack = items.get(PATTERN_SLOT).cloned().flatten();
     let material_stack = items.get(MATERIAL_SLOT).cloned().flatten();
     with_context(|ctx, recipes, material_recipes, in_tag, first_of| {
@@ -265,6 +301,6 @@ mod tests {
     #[test]
     fn pattern_buttons_get_readable_names() {
         assert_eq!(display_name(&Identifier::parse("tconstruct:pick_head").unwrap()), "Pick Head");
-        assert_eq!(pattern_order().len(), 36, "27 tool parts, the repair kit and the eight cast shapes");
+        assert_eq!(pattern_order().len(), 40, "27 tool parts, the repair kit, the eight cast shapes and the four remaining recycling shapes");
     }
 }

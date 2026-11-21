@@ -1517,7 +1517,7 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     }
     // The stack's own enchantments: the host applies them (fortune, silk touch, respiration...) to the holder or wearer.
     if slot.enchantments != read_enchantments(stack) {
-        stack.data_mut().set_other("minecraft:enchantments", slot.enchantments.as_ref().map(|levels| {
+        stack.data_mut().set_other(enchantments_component(stack), slot.enchantments.as_ref().map(|levels| {
             let compound: NbtCompound = levels.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
             Tag::Compound(compound_to_tag(&compound))
         }));
@@ -1529,9 +1529,16 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     stack.tidy();
 }
 
-/// The stack's own `minecraft:enchantments` component as enchantment id to level, None when it has none of its own.
+/// The component a stack's enchantments live in: vanilla keeps an enchanted book's in
+/// `minecraft:stored_enchantments` (EnchantedBookItem reads and writes that one), everything
+/// else's in `minecraft:enchantments`. A slot's enchantments are the stack's, whichever it is.
+fn enchantments_component(stack: &ItemStack) -> &'static str {
+    if stack.item.as_ref() == "minecraft:enchanted_book" { "minecraft:stored_enchantments" } else { "minecraft:enchantments" }
+}
+
+/// The stack's own enchantments component as enchantment id to level, None when it has none of its own.
 fn read_enchantments(stack: &ItemStack) -> Option<std::collections::BTreeMap<String, i32>> {
-    match stack.data().and_then(|d| d.other("minecraft:enchantments")) {
+    match stack.data().and_then(|d| d.other(enchantments_component(stack))) {
         Some(Tag::Compound(levels)) => Some(compound_from_tag(levels).into_iter().filter_map(|(id, level)| match level { Nbt::Int(level) => Some((id, level)), _ => None }).collect()),
         _ => None,
     }

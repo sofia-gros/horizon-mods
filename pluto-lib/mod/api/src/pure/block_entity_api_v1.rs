@@ -58,7 +58,8 @@ pub struct ItemSlot {
     /// when it has one. Set it to give this stack, not every stack of the item, its attribute modifiers: an empty list gives it none;
     /// `None` leaves the item's.
     pub attribute_modifiers: Option<Vec<NbtCompound>>,
-    /// The stack's own `minecraft:enchantments` component as enchantment id to level (such as `minecraft:fortune` to 3), when it has one.
+    /// The stack's own enchantments as enchantment id to level (such as `minecraft:fortune` to 3), when it has any:
+    /// the `minecraft:enchantments` component, or `minecraft:stored_enchantments` for an enchanted book, as vanilla keeps them.
     /// Set it to give this stack, not every stack of the item, those enchantments; an empty map removes them; `None` leaves the stack's.
     pub enchantments: Option<std::collections::BTreeMap<String, i32>>,
     /// The stack's own `minecraft:custom_model_data` component, which item models select on (see `CustomModelData`), when it has one.

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "p": "tconstruct:pattern",
+    "w": [
+      "minecraft:crafting_table"
+    ]
+  },
+  "pattern": [
+    "p",
+    "w"
+  ],
+  "result": {
+    "id": "tconstruct:crafting_station"
+  }
+}
