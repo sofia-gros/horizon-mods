@@ -16,6 +16,10 @@ static RECYCLES: OnceLock<Arc<RwLock<crate::part_recycling::Recycles>>> = OnceLo
 pub(crate) fn recycles() -> Option<&'static Arc<RwLock<crate::part_recycling::Recycles>>> { RECYCLES.get() }
 static SEVERING: OnceLock<Arc<RwLock<crate::severing::Recipes>>> = OnceLock::new();
 pub(crate) fn severing() -> Option<&'static Arc<RwLock<crate::severing::Recipes>>> { SEVERING.get() }
+static LOOT_MODIFIERS: OnceLock<Arc<RwLock<crate::loot_modifiers::Modifiers>>> = OnceLock::new();
+pub(crate) fn loot_modifiers() -> Option<&'static Arc<RwLock<crate::loot_modifiers::Modifiers>>> { LOOT_MODIFIERS.get() }
+static CONFIG: OnceLock<Arc<RwLock<Result<std::collections::BTreeMap<String, bool>, String>>>> = OnceLock::new();
+pub(crate) fn config_values() -> Option<&'static Arc<RwLock<Result<std::collections::BTreeMap<String, bool>, String>>>> { CONFIG.get() }
 static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = OnceLock::new();
 pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
 static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
@@ -77,6 +81,7 @@ pub(crate) fn with_client_materials<R>(read: impl FnOnce(Option<&Definitions>) -
 pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
     MATERIALS.get_or_init(|| {
         let config = crate::config::register();
+        CONFIG.set(config.clone()).expect("Tinkers config state already initialized");
         let modifier_config = config.clone();
         let modifiers = crate::modifiers::register(move || {
             let config = modifier_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
@@ -108,6 +113,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         }).expect("Tinkers part recycling listener registration failed");
         RECYCLES.set(recycles).expect("Tinkers part recycling already initialized");
         SEVERING.set(crate::severing::register().expect("Tinkers severing recipe listener registration failed")).expect("Tinkers severing recipes already initialized");
+        LOOT_MODIFIERS.set(crate::loot_modifiers::register().expect("Tinkers loot modifier listener registration failed")).expect("Tinkers loot modifiers already initialized");
         crate::protection_hook::register_tags().expect("Tinkers damage tag listener registration failed");
         let salvage_config = config.clone();
         let salvages = crate::modifier_removal::register(move || {

@@ -62,6 +62,8 @@
     "api/src/block_break_hook.rs",
     "api/src/severing.rs",
     "api/src/severing_hook.rs",
+    "api/src/loot_modifiers.rs",
+    "api/src/loot_modifier_hook.rs",
     "api/src/damage_tags.rs",
     "api/src/damage_vanilla.rs",
     "api/src/instrument_tags.rs",

@@ -34,6 +34,8 @@ CONTENT_PATHS = (
     # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
+    # Global loot modifiers and the list that orders them (the list keeps its Forge-era folder).
+    re.compile(r'data/tconstruct/loot_modifiers/(?:lustrous/)?[a-z0-9_]+\.json'), re.compile(r'data/forge/loot_modifiers/global_loot_modifiers\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
@@ -83,6 +85,43 @@ def check_loot(item, name):
     if not isinstance(item, dict) or item.get('type') != 'minecraft:block' or not isinstance(item.get('pools'), list) or not isinstance(item.get('random_sequence'), str):
         raise ValueError(f'a block loot table needs the block type, pools and a random sequence: {name}')
     walk(item)
+
+
+LOOT_MODIFIER_TYPES = {'mantle:add_entry', 'mantle:replace_item', 'tconstruct:modifier_hook'}
+LOOT_MODIFIER_CONDITIONS = {'mantle:block_tag', 'mantle:tag_filled', 'tconstruct:has_modifier', 'tconstruct:has_chrysophilite', 'tconstruct:has_context_set', 'tconstruct:block_or_entity', 'forge:loot_table_id', 'tconstruct:config', 'minecraft:entity_properties'}
+LOOT_MODIFIER_POST_CONDITIONS = {'mantle:inverted', 'mantle:contains_item'}
+LOOT_MODIFIER_FUNCTIONS = {'minecraft:set_count', 'minecraft:looting_enchant', 'minecraft:explosion_decay', 'tconstruct:modifier_bonus', 'tconstruct:chrysophilite_bonus'}
+LOOT_MODIFIER_ENTRIES = {'minecraft:item', 'mantle:tag_preference'}
+
+
+def check_loot_modifier(item, name):
+    """Global loot modifiers use only the reviewed condition, function and entry kinds the port's engine decodes."""
+    if name.endswith('global_loot_modifiers.json'):
+        if not isinstance(item, dict) or set(item) != {'entries', 'replace'} or item['replace'] is not False \
+                or not isinstance(item['entries'], list) or not all(isinstance(entry, str) for entry in item['entries']):
+            raise ValueError(f'a global loot modifier list needs entries and replace false: {name}')
+        return
+    if not isinstance(item, dict) or item.get('type') not in LOOT_MODIFIER_TYPES:
+        raise ValueError(f'unreviewed loot modifier type in {name}')
+
+    def conditions(node, allowed, key):
+        if not isinstance(node, list):
+            raise ValueError(f'loot modifier conditions must be a list in {name}')
+        for entry in node:
+            kind = entry.get(key) if isinstance(entry, dict) else None
+            if kind not in allowed:
+                raise ValueError(f'unreviewed loot modifier condition in {name}')
+            if kind == 'mantle:inverted':
+                conditions([entry.get('condition')], LOOT_MODIFIER_POST_CONDITIONS, 'type')
+
+    conditions(item.get('conditions', []), LOOT_MODIFIER_CONDITIONS, 'condition')
+    if item['type'] == 'mantle:add_entry':
+        conditions(item.get('post_conditions', []), LOOT_MODIFIER_POST_CONDITIONS, 'type')
+        if item.get('entry', {}).get('type') not in LOOT_MODIFIER_ENTRIES:
+            raise ValueError(f'unreviewed loot modifier entry in {name}')
+    for function in item.get('functions', []):
+        if function.get('function') not in LOOT_MODIFIER_FUNCTIONS:
+            raise ValueError(f'unreviewed loot modifier function in {name}')
 
 
 def plan(root):
@@ -262,6 +301,9 @@ def checked_content(root, version):
                 continue
             if '/loot_table/' in name:
                 check_loot(item, name)
+                continue
+            if '/loot_modifiers/' in name:
+                check_loot_modifier(item, name)
                 continue
             if name.startswith('data/tconstruct/recipe/'):
                 if not isinstance(item, dict) or item.get('type') not in CRAFTING_RECIPE_TYPES or not isinstance(item.get('result'), dict) or not str(item['result'].get('id', '')).count(':') == 1:
