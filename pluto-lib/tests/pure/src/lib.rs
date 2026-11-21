@@ -9,6 +9,28 @@ pub use exports::*;
 /// Harness-only fixtures: construct through the real snapshot validator without
 /// exposing a production API or duplicating its registry-membership rules.
 pub mod fixtures {
+    use super::pure::block_api_v1 as blocks;
+
+    pub fn slime_flags(state: &super::BlockState) -> (Option<bool>, Option<bool>) {
+        (blocks::slime_block(state), blocks::sticky_block(state))
+    }
+    pub fn stick_to(state: &super::BlockState, other: &super::BlockState) -> Option<bool> {
+        blocks::stick_to(state, other)
+    }
+    pub fn landing_damage(c: &mut super::FallOnContext) {
+        blocks::fall_on(&c.state.block.to_string(), c);
+    }
+    pub fn after_fall(c: &mut super::AfterFallContext) {
+        let handler = blocks::after_fall_handler(&c.state.block.to_string()).unwrap();
+        blocks::apply_after_fall(&handler, c);
+    }
+    pub fn inside_motion(c: &mut super::EntityInsideMotionContext) {
+        let handler = blocks::inside_motion_handler(&c.state.block.to_string()).unwrap();
+        blocks::apply_inside_motion(&handler, c);
+    }
+    pub fn path_node(c: &super::PathNodeTypeContext<'_>) -> Option<super::PathNodeType> {
+        blocks::path_node_type(c)
+    }
     /// Same dispatch called by the native server-payload hook; no socket simulation.
     pub fn client_payload(channel: &str, data: &[u8]) {
         super::pure::networking_api_v1::from_server(channel, data);

@@ -105,6 +105,7 @@
     "api/src/melter.rs",
     "api/src/melter_menu.rs",
     "api/src/melter_blocks.rs",
+    "api/src/world_blocks.rs",
     "api/src/casting.rs",
     "api/src/casting_blocks.rs",
     "api/src/channel.rs",
@@ -230,7 +231,7 @@
       "depends_on": ["R2", "R3", "R4-fluids"],
       "status": "pending",
       "kind": "gameplay",
-      "result": "Use the world-entities scope in R3, including slime soil. Real tools, fluid behavior and equipment state precede their world consumers. Validate generation, growth, collision/entity behavior, drops and save/reload; no per-block completion substitute. Source-ready data, not game-verified (2026-11-20, tools/import_original_data.py): unit U1 cobalt (cobalt_ore, raw_cobalt_block, raw_cobalt and the three shards, loot, nether ore features and biome modifier, vanilla mineable/needs tags) and unit U2 plain slime blocks (sky/ichor/ender slime, four congealed slime, four slime dirt). Still missing for them: sticky-block rules of the sky/ichor/ender slime (canStickTo), congealed slime collision box 14x15x14, bounce, no fall damage and honey path type, slime dirt plant sustain (slime plants), shard tooltips, c: ore tags, and the Forge gold harvest tier (no 26.3 tag; no world block needs the tool to drop).",
+      "result": "Use the world-entities scope in R3, including slime soil. Real tools, fluid behavior and equipment state precede their world consumers. Validate generation, growth, collision/entity behavior, drops and save/reload; no per-block completion substitute. Source-ready data, not game-verified (2026-11-20, tools/import_original_data.py): unit U1 cobalt (cobalt_ore, raw_cobalt_block, raw_cobalt and the three shards, loot, nether ore features and biome modifier, vanilla mineable/needs tags) and unit U2 plain slime blocks (sky/ichor/ender slime, four congealed slime, four slime dirt). U1/U2 block behaviour landed 2026-11-21 (source and domain tests, not game-verified): sticky slime rules for sky/ichor/ender with TinkerWorld's canStickTo predicates (sky: anything, ichor: anything but itself, ender: only itself); congealed slime collision box 14x15x14 as content collision_shapes, zero fall damage, after-fall bounce (living x1.0, item x0.8, other kinds and suppressed bounce untouched), entityInside side bounce with the original's height window and halfway guard, and the sticky-honey path node type; slime dirt plant sustain expressed as membership of the four slime dirts in minecraft:supports_vegetation, the ground tag 26.3 vegetation checks (the dirt side of SlimeDirtBlock's slime-plant and plains sustain); cobalt c: tags projected from the original's Forge tags (block and item ores, ores/cobalt, storage_blocks, storage_blocks/raw_cobalt, ore_rates/singular, ores_in_ground/netherrack, item raw_materials and raw_materials/cobalt); shard tooltips for the cobalt, steel and knightmetal shards through the item tooltip callback. Still missing: the slime plants themselves and their growth, worldgen behaviour beyond the imported data, slime entities and structures; CongealedSlimeBlock's isPathfindable=false is expressed only through the sticky-honey path node type, as the block API has no separate not-pathfindable flag; the Forge gold harvest tier stays as concluded (no 26.3 tag; no world block needs the tool to drop).",
       "evidence": []
     },
     {

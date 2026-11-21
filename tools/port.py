@@ -35,6 +35,8 @@ CONTENT_PATHS = (
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
+    re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
     # Crafting, smelting and stonecutting recipes of the smeltery blocks, converted to the game's own recipe format by the importer.
     re.compile(r'data/tconstruct/recipe(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
