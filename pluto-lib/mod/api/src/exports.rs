@@ -47,6 +47,7 @@ pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, Tr
 pub use crate::pure::projectile_events_v1::{self, BowShot, ProjectileEvents, ProjectileImpact, ProjectileLaunch};
 pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage, MemoryBlockEntities};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
+pub use crate::pure::entity_api_v1::{self, EntityOps, EntityReach, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
 pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, Region, World, WorldOps, with_ticking_dimension, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, RegistryLookup, JsonResourceStack, ResourceManagerHelper, ResourceType, reload_event};

@@ -4,8 +4,9 @@
 //! its slot. The structure tells these blocks their master (`master` in their saved data, written when the structure forms and cleared
 //! when a block leaves it), and a servant that already answers to another controller blocks a second structure (`isValidMaster`).
 //! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing, the drain's displayed fluid, the
-//! duct's slot synchronisation packet and the chute's item reach are not ported; the host adapter that answers neighbour queries through
-//! `FluidStorage` is not written.
+//! duct's slot synchronisation packet and the chute's item reach are not ported. A neighbour's fluid query on these blocks is answered by
+//! PlutoLib's host adapter through `FluidStorage` over the loaded block entities, because their storage is their saved data read through
+//! these hooks, which the host's own tank calls cannot serve.
 use crate::{
     smeltery_tank::SmelteryTank,
     tank::{Fluid, Tank},

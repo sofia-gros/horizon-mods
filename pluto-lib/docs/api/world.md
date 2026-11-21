@@ -461,7 +461,9 @@ assert!(!World::new("minecraft:overworld").set_block_state([0, 64, 0], &stone), 
 
 ### `World::block_entity_data`
 
-`fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound>`. The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); `None` where there is none, the chunk is not loaded or the call is made outside a callback. Source-ready: the host's `WorldOps` has to answer it (`block_entity_data`); until then it is `None`.
+`fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound>`. The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); `None` where there is none, the chunk is not loaded or the call is made outside a callback.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` answers it from the host's `mod_block_entity` (the data a mod block entity saves, without its position and id), in the dimension in place only: a call for another dimension answers `None`, and so does a block entity the host does not hold for a mod (a vanilla chest).
 
 ```rust
 use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
@@ -477,7 +479,9 @@ with_world(&mut ops, || assert!(world.block_entity_data([1, 64, 0]).unwrap().con
 
 ### `World::merge_block_entity_data`
 
-`fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool`. Merges `data` into the saved data of the block entity at `pos`: each key given replaces the same key, the others stay. A controller uses it to tell the blocks of its structure who their master is. False if there is no block entity there, outside a callback, or when the host does not implement `WorldOps::merge_block_entity_data` (the adapter is not written).
+`fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool`. Merges `data` into the saved data of the block entity at `pos`: each key given replaces the same key, the others stay. A controller uses it to tell the blocks of its structure who their master is. False if there is no block entity there or the call is made outside a callback.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` merges through the host's `change_mod_block_entity` in the dimension in place and syncs the block entity to clients; another dimension, or a block entity the host does not hold for a mod, answers false.
 
 ```rust
 use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};

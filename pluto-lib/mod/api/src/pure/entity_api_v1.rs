@@ -1,0 +1,208 @@
+//! The entities of a world, reached from a callback that carries them (a block entity ticker): what stands inside a
+//! box, hurting it, and taking the items it dropped (Minecraft: `Level.getEntitiesOfClass`, `LivingEntity.hurt`,
+//! `ItemEntity.setItem` and `discard`). Like [`World`](super::world_api_v1::World), the reach only exists while a
+//! host-installed scope is open; outside it every query answers "nothing there", never a guess.
+use super::{base::Identifier, block_entity_api_v1::ItemSlot};
+use std::{cell::Cell, marker::PhantomData};
+
+/// A living entity as the reach reports it: the facts a caller decides with, read by the host.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LivingFacts {
+    /// It cannot be hurt by fire damage (`Entity.fireImmune`); callers hurt it another way (magic, in the original).
+    pub fire_immune: bool,
+    /// It cannot be hurt at all right now: its invulnerable flag, or a player whose abilities make them invulnerable
+    /// (creative and spectator game modes).
+    pub invulnerable: bool,
+    /// It has the fire resistance effect (`MobEffects.FIRE_RESISTANCE`).
+    pub fire_resistant: bool,
+}
+
+/// One entity inside a box.
+#[derive(Clone, Debug, PartialEq)]
+pub struct WorldEntity {
+    /// The entity's id in its level.
+    pub id: u64,
+    /// Its type, such as `minecraft:zombie` or `minecraft:item`.
+    pub kind: Identifier,
+    /// The stack of an item entity; `None` for any other kind.
+    pub item: Option<ItemSlot>,
+    /// A living entity's facts; `None` for item entities and for anything that is not alive.
+    pub living: Option<LivingFacts>,
+}
+
+/// What the game can do about entities. The host implements it; [`MemoryEntityOps`] is a small world for tests.
+pub trait EntityOps {
+    /// Every living entity and item entity whose position is inside the box (min corner, max corner), in the level's
+    /// order. Anything else (a painting, a falling block) is not listed.
+    fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<WorldEntity>;
+    /// Removes the item entity `id`, which was taken whole; false when the host cannot (no such entity, or not an
+    /// item entity).
+    fn discard(&mut self, id: u64) -> bool;
+    /// Leaves `stack` in the item entity `id` (what did not fit where it was taken to); false when there is no such
+    /// item entity.
+    fn set_item(&mut self, id: u64, stack: &ItemSlot) -> bool;
+    /// Hurts entity `id` by `amount` of the damage type `damage_type`, with no attacker; whether it took any (the
+    /// host refuses an invulnerable, dead or creative target, as `LivingEntity.hurt` does).
+    fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool;
+}
+
+thread_local! {
+    static OPS: Cell<Option<*mut dyn EntityOps>> = const { Cell::new(None) };
+}
+
+struct Scope<'a> {
+    previous: Option<*mut dyn EntityOps>,
+    _borrow: PhantomData<&'a mut dyn EntityOps>,
+}
+
+impl Drop for Scope<'_> {
+    fn drop(&mut self) {
+        OPS.with(|slot| slot.set(self.previous));
+    }
+}
+
+/// Runs `f` with `ops` answering every [`EntityReach`] query made (on this thread) during `f`.
+pub fn with_entities<R>(ops: &mut dyn EntityOps, f: impl FnOnce() -> R) -> R {
+    // SAFETY: the pointer is only dereferenced while `f` runs, inside the lifetime of `ops`; `Scope` clears it on every exit.
+    let raw: *mut dyn EntityOps = unsafe { std::mem::transmute::<&mut dyn EntityOps, *mut dyn EntityOps>(ops) };
+    let previous = OPS.with(|slot| slot.replace(Some(raw)));
+    let _scope = Scope { previous, _borrow: PhantomData };
+    f()
+}
+
+fn with_current<R>(default: R, f: impl FnOnce(&mut dyn EntityOps) -> R) -> R {
+    match OPS.with(Cell::get) {
+        // SAFETY: see `with_entities`: the pointer is valid for as long as it is stored.
+        Some(raw) => f(unsafe { &mut *raw }),
+        None => default,
+    }
+}
+
+/// Queries on the entities of the world. Every method answers "nothing there" outside a scope.
+pub struct EntityReach;
+
+impl EntityReach {
+    /// Every living entity and item entity inside the box (min corner, max corner); empty outside a scope.
+    pub fn in_box(min: [f64; 3], max: [f64; 3]) -> Vec<WorldEntity> {
+        with_current(Vec::new(), |ops| ops.entities_in(min, max))
+    }
+
+    /// Removes the item entity `id`; false outside a scope or when the host cannot.
+    pub fn discard(id: u64) -> bool {
+        with_current(false, |ops| ops.discard(id))
+    }
+
+    /// Leaves `stack` in the item entity `id`; false outside a scope or where there is no such item entity.
+    pub fn set_item(id: u64, stack: &ItemSlot) -> bool {
+        with_current(false, |ops| ops.set_item(id, stack))
+    }
+
+    /// Hurts entity `id` by `amount` of `damage_type` with no attacker; whether it took any.
+    pub fn hurt(id: u64, amount: f32, damage_type: &str) -> bool {
+        with_current(false, |ops| ops.hurt(id, amount, damage_type))
+    }
+}
+
+/// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
+pub struct MemoryEntityOps {
+    /// The entities, each at its position.
+    pub entities: Vec<([f64; 3], WorldEntity)>,
+    /// The item entities removed, in order.
+    pub discarded: Vec<u64>,
+    /// What was left in an item entity: its id and the stack.
+    pub left: Vec<(u64, ItemSlot)>,
+    /// The hurts asked for: the id, the amount and the damage type.
+    pub hurt: Vec<(u64, f32, String)>,
+    /// Whether hurts land; the host refuses some (an invulnerable or dead target), a test can say so here.
+    pub hurts_land: bool,
+}
+
+impl Default for MemoryEntityOps {
+    fn default() -> Self {
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true }
+    }
+}
+
+impl EntityOps for MemoryEntityOps {
+    fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<WorldEntity> {
+        self.entities.iter()
+            .filter(|(pos, _)| (0..3).all(|axis| min[axis] <= pos[axis] && pos[axis] <= max[axis]))
+            .map(|(_, entity)| entity.clone())
+            .collect()
+    }
+
+    fn discard(&mut self, id: u64) -> bool {
+        let Some(index) = self.entities.iter().position(|(_, entity)| entity.id == id && entity.item.is_some()) else { return false };
+        self.entities.remove(index);
+        self.discarded.push(id);
+        true
+    }
+
+    fn set_item(&mut self, id: u64, stack: &ItemSlot) -> bool {
+        let Some((_, entity)) = self.entities.iter_mut().find(|(_, entity)| entity.id == id && entity.item.is_some()) else { return false };
+        entity.item = Some(stack.clone());
+        self.left.push((id, stack.clone()));
+        true
+    }
+
+    fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
+            return false;
+        }
+        self.hurt.push((id, amount, damage_type.to_owned()));
+        self.hurts_land
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
+
+    fn world() -> MemoryEntityOps {
+        let mut ops = MemoryEntityOps::default();
+        ops.entities = vec![
+            ([1.5, 64.5, 1.5], WorldEntity { id: 1, kind: id("minecraft:item"), item: Some(ItemSlot::new(id("minecraft:iron_ingot"), 3)), living: None }),
+            ([2.5, 64.5, 2.5], WorldEntity { id: 2, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
+            ([9.5, 64.5, 9.5], WorldEntity { id: 3, kind: id("minecraft:cow"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
+        ];
+        ops
+    }
+
+    #[test]
+    fn outside_a_scope_the_reach_answers_nothing() {
+        assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty());
+        assert!(!EntityReach::discard(1));
+        assert!(!EntityReach::hurt(2, 2.0, "minecraft:in_fire"));
+        assert!(!EntityReach::set_item(1, &ItemSlot::new(id("minecraft:iron_ingot"), 1)));
+    }
+
+    #[test]
+    fn a_scope_lists_the_box_and_records_what_was_done() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            let found = EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]);
+            assert_eq!(found.iter().map(|entity| entity.id).collect::<Vec<_>>(), [1, 2], "the cow stands outside the box");
+            assert_eq!(found[0].item.as_ref().unwrap().count, 3);
+            assert!(EntityReach::hurt(2, 5.0, "tconstruct:smeltery_heat"));
+            assert!(!EntityReach::hurt(1, 5.0, "tconstruct:smeltery_heat"), "an item entity cannot be hurt");
+            assert!(EntityReach::set_item(1, &ItemSlot::new(id("minecraft:iron_ingot"), 1)));
+            assert!(EntityReach::discard(1));
+            assert!(!EntityReach::discard(1), "already gone");
+        });
+        assert_eq!(ops.hurt, vec![(2, 5.0, "tconstruct:smeltery_heat".to_owned())]);
+        assert_eq!(ops.left.len(), 1);
+        assert_eq!(ops.discarded, vec![1]);
+        assert_eq!(ops.entities.len(), 2, "the taken item entity is gone, the hurt zombie stays");
+        assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty(), "the scope is closed again");
+    }
+
+    #[test]
+    fn a_hurt_the_host_refuses_is_reported_and_still_asked_once() {
+        let mut ops = world();
+        ops.hurts_land = false;
+        with_entities(&mut ops, || assert!(!EntityReach::hurt(2, 2.0, "minecraft:magic")));
+        assert_eq!(ops.hurt.len(), 1);
+    }
+}

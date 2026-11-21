@@ -32,7 +32,7 @@ assert_eq!(storage.fill([1, 0, 0], &lava, true), 100);
 assert_eq!(storage.drain([1, 0, 0], None, 30, true).unwrap().amount, 30);
 ```
 
-> **Use with Caution.** Source-ready only. The pure rules and the in-memory world are tested; the native host does not use them yet. Its adapter must implement [`BlockEntityStore`](#blockentitystore) over the loaded block entities and call `FluidStorage` for a neighbour's tank, fill and drain queries (the adapter `fluid_filler` and `Neighbours` wait for), because the generated `Host` signatures can only be checked by a native build. A forward is followed at most four times; a cycle answers nothing.
+> **Use with Caution.** The pure rules and the in-memory world are tested. The host adapter is written, not yet compiled or game-verified: `HostBlockEntities` in `hooks.rs` implements [`BlockEntityStore`](#blockentitystore) over the host's loaded block entities, and the neighbour adapter answers a neighbour's tank, fill and drain queries through `FluidStorage` for a block whose storage is its saved data read through its type's hooks (a reader, a drainer or a forward; see [neighbours](neighbours.md)). Blocks whose tanks the host holds itself keep the host's own calls. The generated `Host` signatures can only be checked by a native build. A forward is followed at most four times; a cycle answers nothing.
 
 ## Reference
 

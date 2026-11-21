@@ -132,6 +132,31 @@ LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("exa
 
 > **Use with Caution.** This source-only backend writes armor/toughness bases through their native instance observers, retaining modifiers. Other base consumers reject; missing entity attributes are skipped. Duplicate or unsupported entries reject the batch before any base write. The source adapter forwards the join event's dimension, rejects a mismatched current dimension before mutation and rechecks it after callback dispatch; an already-cancelled join skips initialization. A borrowed owner token also rejects a replacement mob with the same numeric ID/type. It uses the existing clone-shared native lifecycle identity without an entity-ID map or extra per-mob allocation; in-place NBT reload retains that identity through the native AI field. Callback attachment/world side effects are not rolled back on failure. Errors reject the join; an in-place reload reports failure after the native data change, without rolling that change back. This is load restoration, not constructor timing, a metal setter or interception of every direct size change. Native Host forwarding, application/order, save/sync and gameplay remain unverified behind the native attachment gate.
 
+## Reaching the Entities Around a Ticker
+
+A block entity ticker can reach the entities around it through [`EntityReach`](#entityreach): list the entities in a box, replace or discard a dropped item, and hurt a living entity under a damage type of the mod's choosing. The reach answers only while a ticker runs; outside one it answers nothing and every action fails. An entity is either an item (its stack) or a living thing (the facts a consumer's rules read: fire immunity, invulnerability to the damage, fire resistance); anything else is listed with neither.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 7,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty(), "outside a ticker's scope");
+with_entities(&mut ops, || {
+    let found = EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]);
+    assert_eq!(found.len(), 1);
+    assert!(EntityReach::hurt(7, 2.0, "minecraft:in_fire"));
+});
+assert_eq!(ops.hurt.len(), 1);
+```
+
+> **Use with Caution.** The pure rules and the in-memory world are tested. The host adapter is written, not yet compiled or game-verified: `HostEntities` in `hooks.rs` lists the entities of the dimension in place (items with their stacks, players and living things with their facts), discards a dropped item by aging it out through the host's entity data merge, replaces an item's stack by merging its `Item` id and count (the stack's components stay), and hurts through the host's damage call under the type's own name. The generated `Host` signatures can only be checked by a native build.
+
 ## Reference
 
 ### `AttributeBaseValue`
@@ -1000,3 +1025,32 @@ ServerLivingEntityEvents::AFTER_DEATH.register(|death| {
     let _ = death.entity;
 });
 ```
+
+### `EntityReach`
+
+The facade a ticker uses to reach the entities around it. Outside a ticker's scope every call answers nothing and every action fails.
+
+- `fn in_box(min: [f64; 3], max: [f64; 3]) -> Vec<WorldEntity>`: the entities whose positions fall in the box, in the host's order.
+- `fn discard(id: u64) -> bool`: removes an item entity; true when the host accepted the removal.
+- `fn set_item(id: u64, stack: &ItemSlot) -> bool`: replaces an item entity's stack.
+- `fn hurt(id: u64, amount: f32, damage_type: &str) -> bool`: hurts a living entity by `amount` under the damage type named; the host reports whether the damage went through. A mod's own damage type id works once its data pack declares it; until then the host deals a generic kind under that name.
+
+### `EntityOps`
+
+`trait EntityOps`. The operations behind [`EntityReach`](#entityreach): `entities_in(min, max)`, `discard(id)`, `set_item(id, stack)`, `hurt(id, amount, damage_type)`. An adapter implements it and opens it with `with_entities`.
+
+### `WorldEntity`
+
+`struct WorldEntity { id: u64, kind: Identifier, item: Option<ItemSlot>, living: Option<LivingFacts> }`. One entity in a box: an item entity carries its stack and no living facts, a living entity the reverse, anything else neither.
+
+### `LivingFacts`
+
+`struct LivingFacts { fire_immune: bool, invulnerable: bool, fire_resistant: bool }`. The facts about a living entity a consumer's rules read: it does not burn, it cannot be hurt by the damage being dealt (an invulnerable entity, a creative or spectator player), and it has fire resistance.
+
+### `MemoryEntityOps`
+
+An in-memory [`EntityOps`](#entityops) for tests: entities placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, and a `hurts_land` switch for a damage the host refuses.
+
+### `with_entities`
+
+`fn with_entities(ops: &mut dyn EntityOps, body: impl FnOnce() -> T) -> T`. Opens the entity reach over `ops` for `body`; the host opens it around a block entity ticker.
