@@ -479,6 +479,110 @@ def write_fluid_defs():
     return len(rows), [row['name'] for row in rows]
 
 
+RENDER_MODEL = ROOT / '.local/tconstruct-source/src/generated/resources/assets/tconstruct/mantle/model'
+RENDER_MODEL_MAIN = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/mantle/model'
+RENDER_DATA_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/render_data.rs'
+RENDER_DIRECTIONS = ('down', 'up', 'north', 'south', 'west', 'east')
+
+
+def _render_float(value):
+    return repr(float(value))
+
+
+def _render_cuboid(data):
+    """One Mantle FluidCuboid as Rust: the box in sixteenths and the faces it draws (all of them when the data names none)."""
+    faces = data.get('faces')
+    if faces is None:
+        faces = {direction: {} for direction in RENDER_DIRECTIONS}
+    rendered = ', '.join(
+        f"Face {{ dir: \"{direction}\", flowing: {str(bool(face.get('flowing', False))).lower()}, rotation: {int(face.get('rotation', 0))} }}"
+        for direction, face in sorted(faces.items(), key=lambda item: RENDER_DIRECTIONS.index(item[0])))
+    return (f"Cuboid {{ from: [{', '.join(_render_float(v) for v in data['from'])}], "
+            f"to: [{', '.join(_render_float(v) for v in data['to'])}], faces: &[{rendered}] }}")
+
+
+def _render_item(data):
+    """One Mantle RenderItem as Rust: center and size in sixteenths, the display transform, the x/y rotation in degrees."""
+    return (f"RenderItem {{ center: [{', '.join(_render_float(v) for v in data['center'])}], size: {_render_float(data['size'])}, "
+            f"transform: \"{data['transform']}\", x: {_render_float(data.get('x', 0))}, y: {_render_float(data.get('y', 0))} }}")
+
+
+def _render_variants(kind, name, render_one):
+    """The variants of one block's entry in a mantle model folder (`block_fluids` or `item_lists`): a variant value is a
+    template name (read from the folder's templates), one entry, or a list of entries."""
+    data = json.loads((RENDER_MODEL / kind / f'{name}.json').read_text(encoding='utf-8'))
+    variants = []
+    for key, value in data['variants'].items():
+        if isinstance(value, str):
+            template = value.split('/')[-1]
+            value = json.loads((RENDER_MODEL / kind / 'templates' / f'{template}.json').read_text(encoding='utf-8'))
+        entries = value if isinstance(value, list) else [value]
+        when = ', '.join(f'("{prop}", "{wanted}")' for prop, wanted in (pair.split('=', 1) for pair in key.split(','))) if key else ''
+        variants.append(f"Variant {{ when: &[{when}], data: &[{', '.join(render_one(entry) for entry in entries)}] }}")
+    return variants
+
+
+def write_render_data():
+    """render_data.rs: what the block entity renderers draw, from Mantle's model data (the fluid cuboids of
+    `mantle/model/block_fluids`, the item placements of `mantle/model/item_lists`, the channel's cuboids of
+    `mantle/model/channel_fluids`) and each fluid's still and flowing textures (`mantle/fluid_texture`).
+
+    The generated block_fluids and item_lists are the data the original's datagen wrote for the resource reload; the
+    channel cuboids are hand-written resources, so they are read from the source resources instead. A cuboid with no
+    faces in the data draws every face; a variant key is the block state properties it asks for (empty: the default)."""
+    lines = ["//! The original's block entity render data (SlimeKnights, MIT; see LICENSE): the fluid cuboids and item placements",
+             '//! the block entity renderers draw, from Mantle\'s model data (`assets/tconstruct/mantle/model`), the channel\'s',
+             '//! cuboids, and each fluid\'s still and flowing textures (`assets/tconstruct/mantle/fluid_texture`).',
+             '//! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.', '',
+             '/// One face of a fluid cuboid: its direction, whether it uses the flowing texture, and the texture rotation in degrees.',
+             "pub(crate) struct Face { pub dir: &'static str, pub flowing: bool, pub rotation: u16 }", '',
+             '/// A fluid cuboid in sixteenths (Mantle\'s FluidCuboid): the box, and the faces it draws.',
+             "pub(crate) struct Cuboid { pub from: [f32; 3], pub to: [f32; 3], pub faces: &'static [Face] }", '',
+             '/// Where a block entity renderer places one item (Mantle\'s RenderItem): the center and size in sixteenths, the',
+             '/// display transform, and the x and y rotation in degrees.',
+             "pub(crate) struct RenderItem { pub center: [f32; 3], pub size: f32, pub transform: &'static str, pub x: f32, pub y: f32 }", '',
+             '/// The data of one block state variant: the state properties it asks for (empty: the default variant).',
+             "pub(crate) struct Variant<T: 'static> { pub when: &'static [(&'static str, &'static str)], pub data: &'static [T] }", '']
+    for kind, function, render_one, what, type_name in (
+            ('block_fluids', 'fluid_cuboids', _render_cuboid, 'fluid cuboids', 'Cuboid'),
+            ('item_lists', 'render_items', _render_item, 'item placements', 'RenderItem')):
+        names = sorted(path.stem for path in (RENDER_MODEL / kind).glob('*.json'))
+        lines.append(f"/// The {what} of a block (`mantle/model/{kind}`), by block id.")
+        lines.append(f"pub(crate) fn {function}(block: &str) -> Option<&'static [Variant<{type_name}>]> {{")
+        lines.append('    Some(match block {')
+        for name in names:
+            variants = _render_variants(kind, name, render_one)
+            lines.append(f"        \"tconstruct:{name}\" => &[")
+            lines += [f'            {variant},' for variant in variants]
+            lines.append('        ],')
+        lines += ['        _ => return None,', '    })', '}', '']
+    channel = json.loads((RENDER_MODEL_MAIN / 'channel_fluids/channel.json').read_text(encoding='utf-8'))
+    lines += ['/// The channel\'s fluid cuboids (Mantle\'s ChannelFluids, `mantle/model/channel_fluids/channel.json`): the center in',
+              '/// its still and flowing forms, the drop below the center, and one side (authored facing south) in its still, in,',
+              '/// out and edge forms.',
+              'pub(crate) struct ChannelFluids { pub center_still: Cuboid, pub center_flowing: Cuboid, pub down: Cuboid,',
+              '    pub side_still: Cuboid, pub side_in: Cuboid, pub side_out: Cuboid, pub side_edge: Cuboid }',
+              'pub(crate) const CHANNEL_FLUIDS: ChannelFluids = ChannelFluids {',
+              f"    center_still: {_render_cuboid(channel['center']['still'])}, center_flowing: {_render_cuboid(channel['center']['flowing'])},",
+              f"    down: {_render_cuboid(channel['down'])}, side_still: {_render_cuboid(channel['side']['still'])},",
+              f"    side_in: {_render_cuboid(channel['side']['in'])}, side_out: {_render_cuboid(channel['side']['out'])},",
+              f"    side_edge: {_render_cuboid(channel['side']['edge'])} }};", '']
+    lines += ['/// A fluid\'s still and flowing textures (Mantle\'s fluid texture data, `mantle/fluid_texture`).',
+              "pub(crate) struct FluidTexture { pub still: &'static str, pub flowing: &'static str }", '',
+              '/// The textures of a fluid, by fluid id.',
+              'pub(crate) fn fluid_texture(fluid: &str) -> Option<FluidTexture> {',
+              '    Some(match fluid {']
+    for path in sorted(FLUID_TEXTURES.glob('*.json')):
+        info = json.loads(path.read_text(encoding='utf-8'))
+        still = info.get('still')
+        if still is None:
+            continue
+        lines.append(f"        \"tconstruct:{path.stem}\" => FluidTexture {{ still: \"{still}\", flowing: \"{info.get('flowing', still)}\" }},")
+    lines += ['        _ => return None,', '    })', '}']
+    RENDER_DATA_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(lines)
+
+
 def write_fluid_world():
     """The content of the fluids that are blocks and buckets: for each fluid with a block, the block declaration (the vanilla glass template, no
     collision, a `level` state 0 to 8 and an outline only on the source, so an empty bucket can reach it), its block state and nine stepped
@@ -2088,6 +2192,7 @@ def main():
     write_creative_tools()
     write_convention_tags()
     fluid_count, fluid_names = write_fluid_defs()
+    write_render_data()
     tags = copy_tags() + copy_damage_tags() + copy_fluid_host_tags(fluid_names)
     write_creative_fluids(fluid_names)
     tags += write_block_tag_ingredients()

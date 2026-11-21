@@ -96,6 +96,10 @@ pub struct BlockEntityRender<'a> {
     pub block: &'a str,
     /// What the server sent of the block entity (its update tag).
     pub data: &'a NbtCompound,
+    /// The block entity's item slots, as many as its type declared (an empty slot is `None`); empty when the type declared none.
+    /// The slots live outside the saved data, so a renderer that draws the contents (a melter's melting items, a table's cast)
+    /// reads them here.
+    pub items: &'a [Option<ItemSlot>],
     /// Where to draw.
     pub canvas: &'a mut dyn BlockEntityCanvas,
 }
@@ -152,12 +156,12 @@ impl BlockEntityCanvas for CacheCanvas<'_> {
 }
 
 /// Draws the block entity with the block's renderer; false if the block has none.
-pub(crate) fn render(block: &str, pos: BlockPos, data: &NbtCompound, canvas: &mut dyn BlockEntityCanvas) -> bool {
+pub(crate) fn render(block: &str, pos: BlockPos, data: &NbtCompound, items: &[Option<ItemSlot>], canvas: &mut dyn BlockEntityCanvas) -> bool {
     let renderer = RENDERERS.lock().ok().and_then(|all| all.as_ref().and_then(|m| m.get(block).cloned()));
     match renderer {
         Some(renderer) => {
             let mut canvas = CacheCanvas { inner: canvas, keep_requested: false };
-            renderer(&mut BlockEntityRender { pos, block, data, canvas: &mut canvas });
+            renderer(&mut BlockEntityRender { pos, block, data, items, canvas: &mut canvas });
             if canvas.keep_requested && super::block_entity_api_v1::client_ticks(block) == Some(false) {
                 canvas.inner.keep();
             }
@@ -236,18 +240,22 @@ mod tests {
             r.canvas.translate([0.0, 0.25, 0.0]);
             r.canvas.cube([0.1, 0.0, 0.1], [0.9, level, 0.9], "test:block/liquid", 0xFFFFFF);
             r.canvas.pop();
-            r.canvas.item(&ItemSlot::new(Identifier::parse("minecraft:stick").unwrap(), 1));
+            // the contents are drawn from the slots the renderer is handed, not from the saved data
+            if let Some(Some(stack)) = r.items.first() {
+                r.canvas.item(stack);
+            }
             r.canvas.keep();
         });
         assert!(BlockEntityRendererRegistry::has("test:tank"));
         assert!(!BlockEntityRendererRegistry::has("test:other"));
+        let items = [Some(ItemSlot::new(Identifier::parse("minecraft:stick").unwrap(), 1)), None];
         let mut data = NbtCompound::new();
         data.insert("level".into(), Nbt::Int(500));
         let mut canvas = Recorder::default();
-        assert!(render("test:tank", [1, 2, 3], &data, &mut canvas));
+        assert!(render("test:tank", [1, 2, 3], &data, &items, &mut canvas));
         assert_eq!(canvas.0, ["push", "translate [0.0, 0.25, 0.0]", "cube test:block/liquid [0.9, 0.5, 0.9]", "pop", "item minecraft:stick", "keep"]);
         let mut nothing = Recorder::default();
-        assert!(!render("test:other", [0; 3], &data, &mut nothing));
+        assert!(!render("test:other", [0; 3], &data, &items, &mut nothing));
         assert!(nothing.0.is_empty());
     }
 
@@ -274,24 +282,24 @@ mod tests {
         });
         let saved = NbtCompound::new();
         let mut canvas = Recorder::default();
-        assert!(render(block, [0; 3], &saved, &mut canvas));
+        assert!(render(block, [0; 3], &saved, &[], &mut canvas));
         assert_eq!(canvas.0.iter().filter(|line| *line == "keep").count(), 1);
         late.store(true, Ordering::SeqCst);
         canvas.0.clear();
-        assert!(render(block, [0; 3], &saved, &mut canvas));
+        assert!(render(block, [0; 3], &saved, &[], &mut canvas));
         assert!(!canvas.0.iter().any(|line| line == "keep")); // registered AFTER keep request
         let mut local = NbtCompound::new();
         for expected in [1.0, 2.0] {
             assert!(block_entity_api_v1::client_tick(block, [0; 3], &saved, &mut local, &MemoryBlockView::default(), true));
             canvas.0.clear();
             canvas.1 = Some(local.clone());
-            assert!(render(block, [0; 3], &saved, &mut canvas));
+            assert!(render(block, [0; 3], &saved, &[], &mut canvas));
             assert_eq!(canvas.0, [format!("cube test:client {:?}", [1.0, expected, 1.0])]);
         }
         assert!(saved.is_empty());
         BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse(block).unwrap()));
         canvas.0.clear();
-        assert!(render(block, [0; 3], &saved, &mut canvas));
+        assert!(render(block, [0; 3], &saved, &[], &mut canvas));
         assert_eq!(canvas.0.iter().filter(|line| *line == "keep").count(), 1);
     }
 
@@ -339,7 +347,7 @@ mod tests {
         }).is_err());
         assert_eq!(super::super::render_cache::generation(), None);
         let mut canvas = Recorder::default();
-        assert!(!render("test:poisoned_renderer", [0; 3], &NbtCompound::new(), &mut canvas));
+        assert!(!render("test:poisoned_renderer", [0; 3], &NbtCompound::new(), &[], &mut canvas));
         assert!(canvas.0.is_empty());
     }
 

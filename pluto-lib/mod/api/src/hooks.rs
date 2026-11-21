@@ -2196,7 +2196,13 @@ impl Hooks for PlutoHooks {
             .snapshot().ok().map(|snapshot| compound_from_tag(&snapshot));
         let mut canvas = HostDraw { host, draw: &mut *event.draw, state: event.state,
             client_data: client_data.as_ref() };
-        block_entity_renderer_api_v1::render(event.block, event.pos, &data, &mut canvas);
+        // The renderer also sees the entity's item slots: they live outside the saved data, and a renderer that
+        // draws the contents (a melter's items, a cast on a table) has no other way to reach them.
+        let items: Vec<Option<ItemSlot>> = event.entity.items
+            .iter()
+            .map(|slot| slot.as_ref().and_then(slot_of))
+            .collect();
+        block_entity_renderer_api_v1::render(event.block, event.pos, &data, &items, &mut canvas);
     }
 
     fn screen(&self, _host: &dyn Host, event: &mut ScreenEvent<'_>) -> Option<NativeScreen> {

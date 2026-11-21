@@ -165,6 +165,8 @@ mod common;
 mod fluid_values;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_defs.rs"]
 mod fluid_defs;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/render_data.rs"]
+mod render_data;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluids.rs"]
 mod fluids;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/heating.rs"]
@@ -209,6 +211,8 @@ mod smeltery_blocks;
 mod tank;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_io.rs"]
 mod smeltery_io;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/rendering.rs"]
+mod rendering;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_transfers.rs"]
 mod fluid_transfers;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_items.rs"]

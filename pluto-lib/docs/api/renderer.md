@@ -539,7 +539,7 @@ fn draw_on_head(canvas: &mut dyn BlockEntityCanvas, stack: &ItemSlot) -> bool {
 
 ### `BlockEntityRender`
 
-What a renderer receives for one block entity. `pos` is its position, `block` the block's id, `data` what the server sent of it, `canvas` where to draw.
+What a renderer receives for one block entity. `pos` is its position, `block` the block's id, `data` what the server sent of it, `items` its item slots (as many as its type declared, an empty slot `None`; the slots live outside the sent data, so a renderer that draws the contents reads them here), `canvas` where to draw.
 
 ```rust
 use pluto_lib::{BlockEntityCanvas, BlockEntityRender, ItemSlot, NbtCompound};
@@ -566,7 +566,7 @@ fn draw_level(render: &mut BlockEntityRender<'_>) {
 }
 let mut data = NbtCompound::new();
 data.insert("level".to_owned(), pluto_lib::Nbt::Int(500));
-draw_level(&mut BlockEntityRender { pos: [0, 64, 0], block: "example:tank", data: &data, canvas: &mut Quiet });
+draw_level(&mut BlockEntityRender { pos: [0, 64, 0], block: "example:tank", data: &data, items: &[], canvas: &mut Quiet });
 ```
 
 ### `BlockEntityRendererRegistry`
