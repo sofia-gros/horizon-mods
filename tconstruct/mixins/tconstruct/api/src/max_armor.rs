@@ -3,6 +3,13 @@
 //! over the worn pieces under a key other modules read. Only a vanilla attribute with the `addition` operation is honored (the host can
 //! only move a player's base value, which is exact for an addition); a held tool (`held_tag`) is not counted, as the player tick lists
 //! worn armor only. Both skip a broken piece unless `allow_broken`.
+//! The shipped forms that stay unbound fail on one of those two limits, each named by the module that carries it: a Tinkers
+//! attribute (`tconstruct:player.critical_damage` on dragonborn, `tconstruct:generic.bad_effect_duration_multiplier` on
+//! magic_protection, `tconstruct:player.use_item_speed` on melee_protection, `tconstruct:generic.crouch_damage_multiplier`
+//! on shulking) or a Forge one (`forge:swim_speed` on turtle_shell) does not exist in the host — PlutoLib cannot register
+//! attributes, and their readers (critical hits, effect durations, using an item, crouching into a hit, swimming) are game
+//! systems it does not report; and `multiply_base`/`multiply_total` (magic_protection, shulking, turtle_shell) cannot be
+//! expressed by moving a base value even for a vanilla attribute. Binding them waits on attribute registration.
 use crate::modifier_entries::Entry;
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};

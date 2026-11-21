@@ -201,8 +201,16 @@ mod tests {
         let unknown = PowerContext { holder_in_tag: &|_| false, target_in_tag: &|_| false, entities: Default::default() };
         // No target reported: the variable's fallback of 2 applies.
         assert_eq!(module.hit(&entry(2), &mut other, &unknown, 3.0), 5.0);
-        let light = fields(json!({"formula":["$light","$damage","+"],"percent":false,"variables":{"light":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0,"which":"target"}}}));
-        assert!(ConditionalPower::decode(&light).unwrap().is_none(), "an equipment count is not reported");
+        let light = fields(json!({"formula":["$light","$damage","+"],"percent":false,"variables":{"light":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","slots":["head","chest"],"fallback":0.0,"which":"target"}}}));
+        let module = ConditionalPower::decode(&light).unwrap().expect("an equipment count is read from the target");
+        let mut arrow = NbtCompound::new();
+        module.shoot(false, 1.0, &mut arrow);
+        let geared = pluto_lib::EntityState { equipment: Some(vec!["head".to_string()]), ..Default::default() };
+        let context = PowerContext { holder_in_tag: &|_| false, target_in_tag: &|_| false, entities: crate::entity_facts::Entities { attacker: None, target: Some(&geared) } };
+        // One of the two counted slots holds an item: 1 + damage 3.
+        assert_eq!(module.hit(&entry(2), &mut arrow, &context, 3.0), 4.0);
+        // The loader requires the slots list, as in the original: without it the variable does not load.
+        assert!(ConditionalPower::decode(&fields(json!({"formula":["$light","$damage","+"],"percent":false,"variables":{"light":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0,"which":"target"}}}))).is_err());
         assert!(ConditionalPower::decode(&fields(json!({"each_level":0.25,"target":"tconstruct:full_health"}))).unwrap().is_some());
         assert!(ConditionalStat::decode(&fields(json!({"stat":"tconstruct:projectile_damage","each_level":0.5,"entity":"tconstruct:full_health"}))).unwrap().is_some());
     }

@@ -137,20 +137,29 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (111, 74), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (108, 72), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk transform (no walk event) is not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
-    // reads the attacker's held items: none of those is reported.
-    for unbound in ["tool_action_walk_transform", "embellishment", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    // Restore lost health bound to the modify hurt hook runs as the damage arrives, before armor, and stalwart's protection
+    // reads the equipment the attacker holds, which the hit reports: both bind now. Recurrent protection, the other module
+    // that works before armor, is a kind of its own and stays unbound.
+    for unbound in ["tool_action_walk_transform", "embellishment", "recurrent_protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for bound in ["restore_lost_health", "protection"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The craft count, material repair, volatile float and quiver inventory modules are bound; revitalizing's
     // update health binds for its armor slots but its hand module stays unbound (held tools are not reported).
     for bound in ["craft_count", "material_repair", "volatile_float", "quiver_inventory"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     assert!(kinds.contains("tconstruct:update_health"), "update_health is still unbound for the hand slots");
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
-    assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
-    assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
+    assert!(unbound_of("stalwart").is_empty(), "stalwart's protection counts the attacker's filled equipment slots, which the hit reports");
+    assert!(unbound_of("restore").is_empty(), "restore runs on the modify hurt hook, before armor");
+    // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
+    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
+    // and over the holder as an entity (hydraulic) stay unbound; lightspeed keeps only its own attribute kind.
+    assert!(unbound_of("temperate").is_empty(), "temperate is fully bound");
+    assert_eq!(unbound_of("lightspeed"), ["tconstruct:lightspeed_attribute"]);
+    assert_eq!(unbound_of("lightspeed_armor"), ["tconstruct:lightspeed_attribute"]);
+    for name in ["blasting", "crumbling", "hydraulic"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
     for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     assert_eq!(unbound_of("revitalizing"), ["tconstruct:update_health"], "the armor update health binds; the hand one is not reported");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
@@ -814,7 +823,7 @@ fn shipped_mining_speed_modifiers_change_the_dig_speed_of_a_rebuilt_pickaxe() {
     let stone = Identifier::parse("minecraft:stone").unwrap();
     let melts = |tag: &Identifier| tag.to_string() == "tconstruct:can_melt";
     let dig = |nbt: &pluto_lib::NbtCompound, effective: bool, on_ground: bool| {
-        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false) };
+        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false), facts: Default::default() };
         break_speed(nbt, &env, &context, 4.0)
     };
     let build = |upgrades: Vec<(&str, i32)>, persistent: Option<(&str, i32)>, damage: i32| {
@@ -1995,7 +2004,7 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
     assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
     // The modules that need host data this port does not receive stay unbound.
-    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:temperate", "conditional_mining_speed"), ("tconstruct:tank", "stat_boost")] {
+    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:tank", "stat_boost")] {
         assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
     }
     // Experienced's volatile float is bound now; only its experience multiplier attribute has no counterpart.
@@ -2365,15 +2374,18 @@ fn shipped_rebuff_heals_by_regeneration_and_wears_the_piece_while_restore_stays_
     let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &|_| false, entities: Default::default() };
     let (tool, _) = armor_helmet(&world, &[("rebuff", 2)]);
     // Rebuff always lands; level 2 heals half the damage as regeneration at effect level 2 (25 ticks a point) and costs 2 wear.
-    let found = restores(&tool.custom_data, &env, &source, 10.0, &mut || 0.0);
+    let found = restores(&tool.custom_data, &env, &source, 10.0, false, &mut || 0.0);
     assert_eq!(found, vec![(Identifier::parse("tconstruct:rebuff").unwrap(), Restore { duration: 125, wear: 2 })]);
-    assert!(restores(&tool.custom_data, &env, &source, 1.0, &mut || 0.0).is_empty(), "half of 1 damage is not a whole point of health");
+    assert!(restores(&tool.custom_data, &env, &source, 1.0, false, &mut || 0.0).is_empty(), "half of 1 damage is not a whole point of health");
+    assert!(restores(&tool.custom_data, &env, &source, 10.0, true, &mut || 0.0).is_empty(), "rebuff is not bound to the hurt hook");
     // The wear edits put the piece's damage up by what the module costs.
     let edits = wear_edits(&tool.custom_data, &env, &Identifier::parse("tconstruct:rebuff").unwrap(), 2, &mut || 1.0);
     assert!(edits.contains(&StackDataEdit { path: vec!["Damage".into()], value: Some(Nbt::Int(2)) }), "{edits:?}");
-    // Restore is the same module on the other hook: left unbound, it does nothing here.
+    // Restore is the same module on the other hook: nothing at the damage stage, and at the hurt stage a share of the
+    // damage as it arrives (25% of 10 is 2 whole points of health, 50 ticks each at level I, one wear per level).
     let (restore, _) = armor_helmet(&world, &[("restore", 1)]);
-    assert!(restores(&restore.custom_data, &env, &source, 10.0, &mut || 0.0).is_empty());
+    assert!(restores(&restore.custom_data, &env, &source, 10.0, false, &mut || 0.0).is_empty());
+    assert_eq!(restores(&restore.custom_data, &env, &source, 10.0, true, &mut || 0.0), vec![(Identifier::parse("tconstruct:restore").unwrap(), Restore { duration: 100, wear: 1 })]);
 }
 
 #[test]

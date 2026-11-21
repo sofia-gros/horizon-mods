@@ -1533,6 +1533,12 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
         crouching: player.sneaking,
         ..entity_events_v1::EntityState::default()
     };
+    // The equipment slots that hold something, the hands and the armor alike.
+    let mut equipment = Vec::new();
+    for (name, slot) in [("mainhand", EquipmentSlot::MainHand), ("offhand", EquipmentSlot::OffHand), ("head", EquipmentSlot::Head), ("chest", EquipmentSlot::Chest), ("legs", EquipmentSlot::Legs), ("feet", EquipmentSlot::Feet)] {
+        if host.player_equipment(player.uuid, slot).is_some() { equipment.push(name.to_owned()); }
+    }
+    state.equipment = Some(equipment);
     let [x, y, z] = player.position;
     let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
     read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
@@ -3362,9 +3368,18 @@ impl Hooks for PlutoHooks {
             let eyes_in_water = host.level_block_state(level, eyes).is_some_and(|state| state.starts_with("minecraft:water") || state.contains("waterlogged=true"));
             events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water }
         });
+        // The light at the block being dug and the temperature of the biome it stands in, for the variables that read them.
+        // The event names no face, so the light is the dug block's own, not the block on the side that was hit.
+        let (block_light, sky_light) = host.light(event.pos);
+        let (rain, thunder) = host.weather();
+        let facts = events_interaction_v0::DiggingFacts {
+            block_light: Some(block_light), sky_light: Some(sky_light),
+            sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()),
+            biome_temperature: host.biome(event.pos).as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, event.pos[1])),
+        };
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);
-        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held, player));
+        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held, player, facts));
     }
 
     fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {
@@ -3572,7 +3587,11 @@ impl Hooks for PlutoHooks {
             direct: event.direct,
             amount: event.amount,
         };
-        cancel_if(!entity_events_v1::allow_damage(&damage))
+        if !entity_events_v1::allow_damage(&damage) { return Flow::Cancel; }
+        // The hurt stage, as the damage arrives and before armor and enchantment protection take their share: what the
+        // callbacks leave of the amount is what the game goes on with.
+        event.amount = entity_events_v1::modify_hurt(&damage);
+        Flow::Continue
     }
 
     fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
@@ -3599,6 +3618,7 @@ impl Hooks for PlutoHooks {
                 state.health = saved.health;
                 state.max_health = saved.max_health;
                 state.armor_coverage = saved.armor_coverage;
+                state.equipment = saved.equipment;
             }
             let eyes = host.entity_eye_position(entity);
             if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }

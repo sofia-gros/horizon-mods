@@ -220,14 +220,15 @@ pub(crate) fn protection_with_edits(nbt: &NbtCompound, env: &Environment, source
     })
 }
 
-/// What the restore-lost-health modules of a worn piece do for `amount` of damage its wearer took, with the modifier each belongs to (the cause
-/// of the wear it costs), in modifier order. `roll` gives uniform values in [0, 1).
-pub(crate) fn restores(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, amount: f32, roll: &mut dyn FnMut() -> f32) -> Vec<(Identifier, crate::wearer_modules::Restore)> {
+/// What the restore-lost-health modules of a worn piece do for `amount` of damage its wearer took at the stage `hurt`
+/// names, with the modifier each belongs to (the cause of the wear it costs), in modifier order. `roll` gives uniform
+/// values in [0, 1).
+pub(crate) fn restores(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, amount: f32, hurt: bool, roll: &mut dyn FnMut() -> f32) -> Vec<(Identifier, crate::wearer_modules::Restore)> {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut found = Vec::new();
         for (entry, modifier) in saved {
             for module in modifier.modules() {
-                if let Some(restore) = module.restore_lost_health(entry, facts, source, amount, roll) { found.push((entry.id.clone(), restore)); }
+                if let Some(restore) = module.restore_lost_health(entry, facts, source, amount, hurt, roll) { found.push((entry.id.clone(), restore)); }
             }
         }
         found
