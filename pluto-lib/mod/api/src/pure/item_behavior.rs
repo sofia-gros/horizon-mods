@@ -29,11 +29,11 @@ pub struct MaxStackSizeContext {
 /// A per-stack enchantability query (Minecraft: `Item.getEnchantmentValue`, NeoForge's stack-sensitive
 /// `getEnchantmentValue(ItemStack)`): how readily the stack takes enchantments at an enchanting table, for
 /// this stack (a tool whose materials decide its enchantability reads them from its custom data). 0 means
-/// the stack cannot be enchanted at a table at all. An answer here is a declaration the game would consult;
-/// no host seam asks the question yet (the native enchanting hooks report a finished enchantment and the
-/// offers' costs, never the item's value, and there is no dispatcher for it as there is for the maximum
-/// stack size), so registering one changes nothing in the game until such a seam exists — a mod that must
-/// keep its tools unenchantable today enforces it in its own enchanting recipes.
+/// the stack cannot be enchanted at a table at all. The game asks through the item behaviour transport:
+/// `Enchantments::enchantable_of` — the one lookup the table's offers, costs and enchantment selection
+/// all read — consults a registered answer before the stack's `minecraft:enchantable` component and the
+/// item default behind it, so a registered answer moves the offers exactly as the stack's own value does
+/// (0 closes the table to the stack; a higher value widens the selection's level bonus).
 #[derive(Clone, Debug)]
 pub struct EnchantabilityContext {
     pub item: String,
@@ -43,9 +43,17 @@ pub struct EnchantabilityContext {
 
 /// A tool-action query (NeoForge: `ItemStack.canPerformAction(ToolAction)`, the `ToolActions` names such as
 /// `shears_dig`, `shears_harvest`, `shears_carve`, `shears_disarm` and `fishing_rod_cast`): whether this
-/// stack may do `action`. No host seam asks the question yet (nothing in the native hook surface asks an
-/// item what it can do), so registering an answer changes nothing in the game until such a seam exists;
-/// the flows the actions unlock ride the events that do exist (a shearing rides
+/// stack may do `action`. The game asks through the item behaviour transport where it names an item
+/// instead of asking the stack, at the two function-boundary shear gates: shearing a snow golem or
+/// bogged (`Game::interact_shear_mob`) and shearing a saddle or equipment off a mob
+/// (`Game::shear_saddle`) accept a stack that answers `shears_harvest` and run their original bodies
+/// for it. The remaining vanilla name-checks are not function boundaries a head injection can
+/// rewrite, so they still name the vanilla items: the sheep, mooshroom and wolf shear arms and the
+/// LAN shear hook's gate are match guards inside `Game::interact_mob`, the dispenser's shears
+/// behaviour is chosen by an item-id match in its dispense dispatch, a fishing cast runs a custom
+/// hook entity in the original rather than the vanilla bobber a gate answer would admit, and block
+/// interactions (axe stripping and kin) resolve from the game's exported behaviour tables rather
+/// than a stack query. The flows the actions unlock ride the events that do exist (a shearing rides
 /// [`ServerEntityEvents::SHEAR`](super::entity_events_v1::ServerEntityEvents::SHEAR) and the entity
 /// interaction callback) once the game lets the stack start them.
 #[derive(Clone, Debug)]

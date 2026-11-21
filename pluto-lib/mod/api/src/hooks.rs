@@ -258,6 +258,16 @@ pub fn hooks() -> Box<dyn Hooks> {
             item: item.to_owned(), custom_data: nbt_from_json(data),
         })
     }).expect("PlutoLib item max stack dispatcher installs once");
+    horizon_client::entry::pluto_block::set_enchantability_dispatcher(|item, data| {
+        item_api_v1::enchantability(&item_api_v1::EnchantabilityContext {
+            item: item.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item enchantability dispatcher installs once");
+    horizon_client::entry::pluto_block::set_tool_action_dispatcher(|item, data, action| {
+        item_api_v1::can_perform_action(&item_api_v1::ToolActionContext {
+            item: item.to_owned(), action: action.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item tool action dispatcher installs once");
     horizon_client::entry::pluto_block::set_schedule_drain(|dimension, edit| {
         world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
         // The extra blocks a break's callbacks asked for go through the game's own destroy path, drops and all.

@@ -159,6 +159,10 @@ mod trade_pool_tests;
 mod item_mask_adapter_tests;
 
 #[cfg(test)]
+#[path = "../../../mod/pluto-item-behavior-tests.rs"]
+mod item_behavior_adapter_tests;
+
+#[cfg(test)]
 #[path = "../../../mod/pluto-player-visibility-access.rs"]
 mod player_visibility_access_tests;
 #[cfg(test)]

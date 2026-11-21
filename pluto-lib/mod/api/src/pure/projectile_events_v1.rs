@@ -209,7 +209,7 @@ mod tests {
             arrow.custom_data = quiver.stack.custom_data.clone();
             request.supplied.borrow_mut().replace(arrow);
             let mut shrunk = quiver.stack.clone();
-            shrunk.custom_data.insert("arrows".into(), Nbt::Int(held - 1));
+            shrunk.custom_data.insert("arrows".into(), Nbt::Int((held - 1).try_into().unwrap()));
             request.edits.borrow_mut().push(CarriedEdit { slot: quiver.slot, stack: shrunk });
         });
         let mut quiver_data = NbtCompound::new();

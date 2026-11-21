@@ -33,6 +33,10 @@ pub use horizon_world::level::pluto_item_behavior_access::set_mask_dispatcher;
 #[cfg(not(test))]
 pub use horizon_world::level::pluto_item_behavior_access::set_max_stack_dispatcher;
 #[cfg(not(test))]
+pub use horizon_world::level::pluto_item_behavior_access::set_enchantability_dispatcher;
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_item_behavior_access::set_tool_action_dispatcher;
+#[cfg(not(test))]
 pub use horizon_world::level::pluto_block_access::{set_schedule_drain, drain_schedules};
 
 // Pure tests compile the same shared source, not a copied contract.

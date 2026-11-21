@@ -547,7 +547,7 @@ mod stack_tests {
     use crate::pure::base::Nbt;
 
     fn pickaxe(damage: u32) -> StackData {
-        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None }
+        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, enchantments: Default::default() }
     }
 
     #[test]
