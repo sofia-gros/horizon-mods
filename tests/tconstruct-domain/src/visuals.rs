@@ -162,6 +162,8 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         else if parts.contains(name) { "tool_parts" }
         // TinkerTables.addTabItems (the general tab); the Deco tab only holds retextured variants
         else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
+        // TinkerGadgets.addTabItems is called by the general tab and accepts the piggy backpack
+        else if path == "piggy_backpack" { "general" }
         // TinkerWorld.addTabItems: ores, slimes and their dirt, the slime wood sets, the foliage and the geode shards
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)
@@ -178,7 +180,10 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         // accepts only the earth, sky, blood and ender saplings and leaves.
         if name.ends_with("_fluid") || name == "tconstruct:molten_soulsteel_bucket"
             || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
-            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass"].iter().any(|suffix| name.ends_with(suffix))) {
+            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass"].iter().any(|suffix| name.ends_with(suffix)))
+            // The deprecated throwables are accepted by no addTabItems in the original, and the general tab
+            // (TinkerCommons.addTabItems) never accepts the glow block, so all five are in no tab either.
+            || ["tconstruct:glow_ball", "tconstruct:efln_ball", "tconstruct:flint_shuriken", "tconstruct:quartz_shuriken", "tconstruct:glow"].contains(&name.as_str()) {
             for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
             continue;
         }

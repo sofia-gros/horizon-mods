@@ -63,6 +63,8 @@ TRIM_MATERIAL_KEYS = {'asset_name', 'description', 'ingredient', 'item_model_ind
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light', 'default_state', 'shapes', 'collision_shapes'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
+ENTITY_TYPE_KEYS = {'template', 'item', 'damage'}
+MOB_EFFECT_KEYS = {'category', 'color'}
 
 
 def check_loot(item, name):
@@ -307,6 +309,14 @@ def checked_content(root, version):
                     raise ValueError(f'menu declaration needs a slot count and only reviewed keys: {name}')
                 if not all(isinstance(slot, int) and 0 <= slot < item['slots'] for slot in item.get('results', [])):
                     raise ValueError(f'menu result slots must exist: {name}')
+                continue
+            if '/entity_type/' in name:
+                if not isinstance(item, dict) or set(item) - ENTITY_TYPE_KEYS or not str(item.get('template', '')).startswith('minecraft:') or not isinstance(item.get('item'), str) or not isinstance(item.get('damage'), (int, float)):
+                    raise ValueError(f'entity type declaration must copy a vanilla template with an item and a damage, and only reviewed keys: {name}')
+                continue
+            if '/mob_effect/' in name:
+                if not isinstance(item, dict) or set(item) - MOB_EFFECT_KEYS or item.get('category') not in ('beneficial', 'harmful', 'neutral') or not isinstance(item.get('color'), int):
+                    raise ValueError(f'mob effect declaration needs a category and a color, and only reviewed keys: {name}')
                 continue
             keys = BLOCK_KEYS if '/block/' in name else ITEM_KEYS
             if not isinstance(item, dict) or set(item) - keys or not str(item.get('template', '')).startswith('minecraft:'):

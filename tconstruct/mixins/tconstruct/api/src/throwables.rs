@@ -190,8 +190,10 @@ mod tests {
     fn a_glow_ball_lands_where_java_puts_it() {
         // Block hit on the top face: the glow sits on the hit block, facing down at it.
         assert_eq!(glow_target(&hit("tconstruct:glow_ball", None, [4, 63, 4], [0, 1, 0])), ([4, 64, 4], Direction::Down));
-        // Block hit on a wall's east face: the glow hangs on that wall, facing east toward it.
-        assert_eq!(glow_target(&hit("tconstruct:glow_ball", None, [4, 64, 4], [1, 0, 0])), ([5, 64, 4], Direction::East));
+        // Block hit on a wall's east face: the glow sits in the cell east of the wall, facing west back
+        // at its support (GlowballEntity passes the hit direction's opposite to addGlow, which sets
+        // FACING to that direction directly; FACING points from the glow toward the block it hangs on).
+        assert_eq!(glow_target(&hit("tconstruct:glow_ball", None, [4, 64, 4], [1, 0, 0])), ([5, 64, 4], Direction::West));
         // Entity hit: the hit entity's block position, facing down.
         assert_eq!(glow_target(&hit("tconstruct:glow_ball", Some(9), [4, 64, 4], [0, 1, 0])), ([4, 64, 4], Direction::Down));
     }
