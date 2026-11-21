@@ -1002,13 +1002,13 @@ mod tests {
         let no_tags = |_: &Identifier| false;
         let axe_only = |tag: &Identifier| tag.to_string() == "minecraft:mineable/axe";
         let axe_and_mattock = |tag: &Identifier| matches!(tag.to_string().as_str(), "minecraft:mineable/axe" | "tconstruct:mineable/mattock");
-        let cobweb_context = crate::mining_speed::Context { block: &cobweb, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None };
+        let cobweb_context = crate::mining_speed::Context { block: &cobweb, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
         assert_eq!(data.modify_mining_speed(&cobweb_context, 4.0), 30.0, "cobweb set matches");
-        let axe_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_only, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None };
+        let axe_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_only, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
         assert_eq!(data.modify_mining_speed(&axe_context, 4.0), 8.0, "axe tag and not mattock tag");
-        let both_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_and_mattock, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None };
+        let both_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_and_mattock, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
         assert_eq!(data.modify_mining_speed(&both_context, 4.0), 4.0, "the inverted tag excludes it");
-        let plain_context = crate::mining_speed::Context { block: &log, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None };
+        let plain_context = crate::mining_speed::Context { block: &log, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
         assert_eq!(data.modify_mining_speed(&plain_context, 4.0), 4.0);
         for invalid in [
             json!({"type":"tconstruct:mining_speed_modifier","predicate_type":"mantle:set","blocks":["minecraft:cobweb"]}),

@@ -97,6 +97,9 @@ pub struct EntityState {
     pub rain_exposed: bool,
     /// The share of its armor slots (head, chest, legs, feet) holding armor, 0.0 to 1.0, as `LivingEntity.getArmorCoverPercentage`; None when unknown.
     pub armor_coverage: Option<f32>,
+    /// The names of the equipment slots that hold an item (`mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`), as
+    /// `LivingEntity.getItemBySlot` finds them filled; None when the game did not report its equipment.
+    pub equipment: Option<Vec<String>>,
     /// Whether it crouches: a player holding sneak. A mob never does.
     pub crouching: bool,
     /// Its height, the y of its feet; None when the game did not report it.
@@ -466,6 +469,7 @@ static WEARER_HIT: Event<WearerHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
 static MODIFY_ITEM_DAMAGE: Event<ItemDamage, ()> = Event::void();
 static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
+static MODIFY_HURT: Event<DamageModification, ()> = Event::void();
 static ALLOW_DAMAGE: Event<LivingDamage, bool> = Event::allow_all();
 static AFTER_DEATH: Event<LivingDamage, ()> = Event::void();
 
@@ -478,6 +482,10 @@ impl ServerLivingEntityEvents {
     /// NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount
     /// with `amount.set`. For a player's attack on the server it carries the stack used.
     pub const MODIFY_DAMAGE: &'static Event<DamageModification, ()> = &MODIFY_DAMAGE;
+    /// NeoForge: `LivingIncomingDamageEvent`. Called as damage that goes ahead arrives, before armor and enchantment protection
+    /// take their share and before `MODIFY_DAMAGE`: the amount as it arrives, which callbacks may change with `amount.set`, and
+    /// the same armor, states, attacking stack and action queueing as the damage event that follows in the same call.
+    pub const MODIFY_HURT: &'static Event<DamageModification, ()> = &MODIFY_HURT;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
     /// A server player's tick, heard while they wear armor carrying custom data: take effects off them with `remove_effects`.
@@ -656,8 +664,25 @@ thread_local! {
 const HIT_STATES_LIFETIME: std::time::Duration = std::time::Duration::from_millis(100);
 
 /// A hit is landing on `entity`: what the attacker and the target were doing, remembered for the damage that follows in the same call.
+/// A hit is reported more than once (the mob's hit and the damage event both describe it), and one report may know a side's
+/// equipment where another does not: the reports of one hit complement each other there, and the rest of the newest report stands.
 pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Option<EntityState>) {
-    PENDING_STATES.with(|pending| *pending.borrow_mut() = Some((entity, attacker, target, std::time::Instant::now())));
+    PENDING_STATES.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        if let Some((old_entity, old_attacker, old_target, at)) = &*pending {
+            if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME {
+                let keep_equipment = |new: &mut Option<EntityState>, old: &Option<EntityState>| {
+                    if let (Some(new), Some(old)) = (new, old) { if new.equipment.is_none() { new.equipment = old.equipment.clone(); } }
+                };
+                let (mut attacker, mut target) = (attacker, target);
+                keep_equipment(&mut attacker, old_attacker);
+                keep_equipment(&mut target, old_target);
+                *pending = Some((entity, attacker, target, std::time::Instant::now()));
+                return;
+            }
+        }
+        *pending = Some((entity, attacker, target, std::time::Instant::now()));
+    });
 }
 
 /// The state of each player wearing armor that carries custom data, as of their last tick, by entity id: the damage event that
@@ -719,9 +744,10 @@ pub(crate) fn holds_water(id: &str, waterlogged: bool) -> bool {
     waterlogged || matches!(id, "minecraft:water" | "minecraft:bubble_column" | "minecraft:kelp" | "minecraft:kelp_plant" | "minecraft:seagrass" | "minecraft:tall_seagrass")
 }
 
-/// What an entity's saved data (`Entity.saveWithoutId`) says: its health, its maximum health and the share of its armor slots filled.
+/// What an entity's saved data (`Entity.saveWithoutId`) says: its health, its maximum health, the share of its armor slots filled
+/// and the names of the equipment slots that hold an item.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32> }
+pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32>, pub equipment: Option<Vec<String>> }
 
 fn number(value: &super::base::Nbt) -> Option<f64> {
     use super::base::Nbt;
@@ -754,13 +780,17 @@ pub(crate) fn saved_facts(data: &super::base::NbtCompound) -> SavedFacts {
         })
     });
     // The `equipment` compound names a slot only while it holds something.
-    let armor_coverage = match data.get("equipment") {
-        Some(Nbt::Compound(equipment)) => Some(armor_coverage(["head", "chest", "legs", "feet"].iter().filter(|slot| {
-            matches!(equipment.get(**slot), Some(Nbt::Compound(stack)) if !matches!(stack.get("id"), Some(Nbt::String(id)) if id == "minecraft:air"))
-        }).count())),
-        _ => None,
+    let filled = |equipment: &super::base::NbtCompound, slot: &str| {
+        matches!(equipment.get(slot), Some(Nbt::Compound(stack)) if !matches!(stack.get("id"), Some(Nbt::String(id)) if id == "minecraft:air"))
     };
-    SavedFacts { health, max_health, armor_coverage }
+    let (armor_coverage, equipment) = match data.get("equipment") {
+        Some(Nbt::Compound(equipment)) => (
+            Some(armor_coverage(["head", "chest", "legs", "feet"].iter().filter(|slot| filled(equipment, slot)).count())),
+            Some(["mainhand", "offhand", "head", "chest", "legs", "feet"].iter().filter(|slot| filled(equipment, slot)).map(|slot| slot.to_string()).collect()),
+        ),
+        _ => (None, None),
+    };
+    SavedFacts { health, max_health, armor_coverage, equipment }
 }
 
 /// `LivingEntity.getArmorCoverPercentage` for `filled` of the four armor slots.
@@ -849,6 +879,31 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
     let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
     MODIFY_DAMAGE.invoke(&modification);
+    queue_damage_actions(damage, &modification);
+    modification.amount.get()
+}
+
+/// The amount after the hurt callbacks. The hurt stage runs as the damage arrives, before armor takes its share, where the
+/// damage stage runs after it; both read what the hit brought, so this stage only borrows the attacking stack and the states
+/// and leaves them for the damage event that follows in the same call.
+pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
+    let attacker_stack = PENDING_ATTACK.with(|pending| match &*pending.borrow() { Some((entity, stack)) if *entity == damage.entity => Some(stack.clone()), _ => None });
+    let armor = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(_, pieces)| pieces.clone())).unwrap_or_default();
+    let (attacker_state, mut target_state) = PENDING_STATES.with(|pending| match &*pending.borrow() {
+        Some((entity, attacker, target, at)) if *entity == damage.entity && at.elapsed() < HIT_STATES_LIFETIME => (attacker.clone(), target.clone()),
+        _ => (None, None),
+    });
+    // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
+    if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
+    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
+    MODIFY_HURT.invoke(&modification);
+    queue_damage_actions(damage, &modification);
+    modification.amount.get()
+}
+
+/// Queues the actions a damage callback asked for, at either stage: the ones for an attacking player land on that player's
+/// next tick, the ones for the wearer on the wearer's.
+fn queue_damage_actions(damage: &LivingDamage, modification: &DamageModification) {
     let (by_attacker, rest): (Vec<EntityAction>, Vec<EntityAction>) = modification.actions.borrow_mut().drain(..)
         .partition(|action| modification.attacker_stack.is_some() && damage.attacker >= 0 && action_target(action) == ActionTarget::Attacker);
     // The actions a player's attack asks for the attacker (a heal by the damage dealt) land on that player's next tick, with the damaged entity as the other party.
@@ -856,7 +911,6 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
     let actions: Vec<(i32, i32, EntityAction)> = rest.into_iter().map(|action| (damage.entity, damage.attacker, action)).collect();
     if !actions.is_empty() && !modification.armor.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
-    modification.amount.get()
 }
 
 /// Which party an action is done to.
@@ -1228,6 +1282,35 @@ mod tests {
     }
 
     #[test]
+    fn modify_hurt_runs_as_the_damage_arrives_and_leaves_the_hit_for_the_damage_stage() {
+        remember_armor(88, 8888, vec![("chest".into(), StackData { item: "example:plate".into(), count: 1, ..StackData::default() })]);
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_HURT.register(move |hit| {
+            if hit.damage.entity != 8888 { return; }
+            log.lock().unwrap().push((hit.amount.get(), hit.attacker_state.as_ref().and_then(|state| state.equipment.clone())));
+            hit.amount.set(hit.amount.get() + 1.0);
+            hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:regeneration".into(), amplifier: 0, duration: 40 });
+        });
+        let hurt = LivingDamage { entity: 8888, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 3, direct: 3, amount: 5.0 };
+        // Two reports of the one hit: the first knows the attacker's equipment, the second does not; together they describe it.
+        hit_states(8888, Some(EntityState { kind: "minecraft:zombie".into(), equipment: Some(vec!["mainhand".into()]), ..EntityState::default() }), None);
+        hit_states(8888, Some(EntityState { kind: "minecraft:zombie".into(), ..EntityState::default() }), None);
+        assert_eq!(modify_hurt(&hurt), 6.0, "the hurt callbacks changed the amount as it arrived");
+        assert_eq!(*seen.lock().unwrap(), vec![(5.0, Some(vec!["mainhand".to_string()]))], "the reports together kept the equipment");
+        let queued = take_wearer_actions(8888);
+        assert_eq!(queued.len(), 1);
+        assert!(matches!(&queued[0], (3, EntityAction::AddEffect { effect, .. }) if effect == "minecraft:regeneration"));
+        // The damage stage that follows reads the same hit: the hurt stage borrowed the states, it did not spend them.
+        let seen_damage = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log_damage = seen_damage.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 8888 { log_damage.lock().unwrap().push(hit.attacker_state.as_ref().and_then(|state| state.equipment.clone())); });
+        modify_damage(&hurt);
+        assert_eq!(*seen_damage.lock().unwrap(), vec![Some(vec!["mainhand".to_string()])]);
+        forget_armor(88);
+    }
+
+    #[test]
     fn an_effect_level_is_the_amplifier_plus_one() {
         let state = EntityState { effects: vec!["minecraft:poison".into()], effect_levels: vec![("minecraft:poison".into(), 1)], ..EntityState::default() };
         assert_eq!((state.effect_level("minecraft:poison"), state.effect_level("minecraft:speed")), (2, 0));
@@ -1268,7 +1351,7 @@ mod tests {
             ("equipment", Nbt::Compound(compound(vec![("head", stack("minecraft:iron_helmet")), ("feet", stack("minecraft:air")), ("mainhand", stack("minecraft:stick"))]))),
         ]);
         // (20 + 4) * (1 + 0.5) * (1 + 1).
-        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25) });
+        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25), equipment: Some(vec!["mainhand".into(), "head".into()]) });
         assert_eq!(saved_facts(&NbtCompound::new()), SavedFacts::default(), "data that says nothing reports nothing");
         assert_eq!(armor_coverage(9), 1.0);
     }

@@ -196,8 +196,10 @@ pub(crate) enum Module {
     DepthProtection { module: crate::wearer_modules::DepthProtection, condition: Condition },
     /// OvershieldModule: protection paid for with the overslime on the piece.
     Overshield { module: crate::wearer_modules::Overshield },
-    /// RestoreLostHealthModule (on the modify damage hook): armor that turns part of the damage into slow healing.
-    RestoreLostHealth { module: Box<crate::wearer_modules::RestoreLostHealth>, condition: Condition },
+    /// RestoreLostHealthModule: armor that turns part of the damage into slow healing. The module runs on the hook it is
+    /// bound to: `hurt` as the damage arrives, before armor (the shipped `restore`), `damage` on what armor left (the
+    /// shipped `rebuff`, the module type's default binding); a binding to both runs it at both.
+    RestoreLostHealth { module: Box<crate::wearer_modules::RestoreLostHealth>, condition: Condition, hurt: bool, damage: bool },
     /// DamageOnUnequipModule: taking the armor off hurts its wearer.
     DamageOnUnequip { module: crate::wearer_modules::DamageOnUnequip, condition: Condition },
     /// ReduceEffectOnUnequipModule: taking the armor off shortens the wearer's effects of one category.
@@ -448,7 +450,11 @@ impl Module {
             }
             "tconstruct:stat_boost" if only("tconstruct:tool_stats") => {
                 let stat_id = identifier(fields, "stat")?;
-                // A stat of another domain (tanks, food) is not representable here.
+                // A stat of another domain (tanks, food) is not representable here. `tconstruct:tank_capacity` in
+                // particular is the capacity stat of the tool's fluid tank (ToolTankHelper, fed by the tank trait's
+                // module): this port has no tool tank at all — no tank module, no fluid stored on a tool — so the stat
+                // would measure a tank that does not exist, and the boost stays unbound until the tank itself is ported
+                // (the same missing piece as the overburn and smashing modules' own tank forms).
                 let Some(stat) = Stat::from_id(&stat_id) else { return Ok(None); };
                 let operation = match fields.get("operation").and_then(Value::as_str) {
                     Some("add") => Operation::Add, Some("percent") => Operation::Percent,
@@ -708,10 +714,14 @@ impl Module {
             "tconstruct:overshield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 Self::Overshield { module: crate::wearer_modules::Overshield::decode(fields)? }
             }
-            // Only on the modify damage hook, which PlutoLib hears after armor: the same module on the modify hurt hook works on the damage before it.
-            "tconstruct:restore_lost_health" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
+            // On the modify hurt hook the module works on the damage as it arrives, before armor; on the modify damage hook
+            // (the default binding, and the shipped rebuff) on what armor left. A binding to no stage runs nowhere.
+            "tconstruct:restore_lost_health" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_hurt" | "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
+                let hurt = hooks.iter().any(|bound| bound.to_string() == "tconstruct:modify_hurt");
+                let damage = hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:modify_damage");
+                if !hurt && !damage { return Ok(None); }
                 let Some(module) = crate::wearer_modules::RestoreLostHealth::decode(fields)? else { return Ok(None); };
-                Self::RestoreLostHealth { module: Box::new(module), condition: Condition::decode(fields)? }
+                Self::RestoreLostHealth { module: Box::new(module), condition: Condition::decode(fields)?, hurt, damage }
             }
             "tconstruct:damage_on_unequip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:equipment_change") => {
                 Self::DamageOnUnequip { module: crate::wearer_modules::DamageOnUnequip::decode(fields)?, condition: Condition::decode(fields)? }
@@ -723,7 +733,16 @@ impl Module {
                 Self::ClearEffectOnUnequip { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
-                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
+                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound. The Tinkers ones
+                // (TinkerAttributes: generic.bouncy, generic.jump_boost, generic.knockback_multiplier, the good and bad effect
+                // duration multipliers, generic.crouch_damage_multiplier, generic.chrysophilite, player.use_item_speed,
+                // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier)
+                // cannot bind yet for two reasons: PlutoLib has no way to register an attribute the game does not have, so a
+                // stack entry naming one would be data nothing applies, and every reader of those attributes in the original
+                // is a Tinkers event handler over a game system PlutoLib does not report (experience gains, jumps and falls,
+                // knockback taken, critical hits, effect applications, using an item, swimming). The two with a reader in
+                // this port are the exceptions above and below: the protection cap is the port's own protection math, and
+                // chrysophilite is worked out in the loot flow itself. Binding the rest waits on attribute registration.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
                 if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
                     let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
@@ -951,9 +970,11 @@ impl Module {
         let percent = module.percent(entry);
         (percent != 0.0).then(|| (module.category(), percent))
     }
-    /// The restore-lost-health module's result for `amount` of damage taken, when its conditions hold.
-    pub fn restore_lost_health(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, amount: f32, roll: &mut dyn FnMut() -> f32) -> Option<crate::wearer_modules::Restore> {
-        let Self::RestoreLostHealth { module, condition } = self else { return None; };
+    /// The restore-lost-health module's result for `amount` of damage taken at the stage `hurt` names (the damage as it
+    /// arrives, before armor, or what armor left), when the module is bound to that stage and its conditions hold.
+    pub fn restore_lost_health(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, amount: f32, hurt: bool, roll: &mut dyn FnMut() -> f32) -> Option<crate::wearer_modules::Restore> {
+        let Self::RestoreLostHealth { module, condition, hurt: on_hurt, damage: on_damage } = self else { return None; };
+        if (hurt && !on_hurt) || (!hurt && !on_damage) { return None; }
         if !condition.matches(entry, facts) { return None; }
         module.restore(entry, source, amount, roll)
     }
@@ -1536,7 +1557,9 @@ mod tests {
         assert_eq!(dense.repair_factor(&Entry::new(id("test:m"), 6), &f, 10.0), 10.0, "outside the level range nothing changes");
         // Unsupported shapes are unbound: an entity predicate or data-defined variables.
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"entity":{"type":"tconstruct:sneaking"}})).is_none());
-        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0}}})).is_none());
+        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","slots":["mainhand"],"fallback":0.0}}})).is_some(), "an equipment count over the reported slots binds");
+        let bad = json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0}}});
+        assert!(Module::decode("tconstruct:reduce_tool_damage", bad.as_object().unwrap(), &[]).is_err(), "the loader requires the slots list, as in the original");
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"cause":{"type":"mantle:and"}})).is_none());
     }
     #[test]

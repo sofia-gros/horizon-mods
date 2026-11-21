@@ -322,13 +322,13 @@ assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
 
 ### `BreakSpeedContext`
 
-How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`.
+How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`. The dig's own facts ride along too: `block_light` and `sky_light` at the block (each 0 to 15, None when the game did not report them), `sky_darken` (how much of the sky light the time of day and the weather take off) and `biome_temperature`, the temperature of the biome at the block (None for a biome PlutoLib has no temperature for).
 
 ```rust
 use pluto_lib::{BlockState, BreakSpeedContext};
 use std::cell::Cell;
 
-let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5), held: None, player: None };
+let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5), held: None, player: None, block_light: Some(0), sky_light: Some(15), sky_darken: 0, biome_temperature: Some(0.8) };
 dig.speed.set(dig.speed.get() * 2.0);
 assert_eq!((dig.original, dig.speed.get()), (1.5, 3.0));
 assert_eq!(dig.pos, [0, 64, 0]);
@@ -365,7 +365,7 @@ use pluto_lib::{BlockState, BreakSpeedCallback, BreakSpeedContext};
 use std::cell::Cell;
 
 BreakSpeedCallback::EVENT.register(|dig| if dig.block.block.path() == "slow_stone" { dig.speed.set(0.0) });
-let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0), held: None, player: None };
+let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0), held: None, player: None, block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None };
 BreakSpeedCallback::EVENT.invoke(&dig);
 assert_eq!(dig.speed.get(), 0.0);
 ```

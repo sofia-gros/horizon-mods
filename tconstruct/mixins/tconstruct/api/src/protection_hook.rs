@@ -38,18 +38,21 @@ pub(crate) fn register() {
     // the damage left, and the fills reach the pieces on the wearer's next tick.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| fill_capacity(hit, source)); });
     // Restore lost health is the last of the modify damage modules (priority 10): it works on the damage that is left.
-    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source)); });
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source, false)); });
+    // The same module bound to the modify hurt hook runs as the damage arrives, before armor: a share of the damage as it
+    // came in comes back as regeneration. (ModifierHooks.MODIFY_HURT follows ALLOW_DAMAGE and precedes MODIFY_DAMAGE.)
+    ServerLivingEntityEvents::MODIFY_HURT.register(|hit| { with_source(hit, |source| restore_health(hit, source, true)); });
 }
 
 /// RestoreLostHealthModule: a share of the damage the wearer takes comes back as Regeneration, at a chance, and wears the piece. The effect and the
 /// edits of the piece reach the wearer on their next tick; several pieces give the effect as the game adds them (the longer one stays).
-fn restore_health(hit: &DamageModification, source: &DamageSource) {
+fn restore_health(hit: &DamageModification, source: &DamageSource, hurt: bool) {
     let amount = hit.amount.get();
     if !(amount > 0.0) { return; }
     let mut actions = Vec::new();
     for (slot, piece) in &hit.armor {
         let Some(stack_slot) = armor_stack_slot(slot) else { continue };
-        let Ok(restores) = with_held_tool(piece, |env, stack| tool_stack::restores(&stack.custom_data, env, source, amount, &mut crate::tool_damage_hook::random)) else { continue };
+        let Ok(restores) = with_held_tool(piece, |env, stack| tool_stack::restores(&stack.custom_data, env, source, amount, hurt, &mut crate::tool_damage_hook::random)) else { continue };
         for (modifier, restore) in restores {
             actions.push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:regeneration".into(), amplifier: 0, duration: restore.duration });
             if restore.wear <= 0 { continue; }

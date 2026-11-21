@@ -1,7 +1,7 @@
 //! EntityVariable (SlimeKnights, MIT; see LICENSE): a number read from a living entity, over the facts PlutoLib's `EntityState` reports
 //! with a hit: health, maximum health, the biome temperature at the entity, whether it is in water or in the rain, the share of its armor
-//! slots filled and the level of an effect on it. A variable of another entity property (an attribute other than the maximum health,
-//! height, light, equipment counts) is not decoded, so its module stays unbound.
+//! slots filled, how many of a list of equipment slots hold an item and the level of an effect on it. A variable of another entity
+//! property (an attribute other than the maximum health, height, light) is not decoded, so its module stays unbound.
 use crate::melee_damage::{state_in_tag, TargetCondition};
 use pluto_lib::EntityState;
 use serde_json::{Map, Value};
@@ -47,6 +47,8 @@ pub(crate) enum EntityFact {
     Water,
     /// LivingEntity.getArmorCoverPercentage.
     ArmorCoverage,
+    /// EquipmentCountEntityVariable: how many of the named equipment slots hold an item.
+    EquipmentCount(Vec<String>),
     /// The level of an effect on the entity, 0 without it.
     EffectLevel(String),
     /// EntityLightVariable: the light at the entity's block, in one layer or both (the larger). Sky light has the time of day and the weather
@@ -66,6 +68,13 @@ impl EntityFact {
             "tconstruct:biome_temperature" => Self::BiomeTemperature,
             "tconstruct:water" => Self::Water,
             "tconstruct:armor_coverage" => Self::ArmorCoverage,
+            "tconstruct:equipment_count" => {
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?;
+                let mut names = Vec::new();
+                for slot in slots { names.push(slot.as_str().ok_or("equipment slot must be a name")?.to_owned()); }
+                if names.is_empty() { return Ok(None); }
+                Self::EquipmentCount(names)
+            }
             "tconstruct:light" => Self::Light(match fields.get("light_layer").filter(|value| !value.is_null()).map(Value::as_str) {
                 None => None,
                 Some(Some("sky")) => Some(LightLayer::Sky),
@@ -115,6 +124,7 @@ impl EntityFact {
             Self::BiomeTemperature => state.biome_temperature,
             Self::Water => Some(if state.in_water || state.eyes_in_water { 2.0 } else if state.rain_exposed { 1.0 } else { 0.0 }),
             Self::ArmorCoverage => state.armor_coverage,
+            Self::EquipmentCount(slots) => state.equipment.as_ref().map(|held| slots.iter().filter(|slot| held.iter().any(|name| &name == slot)).count() as f32),
             Self::Light(layer) => {
                 let sky = state.sky_light.map(|light| (i32::from(light) - i32::from(state.sky_darken)).max(0));
                 let block = state.block_light.map(i32::from);
@@ -172,7 +182,12 @@ mod tests {
         assert_eq!(read("tconstruct:effect_level", json!({"effect": "minecraft:speed"})), Some(0.0));
         assert_eq!(EntityFact::Health.value(&entities, Whose::Target), None, "no target was reported");
         assert!(EntityFact::decode("tconstruct:attribute", &fields(json!({"attribute": "minecraft:generic.armor"})), "attacker").unwrap().is_none());
-        assert!(EntityFact::decode("tconstruct:equipment_count", &fields(json!({})), "attacker").unwrap().is_none());
+        // Equipment counts read the slots the state names as filled; a state that says nothing of equipment says nothing here.
+        let counting = EntityFact::decode("tconstruct:equipment_count", &fields(json!({"slots": ["mainhand", "offhand"]})), "attacker").unwrap().unwrap();
+        let armed = EntityState { equipment: Some(vec!["mainhand".into(), "head".into()]), ..EntityState::default() };
+        assert_eq!(counting.value(&Entities { attacker: Some(&armed), target: None }, Whose::Attacker), Some(1.0));
+        assert_eq!(counting.value(&entities, Whose::Attacker), None);
+        assert!(EntityFact::decode("tconstruct:equipment_count", &fields(json!({"slots": []})), "attacker").unwrap().is_none());
         let unleveled = EntityState { effects: vec!["minecraft:poison".into()], ..EntityState::default() };
         assert_eq!(EntityFact::EffectLevel("minecraft:poison".into()).value(&Entities { attacker: Some(&unleveled), target: None }, Whose::Attacker), None);
     }
