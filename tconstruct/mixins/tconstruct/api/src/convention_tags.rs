@@ -67,7 +67,7 @@ pub(crate) const TAGS: &[(&str, &[&str])] = &[
     ("forge:glass_panes/yellow", &["minecraft:yellow_stained_glass_pane"]),
     ("forge:granite", &["minecraft:granite"]),
     ("forge:gunpowder", &["minecraft:gunpowder"]),
-    ("forge:heads", &["minecraft:piglin_head"]),
+    ("forge:heads", &["minecraft:piglin_head", "tconstruct:blaze_head", "tconstruct:cave_spider_head", "tconstruct:drowned_head", "tconstruct:enderman_head", "tconstruct:husk_head", "tconstruct:piglin_brute_head", "tconstruct:spider_head", "tconstruct:stray_head", "tconstruct:zombified_piglin_head"]),
     ("forge:ingots", &["minecraft:copper_ingot", "minecraft:gold_ingot", "minecraft:iron_ingot", "minecraft:netherite_ingot", "minecraft:netherite_scrap", "tconstruct:scorched_brick", "tconstruct:seared_brick"]),
     ("forge:ingots/copper", &["minecraft:copper_ingot"]),
     ("forge:ingots/gold", &["minecraft:gold_ingot"]),

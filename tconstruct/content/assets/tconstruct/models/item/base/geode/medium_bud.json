@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:item/amethyst_bud",
+  "display": {
+    "fixed": {
+      "translation": [
+        0,
+        6,
+        0
+      ]
+    }
+  }
+}
