@@ -116,6 +116,7 @@
     "api/src/melter_blocks.rs",
     "api/src/world_blocks.rs",
     "api/src/gadgets.rs",
+    "api/src/world_growth.rs",
     "api/src/alloyer.rs",
     "api/src/alloyer_menu.rs",
     "api/src/casting.rs",

@@ -1,1 +1,1 @@
-{"template":"minecraft:vine","properties":{"hardness":0.75,"explosion_resistance":0.75,"sounds":"minecraft:short_grass","map_color":24,"requires_tool":false},"item":true,"state_properties":{"stage":{"type":"enum","values":["start","middle","end"]}}}
+{"template":"minecraft:vine","properties":{"hardness":0.75,"explosion_resistance":0.75,"sounds":"minecraft:short_grass","map_color":24,"requires_tool":false,"random_ticks":true},"item":true,"state_properties":{"stage":{"type":"enum","values":["start","middle","end"]}}}

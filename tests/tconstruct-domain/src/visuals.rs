@@ -173,7 +173,7 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
             || path.ends_with("_slime_tall_grass") || path.ends_with("_slime_vine") || path.ends_with("_enderbark_roots")
             || path.ends_with("_head") || path.ends_with("_cluster") || path.ends_with("_slime_crystal") || path.ends_with("_slime_crystal_block")
             || path.ends_with("_slime_crystal_bud") || path.starts_with("budding_")
-            || ["greenheart", "skyroot", "bloodshroom", "enderbark"].iter().any(|wood| path.starts_with(&format!("{wood}_")) || path.starts_with(&format!("stripped_{wood}_"))) { "world" }
+            || ["greenheart", "skyroot", "bloodshroom", "enderbark"].iter().any(|wood| path.starts_with(&format!("{wood}_")) || path.starts_with(&format!("stripped_{wood}_"))) || path.ends_with("_slime_grass_seeds") { "world" }
         else { "smeltery" }
     };
     let mut wrong = Vec::new();
@@ -184,7 +184,7 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         // accepts only the earth, sky, blood and ender saplings and leaves.
         if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket"
             || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
-            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass"].iter().any(|suffix| name.ends_with(suffix))) {
+            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) {
             for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
             continue;
         }
