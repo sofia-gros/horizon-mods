@@ -167,10 +167,11 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         else if ["copper_nugget", "debris_nugget", "netherite_nugget"].contains(&path)
             || ["nahuatl", "blazewood"].iter().any(|wood| path.strip_prefix(wood).is_some_and(|rest| ["", "_fence", "_slab", "_stairs"].contains(&rest)))
             || ["cobalt", "steel", "slimesteel", "amethyst_bronze", "rose_gold", "pig_iron", "cinderslime", "queens_slime", "manyullyn", "hepatizon", "knightmetal", "knightslime"].iter().any(|metal| path.strip_prefix(metal).is_some_and(|rest| ["_block", "_ingot", "_nugget"].contains(&rest))) { "general" }
-        // TinkerWorld.addTabItems: ores, the heads, slimes and their dirt, the slime wood sets, the foliage, the geodes and the metal shards
+        // TinkerWorld.addTabItems: ores, the heads, the monsters (the EntityObjects' spawn eggs), slimes and their dirt, the slime wood sets, the foliage, the geodes and the metal shards
         // TinkerGadgets.addTabItems is called by the general tab and accepts the piggy backpack
         else if path == "piggy_backpack" { "general" }
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
+            || path.ends_with("_spawn_egg")
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)
             || path.ends_with("_slime_grass") || path.ends_with("_slime_leaves") || path.ends_with("_slime_sapling") || path.ends_with("_slime_fern")
             || path.ends_with("_slime_tall_grass") || path.ends_with("_slime_vine") || path.ends_with("_enderbark_roots")

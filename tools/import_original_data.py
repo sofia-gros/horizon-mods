@@ -1316,6 +1316,11 @@ def copy_client_assets():
     for texture in SMELTERY_GUI_TEXTURES:
         import_texture(f'tconstruct:gui/{texture}')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
+        if name.endswith('_spawn_egg'):
+            # The original's egg model is the vanilla tint template, which 26.3 dropped for per-egg textures the
+            # original does not ship; the slime eggs stay unmodelled (their declarations are write_slime_entities').
+            skipped.append(name)
+            continue
         if not asset_source(f'models/item/{name}.json').exists():
             skipped.append(name)
             continue
@@ -2553,6 +2558,12 @@ def upgrade_condition(condition):
     if kind == 'minecraft:match_tool' and set(condition) == {'condition', 'predicate'} and set(condition['predicate']) == {'tag'}:
         # 26.3 names the tool tag in the predicate's `items`, as its own amethyst cluster table does.
         return {'type': kind, 'predicate': {'items': f"#{condition['predicate']['tag']}"}}
+    if kind == 'minecraft:damage_source_properties' and set(condition) == {'condition', 'predicate'}:
+        # The entity loot tables: the killer predicate (a frog, in the original's slime tables) carries over as it stands.
+        return {'type': kind, 'predicate': condition['predicate']}
+    if kind == 'minecraft:entity_properties' and set(condition) == {'condition', 'entity', 'predicate'}:
+        # The entity loot tables: the slime size, the metal NBT flag and the on-fire flag predicates carry over as they stand.
+        return {'type': kind, 'entity': condition['entity'], 'predicate': condition['predicate']}
     raise SystemExit(f'loot table: unknown condition {condition}')
 
 
@@ -2565,6 +2576,15 @@ def upgrade_function(function):
         return {'type': kind, **rest}
     if kind == 'minecraft:set_count' and rest.get('add') is False and set(rest) <= {'add', 'count', 'conditions'}:
         result = {'type': kind, 'count': rest['count']}
+        if 'conditions' in rest:
+            terms = [upgrade_condition(term) for term in rest['conditions']]
+            result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
+        return result
+    if kind == 'minecraft:looting_enchant' and set(rest) == {'count'}:
+        return {'type': kind, 'count': rest['count']}
+    if kind == 'minecraft:furnace_smelt' and set(rest) <= {'conditions'}:
+        # The terracube table smelts its whole pool for a burning cube (the on-fire entity condition).
+        result = {'type': kind}
         if 'conditions' in rest:
             terms = [upgrade_condition(term) for term in rest['conditions']]
             result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
@@ -2674,6 +2694,41 @@ def copy_world_structures():
             shutil.copyfile(base / f'{size}.nbt', target)
             count += 1
     return count
+
+
+SLIME_ENTITIES = ['sky_slime', 'ender_slime', 'terracube']
+SLIME_SPAWN_MODIFIERS = ['spawn_overworld_slime', 'spawn_terracube', 'spawn_end_slime']
+
+
+def write_slime_entities():
+    """The slime mobs' data: a spawn egg declaration per type (the vanilla slime egg carrying the type in its
+    `minecraft:entity_data`, the form the base game's own eggs take), the entity loot tables through the same
+    upgrade as the block tables, and the natural-spawn biome modifiers (`forge:add_spawns` becomes
+    `neoforge:add_spawns`). Runs after copy_world_loot and copy_world_features, whose directory wipes it must
+    follow. The terracube modifier's biome predicate (overworld and not `forge:no_default_monsters`) widens
+    to the overworld tag: no biome-predicate form exists to express the exclusion, the same reduction the
+    geode modifiers carry. The entity types themselves, their class behaviour and their (unregistered) spawn
+    placements live in the api module `slime_entities.rs`."""
+    for name in SLIME_ENTITIES:
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_spawn_egg.json',
+                   {'template': 'minecraft:slime_spawn_egg', 'components': {'minecraft:entity_data': {'id': f'tconstruct:{name}'}}}, compact=True)
+        table = json.loads((GENERATED_DATA / 'tconstruct/loot_tables/entities' / f'{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / 'tconstruct/loot_table/entities' / f'{name}.json', whole(upgrade_loot(table)))
+    for name in SLIME_SPAWN_MODIFIERS:
+        modifier = json.loads((GENERATED_DATA / 'tconstruct/forge/biome_modifier' / f'{name}.json').read_text(encoding='utf-8'))
+        if modifier.get('type') != 'forge:add_spawns' or set(modifier) != {'type', 'biomes', 'spawners'}:
+            raise SystemExit(f'biome modifier {name} is not a forge spawn modifier')
+        biomes = modifier['biomes']
+        if not isinstance(biomes, str):
+            biomes = '#minecraft:is_overworld'  # spawn_terracube's widened predicate, see above
+        rows = modifier['spawners'] if isinstance(modifier['spawners'], list) else [modifier['spawners']]
+        spawners = [{'type': spawner['type'], 'weight': spawner['weight'], 'minCount': spawner['minCount'], 'maxCount': spawner['maxCount']} for spawner in rows]
+        write_json(CONTENT_DATA / 'tconstruct/neoforge/biome_modifier' / f'{name}.json',
+                   {'type': 'neoforge:add_spawns', 'biomes': biomes, 'spawners': whole(spawners)})
+    return len(SLIME_ENTITIES) * 2 + len(SLIME_SPAWN_MODIFIERS)
+
+
+# Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
 
 
 # Forge's convention tags do not exist in the host: the items they stand for in the plain crafting recipes (the vanilla
@@ -3193,6 +3248,7 @@ def main():
     transfers = write_fluid_transfers()
     world_loot = copy_world_loot(sorted({**world_blocks(), **world_geode_blocks(), **smeltery_blocks(), **gadget_blocks()} | {'cast_chest', 'crafting_station', 'fake_storage_block', 'part_chest', 'scorched_anvil', 'tinkers_anvil', 'tinkers_chest'}))
     world_worldgen = copy_world_features()
+    write_slime_entities()
     world_tags = copy_vanilla_tags()
     copy_cobalt_tags()
     part_names, part_models, part_textures = copy_part_assets()
