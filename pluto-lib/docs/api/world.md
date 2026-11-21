@@ -495,3 +495,27 @@ assert!(!world.merge_block_entity_data([1, 64, 0], &master), "outside a world sc
 with_world(&mut ops, || assert!(world.merge_block_entity_data([1, 64, 0], &master)));
 assert_eq!(ops.entities.len(), 1);
 ```
+
+### `World::summon`
+
+`fn summon(&self, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32>`. Summons an entity of `kind` at `pos`, loaded from the saved data `nbt` (Minecraft: `/summon <kind> <pos> <nbt>`; the game writes the position itself, so `nbt` needs no `Pos`, and passengers in the data come along). Returns the new entity's id; `None` when the chunk is not loaded, the position is out of bounds, the kind is one the game cannot load, a callback kept the entity out, or the call is made outside a callback that carries a world. Projectile kinds load like any other; [projectile](projectile.md) builds its spawns on this.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` summons through the host's summon call (the game's own `/summon`, API 59) in the dimension named, and answers the id it returns.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let world = World::new("minecraft:overworld");
+let mut nbt = NbtCompound::new();
+nbt.insert("Item".into(), Nbt::String("minecraft:stone".into()));
+assert_eq!(world.summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), None, "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert_eq!(world.summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), Some(1));
+});
+assert_eq!(ops.summons[0].kind, "minecraft:item");
+```
+
+### `SummonRecord`
+
+One entity a `MemoryWorldOps` was asked to summon, as it was asked: `dimension`, `kind`, `pos` and `nbt`. A summon's id is its 1-based place in `MemoryWorldOps::summons`.

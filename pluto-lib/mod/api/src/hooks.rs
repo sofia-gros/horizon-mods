@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -25,6 +25,7 @@ use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDis
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
+use crate::pure::book_api_v1::{self, BookOps, BookView};
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
@@ -758,6 +759,79 @@ impl WorldOps for HostWorld {
         }
         merged
     }
+
+    fn summon_entity(&mut self, dimension: &str, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {
+        // The host's summon is `/summon` itself (API 59): it loads any kind from its data, projectiles
+        // included, and answers the new entity's id.
+        self.0.get().summon(dimension, kind, pos, compound_to_tag(nbt))
+    }
+}
+
+/// PlutoLib's own mod id: the id its mod screen opens under (API 111).
+const PLUTO_MOD_ID: &str = "pluto_lib";
+
+/// The book the reader is reading now, kept on the host side because the screen hooks that draw it and
+/// turn its pages do not run inside a callback scope. Cleared when the book screen closes.
+static BOOK_VIEW: std::sync::Mutex<Option<BookView>> = std::sync::Mutex::new(None);
+
+/// PlutoLib's book reach over Horizon's mod screen: opening asks the game to open PlutoLib's own screen
+/// over the world, and the screen hooks below draw the current page into it. Opening is a client act —
+/// off the client thread the host answers false and nothing opens.
+struct HostBookOps(HostHandle);
+
+impl BookOps for HostBookOps {
+    fn open_book(&mut self, book: &Identifier) -> bool {
+        if book_api_v1::BookRegistry::get(book).is_none() {
+            return false;
+        }
+        if let Ok(mut view) = BOOK_VIEW.lock() {
+            *view = Some(BookView::new(book.clone()));
+        }
+        let opened = self.0.get().mod_screen_open(PLUTO_MOD_ID);
+        if !opened {
+            if let Ok(mut view) = BOOK_VIEW.lock() {
+                *view = None;
+            }
+        }
+        opened
+    }
+
+    fn close_book(&mut self) -> bool {
+        let host = self.0.get();
+        if host.mod_screen() != Some(PLUTO_MOD_ID) {
+            return false;
+        }
+        host.mod_screen_close(PLUTO_MOD_ID);
+        if let Ok(mut view) = BOOK_VIEW.lock() {
+            *view = None;
+        }
+        true
+    }
+
+    fn open_book_id(&mut self) -> Option<Identifier> {
+        if self.0.get().mod_screen() != Some(PLUTO_MOD_ID) {
+            return None;
+        }
+        BOOK_VIEW.lock().ok()?.as_ref().map(|view| view.book.clone())
+    }
+}
+
+/// Whether the screen showing is PlutoLib's own mod screen.
+fn book_screen_is_ours(host: &dyn Host, screen_id: &str) -> bool {
+    screen_id == "mod" && host.mod_screen() == Some(PLUTO_MOD_ID)
+}
+
+/// The book being read and where the reader is in it, when a book is open.
+fn open_book_view() -> Option<(book_api_v1::Book, BookView)> {
+    let view = BOOK_VIEW.lock().ok()?.clone()?;
+    let book = book_api_v1::BookRegistry::get(&view.book)?;
+    Some((book, view))
+}
+
+fn set_book_view(view: BookView) {
+    if let Ok(mut held) = BOOK_VIEW.lock() {
+        *held = Some(view);
+    }
 }
 
 /// The host's face for a PlutoLib one (the same six, in the same order).
@@ -1037,7 +1111,7 @@ impl EntityOps for HostEntities {
 /// Runs `f` with the player scope and the world scope both open over the host.
 fn scoped<R>(host: &mut dyn Host, f: impl FnOnce() -> R) -> R {
     let handle = HostHandle::new(host);
-    player_api::with_ops(&mut HostOps(handle), || world_api_v1::with_world(&mut HostWorld(handle), f))
+    player_api::with_ops(&mut HostOps(handle), || world_api_v1::with_world(&mut HostWorld(handle), || book_api_v1::with_books(&mut HostBookOps(handle), f)))
 }
 
 impl PlayerOps for HostOps {
@@ -2485,6 +2559,94 @@ impl Hooks for PlutoHooks {
 
     fn screen_tooltip(&self, _host: &dyn Host, event: &mut ScreenTooltipEvent<'_>) {
         screen_handler_api_v1::tooltip(event.block, event.at, event.data, event.lines);
+    }
+
+    fn screen_render_post(&self, host: &dyn Host, event: &mut ScreenRenderPostEvent<'_>) {
+        // PlutoLib's own mod screen is where its books open: draw the page the reader is on.
+        if !book_screen_is_ours(host, event.screen.id) {
+            return;
+        }
+        let Some((book, view)) = open_book_view() else { return };
+        let mut canvas = HostCanvas { host, batch: &mut *event.batch };
+        book_api_v1::draw_book(&mut canvas, &book, &view, event.screen.rect);
+    }
+
+    fn screen_mouse_button_pressed_pre(&self, host: &dyn Host, event: &mut ScreenMouseButtonPressedPreEvent<'_>) -> Flow {
+        if event.button != 0 || !book_screen_is_ours(host, event.screen.id) {
+            return Flow::Continue;
+        }
+        let Some((book, mut view)) = open_book_view() else { return Flow::Continue };
+        let turned = match book_api_v1::book_click(&book, &view, event.screen.rect, event.screen.mouse) {
+            book_api_v1::BookClick::NextPage => view.next_page(&book),
+            book_api_v1::BookClick::PrevPage => view.prev_page(&book),
+            book_api_v1::BookClick::Section(section) => view.goto_section(&book, section),
+            book_api_v1::BookClick::None => return Flow::Continue,
+        };
+        if turned {
+            set_book_view(view);
+        }
+        Flow::Cancel
+    }
+
+    fn screen_mouse_scrolled_pre(&self, host: &dyn Host, event: &mut ScreenMouseScrolledPreEvent<'_>) -> Flow {
+        if !book_screen_is_ours(host, event.screen.id) {
+            return Flow::Continue;
+        }
+        let Some((book, mut view)) = open_book_view() else { return Flow::Continue };
+        // A negative vertical (the wheel rolled down) turns forward, a positive one back.
+        let turned = if event.scroll[1] < 0.0 {
+            view.next_page(&book)
+        } else if event.scroll[1] > 0.0 {
+            view.prev_page(&book)
+        } else {
+            false
+        };
+        if turned {
+            set_book_view(view);
+        }
+        Flow::Cancel
+    }
+
+    fn screen_key_pressed_pre(&self, host: &dyn Host, event: &mut ScreenKeyPressedPreEvent<'_>) -> Flow {
+        if !book_screen_is_ours(host, event.screen.id) {
+            return Flow::Continue;
+        }
+        let Some((book, mut view)) = open_book_view() else { return Flow::Continue };
+        let key = event.key.to_ascii_lowercase();
+        let turned = match key.as_str() {
+            "arrowright" | "right" | "pagedown" | "space" => view.next_page(&book),
+            "arrowleft" | "left" | "pageup" => view.prev_page(&book),
+            "home" => {
+                let moved = view.page != 0;
+                view.page = 0;
+                moved
+            }
+            "end" => {
+                let last = book.page_count().saturating_sub(1);
+                let moved = view.page != last;
+                view.page = last;
+                moved
+            }
+            _ => return Flow::Continue,
+        };
+        if turned {
+            set_book_view(view);
+        }
+        Flow::Cancel
+    }
+
+    fn screen_closing(&self, host: &dyn Host, event: &mut ScreenClosingEvent<'_>) {
+        if event.screen.id != "mod" {
+            return;
+        }
+        // The reader closed the book (Escape, or the game moved on): forget where they were. While the
+        // screen closes the game may already report no mod screen, so a held view with no other owner
+        // named is treated as ours.
+        if host.mod_screen().is_none() || host.mod_screen() == Some(PLUTO_MOD_ID) {
+            if let Ok(mut view) = BOOK_VIEW.lock() {
+                *view = None;
+            }
+        }
     }
 
     fn block_entity_update_tag(&self, event: &mut BlockEntityUpdateTagEvent<'_>) -> Option<Compound> {
