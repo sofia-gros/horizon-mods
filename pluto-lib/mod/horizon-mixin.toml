@@ -1618,7 +1618,7 @@ source = "pluto-explosion-flush.rs"
 visibility = "pub(crate)"
 
 [[injection]]
-id = "pluto-explosion-flush"
+id = "pluto-explosion-flush-head"
 target = "horizon_client::game::creatures::Game<'_>::handle_mob_events_reusable"
 kind = "HEAD"
 helper = "pluto-explosion-flush-head.rs"
