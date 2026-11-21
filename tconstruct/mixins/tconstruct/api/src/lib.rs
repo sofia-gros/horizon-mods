@@ -79,6 +79,7 @@ mod station_layouts;
 mod station_layout_order;
 mod tool_actions;
 mod edible;
+mod books;
 mod edible_hook;
 mod tool_action_hook;
 mod tool_slot;
@@ -193,6 +194,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     max_armor_hook::register();
     mob_disguise_hook::register();
     edible_hook::register();
+    books::register();
     armor_worn::register();
     fancy_gadgets::register();
     advancements::register();

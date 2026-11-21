@@ -2717,6 +2717,116 @@ GADGET_TAGS = {'tconstruct:bones'}
 CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 
+# The six books of TinkerCommons (UNSTACKABLE_PROPS items whose use opens the book of the same name, TinkerBookItem).
+BOOK_ITEMS = ('materials_and_you', 'puny_smelting', 'mighty_smelting', 'tinkers_gadgetry', 'fantastic_foundry', 'encyclopedia')
+BOOK_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/book'
+
+
+def write_book_declarations():
+    """The book items: unstackable plain items; opening the book is books.rs' work, the data is copy_book_assets'."""
+    for name in BOOK_ITEMS:
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper', 'max_stack_size': 1}, compact=True)
+    return len(BOOK_ITEMS)
+
+
+def repair_lenient_json(text):
+    """The original's book files are read by the game through Gson's lenient parser and use spellings strict JSON
+    forbids: hexadecimal numbers (`"slotColor": 0xFDF500` in every appearance file), trailing commas and missing
+    commas between values (a few localized pages), a missing closing brace (one page), and one bare unquoted token
+    (a stray hash in one page's text list). The repair works on the token stream, so string contents are never
+    touched: a hex literal becomes its decimal value, a bare token that is no number or literal becomes a quoted
+    string (what Gson makes of it), a comma is inserted where a value ends and the next begins, a trailing comma is
+    dropped, and a closing bracket first closes the scopes left open inside it. The values are unchanged."""
+    tokens, i = [], 0
+    while i < len(text):
+        ch = text[i]
+        if ch in ' \t\r\n':
+            j = i
+            while j < len(text) and text[j] in ' \t\r\n':
+                j += 1
+            tokens.append(('space', text[i:j]))
+            i = j
+        elif ch in '{}[]:,':
+            tokens.append((ch, ch))
+            i += 1
+        elif ch == '"':
+            j = i + 1
+            while j < len(text):
+                if text[j] == '\\':
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    j += 1
+                    break
+                j += 1
+            tokens.append(('string', text[i:j]))
+            i = j
+        else:
+            j = i
+            while j < len(text) and text[j] not in ' \t\r\n{}[]:,"':
+                j += 1
+            tokens.append(('atom', text[i:j]))
+            i = j
+    number = re.compile(r'-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$')
+    out, stack, prev = [], [], None
+    for index, (kind, raw) in enumerate(tokens):
+        if kind == 'space':
+            out.append(raw)
+            continue
+        if kind == 'atom':
+            if re.fullmatch(r'-?0[xX][0-9a-fA-F]+', raw):
+                raw = str(int(raw, 16))
+            elif number.match(raw) or raw in ('true', 'false', 'null'):
+                pass
+            else:
+                raw = json.dumps(raw, ensure_ascii=False)
+                kind = 'string'
+        if kind == ',':
+            following = next((k for k, _ in tokens[index + 1:] if k != 'space'), None)
+            if following in ('}', ']', None):
+                continue
+        if kind in ('{', '[', 'string', 'atom') and prev == 'value':
+            out.append(',')
+        if kind in ('{', '['):
+            stack.append(kind)
+        elif kind in ('}', ']'):
+            while stack and (stack[-1] == '{') != (kind == '}'):
+                out.append('}' if stack.pop() == '{' else ']')
+            if stack:
+                stack.pop()
+        out.append(raw)
+        prev = 'value' if kind in ('string', 'atom', '}', ']') else kind
+    while stack:
+        out.append('}' if stack.pop() == '{' else ']')
+    return ''.join(out)
+
+
+def copy_book_assets():
+    """The books' Mantle data (each book's index, appearance, section files, per-language pages and language tables, and the
+    shared images), copied whole: books.rs walks the tree through the client resources in the original's layout, so nothing
+    is selected or reshaped. The JSON files are normalized on the way (a leading BOM and the line endings, as in copy_lang,
+    and the Gson leniencies repair_lenient_json names — the values are unchanged, and each file must parse as strict JSON
+    afterwards or the import fails); the images and the two structure templates are binary."""
+    target = ASSET_TARGET / 'book'
+    shutil.rmtree(target, ignore_errors=True)
+    count = 0
+    for path in sorted(BOOK_SOURCE.rglob('*')):
+        if not path.is_file():
+            continue
+        destination = target / path.relative_to(BOOK_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == '.json':
+            text = repair_lenient_json(path.read_bytes().removeprefix(b'\xef\xbb\xbf').decode('utf-8').replace('\r\n', '\n'))
+            json.loads(text)
+            destination.write_bytes(text.encode('utf-8'))
+        elif path.suffix == '.lang':
+            destination.write_bytes(path.read_bytes().removeprefix(b'\xef\xbb\xbf').replace(b'\r\n', b'\n'))
+        else:
+            shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_crafting_recipes():
     """The plain crafting, smelting, blasting and stonecutting recipes of the original's `smeltery/`, `tables/`, `common/`,
     `world/`, `gadgets/` and `compat/` recipe folders (the smeltery's structure blocks and periphery, the stations and
@@ -2726,7 +2836,8 @@ def copy_crafting_recipes():
     original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention
     tags become the items they stand for, vanilla's own tags stay tags, a `forge:difference` ingredient is expanded over
     the original's tag, and the melter's `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming
-    an item this port does not declare is left out and returned (the book recipes wait for the books). The `compat/` folder
+    an item this port does not declare is left out and returned. The four shapeless book recipes of the commons ride along,
+    now that the books are declared (the other two books are casting recipes, copied with the fluid recipes). The `compat/` folder
     holds no plain recipes at all: its melting and casting recipes are gated on other mods (`forge:mod_loaded`), which this
     port does not carry. The `tconstruct:crafting_shaped_materials` type (the material anvils and forges, the travelers
     armor, the fake ingot conversion) is not converted either: it resolves its material ingredient against the material
@@ -3073,6 +3184,8 @@ def main():
     fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
     write_gadget_declarations()
+    write_book_declarations()
+    book_files = copy_book_assets()
     crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
     fluid_blocks = write_fluid_world()

@@ -3300,8 +3300,10 @@ impl Hooks for PlutoHooks {
         scoped(host, || entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension));
     }
 
-    fn use_item(&self, _host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
-        cancel_if(events_interaction_v0::use_item(&event.stack.item, event.stack.count))
+    fn use_item(&self, host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
+        // Scoped like use_item_on and the finish event: a callback here may reach for the player, the
+        // world and the client reaches (a book item opens its book), which only exist inside the scope.
+        cancel_if(scoped(host, || events_interaction_v0::use_item(&event.stack.item, event.stack.count)))
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {

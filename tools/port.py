@@ -25,6 +25,9 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
+    # The books' Mantle data (tools/import_original_data.py): index, appearance, section files, per-language pages and images,
+    # walked by books.rs through the client resources; the two .nbt files are the structure templates of the book images folder.
+    re.compile(r'assets/tconstruct/book(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|lang|png|nbt)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The part builder's damageable recycling recipes of the tables tree (the tools tree's are under recycling above).
     re.compile(r'data/tconstruct/recipes/tables/recycling(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
@@ -485,6 +488,11 @@ def checked_content(root, version):
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
                     raise ValueError(f'only {" or ".join(reviewed)} recipes are reviewed here: {name}')
+                continue
+            if name.startswith('assets/tconstruct/book/'):
+                # Mantle book data: a book's index and its section files are page lists, its pages and appearance objects.
+                if not isinstance(item, (dict, list)):
+                    raise ValueError(f'book data must be a JSON object or a page list: {name}')
                 continue
             if name.startswith('assets/tconstruct/') and not name.startswith('assets/tconstruct/lang/'):
                 if not isinstance(item, dict):
