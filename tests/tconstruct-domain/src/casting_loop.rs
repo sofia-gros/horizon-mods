@@ -82,7 +82,7 @@ pub(crate) fn item_registry() -> RegistryLookup {
     crate::common::with_convention_tags(pluto_lib::fixtures::registry_with_tags(&entries, &tag_refs).unwrap())
 }
 
-pub(crate) struct Game { pub data: Data, pub items: RegistryLookup, pub materials: Definitions }
+pub(crate) struct Game { pub data: Data, pub items: RegistryLookup, pub materials: Definitions, pub tools: BTreeMap<Identifier, crate::tool_definitions::Data>, pub registry: crate::modifiers::Registry }
 
 pub(crate) fn game() -> &'static Game {
     static GAME: std::sync::OnceLock<Game> = std::sync::OnceLock::new();
@@ -92,12 +92,13 @@ pub(crate) fn game() -> &'static Game {
         let recipes = crate::fluid_recipes::Recipes::load(&recursive_files("fluids", "fluids"), &context);
         let tags = crate::fluid_ingredient::FluidTags::load(&fluid_tag_files());
         let data = Data { recipes, tags, recipes_loaded: true, tags_loaded: true };
-        Game { data, items, materials: world().materials }
+        let world = world();
+        Game { data, items, materials: world.materials, tools: world.tools.into_iter().collect(), registry: world.registry }
     })
 }
 
 impl Game {
-    fn live(&self, station: Station) -> Live<'_> { Live { data: &self.data, item_tags: Some(&self.items), station, materials: Some(&self.materials) } }
+    fn live(&self, station: Station) -> Live<'_> { Live { data: &self.data, item_tags: Some(&self.items), station, materials: Some(&self.materials), tool_defs: Some(&self.tools), modifiers: Some(&self.registry) } }
     fn in_fluid_tag(&self, fluid: &Identifier, tag: &Identifier) -> bool { self.data.tags.contains(fluid, tag) }
     /// The first concrete fluid a fluid ingredient names.
     fn fluid_of(&self, recipe: &crate::casting_recipes::MaterialFluid) -> Identifier {
@@ -200,7 +201,7 @@ fn composite_casting_coats_a_part_of_one_material_in_another_and_uses_the_part_u
     let game = game();
     let in_fluid = |fluid: &Identifier, tag: &Identifier| game.in_fluid_tag(fluid, tag);
     let declared = declared();
-    let mut coated = 0;
+    let (mut coated, mut preempted) = (0, 0);
     for station in [Station::Table, Station::Basin] {
         let live = game.live(station);
         for recipe in game.data.recipes.casting.iter().filter(|recipe| recipe.station == station) {
@@ -213,6 +214,25 @@ fn composite_casting_coats_a_part_of_one_material_in_another_and_uses_the_part_u
                 let mut cast = ItemSlot::new(result.clone(), 1);
                 crate::tool_materials::set_part_material(&mut cast, input);
                 let (_, items, taken) = pour_and_cool(&live, &cast, &fluid);
+                // ToolCastingRecipe shares the station, and its recipes sort before the parts' composite recipes: for the
+                // parts that are also tool casts (shield core, laces, ribcage, shell), a fluid casting a material the tool's
+                // fluid slot can use builds the tool instead of coating the part.
+                if let Some(tool_recipe) = game.data.recipes.casting.iter().find(|candidate| candidate.station == station
+                    && matches!(&candidate.kind, CastingKind::Tool { .. }) && candidate.cast.as_ref().is_some_and(|cast| game.items_of(cast).contains(result))) {
+                    let CastingKind::Tool { result: tool_result, item_cost: tool_cost, cast_purpose, .. } = &tool_recipe.kind else { unreachable!() };
+                    let stats = game.tools[tool_result].material_stat_types().unwrap();
+                    let stat_index = if *cast_purpose == crate::casting_recipes::CastPurpose::MaybeMaterial { stats.len() - 1 } else { cast_purpose.fluid_index() as usize };
+                    if let Some(casting) = game.data.recipes.material_casting.casting_fluid(&fluid, &in_fluid) {
+                        if casting.output.material_id().is_some_and(|material| game.materials.get_stats(&material, &stats[stat_index].0).is_some()) {
+                            assert_eq!(taken as i32, MaterialCasting::fluid_amount(casting, *tool_cost, &fluid, &in_fluid), "{}: the tool recipe takes the pour", tool_recipe.id);
+                            let made = items[OUTPUT].as_ref().unwrap_or_else(|| panic!("{}: {fluid} on {input} {result} built nothing", tool_recipe.id));
+                            assert_eq!(&made.item, tool_result, "{}", tool_recipe.id);
+                            assert_eq!(materials_of(made), [input.to_string(), casting.output.to_string()], "{}: the part's material first, the fluid's second", tool_recipe.id);
+                            preempted += 1;
+                            continue;
+                        }
+                    }
+                }
                 // CompositeCastingRecipe.getFluidRecipe: a fluid that already casts a material the stat uses is left to tool casting
                 let conflicts = stat_conflict.as_ref().is_some_and(|stat| game.data.recipes.material_casting.casting_fluid(&fluid, &in_fluid)
                     .and_then(|casting| casting.output.material_id()).is_some_and(|material| game.materials.get_stats(&material, stat).is_some()));
@@ -231,6 +251,7 @@ fn composite_casting_coats_a_part_of_one_material_in_another_and_uses_the_part_u
         }
     }
     assert!(coated > 0, "some composite casting happened");
+    assert!(preempted > 0, "some pours built tools instead of coating the part");
 }
 
 #[test]
@@ -439,4 +460,141 @@ fn a_faucet_click_pours_the_melters_iron_into_the_table_and_the_cast_sets_the_ca
     for _ in 0..cooling { world.table.tick(&world.live, &mut world.items); }
     assert_eq!(world.items[OUTPUT].as_ref().map(|stack| stack.item.to_string()), Some("minecraft:iron_ingot".to_owned()));
     assert_eq!(world.items[INPUT].as_ref().map(|stack| stack.item.to_string()), Some("tconstruct:ingot_cast".to_owned()));
+}
+
+/// The first material a casting fluid casts that has stats of the given type.
+fn usable_material(game: &Game, stat: &Identifier) -> crate::tool_materials::MaterialVariant {
+    game.data.recipes.material_casting.casting.iter()
+        .find_map(|recipe| recipe.output.material_id().filter(|material| game.materials.get_stats(material, stat).is_some()).map(|_| recipe.output.clone()))
+        .unwrap_or_else(|| panic!("no castable material has {stat} stats"))
+}
+
+/// The first material (in ID order) that has stats of the given type; it need not be castable.
+fn any_material(game: &Game, stat: &Identifier) -> crate::tool_materials::MaterialVariant {
+    let material = game.materials.materials.keys().find(|material| game.materials.get_stats(material, stat).is_some())
+        .unwrap_or_else(|| panic!("no material has {stat} stats"));
+    crate::tool_materials::MaterialVariant::parse(&material.to_string()).unwrap()
+}
+
+/// A tool built the way the station builds it, for the casting tests that start from a finished tool.
+fn tool_stack_of(game: &Game, item: &Identifier, materials: &[crate::tool_materials::MaterialVariant]) -> ItemSlot {
+    let definition = &game.tools[item];
+    let env = crate::tool_stack::Environment { definition: Some(definition), has_materials: true, materials: &game.materials, modifiers: &game.registry,
+        item_tags_loaded: true, item: Some(item), item_tags: Some(&game.items) };
+    let mut stack = ItemSlot::new(item.clone(), 1);
+    stack.custom_data = crate::tool_build::create_tool(&env, &crate::tool_materials::MaterialList::from_variants(materials.to_vec()), false).unwrap();
+    crate::tool_slot::sync_visuals(&mut stack, &env).unwrap();
+    stack
+}
+
+fn materials_of(stack: &ItemSlot) -> Vec<String> {
+    crate::tool_stack::materials(&stack.custom_data, true).as_slice().iter().map(ToString::to_string).collect()
+}
+
+#[test]
+fn tool_casting_builds_tools_from_the_cast_and_fluid_materials_and_swaps_onto_the_finished_tool() {
+    let game = game();
+    let in_fluid = |fluid: &Identifier, tag: &Identifier| game.in_fluid_tag(fluid, tag);
+    let basin = game.live(Station::Basin);
+    // a slime skull: the extra material takes the head's slot, the fluid's material follows; the head is used up
+    let skull = game.data.recipes.casting.iter().find(|recipe| recipe.id.to_string() == "tconstruct:fluids/tools/armor/slime_skull/blaze").unwrap();
+    let CastingKind::Tool { result, item_cost, .. } = &skull.kind else { panic!("{:?}", skull.kind) };
+    let fluid_stat = game.tools[result].material_stat_types().unwrap()[1].0.clone();
+    let fluid_recipe = game.data.recipes.material_casting.casting.iter()
+        .find(|recipe| recipe.output.material_id().is_some_and(|material| game.materials.get_stats(&material, &fluid_stat).is_some())).unwrap();
+    let fluid = game.fluid_of(fluid_recipe);
+    let (state, items, taken) = pour_and_cool(&basin, &ItemSlot::new(id("tconstruct:blaze_head"), 1), &fluid);
+    assert_eq!(taken as i32, MaterialCasting::fluid_amount(fluid_recipe, *item_cost, &fluid, &in_fluid), "the skull takes the fluid amount times its item cost");
+    let helmet = items[OUTPUT].as_ref().expect("a slime helmet");
+    assert_eq!(helmet.item.to_string(), "tconstruct:slime_helmet");
+    assert_eq!(materials_of(helmet), ["tconstruct:blaze", &fluid_recipe.output.to_string()], "the extra material first, then the fluid's");
+    assert!(items[INPUT].is_none() && state.fluid.is_none(), "the head is used up and the basin is reset");
+    // a plate shield on the table: the cast part's material first, the fluid's second (first_material)
+    let table = game.live(Station::Table);
+    let mut core = ItemSlot::new(id("tconstruct:shield_core"), 1);
+    crate::tool_materials::set_part_material(&mut core, &crate::tool_materials::MaterialVariant::parse("tconstruct:iron").unwrap());
+    let (_, items, taken) = pour_and_cool(&table, &core, &id("tconstruct:molten_copper"));
+    assert_eq!(taken, 270, "three ingots of copper");
+    let shield = items[OUTPUT].as_ref().expect("a plate shield");
+    assert_eq!(shield.item.to_string(), "tconstruct:plate_shield");
+    assert_eq!(materials_of(shield), ["tconstruct:iron", "tconstruct:copper"]);
+    // slimelytra: the elytra is used up into wings of the fluid's material, and pouring onto the wings swaps that material.
+    // The slime materials' trait is the overslime code modifier, which the test world leaves to the tests that need it.
+    let mut world = world();
+    for modifier in crate::overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let tools: BTreeMap<Identifier, crate::tool_definitions::Data> = world.tools.into_iter().collect();
+    let basin = Live { data: &game.data, item_tags: Some(&game.items), station: Station::Basin, materials: Some(&game.materials), tool_defs: Some(&tools), modifiers: Some(&world.registry) };
+    let wings_id = id("tconstruct:slime_wings");
+    let wings_stat = tools[&wings_id].material_stat_types().unwrap().last().unwrap().0.clone();
+    let first = usable_material(game, &wings_stat);
+    let first_recipe = game.data.recipes.material_casting.casting.iter().find(|recipe| recipe.output == first).unwrap();
+    let first_fluid = game.fluid_of(first_recipe);
+    let (_, items, taken) = pour_and_cool(&basin, &ItemSlot::new(id("minecraft:elytra"), 1), &first_fluid);
+    assert!(taken > 0, "the elytra casts into wings");
+    let wings = items[OUTPUT].clone().expect("slime wings");
+    let built = materials_of(&wings);
+    assert_eq!(built.last().map(String::as_str), Some(first.to_string().as_str()), "the fluid's material is the wings' last material");
+    let second = game.data.recipes.material_casting.casting.iter().map(|recipe| &recipe.output)
+        .find(|output| **output != first && output.material_id().is_some_and(|material| game.materials.get_stats(&material, &wings_stat).is_some())).unwrap().clone();
+    let second_recipe = game.data.recipes.material_casting.casting.iter().find(|recipe| recipe.output == second).unwrap();
+    let second_fluid = game.fluid_of(second_recipe);
+    let (_, items, taken) = pour_and_cool(&basin, &wings, &second_fluid);
+    assert_eq!(taken as i32, MaterialCasting::fluid_amount(second_recipe, 8, &second_fluid, &in_fluid), "swapping onto the wings costs the tool recipe's item cost");
+    let swapped = items[OUTPUT].as_ref().expect("the wings again");
+    let mut expected = built.clone();
+    *expected.last_mut().unwrap() = second.to_string();
+    assert_eq!(materials_of(swapped), expected, "the wings take the new material in the fluid's slot");
+}
+
+#[test]
+fn part_swapping_replaces_one_material_of_the_tool_on_the_station() {
+    let game = game();
+    let in_fluid = |fluid: &Identifier, tag: &Identifier| game.in_fluid_tag(fluid, tag);
+    let table = game.live(Station::Table);
+    let boots = id("tconstruct:plate_boots");
+    let stats = game.tools[&boots].material_stat_types().unwrap();
+    let iron = crate::tool_materials::MaterialVariant::parse("tconstruct:iron").unwrap();
+    assert!(game.materials.get_stats(&iron.material_id().unwrap(), &stats[0].0).is_some(), "iron serves the boots' first stat");
+    let second = any_material(game, &stats[1].0);
+    let tool = tool_stack_of(game, &boots, &[iron.clone(), second.clone()]);
+    // the same material again is not a swap (and no composite coats iron in itself), so the table takes nothing
+    let (_, _, taken) = pour_and_cool(&table, &tool, &id("tconstruct:molten_iron"));
+    assert_eq!(taken, 0, "a material cannot be swapped for itself");
+    // copper swaps the boots' first material; the second is kept, and the boots come out whole
+    let copper = game.data.recipes.material_casting.casting.iter().find(|recipe| recipe.output.to_string() == "tconstruct:copper").unwrap();
+    let copper_fluid = game.fluid_of(copper);
+    let (_, items, taken) = pour_and_cool(&table, &tool, &copper_fluid);
+    assert_eq!(taken as i32, MaterialCasting::fluid_amount(copper, 2, &copper_fluid, &in_fluid), "the swapping recipe's item cost times the fluid amount");
+    let swapped = items[OUTPUT].as_ref().expect("the boots");
+    assert_eq!((&swapped.item, swapped.count), (&boots, 1));
+    assert_eq!(materials_of(swapped), ["tconstruct:copper", &second.to_string()]);
+    assert!(items[INPUT].is_none(), "the tool on the station is used up into the result");
+}
+
+#[test]
+fn tipped_clearing_washes_the_tip_off_and_tipping_waits_for_the_potions_nbt() {
+    let game = game();
+    let table = game.live(Station::Table);
+    let arrow_item = id("tconstruct:arrow");
+    let stats = game.tools[&arrow_item].material_stat_types().unwrap();
+    let materials: Vec<_> = stats.iter().map(|(stat, _)| any_material(game, stat)).collect();
+    let mut arrow = tool_stack_of(game, &arrow_item, &materials);
+    // a tipped arrow carries the modifier in its list and the potion in its persistent data
+    let tipped = id("tconstruct:tipped");
+    let list = crate::modifier_entries::List::default().with_modifier(tipped.clone(), 1).unwrap();
+    arrow.custom_data.insert(crate::tool_stack::TAG_MODIFIERS.into(), list.to_nbt());
+    let mut persistent = pluto_lib::NbtCompound::new();
+    persistent.insert(tipped.to_string(), pluto_lib::Nbt::String("minecraft:strong_swiftness".to_owned()));
+    arrow.custom_data.insert(crate::tool_stack::TAG_PERSISTENT.into(), pluto_lib::Nbt::Compound(persistent));
+    // tipping itself cannot match: which potion was poured is the fluid's NBT, and a tank stack carries none
+    let (_, _, taken) = pour_and_cool(&table, &arrow, &id("tconstruct:potion"));
+    assert_eq!(taken, 0, "tipping waits for fluid stacks with NBT");
+    // water washes the tip off; the tool, its modifier and its materials are otherwise untouched
+    let (_, items, taken) = pour_and_cool(&table, &arrow, &id("minecraft:water"));
+    assert_eq!(taken, 50, "the ammo clearing recipe takes 50 of water");
+    let washed = items[OUTPUT].as_ref().expect("the washed arrow");
+    assert_eq!(washed.item, arrow_item);
+    assert_eq!(crate::casting::Live::persistent_string(washed, &tipped), "", "the tip is gone");
+    assert_eq!(crate::modifier_entries::List::from_nbt(washed.custom_data.get(crate::tool_stack::TAG_MODIFIERS)).level(&tipped), 1, "the modifier itself stays");
+    assert_eq!(materials_of(washed), materials.iter().map(ToString::to_string).collect::<Vec<_>>(), "the materials are untouched");
 }

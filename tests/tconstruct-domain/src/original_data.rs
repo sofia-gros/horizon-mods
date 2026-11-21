@@ -2246,12 +2246,21 @@ fn every_shipped_fluid_recipe_decodes_whatever_its_conditions_and_only_unported_
     problems.sort();
     // A potion display cast matches the item whatever potion it carries, and a block tag cast reads the item tag the importer writes for the block tag.
     assert!(problems.is_empty(), "{problems:#?}");
-    assert_eq!(recipes.left_out.len(), 35, "21 tool casting, 10 part swapping and 4 potion tipping recipes need the tool domain");
-    let kinds: std::collections::BTreeSet<&str> = recipes.left_out.iter().map(|(_, kind)| kind.as_str()).collect();
-    assert!(kinds.iter().all(|kind| crate::fluid_recipes::LEFT_OUT.contains(kind)), "{kinds:?}");
-    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); all 654 casting recipes decode
+    // the tool domain's casting recipes decode too: 21 tool casting, 10 part swapping, 2 tipping and 2 tipped clearing
+    let (mut tool, mut swapping, mut tipping, mut clearing) = (0, 0, 0, 0);
+    for recipe in &recipes.casting {
+        match &recipe.kind {
+            crate::casting_recipes::CastingKind::Tool { .. } => tool += 1,
+            crate::casting_recipes::CastingKind::PartSwap { .. } => swapping += 1,
+            crate::casting_recipes::CastingKind::Tipping { .. } => tipping += 1,
+            crate::casting_recipes::CastingKind::TippedClearing { .. } => clearing += 1,
+            _ => {}
+        }
+    }
+    assert_eq!((tool, swapping, tipping, clearing), (21, 10, 2, 2));
+    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); all 689 casting recipes decode
     assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (819, 48, 2, true, 32, 24));
-    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (654, 58, 39, 34, 112));
+    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (689, 58, 39, 34, 112));
 }
 
 #[test]
@@ -2536,7 +2545,7 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
     let iron = id("tconstruct:molten_iron");
     let mut world = Pour {
         tank: Some(FluidStack { fluid: iron.clone(), amount: 300 }), state: State::default(), items: vec![Some(ItemSlot::new(id("tconstruct:ingot_cast"), 1)), None],
-        now: Live { data, item_tags: Some(tags), station: Station::Table, materials: None },
+        now: Live { data, item_tags: Some(tags), station: Station::Table, materials: None, tool_defs: None, modifiers: None },
     };
     let mut faucet = faucet::State::default();
     with_neighbours(&mut world, || {
@@ -2553,7 +2562,7 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
     assert_eq!(world.items[OUTPUT].as_ref().map(|stack| stack.item.to_string()), Some("minecraft:iron_ingot".to_owned()));
     assert_eq!(world.items[INPUT].as_ref().map(|stack| stack.item.to_string()), Some("tconstruct:ingot_cast".to_owned()));
     // the basin casts a block with no cast, and a sand cast on the table is picked up as a blank one
-    let basin = Live { data, item_tags: Some(tags), station: Station::Basin, materials: None };
+    let basin = Live { data, item_tags: Some(tags), station: Station::Basin, materials: None, tool_defs: None, modifiers: None };
     let (mut block, mut items) = (State::default(), vec![None, None]);
     assert_eq!(block.fill(&basin, &mut items, &FluidStack { fluid: iron, amount: 900 }, false), 810);
     for _ in 0..180 { block.tick(&basin, &mut items); }
