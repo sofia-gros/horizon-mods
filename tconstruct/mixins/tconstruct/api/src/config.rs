@@ -500,6 +500,12 @@ pub(crate) fn ore_rates() -> OreRates {
     common().map(|config| config.ore_rates()).unwrap_or_default()
 }
 
+/// Whether WorldEvents.creeperKill may drop the head of the TinkerHeadType serialized name; an unloaded
+/// or invalid config drops at the defaults, the same stance as `ore_rates`.
+pub(crate) fn head_drop(serialized_name: &str) -> bool {
+    common().unwrap_or_default().head_drop(serialized_name).unwrap_or(false)
+}
+
 fn section_mut<'m>(root: &'m mut toml::map::Map<String, toml::Value>, path: &[&str]) -> &'m mut toml::map::Map<String, toml::Value> {
     let mut current = root;
     for name in path {
