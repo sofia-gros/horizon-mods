@@ -52,7 +52,7 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit.
+A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top), `at` where it hit, and `actions` the queue of actions for the hit's parties (`Victim` the entity it hit, `Attacker` the thrower), which the game does after the callbacks answer.
 
 ```rust
 use pluto_lib::ProjectileImpact;
@@ -67,6 +67,7 @@ let hit = ProjectileImpact {
     block: [3, 64, 3],
     face: [0, 1, 0],
     at: [3.5, 65.0, 3.5],
+    actions: std::cell::RefCell::new(Vec::new()),
 };
 assert_eq!(hit.block[1] + hit.face[1], 65);
 assert_eq!(hit.at[1], 65.0);
@@ -88,6 +89,7 @@ fn dimension_of(hit: &ProjectileImpact) -> String {
 let hit = ProjectileImpact {
     dimension: "minecraft:the_nether".into(), projectile: 1, kind: "minecraft:arrow".into(), owner: 0, entity: None,
     entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3],
+    actions: std::cell::RefCell::new(Vec::new()),
 };
 assert_eq!(dimension_of(&hit), "minecraft:the_nether");
 ```
@@ -104,7 +106,7 @@ ProjectileEvents::IMPACT.register(|_| true);
 
 ### `ProjectileEvents::IMPACT`
 
-A projectile hit something, before the hit acts. Answer `false` to cancel the hit; one `false` is enough. Heard for the projectiles the game flies: arrows, tridents, snowballs and mod thrown types, eggs, pearls, potions, fireballs, wither skulls, wind charges, llama spit and shulker bullets.
+A projectile hit something, before the hit acts. Answer `false` to cancel the hit; one `false` is enough. Heard for the projectiles the game flies: arrows, tridents, snowballs and mod thrown types, eggs, pearls, potions, fireballs, wither skulls, wind charges, llama spit and shulker bullets. While callbacks run, the entities around the hit are in reach (`EntityReach`), and the actions a callback queues on the hit's `actions` are done to its parties afterwards — the entity it hit as the victim, the thrower as the attacker — whether the hit is cancelled or not.
 
 ```rust
 use pluto_lib::{ProjectileEvents, ProjectileImpact};
@@ -113,6 +115,7 @@ ProjectileEvents::IMPACT.register(|hit| hit.kind != "minecraft:egg");
 let egg = ProjectileImpact {
     dimension: "minecraft:overworld".into(), projectile: 2, kind: "minecraft:egg".into(), owner: 1, entity: None,
     entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3],
+    actions: std::cell::RefCell::new(Vec::new()),
 };
 assert!(!ProjectileEvents::IMPACT.invoke(&egg));
 ```

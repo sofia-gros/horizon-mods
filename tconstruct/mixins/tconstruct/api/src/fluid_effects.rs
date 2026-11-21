@@ -1879,18 +1879,28 @@ impl FluidEffects {
         })
     }
 
+    /// Whether the entry has any effect at all (FluidEffects.hasEffects).
+    pub(crate) fn has_effects(&self) -> bool { !self.block_effects.is_empty() || !self.entity_effects.is_empty() }
+    /// Whether the entry has block effects (FluidEffects.hasBlockEffects).
+    pub(crate) fn has_block_effects(&self) -> bool { !self.block_effects.is_empty() }
+    /// Whether the entry has entity effects (FluidEffects.hasEntityEffects).
+    pub(crate) fn has_entity_effects(&self) -> bool { !self.entity_effects.is_empty() }
+    /// The millibuckets one level of this entry costs for `fluid` (FluidEffects.getAmount).
+    pub(crate) fn amount_per_level(&self, fluid: &FluidStack, in_tag: InTag) -> i32 { self.ingredient.amount(&fluid.fluid, in_tag) }
+
     /// FluidEffects.apply against a block: simulates every effect, then executes them, and returns the
     /// millibuckets consumed — the amount that covers the largest part of a level any effect used.
-    pub(crate) fn apply_to_block(&self, fluid: &FluidStack, level_cap: i32, context: &mut BlockContext, in_tag: InTag) -> i32 {
+    /// The level is the original's float (a cannon's power is 1.5 for the end cannon), not a whole number.
+    pub(crate) fn apply_to_block(&self, fluid: &FluidStack, level_cap: f32, context: &mut BlockContext, in_tag: InTag) -> i32 {
         let amount_per_level = self.ingredient.amount(&fluid.fluid, in_tag);
         if amount_per_level <= 0 { return 0; }
         let amount = fluid.amount as i32;
-        let scale = if amount >= amount_per_level * level_cap {
-            level_cap as f32
+        let scale = if amount as f32 >= amount_per_level as f32 * level_cap {
+            level_cap
         } else {
             amount as f32 / amount_per_level as f32
         };
-        let level = EffectLevel { value: scale, max: level_cap as f32 };
+        let level = EffectLevel { value: scale, max: level_cap };
         let mut used_scale = 0.0f32;
         for phase in [FluidAction::Simulate, FluidAction::Execute] {
             for effect in &self.block_effects {
@@ -1902,16 +1912,16 @@ impl FluidEffects {
     }
 
     /// FluidEffects.apply against an entity; same contract as apply_to_block.
-    pub(crate) fn apply_to_entity(&self, fluid: &FluidStack, level_cap: i32, context: &mut EntityContext, in_tag: InTag) -> i32 {
+    pub(crate) fn apply_to_entity(&self, fluid: &FluidStack, level_cap: f32, context: &mut EntityContext, in_tag: InTag) -> i32 {
         let amount_per_level = self.ingredient.amount(&fluid.fluid, in_tag);
         if amount_per_level <= 0 { return 0; }
         let amount = fluid.amount as i32;
-        let scale = if amount >= amount_per_level * level_cap {
-            level_cap as f32
+        let scale = if amount as f32 >= amount_per_level as f32 * level_cap {
+            level_cap
         } else {
             amount as f32 / amount_per_level as f32
         };
-        let level = EffectLevel { value: scale, max: level_cap as f32 };
+        let level = EffectLevel { value: scale, max: level_cap };
         let mut used_scale = 0.0f32;
         for phase in [FluidAction::Simulate, FluidAction::Execute] {
             for effect in &self.entity_effects {
@@ -1978,8 +1988,17 @@ pub(crate) struct Data {
 }
 
 impl Data {
+    /// What a shooter asks the matching entry before running anything (FluidEffectManager.find, then
+    /// FluidEffects.hasEffects / hasBlockEffects / hasEntityEffects / getAmount): whether it has block
+    /// effects, whether it has entity effects, and its millibuckets per level. None when no entry
+    /// matches the fluid, which the original answers with an entry without effects.
+    pub(crate) fn describe(&self, fluid: &FluidStack, tags: &FluidTags) -> Option<(bool, bool, i32)> {
+        let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+        self.effects.find(fluid, &in_tag).map(|effects| (effects.has_block_effects(), effects.has_entity_effects(), effects.amount_per_level(fluid, &in_tag)))
+    }
+
     /// Finds and runs the matching entry's block effects, returning the millibuckets consumed.
-    pub(crate) fn apply_to_block(&self, fluid: &FluidStack, level_cap: i32, context: &mut BlockContext, tags: &FluidTags) -> i32 {
+    pub(crate) fn apply_to_block(&self, fluid: &FluidStack, level_cap: f32, context: &mut BlockContext, tags: &FluidTags) -> i32 {
         let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
         match self.effects.find(fluid, &in_tag) {
             Some(effects) => effects.apply_to_block(fluid, level_cap, context, &in_tag),
@@ -1988,7 +2007,7 @@ impl Data {
     }
 
     /// Finds and runs the matching entry's entity effects, returning the millibuckets consumed.
-    pub(crate) fn apply_to_entity(&self, fluid: &FluidStack, level_cap: i32, context: &mut EntityContext, tags: &FluidTags) -> i32 {
+    pub(crate) fn apply_to_entity(&self, fluid: &FluidStack, level_cap: f32, context: &mut EntityContext, tags: &FluidTags) -> i32 {
         let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
         match self.effects.find(fluid, &in_tag) {
             Some(effects) => effects.apply_to_entity(fluid, level_cap, context, &in_tag),
@@ -2303,11 +2322,11 @@ mod tests {
         })).expect("decode");
         let mut world = TestWorld::default();
         let mut target = TestTarget::living();
-        let consumed = effects.apply_to_entity(&stack("tconstruct:blazing_blood", 1000), 5, &mut entity_context(&mut world, &mut target), &no_tag);
+        let consumed = effects.apply_to_entity(&stack("tconstruct:blazing_blood", 1000), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
         // Scale 4 of 5: 8 more seconds of fire on an unburning target, the whole stack is used.
         assert_eq!(target.fire_ticks, 160);
         assert_eq!(consumed, 1000);
-        let consumed = effects.apply_to_entity(&stack("tconstruct:blazing_blood", 100), 5, &mut entity_context(&mut world, &mut target), &no_tag);
+        let consumed = effects.apply_to_entity(&stack("tconstruct:blazing_blood", 100), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
         // Scale 0.4: the add rounds in the remaining ticks (170 / 20 = 8), so 2 * 0.4 rounds to 1 second
         // over the current 8, and only the used part is charged.
         assert_eq!(target.fire_ticks, 180);
@@ -2394,10 +2413,10 @@ mod tests {
         let mut world = TestWorld::default();
         world.blocks.insert([0, 0, 0], BlockState::parse("minecraft:stone").expect("state"));
         // Default speed 1.5 against hardness 0.75 needs 2 levels; 100 mB is only 1.
-        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5, &mut block_context(&mut world, [0, 0, 0]), &no_tag);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut block_context(&mut world, [0, 0, 0]), &no_tag);
         assert_eq!(consumed, 0);
         assert!(world.broken.is_empty());
-        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 200), 5, &mut block_context(&mut world, [0, 0, 0]), &no_tag);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 200), 5.0, &mut block_context(&mut world, [0, 0, 0]), &no_tag);
         assert_eq!(consumed, 200);
         assert_eq!(world.broken, vec![[0, 0, 0]]);
     }
@@ -2409,11 +2428,11 @@ mod tests {
             "block_effects": [{"type": "tconstruct:mob_effect_cloud", "effects": [{"effect": "minecraft:blindness", "time": 100}]}],
         })).expect("decode");
         let mut world = TestWorld::default();
-        let consumed = effects.apply_to_block(&stack("tconstruct:liquid_soul", 50), 1, &mut block_context(&mut world, [0, 1, 0]), &no_tag);
+        let consumed = effects.apply_to_block(&stack("tconstruct:liquid_soul", 50), 1.0, &mut block_context(&mut world, [0, 1, 0]), &no_tag);
         assert_eq!(consumed, 0);
         assert!(world.clouds.is_empty());
         world.replaceable.push([0, 2, 0]);
-        let consumed = effects.apply_to_block(&stack("tconstruct:liquid_soul", 50), 1, &mut block_context(&mut world, [0, 1, 0]), &no_tag);
+        let consumed = effects.apply_to_block(&stack("tconstruct:liquid_soul", 50), 1.0, &mut block_context(&mut world, [0, 1, 0]), &no_tag);
         assert_eq!(consumed, 50);
         assert_eq!(world.clouds.len(), 1);
         assert_eq!(world.clouds[0].effects[0].duration, 100);

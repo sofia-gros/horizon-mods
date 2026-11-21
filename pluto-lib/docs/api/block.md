@@ -666,6 +666,7 @@ let context = EntityInsideContext {
     pos: [0, 64, 0],
     entity: 12,
     kind: "minecraft:zombie".into(),
+    actions: Default::default(),
 };
 assert_eq!(context.kind, "minecraft:zombie");
 assert_eq!((context.entity, context.pos), (12, [0, 64, 0]));
