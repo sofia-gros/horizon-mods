@@ -127,6 +127,7 @@ mod smeltery_io;
 mod rendering;
 mod config;
 mod common;
+mod fancy_gadgets;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
@@ -173,5 +174,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     mob_disguise_hook::register();
     edible_hook::register();
     armor_worn::register();
+    fancy_gadgets::register();
     pluto_lib::no_hooks()
 }

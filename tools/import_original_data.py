@@ -1068,6 +1068,30 @@ def asset_source(relative):
     return ASSET_SOURCE / relative
 
 
+def gadget_items():
+    """The fancy item frames and armor stands of TinkerGadgets, as item declarations.
+
+    In the original these are items whose use places a hanging or standing entity (the item classes copy the
+    vanilla placement logic of ItemFrameItem/ArmorStandItem; the variant behaviour lives in the entity classes).
+    The declaration templates are therefore the vanilla items themselves: the frame items are registered with
+    plain item properties (stack 64, TinkerGadgets ITEM_PROPS) and the stand items with stacksTo(16). The
+    derived entity types the original registers for the variants (tconstruct:fancy_item_frame,
+    tconstruct:armor_stand) are registered from Rust (api/src/fancy_gadgets.rs); the host has no spawn reach or
+    simulation callbacks for derived types, so a placed item currently yields the vanilla entity. The frame
+    block models and stand item models and textures are pulled in by copy_client_assets like any other item."""
+    frames = {f'{name}_item_frame': {'template': 'minecraft:item_frame'} for name in
+              ('gold', 'reversed_gold', 'diamond', 'manyullyn', 'netherite', 'clear')}
+    stands = {f'{name}_armor_stand': {'template': 'minecraft:armor_stand', 'max_stack_size': 16} for name in
+              ('bamboo', 'bone', 'necrotic_bone', 'clear')}
+    return {**frames, **stands}
+
+
+def write_gadget_declarations():
+    for name, declaration in gadget_items().items():
+        (HORIZON_DECLARATIONS / 'item' / f'{name}.json').write_text(
+            json.dumps(declaration, indent=2) + '\n', encoding='utf-8')
+
+
 def copy_client_assets():
     """Models, textures, item definitions and blockstates of the registered content that needs no per-material
     rendering, converted from the 1.20 resource-pack layout to the pinned 26.x one (SlimeKnights, MIT; see LICENSE).
@@ -2431,7 +2455,7 @@ def copy_world_features():
 # each read off the original's generated forge tags.
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
-FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'],
+FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'], 'forge:gems/diamond': ['minecraft:diamond'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
               'forge:dusts/redstone': ['minecraft:redstone'], 'forge:dusts/glowstone': ['minecraft:glowstone_dust'], 'forge:glass_panes/colorless': ['minecraft:glass_pane'],
               'forge:slimeball/earth': ['minecraft:slime_ball'], 'forge:slimeball/sky': ['tconstruct:sky_slime_ball'],
@@ -2455,13 +2479,16 @@ FORGE_TAGS['forge:storage_blocks/netherite'] = ['minecraft:netherite_block']
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:blasting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
 TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks'}
+# Tags of the gadget recipes that stay tag ingredients: the port ships the tag and its members are vanilla items
+# (tconstruct:bones is just minecraft:bone), which the expansion to declared items only would silently drop.
+GADGET_TAGS = {'tconstruct:bones'}
 CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
 
 
 def copy_crafting_recipes():
     """The plain crafting, smelting, blasting and stonecutting recipes of the original's `smeltery/`, `tables/`, `gadgets/` and `common/`
     recipe folders (the smeltery's structure blocks and periphery, the stations and their tables, the gadgets whose recipes
-    name nothing undeclared — punji and the ichor and magma cakes — and the commons: the metals' compaction, the clear
+    name nothing undeclared — punji, the ichor and magma cakes, and the fancy frames and armor stands — and the commons: the metals' compaction, the clear
     glass, the slime balls and their blocks) in the game's recipe format, under the original's relative path as the recipe
     id: ingredients and results are plain ids (`#` for a tag), forge's convention tags become the items they stand for,
     vanilla's own tags stay tags, a `forge:difference` ingredient is expanded over the original's tag, and the melter's
@@ -2517,7 +2544,7 @@ def copy_crafting_recipes():
             raise KeyError(kind)
         if 'tag' in node:
             tag = node['tag']
-            if tables and tag in TABLE_TAGS:
+            if (tables and tag in TABLE_TAGS) or (gadgets and tag in GADGET_TAGS):
                 return '#' + tag
             if tables and tag == 'forge:rods/wooden':
                 return 'minecraft:stick'
@@ -2692,6 +2719,7 @@ def main():
     languages = copy_lang()
     fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
+    write_gadget_declarations()
     crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
     fluid_blocks = write_fluid_world()

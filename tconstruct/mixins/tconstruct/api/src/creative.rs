@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
 //! drains, and anvils, none of which exist yet), the books, food (but the cakes, which are here), glass (but the clear, stained and soul glass, which are here; the clear tinted glass is not), platforms and
-//! the frame, stand, piggyback and throwable gadgets of the general tab,
+//! the piggyback and throwable gadgets of the general tab (the fancy frames and armor stands are here),
 //! tank and proxy tank of the smeltery tab, and the trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
@@ -49,13 +49,13 @@ pub(crate) fn tools_group() -> ItemGroup {
 
 /// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
 /// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
-/// the gadgets of TinkerGadgets.addTabItems that this port declares (the punji and the cakes; the stands, frames and piggyback
-/// between them in the original are not declared), then TinkerCommons' glass section and bars (the clear and stained
+/// the gadgets of TinkerGadgets.addTabItems that this port declares (the punji, then the fancy frames and armor stands, then the
+/// cakes; the piggyback between them in the original is not declared), then TinkerCommons' glass section and bars (the clear and stained
 /// glass in GlassColor order, the soul glass, the panes in the same order, gold bars, obsidian pane; the clear tinted glass
 /// is not declared), then the metals of TinkerMaterials.addTabItems, which the general tab calls (its non-metal materials
 /// are not declared): the loose nuggets where the original puts them and, per metal, the block, the ingot and the nugget.
 pub(crate) const GENERAL: &[&str] = &["part_builder", "tinker_station", "modifier_worktable", "pattern",
-    "punji", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake",
+    "punji", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake",
     "clear_glass", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "soul_glass",
     "clear_glass_pane", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane", "soul_glass_pane",
     "gold_bars", "obsidian_pane",
