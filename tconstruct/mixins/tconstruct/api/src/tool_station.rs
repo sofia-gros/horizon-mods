@@ -137,7 +137,11 @@ fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {
     let items: Vec<Option<Identifier>> = inputs.iter().map(|input| input.as_ref().and_then(|input| input.item().cloned())).collect();
     for (tool_item, definition) in ctx.tools {
         let parts = definition.tool_parts();
-        if parts.is_empty() || !tool_build::matches(true, &items, parts, &[]) { continue; }
+        // A building recipe's parts fill every material slot of the tool (the original's ToolBuildingRecipe takes
+        // its parts from the definition). A tool whose parts cover only some slots takes the rest from a cast fluid
+        // in the original (the slimesuit pieces, the plate shield) and has no building recipe, so the station must
+        // not invent one for it: building it here would produce a tool with the fluid's slot left unfilled.
+        if parts.is_empty() || definition.material_stat_types().is_some_and(|types| types.len() != parts.len()) || !tool_build::matches(true, &items, parts, &[]) { continue; }
         let env = ctx.environment(tool_item, definition);
         let materials: Vec<MaterialVariant> = inputs.iter().take(parts.len()).map(|input| match input {
             Some(Input::Part { material, .. }) => material.clone(), _ => MaterialVariant::unknown() }).collect();

@@ -598,3 +598,34 @@ fn tipped_clearing_washes_the_tip_off_and_tipping_waits_for_the_potions_nbt() {
     assert_eq!(crate::modifier_entries::List::from_nbt(washed.custom_data.get(crate::tool_stack::TAG_MODIFIERS)).level(&tipped), 1, "the modifier itself stays");
     assert_eq!(materials_of(washed), materials.iter().map(ToString::to_string).collect::<Vec<_>>(), "the materials are untouched");
 }
+
+#[test]
+fn slimesuit_pieces_build_by_basin_casting() {
+    // T1: the slimesuit pieces whose cast is a tool part (the helmet and the wings are covered above): the
+    // part's material takes the first slot, the poured slime material the second. The chestplate's recipe
+    // named the original's pre-rename item id, which no port item has; it now names the port's item.
+    let game = game();
+    let in_fluid = |fluid: &Identifier, tag: &Identifier| game.in_fluid_tag(fluid, tag);
+    let mut world = world();
+    for modifier in crate::overslime::code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
+    let tools: BTreeMap<Identifier, crate::tool_definitions::Data> = world.tools.into_iter().collect();
+    let basin = Live { data: &game.data, item_tags: Some(&game.items), station: Station::Basin, materials: Some(&game.materials), tool_defs: Some(&tools), modifiers: Some(&world.registry) };
+    let earthslime = game.data.recipes.material_casting.casting.iter().find(|recipe| recipe.output.to_string() == "tconstruct:earthslime").unwrap();
+    let fluid = game.fluid_of(earthslime);
+    for (recipe_path, part, part_material, result, durability) in [
+        ("tconstruct:fluids/tools/building/slimecage", "tconstruct:ribcage", "tconstruct:bone", "tconstruct:slime_chestplate", 80),
+        ("tconstruct:fluids/tools/building/slimeshell", "tconstruct:shell", "tconstruct:dragon_scale", "tconstruct:slime_leggings", 75),
+        ("tconstruct:fluids/tools/building/slime_boots", "tconstruct:laces", "tconstruct:cheese", "tconstruct:slime_boots", 65),
+    ] {
+        let recipe = game.data.recipes.casting.iter().find(|recipe| recipe.id.to_string() == recipe_path).unwrap();
+        let CastingKind::Tool { item_cost, .. } = &recipe.kind else { panic!("{:?}", recipe.kind) };
+        let mut cast = ItemSlot::new(id(part), 1);
+        crate::tool_materials::set_part_material(&mut cast, &crate::tool_materials::MaterialVariant::parse(part_material).unwrap());
+        let (_, items, taken) = pour_and_cool(&basin, &cast, &fluid);
+        assert_eq!(taken as i32, MaterialCasting::fluid_amount(earthslime, *item_cost, &fluid, &in_fluid), "{result} takes its item cost of the fluid");
+        let built = items[OUTPUT].as_ref().expect("a built slimesuit piece");
+        assert_eq!(built.item.to_string(), result);
+        assert_eq!(materials_of(built), [part_material, "tconstruct:earthslime"], "{result} materials");
+        assert_eq!(crate::tool_stack::durability(&built.custom_data), durability, "{result} durability");
+    }
+}

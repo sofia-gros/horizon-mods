@@ -245,3 +245,5 @@ mod station_dispatch;
 mod visuals;
 #[cfg(test)]
 mod world_block_tests;
+#[cfg(test)]
+mod armor_building;
