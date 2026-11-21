@@ -13,6 +13,7 @@ use horizon_client::mod_api::{
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
+use crate::pure::advancement_api_v1;
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use horizon_client::pluto_host_world as horizon_world;
@@ -323,7 +324,129 @@ pub fn hooks() -> Box<dyn Hooks> {
             },
         );
     });
+    horizon_client::pluto_inventory::advancements::predicates::register_item_predicate(
+        horizon_client::pluto_inventory::advancements::predicates::PredicateRegistration {
+            id: "pluto_lib:advancement_api_v1",
+            callback: advancement_predicate_forward,
+            inventory_components: false,
+        },
+    )
+    .expect("PlutoLib advancement predicate forwarder installs once");
+    horizon_client::game::pluto_advancement_event_source::set_event_source(advancement_event_source)
+        .expect("PlutoLib advancement event source installs once");
     Box::new(PlutoHooks)
+}
+
+/// The native half of the pure advancement API's item predicates: the host's
+/// dispatch consults only the native inventory-api registry, so this
+/// forwarder carries evaluations into the pure registry, converting the
+/// native component facts into the pure snapshot. A pure conflict fails
+/// closed, exactly as the host dispatch treats a native one.
+fn advancement_predicate_forward(
+    request: &horizon_client::pluto_inventory::advancements::predicates::PredicateRequest<'_>,
+) -> horizon_client::pluto_inventory::advancements::predicates::PredicateResult {
+    use horizon_client::pluto_inventory::advancements::predicates as native;
+    // With no pure registrations the native matcher keeps its exact
+    // behaviour, including avoiding the conversion work below.
+    if !advancement_api_v1::has_item_predicates() {
+        return native::PredicateResult::Unsupported;
+    }
+    struct Tags<'a>(&'a dyn native::TagLookup);
+    impl advancement_api_v1::TagLookup for Tags<'_> {
+        fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool {
+            self.0.in_tag(registry, tag, id)
+        }
+    }
+    let tags = Tags(request.tags);
+    let components = request.item.components.and_then(advancement_components);
+    let forwarded = advancement_api_v1::PredicateRequest {
+        predicate: request.predicate,
+        item: advancement_api_v1::ItemSnapshot {
+            id: request.item.id,
+            count: request.item.count,
+            damage: request.item.damage,
+            enchantments: request.item.enchantments,
+            potion: request.item.potion,
+            custom_name: request.item.custom_name,
+            components: components.as_ref(),
+        },
+        tags: &tags,
+    };
+    match advancement_api_v1::dispatch_item_predicate(&forwarded) {
+        advancement_api_v1::DispatchResult::Unsupported => native::PredicateResult::Unsupported,
+        advancement_api_v1::DispatchResult::Handled(matched) => {
+            native::PredicateResult::Handled(matched)
+        }
+        advancement_api_v1::DispatchResult::Conflict { .. } => {
+            native::PredicateResult::Handled(false)
+        }
+    }
+}
+
+/// The pure snapshot's component tree is the stack's custom data compound:
+/// take it out of the native component patch and convert it. A stack whose
+/// patch carries no custom data has an empty compound; a tree that cannot
+/// be represented in pure NBT (an end tag, unpaired UTF-16) is unavailable
+/// rather than partial, and consumers requiring components fail closed.
+fn advancement_components(
+    value: &horizon_client::pluto_inventory::advancements::predicates::ComponentValue,
+) -> Option<Nbt> {
+    use horizon_client::pluto_inventory::advancements::predicates::ComponentValue;
+    if !matches!(value, ComponentValue::Compound(_)) {
+        return None;
+    }
+    match value.get("minecraft:custom_data") {
+        Some(custom) => advancement_component(custom),
+        None => Some(Nbt::Compound(NbtCompound::new())),
+    }
+}
+
+fn advancement_component(
+    value: &horizon_client::pluto_inventory::advancements::predicates::ComponentValue,
+) -> Option<Nbt> {
+    use horizon_client::pluto_inventory::advancements::predicates::ComponentValue;
+    Some(match value {
+        ComponentValue::End => return None,
+        ComponentValue::Byte(v) => Nbt::Byte(*v),
+        ComponentValue::Short(v) => Nbt::Short(*v),
+        ComponentValue::Int(v) => Nbt::Int(*v),
+        ComponentValue::Long(v) => Nbt::Long(*v),
+        ComponentValue::Float(bits) => Nbt::Float(f32::from_bits(*bits)),
+        ComponentValue::Double(bits) => Nbt::Double(f64::from_bits(*bits)),
+        ComponentValue::ByteArray(v) => Nbt::ByteArray(v.clone()),
+        ComponentValue::String(v) => Nbt::String(String::from_utf16(&v.0).ok()?),
+        ComponentValue::List(v) => {
+            Nbt::List(v.iter().map(advancement_component).collect::<Option<Vec<_>>>()?)
+        }
+        ComponentValue::Compound(v) => Nbt::Compound(
+            v.iter()
+                .map(|(key, value)| {
+                    Some((String::from_utf16(&key.0).ok()?, advancement_component(value)?))
+                })
+                .collect::<Option<NbtCompound>>()?,
+        ),
+        ComponentValue::IntArray(v) => Nbt::IntArray(v.clone()),
+        ComponentValue::LongArray(v) => Nbt::LongArray(v.clone()),
+    })
+}
+
+/// The native advancement drain's per-tick hand-off. Forward the pure
+/// registry's component-event request into the shared inventory gate, then
+/// take the queued events: the drain runs at the head of the only tick
+/// that evaluates inventory criteria, so the request lands before every
+/// evaluation, and no event submitted since the previous tick is missed.
+fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_event_source::QueuedEvent> {
+    if advancement_api_v1::inventory_component_events_requested() {
+        horizon_client::pluto_inventory::advancements::request_pure_inventory_component_events();
+    }
+    advancement_api_v1::take_queued_events()
+        .into_iter()
+        .map(|event| horizon_client::game::pluto_advancement_event_source::QueuedEvent {
+            trigger: event.trigger,
+            payload: event.payload,
+            matches: event.matches,
+        })
+        .collect()
 }
 
 fn resolve_dynamic_screen_slots(

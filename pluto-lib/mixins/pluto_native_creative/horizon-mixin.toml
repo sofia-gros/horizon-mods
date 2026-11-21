@@ -306,6 +306,21 @@ file = "crates/horizon-client/src/game.rs"
 name = "pluto_advancement_events"
 source = "advancement-events.rs"
 
+[[module]]
+id = "advancement-event-source"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_event_source"
+source = "advancement-event-source.rs"
+visibility = "pub"
+
+# Queued custom advancement events drain into the native sink each tick.
+[[injection]]
+id = "advancement-event-drain"
+target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
+kind = "HEAD"
+helper = "advancement-event-drain.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
 
 # Lossless equipment input and version-locked exact native caller adapters.
 [[module]]
