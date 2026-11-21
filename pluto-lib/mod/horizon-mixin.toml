@@ -1479,6 +1479,14 @@ name = "pluto_mob_effect_access"
 source = "pluto-mob-effect-access.rs"
 visibility = "pub"
 
+# What a mod's entity-inside callback does to the entity inside its block, carried to where the game may change it.
+[[module]]
+id = "pluto-contact-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_contact_access"
+source = "pluto-contact-access.rs"
+visibility = "pub"
+
 [[injection]]
 id = "pluto-mob-effect-apply"
 target = "horizon_client::game::native_hooks::Game<'_>::native_living_incoming_damage_v2"

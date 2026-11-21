@@ -5,10 +5,12 @@
 //! potion and powdered snow, which are `unplacable`) are world fluids with a bucket: the block `<name>_fluid` (the original's block ids), its stepped models and the bucket item `<name>_bucket` are
 //! the importer's content, the flow is the family's of FluidDeferredRegisterExtension (slime 50 ticks, stone 40, metal 30, gem 45, glass
 //! 30, the level drop and slope distance of each) and PlutoLib flows the block and runs the bucket. Fluids with a negative density (ichor,
-//! molten cinderslime) rise, as the original's inverted fluids do. Entity contact (`BurningLiquidBlock`, `MobEffectLiquidBlock`) is kept
-//! as data with the actions it makes; the host has no entity-inside hook that can act on the entity yet.
+//! molten cinderslime) rise, as the original's inverted fluids do. Entity contact (`BurningLiquidBlock`, `MobEffectLiquidBlock`) runs
+//! through the fluid block's `entity_inside`: the callback queues the contact actions and PlutoLib applies them once the
+//! movement seams are done with the entity (a mob's effect and fire land; a hurt and anything aimed at the player still
+//! wait for a game-context reach, see pluto_contact_access).
 //! The fluid tags (`data/tconstruct/tags/fluid`) are read by the host and reach this mod through `reload_registry("minecraft:fluid")`.
-use pluto_lib::{ActionTarget, ColorProviderRegistry, EntityAction, FluidDef, FluidRegistry, Identifier};
+use pluto_lib::{ActionTarget, BlockBehaviors, ColorProviderRegistry, EntityAction, FluidDef, FluidRegistry, FluidWorld, Identifier};
 use crate::fluid_defs::{Contact, FLUIDS, FluidSpec};
 
 /// The Tinkers namespace.
@@ -56,6 +58,12 @@ pub(crate) fn contact_actions(contact: Contact, fire_immune: bool, living: bool,
     }
 }
 
+/// The entity types vanilla makes fire immune (the `fireImmune` types of EntityTypes): a burning fluid leaves them alone.
+const FIRE_IMMUNE_KINDS: &[&str] = &[
+    "minecraft:blaze", "minecraft:ender_dragon", "minecraft:ghast", "minecraft:magma_cube",
+    "minecraft:strider", "minecraft:wither", "minecraft:zombified_piglin",
+];
+
 /// Defines every fluid. Registering an id again replaces it, so calling this twice is harmless. The fluids with a tint (the soups, the stones
 /// and clay) get their block and bucket coloured by it, as the original's fluid texture colour does.
 pub(crate) fn register() {
@@ -63,6 +71,20 @@ pub(crate) fn register() {
     for spec in FLUIDS.iter().filter(|spec| spec.placeable && spec.color != 0xFFFF_FFFF) {
         let rgb = spec.color & 0x00FF_FFFF;
         ColorProviderRegistry::register_block(&[id(spec.name)], move |_| Some(rgb));
+    }
+    // Entity contact: each fluid block's behaviour (the flow behaviour FluidWorld registered) gains an
+    // entity_inside that queues the fluid's contact actions for the entity inside. The notice carries no
+    // position within the fluid, so any overlap counts as being in the fluid.
+    for spec in FLUIDS.iter().filter(|spec| spec.placeable && spec.contact != Contact::None) {
+        let Some(behaviour) = BlockBehaviors::get(&FluidWorld::block_id(&id(spec.name)).to_string()) else { continue };
+        let name = spec.name.to_owned();
+        BlockBehaviors::register(behaviour.entity_inside(move |context| {
+            let living = context.kind != "minecraft:item";
+            let fire_immune = FIRE_IMMUNE_KINDS.contains(&context.kind.as_str());
+            for action in contact_actions(contact(&name), fire_immune, living, true) {
+                context.act(action);
+            }
+        }));
     }
 }
 

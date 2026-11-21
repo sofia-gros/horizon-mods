@@ -2188,9 +2188,30 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         entity_inside: |notice| {
             let Some(state) = to_state(&notice.state) else { return };
             let block = state.block.to_string();
-            block_api_v1::inside(&block, &block_api_v1::EntityInsideContext {
+            let actions = block_api_v1::inside(&block, &block_api_v1::EntityInsideContext {
                 dimension: notice.dimension.clone(), state, pos: notice.pos, entity: notice.entity, kind: notice.kind.clone(),
+                actions: std::cell::RefCell::new(Vec::new()),
             });
+            // The seams run inside entity movement, where the entity may not be changed: what the callback
+            // did to it travels in plain data to where the game may change it (pluto_contact_access,
+            // drained where the mob effects land, after hits and on player ticks).
+            if let Ok(entity) = u32::try_from(notice.entity) {
+                use horizon_client::entry::pluto_contact_access::Contact;
+                for action in actions {
+                    match action {
+                        entity_events_v1::EntityAction::SetFire { target: entity_events_v1::ActionTarget::Victim, seconds } => {
+                            horizon_client::entry::pluto_contact_access::push(entity, Contact::Fire(seconds));
+                        }
+                        entity_events_v1::EntityAction::AddEffect { target: entity_events_v1::ActionTarget::Victim, effect, amplifier, duration } => {
+                            horizon_client::entry::pluto_contact_access::push(entity, Contact::Effect(effect, duration, amplifier));
+                        }
+                        entity_events_v1::EntityAction::Hurt { target: entity_events_v1::ActionTarget::Victim, amount, damage_type } => {
+                            horizon_client::entry::pluto_contact_access::push(entity, Contact::Hurt(damage_type, amount));
+                        }
+                        _ => {}
+                    }
+                }
+            }
         },
         survives,
         placement,

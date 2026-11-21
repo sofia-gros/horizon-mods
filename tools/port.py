@@ -29,6 +29,8 @@ CONTENT_PATHS = (
     # kept in the mod's own folders (the host's own copy of the tconstruct tags is data/tconstruct/tags/fluid, matched below).
     re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/fluid_tags/(?:tconstruct|forge|mantle)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The fluid effects the engine of fluid_effects.rs decodes (tools/import_original_data.py), in the mod's own folder.
+    re.compile(r'data/tconstruct/tinkering/fluid_effects/[a-z0-9_]+\.json'),
     # Damage types used by armor modules and the smeltery, and their additions to vanilla tags.
     re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:avoids_guardian_thorns|bypasses_armor|bypasses_cooldown|bypasses_effects|bypasses_enchantments|is_explosion|is_fire|is_freezing|is_projectile|witch_resistant_to)\.json'),
     # Trim materials, imported as data only: the entries exist in the trim material registry, but no trim

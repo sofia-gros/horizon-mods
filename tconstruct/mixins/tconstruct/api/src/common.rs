@@ -10,6 +10,8 @@ static MODIFIER_RECIPES: OnceLock<Arc<RwLock<crate::modifier_recipes::Recipes>>>
 pub(crate) fn modifier_recipes() -> Option<&'static Arc<RwLock<crate::modifier_recipes::Recipes>>> { MODIFIER_RECIPES.get() }
 static SMELTERY: OnceLock<Arc<RwLock<crate::smeltery_data::Data>>> = OnceLock::new();
 pub(crate) fn smeltery_data() -> Option<&'static Arc<RwLock<crate::smeltery_data::Data>>> { SMELTERY.get() }
+static FLUID_EFFECTS: OnceLock<Arc<RwLock<crate::fluid_effects::Data>>> = OnceLock::new();
+pub(crate) fn fluid_effects() -> Option<&'static Arc<RwLock<crate::fluid_effects::Data>>> { FLUID_EFFECTS.get() }
 static PART_BUILDER_RECIPES: OnceLock<Arc<RwLock<crate::part_builder_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn part_builder_recipes() -> Option<&'static Arc<RwLock<crate::part_builder_recipes::Recipes>>> { PART_BUILDER_RECIPES.get() }
 static RECYCLES: OnceLock<Arc<RwLock<crate::part_recycling::Recycles>>> = OnceLock::new();
@@ -133,6 +135,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers smeltery data listener registration failed");
         SMELTERY.set(smeltery).expect("Tinkers smeltery data already initialized");
+        let effects_config = config.clone();
+        let fluid_effects = crate::fluid_effects::register(move || {
+            let config = effects_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers fluid effects listener registration failed");
+        FLUID_EFFECTS.set(fluid_effects).expect("Tinkers fluid effects already initialized");
         PART_BUILDER_RECIPES.set(part_recipes).expect("Tinkers part builder recipes already initialized");
         let materials = materials::register(move || {
             let config = config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

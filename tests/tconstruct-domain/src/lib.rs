@@ -181,6 +181,8 @@ mod casting_recipes;
 mod fluid_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_data.rs"]
 mod smeltery_data;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_effects.rs"]
+mod fluid_effects;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/vanilla_fuels.rs"]
 mod vanilla_fuels;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melter.rs"]

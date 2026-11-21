@@ -101,6 +101,7 @@
     "api/src/casting_recipes.rs",
     "api/src/fluid_recipes.rs",
     "api/src/smeltery_data.rs",
+    "api/src/fluid_effects.rs",
     "api/src/vanilla_fuels.rs",
     "api/src/melter.rs",
     "api/src/melter_menu.rs",
