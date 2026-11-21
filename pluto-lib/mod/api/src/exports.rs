@@ -26,7 +26,7 @@ pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDro
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
 pub use crate::pure::events_interaction_v0::{
     self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, FishingContext, PlayerBlockBreakEvents, PlayerFishEvents, UseBlockCallback, UseBlockContext,
-    UseEntityCallback, UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext, UseItemOnEntityContext, Hand, FISHING_BITE, FISHING_CAST,
+    UseEntityCallback, InteractEntityCallback, InteractEntityContext, UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext, UseItemOnEntityContext, Hand, FISHING_BITE, FISHING_CAST,
 };
 pub use crate::pure::lifecycle_events_v1::{
     self, ServerChunk, ServerChunkEvents, ServerInfo, ServerLifecycleEvents, ServerTickEvents, WorldTick,
@@ -39,7 +39,7 @@ pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
-pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, KeyPress, MemoryPlayerOps, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
+pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, InventoryTick, KeyPress, MemoryPlayerOps, PlayerInventoryEvents, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
 pub use crate::pure::screen_handler_api_v1::{
     self, ContainerAccept, MenuButton, MenuAccess, SlotAction, SlotClick, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenTooltip, SlotRule,
 };

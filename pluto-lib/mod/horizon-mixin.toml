@@ -1321,6 +1321,35 @@ cancellable = true
 helper = "pluto-entity-kind.rs"
 bindings = [{ name = "mob", ty = "&horizon_client::mobs::Mob", value = "mob" }]
 
+# Passenger (riding) transport for the entity reach: a snapshot of who rides
+# whom plus a queue of mount/dismount requests, applied by the game's own
+# rider synchronisation. The seat helper answers for the local player as a
+# vehicle, which the game's own seat table does not cover.
+[[module]]
+id = "pluto-entity-ride-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_entity_ride_access"
+source = "pluto-entity-ride-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-entity-ride-drain"
+target = "horizon_client::game::passengers::Game<'_>::sync_riders"
+kind = "HEAD"
+helper = "pluto-entity-ride-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+[[injection]]
+id = "pluto-entity-seat-player"
+target = "horizon_client::game::seats::Game<'_>::seat"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-seat-player-head.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "self" },
+ { name = "id", ty = "u32", value = "id" }
+]
+
 # Preserve inherited cube splash RNG, replacing only its registered particle ID.
 [[module]]
 id = "pluto-entity-particles"

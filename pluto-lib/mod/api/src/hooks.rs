@@ -11,6 +11,7 @@ use horizon_client::mod_api::{
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
+    InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -1308,6 +1309,29 @@ impl EntityOps for HostEntities {
         }
         let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
         host.move_entity(&self.dimension, id, pos, rotation[0], rotation[1])
+    }
+
+    // Riding crosses to the game through the passenger transport: it keeps the last rider snapshot of this
+    // dimension and queues mount and dismount requests for the game's own rider synchronisation to apply, so an
+    // accepted request is observable from the next tick and a refusal there is final.
+    fn passengers_of(&mut self, vehicle: u64) -> Vec<u64> {
+        let Ok(vehicle) = u32::try_from(vehicle) else { return Vec::new() };
+        horizon_client::game::pluto_entity_ride_access::passengers_of(&self.dimension, vehicle).into_iter().map(u64::from).collect()
+    }
+
+    fn vehicle_of(&mut self, passenger: u64) -> Option<u64> {
+        let passenger = u32::try_from(passenger).ok()?;
+        horizon_client::game::pluto_entity_ride_access::vehicle_of(&self.dimension, passenger).map(u64::from)
+    }
+
+    fn start_riding(&mut self, passenger: u64, vehicle: u64) -> bool {
+        let (Ok(passenger), Ok(vehicle)) = (u32::try_from(passenger), u32::try_from(vehicle)) else { return false };
+        horizon_client::game::pluto_entity_ride_access::request_mount(&self.dimension, passenger, vehicle)
+    }
+
+    fn stop_riding(&mut self, passenger: u64) -> bool {
+        let Ok(passenger) = u32::try_from(passenger) else { return false };
+        horizon_client::game::pluto_entity_ride_access::request_dismount(&self.dimension, passenger)
     }
 }
 
@@ -3166,12 +3190,66 @@ impl Hooks for PlutoHooks {
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
             actions: std::cell::RefCell::new(Vec::new()),
         };
-        let handled = scoped(host, || events_interaction_v0::use_item_on_entity(&context));
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let handle = HostHandle::new(host);
+        let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::use_item_on_entity(&context)));
         let actions = context.actions.take();
         if let Some(player) = player {
             if !actions.is_empty() { apply_player_actions(host, player.uuid, actions); }
         }
         cancel_if(handled)
+    }
+
+    fn interact_entity(&self, host: &mut dyn Host, event: &mut InteractEntityEvent<'_>) -> Flow {
+        if !events_interaction_v0::entity_interact_heard() {
+            return Flow::Continue;
+        }
+        let player = host.acting_player();
+        let context = events_interaction_v0::InteractEntityContext {
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            stack: event.stack.map(read_stack),
+            player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+        };
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let handle = HostHandle::new(host);
+        let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::entity_interact(&context)));
+        cancel_if(handled)
+    }
+
+    fn inventory_tick(&self, host: &mut dyn Host, event: &mut InventoryTickEvent) {
+        if !player_api::inventory_tick_heard() {
+            return;
+        }
+        let player = host.acting_player();
+        let tick = player_api::InventoryTick {
+            player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            slot: event.slot,
+            selected: event.selected,
+            stack: host.carried_stack(event.slot).filter(|stack| stack.count > 0).map(read_stack),
+        };
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let handle = HostHandle::new(host);
+        scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || player_api::inventory_tick(&tick)));
+    }
+
+    fn entity_tick_pre(&self, host: &mut dyn Host, event: &mut EntityTickPreEvent<'_>) -> Flow {
+        if !entity_events_v1::entity_tick_heard() {
+            return Flow::Continue;
+        }
+        let info = entity_events_v1::EntityInfo { id: event.entity, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() };
+        let handle = HostHandle::new(host);
+        let allowed = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: info.dimension.clone() }, || entity_events_v1::entity_tick_before(&info)));
+        cancel_if(!allowed)
+    }
+
+    fn entity_tick_post(&self, host: &mut dyn Host, event: &mut EntityTickPostEvent<'_>) {
+        if !entity_events_v1::entity_tick_heard() {
+            return;
+        }
+        let info = entity_events_v1::EntityInfo { id: event.entity, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() };
+        let handle = HostHandle::new(host);
+        scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: info.dimension.clone() }, || entity_events_v1::entity_tick_after(&info)));
     }
 
     fn player_fish_v2(&self, host: &mut dyn Host, event: &mut PlayerFishV2Event<'_>) -> Flow {

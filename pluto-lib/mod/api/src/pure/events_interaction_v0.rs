@@ -154,6 +154,23 @@ pub struct UseItemOnEntityContext {
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
+/// A player interacted with an entity, at the game's own generic claim point: the interaction the host offers before
+/// any hand-specific handling, so the context names no hand (NeoForge's `PlayerInteractEvent.EntityInteractSpecific`
+/// without a target point; the hand-by-hand offer is [`UseItemOnEntityContext`]). The first callback that does not
+/// return `Pass` takes the interaction and the game does not handle it. Heard on a server.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InteractEntityContext {
+    /// The entity's id.
+    pub entity: i32,
+    /// The entity's type, such as `minecraft:armor_stand`.
+    pub kind: String,
+    /// The stack the interaction is made with, with its damage, max damage, custom data and enchantments; None
+    /// when the game names none.
+    pub stack: Option<StackData>,
+    /// The player; None when the game names none.
+    pub player: Option<ServerPlayer>,
+}
+
 /// A player's fishing rod changed state (Bukkit: `PlayerFishEvent`): the cast, a bite, and the reel-ins. The state is the game's
 /// own number: [`FISHING_CAST`] when the bobber goes out, [`FISHING_BITE`] when a fish bites, and 2 to 4 for the reel-ins (a fish
 /// caught, an entity hooked, a plain reel-in). A callback may cancel the state with `cancel` — a cancelled cast throws no bobber,
@@ -232,6 +249,7 @@ static USE_ITEM_FINISH: Event<UseItemFinishContext, ()> = Event::void();
 static BREAK_SPEED: Event<BreakSpeedContext, ()> = Event::void();
 static ATTACK_ENTITY: Event<AttackEntityContext, ActionResult> = Event::first_not_pass();
 static USE_ITEM_ON_ENTITY: Event<UseItemOnEntityContext, ActionResult> = Event::first_not_pass();
+static INTERACT_ENTITY: Event<InteractEntityContext, ActionResult> = Event::first_not_pass();
 static FISHING: Event<FishingContext, ()> = Event::void();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
 static AFTER_BLOCK_BREAK: Event<BlockBreakContext, ()> = Event::void();
@@ -288,6 +306,14 @@ pub struct UseEntityCallback;
 impl UseEntityCallback {
     /// Fabric: `UseEntityCallback.EVENT`.
     pub const EVENT: &'static Event<UseItemOnEntityContext, ActionResult> = &USE_ITEM_ON_ENTITY;
+}
+
+/// The generic entity interaction (see [`InteractEntityContext`]): the game's own claim point, before its
+/// hand-specific handling.
+pub struct InteractEntityCallback;
+
+impl InteractEntityCallback {
+    pub const EVENT: &'static Event<InteractEntityContext, ActionResult> = &INTERACT_ENTITY;
 }
 
 /// A player's fishing rod changed state (see [`FishingContext`]).
@@ -355,6 +381,17 @@ pub(crate) fn use_item_on_entity(context: &UseItemOnEntityContext) -> bool {
 /// Whether anyone listens to entity clicks, so the game only reads the player and the stack when someone does.
 pub(crate) fn use_item_on_entity_heard() -> bool {
     !USE_ITEM_ON_ENTITY.is_empty()
+}
+
+/// True when a callback took the generic interaction with the entity.
+pub(crate) fn entity_interact(context: &InteractEntityContext) -> bool {
+    handled(INTERACT_ENTITY.invoke(context))
+}
+
+/// Whether anyone listens to generic entity interactions, so the game only reads the player and the stack when
+/// someone does.
+pub(crate) fn entity_interact_heard() -> bool {
+    !INTERACT_ENTITY.is_empty()
 }
 
 /// True when a callback cancelled the fishing state.
@@ -600,5 +637,16 @@ mod tests {
         assert_eq!(broken.len(), 8);
         assert_eq!(apply_pending_extra_breaks("test:aoe", |_| true), 0, "the queue for this dimension is drained");
         assert_eq!(apply_pending_extra_breaks("test:other_dimension", |_| true), 1, "other dimensions wait for their own seam");
+    }
+
+    #[test]
+    fn the_generic_entity_interaction_is_claimed_by_the_first_answer() {
+        InteractEntityCallback::EVENT.register(|context| {
+            if context.entity == 41 { ActionResult::Success } else { ActionResult::Pass }
+        });
+        assert!(entity_interact_heard());
+        let click = |entity: i32| InteractEntityContext { entity, kind: "minecraft:armor_stand".into(), stack: None, player: None };
+        assert!(entity_interact(&click(41)), "the callback took this interaction");
+        assert!(!entity_interact(&click(42)), "a pass leaves the interaction to the game");
     }
 }
