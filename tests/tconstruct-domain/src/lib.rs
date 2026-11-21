@@ -271,6 +271,10 @@ mod tool_behavior_hook;
 mod smeltery_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]
 mod tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_world.rs"]
+mod fluid_world;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_projectile.rs"]
+mod fluid_projectile;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_cannon.rs"]
 mod fluid_cannon;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/gauge.rs"]

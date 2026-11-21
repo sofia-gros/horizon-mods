@@ -3,19 +3,24 @@
 //! block's capacity, saved under `tank`, the `light` state following the fluid. The cannon adds a single item slot (the
 //! original's `item` handler, one stack of anything), a six-way facing taken from the placer's look, and the redstone
 //! trigger: a rising neighbour signal sets `triggered` and the shot follows four ticks later, once per rising edge.
-//! Shooting itself is not ported: the original looks the fluid up in the fluid effects (`FluidEffectManager`), applies
-//! them to the block in front or fires a `FluidEffectProjectile`, and this port has neither fluid effects nor that
-//! projectile, so a shot here finds no effects and consumes nothing, as the original does for a fluid without effects
-//! (its failure sound and particles have no host path either). The use hook is told no click position, so it cannot split
-//! the block into the original's tank zone (the top half) and item zone: a held fluid container trades with the tank
-//! first, and anything else swaps with the item slot. The end cannon's knightmetal bite (an entity inside it takes
-//! knightmetal damage) has no path in the block's entity-inside notice, which only names the entity; its path type is
-//! ported. What a broken cannon drops of its slot follows the host's slot storage, as the melter's inventory does.
+//! Shooting is `FluidCannonBlockEntity.shoot` whole (see [`shoot`]): the fluid's effects run against the block in front
+//! when they can, else the fluid flies as a `FluidEffectProjectile` (`crate::fluid_projectile`) of effects-amount times
+//! power, else the shot fails with the dispenser fail sound. What has no reach is not faked: the shot's fluid particles
+//! and the fail's BLOCK_ACTIVATE game event (no particle emission or game event surface), and the face sturdiness that
+//! gates the projectile is answered by approximation, as [`shoot`] notes. The use hook is told no click position, so it
+//! cannot split the block into the original's tank zone (the top half) and item zone: a held fluid container trades with
+//! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite (an entity inside it
+//! takes knightmetal damage) has no path in the block's entity-inside notice, which only names the entity; its path type
+//! is ported. What a broken cannon drops of its slot follows the host's slot storage, as the melter's inventory does.
+use crate::fluid_effects::{self, WorldAccess};
+use crate::fluid_ingredient::FluidTags;
+use crate::fluid_projectile;
 use crate::fluid_values::BUCKET;
+use crate::fluid_world::{block_context, holder, slot_write_back, stack_of_slot, LiveWorld};
 use crate::tank::Tank;
 use pluto_lib::{
-    ActionResult, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockState, BlockView, Direction, FluidStack,
-    Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, PathNodeType, Placement, World,
+    ActionResult, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
+    FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, PathNodeType, Placement, World,
 };
 
 /// The cannons of `TinkerSmeltery`: name, tank capacity, and the shot's power, velocity and inaccuracy
@@ -91,19 +96,112 @@ fn use_cannon(name: &str, used: &mut pluto_lib::BlockEntityUse<'_>) -> ActionRes
     if moved { ActionResult::Success } else { ActionResult::Pass }
 }
 
-/// Why a shot did nothing: the tank is empty, or the fluid has no effects to shoot with.
+/// What a shot did: it found no fluid, no effects data to shoot with, applied its fluid to the block
+/// in front, fired it as a projectile, or failed (the original's failure sound, which every shot
+/// that does not fire plays — an empty tank included).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Shot { NoFluid, NoEffects }
+pub(crate) enum Shot { NoFluid, NoEffects, AppliedBlock, Fired, Failed }
 
-/// `FluidCannonBlockEntity.shoot`, as far as this port reaches: the original finds the tank fluid's effects and either
-/// applies them to the block in front (spending what they consume) or launches them as a projectile of
-/// `effects amount x power` millibuckets. No fluid effects are ported, so every fluid answers as one without effects:
-/// nothing is spent and the tank is left as it was.
-pub(crate) fn shoot(name: &str, data: &NbtCompound, _facing: &str) -> Shot {
-    match cannon_tank(name, data).fluid {
-        None => Shot::NoFluid,
-        Some(_) => Shot::NoEffects,
+/// The shot numbers of the cannon called `name`: power, velocity, inaccuracy.
+fn shot_numbers(name: &str) -> Option<(f32, f32, f32)> {
+    CANNONS.iter().find(|(cannon, ..)| *cannon == name).map(|(_, _, power, velocity, inaccuracy)| (*power, *velocity, *inaccuracy))
+}
+
+/// The centre of a block, where the original plays its sounds and aims its contexts from.
+fn centre(pos: BlockPos) -> [f64; 3] { [pos[0] as f64 + 0.5, pos[1] as f64 + 0.5, pos[2] as f64 + 0.5] }
+
+/// The slot's stack as an engine stack (the context's fallback stack), empty when the slot is.
+fn slot_stack(items: &[Option<ItemSlot>]) -> fluid_effects::Stack {
+    items.first().and_then(|slot| slot.as_ref()).map(stack_of_slot).unwrap_or_else(fluid_effects::Stack::empty)
+}
+
+/// Whether the block at `pos` presents a sturdy face to a shot: the original asks the face's
+/// sturdiness (`isFaceSturdy`), which is not a PlutoLib query, so the port answers that a block
+/// which cannot be replaced and is no liquid presents one — the full blocks that make up the
+/// common case; a shaped block whose hit face is not full (a slab's open half) is read as sturdy
+/// here though the original would fire past it.
+fn face_sturdy(world: &LiveWorld, pos: BlockPos) -> bool {
+    let Some(state) = world.block_state(pos) else { return false };
+    state.block.to_string() != "minecraft:air" && !world.is_liquid_block(pos) && !world.can_be_replaced(pos)
+}
+
+/// The failure of a shot: `LevelEvent.SOUND_DISPENSER_FAIL` plays the dispenser fail sound at the
+/// cannon; the BLOCK_ACTIVATE game event that follows it in the original has no reach.
+fn fail(world: &mut LiveWorld, pos: BlockPos) -> Shot {
+    world.play_sound(centre(pos), "minecraft:block.dispenser.fail", 1.0, 1.0);
+    Shot::Failed
+}
+
+/// `FluidCannonBlockEntity.shoot`: the tank fluid's effects, found as the original finds them, run
+/// against the block in front when the entry has block effects and a block with a shape stands
+/// there (spending what they consume, the context's stack going back into the slot, the fluid
+/// particles and the PARTICLES_SHOOT level event aside — no particle surface); else, when the face
+/// in front is not sturdy, a projectile of `effects amount x power` millibuckets flies with the
+/// llama spit sound, and the tank is spent by what flew. A shot that cannot spawn its projectile
+/// (PlutoLib's entity registry is still a stub — see `crate::fluid_projectile`) fails without
+/// spending, as does a fluid without effects.
+pub(crate) fn shoot(
+    name: &str,
+    pos: BlockPos,
+    facing: Direction,
+    data: &mut NbtCompound,
+    items: &mut Vec<Option<ItemSlot>>,
+    world: &mut LiveWorld,
+    effects: Option<(&fluid_effects::Data, &FluidTags)>,
+) -> Shot {
+    let mut tank = cannon_tank(name, data);
+    let Some(held) = tank.fluid.clone() else {
+        // The original plays the failure sound for an empty tank too: its shoot falls through to it.
+        world.play_sound(centre(pos), "minecraft:block.dispenser.fail", 1.0, 1.0);
+        return Shot::NoFluid;
+    };
+    let fluid = FluidStack { fluid: held.fluid.clone(), amount: held.amount.max(0) as u32, tag: None };
+    let Some((effects, tags)) = effects else { return Shot::NoEffects };
+    let Some((has_block, has_entity, amount_per_level)) = effects.describe(&fluid, tags) else { return fail(world, pos) };
+    if !has_block && !has_entity { return fail(world, pos); }
+    let (power, velocity, inaccuracy) = shot_numbers(name).unwrap_or((1.0, 1.1, 4.5));
+    let target = facing.relative(pos);
+    if has_block {
+        let shaped = world.block_state(target).map_or(false, |state| state.block.to_string() != "minecraft:air") && !world.is_liquid_block(target);
+        if shaped {
+            // Mantle's trace result: the hit on the target's face toward the cannon, at its centre.
+            let opposite = facing.opposite();
+            let step = opposite.offset();
+            let location = [
+                target[0] as f64 + 0.5 + 0.5 * step[0] as f64,
+                target[1] as f64 + 0.5 + 0.5 * step[1] as f64,
+                target[2] as f64 + 0.5 + 0.5 * step[2] as f64,
+            ];
+            let mut context = block_context(world, holder(slot_stack(items), None, centre(pos)), target, opposite, location);
+            let consumed = effects.apply_to_block(&fluid, power, &mut context, tags);
+            if consumed > 0 {
+                tank.drain(Some(&held.fluid), consumed, true);
+                tank.write(data);
+                if let Some(slot) = items.first_mut() { slot_write_back(slot, &context.env.holder.stack); }
+                return Shot::AppliedBlock;
+            }
+        }
     }
+    if !face_sturdy(world, target) {
+        let amount = held.amount.min((amount_per_level as f32 * power) as i32);
+        if amount > 0 {
+            let flying = FluidStack { amount: amount as u32, ..fluid.clone() };
+            if fluid_projectile::launch(world.world(), pos, facing, flying, power, velocity, inaccuracy, slot_stack(items)).is_some() {
+                let step = facing.offset();
+                let at = [
+                    pos[0] as f64 + 0.5 + 0.7 * step[0] as f64,
+                    pos[1] as f64 + 0.5 + 0.7 * step[1] as f64,
+                    pos[2] as f64 + 0.5 + 0.7 * step[2] as f64,
+                ];
+                let pitch = 1.0 / (world.random_float() * 0.4 + 1.2) + 0.5;
+                world.play_sound(at, "minecraft:entity.llama.spit", 1.0, pitch);
+                tank.drain(Some(&held.fluid), amount, true);
+                tank.write(data);
+                return Shot::Fired;
+            }
+        }
+    }
+    fail(world, pos)
 }
 
 /// One tick of the trigger, from `FluidCannonBlock.neighborChanged` and `tick`: the pending count is set to
@@ -131,7 +229,20 @@ fn tick_cannon(name: &str, tick: &mut BlockEntityTick<'_>) {
         Some(left) => { tick.data.insert(TAG_SHOT_DELAY.to_owned(), Nbt::Int(left)); }
         None => { tick.data.remove(TAG_SHOT_DELAY); }
     }
-    if fire { shoot(name, tick.data, state.property("facing").unwrap_or("north")); }
+    if fire {
+        let facing = Direction::parse(state.property("facing").unwrap_or("north")).unwrap_or(Direction::North);
+        let mut live = LiveWorld::new(world.clone());
+        match crate::common::fluid_effects() {
+            Some(effects) => {
+                let effects = effects.read().expect("fluid effects lock poisoned");
+                let tags = crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.tags.clone())).unwrap_or_default();
+                shoot(name, tick.pos, facing, tick.data, tick.items, &mut live, Some((&effects, &tags)));
+            }
+            None => {
+                shoot(name, tick.pos, facing, tick.data, tick.items, &mut live, None);
+            }
+        }
+    }
 }
 
 /// `FluidCannonBlock.getStateForPlacement`: the facing is the placer's nearest looking direction, turned around.
@@ -236,6 +347,31 @@ mod tests {
         assert!(!swap_items(&mut slot, &mut held, &mut give));
     }
 
+    /// A data set with one block entry (molten obsidian sets blocks) and one entity entry (blazing
+    /// blood lights entities), as the projectile's tests build theirs.
+    fn effects_data() -> fluid_effects::Data {
+        let files = vec![
+            (id("tconstruct:blazing_blood"), serde_json::json!({
+                "fluid": {"fluid": "tconstruct:blazing_blood", "amount": 250},
+                "entity_effects": [{"type": "tconstruct:fire", "action": "add", "time": 2}],
+            })),
+            (id("tconstruct:molten_obsidian"), serde_json::json!({
+                "fluid": {"fluid": "tconstruct:molten_obsidian", "amount": 50},
+                "block_effects": [{"type": "tconstruct:set_block", "block": "minecraft:obsidian"}],
+            })),
+        ];
+        let context = crate::conditions::Context { items: None, config: Default::default() };
+        fluid_effects::Data { effects: fluid_effects::Effects::load(&files, &context), loaded: true }
+    }
+
+    fn filled(name: &str, fluid: &str, amount: u32) -> NbtCompound {
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id(fluid), amount, tag: None }, face: None, execute: true };
+        fill_tank(name, &mut fill);
+        data
+    }
+
     #[test]
     fn a_shot_waits_four_ticks_fires_once_per_rising_signal_and_spends_nothing_without_effects() {
         let (mut pending, mut fire) = trigger_step(false, None);
@@ -252,14 +388,65 @@ mod tests {
         assert_eq!((pending, fire), (Some(0), false), "and not again while the signal holds");
         (pending, fire) = trigger_step(false, pending);
         assert_eq!((pending, fire), (None, false), "the falling signal re-arms it");
-        // the shot itself: no fluid, then a fluid with no effects in this port; either way the tank is untouched
+        // the shot itself: no fluid, then no effects data, then a fluid no entry matches; the tank is untouched throughout
+        let effects = effects_data();
+        let tags = FluidTags::default();
+        let mut items = vec![None];
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        let mut live = LiveWorld::new(World::new("minecraft:overworld"));
         let mut data = NbtCompound::new();
-        assert_eq!(shoot("seared_fluid_cannon", &data, "north"), Shot::NoFluid);
-        let mut items = Vec::new();
-        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("minecraft:lava"), amount: 1000, tag: None }, face: None, execute: true };
-        fill_tank("seared_fluid_cannon", &mut fill);
-        assert_eq!(shoot("seared_fluid_cannon", &data, "north"), Shot::NoEffects);
+        let shot = pluto_lib::with_world(&mut ops, || shoot("seared_fluid_cannon", [0, 64, 0], Direction::North, &mut data, &mut items, &mut live, Some((&effects, &tags))));
+        assert_eq!(shot, Shot::NoFluid);
+        let mut data = filled("seared_fluid_cannon", "minecraft:lava", 1000);
+        let shot = pluto_lib::with_world(&mut ops, || shoot("seared_fluid_cannon", [0, 64, 0], Direction::North, &mut data, &mut items, &mut live, None));
+        assert_eq!(shot, Shot::NoEffects);
+        let shot = pluto_lib::with_world(&mut ops, || shoot("seared_fluid_cannon", [0, 64, 0], Direction::North, &mut data, &mut items, &mut live, Some((&effects, &tags))));
+        assert_eq!(shot, Shot::Failed, "lava has no entry: the shot fails, with its sound");
         assert_eq!(cannon_tank("seared_fluid_cannon", &data).amount(), 1000);
+        assert_eq!(ops.sounds.iter().filter(|(sound, _)| sound.as_str() == "minecraft:block.dispenser.fail").count(), 2, "the empty tank and the effect-less fluid both fail audibly");
+    }
+
+    #[test]
+    fn a_shot_applies_its_fluid_to_the_block_in_front_and_spends_what_it_uses() {
+        let effects = effects_data();
+        let tags = FluidTags::default();
+        let mut data = filled("seared_fluid_cannon", "tconstruct:molten_obsidian", 1000);
+        let mut items = vec![None];
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, -1]), "minecraft:stone".to_owned());
+        let mut live = LiveWorld::new(World::new("minecraft:overworld"));
+        let shot = pluto_lib::with_world(&mut ops, || shoot("seared_fluid_cannon", [0, 64, 0], Direction::North, &mut data, &mut items, &mut live, Some((&effects, &tags))));
+        assert_eq!(shot, Shot::AppliedBlock);
+        assert_eq!(cannon_tank("seared_fluid_cannon", &data).amount(), 950, "one level of molten obsidian is 50");
+        assert_eq!(ops.blocks[&("minecraft:overworld".to_owned(), [0, 64, -1])], "minecraft:obsidian");
+        assert!(ops.summons.is_empty(), "a block application fires no projectile");
+    }
+
+    #[test]
+    fn a_shot_fires_a_projectile_of_amount_times_power_and_fails_against_a_sturdy_face() {
+        let effects = effects_data();
+        let tags = FluidTags::default();
+        let mut items = vec![None];
+        // open air in front: the projectile flies with amount per level times the end cannon's
+        // power 1.5 — the float power the original fires with, not a rounded 1 or 2
+        let mut data = filled("end_fluid_cannon", "tconstruct:blazing_blood", 1000);
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        let mut live = LiveWorld::new(World::new("minecraft:overworld"));
+        let shot = pluto_lib::with_world(&mut ops, || shoot("end_fluid_cannon", [0, 64, 0], Direction::North, &mut data, &mut items, &mut live, Some((&effects, &tags))));
+        assert_eq!(shot, Shot::Fired);
+        assert_eq!(cannon_tank("end_fluid_cannon", &data).amount(), 625, "amount per level 250 times power 1.5 is 375");
+        assert_eq!(ops.summons.len(), 1);
+        assert_eq!(ops.summons[0].kind, "tconstruct:fluid_spit");
+        assert!(ops.sounds.iter().any(|(sound, _)| sound.as_str() == "minecraft:entity.llama.spit"));
+        // a sturdy block in front and no block effects to apply to it: the shot fails, spending nothing
+        let mut data = filled("seared_fluid_cannon", "tconstruct:blazing_blood", 1000);
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, -1]), "minecraft:stone".to_owned());
+        let mut live = LiveWorld::new(World::new("minecraft:overworld"));
+        let shot = pluto_lib::with_world(&mut ops, || shoot("seared_fluid_cannon", [0, 64, 0], Direction::North, &mut data, &mut items, &mut live, Some((&effects, &tags))));
+        assert_eq!(shot, Shot::Failed);
+        assert_eq!(cannon_tank("seared_fluid_cannon", &data).amount(), 1000);
+        assert!(ops.summons.is_empty());
     }
 
     #[test]

@@ -485,6 +485,7 @@ fn a_projectile_hit_on_a_crystal_plays_its_hit_sound_then_its_chime() {
         data: NbtCompound::new(),
         discard: std::cell::Cell::new(false),
         motion_after: std::cell::RefCell::new(None),
+        actions: std::cell::RefCell::new(Vec::new()),
     };
     let mut ops = MemoryWorldOps::default();
     ops.blocks.insert(("minecraft:overworld".into(), [4, 70, 4]), "tconstruct:earth_slime_crystal_cluster".into());

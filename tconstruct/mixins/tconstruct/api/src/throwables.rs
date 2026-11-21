@@ -175,6 +175,7 @@ mod tests {
             data: NbtCompound::new(),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
         }
     }
 

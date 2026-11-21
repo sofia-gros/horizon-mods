@@ -3089,8 +3089,20 @@ impl Hooks for PlutoHooks {
             data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
         };
-        let allowed = scoped(host, || projectile_events_v1::impact(&hit));
+        // The callbacks see the world and the entities around the hit, as a block entity tick does;
+        // afterwards the actions they queued are done to the hit's parties (the entity it hit as the
+        // victim, the thrower as the attacker; a block hit has no victim, so victim actions go
+        // nowhere), whether the hit itself is cancelled or not.
+        let handle = HostHandle::new(host);
+        let dimension = event.dimension.to_owned();
+        let allowed = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || projectile_events_v1::impact(&hit)));
+        let actions: Vec<entity_events_v1::EntityAction> = hit.actions.borrow_mut().drain(..).collect();
+        if !actions.is_empty() {
+            let victim = event.entity.and_then(|id| i32::try_from(id).ok()).unwrap_or(-1);
+            apply_entity_actions(host, event.dimension, event.owner, victim, actions);
+        }
         // What the callbacks settled on the projectile itself, done as the hook returns: a discard
         // removes it (the game's own remove call, which discards projectiles), a new motion sends it
         // flying on — the bounce a cancelled hit turns into.

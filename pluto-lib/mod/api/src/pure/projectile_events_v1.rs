@@ -55,6 +55,11 @@ pub struct ProjectileImpact {
     /// when the projectile is not discarded. With a cancelled hit this is a bounce — reflect
     /// [`ProjectileImpact::motion`] yourself; the game does not reflect it for you.
     pub motion_after: RefCell<Option<[f64; 3]>>,
+    /// The actions to do to the parties of the hit (`Victim` the entity it hit, `Attacker` the entity
+    /// that threw it), which callbacks add to. They are done after the callbacks answer, whether the
+    /// hit is cancelled or not, and only for a party the hit has: on a block hit there is no victim,
+    /// so `Victim` actions go nowhere.
+    pub actions: RefCell<Vec<EntityAction>>,
 }
 
 impl ProjectileImpact {
@@ -142,6 +147,7 @@ pub struct ProjectileEvents;
 
 impl ProjectileEvents {
     /// A projectile hit something, before the hit acts. Answer `false` to cancel the hit (the projectile flies on); one `false` is enough.
+    /// The entities around the hit are in reach while callbacks run, and the actions callbacks queue on the hit are done to its parties after.
     /// Only projectiles the game flies (arrows, tridents, snowballs and mod thrown types, eggs, pearls, potions, fireballs, ...) are heard.
     pub const IMPACT: &'static Event<ProjectileImpact, bool> = &IMPACT;
     /// A projectile entered a server level (Bukkit: `ProjectileLaunchEvent`; Fabric has no counterpart). Heard for every projectile the
@@ -309,6 +315,7 @@ mod tests {
                 data,
                 discard: Cell::new(false),
                 motion_after: RefCell::new(None),
+                actions: RefCell::new(Vec::new()),
             }
         };
         let mut ops = MemoryWorldOps::default();
@@ -325,5 +332,41 @@ mod tests {
         assert!(impact(&burst), "the burst's hit itself lands");
         assert!(burst.discard.get(), "and the projectile is discarded after the callbacks");
         assert_eq!(*burst.motion_after.borrow(), None);
+    }
+
+    #[test]
+    fn a_listener_queues_actions_for_the_hits_parties() {
+        use super::super::entity_events_v1::ActionTarget;
+        ProjectileEvents::IMPACT.register(|hit| {
+            if hit.kind == "example:venom_ball" {
+                if let Some(victim) = hit.entity {
+                    let _ = victim;
+                    hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:poison".into(), amplifier: 0, duration: 60 });
+                }
+            }
+            true
+        });
+        let hit = ProjectileImpact {
+            dimension: "minecraft:overworld".into(),
+            projectile: 8,
+            kind: "example:venom_ball".into(),
+            owner: 3,
+            entity: Some(12),
+            entity_kind: "minecraft:zombie".into(),
+            block: [4, 70, 4],
+            face: [0, 1, 0],
+            at: [4.5, 71.0, 4.5],
+            motion: [0.0; 3],
+            data: NbtCompound::new(),
+            discard: Cell::new(false),
+            motion_after: RefCell::new(None),
+            actions: RefCell::new(Vec::new()),
+        };
+        assert!(impact(&hit));
+        assert_eq!(
+            hit.actions.borrow().as_slice(),
+            [EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:poison".into(), amplifier: 0, duration: 60 }],
+            "the queued action stays on the hit for the host to do"
+        );
     }
 }

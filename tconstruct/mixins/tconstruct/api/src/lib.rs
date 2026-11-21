@@ -132,6 +132,8 @@ mod smeltery;
 mod smeltery_menu;
 mod smeltery_blocks;
 mod tank;
+mod fluid_world;
+mod fluid_projectile;
 mod fluid_cannon;
 mod gauge;
 mod lantern;
@@ -174,6 +176,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     smeltery_menu::register();
     smeltery_blocks::register();
     tank::register();
+    fluid_projectile::register();
     fluid_cannon::register();
     gauge::register();
     lantern::register();

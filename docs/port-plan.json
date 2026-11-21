@@ -145,6 +145,8 @@
     "api/src/smeltery_blocks.rs",
     "api/src/tank.rs",
     "api/src/fluid_cannon.rs",
+    "api/src/fluid_projectile.rs",
+    "api/src/fluid_world.rs",
     "api/src/gauge.rs",
     "api/src/lantern.rs",
     "api/src/casting_tank.rs",
