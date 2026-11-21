@@ -191,6 +191,10 @@ mod melter_menu;
 mod melter_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/world_blocks.rs"]
 mod world_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer.rs"]
+mod alloyer;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer_menu.rs"]
+mod alloyer_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/casting.rs"]
 mod casting;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/faucet.rs"]

@@ -106,6 +106,8 @@
     "api/src/melter_menu.rs",
     "api/src/melter_blocks.rs",
     "api/src/world_blocks.rs",
+    "api/src/alloyer.rs",
+    "api/src/alloyer_menu.rs",
     "api/src/casting.rs",
     "api/src/casting_blocks.rs",
     "api/src/channel.rs",

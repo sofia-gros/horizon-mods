@@ -92,7 +92,7 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     let mut names: Vec<String> = Vec::new();
     let mut add = |list: &[&str]| names.extend(list.iter().map(|name| (*name).to_owned()));
     add(&["grout", "seared_brick", "nether_grout", "scorched_brick", "copper_can"]);
-    add(&["seared_melter", "seared_heater", "smeltery_controller", "foundry_controller"]);
+    add(&["seared_melter", "seared_heater", "scorched_alloyer", "smeltery_controller", "foundry_controller"]);
     add(&["seared_drain", "seared_duct", "seared_chute", "scorched_drain", "scorched_duct", "scorched_chute"]);
     let smeltery = group("smeltery", "Tinkers' Smeltery", item("smeltery_controller"));
     let tank = |kind: &str| -> Vec<ItemStack> {
