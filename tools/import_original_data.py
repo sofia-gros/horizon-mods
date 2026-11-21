@@ -2245,18 +2245,18 @@ def copy_cobalt_tags():
 
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
-LANGUAGES = ['en_us', 'ja_jp']
+LANGUAGES = ['de_de', 'en_us', 'es_ar', 'es_cl', 'es_es', 'es_mx', 'fr_fr', 'id_id', 'it_it', 'ja_jp', 'ko_kr', 'lzh', 'pl_pl', 'pt_br', 'ru_ru', 'sv_se', 'tr_tr', 'uk_ua', 'zh_cn', 'zh_tw']
 
 
 def copy_lang():
     """The original's translations for the languages this port ships (modifier, block, item,
-    material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n."""
+    material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n. Line endings are normalised to LF and a leading UTF-8 BOM is dropped (the original's lzh file has one; language files are parsed as strict UTF-8 JSON)."""
     if LANG_TARGET.exists():
         shutil.rmtree(LANG_TARGET)
     LANG_TARGET.mkdir(parents=True)
     for language in LANGUAGES:
-        # Only the line endings are normalized (the original checkout may be CRLF); the text is the original's.
-        data = (LANG_SOURCE / f'{language}.json').read_bytes().replace(b'\r\n', b'\n')
+        # Only the line endings are normalized (the original checkout may be CRLF) and a leading BOM dropped; the text is the original's.
+        data = (LANG_SOURCE / f'{language}.json').read_bytes().removeprefix(b'\xef\xbb\xbf').replace(b'\r\n', b'\n')
         (LANG_TARGET / f'{language}.json').write_bytes(data)
     return len(LANGUAGES)
 
