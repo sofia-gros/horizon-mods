@@ -1762,6 +1762,7 @@ def smeltery_blocks():
             blocks[name] = {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
                             'state_properties': properties, 'item': True}
     blocks.update(smeltery_unit6_blocks())
+    blocks.update(smeltery_u6d_blocks())
     return blocks
 
 
@@ -1771,7 +1772,7 @@ def smeltery_unit6_blocks():
     the drains and ducts (factor 2 seared, 3 scorched) and the four tank types of each kind. Templates are the vanilla block of the
     same class (the host copies its states and shape); the slabs and stairs of the original are smeltery component block entities
     without an `in_structure` state, the glass, pillars, ladders, drains and ducts carry it. Soul glass, chutes, fluid cannons, lanterns,
-    gauges, the casting tank, the proxy tank and the alloyer are other units."""
+    gauges and the alloyer are other units."""
     facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
     in_structure = {'type': 'boolean'}
     kinds = {'seared': ('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0), 'scorched': ('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0)}
@@ -1819,6 +1820,35 @@ def smeltery_unit6_blocks():
 
 # Their block states are the original's own (variants or multipart over the template's properties), so they are copied as they are.
 SMELTERY_STATE_BLOCKS += [name for name in smeltery_unit6_blocks() if name not in ('grout', 'nether_grout')]
+
+
+def smeltery_u6d_blocks():
+    """The casting tank and the proxy tank (TinkerSmeltery): the casting tank takes the seared non-solid properties
+    (metal sound, strength 3/9) with a horizontal facing and the tanks' `light` state, the proxy tank the scorched
+    ones (basalt, 2.5/8) with the facing only; both take the stone template, no occlusion, and require the correct
+    tool."""
+    facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
+    light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+
+    def declare(color, sounds, hardness, resistance, states=None, light_states=False):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False}
+        declaration = {'template': 'minecraft:stone', 'properties': properties}
+        if states:
+            declaration['state_properties'] = states
+        if light_states:
+            declaration['state_light'] = {'property': 'light', 'values': {str(level): level for level in range(16)}}
+        declaration['item'] = True
+        return declaration
+
+    return {
+        # CastingTankBlock: searedNonSolidProps(METAL).lightLevel(LIGHT_GETTER), FACING + LIGHT
+        'seared_casting_tank': declare('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0, {'facing': facing, 'light': light}, True),
+        # ProxyTankBlock: scorchedNonSolidProps(BASALT), HORIZONTAL_FACING
+        'scorched_proxy_tank': declare('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0, {'facing': facing}),
+    }
+
+
+SMELTERY_STATE_BLOCKS += list(smeltery_u6d_blocks())
 
 
 def write_vanilla_fuels():

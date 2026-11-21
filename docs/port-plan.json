@@ -115,6 +115,8 @@
     "api/src/smeltery_menu.rs",
     "api/src/smeltery_blocks.rs",
     "api/src/tank.rs",
+    "api/src/casting_tank.rs",
+    "api/src/proxy_tank.rs",
     "api/src/smeltery_io.rs",
     "api/src/tables/mod.rs",
     "api/src/tables/lazy_result.rs",

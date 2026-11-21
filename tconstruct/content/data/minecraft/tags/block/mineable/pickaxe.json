@@ -52,6 +52,7 @@
     "tconstruct:seared_channel",
     "tconstruct:seared_basin",
     "tconstruct:seared_table",
+    "tconstruct:seared_casting_tank",
     "tconstruct:scorched_faucet",
     "tconstruct:scorched_channel",
     "tconstruct:scorched_basin",
@@ -63,6 +64,7 @@
     "tconstruct:seared_duct",
     "tconstruct:scorched_duct",
     "tconstruct:scorched_drain",
+    "tconstruct:scorched_proxy_tank",
     "tconstruct:foundry_controller",
     "tconstruct:modifier_worktable"
   ]
