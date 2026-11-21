@@ -34,6 +34,10 @@ impl Sized {
     pub(crate) fn test(&self, stack: &(Identifier, u32), in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         stack.1 >= self.amount && self.ingredient.matches(&stack.0, in_tag)
     }
+    /// The same test with the stack's facts (an instrument it carries, a fluid it holds).
+    pub(crate) fn test_facts(&self, stack: &(Identifier, u32), in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, facts: &crate::material_recipes::StackFacts) -> bool {
+        stack.1 >= self.amount && self.ingredient.matches_facts(&stack.0, in_tag, facts)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -305,10 +309,17 @@ impl Recipe {
 /// ModifierRecipe.checkMatch: each ingredient takes the first unused matching slot (empty slots count
 /// as used) and nothing may be left over. Returns the slot taken by each ingredient.
 pub(crate) fn check_match(ingredients: &[Sized], inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<Vec<usize>> {
+    check_match_facts(ingredients, inputs, &[], in_tag)
+}
+
+/// check_match with a facts entry per input slot (slots past the list read as a stack without any).
+pub(crate) fn check_match_facts(ingredients: &[Sized], inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<Vec<usize>> {
     let mut used: Vec<bool> = inputs.iter().map(Option::is_none).collect();
     let mut taken = Vec::with_capacity(ingredients.len());
     for ingredient in ingredients {
-        let slot = (0..inputs.len()).find(|&slot| !used[slot] && inputs[slot].as_ref().is_some_and(|stack| ingredient.test(stack, in_tag)))?;
+        let slot = (0..inputs.len()).find(|&slot| !used[slot] && inputs[slot].as_ref().is_some_and(|stack| {
+            ingredient.test_facts(stack, in_tag, &facts.get(slot).copied().unwrap_or_default())
+        }))?;
         used[slot] = true;
         taken.push(slot);
     }

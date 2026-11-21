@@ -728,6 +728,41 @@ def write_damage_vanilla():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
+def write_instrument_tags():
+    """instrument_tags.rs: the pinned vanilla instrument registry and the instrument tags, flattened.
+
+    The host captures no instrument registry, so the `mantle:tag_combination_filled` conditions on the
+    instrument registry and the `tconstruct:instrument` ingredients read this table instead. The registry
+    is the vanilla data's instrument definitions; the tags are vanilla's (from the pinned vanilla data) and
+    the original's own (from its generated resources), with `#tag` references flattened."""
+    registry = sorted(f'minecraft:{path.stem}' for path in (ROOT / '.local/base-26.3/data/minecraft/instrument').glob('*.json'))
+    files = {}
+    for path in sorted((VANILLA_TAGS / 'minecraft/tags/instrument').glob('*.json')):
+        files[f'minecraft:{path.stem}'] = path
+    for path in sorted((TAG_SOURCE / 'instrument').glob('*.json')):
+        files[f'tconstruct:{path.stem}'] = path
+
+    def flatten(tag, seen=()):
+        if tag in seen or tag not in files:
+            raise SystemExit(f'instrument tag {tag} is not in the vanilla or original data')
+        members = []
+        for value in json.loads(files[tag].read_text(encoding='utf-8')).get('values', []):
+            text = value if isinstance(value, str) else value['id']
+            for member in (flatten(text[1:], seen + (tag,)) if text.startswith('#') else [text]):
+                if member not in members:
+                    members.append(member)
+        return members
+
+    lines = ['//! The pinned vanilla instrument registry and the instrument tags the shipped data names, flattened.',
+             '//! Generated from the pinned vanilla data and the original\'s generated resources by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const REGISTRY: &[&str] = &[' + ', '.join(f'"{name}"' for name in registry) + '];', '',
+             'pub(crate) const TAGS: &[(&str, &[&str])] = &[']
+    for tag in sorted(files):
+        lines.append(f'    ("{tag}", &[' + ', '.join(f'"{member}"' for member in flatten(tag)) + ']),')
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/instrument_tags.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+
+
 # Forge's own convention item tags (the original's recipes name them; nothing in this host defines them): the vanilla items each stands for,
 # as Forge defines them. The original's own contributions (generated `data/forge/tags/items`: glass, normal_stone, the Tinkers metals...) are
 # added, reduced to vanilla items and to the Tinkers items this port declares. The result is applied to the item registry snapshot by
@@ -2057,6 +2092,7 @@ def main():
     write_creative_fluids(fluid_names)
     tags += write_block_tag_ingredients()
     write_damage_vanilla()
+    write_instrument_tags()
     languages = copy_lang()
     fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()

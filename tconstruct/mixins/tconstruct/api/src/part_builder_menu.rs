@@ -110,7 +110,10 @@ pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Opt
     let material_stack = items.get(MATERIAL_SLOT).cloned().flatten();
     with_context(|ctx, recipes, material_recipes, in_tag, first_of| {
         let Some(pattern_stack) = pattern_stack.as_ref() else { return Computation { buttons: Vec::new(), selected: None, crafted: None }; };
-        let material = material_stack.as_ref().and_then(|stack| material_recipes.find(&stack.item, in_tag));
+        let material = material_stack.as_ref().and_then(|stack| {
+            let instrument = crate::material_recipes::instrument_of(stack);
+            material_recipes.find_facts(&stack.item, in_tag, &crate::material_recipes::StackFacts { instrument: instrument.as_ref(), ..Default::default() })
+        });
         let inv = Inventory { pattern_item: Some(&pattern_stack.item), stack: material_stack.as_ref().map(|stack| (&stack.item, stack.count)), material };
         let order = pattern_order();
         // A recipe whose pattern is neither a part nor a cast shape has no button: the window could not name it.

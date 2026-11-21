@@ -6,7 +6,7 @@ use crate::{
     materials::Conditions,
     modifier_entries::List,
     modifier_modules::CausePredicate,
-    modifier_recipes::{check_match, Sized},
+    modifier_recipes::{check_match_facts, Sized},
     tool_stack::TAG_UPGRADES,
 };
 use pluto_lib::{Identifier, ItemSlot, ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
@@ -51,7 +51,12 @@ impl Removal {
 
     /// matches: the tool qualifies (and is stacked high enough) and the inputs are exactly this recipe's.
     pub fn matches(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
-        self.tools.test(tool, in_tag) && check_match(&self.inputs, inputs, in_tag).is_some()
+        self.matches_facts(tool, inputs, &[], in_tag)
+    }
+
+    /// matches with the inputs' stack facts (what fluid each input holds, for fluid container ingredients).
+    pub fn matches_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        self.tools.test(tool, in_tag) && check_match_facts(&self.inputs, inputs, facts, in_tag).is_some()
     }
 
     /// getModifierOptions: the tool's upgrades this recipe may remove. `modifier_in_tag` answers modifier tags.
@@ -89,7 +94,11 @@ impl Removals {
     }
     pub fn len(&self) -> usize { self.recipes.len() }
     pub fn find(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Removal> {
-        self.recipes.iter().find(|recipe| recipe.matches(tool, inputs, in_tag))
+        self.find_facts(tool, inputs, &[], in_tag)
+    }
+    /// `find` with the inputs' stack facts (what fluid each input holds).
+    pub fn find_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Removal> {
+        self.recipes.iter().find(|recipe| recipe.matches_facts(tool, inputs, facts, in_tag))
     }
 }
 
@@ -133,10 +142,10 @@ mod tests {
     }
     #[test]
     fn the_sponge_recipe_matches_a_modifiable_tool_and_offers_non_blacklisted_modifiers() {
-        let files = vec![(id("test:sponge"), sponge()), (id("test:fluid"), json!({"type":"tconstruct:remove_modifier","inputs":[{"type":"mantle:fluid_container","tag":"a:b"}]})),
+        let files = vec![(id("test:sponge"), sponge()), (id("test:fluid"), json!({"type":"tconstruct:remove_modifier","inputs":[{"ingredient":[{"type":"mantle:fluid_container","amount":1000,"display":{"item":"a:venom_bucket"},"tag":"a:venom"}]}]})),
             (id("test:off"), { let mut v = sponge(); v["conditions"] = json!([false]); v })];
         let recipes = Removals::load(&files, &Flags);
-        assert_eq!((recipes.len(), recipes.problems.len()), (1, 1), "{:?}", recipes.problems);
+        assert_eq!((recipes.len(), recipes.problems.len()), (2, 0), "{:?}", recipes.problems);
         let in_tag = |item: &Identifier, tag: &Identifier| tag.path() == "modifiable" && item.path() == "pickaxe";
         let pickaxe = (id("tconstruct:pickaxe"), 1);
         let wet = [Some((id("minecraft:wet_sponge"), 1)), None];
@@ -150,5 +159,14 @@ mod tests {
         tool.custom_data.insert(TAG_UPGRADES.into(), list.to_nbt());
         let blacklisted = |modifier: &Identifier, tag: &Identifier| tag.path() == "remove_blacklist" && modifier.path() == "locked";
         assert_eq!(recipe.options(&tool, &blacklisted), vec![id("test:sharp")]);
+
+        // The fluid removal matches only a container actually holding enough of the fluid.
+        let tags = crate::fluid_ingredient::FluidTags::load(&[(id("a:venom"), json!({"values": ["a:venom"]}))]);
+        let venom = id("a:venom");
+        let bucket = [Some((id("a:venom_bucket"), 1)), None];
+        let facts = |amount: i32| [crate::material_recipes::StackFacts { fluid: Some((&venom, amount)), fluid_tags: Some(&tags), ..Default::default() }, Default::default()];
+        assert_eq!(recipes.find_facts(&pickaxe, &bucket, &facts(1000), &in_tag).map(|recipe| recipe.id.clone()), Some(id("test:fluid")));
+        assert!(recipes.find_facts(&pickaxe, &bucket, &facts(999), &in_tag).is_none(), "not enough venom");
+        assert!(recipes.find(&pickaxe, &bucket, &in_tag).is_none(), "a container whose contents are unknown matches nothing");
     }
 }
