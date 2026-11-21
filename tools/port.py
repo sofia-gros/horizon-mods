@@ -43,10 +43,10 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
-    # Crafting, smelting and stonecutting recipes of the smeltery blocks, converted to the game's own recipe format by the importer.
+    # Crafting, smelting, blasting and stonecutting recipes of the smeltery blocks and the commons, converted to the game's own recipe format by the importer.
     re.compile(r'data/tconstruct/recipe(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
-CRAFTING_RECIPE_TYPES = {'minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:stonecutting'}
+CRAFTING_RECIPE_TYPES = {'minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:blasting', 'minecraft:stonecutting'}
 FLUID_RECIPE_TYPES = {
     'tconstruct:melting', 'tconstruct:ore_melting', 'tconstruct:damagable_melting', 'tconstruct:material_melting', 'tconstruct:melting_fuel',
     'tconstruct:entity_melting', 'tconstruct:alloy', 'tconstruct:material_fluid', 'tconstruct:molding_table', 'tconstruct:item_part_builder',
@@ -319,7 +319,7 @@ def checked_content(root, version):
                 continue
             if name.startswith('data/tconstruct/recipe/'):
                 if not isinstance(item, dict) or item.get('type') not in CRAFTING_RECIPE_TYPES or not isinstance(item.get('result'), dict) or not str(item['result'].get('id', '')).count(':') == 1:
-                    raise ValueError(f'only reviewed crafting, smelting and stonecutting recipes are allowed here: {name}')
+                    raise ValueError(f'only reviewed crafting, smelting, blasting and stonecutting recipes are allowed here: {name}')
                 continue
             if '/worldgen/' in name:
                 if not isinstance(item, dict):

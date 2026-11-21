@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "tconstruct:sky_slime"
+  ],
+  "group": "tconstruct:slime_balls",
+  "result": {
+    "id": "tconstruct:sky_slime_ball",
+    "count": 9
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:clear_glass_pane",
+    "X": [
+      "minecraft:blue_dye"
+    ]
+  },
+  "pattern": [
+    "###",
+    "#X#",
+    "###"
+  ],
+  "group": "tconstruct:stained_clear_glass_pane",
+  "result": {
+    "id": "tconstruct:blue_clear_stained_glass_pane",
+    "count": 8
+  }
+}

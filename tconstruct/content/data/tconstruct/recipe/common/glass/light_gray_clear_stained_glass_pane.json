@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:light_gray_clear_stained_glass"
+  },
+  "pattern": [
+    "###",
+    "###"
+  ],
+  "group": "tconstruct:stained_clear_glass_pane",
+  "result": {
+    "id": "tconstruct:light_gray_clear_stained_glass_pane",
+    "count": 16
+  }
+}

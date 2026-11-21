@@ -1,0 +1,11 @@
+{
+  "parent": "minecraft:item/generated",
+  "layers": [
+    {
+      "color": "FF191919"
+    }
+  ],
+  "textures": {
+    "layer0": "tconstruct:block/clear_stained_glass"
+  }
+}
