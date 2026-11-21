@@ -57,6 +57,8 @@ pub(crate) enum Display {
 pub(crate) enum Module {
     Flag { id: Identifier, condition: Condition },
     Rarity(i32),
+    /// SweepingEdgeModule: a leveling value (no condition) added onto the volatile float `tconstruct:sweep_percent`.
+    Sweep { flat: f32, each: f32 },
     Int { id: Identifier, flat: i32, each: i32, condition: Condition },
     Slot { name: String, flat: i32, each: i32, condition: Condition },
     Boost { stat: Stat, operation: Operation, flat: f32, each: f32, condition: Condition },
@@ -130,6 +132,8 @@ pub(crate) enum Module {
     MaxArmorAttribute { module: Box<crate::max_armor::MaxArmorAttribute>, condition: Condition },
     /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
     ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
+    /// ShowOffhandModule: a chest piece counts 1 toward the `tconstruct:show_empty_offhand` armor level while worn.
+    ShowOffhand { allow_broken: bool },
     /// MobDisguiseModule: armor that makes mobs of one type see its wearer from half as far for each level.
     MobDisguise { module: crate::mob_disguise::MobDisguise },
     /// EdibleModule: a tool with a hunger stat can be eaten with a right click.
@@ -334,6 +338,10 @@ impl Module {
                 let each = if fields.contains_key("each_level") { short(fields, "each_level")? } else { short(fields, "count")? };
                 Self::Slot { name: name.to_owned(), flat: short(fields, "flat")?, each, condition: Condition::decode(fields)? }
             }
+            "tconstruct:sweeping_edge" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:tooltip")) => {
+                // SweepingEdgeModule has no condition: its loader reads only the leveling value.
+                Self::Sweep { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
+            }
             "tconstruct:trait" if only("tconstruct:modifier_traits") => {
                 let level = match fields.get("level").filter(|value| !value.is_null()) {
                     None => 1,
@@ -512,6 +520,13 @@ impl Module {
             "tconstruct:armor_level" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::ArmorLevel { module: Box::new(crate::max_armor::ArmorLevel::decode(fields)?) }
             }
+            "tconstruct:show_offhand" if only("tconstruct:equipment_change") => {
+                // ShowOffhandModule is an enum module: the required mode says whether a broken piece still counts.
+                Self::ShowOffhand { allow_broken: match fields.get("mode").and_then(Value::as_str) {
+                    Some("allow_broken") => true, Some("disallow_broken") => false,
+                    _ => return Err("mode must be allow_broken or disallow_broken".into()),
+                } }
+            }
             "tconstruct:mob_disguise" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::MobDisguise { module: crate::mob_disguise::MobDisguise::decode(fields)? }
             }
@@ -678,6 +693,11 @@ impl Module {
                 let current = nbt_int(data.get("tconstruct:rarity"));
                 if *ordinal > current { data.insert("tconstruct:rarity".into(), Nbt::Int(*ordinal)); }
             }
+            Self::Sweep { flat, each } => {
+                // addVolatileData: the value for the effective level joins the sweep percent already there.
+                let previous = data.get("tconstruct:sweep_percent").and_then(|value| value.as_f64()).unwrap_or(0.0) as f32;
+                data.insert("tconstruct:sweep_percent".into(), Nbt::Float(previous + flat + each * entry.effective_level()));
+            }
             Self::Int { id, flat, each, condition } => {
                 if condition.matches(entry, facts) {
                     // LevelingInt.compute(float): (int)(flat + eachLevel * level), added with Java wrapping.
@@ -714,7 +734,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -864,15 +884,22 @@ impl Module {
         let Self::MaxArmorAttribute { module, condition } = self else { return None; };
         module.candidate(entry, condition.matches(entry, facts), broken)
     }
-    /// The key and levels an armor level module adds for a worn piece.
-    pub fn armor_level(&self, entry: &Entry, broken: bool) -> Option<(Identifier, i32)> {
-        let Self::ArmorLevel { module } = self else { return None; };
-        module.level(entry, broken)
+    /// The key and levels an armor level module adds for a piece worn in `slot`.
+    pub fn armor_level(&self, entry: &Entry, slot: &str, broken: bool) -> Option<(Identifier, i32)> {
+        match self {
+            Self::ArmorLevel { module } => module.level(entry, broken),
+            // ShowOffhandModule adds a flat 1 (never scaled by level) when a chest piece is equipped and takes it back
+            // when it comes off; the per-tick totals over the worn pieces are the port's form of that, so a worn chest
+            // piece counts 1 while the mode's broken rule holds.
+            Self::ShowOffhand { allow_broken } => (slot == "chest" && (!broken || *allow_broken))
+                .then(|| (Identifier::new("tconstruct", "show_empty_offhand").expect("valid key"), 1)),
+            _ => None,
+        }
     }
     /// Whether this is a max armor attribute module.
     pub fn is_max_armor_attribute(&self) -> bool { matches!(self, Self::MaxArmorAttribute { .. }) }
     /// Whether this is an armor level module.
-    pub fn is_armor_level(&self) -> bool { matches!(self, Self::ArmorLevel { .. }) }
+    pub fn is_armor_level(&self) -> bool { matches!(self, Self::ArmorLevel { .. } | Self::ShowOffhand { .. }) }
     /// Whether this is an effect immunity module.
     pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }
     /// The mob type a disguise module makes the wearer pass for, with the count it adds.
@@ -1362,6 +1389,47 @@ mod tests {
         assert_eq!(decode(json!({"type":"tconstruct:durability_color","color":"00ff80"})), Some(Module::Display(Display::DurabilityColor { color: 0x00FF80 })));
         assert!(Module::decode("tconstruct:durability_color", json!({"color":"zz"}).as_object().unwrap(), &[]).is_err());
         assert!(decode(json!({"type":"tconstruct:show_interaction_source","hooks":["tconstruct:tooltip"]})).is_none(), "a foreign hook binding stays unbound");
+    }
+    #[test]
+    fn sweeping_edge_adds_its_leveling_value_onto_the_sweep_percent() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let f = facts(None, &in_tag);
+        // The shipped module: each_level 0.25 and no flat, so level 1 adds 0.25 and level 2 adds 0.50.
+        let module = decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25})).unwrap();
+        let mut data = NbtCompound::new();
+        module.apply_volatile(&Entry::new(id("tconstruct:sweeping_edge"), 1), &f, &mut data);
+        assert_eq!(data["tconstruct:sweep_percent"], Nbt::Float(0.25));
+        // A second module adds onto what is already there, as the original accumulates the float.
+        module.apply_volatile(&Entry::new(id("tconstruct:sweeping_edge"), 2), &f, &mut data);
+        assert_eq!(data["tconstruct:sweep_percent"], Nbt::Float(0.75));
+        // The flat part does not scale: flat 0.5 with each_level 0.25 at level 2 is 1.0.
+        let flat = decode(json!({"type":"tconstruct:sweeping_edge","flat":0.5,"each_level":0.25})).unwrap();
+        let mut data = NbtCompound::new();
+        flat.apply_volatile(&Entry::new(id("tconstruct:sweeping_edge"), 2), &f, &mut data);
+        assert_eq!(data["tconstruct:sweep_percent"], Nbt::Float(1.0));
+        // Only the volatile data and tooltip bindings are honored.
+        assert!(decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25,"hooks":["tconstruct:volatile_data"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25,"hooks":["tconstruct:tooltip"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25,"hooks":["tconstruct:melee_hit"]})).is_none());
+        assert!(Module::decode("tconstruct:sweeping_edge", json!({"each_level":"high"}).as_object().unwrap(), &[]).is_err());
+    }
+    #[test]
+    fn show_offhand_counts_a_flat_one_on_the_chest_only() {
+        let key = id("tconstruct:show_empty_offhand");
+        let entry = Entry::new(id("tconstruct:stripping"), 3);
+        // The shipped module: disallow_broken. The count is a flat 1 at any level, on the chest only.
+        let strict = decode(json!({"type":"tconstruct:show_offhand","mode":"disallow_broken"})).unwrap();
+        assert_eq!(strict.armor_level(&entry, "chest", false), Some((key.clone(), 1)));
+        assert_eq!(strict.armor_level(&entry, "head", false), None);
+        assert_eq!(strict.armor_level(&entry, "chest", true), None, "a broken piece counts nothing in this mode");
+        let lenient = decode(json!({"type":"tconstruct:show_offhand","mode":"allow_broken"})).unwrap();
+        assert_eq!(lenient.armor_level(&entry, "chest", true), Some((key.clone(), 1)));
+        // The worn totals keep the key while such a piece is worn.
+        assert_eq!(crate::max_armor::totals(vec![strict.armor_level(&entry, "chest", false).unwrap()])[&key], 1);
+        // The mode is required and must be one of the two enum names; a foreign hook binding stays unbound.
+        assert!(Module::decode("tconstruct:show_offhand", json!({}).as_object().unwrap(), &[]).is_err());
+        assert!(Module::decode("tconstruct:show_offhand", json!({"mode":"sometimes"}).as_object().unwrap(), &[]).is_err());
+        assert!(decode(json!({"type":"tconstruct:show_offhand","mode":"disallow_broken","hooks":["tconstruct:tooltip"]})).is_none());
     }
     #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {

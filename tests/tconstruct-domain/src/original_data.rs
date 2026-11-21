@@ -62,18 +62,18 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (123, 86), "modifiers carrying unported modules, and the kinds: {kinds:?}");
-    // Presentation modules and tool actions are bound; show_offhand (an armor level the port lacks) and the boot walk transform (no walk event) are not.
+    assert_eq!((unbound, kinds.len()), (121, 84), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk transform (no walk event) is not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
     // reads the attacker's held items: none of those is reported.
-    for unbound in ["show_offhand", "tool_action_walk_transform", "embellishment", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    for unbound in ["tool_action_walk_transform", "embellishment", "recurrent_protection", "restore_lost_health", "protection"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
     for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
     assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
     assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
-    for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -1216,10 +1216,10 @@ fn shipped_projectile_protection_and_magnet_take_the_largest_and_the_total_over_
     assert!(dragon.iter().all(|claim| format!("{claim:?}").contains("projectile_protection")), "only the boots' own projectile protection claims: {dragon:?}");
     // Armor levels add up over the pieces under their key.
     let (a, b) = (piece("tconstruct:magnetic", 1), piece("tconstruct:magnetic", 2));
-    let totals = max_armor::totals([&a, &b].iter().flat_map(|tool| armor_levels(&tool.custom_data, &env)));
+    let totals = max_armor::totals([&a, &b].iter().flat_map(|tool| armor_levels(&tool.custom_data, &env, "feet")));
     assert_eq!(totals[&Identifier::parse("tconstruct:magnet").unwrap()], 3);
     let belt = piece("tconstruct:soul_belt", 1);
-    assert_eq!(armor_levels(&belt.custom_data, &env), vec![(Identifier::parse("tconstruct:soul_belt").unwrap(), 1)]);
+    assert_eq!(armor_levels(&belt.custom_data, &env, "feet"), vec![(Identifier::parse("tconstruct:soul_belt").unwrap(), 1)]);
 }
 
 #[test]
