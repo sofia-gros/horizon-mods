@@ -259,6 +259,45 @@ pub(crate) fn power_hit(nbt: &NbtCompound, env: &Environment, projectile: &mut N
     })
 }
 
+/// ProjectileShootModifierHook for every punch module of the tool, in priority order (highest first, ties in modifier
+/// order): the knockback the shot leaves with, from a base of 0. On a plain arrow a module sets the knockback, so the
+/// last to run is what stands; on a projectile with knockback of its own each module adds its amount.
+pub(crate) fn punch_shoot(nbt: &NbtCompound, env: &Environment, arrow: bool) -> f32 {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut modules: Vec<(i32, usize, crate::punch::Shot)> = Vec::new();
+        for (index, (entry, modifier)) in saved.iter().enumerate() {
+            for module in modifier.modules() {
+                if let Some(shot) = module.punch(entry, facts, arrow) { modules.push((modifier.priority, index, shot)); }
+            }
+        }
+        modules.sort_by_key(|(priority, index, _)| (std::cmp::Reverse(*priority), *index));
+        modules.into_iter().fold(0.0, |knockback, (_, _, shot)| match shot {
+            crate::punch::Shot::Set(value) => value as f32,
+            crate::punch::Shot::Add(value) => knockback + value,
+        })
+    })
+}
+
+/// ProjectileHitModifierHook for every reverse punch module of the tool: the push the entity the projectile hit takes,
+/// the modules' pushes added up, or None when none of them pushes. `owned` says the projectile has an owner or is an
+/// arrow, `resistance` is the target's knockback resistance and `motion` the projectile's horizontal motion (x, z).
+pub(crate) fn reverse_punch_push(nbt: &NbtCompound, env: &Environment, owned: bool, resistance: f32, motion: [f64; 2]) -> Option<[f64; 3]> {
+    with_tool_facts(nbt, env, |saved, _| {
+        let mut push: Option<[f64; 3]> = None;
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(module) = module.reverse_punch() {
+                    if let Some(one) = module.push(entry, owned, resistance, motion) {
+                        let total = push.get_or_insert([0.0; 3]);
+                        total[0] += one[0]; total[1] += one[1]; total[2] += one[2];
+                    }
+                }
+            }
+        }
+        push
+    })
+}
+
 /// MeleeHitModifierHook.beforeMeleeHit's knockback over every modifier of the tool, in priority order (highest first,
 /// ties in modifier order), starting from the game's `strength`.
 pub(crate) fn melee_knockback(nbt: &NbtCompound, env: &Environment, strength: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
@@ -435,6 +474,46 @@ pub(crate) fn lifesteal_heal(nbt: &NbtCompound, env: &Environment, damage: f32, 
     with_tool_facts(nbt, env, |saved, facts| {
         saved.iter().flat_map(|(entry, modifier)| modifier.lifesteal_modules().filter_map(move |module| module.lifesteal(entry, facts, damage, blacklisted, attacker_in_tag, target_in_tag)).collect::<Vec<_>>()).sum()
     })
+}
+
+/// MeleeHitModifierHook for every melee instrument module of the tool: the sound each plays for the hit, in modifier
+/// order. The closures answer the entity type tags and the pseudo state tags of the attacker and of the target; `roll`
+/// picks within an instrument tag, as the original draws from the tag.
+pub(crate) fn melee_instrument_sound(nbt: &NbtCompound, env: &Environment, attacker_in_tag: &dyn Fn(&Identifier) -> bool, target_in_tag: &dyn Fn(&Identifier) -> bool, roll: f32) -> Vec<crate::melee_instrument::Sound> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let list = materials(nbt, env.has_materials);
+        let mut sounds = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(sound) = module.melee_instrument(entry, facts, list.as_slice(), attacker_in_tag, target_in_tag, roll) { sounds.push(sound); }
+            }
+        }
+        sounds
+    })
+}
+
+/// InventoryTickModifierHook for every overgrowth module of the tool: whether the tool grew overslime on this tick of
+/// its holder. The original runs the hook once a second (the holder's tick count a multiple of 20), on the server, and
+/// skips a stack the holder is using; `rolls` gives one uniform value in [0, 1) per overgrowth module.
+pub(crate) fn overgrowth_tick(nbt: &mut NbtCompound, env: &Environment, holder_tick: i32, using_this: bool, rolls: &mut dyn FnMut() -> f32) -> bool {
+    if holder_tick % 20 != 0 || using_this { return false; }
+    let snapshot = nbt.clone();
+    with_tool_facts(&snapshot, env, |saved, facts| {
+        let mut grew = false;
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if module.is_overgrowth() && module.overgrowth(entry, facts, &mut *nbt, env, rolls()) { grew = true; }
+            }
+        }
+        grew
+    })
+}
+
+/// The total kinetic level of a piece: the plain levels of the entries whose modifier carries a kinetic module, as
+/// SlotInChargeModule totals the equipped pieces. A broken piece's modifiers do not run, so it contributes nothing.
+pub(crate) fn kinetic_level(nbt: &NbtCompound, env: &Environment) -> i32 {
+    if is_broken(nbt) { return 0; }
+    saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.kinetic_level(entry))).sum()
 }
 
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one

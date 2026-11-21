@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //! The armor modules that act on their wearer, ported from SlimeKnights (MIT; see LICENSE): DepthProtectionModule, OvershieldModule,
-//! RestoreLostHealthModule, DamageOnUnequipModule and ReduceEffectOnUnequipModule. The wearer is the `target` of the hit as PlutoLib reported
+//! RestoreLostHealthModule, KineticModule, DamageOnUnequipModule and ReduceEffectOnUnequipModule. The wearer is the `target` of the hit as PlutoLib reported
 //! them as of their last tick; what the modules do to the wearer (an effect, a hurt, an effect's time, the armor's own data) goes back as
 //! `EntityAction`s. The wearer's stack is the one their armor listing carries, so an edit lands on the piece the module sits on.
 use crate::{
@@ -134,6 +134,29 @@ impl RestoreLostHealth {
         // Regeneration restores 1 health every 50 ticks at level 1 and faster above (Java masks the shift count to five bits).
         let duration = heal.wrapping_mul(50_i32.wrapping_shr((effect_level - 1) as u32));
         Some(Restore { duration, wear: self.durability_usage.int(level).max(0) })
+    }
+}
+
+/// KineticModule: armor that feeds on being hit. Each hit an entity lands on the wearer raises the
+/// insatiable (armor) effect a level, up to the total kinetic level of the worn pieces; the effect
+/// itself carries a point of attack damage per level. Only the slot in charge applies it
+/// (SlotInChargeModule), and its level is the total over the equipped pieces, so the grant is worked
+/// out over the pieces a hit reports, as armor levels are.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Kinetic;
+
+impl Kinetic {
+    /// The effect's duration: 10 seconds, as the module applies it.
+    pub(crate) const DURATION: i32 = 10 * 20;
+
+    /// OnAttackedModifierHook through InsatiableModifier.applyEffect: the grant for one entity-caused
+    /// hit, or None when the total kinetic level of the worn pieces is nothing. The new amplifier is
+    /// one above the wearer's current one (`current`, -1 when they lack the effect), capped at one
+    /// below the total level.
+    pub(crate) fn grant(total_level: i32, current: i32) -> Option<crate::weapon_effect::Grant> {
+        if total_level <= 0 { return None; }
+        let amplifier = (total_level - 1).min(current + 1);
+        Some(crate::weapon_effect::Grant { effect: Identifier::new("tconstruct", "insatiable_armor").expect("valid effect id"), amplifier, duration: Self::DURATION })
     }
 }
 
@@ -315,6 +338,18 @@ mod tests {
         assert_eq!(shortened(1, 0.9), Some(1), "never below one tick");
         assert_eq!((shortened(-1, 0.4), shortened(0, 0.4)), (None, None), "an endless effect is left alone");
         assert!(ReduceEffectOnUnequip::decode(&fields(json!({"category":"good","percent":{}}))).is_err());
+    }
+
+    #[test]
+    fn kinetic_raises_insatiable_one_level_per_hit_up_to_the_total() {
+        // The shipped kinetic: insatiable (armor) for 10 seconds.
+        let grant = |total: i32, current: i32| Kinetic::grant(total, current).map(|grant| (grant.effect.to_string(), grant.amplifier, grant.duration));
+        assert_eq!(grant(2, -1), Some(("tconstruct:insatiable_armor".to_owned(), 0, 200)), "a first hit grants level I");
+        assert_eq!(grant(2, 0), Some(("tconstruct:insatiable_armor".to_owned(), 1, 200)), "the next hit raises it, capped at the total");
+        assert_eq!(grant(2, 1), Some(("tconstruct:insatiable_armor".to_owned(), 1, 200)), "and stays there");
+        assert_eq!(grant(3, 1), Some(("tconstruct:insatiable_armor".to_owned(), 2, 200)), "a higher total raises the cap");
+        assert_eq!(grant(1, 4), Some(("tconstruct:insatiable_armor".to_owned(), 0, 200)), "a weaker total pulls the cap below the current level");
+        assert_eq!(grant(0, -1), None, "no kinetic pieces, no grant");
     }
 
     #[test]

@@ -79,7 +79,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (121, 84), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (116, 79), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk transform (no walk event) is not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
@@ -94,6 +94,55 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The special melee consumers are bound: punch and reverse punch over the projectile hooks, the melee instrument, the
+    // overgrowth inventory tick and kinetic's insatiable feed. Smashing runs on the fluid effects engine, which is not
+    // ported, and overburn still carries its tank stat boost (and its own module needs a tool fluid tank).
+    for bound in ["punch", "reverse_punch", "melee_instrument", "overgrowth", "kinetic"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["punch", "drawback", "kinetic", "overgrowth", "ram_attack"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    for unbound in ["smashing", "overburn"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    assert!(!unbound_of("overburn").is_empty(), "overburn still carries unported modules");
+    assert!(!unbound_of("smashing").is_empty(), "smashing still carries its unported module");
+}
+
+#[test]
+fn the_shipped_special_melee_modules_run_on_a_tool() {
+    use crate::{modifier_entries::List, tool_stack::{kinetic_level, melee_instrument_sound, overgrowth_tick, punch_shoot, reverse_punch_push, Environment, TAG_MATERIALS, TAG_MODIFIERS, TAG_STATS}};
+    use pluto_lib::{Nbt, NbtCompound};
+    let world = world();
+    let env = Environment { definition: None, has_materials: true, materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item: None, item_tags: None };
+    let tool = |modifier: &str, level: i32| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MODIFIERS.into(), List::default().with_modifier(Identifier::parse(modifier).unwrap(), level).unwrap().to_nbt());
+        nbt
+    };
+    // Punch sets an arrow's knockback to the amount (1 per level in the shipped data), and adds it to a knockback projectile.
+    assert_eq!(punch_shoot(&tool("tconstruct:punch", 2), &env, true), 2.0);
+    assert_eq!(punch_shoot(&tool("tconstruct:punch", 2), &env, false), 2.0);
+    // Drawback's reverse punch pulls the target back along the shot's line: (0.6 + 0.8) * (1 - 0.25) = 1.05 over (3, 4).
+    let push = reverse_punch_push(&tool("tconstruct:drawback", 1), &env, true, 0.25, [3.0, 4.0]).unwrap();
+    assert!((push[0] - -0.63).abs() < 1e-6 && (push[1] - 0.1).abs() < 1e-6 && (push[2] - -0.84).abs() < 1e-6, "{push:?}");
+    // Ram attack plays the singing goat horn its horn material names, for a sprinting attacker only.
+    let mut ram = tool("tconstruct:ram_attack", 1);
+    ram.insert(TAG_MATERIALS.into(), Nbt::List(vec![Nbt::String("tconstruct:horn#minecraft.sing_goat_horn".into())]));
+    let sprinting = |tag: &Identifier| tag.to_string() == "tconstruct_state:attacker/sprinting";
+    let sounds = melee_instrument_sound(&ram, &env, &sprinting, &|_| true, 0.0);
+    assert_eq!(sounds.len(), 1);
+    assert_eq!((sounds[0].event.as_str(), sounds[0].volume), ("minecraft:item.goat_horn.sound.1", 16.0));
+    assert!(melee_instrument_sound(&ram, &env, &|_| false, &|_| true, 0.0).is_empty(), "a standing attacker plays nothing");
+    // Overgrowth grows a point of overslime on the second's tick when the roll lands, and only then.
+    let mut over = tool("tconstruct:overgrowth", 1);
+    let mut stats = NbtCompound::new();
+    stats.insert("tconstruct:overslime".into(), Nbt::Float(10.0));
+    over.insert(TAG_STATS.into(), Nbt::Compound(stats));
+    assert!(overgrowth_tick(&mut over, &env, 20, false, &mut || 0.0));
+    assert_eq!(crate::overslime::amount(&over), 1);
+    assert!(!overgrowth_tick(&mut over.clone(), &env, 21, false, &mut || 0.0), "only every twentieth tick");
+    assert!(!overgrowth_tick(&mut over.clone(), &env, 20, true, &mut || 0.0), "not while the holder uses the stack");
+    // Kinetic totals the plain levels of its entries on a piece; a broken piece contributes nothing.
+    assert_eq!(kinetic_level(&tool("tconstruct:kinetic", 2), &env), 2);
+    let mut broken = tool("tconstruct:kinetic", 2);
+    broken.insert(crate::tool_stack::TAG_BROKEN.into(), Nbt::Byte(1));
+    assert_eq!(kinetic_level(&broken, &env), 0);
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
