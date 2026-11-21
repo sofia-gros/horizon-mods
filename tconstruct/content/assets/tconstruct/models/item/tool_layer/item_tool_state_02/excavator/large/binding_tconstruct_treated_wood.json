@@ -1,0 +1,40 @@
+{
+  "parent": "tconstruct:item/tool_state/02",
+  "textures": {
+    "layer0": "tconstruct:item/tool/excavator/large/binding_tconstruct_treated_wood"
+  },
+  "elements": [
+    {
+      "from": [
+        -5.0,
+        -5.0,
+        7.5
+      ],
+      "to": [
+        27.0,
+        27.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#layer0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#layer0"
+        }
+      }
+    }
+  ]
+}

@@ -108,14 +108,24 @@ fn every_shipped_tool_definition_decodes() {
 fn every_shipped_material_loads_with_stats_and_traits_without_problems() {
     let mut registry = Materials::default();
     let definitions = files("materials/definition");
+    assert_eq!(definitions.len(), 104, "every original material definition ships, the sixteen integration materials included");
     registry = Materials::load(&definitions, &conditions());
     assert!(registry.problems.is_empty(), "material definition problems: {:#?}", registry.problems);
-    assert_eq!(registry.materials.len() + registry.redirects.len(), definitions.len());
+    // The sixteen integration materials are gated on another mod's ingot tag (or the
+    // force_integration_materials config), so in this vanilla-only context they select
+    // nothing: 88 of the 104 definitions load, exactly as in Java without those mods.
+    assert_eq!(registry.materials.len() + registry.redirects.len(), 88, "the sixteen integration materials stay unselected while their ingot tags are empty");
+    for name in ["aluminum", "bronze", "constantan", "electrum", "fiery", "invar", "ironwood", "lead", "necronium", "nicrosil", "osmium", "pewter", "plated_slimewood", "silver", "steeleaf", "treated_wood"] {
+        let id = Identifier::new("tconstruct", name).unwrap();
+        assert!(!registry.materials.contains_key(&id) && !registry.redirects.contains_key(&id), "{name} is an integration material and must not select here");
+    }
     let mut problems = Vec::new();
     registry.stats = crate::material_stats::load(&stacks("materials/stats"), &mut problems);
     registry.traits = crate::material_traits::load(&stacks("materials/traits"), &mut problems);
     assert!(problems.is_empty(), "material stats/traits problems: {problems:#?}");
-    assert_eq!(registry.stats.len(), registry.materials.len(), "every concrete material ships stats");
+    assert_eq!(registry.stats.len(), 99, "every concrete material ships stats, the sixteen integration materials included");
+    assert_eq!(registry.traits.len(), 99, "every concrete material ships traits, the sixteen integration materials included");
+    assert!(registry.materials.keys().all(|id| registry.stats.contains_key(id)), "every loaded material ships stats");
 }
 
 #[test]
@@ -376,7 +386,7 @@ pub(crate) fn recursive_files(folder: &str, prefix: &str) -> Vec<(Identifier, Va
 #[test]
 fn shipped_material_recipes_load_without_problems_and_horns_match_by_instrument() {
     let files = recursive_files("tools/materials", "tools/materials");
-    assert_eq!(files.len(), 176);
+    assert_eq!(files.len(), 217, "the 176 that shipped before plus the sixteen integration materials' 41 (their own conditions keep them off while the tags are empty)");
     let recipes = crate::material_recipes::Recipes::load(&files, &conditions());
     assert!(recipes.problems.is_empty(), "{:#?}", recipes.problems);
     assert!(recipes.len() > 60, "{} loaded", recipes.len());

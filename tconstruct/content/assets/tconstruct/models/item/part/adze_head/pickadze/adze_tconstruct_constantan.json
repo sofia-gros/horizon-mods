@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tconstruct:item/tool/pickadze/adze_tconstruct_constantan"
+  },
+  "elements": [
+    {
+      "from": [
+        -5,
+        -1,
+        7.5
+      ],
+      "to": [
+        11,
+        15,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#layer0"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#layer0"
+        }
+      }
+    }
+  ]
+}
