@@ -2,6 +2,8 @@
 
 Be told when a projectile hits something: an arrow, a snowball, a thrown item of a mod. A callback sees what flew, who threw it and what it met, can change the world where it landed with [world](world.md), and can cancel the hit. This page first walks through using it, then lists every item in the [Reference](#reference).
 
+A callback hears a projectile when it enters a level and when it lands, and nowhere between: the game's entity-tick telling covers mobs, item entities, minecarts and boats, not projectiles, so nothing here can follow one in flight. What acts at the two ends is all here — the impact reports the motion and the saved data the projectile arrived with and lets a callback discard it or send it flying on with a new motion, which is what pierce, bounce and an explosion where it lands are made of. Flight behaviours — a projectile that falls faster, a burning fuse, one that pulls mobs toward it or lights its path — stay unimplementable until the game tells projectile ticks.
+
 ## Basic Example
 
 A thrown item that lights up the spot where it lands, like a glow ball:
@@ -52,7 +54,7 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit.
+A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit. `motion` is how fast it was moving when it hit, in blocks a tick, and `data` the projectile's saved data — what its spawn data and the stack that fired it left on it, so a launcher that puts its modifiers in the fired stack's data reads them back here. Two outcomes a callback settles on the projectile itself: set `discard` to have the game remove it as the callbacks return, or set `motion_after` to the motion it flies on with — with a cancelled hit, a bounce.
 
 ```rust
 use pluto_lib::ProjectileImpact;
@@ -67,12 +69,17 @@ let hit = ProjectileImpact {
     block: [3, 64, 3],
     face: [0, 1, 0],
     at: [3.5, 65.0, 3.5],
+    motion: [0.0, -1.5, 0.25],
+    data: Default::default(),
+    discard: Default::default(),
+    motion_after: Default::default(),
 };
 assert_eq!(hit.block[1] + hit.face[1], 65);
 assert_eq!(hit.at[1], 65.0);
 assert_eq!((hit.projectile, hit.owner), (5, 1));
 assert!(hit.entity.is_none() && hit.entity_kind.is_empty());
 assert_eq!(hit.kind, "minecraft:snowball");
+assert_eq!(hit.motion[1], -1.5);
 ```
 
 ### `ProjectileImpact::world`
@@ -87,7 +94,8 @@ fn dimension_of(hit: &ProjectileImpact) -> String {
 }
 let hit = ProjectileImpact {
     dimension: "minecraft:the_nether".into(), projectile: 1, kind: "minecraft:arrow".into(), owner: 0, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3],
+    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    discard: Default::default(), motion_after: Default::default(),
 };
 assert_eq!(dimension_of(&hit), "minecraft:the_nether");
 ```
@@ -112,7 +120,8 @@ use pluto_lib::{ProjectileEvents, ProjectileImpact};
 ProjectileEvents::IMPACT.register(|hit| hit.kind != "minecraft:egg");
 let egg = ProjectileImpact {
     dimension: "minecraft:overworld".into(), projectile: 2, kind: "minecraft:egg".into(), owner: 1, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3],
+    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    discard: Default::default(), motion_after: Default::default(),
 };
 assert!(!ProjectileEvents::IMPACT.invoke(&egg));
 ```
@@ -133,14 +142,15 @@ ProjectileEvents::LAUNCH.register(|launch| {
 
 ### `ProjectileLaunch`
 
-A projectile that entered a level. `player` is the launching player's uuid (`None` for a dispenser's or a mob's), `name` their name (empty without a player), `projectile` the projectile's entity id and `kind` its type.
+A projectile that entered a level. `player` is the launching player's uuid (`None` for a dispenser's or a mob's), `name` their name (empty without a player), `projectile` the projectile's entity id and `kind` its type. `motion` is how fast it is moving as it enters, in blocks a tick, and `data` its saved data, as on `ProjectileImpact`.
 
 ```rust
 use pluto_lib::ProjectileLaunch;
 
-let launch = ProjectileLaunch { player: Some(7), name: "Alex".into(), projectile: 12, kind: "minecraft:arrow".into() };
+let launch = ProjectileLaunch { player: Some(7), name: "Alex".into(), projectile: 12, kind: "minecraft:arrow".into(), motion: [0.0, 0.5, -3.0], data: Default::default() };
 assert_eq!((launch.player, launch.projectile), (Some(7), 12));
 assert_eq!((launch.name.as_str(), launch.kind.as_str()), ("Alex", "minecraft:arrow"));
+assert_eq!(launch.motion[2], -3.0);
 ```
 
 ### `ProjectileEvents::SHOOT_BOW`

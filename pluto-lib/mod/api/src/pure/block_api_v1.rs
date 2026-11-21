@@ -514,6 +514,13 @@ pub struct EntityInsideContext {
     pub entity: i32,
     /// The entity's type, such as `minecraft:zombie`.
     pub kind: String,
+    /// The entity's bounding box, as `[min x, min y, min z, max x, max y, max z]` (`Entity.getBoundingBox`):
+    /// the box the original's contact tests are computed from — a punji, for one, hurts only a living
+    /// entity whose box crosses the block's mid-plane on the facing axis.
+    pub bounds: [f64; 6],
+    /// How far the entity has fallen, in blocks (`Entity.fallDistance`): the original's fall bonus on
+    /// contact damage reads it — the same punji deals the fall distance + 1 more after a fall.
+    pub fall_distance: f64,
     /// What the callback does to the entity, which the game does after the callback ran (the seams run
     /// inside entity movement, where the entity may not be changed): add to it with [`EntityInsideContext::act`].
     pub actions: RefCell<Vec<EntityAction>>,

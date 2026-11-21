@@ -1,16 +1,24 @@
 //! Projectiles hitting things (Forge: `ProjectileImpactEvent`). A callback sees what flew, who threw it and what it met, can act on the
 //! world with [`World`] and can cancel the hit.
+//!
+//! What no event here can do is follow a projectile in flight: the game's entity-tick telling covers mobs, item entities, minecarts
+//! and boats, not projectiles (pinned `native_entity_tick_pre`, API 146), so a callback hears a projectile when it enters
+//! ([`ProjectileEvents::LAUNCH`]) and when it lands ([`ProjectileEvents::IMPACT`]) and nowhere between. Flight behaviours — a
+//! projectile that falls faster, a burning fuse, one that pulls mobs toward it or lights its path — stay unimplementable until the
+//! game tells projectile ticks. What acts at the two ends is all here: the impact reports the motion and the saved data the
+//! projectile arrived with and lets a callback discard it or send it flying on with a new motion, which is what pierce, bounce
+//! and an explosion where it lands are made of.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
-use super::base::Event;
+use super::base::{Event, NbtCompound};
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
 use super::entity_events_v1::{CarriedEdit, CarriedStack, EntityAction};
 use super::player_api::StackData;
 use super::world_api_v1::World;
 
 /// A projectile that has found what it meets.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ProjectileImpact {
     /// The dimension, such as `minecraft:overworld`; also available as [`ProjectileImpact::world`].
     pub dimension: String,
@@ -30,6 +38,23 @@ pub struct ProjectileImpact {
     pub face: [i32; 3],
     /// Where it hit.
     pub at: [f64; 3],
+    /// How fast the projectile was moving when it hit, in blocks a tick (`Entity.getDeltaMovement`, the
+    /// game's own report of its motion); zero when the host could not reach the projectile.
+    pub motion: [f64; 3],
+    /// The projectile's saved data (the entity's save, as the host reports it): what its spawn data and
+    /// the stack that fired it left on it — a supplied arrow's stack data rides here, as a spawn's does
+    /// in `ProjectileSpawn`. Empty when the host could not reach the projectile. A launcher that wants
+    /// its modifiers known when the shot lands puts them in the fired stack's data (see
+    /// [`ProjectileEvents::AMMO`]); this is where they are read back.
+    pub data: NbtCompound,
+    /// Set to true to discard the projectile once the callbacks ran: the game removes it as the hook
+    /// returns, before its own hit handling continues, so cancel the hit as well when the hit itself
+    /// should not land. How a projectile that explodes where it lands consumes itself.
+    pub discard: Cell<bool>,
+    /// The motion the projectile flies on with, which a callback may set: applied as the hook returns
+    /// when the projectile is not discarded. With a cancelled hit this is a bounce — reflect
+    /// [`ProjectileImpact::motion`] yourself; the game does not reflect it for you.
+    pub motion_after: RefCell<Option<[f64; 3]>>,
 }
 
 impl ProjectileImpact {
@@ -50,6 +75,12 @@ pub struct ProjectileLaunch {
     pub projectile: u32,
     /// The projectile's type, such as `minecraft:arrow` or `minecraft:snowball`.
     pub kind: String,
+    /// How fast the projectile is moving as it enters, in blocks a tick; zero when the host could not
+    /// reach the projectile.
+    pub motion: [f64; 3],
+    /// The projectile's saved data, as in [`ProjectileImpact::data`]; empty when the host could not
+    /// reach the projectile.
+    pub data: NbtCompound,
 }
 
 /// A player's bow or crossbow shot an arrow, heard after the arrow entered the level.
@@ -183,8 +214,8 @@ mod tests {
                 shot.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Attacker, effect: "minecraft:speed".into(), amplifier: 1, duration: 60 });
             }
         });
-        launched(&ProjectileLaunch { player: Some(9), name: "archer".into(), projectile: 4040, kind: "minecraft:arrow".into() });
-        launched(&ProjectileLaunch { player: None, name: String::new(), projectile: 4040, kind: "minecraft:arrow".into() });
+        launched(&ProjectileLaunch { player: Some(9), name: "archer".into(), projectile: 4040, kind: "minecraft:arrow".into(), motion: [0.0, 0.5, -3.0], data: NbtCompound::new() });
+        launched(&ProjectileLaunch { player: None, name: String::new(), projectile: 4040, kind: "minecraft:arrow".into(), motion: [0.0; 3], data: NbtCompound::new() });
         assert_eq!(*seen.lock().unwrap(), vec![(Some(9), "minecraft:arrow".to_string()), (None, "minecraft:arrow".to_string())]);
         let shot_with = |force: f32, item: &str| BowShot {
             player: 9, name: "archer".into(), projectile: 4040, force,
@@ -235,26 +266,50 @@ mod tests {
 
     #[test]
     fn a_listener_acts_on_the_world_where_the_projectile_landed_and_can_cancel_the_hit() {
+        use crate::pure::base::Nbt;
         assert!(!heard());
         ProjectileEvents::IMPACT.register(|hit| {
-            if hit.kind == "example:light_ball" {
-                hit.world().set_block_state(hit.block, &BlockState::new(Identifier::parse("minecraft:light").unwrap()));
-                false
-            } else {
-                true
+            match hit.kind.as_str() {
+                "example:light_ball" => {
+                    hit.world().set_block_state(hit.block, &BlockState::new(Identifier::parse("minecraft:light").unwrap()));
+                    false
+                }
+                // A bounce: the hit is cancelled and the ball flies on with its vertical motion reflected.
+                "example:bounce_ball" => {
+                    assert_eq!(hit.motion, [0.0, -1.5, 0.25], "the motion it arrived with");
+                    assert_eq!(hit.data.get("charge"), Some(&Nbt::Int(3)), "the data it was fired with");
+                    let mut reflected = hit.motion;
+                    reflected[1] = -reflected[1];
+                    hit.motion_after.borrow_mut().replace(reflected);
+                    false
+                }
+                // A burst: its hit lands, and the projectile is discarded after the callbacks.
+                "example:burst_ball" => {
+                    hit.discard.set(true);
+                    true
+                }
+                _ => true,
             }
         });
         assert!(heard());
-        let hit = |kind: &str| ProjectileImpact {
-            dimension: "minecraft:overworld".into(),
-            projectile: 7,
-            kind: kind.into(),
-            owner: 1,
-            entity: None,
-            entity_kind: String::new(),
-            block: [4, 70, 4],
-            face: [0, 1, 0],
-            at: [4.5, 71.0, 4.5],
+        let hit = |kind: &str| {
+            let mut data = NbtCompound::new();
+            data.insert("charge".into(), Nbt::Int(3));
+            ProjectileImpact {
+                dimension: "minecraft:overworld".into(),
+                projectile: 7,
+                kind: kind.into(),
+                owner: 1,
+                entity: None,
+                entity_kind: String::new(),
+                block: [4, 70, 4],
+                face: [0, 1, 0],
+                at: [4.5, 71.0, 4.5],
+                motion: [0.0, -1.5, 0.25],
+                data,
+                discard: Cell::new(false),
+                motion_after: RefCell::new(None),
+            }
         };
         let mut ops = MemoryWorldOps::default();
         with_world(&mut ops, || {
@@ -262,5 +317,13 @@ mod tests {
             assert!(impact(&hit("minecraft:snowball")), "other projectiles hit as usual");
         });
         assert_eq!(ops.blocks.len(), 1);
+        let bounce = hit("example:bounce_ball");
+        assert!(!impact(&bounce), "the bounce cancels the hit");
+        assert_eq!(*bounce.motion_after.borrow(), Some([0.0, 1.5, 0.25]), "the reflected motion is what it flies on with");
+        assert!(!bounce.discard.get());
+        let burst = hit("example:burst_ball");
+        assert!(impact(&burst), "the burst's hit itself lands");
+        assert!(burst.discard.get(), "and the projectile is discarded after the callbacks");
+        assert_eq!(*burst.motion_after.borrow(), None);
     }
 }

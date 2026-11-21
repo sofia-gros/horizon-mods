@@ -321,7 +321,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), and `block_in_tag(block, tag) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -519,3 +519,31 @@ assert_eq!(ops.summons[0].kind, "minecraft:item");
 ### `SummonRecord`
 
 One entity a `MemoryWorldOps` was asked to summon, as it was asked: `dimension`, `kind`, `pos` and `nbt`. A summon's id is its 1-based place in `MemoryWorldOps::summons`.
+
+### `World::explode`
+
+`fn explode(&self, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool`. Sets off an explosion at `center` (Minecraft: `Level.explode`): entities in the radius are hurt and pushed back, `fire` starts fires on the blocks the blast exposed, and `interaction` says what happens to the blocks. `radius` is the explosion's size as the game's own calls state it (a primed tnt's is 4.0); the game accepts a finite centre within the world and a radius up to 32. Returns whether the explosion was set off (or, over Horizon, accepted for the level's seam to set off within the tick — the game has no mod call that explodes, so the request is carried to the level and goes off there); false for a centre or radius the game would refuse, or outside a callback that carries a world. The blast has no source entity: nothing is credited with it.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` validates the centre and radius as the game's `native_explode` (API 66) does and queues the request on `pluto_explosion_access`; the level's mob-event seam (`pluto_explosion_flush`) sets it off with `native_explode` in the dimension named, like the block ticks the seams drain.
+
+```rust
+use pluto_lib::{with_world, ExplosionInteraction, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.explode([0.0, 64.0, 0.0], 4.0, false, ExplosionInteraction::Tnt), "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert!(world.explode([8.5, 64.0, -2.5], 4.0, true, ExplosionInteraction::Tnt));
+    assert!(!world.explode([8.5, 64.0, -2.5], 0.0, false, ExplosionInteraction::Keep), "no radius, no blast");
+});
+assert_eq!(ops.explosions.len(), 1);
+assert_eq!(ops.explosions[0].interaction, ExplosionInteraction::Tnt);
+```
+
+### `ExplosionInteraction`
+
+What an explosion does to the blocks it reaches (Minecraft: `ExplosionInteraction`): `Keep` leaves them (Java: `NONE`), `Block` breaks them by the block-explosion rule (`BLOCK`), and `Tnt` breaks them by the tnt-explosion rule (`TNT`; the original's `DESTROY` is the same rule).
+
+### `ExplosionRecord`
+
+One explosion a `MemoryWorldOps` was asked to set off, as it was asked: `dimension`, `center`, `radius`, `fire` and `interaction`.

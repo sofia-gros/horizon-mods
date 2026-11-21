@@ -1572,3 +1572,25 @@ target = "horizon_client::game::lan_attributes::Game<'_>::update_player_attribut
 kind = "HEAD"
 helper = "pluto-mob-effect-apply-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The explosions a mod orders (the game has no mod call that sets one off; its own native_explode lives inside the game).
+[[module]]
+id = "pluto-explosion-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_explosion_access"
+source = "pluto-explosion-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-explosion-flush"
+file = "crates/horizon-client/src/game/potions.rs"
+name = "pluto_explosion_flush"
+source = "pluto-explosion-flush.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-explosion-flush"
+target = "horizon_client::game::creatures::Game<'_>::handle_mob_events_reusable"
+kind = "HEAD"
+helper = "pluto-explosion-flush-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
