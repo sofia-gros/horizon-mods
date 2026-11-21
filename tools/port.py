@@ -30,7 +30,10 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/fluid_tags/(?:tconstruct|forge|mantle)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Damage types used by armor modules and the smeltery, and their additions to vanilla tags.
-    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects|is_fire|witch_resistant_to)\.json'),
+    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:avoids_guardian_thorns|bypasses_armor|bypasses_cooldown|bypasses_effects|bypasses_enchantments|is_explosion|is_fire|is_freezing|is_projectile|witch_resistant_to)\.json'),
+    # Trim materials, imported as data only: the entries exist in the trim material registry, but no trim
+    # rendering consumer exists yet (the trim modifier's rendering side is a separate modifier-side gap).
+    re.compile(r'data/tconstruct/trim_material/[a-z0-9_]+\.json'),
     # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
@@ -56,6 +59,7 @@ LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
+TRIM_MATERIAL_KEYS = {'asset_name', 'description', 'ingredient', 'item_model_index'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light', 'default_state', 'shapes', 'collision_shapes'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
@@ -291,6 +295,10 @@ def checked_content(root, version):
             if name.startswith('data/tconstruct/damage_type/'):
                 if not isinstance(item, dict) or set(item) - DAMAGE_TYPE_KEYS or not isinstance(item.get('message_id'), str) or item.get('scaling') not in ('never', 'always', 'when_caused_by_living_non_player') or not isinstance(item.get('exhaustion'), (int, float)):
                     raise ValueError(f'damage type needs a message id, a scaling and an exhaustion, and only reviewed keys: {name}')
+                continue
+            if name.startswith('data/tconstruct/trim_material/'):
+                if not isinstance(item, dict) or set(item) != TRIM_MATERIAL_KEYS or not isinstance(item.get('asset_name'), str) or not isinstance(item.get('description'), dict) or not isinstance(item.get('ingredient'), str) or not isinstance(item.get('item_model_index'), (int, float)):
+                    raise ValueError(f'trim material needs an asset name, a description, an ingredient and an item model index, and only reviewed keys: {name}')
                 continue
             if '/menu/' in name:
                 if not isinstance(item, dict) or set(item) - MENU_KEYS or not isinstance(item.get('slots'), int) or not 1 <= item['slots'] <= 256:

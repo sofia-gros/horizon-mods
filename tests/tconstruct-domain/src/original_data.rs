@@ -48,6 +48,54 @@ fn smeltery_damage_types_resolve_with_the_original_effects_and_tags() {
 }
 
 #[test]
+fn every_original_damage_type_is_shipped_with_its_full_vanilla_tag_memberships() {
+    let types = files("../damage_type");
+    assert_eq!(types.len(), 32, "all 32 original damage types");
+    for (id, definition) in &types {
+        // Every definition keeps the original's shape: a message id, a scaling and an exhaustion.
+        assert!(definition["message_id"].is_string(), "{id} message id");
+        assert!(["never", "always", "when_caused_by_living_non_player"].contains(&definition["scaling"].as_str().unwrap_or_default()), "{id} scaling");
+        assert!(definition["exhaustion"].is_number(), "{id} exhaustion");
+    }
+    // The port's additions to vanilla's damage-type tags name exactly the original's memberships;
+    // they were trimmed to the imported types while only some types were shipped, and are whole now.
+    let memberships: &[(&str, &[&str])] = &[
+        ("avoids_guardian_thorns", &["bleeding", "shock"]),
+        ("bypasses_armor", &["piercing", "self_destruct", "bleeding", "entangled", "spiny", "update_health", "water_melee", "water_ranged", "fluid_spike_melee", "fluid_spike_ranged"]),
+        ("bypasses_cooldown", &["update_health"]),
+        ("bypasses_effects", &["entangled", "spiny", "update_health"]),
+        ("bypasses_enchantments", &["bleeding"]),
+        ("is_explosion", &["self_destruct", "explosion_melee", "explosion_ranged", "mob_explosion_melee", "mob_explosion_ranged"]),
+        ("is_fire", &["smeltery_heat", "fluid_fire_melee", "fluid_fire_ranged"]),
+        ("is_freezing", &["fluid_cold_melee", "fluid_cold_ranged"]),
+        ("is_projectile", &["thrown_tool", "fishing_hook", "fluid_impact_ranged", "fluid_fire_ranged", "fluid_cold_ranged", "fluid_magic_ranged", "water_ranged", "fluid_spike_ranged", "explosion_ranged", "mob_explosion_ranged"]),
+        ("witch_resistant_to", &["smeltery_magic", "fluid_magic_melee", "fluid_magic_ranged"]),
+    ];
+    for (tag, names) in memberships {
+        let path = root().join(format!("../../minecraft/tags/damage_type/{tag}.json"));
+        let data: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|_| panic!("{tag} tag file"))).unwrap();
+        let values: Vec<String> = data["values"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_owned()).collect();
+        let expected: Vec<String> = names.iter().map(|name| format!("tconstruct:{name}")).collect();
+        assert_eq!(values, expected, "{tag} membership");
+    }
+}
+
+#[test]
+fn every_original_trim_material_is_shipped_as_data() {
+    // The trim materials ship as data, so the registry entries exist. The trim *rendering* consumer is
+    // a separate modifier-side gap (the trim modifier kind has no rendering hook), so this test pins
+    // the data only and decodes nothing into behaviour.
+    let materials = files("../trim_material");
+    assert_eq!(materials.len(), 16, "all 16 original trim materials");
+    for (id, material) in &materials {
+        assert_eq!(material["asset_name"], format!("tconstruct_{}", id.path()), "{id} asset name");
+        assert!(material["ingredient"].as_str().is_some_and(|ingredient| ingredient.starts_with("tconstruct:")), "{id} ingredient");
+        assert!(material["item_model_index"].is_number(), "{id} item model index");
+        assert!(material["description"]["translate"].is_string(), "{id} description");
+    }
+}
+
+#[test]
 fn every_shipped_tool_definition_decodes() {
     let definitions = files("tool_definitions");
     assert_eq!(definitions.len(), 44, "45 original definitions minus the other-mod minotaur axe");
