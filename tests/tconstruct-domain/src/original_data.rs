@@ -31,6 +31,23 @@ pub(crate) fn conditions() -> crate::conditions::Context {
 }
 
 #[test]
+fn smeltery_damage_types_resolve_with_the_original_effects_and_tags() {
+    let types = files("../damage_type");
+    for (name, is_fire) in [("smeltery_heat", true), ("smeltery_magic", false)] {
+        let id = Identifier::new("tconstruct", name).unwrap();
+        let (_, definition) = types.iter().find(|(key, _)| key == &id).expect("smeltery damage type");
+        assert_eq!(*definition, serde_json::json!({
+            "effects": "burning", "exhaustion": 0.1, "message_id": format!("tconstruct.{name}"), "scaling": "never"
+        }));
+        for (tag, expected) in [("is_fire", is_fire), ("witch_resistant_to", !is_fire), ("bypasses_armor", false)] {
+            let path = root().join(format!("../../minecraft/tags/damage_type/{tag}.json"));
+            let data: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+            assert_eq!(data["values"].as_array().unwrap().contains(&Value::String(id.to_string())), expected, "{id} in {tag}");
+        }
+    }
+}
+
+#[test]
 fn every_shipped_tool_definition_decodes() {
     let definitions = files("tool_definitions");
     assert_eq!(definitions.len(), 44, "45 original definitions minus the other-mod minotaur axe");
