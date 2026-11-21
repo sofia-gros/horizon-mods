@@ -598,6 +598,47 @@ bindings = [
  { name = "w", ty = "&MobWorld<'_>", value = "w" }
 ]
 
+# The enchanting table asks the stack for its enchantability: `enchantable_of` is the
+# one lookup the table's offers, costs and selection all read, and a registered
+# per-stack answer replaces its component/default lookup, as NeoForge's
+# stack-sensitive `getEnchantmentValue(ItemStack)` replaces the default.
+[[injection]]
+id = "pluto-item-enchantability"
+target = "horizon_items::enchant::Enchantments::enchantable_of"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-enchantability-head.rs"
+bindings = [
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+# Shearing a snow golem or bogged asks the stack for SHEARS_HARVEST where vanilla
+# names the shears item; a granted stack runs the original body under the vanilla name.
+[[injection]]
+id = "pluto-item-shear-mob"
+target = "horizon_client::game::creatures::Game<'_>::interact_shear_mob"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-shear-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "index", ty = "usize", value = "index" },
+ { name = "item", ty = "&str", value = "item" }
+]
+
+# Shearing a saddle or equipment off a mob asks the stack the same question.
+[[injection]]
+id = "pluto-item-shear-saddle"
+target = "horizon_client::game::mounts::Game<'_>::shear_saddle"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-shear-saddle-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "index", ty = "usize", value = "index" },
+ { name = "item", ty = "&str", value = "item" }
+]
+
 # Symbolic binding rewrite before native loading; bindings get a distinct root
 # identity so cached content/behaviour tables cannot restore an older declaration.
 # Native plan fingerprints remain unset under the native attachment guard.
