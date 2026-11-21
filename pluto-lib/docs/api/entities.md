@@ -1,6 +1,6 @@
 # Entity types and events
 
-Declare types derived from existing Minecraft implementations, and listen for entities entering/leaving worlds, damage and death. Type declarations currently have a native-loader stub; the events below have their own support status.
+Declare types derived from existing Minecraft implementations, and listen for entities entering/leaving worlds, damage and death. Type declarations are published into the game's own entity tables by the overlay export (see Derived Entity Types); what remains open for them is runtime policy validation and standalone distribution, not loading. The events below have their own support status.
 
 ## Basic Example
 
@@ -79,7 +79,7 @@ EntityTypeRegistry::register_derived(
 ).unwrap();
 ```
 
-> **Use with Caution.** This is not a Rust entity factory or a spawn command. The source adapter appends derived rows to entity-types.json while preserving inherited raw float fields, allocates matching network registry IDs and publishes command lists. Living factories also inherit their separate attributes.json DefaultAttributes suppliers, retaining exact bit strings without creating fake suppliers for nonliving factories. Both catalogs resolve before either is passed to the writer; missing/invalid living suppliers reject the candidate. Native JSON_TABLES does not visit attributes.json, so the entity-table write explicitly sends its prepared companion through the native unlink-before-write operation. Cache identity has changed to prevent reuse of older roots without suppliers; native loader/overlay validation remains pending. The complete declaration snapshot participates in content-root cache identity. Category and unspecified defaults come from the named factory, whose exported row must exist; existing type IDs cannot be replaced. Native execution/model validation, spawn rules, custom attributes, persistent/synchronized state and simulation callbacks remain incomplete or unverified. Tracking/velocity requests are explicit metadata, not yet consumed by a native tracking-policy adapter. The fixed content-file whitelist is bypassed by this source export path, not edited or evidence that runtime parity is complete. Invalid values and duplicate/late registrations return errors; no unrelated template is substituted.
+> **Use with Caution.** This is not a Rust entity factory or a spawn command. The source adapter appends derived rows to entity-types.json while preserving inherited raw float fields, allocates matching network registry IDs and publishes command lists. Living factories also inherit their separate attributes.json DefaultAttributes suppliers, retaining exact bit strings without creating fake suppliers for nonliving factories. Both catalogs resolve before either is passed to the writer; missing/invalid living suppliers reject the candidate. Native JSON_TABLES does not visit attributes.json, so the entity-table write explicitly sends its prepared companion through the native unlink-before-write operation. Cache identity has changed to prevent reuse of older roots without suppliers; validation of a declaration against the game's runtime policy (a factory whose exported row exists but whose model or consumers are missing) remains pending, and the export runs only as part of a content overlay, so a standalone install without one cannot publish declarations yet. The complete declaration snapshot participates in content-root cache identity. Category and unspecified defaults come from the named factory, whose exported row must exist; existing type IDs cannot be replaced. Native execution/model validation, spawn rules, custom attributes, persistent/synchronized state and simulation callbacks remain incomplete or unverified. Tracking/velocity requests are explicit metadata, not yet consumed by a native tracking-policy adapter. The fixed content-file whitelist is bypassed by this source export path, not edited or evidence that runtime parity is complete. Invalid values and duplicate/late registrations return errors; no unrelated template is substituted.
 
 ## Entity-Class Query Methods
 
@@ -134,7 +134,7 @@ LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("exa
 
 ## Reaching the Entities Around a Ticker
 
-A block entity ticker can reach the entities around it through [`EntityReach`](#entityreach): list the entities in a box, replace or discard a dropped item, and hurt a living entity under a damage type of the mod's choosing. The reach answers only while a ticker runs; outside one it answers nothing and every action fails. An entity is either an item (its stack) or a living thing (the facts a consumer's rules read: fire immunity, invulnerability to the damage, fire resistance); anything else is listed with neither.
+A block entity ticker can reach the entities around it through [`EntityReach`](#entityreach): list the entities in a box, replace or discard a dropped item, and hurt a living entity under a damage type of the mod's choosing. The reach answers only while a host scope is open (a ticker, or one of the events under Riding and Entity Ticks); outside one it answers nothing and every action fails. An entity is either an item (its stack) or a living thing (the facts a consumer's rules read: fire immunity, invulnerability to the damage, fire resistance); anything else is listed with neither.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
@@ -156,6 +156,16 @@ assert_eq!(ops.hurt.len(), 1);
 ```
 
 > **Use with Caution.** The pure rules and the in-memory world are tested. The host adapter is written, not yet compiled or game-verified: `HostEntities` in `hooks.rs` lists the entities of the dimension in place (items with their stacks, players and living things with their facts), discards a dropped item by aging it out through the host's entity data merge, replaces an item's stack by merging its `Item` id and count (the stack's components stay), and hurts through the host's damage call under the type's own name. The generated `Host` signatures can only be checked by a native build.
+
+## Riding and Entity Ticks
+
+The entity reach also answers who rides whom, and can change it: `EntityReach::passengers_of(vehicle)`, `EntityReach::vehicle_of(passenger)`, `EntityReach::start_riding(passenger, vehicle)` and `EntityReach::stop_riding(passenger)`. The host refuses what the game refuses — the same entity twice, a passenger that already rides something, a cycle, and the local player as a passenger (boarding the player is the game's own seat logic). An accepted mount or dismount is applied by the game's own rider synchronisation, so it is observable through `vehicle_of` from the next tick, and a refusal there (its mount event, its capacity) is final. The local player can be a *vehicle*: a mob mounted on the player is kept and seated like any other mount.
+
+The reach is open not only while a block entity ticker runs, but also during the entity interaction events (`InteractEntityCallback`, `UseEntityCallback`), the entity tick events below, and player inventory ticks (`PlayerInventoryEvents::TICK`, in the player documentation), each in the dimension the event names.
+
+An entity's own tick is heard through `ServerEntityEvents::ENTITY_TICK_PRE` and `ENTITY_TICK_POST`, for every kind the game ticks — derived types included. A type declared with `EntityTypeRegistry` carries no code of its own; these events, keyed by the entity's kind, are its tick behaviour surface, alongside the kind-keyed `LivingEntityBehaviors`. Return `false` from a `ENTITY_TICK_PRE` callback to cancel that entity's tick (the post event is then not heard for it).
+
+> **Use with Caution.** The pure rules and the in-memory world are tested, including the refusal rules. The host side is written, not yet compiled or game-verified: the adapter answers ride questions from a snapshot the game rebuilds at each rider synchronisation, queues requests for that synchronisation to apply through the game's own mount paths (`Game::try_mount_mob` for a mob, the vehicle field for an armor stand), and answers `Game::seat` for the local player so a mob riding the player is kept and seated. Remote players as vehicles are not in the snapshot: only the local player, mobs, armor stands, displays and interactions are.
 
 ## Reference
 

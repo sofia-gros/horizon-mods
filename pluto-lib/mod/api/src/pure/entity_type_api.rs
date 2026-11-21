@@ -44,16 +44,32 @@ static TYPES: Mutex<Registry> = Mutex::new(Registry { frozen: false, types: BTre
 /// Registers entity types independently of content-file template whitelists.
 /// This is a convenience for deriving from an existing Minecraft entity class,
 /// not an API for constructing arbitrary Rust entities. It records declarations
-/// with a source-wired symbolic export adapter; native registry/loader and
-/// runtime policy validation remain an explicit stub.
+/// with a source-wired symbolic export adapter: the host adapter's overlay
+/// export publishes each declaration into the game's own entity tables by
+/// cloning the factory's catalog row under the new id (`template` naming the
+/// factory, the declared dimensions and tracking policy, the factory's
+/// attribute supplier, a fresh protocol id, and a place on the summonable and
+/// command lists), so a declared type spawns and lives in-game with the
+/// factory's runtime behaviour. Behaviour wiring is by kind, like every other
+/// kind: [`LivingEntityBehaviors`](super::living_entity_behavior::LivingEntityBehaviors)
+/// answer for the derived kind string, and the entity tick events
+/// ([`ServerEntityEvents::ENTITY_TICK_PRE`](super::entity_events_v1::ServerEntityEvents::ENTITY_TICK_PRE))
+/// are the per-tick surface for a type whose declaration carries no code.
+/// Two limits remain, and they are validation and distribution, not loading:
+/// registration does not check that the factory exists, that a resource model
+/// is available, or that every registration consumer accepts the type — a
+/// declaration naming a missing factory fails at the game's own catalog load,
+/// not here; and the export only runs as part of a content overlay, so a
+/// standalone install without one cannot publish declarations yet.
 pub struct EntityTypeRegistry;
 impl EntityTypeRegistry {
     /// Declare a custom type reusing `factory`'s vanilla runtime implementation.
     /// Category and unspecified defaults come from the factory. Dimensions are
     /// fixed width/height in blocks; tracking is in chunks, not blocks.
     /// Duplicate, invalid and post-collection calls fail without replacement.
-    /// The future native adapter must validate factory existence, resource model
-    /// availability and all registration consumers, not just a type-name list.
+    /// Registration validates the declaration's own shape only; the factory's
+    /// existence and the type's resource model are the game's to refuse when
+    /// its catalogs load (see the type's documentation).
     pub fn register_derived(id: Identifier, factory: Identifier, width: f32, height: f32,
         tracking_chunks: u32, velocity_updates: bool) -> Result<(), String> {
         TYPES.lock().map_err(|_| "entity type registry poisoned")?

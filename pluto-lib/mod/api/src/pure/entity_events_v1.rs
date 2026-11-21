@@ -35,6 +35,8 @@ pub struct LivingDamage {
 
 static ENTITY_LOAD: Event<EntityInfo, ()> = Event::void();
 static ENTITY_UNLOAD: Event<EntityInfo, ()> = Event::void();
+static ENTITY_TICK_PRE: Event<EntityInfo, bool> = Event::allow_all();
+static ENTITY_TICK_POST: Event<EntityInfo, ()> = Event::void();
 
 /// Fabric: `ServerEntityEvents`.
 pub struct ServerEntityEvents;
@@ -42,6 +44,14 @@ pub struct ServerEntityEvents;
 impl ServerEntityEvents {
     pub const ENTITY_LOAD: &'static Event<EntityInfo, ()> = &ENTITY_LOAD;
     pub const ENTITY_UNLOAD: &'static Event<EntityInfo, ()> = &ENTITY_UNLOAD;
+    /// An entity is about to tick (NeoForge: `EntityTickEvent.Pre`): return `false` to cancel this tick of the
+    /// entity. Heard for every kind the host ticks, derived types included — this is the tick behaviour surface of
+    /// a type declared with the entity type registry, whose declarations carry no code of their own. The entity and
+    /// world reaches are open while the callbacks run.
+    pub const ENTITY_TICK_PRE: &'static Event<EntityInfo, bool> = &ENTITY_TICK_PRE;
+    /// An entity has ticked (NeoForge: `EntityTickEvent.Post`): a notification, heard after the entity's own tick
+    /// ran (and not at all for a tick `ENTITY_TICK_PRE` cancelled).
+    pub const ENTITY_TICK_POST: &'static Event<EntityInfo, ()> = &ENTITY_TICK_POST;
     /// A player is about to shear a mob (Bukkit: `PlayerShearEntityEvent`; Fabric has no counterpart). Set `cancel` to stop the shearing,
     /// or queue `actions` for the player. Server only; heard before the shears act, so a later callback may still cancel the shearing. The game
     /// reports only a guest's shearing on the owner's LAN world: the world owner's own shearing is heard by no hook.
@@ -690,6 +700,21 @@ pub(crate) fn entity_loaded(id: u32, kind: &str, dimension: &str) {
 
 pub(crate) fn entity_unloaded(id: u32, kind: &str, dimension: &str) {
     ENTITY_UNLOAD.invoke(&EntityInfo { id, kind: kind.to_owned(), dimension: dimension.to_owned() });
+}
+
+/// True when the entity's tick may run (no `ENTITY_TICK_PRE` callback cancelled it).
+pub(crate) fn entity_tick_before(info: &EntityInfo) -> bool {
+    ENTITY_TICK_PRE.invoke(info)
+}
+
+/// Reports that the entity's tick ran.
+pub(crate) fn entity_tick_after(info: &EntityInfo) {
+    ENTITY_TICK_POST.invoke(info);
+}
+
+/// Whether any callback hears entity ticks, so the host adapter skips its work when none does.
+pub(crate) fn entity_tick_heard() -> bool {
+    !ENTITY_TICK_PRE.is_empty() || !ENTITY_TICK_POST.is_empty()
 }
 
 /// True when the damage may be applied.
@@ -1479,5 +1504,20 @@ mod tests {
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");
+    }
+
+    #[test]
+    fn an_entity_tick_can_be_cancelled_before_and_is_reported_after() {
+        use std::sync::Mutex;
+        static POSTED: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+        ServerEntityEvents::ENTITY_TICK_PRE.register(|info| info.kind != "test:frozen");
+        ServerEntityEvents::ENTITY_TICK_POST.register(|info| POSTED.lock().unwrap().push(info.id));
+        assert!(entity_tick_heard());
+        let frozen = EntityInfo { id: 71, kind: "test:frozen".into(), dimension: "minecraft:overworld".into() };
+        let moving = EntityInfo { id: 72, kind: "test:walker".into(), dimension: "minecraft:overworld".into() };
+        assert!(!entity_tick_before(&frozen), "the frozen kind's tick is cancelled");
+        assert!(entity_tick_before(&moving));
+        entity_tick_after(&moving);
+        assert_eq!(POSTED.lock().unwrap().clone(), vec![72], "only the tick that ran is reported");
     }
 }

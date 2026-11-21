@@ -412,6 +412,44 @@ pub(crate) fn key_press(press: &KeyPress) {
     KEY_PRESS.invoke(press);
 }
 
+/// One inventory slot of a player ticked (NeoForge: `PlayerTickEvent` has no slot-level counterpart; the closest is
+/// Bukkit's inventory events — the shape follows the game's own per-slot inventory tick, the hook an item's
+/// `inventoryTick` answers in the original). Heard on a server, once per tick for each carried slot the game ticks:
+/// the stack the slot holds, whether the slot is the selected hotbar slot, and the player carrying it. Callbacks that
+/// need to change the world act through the scopes the host opens around the event (the entity and world reaches).
+#[derive(Clone, Debug, PartialEq)]
+pub struct InventoryTick {
+    /// The player carrying the slot; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// The slot's own number in the player's inventory, in the game's numbering.
+    pub slot: i32,
+    /// Whether the slot is the selected hotbar slot.
+    pub selected: bool,
+    /// The stack in the slot, with its damage, max damage, custom data and enchantments; None when the game names
+    /// none (an empty slot, or a stack it did not read).
+    pub stack: Option<StackData>,
+}
+
+static INVENTORY_TICK: Event<InventoryTick, ()> = Event::void();
+
+/// Inventory slot ticks of players (see [`InventoryTick`]).
+pub struct PlayerInventoryEvents;
+
+impl PlayerInventoryEvents {
+    /// The event: every callback runs, in registration order.
+    pub const TICK: &'static Event<InventoryTick, ()> = &INVENTORY_TICK;
+}
+
+/// Whether any callback hears inventory ticks (the host adapter skips its work when none does).
+pub(crate) fn inventory_tick_heard() -> bool {
+    !INVENTORY_TICK.is_empty()
+}
+
+/// Reports an inventory slot tick to the callbacks.
+pub(crate) fn inventory_tick(tick: &InventoryTick) {
+    INVENTORY_TICK.invoke(tick);
+}
+
 /// An in-memory game for tests: the players it knows keep messages, items and attachments in plain collections. Run code that uses
 /// [`ServerPlayer`] inside [`with_ops`] with one of these to check what it did.
 #[derive(Default, Debug)]
@@ -753,5 +791,19 @@ mod tests {
         let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| with_ops(&mut ops, || panic!("boom"))));
         assert!(caught.is_err());
         assert!(!player().send_message("after"), "the scope must be closed");
+    }
+
+    #[test]
+    fn inventory_ticks_reach_their_callbacks_with_the_slot_and_stack() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<(i32, bool, Option<String>)>> = Mutex::new(Vec::new());
+        PlayerInventoryEvents::TICK.register(|tick| {
+            SEEN.lock().unwrap().push((tick.slot, tick.selected, tick.stack.as_ref().map(|stack| stack.item.clone())));
+        });
+        assert!(inventory_tick_heard());
+        inventory_tick(&InventoryTick { player: None, slot: 3, selected: true, stack: None });
+        inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, enchantments: std::collections::BTreeMap::new() }) });
+        let seen = SEEN.lock().unwrap().clone();
+        assert_eq!(seen, vec![(3, true, None), (100, false, Some("minecraft:torch".into()))]);
     }
 }

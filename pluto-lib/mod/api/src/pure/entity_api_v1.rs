@@ -1,7 +1,8 @@
 //! The entities of a world, reached from a callback that carries them (a block entity ticker): what stands inside a
-//! box, hurting it, and taking the items it dropped (Minecraft: `Level.getEntitiesOfClass`, `LivingEntity.hurt`,
-//! `ItemEntity.setItem` and `discard`). Like [`World`](super::world_api_v1::World), the reach only exists while a
-//! host-installed scope is open; outside it every query answers "nothing there", never a guess.
+//! box, hurting it, taking the items it dropped, and who rides whom (Minecraft: `Level.getEntitiesOfClass`,
+//! `LivingEntity.hurt`, `ItemEntity.setItem` and `discard`, `Entity.startRiding` and `stopRiding`). Like
+//! [`World`](super::world_api_v1::World), the reach only exists while a host-installed scope is open; outside it
+//! every query answers "nothing there", never a guess.
 use super::{base::Identifier, block_entity_api_v1::ItemSlot};
 use std::{cell::Cell, marker::PhantomData};
 
@@ -44,6 +45,35 @@ pub trait EntityOps {
     /// Hurts entity `id` by `amount` of the damage type `damage_type`, with no attacker; whether it took any (the
     /// host refuses an invulnerable, dead or creative target, as `LivingEntity.hurt` does).
     fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool;
+    /// The direct passengers of `vehicle`, in the order they mounted (Minecraft: `Entity.getPassengers`). Empty
+    /// when the entity carries nobody — or when the host cannot say. Hosts that predate passenger support answer
+    /// empty.
+    fn passengers_of(&mut self, vehicle: u64) -> Vec<u64> {
+        let _ = vehicle;
+        Vec::new()
+    }
+    /// The vehicle `passenger` rides, if it rides one (Minecraft: `Entity.getVehicle`). `None` when it rides
+    /// nothing — or when the host cannot say.
+    fn vehicle_of(&mut self, passenger: u64) -> Option<u64> {
+        let _ = passenger;
+        None
+    }
+    /// Puts `passenger` on `vehicle` (Minecraft: `Entity.startRiding`): true when the mount was accepted. The
+    /// host refuses what the game refuses — the same entity twice, a passenger that already rides something, a
+    /// cycle (the vehicle already rides the passenger, directly or through a chain), an entity the game will not
+    /// seat, and any mount its own mount event cancels. A host may apply an accepted mount at its next rider
+    /// synchronisation rather than instantly; the result is then observable through [`EntityOps::vehicle_of`] from
+    /// the next tick, and a refusal there is final.
+    fn start_riding(&mut self, passenger: u64, vehicle: u64) -> bool {
+        let _ = (passenger, vehicle);
+        false
+    }
+    /// Takes `passenger` off whatever it rides (Minecraft: `Entity.stopRiding`): true when it was riding and the
+    /// dismount was accepted; the host may likewise apply it at its next rider synchronisation.
+    fn stop_riding(&mut self, passenger: u64) -> bool {
+        let _ = passenger;
+        false
+    }
 }
 
 thread_local! {
@@ -101,6 +131,28 @@ impl EntityReach {
     pub fn hurt(id: u64, amount: f32, damage_type: &str) -> bool {
         with_current(false, |ops| ops.hurt(id, amount, damage_type))
     }
+
+    /// The direct passengers of `vehicle`, in the order they mounted; empty outside a scope.
+    pub fn passengers_of(vehicle: u64) -> Vec<u64> {
+        with_current(Vec::new(), |ops| ops.passengers_of(vehicle))
+    }
+
+    /// The vehicle `passenger` rides; `None` outside a scope or when it rides nothing.
+    pub fn vehicle_of(passenger: u64) -> Option<u64> {
+        with_current(None, |ops| ops.vehicle_of(passenger))
+    }
+
+    /// Puts `passenger` on `vehicle`; whether the mount was accepted (see [`EntityOps::start_riding`] for what a
+    /// host may refuse, and when an accepted mount becomes observable). False outside a scope.
+    pub fn start_riding(passenger: u64, vehicle: u64) -> bool {
+        with_current(false, |ops| ops.start_riding(passenger, vehicle))
+    }
+
+    /// Takes `passenger` off whatever it rides; whether it was riding and the dismount was accepted. False
+    /// outside a scope.
+    pub fn stop_riding(passenger: u64) -> bool {
+        with_current(false, |ops| ops.stop_riding(passenger))
+    }
 }
 
 /// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
@@ -115,11 +167,13 @@ pub struct MemoryEntityOps {
     pub hurt: Vec<(u64, f32, String)>,
     /// Whether hurts land; the host refuses some (an invulnerable or dead target), a test can say so here.
     pub hurts_land: bool,
+    /// Who rides whom: `(passenger, vehicle)` pairs, in the order they mounted.
+    pub mounts: Vec<(u64, u64)>,
 }
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new() }
     }
 }
 
@@ -152,6 +206,37 @@ impl EntityOps for MemoryEntityOps {
         self.hurt.push((id, amount, damage_type.to_owned()));
         self.hurts_land
     }
+
+    fn passengers_of(&mut self, vehicle: u64) -> Vec<u64> {
+        self.mounts.iter().filter(|(_, carrier)| *carrier == vehicle).map(|(passenger, _)| *passenger).collect()
+    }
+
+    fn vehicle_of(&mut self, passenger: u64) -> Option<u64> {
+        self.mounts.iter().find(|(rider, _)| *rider == passenger).map(|(_, vehicle)| *vehicle)
+    }
+
+    fn start_riding(&mut self, passenger: u64, vehicle: u64) -> bool {
+        let known = |id: u64| self.entities.iter().any(|(_, entity)| entity.id == id);
+        if passenger == vehicle || !known(passenger) || !known(vehicle) || self.vehicle_of(passenger).is_some() {
+            return false;
+        }
+        // A cycle: the vehicle already rides the passenger, directly or through a chain of vehicles.
+        let mut carrier = vehicle;
+        while let Some(next) = self.vehicle_of(carrier) {
+            if next == passenger {
+                return false;
+            }
+            carrier = next;
+        }
+        self.mounts.push((passenger, vehicle));
+        true
+    }
+
+    fn stop_riding(&mut self, passenger: u64) -> bool {
+        let Some(index) = self.mounts.iter().position(|(rider, _)| *rider == passenger) else { return false };
+        self.mounts.remove(index);
+        true
+    }
 }
 
 #[cfg(test)]
@@ -176,6 +261,10 @@ mod tests {
         assert!(!EntityReach::discard(1));
         assert!(!EntityReach::hurt(2, 2.0, "minecraft:in_fire"));
         assert!(!EntityReach::set_item(1, &ItemSlot::new(id("minecraft:iron_ingot"), 1)));
+        assert!(EntityReach::passengers_of(2).is_empty());
+        assert_eq!(EntityReach::vehicle_of(2), None);
+        assert!(!EntityReach::start_riding(2, 3));
+        assert!(!EntityReach::stop_riding(2));
     }
 
     #[test]
@@ -204,5 +293,27 @@ mod tests {
         ops.hurts_land = false;
         with_entities(&mut ops, || assert!(!EntityReach::hurt(2, 2.0, "minecraft:magic")));
         assert_eq!(ops.hurt.len(), 1);
+    }
+
+    #[test]
+    fn riding_mounts_dismounts_and_refuses_cycles() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            assert!(EntityReach::start_riding(2, 3), "the zombie mounts the cow");
+            assert_eq!(EntityReach::vehicle_of(2), Some(3));
+            assert_eq!(EntityReach::passengers_of(3), vec![2]);
+            assert!(!EntityReach::start_riding(2, 1), "already riding");
+            assert!(!EntityReach::start_riding(3, 3), "an entity cannot ride itself");
+            assert!(!EntityReach::start_riding(3, 2), "the cow mounting its own rider would close a cycle");
+            assert!(!EntityReach::start_riding(2, 99), "no such vehicle");
+            assert!(!EntityReach::start_riding(99, 3), "no such passenger");
+            assert!(EntityReach::stop_riding(2));
+            assert_eq!(EntityReach::vehicle_of(2), None);
+            assert!(EntityReach::passengers_of(3).is_empty());
+            assert!(!EntityReach::stop_riding(2), "no longer riding");
+            assert!(EntityReach::start_riding(3, 2), "the freed pair can mount the other way");
+            assert_eq!(EntityReach::passengers_of(2), vec![3]);
+        });
+        assert_eq!(ops.mounts, vec![(3, 2)]);
     }
 }
