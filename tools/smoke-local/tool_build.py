@@ -131,7 +131,14 @@ def main():
 
         for item, material, slot in [('pick_head', 'wood', inputs[0]), ('tool_handle', 'wood', inputs[1]), ('tool_binding', 'wood', inputs[2])]:
             put(item, material, slot)
+        # The station ticker can take a while to answer now that the content load has grown,
+        # so poll the result slot with the same patience put() uses for parts (up to ~100 ticks).
         preview = container_slots()[result_slot]
+        for _ in range(20):
+            if preview.get('item') == 'tconstruct:pickaxe':
+                break
+            ctl('wait', '5')
+            preview = container_slots()[result_slot]
         assert preview.get('item') == 'tconstruct:pickaxe', preview
         assert 'tic_stats' in preview.get('components', ''), 'the previewed tool has no rebuilt stats: ' + str(preview)
         assert 'attribute_modifiers' in preview.get('components', '') and 'tconstruct:tool_attack_damage' in preview.get('components', ''), 'the previewed melee tool publishes no attack attributes: ' + str(preview)
