@@ -84,6 +84,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "native attachment source/site/owner review, consolidated plan/build/game validation including native pumpkin fallback, explicit false, gaze cone/occlusion and LAN; stack-dependent queries also need full native stack transport",
     },
     SupportEntry {
+        api: "item_api_v1::ItemBehavior::max_stack_size",
+        support: Support::Stub,
+        behaviour: "registration and dispatch are pure-tested (an answer by the stack's custom data; none and zero delegate to the item's own maximum); the item behaviour transport carries the query and the menu adapter honours it when stacking in a menu, both source-wired and native-unvalidated; the game's own stacking (inventory merging, pickup) has no PlutoLib seam yet, so it still uses the item default everywhere else",
+        unblocked_by: "a PlutoLib seam at the game's stack-limit query that calls the installed transport dispatcher, followed by native attachment review and consolidated build/game validation",
+    },
+    SupportEntry {
         api: "data_attachment_api_v1::AttachmentRegistry::create_synced / EntityInfo attachment methods",
         support: Support::Stub,
         behaviour: "entity and sync-policy access source-forwards native attachment holders/codecs/sync; pure tests cover per-world/holder values, policy conflicts and JSON snapshots only; native entity save/reopen, holder lifecycle and LAN remain unverified",
@@ -188,8 +194,8 @@ pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
         api: "fluid_world_api_v1::FluidWorld (the first tick of a placed source, entity contact)",
         support: Support::Stub,
-        behaviour: "the flow, the buckets and the fluid's block behaviour are pure-tested and run through existing block hooks; a source a bucket places asks for its first tick through World::schedule_tick, which does nothing until the host adapter schedules from an item use, so it starts flowing at its first random tick or neighbour change; entity contact (burning, effects, swimming, buoyancy, fog) has no hook",
-        unblocked_by: "a HostWorld adapter for WorldOps::schedule_block_tick, and an entity-inside hook that can act on the entity",
+        behaviour: "the flow, the buckets and the fluid's block behaviour are pure-tested and run through existing block hooks; a source a bucket places asks for its first tick through World::schedule_tick: the HostWorld adapter queues the request (the mod-facing host has no scheduling call) and the level's random/scheduled tick seams apply it in that dimension, so the source starts flowing without waiting for a neighbour change; entity contact is notified through BlockBehavior::entity_inside (see its row), but applying contact effects (burning, effects, swimming, buoyancy, fog) needs a consumer that acts on the entity, which the read-only notification does not provide",
+        unblocked_by: "native build and game validation of the queue drain at the level tick seams; a consumer-side entity action path for contact effects (the notification itself is delivered)",
     },
     SupportEntry {
         api: "living_entity_drops::LivingEntityDropsCallback / LivingEntityDrops",
@@ -236,8 +242,8 @@ pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
         api: "block_api_v1::BlockBehavior::entity_inside",
         support: Support::Stub,
-        behaviour: "callbacks are accepted and never invoked",
-        unblocked_by: "a PlutoLib injection that reads the block state in Horizon's block_entity_inside (the hook gives the state id only)",
+        behaviour: "callbacks are invoked by PlutoLib's player, mob and item movement seams (the seams that dispatch entity_inside_motion), with the level's dimension, the block's full state and the entity's id and kind, on the server side; source-wired, not native or game validated. The native block_entity_inside trait hook is deliberately not the carrier: its generated method receives no host and only a state id, which cannot be resolved to a block state there",
+        unblocked_by: "consolidated native build and game validation of the three movement seams; entity families whose movement PlutoLib does not seam (projectiles) are not notified",
     },
 ];
 

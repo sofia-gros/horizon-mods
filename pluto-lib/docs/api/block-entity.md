@@ -429,7 +429,7 @@ Fluid in a tank. `fluid` is the fluid (`minecraft:water`, `minecraft:lava` or a 
 ```rust
 use pluto_lib::{FluidStack, Identifier};
 
-let bucket = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 1000 };
+let bucket = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 1000, tag: None };
 assert_eq!(bucket.amount, 1000);
 assert_eq!(bucket.fluid.to_string(), "minecraft:water");
 ```
@@ -475,9 +475,9 @@ let kind = BlockEntityType::new(Identifier::new("example", "melter").unwrap())
             let room = 1000 - tick.fluid(1).map_or(0, |f| f.amount);
             let moved = stack.amount.min(room);
             if moved > 0 {
-                tick.set_fluid(1, Some(FluidStack { fluid: stack.fluid.clone(), amount: tick.fluid(1).map_or(0, |f| f.amount) + moved }));
+                tick.set_fluid(1, Some(FluidStack { fluid: stack.fluid.clone(), amount: tick.fluid(1).map_or(0, |f| f.amount) + moved, tag: stack.tag.clone() }));
                 let left = stack.amount - moved;
-                tick.set_fluid(0, (left > 0).then(|| FluidStack { fluid: stack.fluid, amount: left }));
+                tick.set_fluid(0, (left > 0).then(|| FluidStack { fluid: stack.fluid, amount: left, tag: stack.tag }));
             }
         }
     });
@@ -507,7 +507,7 @@ let mut data = NbtCompound::new();
 let mut items = Vec::new();
 let mut tick = BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut items };
 assert_eq!(tick.fluid(0), None);
-tick.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 500 }));
+tick.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 500, tag: None }));
 assert_eq!(tick.fluid(0).unwrap().amount, 500);
 ```
 
@@ -521,7 +521,7 @@ use pluto_lib::{BlockEntityTick, FluidStack, Identifier, NbtCompound};
 let mut data = NbtCompound::new();
 let mut items = Vec::new();
 let mut tick = BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut items };
-let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 250 };
+let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 250, tag: None };
 tick.set_fluid(2, Some(lava.clone()));
 assert_eq!(tick.fluid(0), None);
 assert_eq!(tick.fluid(2), Some(lava));
@@ -548,11 +548,11 @@ BlockEntityTypeRegistry::register(BlockEntityType::new(basin).fluid_tanks([1000]
     let held = fill.fluid_in(0).map_or(0, |held| held.amount);
     let taken = fill.fluid.amount.min(90 - held);
     if taken > 0 {
-        fill.set_fluid(0, Some(FluidStack { fluid: fill.fluid.fluid.clone(), amount: held + taken }));
+        fill.set_fluid(0, Some(FluidStack { fluid: fill.fluid.fluid.clone(), amount: held + taken, tag: fill.fluid.tag.clone() }));
     }
     taken
 }));
-let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 500 };
+let lava = FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 500, tag: None };
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:basin", [0, 64, 0], &mut data, &mut items, lava, None, true), Some(90));
 ```
@@ -570,7 +570,7 @@ fn take_all(fill: &mut BlockEntityFill<'_>) -> u32 {
     fill.fluid.amount
 }
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
-let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 250 };
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 250, tag: None };
 let mut fill = BlockEntityFill { pos: [0, 64, 0], data: &mut data, items: &mut items, fluid: water, face: None, execute: true };
 assert_eq!(take_all(&mut fill), 250);
 assert_eq!(fill.fluid_in(0).unwrap().amount, 250);
@@ -585,7 +585,7 @@ use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, FluidStack, Identifier
 
 BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example", "sink").unwrap()).fluid_filler(|fill| fill.fluid.amount));
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
-let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 40 };
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 40, tag: None };
 assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:sink", [0; 3], &mut data, &mut items, water.clone(), None, false), Some(40));
 assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:plain", [0; 3], &mut data, &mut items, water, None, false), None);
 ```
@@ -655,7 +655,7 @@ assert!(outcome.held.is_none() && outcome.give.is_empty());
 use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
-let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10 };
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10, tag: None };
 let fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water, face: None, execute: false };
 assert_eq!(fill.fluid_in(0), None);
 ```
@@ -668,7 +668,7 @@ assert_eq!(fill.fluid_in(0), None);
 use pluto_lib::{BlockEntityFill, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
-let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10 };
+let water = FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 10, tag: None };
 let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: water.clone(), face: None, execute: true };
 fill.set_fluid(0, Some(water));
 assert_eq!(fill.fluid_in(0).unwrap().amount, 10);
@@ -695,7 +695,7 @@ use pluto_lib::{BlockEntityUse, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let mut used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: Vec::new() };
-used.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 250 }));
+used.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 250, tag: None }));
 assert_eq!(used.fluid(0).unwrap().amount, 250);
 used.set_fluid(0, None);
 assert!(used.fluid(0).is_none());
@@ -765,7 +765,7 @@ use pluto_lib::{BlockEntityDrain, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let mut drain = BlockEntityDrain { pos: [0; 3], data: &mut data, items: &mut items, wanted: None, amount: 90, execute: true };
-drain.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500 }));
+drain.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500, tag: None }));
 assert_eq!((drain.fluid_in(0).unwrap().amount, drain.amount, drain.wanted.is_none(), drain.pos, drain.execute, drain.items.len(), drain.data.len()), (500, 90, true, [0; 3], true, 0, 1));
 ```
 
@@ -790,7 +790,7 @@ use pluto_lib::{BlockEntityDrain, FluidStack, Identifier, NbtCompound};
 
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
 let mut drain = BlockEntityDrain { pos: [0; 3], data: &mut data, items: &mut items, wanted: None, amount: 1, execute: true };
-drain.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 10 }));
+drain.set_fluid(0, Some(FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 10, tag: None }));
 drain.set_fluid(0, None);
 assert_eq!(drain.fluid_in(0), None);
 ```
@@ -850,7 +850,7 @@ use pluto_lib::{BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, Fluid
 
 BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:reservoir").unwrap()).fluid_tanks([4000]));
 let (mut data, mut items) = (NbtCompound::new(), Vec::new());
-let lava = FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500 };
+let lava = FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500, tag: None };
 BlockEntityTick { pos: [0; 3], data: &mut data, items: &mut items }.set_fluid(0, Some(lava));
 let taken = BlockEntityTypeRegistry::drain_fluid("example:reservoir", [0; 3], &mut data, &mut items, None, 200, true);
 assert_eq!(taken.unwrap().unwrap().amount, 200);

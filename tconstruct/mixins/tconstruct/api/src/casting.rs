@@ -168,10 +168,10 @@ impl State {
         let taken = match &mut self.fluid {
             None => {
                 let amount = (capacity as u32).min(resource.amount);
-                self.fluid = Some(FluidStack { fluid: resource.fluid.clone(), amount });
+                self.fluid = Some(FluidStack { fluid: resource.fluid.clone(), amount, tag: resource.tag.clone() });
                 amount
             }
-            Some(held) if held.fluid != resource.fluid => return 0,
+            Some(held) if !held.same_fluid(&resource) => return 0,
             Some(held) => {
                 let space = capacity - held.amount as i32;
                 if space <= 0 { return 0; }
@@ -626,11 +626,11 @@ impl FluidTarget for CastingTank<'_> {
         if wanted.is_some_and(|wanted| wanted != &held.fluid) { return None; }
         let taken = held.amount.min(amount);
         if taken == 0 { return None; }
-        let out = FluidStack { fluid: held.fluid.clone(), amount: taken };
+        let out = FluidStack { fluid: held.fluid.clone(), amount: taken, tag: held.tag.clone() };
         if execute {
             let left = held.amount - taken;
             if left == 0 { self.state.reset(self.env, self.items); } else {
-                self.state.fluid = Some(FluidStack { fluid: out.fluid.clone(), amount: left });
+                self.state.fluid = Some(FluidStack { fluid: out.fluid.clone(), amount: left, tag: out.tag.clone() });
                 self.state.contents_changed(self.env, self.items);
             }
         }
@@ -674,7 +674,7 @@ mod tests {
 
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
     fn stack(text: &str) -> ItemSlot { ItemSlot::new(id(text), 1) }
-    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount } }
+    fn fluid(text: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(text), amount, tag: None } }
 
     /// One ingot recipe (90 of iron over a cast, 60 ticks), one duplication, one molding recipe and the empty-cast tag.
     struct Recipes;

@@ -19,7 +19,7 @@ impl FluidTarget for Pool {
     fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
         let held = self.0.as_ref()?;
         if wanted.is_some_and(|wanted| wanted != &held.fluid) { return None; }
-        let out = FluidStack { fluid: held.fluid.clone(), amount: held.amount.min(amount) };
+        let out = FluidStack { fluid: held.fluid.clone(), amount: held.amount.min(amount), tag: held.tag.clone() };
         if execute { self.0 = None; }
         Some(out)
     }
@@ -27,14 +27,14 @@ impl FluidTarget for Pool {
 
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::portion(id("example:can"), "fluid", 90));
-let mut pool = Pool(Some(FluidStack { fluid: id("example:molten_iron"), amount: 90 }));
+let mut pool = Pool(Some(FluidStack { fluid: id("example:molten_iron"), amount: 90, tag: None }));
 let done = FluidItems::interact(Some(&ItemSlot::new(id("example:can"), 1)), &mut pool, TransferDirection::Auto).unwrap();
 assert!(!done.into_tank, "the empty can filled from the pool");
 assert_eq!(FluidItems::contents(done.held.as_ref().unwrap()).unwrap().amount, 90);
 assert!(pool.0.is_none());
 ```
 
-> **Use with Caution.** Source-ready and pure-tested only; the native host adapter is not compiled. The stack's fluid is plain custom data, so a host that keeps custom data keeps the fluid. A per-stack maximum stack size (a filled tank stacks to 16, an empty one to 64) is not available from `ItemSlot`.
+> **Use with Caution.** Source-ready and pure-tested only; the native host adapter is not compiled. The stack's fluid is plain custom data, so a host that keeps custom data keeps the fluid. A per-stack maximum stack size (a filled tank stacks to 16, an empty one to 64) is an item behaviour, not a container property: register it with `ItemBehavior::max_stack_size` (see items.md); menu stacking honours it, and the game's own stacking awaits a host seam (see the support matrix).
 
 ## Kinds of container
 
@@ -46,7 +46,7 @@ use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::constant(id("example:venom_bottle"), id("example:venom"), 250, Some(id("minecraft:glass_bottle"))));
 FluidItems::register(FluidItemDef::empty_container(id("minecraft:glass_bottle"), |fluid| fluid.path() == "venom", 250, id("example:venom_bottle")));
-let filled = FluidItems::fill(&ItemSlot::new(id("minecraft:glass_bottle"), 1), &FluidStack { fluid: id("example:venom"), amount: 1000 });
+let filled = FluidItems::fill(&ItemSlot::new(id("minecraft:glass_bottle"), 1), &FluidStack { fluid: id("example:venom"), amount: 1000, tag: None });
 assert_eq!((filled.amount, filled.container.item.to_string()), (250, "example:venom_bottle".to_owned()));
 ```
 
@@ -149,7 +149,7 @@ use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
 
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::tank(id("example:scaled"), "tank", 1000).scaled());
-let filled = FluidItems::fill(&ItemSlot::new(id("example:scaled"), 4), &FluidStack { fluid: id("minecraft:lava"), amount: 4002 });
+let filled = FluidItems::fill(&ItemSlot::new(id("example:scaled"), 4), &FluidStack { fluid: id("minecraft:lava"), amount: 4002, tag: None });
 assert_eq!(filled.amount, 4000);
 ```
 
@@ -162,7 +162,7 @@ use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
 
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::tank(id("example:limited"), "tank", 1000).scaled().fill_stack_limit(16));
-assert_eq!(FluidItems::fill(&ItemSlot::new(id("example:limited"), 17), &FluidStack { fluid: id("minecraft:lava"), amount: 17 }).amount, 0);
+assert_eq!(FluidItems::fill(&ItemSlot::new(id("example:limited"), 17), &FluidStack { fluid: id("minecraft:lava"), amount: 17, tag: None }).amount, 0);
 ```
 
 ### `FluidItemDef::key`
@@ -184,7 +184,7 @@ use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
 
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::tank(id("example:f"), "tank", 100));
-let filled = FluidItems::fill(&ItemSlot::new(id("example:f"), 1), &FluidStack { fluid: id("minecraft:water"), amount: 30 });
+let filled = FluidItems::fill(&ItemSlot::new(id("example:f"), 1), &FluidStack { fluid: id("minecraft:water"), amount: 30, tag: None });
 assert_eq!((filled.amount, filled.container.item.path()), (30, "f"));
 ```
 
@@ -214,7 +214,7 @@ impl FluidTarget for Nothing {
     fn fill(&mut self, _: &FluidStack, _: bool) -> u32 { 0 }
     fn drain(&mut self, _: Option<&Identifier>, _: u32, _: bool) -> Option<FluidStack> { None }
 }
-assert_eq!(Nothing.fill(&FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 1 }, false), 0);
+assert_eq!(Nothing.fill(&FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 1, tag: None }, false), 0);
 ```
 
 ### `TransferDirection`
@@ -323,7 +323,7 @@ use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
 
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::tank(id("example:fill"), "tank", 100));
-let filled = FluidItems::fill(&ItemSlot::new(id("example:fill"), 1), &FluidStack { fluid: id("minecraft:lava"), amount: 500 });
+let filled = FluidItems::fill(&ItemSlot::new(id("example:fill"), 1), &FluidStack { fluid: id("minecraft:lava"), amount: 500, tag: None });
 assert_eq!(filled.amount, 100);
 ```
 
@@ -336,7 +336,7 @@ use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
 
 let id = |text: &str| Identifier::parse(text).unwrap();
 FluidItems::register(FluidItemDef::tank(id("example:drain"), "tank", 100));
-let full = FluidItems::fill(&ItemSlot::new(id("example:drain"), 1), &FluidStack { fluid: id("minecraft:lava"), amount: 100 }).container;
+let full = FluidItems::fill(&ItemSlot::new(id("example:drain"), 1), &FluidStack { fluid: id("minecraft:lava"), amount: 100, tag: None }).container;
 assert_eq!(FluidItems::drain(&full, None, 30).unwrap().fluid.amount, 30);
 ```
 

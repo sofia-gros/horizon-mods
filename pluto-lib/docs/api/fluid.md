@@ -105,7 +105,7 @@ let kind = BlockEntityType::new(Identifier::new("example", "melter").unwrap())
         let have = tick.fluid(0).map_or(0, |f| f.amount);
         if have < 4000 {
             let copper = Identifier::new("example", "molten_copper").unwrap();
-            tick.set_fluid(0, Some(FluidStack { fluid: copper, amount: (have + 1000).min(4000) }));
+            tick.set_fluid(0, Some(FluidStack { fluid: copper, amount: (have + 1000).min(4000), tag: None }));
         }
     });
 let _ = kind;

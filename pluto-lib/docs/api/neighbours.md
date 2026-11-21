@@ -155,7 +155,7 @@ A world of containers (`containers`), tanks with their capacity (`tanks`) and bl
 ```rust
 use pluto_lib::{Direction, FluidStack, Identifier, MemoryNeighbourOps, Neighbours, with_neighbours};
 let mut world = MemoryNeighbourOps::default();
-world.tanks.insert([0, 0, 0], vec![(Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 100 }), 4000)]);
+world.tanks.insert([0, 0, 0], vec![(Some(FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 100, tag: None }), 4000)]);
 world.states.insert([0, 1, 0], "minecraft:stone".to_owned());
 assert!(world.containers.is_empty());
 let drained = with_neighbours(&mut world, || Neighbours::drain_fluid([0, 0, 0], Direction::Up, 30));
@@ -170,7 +170,7 @@ assert_eq!(drained.unwrap().amount, 30);
 use pluto_lib::{Direction, FluidStack, Identifier, MemoryNeighbourOps, Neighbours, with_neighbours};
 let mut world = MemoryNeighbourOps::default();
 world.tanks.insert([0, 63, 0], vec![(None, 90)]);
-let lava = FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500 };
+let lava = FluidStack { fluid: Identifier::parse("minecraft:lava").unwrap(), amount: 500, tag: None };
 assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, true), 0, "no scope");
 let taken = with_neighbours(&mut world, || Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, true));
 assert_eq!(taken, 90, "the tank holds 90");

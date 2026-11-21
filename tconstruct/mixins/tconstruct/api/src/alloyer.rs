@@ -31,7 +31,7 @@ impl Tank {
         match &mut self.fluid {
             None => {
                 let filled = self.capacity.min(amount).max(0);
-                if execute && filled > 0 { self.fluid = Some(FluidStack { fluid: fluid.clone(), amount: filled as u32 }); }
+                if execute && filled > 0 { self.fluid = Some(FluidStack { fluid: fluid.clone(), amount: filled as u32, tag: None }); }
                 filled
             }
             Some(held) if &held.fluid != fluid => 0,
@@ -388,13 +388,13 @@ mod tests {
         assert_eq!(tank.fluid, None, "nothing alloys before the third tick");
         // tick 2: the sides are drained by the recipe's amounts, the output lands in the alloyer's tank, one fuel is spent
         run(&mut state, &mut tank, &mut world, 2);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40, tag: None }));
         assert_eq!((world.side(0), world.side(1)), (Some((id("a:copper"), 70)), Some((id("a:tin"), 90))));
         assert_eq!(state.fuel.fuel, 399);
         assert_eq!(world.lit, vec![true], "the block lit when the fuel state was first published");
         // the next cycle alloys again without burning more: the fuel lasts
         run(&mut state, &mut tank, &mut world, 4);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 80 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 80, tag: None }));
         assert_eq!(state.fuel.fuel, 398);
     }
 
@@ -410,18 +410,18 @@ mod tests {
         let mut world = World::new(vec![None, Some((id("a:copper"), 100)), Some((id("a:tin"), 100))]).heated();
         let (mut state, mut tank) = (State::default(), empty_tank());
         run(&mut state, &mut tank, &mut world, 3);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40, tag: None }));
         // a recipe wanting 1000 C cannot run on coal (800): lava below is tried first and is hot enough
         let mut world = World::new(vec![Some((id("a:copper"), 100)), Some((id("a:tin"), 100))]).heated();
         world.alloys = vec![alloy("a:hot_bronze", 1000, json!([{"amount": 30, "fluid": "a:copper"}, {"amount": 10, "fluid": "a:tin"}]), json!({"amount": 40, "fluid": "a:bronze"}))];
         let (mut state, mut tank) = (State::default(), empty_tank());
         run(&mut state, &mut tank, &mut world, 4);
         assert_eq!((state.fuel.fuel, tank.fluid.as_ref()), (0, None), "too cold on solid fuel: nothing burned");
-        world.source.as_mut().unwrap().fluid = Some(FluidStack { fluid: id("minecraft:lava"), amount: 100 });
+        world.source.as_mut().unwrap().fluid = Some(FluidStack { fluid: id("minecraft:lava"), amount: 100, tag: None });
         run(&mut state, &mut tank, &mut world, 3);
         assert_eq!((state.fuel.temperature, state.fuel.rate), (1000, 10), "lava is tried first");
         assert_eq!(world.source.as_ref().unwrap().fluid.as_ref().unwrap().amount, 50, "one burn of lava was drained");
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40, tag: None }));
     }
 
     #[test]
@@ -429,7 +429,7 @@ mod tests {
         // 4300 of bronze in the tank: the next 40 do not fit, though the inputs would free 40 beside it
         let mut world = World::new(vec![Some((id("a:copper"), 100)), Some((id("a:tin"), 100))]).heated();
         let (mut state, mut tank) = (State::default(), empty_tank());
-        tank.fluid = Some(FluidStack { fluid: id("a:bronze"), amount: ALLOYER_CAPACITY as u32 - 20 });
+        tank.fluid = Some(FluidStack { fluid: id("a:bronze"), amount: ALLOYER_CAPACITY as u32 - 20, tag: None });
         run(&mut state, &mut tank, &mut world, 1);
         assert_eq!(state.fuel.fuel, 0, "no alloy can run, so no fuel burns");
         // with fuel already burning, the alloy pass does nothing but the fuel is still spent
@@ -439,10 +439,10 @@ mod tests {
         assert_eq!((state.fuel.fuel, tank.fluid.as_ref().unwrap().amount), (9, (ALLOYER_CAPACITY - 20) as u32));
         assert_eq!((world.side(0), world.side(1)), (Some((id("a:copper"), 100)), Some((id("a:tin"), 100))), "nothing was drained");
         // a different fluid in the output refuses the recipe the same way
-        tank.fluid = Some(FluidStack { fluid: id("a:iron"), amount: 10 });
+        tank.fluid = Some(FluidStack { fluid: id("a:iron"), amount: 10, tag: None });
         state.fuel.fuel = 10;
         run(&mut state, &mut tank, &mut world, 4);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:iron"), amount: 10 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:iron"), amount: 10, tag: None }));
     }
 
     #[test]
@@ -467,22 +467,22 @@ mod tests {
         let (mut state, mut tank) = (State::default(), empty_tank());
         // only bronze can run (no gold): it runs and is remembered
         run(&mut state, &mut tank, &mut world, 3);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 40, tag: None }));
         // gold arrives: the remembered bronze still runs first, though rose is listed first
         world.sides.push(Some((id("a:gold"), 100)));
         run(&mut state, &mut tank, &mut world, 4);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 80 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:bronze"), amount: 80, tag: None }));
         // the tin runs out: the remembered recipe no longer performs, the search finds rose
         world.sides[1] = None;
         tank.fluid = None;
         run(&mut state, &mut tank, &mut world, 4);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:rose"), amount: 20 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:rose"), amount: 20, tag: None }));
         // a catalyst must be present but is not drained
         let mut world = World::new(vec![Some((id("a:ember"), 50)), Some((id("a:water"), 50))]).heated();
         world.alloys = vec![alloy("a:steam", 800, json!([{"fluid": "a:ember", "amount": 10, "catalyst": true}, {"amount": 10, "fluid": "a:water"}]), json!({"amount": 10, "fluid": "a:steam"}))];
         let (mut state, mut tank) = (State::default(), empty_tank());
         run(&mut state, &mut tank, &mut world, 3);
-        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:steam"), amount: 10 }));
+        assert_eq!(tank.fluid, Some(FluidStack { fluid: id("a:steam"), amount: 10, tag: None }));
         assert_eq!((world.side(0), world.side(1)), (Some((id("a:ember"), 50)), Some((id("a:water"), 40))));
     }
 

@@ -2496,7 +2496,7 @@ fn a_melter_on_the_shipped_data_burns_coal_from_below_and_melts_an_ingot_and_a_p
         for _ in 0..4 * 110 { state.step(&mut items, &mut tank, &mut live); }
     });
     assert!(items[0].is_none() && items[1].is_none(), "both melted");
-    assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 + 180 }));
+    assert_eq!(tank.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 + 180, tag: None }));
     assert!(world.containers[&[0, 63, 0]][0].is_none(), "the one coal was burned");
 }
 
@@ -2518,7 +2518,7 @@ impl pluto_lib::NeighbourOps for Pour {
         let held = self.tank.as_mut()?;
         let taken = amount.min(held.amount);
         held.amount -= taken;
-        let out = pluto_lib::FluidStack { fluid: held.fluid.clone(), amount: taken };
+        let out = pluto_lib::FluidStack { fluid: held.fluid.clone(), amount: taken, tag: held.tag.clone() };
         if held.amount == 0 { self.tank = None; }
         Some(out)
     }
@@ -2544,7 +2544,7 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
           ("tconstruct:casts/sand", &["tconstruct:sand_cast"])]).unwrap()));
     let iron = id("tconstruct:molten_iron");
     let mut world = Pour {
-        tank: Some(FluidStack { fluid: iron.clone(), amount: 300 }), state: State::default(), items: vec![Some(ItemSlot::new(id("tconstruct:ingot_cast"), 1)), None],
+        tank: Some(FluidStack { fluid: iron.clone(), amount: 300, tag: None }), state: State::default(), items: vec![Some(ItemSlot::new(id("tconstruct:ingot_cast"), 1)), None],
         now: Live { data, item_tags: Some(tags), station: Station::Table, materials: None, tool_defs: None, modifiers: None },
     };
     let mut faucet = faucet::State::default();
@@ -2564,7 +2564,7 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
     // the basin casts a block with no cast, and a sand cast on the table is picked up as a blank one
     let basin = Live { data, item_tags: Some(tags), station: Station::Basin, materials: None, tool_defs: None, modifiers: None };
     let (mut block, mut items) = (State::default(), vec![None, None]);
-    assert_eq!(block.fill(&basin, &mut items, &FluidStack { fluid: iron, amount: 900 }, false), 810);
+    assert_eq!(block.fill(&basin, &mut items, &FluidStack { fluid: iron, amount: 900, tag: None }, false), 810);
     for _ in 0..180 { block.tick(&basin, &mut items); }
     assert_eq!(items[OUTPUT].as_ref().map(|stack| stack.item.to_string()), Some("minecraft:iron_block".to_owned()));
     let (mut table, mut slots) = (State::default(), vec![Some(ItemSlot::new(id("tconstruct:sand_cast"), 1)), None]);

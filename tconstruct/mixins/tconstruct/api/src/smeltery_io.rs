@@ -63,7 +63,7 @@ pub(crate) fn read_controller(data: &NbtCompound) -> Vec<NeighbourTank> {
     let mut tank = SmelteryTank::default();
     if let Some(tag) = data.get_compound("tank") { tank.read(tag); }
     let mut tanks: Vec<NeighbourTank> = tank.fluids().iter().enumerate()
-        .map(|(index, fluid)| NeighbourTank { fluid: Some(FluidStack { fluid: fluid.fluid.clone(), amount: fluid.amount.max(0) as u32 }), capacity: tank.tank_capacity(index).max(0) as u32 })
+        .map(|(index, fluid)| NeighbourTank { fluid: Some(FluidStack { fluid: fluid.fluid.clone(), amount: fluid.amount.max(0) as u32, tag: None }), capacity: tank.tank_capacity(index).max(0) as u32 })
         .collect();
     if tank.contained() < tank.capacity() { tanks.push(NeighbourTank { fluid: None, capacity: (tank.capacity() - tank.contained()) as u32 }); }
     tanks
@@ -85,7 +85,7 @@ pub(crate) fn drain_controller(drain: &mut BlockEntityDrain<'_>) -> Option<Fluid
     let amount = drain.amount.min(i32::MAX as u32) as i32;
     let out = match &drain.wanted { Some(fluid) => tank.drain_fluid(fluid, amount, true), None => tank.drain(amount, true) }?;
     drain.data.insert("tank".to_owned(), Nbt::Compound(tank.write()));
-    Some(FluidStack { fluid: out.fluid, amount: out.amount.max(0) as u32 })
+    Some(FluidStack { fluid: out.fluid, amount: out.amount.max(0) as u32, tag: None })
 }
 
 // --- the duct's filter
@@ -159,7 +159,7 @@ mod tests {
     use pluto_lib::{BlockEntityStore, Direction, FluidStorage, MemoryBlockEntities, NeighbourOps, NeighbourSlot};
 
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
-    fn fluid(name: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(name), amount } }
+    fn fluid(name: &str, amount: u32) -> FluidStack { FluidStack { fluid: id(name), amount, tag: None } }
 
     /// The controller at [0, 1, 0] with 3 fluids of 1000 in a tank of 4000, a drain and a duct beside it, and a pool of 90 under a faucet.
     fn world() -> MemoryBlockEntities {

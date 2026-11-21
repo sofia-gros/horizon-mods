@@ -640,7 +640,7 @@ mod tests {
         let full = super::super::block_entity_api_v1::ItemSlot::new(bucket, 1);
         assert_eq!(FluidItems::contents(&full).map(|fluid| (fluid.fluid.to_string(), fluid.amount)), Some(("flow_test:honey".to_owned(), 1000)));
         let empty = super::super::block_entity_api_v1::ItemSlot::new(id("minecraft:bucket"), 1);
-        let filled = FluidItems::fill(&empty, &super::super::block_entity_api_v1::FluidStack { fluid: id("flow_test:honey"), amount: 1000 });
+        let filled = FluidItems::fill(&empty, &super::super::block_entity_api_v1::FluidStack { fluid: id("flow_test:honey"), amount: 1000, tag: None });
         assert_eq!(filled.container.item.to_string(), "flow_test:honey_bucket");
         assert_eq!(FluidWorld::state(&id("flow_test:honey"), 3).to_string(), "flow_test:honey_fluid[level=3]");
         assert_eq!(FluidWorld::level_of(&FluidWorld::state(&id("flow_test:honey"), 8), &id("flow_test:honey")), Some(8));

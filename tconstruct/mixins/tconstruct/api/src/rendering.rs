@@ -59,7 +59,7 @@ pub(crate) fn host_tank(data: &NbtCompound, index: usize) -> Option<FluidStack> 
     let name = tank.get("Fluid")?.as_str()?;
     let amount = tank.get("Amount")?.as_i64()?;
     if name == "minecraft:empty" || amount <= 0 { return None; }
-    Some(FluidStack { fluid: Identifier::parse(name).ok()?, amount: amount as u32 })
+    Some(FluidStack { fluid: Identifier::parse(name).ok()?, amount: amount as u32, tag: None })
 }
 
 /// The block state variant of `variants` the canvas's state asks for: the first whose properties all match, else

@@ -25,8 +25,8 @@ world.blocks.insert([1, 0, 0], "example:gate".to_owned());
 world.entities.insert([1, 0, 0], (gate, vec![Some(ItemSlot::new(id("minecraft:lava_bucket"), 1))]));
 
 let mut storage = FluidStorage::new(&mut world);
-let water = FluidStack { fluid: id("minecraft:water"), amount: 100 };
-let lava = FluidStack { fluid: id("minecraft:lava"), amount: 100 };
+let water = FluidStack { fluid: id("minecraft:water"), amount: 100, tag: None };
+let lava = FluidStack { fluid: id("minecraft:lava"), amount: 100, tag: None };
 assert_eq!(storage.fill([1, 0, 0], &water, true), 0, "the gate lets only lava through");
 assert_eq!(storage.fill([1, 0, 0], &lava, true), 100);
 assert_eq!(storage.drain([1, 0, 0], None, 30, true).unwrap().amount, 30);
@@ -103,7 +103,7 @@ assert_eq!(FluidStorage::new(&mut world).tanks([5, 5, 5]), None);
 use pluto_lib::{FluidStack, FluidStorage, Identifier, MemoryBlockEntities};
 
 let mut world = MemoryBlockEntities::default();
-let water = FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 10 };
+let water = FluidStack { fluid: Identifier::parse("minecraft:water").unwrap(), amount: 10, tag: None };
 assert_eq!(FluidStorage::new(&mut world).fill([0, 0, 0], &water, true), 0, "nothing there takes it");
 ```
 

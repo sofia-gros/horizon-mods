@@ -209,7 +209,7 @@ impl NeighbourOps for MemoryNeighbourOps {
         if taken == 0 {
             return None;
         }
-        let out = FluidStack { fluid: Identifier::parse(&stack.fluid.to_string()).ok()?, amount: taken };
+        let out = FluidStack { fluid: Identifier::parse(&stack.fluid.to_string()).ok()?, amount: taken, tag: stack.tag.clone() };
         stack.amount -= taken;
         if stack.amount == 0 {
             *fluid = None;
@@ -221,7 +221,7 @@ impl NeighbourOps for MemoryNeighbourOps {
         let Some(tanks) = self.tanks.get_mut(&pos) else { return 0 };
         for (held, capacity) in tanks.iter_mut() {
             let room = match held {
-                Some(own) if own.fluid != stack.fluid => continue,
+                Some(own) if !own.same_fluid(stack) => continue,
                 Some(own) => capacity.saturating_sub(own.amount),
                 None => *capacity,
             };
@@ -230,7 +230,7 @@ impl NeighbourOps for MemoryNeighbourOps {
             if execute {
                 match held {
                     Some(own) => own.amount += taken,
-                    None => *held = Some(FluidStack { fluid: stack.fluid.clone(), amount: taken }),
+                    None => *held = Some(FluidStack { fluid: stack.fluid.clone(), amount: taken, tag: stack.tag.clone() }),
                 }
             }
             return taken;
@@ -258,7 +258,7 @@ mod tests {
         assert_eq!(Neighbours::insert_item([0, 63, 0], Direction::Up, coal.clone()), Some(coal.clone()), "nothing took it");
         let mut world = MemoryNeighbourOps::default();
         world.containers.insert([0, 63, 0], vec![None, Some(coal.clone())]);
-        world.tanks.insert([0, 63, 0], vec![(Some(FluidStack { fluid: id("minecraft:lava"), amount: 100 }), 4000)]);
+        world.tanks.insert([0, 63, 0], vec![(Some(FluidStack { fluid: id("minecraft:lava"), amount: 100, tag: None }), 4000)]);
         with_neighbours(&mut world, || {
             let (below, face) = Neighbours::beside([0, 64, 0], Direction::Down);
             assert_eq!((below, face), ([0, 63, 0], Direction::Up));
@@ -278,14 +278,14 @@ mod tests {
     #[test]
     fn filling_respects_the_tank_fluid_and_capacity_and_states_are_read_by_position() {
         let mut world = MemoryNeighbourOps::default();
-        world.tanks.insert([0, 63, 0], vec![(None, 100), (Some(FluidStack { fluid: id("minecraft:water"), amount: 10 }), 50)]);
+        world.tanks.insert([0, 63, 0], vec![(None, 100), (Some(FluidStack { fluid: id("minecraft:water"), amount: 10, tag: None }), 50)]);
         world.states.insert([0, 64, 0], "test:faucet[facing=north]".to_owned());
-        let lava = FluidStack { fluid: id("minecraft:lava"), amount: 130 };
+        let lava = FluidStack { fluid: id("minecraft:lava"), amount: 130, tag: None };
         assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, true), 0, "no scope");
         with_neighbours(&mut world, || {
             assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, false), 100);
             assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &lava, true), 100, "only the empty tank takes lava");
-            assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &FluidStack { fluid: id("minecraft:water"), amount: 100 }, true), 40, "the water tank has 40 left");
+            assert_eq!(Neighbours::fill_fluid([0, 63, 0], Direction::Up, &FluidStack { fluid: id("minecraft:water"), amount: 100, tag: None }, true), 40, "the water tank has 40 left");
             assert_eq!(Neighbours::fill_fluid([9, 9, 9], Direction::Up, &lava, true), 0);
             assert_eq!(Neighbours::block_state([0, 64, 0]).unwrap().property("facing"), Some("north"));
             assert_eq!(Neighbours::block_state([1, 64, 0]), None);
