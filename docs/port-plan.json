@@ -109,6 +109,7 @@
     "api/src/melter_menu.rs",
     "api/src/melter_blocks.rs",
     "api/src/world_blocks.rs",
+    "api/src/gadgets.rs",
     "api/src/alloyer.rs",
     "api/src/alloyer_menu.rs",
     "api/src/casting.rs",
@@ -250,7 +251,7 @@
       "depends_on": ["R2", "R3"],
       "status": "pending",
       "kind": "gameplay",
-      "result": "Use gadgets-guidance scope in R3. Carry/frames/stands/projectiles/food and books depend on common entity/item/UI services. Shared tool/material rendering is already required by R2, not postponed to this task. Validate interactions, presentation and persistent state.",
+      "result": "Use gadgets-guidance scope in R3. Carry/frames/stands/projectiles/food and books depend on common entity/item/UI services. Shared tool/material rendering is already required by R2, not postponed to this task. Validate interactions, presentation and persistent state. Landed (G1): the punji and the six slime cakes (earth, sky, ichor, ender, blood, magma), whose behaviour needs no such service; the punji's contact damage still waits on an entity-inside action in PlutoLib, the same gap as the fluids' contact effects.",
       "evidence": []
     }
   ]

@@ -2755,12 +2755,13 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 99, "the smeltery's crafting recipes (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d) the importer converts; the rest name items this port does not declare yet");
+    assert_eq!(count, 102, "the smeltery's crafting recipes (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d) and the gadgets' (punji and the ichor and magma cakes, with the gadgets lane) the importer converts; the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_casting_tank", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "scorched_alloyer", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can", "copper_gauge", "seared_fluid_cannon",
                  "tinker_station", "part_builder", "modifier_worktable", "pattern",
-                 "seared_lantern", "scorched_lantern", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane"] {
+                 "seared_lantern", "scorched_lantern", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane",
+                 "punji", "ichor_cake", "magma_cake"] {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");
     }
 }
