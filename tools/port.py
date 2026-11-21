@@ -452,7 +452,7 @@ def checked_content(root, version):
     if 'horizon-mod.toml' not in files:
         raise ValueError('content manifest missing')
     expected = {'id': 'tconstruct', 'name': "Tinkers' Construct content", 'version': version,
-                'api': '0.2', 'side': 'both', 'capabilities': ['registries']}
+                'api': '0.2', 'side': 'both', 'capabilities': ['registries'], 'namespaces': ['forge']}
     if tomllib.loads(files['horizon-mod.toml'].decode()) != expected:
         raise ValueError('content manifest differs from the reviewed one (version must match the native product)')
     for name, payload in files.items():
