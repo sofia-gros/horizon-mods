@@ -5,14 +5,16 @@
 //! `State` is the whole block entity as plain data (saved in the block entity's own data); `Env` is what it asks of the recipes.
 //! A held fluid container empties into the tank or fills from it first (`State::transfer`, over PlutoLib's fluid items); the item swap
 //! only runs for a table without fluid. Not ported here, each named where it would go: the `has_item` block state, redstone swapping,
-//! sounds and particles (a ticker has no world scope), the hopper face rules, potion recipes, retextured casting's texture, and tool
-//! casting (unit 7).
+//! sounds and particles (a ticker has no world scope), the hopper face rules, potion recipes and retextured casting's texture.
+//! Tool casting, part swapping and tipped clearing run through the tool domain (unit 7). Tipping is the one casting kind that
+//! cannot match: which potion was poured is the fluid's NBT, and a tank's fluid stack carries only the fluid and its amount,
+//! the same gap as the potion recipes.
 use crate::{
-    casting_recipes::{Casting, CastingKind, MaterialCasting, Station},
+    casting_recipes::{CastPurpose, Casting, CastingKind, MaterialCasting, MaterialFluid, MaterialPredicate, Station},
     fluid_ingredient::{ItemOutput, Source},
     material_recipes::Ingredient,
     smeltery_data::Data,
-    tool_materials::{part_material, set_part_material, MaterialVariant},
+    tool_materials::{part_material, set_part_material, MaterialList, MaterialVariant},
 };
 use pluto_lib::{
     BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot,
@@ -308,6 +310,10 @@ pub(crate) struct Live<'a> {
     pub station: Station,
     /// The material registry, for which materials a casting part takes (None while it is not loaded).
     pub materials: Option<&'a crate::materials::Definitions>,
+    /// The tool definitions, for the tools tool casting builds and part swapping changes (None while not loaded).
+    pub tool_defs: Option<&'a std::collections::BTreeMap<Identifier, crate::tool_definitions::Data>>,
+    /// The modifier registry, for the tool domain's rebuilds (None while it is not loaded).
+    pub modifiers: Option<&'a crate::modifiers::Registry>,
 }
 
 impl<'a> Live<'a> {
@@ -325,6 +331,89 @@ impl<'a> Live<'a> {
 
     fn can_use(&self, part: &Identifier, material: &MaterialVariant) -> bool {
         self.materials.is_some_and(|defs| crate::tool_parts::material_items().get(part).is_some_and(|part| part.can_use(material, defs)))
+    }
+
+    /// The definition of a tool item, while tool definitions are loaded.
+    fn definition_of(&self, item: &Identifier) -> Option<&crate::tool_definitions::Data> { self.tool_defs?.get(item) }
+
+    /// The tool domain's environment for a stack of `item`, while materials and modifiers are loaded.
+    fn tool_env<'e>(&self, item: &'e Identifier, definition: &'e crate::tool_definitions::Data) -> Option<crate::tool_stack::Environment<'e>> where 'a: 'e {
+        Some(crate::tool_stack::Environment {
+            definition: Some(definition),
+            has_materials: definition.material_stat_types().is_some(),
+            materials: self.materials?,
+            modifiers: self.modifiers?,
+            item_tags_loaded: self.item_tags.is_some(),
+            item: Some(item),
+            item_tags: self.item_tags,
+        })
+    }
+
+    /// Whether a material can serve a stat type (it has stats of that type).
+    fn stat_can_use(&self, stat: &Identifier, variant: &MaterialVariant) -> bool {
+        variant.material_id().is_some_and(|material| self.materials.is_some_and(|defs| defs.get_stats(&material, stat).is_some()))
+    }
+
+    /// MaterialCastingLookup.getCastingFluid with a material predicate: the first fluid casting a material the predicate allows.
+    fn casting_fluid_for(&self, fluid: &Identifier, allowed: &MaterialPredicate) -> Option<&MaterialFluid> {
+        let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
+        self.data.recipes.material_casting.casting.iter().find(|recipe| recipe.matches_fluid(fluid, &in_fluid) && allowed.matches(&recipe.output, &self.data.recipes.material_casting))
+    }
+
+    /// PartSwapCastingRecipe.getFluidRecipe: the casting fluid for the material at `index` (counted from the end when
+    /// negative), unless it would swap the material for its own variant, else the composite fluid coating the current
+    /// material. The resolved index comes back with the recipe.
+    fn part_swap_fluid(&self, stack: &ItemSlot, fluid: &Identifier, index: i32, allowed: &MaterialPredicate) -> Option<(&MaterialFluid, usize)> {
+        let requirements = self.definition_of(&stack.item)?.material_stat_types()?;
+        let resolved = if index < 0 { i32::try_from(requirements.len()).ok()? + index } else { index };
+        let index = usize::try_from(resolved).ok()?;
+        let stat = &requirements.get(index)?.0;
+        let current = crate::tool_stack::materials(&stack.custom_data, true).get(resolved);
+        let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
+        let lookup = &self.data.recipes.material_casting;
+        if let Some(recipe) = lookup.casting.iter().find(|recipe| recipe.matches_fluid(fluid, &in_fluid) && allowed.matches(&recipe.output, lookup)) {
+            if recipe.output.normalized() != current.normalized() && self.stat_can_use(stat, &recipe.output) { return Some((recipe, index)); }
+        }
+        let recipe = lookup.composite_fluid(fluid, &current, &in_fluid)?;
+        if !allowed.matches(&recipe.output, lookup) || !self.stat_can_use(stat, &recipe.output) { return None; }
+        Some((recipe, index))
+    }
+
+    /// PartSwapCastingRecipe.canPartSwap and its amounts: the swap must leave a tool that validates, with nothing removed by it.
+    fn part_swap_candidate(&self, recipe: &Casting, stack: &ItemSlot, fluid: &Identifier, index: i32, item_cost: i32, allowed: &MaterialPredicate) -> Option<Found> {
+        let (fluid_recipe, resolved) = self.part_swap_fluid(stack, fluid, index, allowed)?;
+        let env = self.tool_env(&stack.item, self.definition_of(&stack.item)?)?;
+        match crate::tool_swap::swap_material(&stack.custom_data, stack.count as i32, &env, &fluid_recipe.output, resolved, item_cost, false, 1) {
+            Ok(crate::tool_swap::Outcome::Success { .. }) => {}
+            _ => return None,
+        }
+        let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
+        Some(Found { id: recipe.id.clone(), fluid_amount: MaterialCasting::fluid_amount(fluid_recipe, item_cost, fluid, &in_fluid),
+            cooling_time: MaterialCasting::cooling_time(fluid_recipe, item_cost, fluid, &in_fluid), consumed: true, switch_slots: false })
+    }
+
+    /// PartSwapCastingRecipe.assemble: the material is swapped (a plain casting fluid also repairs, by the part's value),
+    /// and the result is the single swapped tool.
+    fn part_swap_assemble(&self, stack: &ItemSlot, fluid: &Identifier, index: i32, item_cost: i32, allowed: &MaterialPredicate) -> Option<ItemSlot> {
+        let (fluid_recipe, resolved) = self.part_swap_fluid(stack, fluid, index, allowed)?;
+        let env = self.tool_env(&stack.item, self.definition_of(&stack.item)?)?;
+        let may_repair = fluid_recipe.input.is_none();
+        let Ok(crate::tool_swap::Outcome::Success { tool, size }) = crate::tool_swap::swap_material(&stack.custom_data, stack.count as i32, &env, &fluid_recipe.output, resolved, item_cost, may_repair, 1) else { return None };
+        let mut result = ItemSlot::new(stack.item.clone(), size.max(1) as u32);
+        result.custom_data = tool;
+        crate::tool_slot::sync_visuals(&mut result, &env).ok()?;
+        Some(result)
+    }
+
+    /// ModifierUtil.getModifierLevel for the modifier list a stack carries.
+    fn modifier_level(stack: &ItemSlot, modifier: &Identifier) -> i32 {
+        crate::modifier_entries::List::from_nbt(stack.custom_data.get(crate::tool_stack::TAG_MODIFIERS)).level(modifier)
+    }
+
+    /// ToolStack's persistent string for a modifier (a tipped tool's potion), empty when unset.
+    pub(crate) fn persistent_string(stack: &ItemSlot, modifier: &Identifier) -> String {
+        let Some(Nbt::Compound(data)) = stack.custom_data.get(crate::tool_stack::TAG_PERSISTENT) else { return String::new() };
+        match data.get(&modifier.to_string()) { Some(Nbt::String(text)) => text.clone(), _ => String::new() }
     }
 
     /// The recipe's numbers for this cast and fluid, if it takes them.
@@ -348,8 +437,47 @@ impl<'a> Live<'a> {
                 if !self.can_use(result, &fluid_recipe.output) { return None; }
                 Some(base(MaterialCasting::fluid_amount(fluid_recipe, *item_cost, fluid, &in_fluid), MaterialCasting::cooling_time(fluid_recipe, *item_cost, fluid, &in_fluid)))
             }
-            // filling a held container and potions wait for fluid stacks inside items
-            CastingKind::Potion { .. } | CastingKind::Filling { .. } => None,
+            CastingKind::PartSwap { item_cost, index, allowed } => {
+                let stack = cast?;
+                if !recipe.cast_matches(item, &in_item, false) { return None; }
+                self.part_swap_candidate(recipe, stack, fluid, *index, *item_cost, allowed)
+            }
+            CastingKind::Tool { result, item_cost, cast_purpose, fluid_swapping, allowed, .. } => {
+                // pouring onto the finished tool swaps one of its materials instead of building it again
+                if *fluid_swapping {
+                    if let Some(stack) = cast.filter(|stack| stack.item == *result) {
+                        return self.part_swap_candidate(recipe, stack, fluid, cast_purpose.fluid_index(), *item_cost, allowed);
+                    }
+                }
+                if !recipe.cast_matches(item, &in_item, false) { return None; }
+                let definition = self.definition_of(result)?;
+                let requirements = definition.material_stat_types()?;
+                if requirements.len() < cast_purpose.min_materials() { return None; }
+                let on_result = cast.is_some_and(|stack| stack.item == *result);
+                let fluid_recipe = if on_result {
+                    // a tool on the station takes the part swapping lookup (ToolCastingRecipe.getFluidRecipe)
+                    self.part_swap_fluid(cast?, fluid, cast_purpose.fluid_index(), allowed)?.0
+                } else {
+                    let fluid_recipe = self.casting_fluid_for(fluid, allowed)?;
+                    let stat_index = if *cast_purpose == CastPurpose::MaybeMaterial { requirements.len() - 1 } else { cast_purpose.fluid_index() as usize };
+                    if !self.stat_can_use(&requirements.get(stat_index)?.0, &fluid_recipe.output) { return None; }
+                    fluid_recipe
+                };
+                let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
+                Some(Found { id: recipe.id.clone(), fluid_amount: MaterialCasting::fluid_amount(fluid_recipe, *item_cost, fluid, &in_fluid),
+                    cooling_time: MaterialCasting::cooling_time(fluid_recipe, *item_cost, fluid, &in_fluid),
+                    consumed: *cast_purpose != CastPurpose::Catalyst || on_result, switch_slots: false })
+            }
+            CastingKind::TippedClearing { modifier } => {
+                let either = |member: &Identifier, tag: &Identifier| in_fluid(member, tag) || in_item(member, tag);
+                if !recipe.matches(item, fluid, &either, false) { return None; }
+                let stack = cast?;
+                if Self::modifier_level(stack, modifier) <= 0 || Self::persistent_string(stack, modifier).is_empty() { return None; }
+                Some(base(recipe.fluid_amount(fluid, &in_fluid), recipe.cooling_time))
+            }
+            // filling a held container and potions wait for fluid stacks inside items; tipping waits for the poured fluid's
+            // own NBT (which potion it is), which a tank's fluid stack does not carry
+            CastingKind::Potion { .. } | CastingKind::Filling { .. } | CastingKind::Tipping { .. } => None,
         }
     }
 }
@@ -384,7 +512,49 @@ impl Env for Live<'_> {
                 set_part_material(&mut part, &fluid_recipe.output);
                 Some(part)
             }
-            CastingKind::Potion { .. } | CastingKind::Filling { .. } => None,
+            CastingKind::PartSwap { item_cost, index, allowed } => {
+                self.part_swap_assemble(cast?, fluid, *index, *item_cost, allowed)
+            }
+            CastingKind::Tool { result, item_cost, cast_purpose, extra_materials, fluid_swapping, allowed } => {
+                if *fluid_swapping {
+                    if let Some(stack) = cast.filter(|stack| stack.item == *result) {
+                        return self.part_swap_assemble(stack, fluid, cast_purpose.fluid_index(), *item_cost, allowed);
+                    }
+                }
+                let fluid_material = if cast.is_some_and(|stack| stack.item == *result) {
+                    self.part_swap_fluid(cast?, fluid, cast_purpose.fluid_index(), allowed)?.0.output.clone()
+                } else {
+                    self.casting_fluid_for(fluid, allowed)?.output.clone()
+                };
+                let definition = self.definition_of(result)?;
+                let requirements = definition.material_stat_types()?;
+                // ToolCastingRecipe.assemble: the materials in the order the cast purpose names them
+                let cast_material = cast.map(|stack| part_material(&stack.custom_data)).unwrap_or_else(MaterialVariant::unknown);
+                let mut materials = Vec::new();
+                if *cast_purpose == CastPurpose::ConsumedOffset { materials.push(extra_materials.first()?.clone()); }
+                if *cast_purpose == CastPurpose::SecondMaterial { materials.push(fluid_material.clone()); }
+                if matches!(cast_purpose, CastPurpose::FirstMaterial | CastPurpose::SecondMaterial)
+                    || (*cast_purpose == CastPurpose::MaybeMaterial && requirements.len() > 1) { materials.push(cast_material); }
+                if *cast_purpose != CastPurpose::SecondMaterial { materials.push(fluid_material); }
+                let rest = if *cast_purpose == CastPurpose::ConsumedOffset { &extra_materials[1.min(extra_materials.len())..] } else { &extra_materials[..] };
+                materials.extend(rest.iter().cloned());
+                let env = self.tool_env(result, definition)?;
+                let built = crate::tool_build::create_tool(&env, &MaterialList::from_variants(materials), false).ok()?;
+                let mut output = ItemSlot::new(result.clone(), 1);
+                output.custom_data = built;
+                crate::tool_slot::sync_visuals(&mut output, &env).ok()?;
+                Some(output)
+            }
+            CastingKind::TippedClearing { modifier } => {
+                let mut result = cast.cloned()?;
+                if let Some(Nbt::Compound(data)) = result.custom_data.get(crate::tool_stack::TAG_PERSISTENT) {
+                    let mut data = data.clone();
+                    data.remove(&modifier.to_string());
+                    result.custom_data.insert(crate::tool_stack::TAG_PERSISTENT.into(), Nbt::Compound(data));
+                }
+                Some(result)
+            }
+            CastingKind::Potion { .. } | CastingKind::Filling { .. } | CastingKind::Tipping { .. } => None,
         }
     }
 
@@ -409,7 +579,10 @@ fn with_live<R>(station: Station, f: impl FnOnce(&Live<'_>) -> R) -> Option<R> {
     if !data.loaded() { return None; }
     let item_tags = crate::common::item_snapshot();
     let definitions = crate::common::register().read().ok()?;
-    let live = Live { data: &data, item_tags: item_tags.as_deref(), station, materials: definitions.server_loaded.then_some(&*definitions) };
+    let tool_definitions = crate::tool_definitions::register().read().ok()?;
+    let modifiers = crate::common::server_modifiers().and_then(|registry| registry.read().ok());
+    let live = Live { data: &data, item_tags: item_tags.as_deref(), station, materials: definitions.server_loaded.then_some(&*definitions),
+        tool_defs: Some(&tool_definitions.data), modifiers: modifiers.as_deref() };
     Some(f(&live))
 }
 

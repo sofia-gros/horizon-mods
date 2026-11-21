@@ -1,7 +1,7 @@
 //! Loads the smeltery domain's recipe files: melting, ore and damageable melting, material melting, alloys, melting fuel,
 //! entity melting, casting, material fluids and molding (SlimeKnights Tinkers' Construct, MIT; see LICENSE).
 //! The recipe manager of the original keeps recipes in an unordered map; this loader keeps them in file ID order, so the
-//! first match is deterministic. Recipe types that need the tool domain are listed, not decoded.
+//! first match is deterministic. Every type the original ships in this folder decodes, the tool domain's included.
 #![allow(dead_code)]
 use crate::{
     casting_recipes::{Casting, MaterialCasting, MaterialFluid, Molding},
@@ -17,15 +17,6 @@ pub(crate) const FOLDER: &str = "recipes/fluids";
 
 /// Types this loader decodes into one of its recipe lists.
 const MELTING: &[&str] = &["tconstruct:melting", "tconstruct:ore_melting", "tconstruct:damagable_melting"];
-/// Types of the smeltery domain that depend on tool definitions, materials' part stats or potion NBT
-/// (ToolCastingRecipe, PartSwapCastingRecipe, TippingCastingRecipe, TipClearingCastingRecipe): they are left out, by name.
-pub(crate) const LEFT_OUT: &[&str] = &[
-    "tconstruct:basin_tool_casting", "tconstruct:table_tool_casting",
-    "tconstruct:basin_casting_part_swapping", "tconstruct:table_casting_part_swapping",
-    "tconstruct:casting_table_tipping", "tconstruct:casting_basin_tipping",
-    "tconstruct:casting_table_tipped_clearing", "tconstruct:casting_basin_tipped_clearing",
-];
-
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Recipes {
     pub melting: Vec<Melting>,
@@ -38,8 +29,6 @@ pub(crate) struct Recipes {
     pub casting: Vec<Casting>,
     pub molding: Vec<Molding>,
     pub material_casting: MaterialCasting,
-    /// Recipes of a type listed in `LEFT_OUT`, by ID and type.
-    pub left_out: Vec<(Identifier, String)>,
     /// The cast pattern recipes of the part builder (`tconstruct:item_part_builder`, the sand and clay casts in the smeltery's
     /// folder): part_builder_recipes decodes those; they are only recorded here.
     pub part_builder: Vec<Identifier>,
@@ -109,7 +98,6 @@ impl Recipes {
                 self.molding.push(molding);
             }
             "tconstruct:item_part_builder" => self.part_builder.push(id.clone()),
-            kind if LEFT_OUT.contains(&kind) => self.left_out.push((id.clone(), kind.to_owned())),
             kind if kind.starts_with("tconstruct:") && (kind.contains("casting") || kind.contains("duplication") || kind.contains("filling")) => {
                 let recipe = Casting::decode(id, fields)?;
                 // MaterialCastingRecipe and CompositeCastingRecipe register their part's cost as they are built.
