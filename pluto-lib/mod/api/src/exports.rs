@@ -49,7 +49,7 @@ pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage
 pub use crate::pure::item_storage_api_v1::{self, ItemStorage};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
 pub use crate::pure::entity_api_v1::{self, EntityOps, EntityReach, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
-pub use crate::pure::world_api_v1::{self, BlockState, MemoryWorldOps, Region, SummonRecord, World, WorldOps, with_ticking_dimension, with_world};
+pub use crate::pure::world_api_v1::{self, BlockState, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, Region, SummonRecord, World, WorldOps, with_ticking_dimension, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, RegistryLookup, JsonResourceStack, ResourceManagerHelper, ResourceType, reload_event};
 pub use crate::pure::advancement_api_v1::{self, DispatchResult, EventMatcher, ItemSnapshot, PredicateCallback, PredicateRegistration, PredicateRequest, PredicateResult, QueuedEvent, RegistrationError, TagLookup};

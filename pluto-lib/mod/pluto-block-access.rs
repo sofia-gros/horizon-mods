@@ -39,13 +39,19 @@ pub type InsideMotionHandler = std::sync::Arc<dyn Fn(&mut InsideMotion) + Send +
 pub type AfterFallHandler = std::sync::Arc<dyn Fn(&mut AfterFall) + Send + Sync>;
 /// An entity is inside a block's space: the notification the movement seams hand to the API
 /// crate, which turns it into the block behaviour's `entity_inside` callback. Read-only: the
-/// seams run inside entity movement, where the entity may not be changed.
+/// seams run inside entity movement, where the entity may not be changed. The entity's box and
+/// fall distance ride along: the original's contact tests (a mid-plane crossing) and fall
+/// bonuses are computed from exactly those two, and every seam has both at hand.
 pub struct EntityInside {
     pub dimension: String,
     pub state: StateInfo,
     pub pos: [i32; 3],
     pub entity: i32,
     pub kind: String,
+    /// The entity's bounding box, [min x, min y, min z, max x, max y, max z].
+    pub bounds: [f64; 6],
+    /// How far the entity has fallen, in blocks.
+    pub fall_distance: f64,
 }
 #[derive(Clone, Copy)]
 pub struct LandingSink {

@@ -171,6 +171,10 @@ mod tests {
             block,
             face,
             at: [block[0] as f64 + 0.5, block[1] as f64 + 0.5, block[2] as f64 + 0.5],
+            motion: [0.0, 0.0, 0.0],
+            data: NbtCompound::new(),
+            discard: std::cell::Cell::new(false),
+            motion_after: std::cell::RefCell::new(None),
         }
     }
 

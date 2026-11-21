@@ -470,7 +470,7 @@ fn chime_pitch_spans_the_originals_range() {
 
 #[test]
 fn a_projectile_hit_on_a_crystal_plays_its_hit_sound_then_its_chime() {
-    use pluto_lib::{MemoryWorldOps, ProjectileImpact, with_world};
+    use pluto_lib::{MemoryWorldOps, NbtCompound, ProjectileImpact, with_world};
     let hit = |entity: Option<u32>| ProjectileImpact {
         dimension: "minecraft:overworld".into(),
         projectile: 7,
@@ -481,6 +481,10 @@ fn a_projectile_hit_on_a_crystal_plays_its_hit_sound_then_its_chime() {
         block: [4, 70, 4],
         face: [0, 1, 0],
         at: [4.5, 71.0, 4.5],
+        motion: [0.0, 0.0, 0.0],
+        data: NbtCompound::new(),
+        discard: std::cell::Cell::new(false),
+        motion_after: std::cell::RefCell::new(None),
     };
     let mut ops = MemoryWorldOps::default();
     ops.blocks.insert(("minecraft:overworld".into(), [4, 70, 4]), "tconstruct:earth_slime_crystal_cluster".into());

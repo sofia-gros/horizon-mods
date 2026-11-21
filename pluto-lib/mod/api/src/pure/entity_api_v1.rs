@@ -44,6 +44,18 @@ pub trait EntityOps {
     /// Hurts entity `id` by `amount` of the damage type `damage_type`, with no attacker; whether it took any (the
     /// host refuses an invulnerable, dead or creative target, as `LivingEntity.hurt` does).
     fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool;
+    /// Where entity `id` stands (its feet position, `Entity.position`); None when the host cannot reach it.
+    fn position_of(&mut self, _id: u64) -> Option<[f64; 3]> {
+        None
+    }
+    /// Moves entity `id` to `pos` (`Entity.teleportTo`): a mob's navigation stops and its fall distance
+    /// resets, as the game's own teleport does; another entity keeps the way it faces. False when the
+    /// host cannot move it. A player is never moved: the host has no call that moves a player (the game's
+    /// teleports of players are reported by the teleport events, not ordered), and the mob and other-entity
+    /// calls do not reach players either.
+    fn teleport(&mut self, _id: u64, _pos: [f64; 3]) -> bool {
+        false
+    }
 }
 
 thread_local! {
@@ -101,6 +113,17 @@ impl EntityReach {
     pub fn hurt(id: u64, amount: f32, damage_type: &str) -> bool {
         with_current(false, |ops| ops.hurt(id, amount, damage_type))
     }
+
+    /// Where entity `id` stands (its feet position); None outside a scope or when the host cannot reach it.
+    pub fn position_of(id: u64) -> Option<[f64; 3]> {
+        with_current(None, |ops| ops.position_of(id))
+    }
+
+    /// Moves entity `id` to `pos` (`Entity.teleportTo`); false outside a scope, for a player, or when
+    /// the host cannot move it (see [`EntityOps::teleport`] for exactly who is reached).
+    pub fn teleport(id: u64, pos: [f64; 3]) -> bool {
+        with_current(false, |ops| ops.teleport(id, pos))
+    }
 }
 
 /// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
@@ -152,6 +175,16 @@ impl EntityOps for MemoryEntityOps {
         self.hurt.push((id, amount, damage_type.to_owned()));
         self.hurts_land
     }
+
+    fn position_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        self.entities.iter().find(|(_, entity)| entity.id == id).map(|(pos, _)| *pos)
+    }
+
+    fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
+        let Some((held, _)) = self.entities.iter_mut().find(|(_, entity)| entity.id == id) else { return false };
+        *held = pos;
+        true
+    }
 }
 
 #[cfg(test)]
@@ -176,6 +209,23 @@ mod tests {
         assert!(!EntityReach::discard(1));
         assert!(!EntityReach::hurt(2, 2.0, "minecraft:in_fire"));
         assert!(!EntityReach::set_item(1, &ItemSlot::new(id("minecraft:iron_ingot"), 1)));
+        assert_eq!(EntityReach::position_of(2), None);
+        assert!(!EntityReach::teleport(2, [0.0, 64.0, 0.0]));
+    }
+
+    #[test]
+    fn a_position_is_read_and_a_teleport_moves_the_entity_that_stands_there() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            assert_eq!(EntityReach::position_of(2), Some([2.5, 64.5, 2.5]));
+            assert_eq!(EntityReach::position_of(99), None, "no such entity");
+            assert!(EntityReach::teleport(2, [7.5, 70.0, -3.5]));
+            assert_eq!(EntityReach::position_of(2), Some([7.5, 70.0, -3.5]), "the zombie stands where it was moved to");
+            assert!(!EntityReach::teleport(99, [0.0, 64.0, 0.0]), "no such entity to move");
+            // The box query sees the move: the zombie left the first box and stands in the second.
+            assert_eq!(EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]).iter().map(|entity| entity.id).collect::<Vec<_>>(), [1]);
+            assert_eq!(EntityReach::in_box([7.0, 69.0, -4.0], [8.0, 71.0, -3.0]).iter().map(|entity| entity.id).collect::<Vec<_>>(), [2]);
+        });
     }
 
     #[test]

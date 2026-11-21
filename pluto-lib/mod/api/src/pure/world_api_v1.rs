@@ -71,6 +71,17 @@ impl fmt::Display for BlockState {
     }
 }
 
+/// What an explosion does to the blocks it reaches (Minecraft: `Level.ExplosionInteraction`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExplosionInteraction {
+    /// Blocks stay; entities are hurt and pushed (Java: `NONE`).
+    Keep,
+    /// Blocks break and drop by the game's block-explosion rule (Java: `BLOCK`).
+    Block,
+    /// Blocks break and drop by the game's tnt-explosion rule (Java: `TNT`; NeoForge's `DESTROY`).
+    Tnt,
+}
+
 /// What the game can do for a world. PlutoLib implements it over Horizon's `Host`; a test can implement it (or use [`MemoryWorldOps`]).
 pub trait WorldOps {
     /// The block state at `pos` as text, or None if the chunk is not loaded.
@@ -109,6 +120,13 @@ pub trait WorldOps {
     /// host cannot summon.
     fn summon_entity(&mut self, _dimension: &str, _kind: &str, _pos: [f64; 3], _nbt: &NbtCompound) -> Option<u32> {
         None
+    }
+    /// Sets off an explosion in the dimension (Minecraft: `Level.explode`): the blocks it reaches break
+    /// as `interaction` says, entities in range are hurt and pushed, and `fire` lights fires on the
+    /// blocks it leaves. False when the host cannot explode there (a centre or radius the game refuses,
+    /// a chunk that is not loaded). The default host cannot explode.
+    fn explode(&mut self, _dimension: &str, _center: [f64; 3], _radius: f32, _fire: bool, _interaction: ExplosionInteraction) -> bool {
+        false
     }
 }
 
@@ -258,6 +276,23 @@ impl World {
     pub fn summon(&self, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {
         with_current(None, |ops| ops.summon_entity(&self.dimension, kind, pos, nbt))
     }
+
+    /// Minecraft: `Level.explode`. Sets off an explosion at `center` with the given `radius` (the game's
+    /// own blasts run from a fraction of a block to the wither's 7; the host refuses a radius over 32):
+    /// the blocks it reaches break as `interaction` says, entities in range are hurt and pushed, and
+    /// `fire` lights fires on the blocks it leaves. The host adapter queues the request and the level's
+    /// own seams set it off in this dimension, so a true answer means the blast goes off within the
+    /// tick, not that it has gone off when the call returns. False outside a callback, for a centre or
+    /// radius the game refuses, or when the host cannot explode at all.
+    pub fn explode(&self, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool {
+        // A centre or radius the game would refuse is refused here, before the ops are asked, so
+        // every host adapter (and the memory ops) answers the same way.
+        if !center.iter().all(|value| value.is_finite() && value.abs() <= 30_000_000.0)
+            || !radius.is_finite() || radius <= 0.0 || radius > 32.0 {
+            return false;
+        }
+        with_current(false, |ops| ops.explode(&self.dimension, center, radius, fire, interaction))
+    }
 }
 
 /// A block tick a host-side callback asked for. The mod-facing host has no call that schedules a
@@ -335,6 +370,21 @@ pub struct SummonRecord {
     pub nbt: NbtCompound,
 }
 
+/// One explosion a [`MemoryWorldOps`] was asked to set off, as it was asked.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExplosionRecord {
+    /// The dimension exploded in.
+    pub dimension: String,
+    /// Where the blast was centred.
+    pub center: [f64; 3],
+    /// The blast's radius.
+    pub radius: f32,
+    /// Whether the blast lights fires.
+    pub fire: bool,
+    /// What the blast does to blocks.
+    pub interaction: ExplosionInteraction,
+}
+
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
 #[derive(Default, Debug)]
 pub struct MemoryWorldOps {
@@ -348,6 +398,8 @@ pub struct MemoryWorldOps {
     pub entities: BTreeMap<(String, BlockPos), NbtCompound>,
     /// The entities summoned so far, in order; a summon's id is its 1-based place in this list.
     pub summons: Vec<SummonRecord>,
+    /// The explosions asked for so far, in order.
+    pub explosions: Vec<ExplosionRecord>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -386,6 +438,11 @@ impl WorldOps for MemoryWorldOps {
     fn summon_entity(&mut self, dimension: &str, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {
         self.summons.push(SummonRecord { dimension: dimension.to_owned(), kind: kind.to_owned(), pos, nbt: nbt.clone() });
         Some(self.summons.len() as u32)
+    }
+
+    fn explode(&mut self, dimension: &str, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool {
+        self.explosions.push(ExplosionRecord { dimension: dimension.to_owned(), center, radius, fire, interaction });
+        true
     }
 }
 
@@ -506,5 +563,31 @@ mod tests {
             fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
         }
         with_world(&mut NoSummon, || assert_eq!(world.summon("minecraft:item", [0.0; 3], &nbt), None));
+    }
+
+    #[test]
+    fn explosions_reach_the_ops_with_their_shape_and_outside_a_scope_nothing_explodes() {
+        let world = World::new("minecraft:overworld");
+        assert!(!world.explode([0.5, 64.0, 0.5], 4.0, false, ExplosionInteraction::Tnt), "outside a scope nothing explodes");
+        let mut ops = MemoryWorldOps::default();
+        with_world(&mut ops, || {
+            assert!(world.explode([0.5, 64.0, 0.5], 4.0, false, ExplosionInteraction::Tnt));
+            assert!(world.explode([8.5, 70.0, -2.5], 2.0, true, ExplosionInteraction::Keep));
+            assert!(!world.explode([0.5, 64.0, 0.5], 0.0, false, ExplosionInteraction::Keep), "no radius, no blast");
+            assert!(!world.explode([0.5, 64.0, 0.5], 33.0, false, ExplosionInteraction::Keep), "past the game's largest blast");
+            assert!(!world.explode([f64::NAN, 64.0, 0.5], 4.0, false, ExplosionInteraction::Keep), "no centre, no blast");
+        });
+        assert_eq!(ops.explosions, vec![
+            ExplosionRecord { dimension: "minecraft:overworld".into(), center: [0.5, 64.0, 0.5], radius: 4.0, fire: false, interaction: ExplosionInteraction::Tnt },
+            ExplosionRecord { dimension: "minecraft:overworld".into(), center: [8.5, 70.0, -2.5], radius: 2.0, fire: true, interaction: ExplosionInteraction::Keep },
+        ]);
+        // A host that does not implement exploding keeps the default answer.
+        struct NoExplode;
+        impl WorldOps for NoExplode {
+            fn block_state(&mut self, _: &str, _: BlockPos) -> Option<String> { None }
+            fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
+            fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+        }
+        with_world(&mut NoExplode, || assert!(!world.explode([0.5, 64.0, 0.5], 4.0, false, ExplosionInteraction::Block)));
     }
 }

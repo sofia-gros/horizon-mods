@@ -909,6 +909,24 @@ impl WorldOps for HostWorld {
         // included, and answers the new entity's id.
         self.0.get().summon(dimension, kind, pos, compound_to_tag(nbt))
     }
+
+    fn explode(&mut self, dimension: &str, center: [f64; 3], radius: f32, fire: bool, interaction: world_api_v1::ExplosionInteraction) -> bool {
+        // The mod-facing host has no explosion call (the game's own `native_explode`, API 66, lives
+        // inside the game for native mods), so the request is queued and the level's mob-event seam
+        // sets it off in that dimension (see pluto_explosion_access), as block ticks are queued for
+        // the tick seams. A centre or radius the game would refuse is refused here instead of queued.
+        if !center.iter().all(|value| value.is_finite() && value.abs() <= 30_000_000.0)
+            || !radius.is_finite() || radius <= 0.0 || radius > 32.0 {
+            return false;
+        }
+        use horizon_client::entry::pluto_explosion_access::Blast;
+        let blast = match interaction {
+            world_api_v1::ExplosionInteraction::Keep => Blast::Keep,
+            world_api_v1::ExplosionInteraction::Block => Blast::Block,
+            world_api_v1::ExplosionInteraction::Tnt => Blast::Tnt,
+        };
+        horizon_client::entry::pluto_explosion_access::push(dimension, center, radius, fire, blast)
+    }
 }
 
 /// PlutoLib's own mod id: the id its mod screen opens under (API 111).
@@ -1266,6 +1284,30 @@ impl EntityOps for HostEntities {
     fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool {
         let Ok(id) = u32::try_from(id) else { return false };
         self.host.get().hurt_entity(&self.dimension, id, amount, damage_type, None)
+    }
+
+    fn position_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        let host = self.host.get();
+        if let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) {
+            if let Some(position) = host.entity_position(entity) { return Some(position); }
+        }
+        // The player list names players by entity id (0 for the owner of a single-player world).
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)).map(|player| player.position)
+    }
+
+    fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
+        // another entity is moved keeping the way it faces. A player is reached by neither call — the
+        // host has no call that moves a player — so a player's teleport answers false here.
+        if host.teleport_mob(&self.dimension, id, pos) {
+            return true;
+        }
+        let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
+        host.move_entity(&self.dimension, id, pos, rotation[0], rotation[1])
     }
 }
 
@@ -1779,6 +1821,15 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 // A player or a mob, hurt with no attacker; the host refuses an entity it cannot hurt (a creative player, a dead mob).
                 let Ok(entity) = u32::try_from(id_of(target)) else { continue };
                 host.hurt_entity(dimension, entity, amount, &damage_type, None);
+            }
+            EntityAction::Teleport { target, position } => {
+                // A mob is teleported by the game's own call (its navigation stops, its fall distance
+                // resets); another entity is moved keeping the way it faces. A player is reached by
+                // neither — the host has no call that moves a player — so a player's teleport is skipped.
+                let Ok(id) = u32::try_from(id_of(target)) else { continue };
+                if host.teleport_mob(dimension, id, position) { continue; }
+                let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
+                host.move_entity(dimension, id, position, rotation[0], rotation[1]);
             }
             EntityAction::SetEffectDuration { target, effect, duration } => {
                 if duration <= 0 { continue; }
@@ -2519,6 +2570,7 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
             let block = state.block.to_string();
             let actions = block_api_v1::inside(&block, &block_api_v1::EntityInsideContext {
                 dimension: notice.dimension.clone(), state, pos: notice.pos, entity: notice.entity, kind: notice.kind.clone(),
+                bounds: notice.bounds, fall_distance: notice.fall_distance,
                 actions: std::cell::RefCell::new(Vec::new()),
             });
             // The seams run inside entity movement, where the entity may not be changed: what the callback
@@ -2996,6 +3048,9 @@ impl Hooks for PlutoHooks {
     }
 
     fn projectile_impact(&self, host: &mut dyn Host, event: &mut ProjectileImpactEvent<'_>) -> Flow {
+        // The native telling names the hit, not the projectile's flight: its motion and its saved data
+        // are read off the live entity while it is still here.
+        let entity = host.entity(event.projectile);
         let hit = ProjectileImpact {
             dimension: event.dimension.to_owned(),
             projectile: event.projectile,
@@ -3006,14 +3061,33 @@ impl Hooks for PlutoHooks {
             block: event.block,
             face: event.face,
             at: event.at,
+            motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
+            data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+            discard: std::cell::Cell::new(false),
+            motion_after: std::cell::RefCell::new(None),
         };
         let allowed = scoped(host, || projectile_events_v1::impact(&hit));
+        // What the callbacks settled on the projectile itself, done as the hook returns: a discard
+        // removes it (the game's own remove call, which discards projectiles), a new motion sends it
+        // flying on — the bounce a cancelled hit turns into.
+        if hit.discard.get() {
+            host.remove_entity(event.dimension, event.projectile);
+        } else if let Some(motion) = hit.motion_after.borrow_mut().take() {
+            if let Some(entity) = entity {
+                host.entity_set_velocity(entity, motion);
+            }
+        }
         if allowed { Flow::Continue } else { Flow::Cancel }
     }
 
     fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
         if !projectile_events_v1::launch_heard() { return; }
-        let launch = projectile_events_v1::ProjectileLaunch { player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned() };
+        let entity = host.entity(event.entity);
+        let launch = projectile_events_v1::ProjectileLaunch {
+            player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned(),
+            motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
+            data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+        };
         scoped(host, || projectile_events_v1::launched(&launch));
     }
 

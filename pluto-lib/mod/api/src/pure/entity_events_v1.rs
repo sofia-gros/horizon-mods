@@ -260,6 +260,10 @@ pub enum EntityAction {
     /// invulnerability time and the damage hooks all hear it, so a callback hears its own hurt). A mod's own damage type id works once its
     /// data pack declares it (`data/<namespace>/damage_type/<name>.json`). Players and mobs; one the host cannot reach is skipped.
     Hurt { target: ActionTarget, amount: f32, damage_type: String },
+    /// `Entity.teleportTo`: moves the target to `position`. A mob's navigation stops and its fall distance resets, as the game's own
+    /// teleport does; another entity keeps the way it faces. Reaches mobs and the game's other entities; a player is skipped — the
+    /// host has no call that moves a player (its teleports of players are reported by the teleport events, not ordered).
+    Teleport { target: ActionTarget, position: [f64; 3] },
     /// Sets how many ticks an active effect has left on a player, keeping its level and flags: shortens or lengthens it. An effect the target
     /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
     /// the game's own rules for giving an effect apply.
@@ -968,7 +972,7 @@ fn action_target(action: &EntityAction) -> ActionTarget {
     match action {
         EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
         | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
-        | EntityAction::SetEffectDuration { target, .. } => *target,
+        | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } => *target,
     }
 }
 
