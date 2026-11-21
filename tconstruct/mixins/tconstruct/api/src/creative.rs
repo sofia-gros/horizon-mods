@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
 //! drains, and anvils, none of which exist yet), the books, food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
-//! tank and proxy tank of the smeltery tab, and the geodes and heads
+//! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -143,12 +143,14 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     smeltery.entries(entries)
 }
 
-/// TinkerWorld.addTabItems for the declared items: ores, then each slime (ball, block, congealed), the slime wood sets with
+/// TinkerWorld.addTabItems for the declared items: ores, the heads, then each slime (ball, block, congealed), the slime wood sets with
 /// their saplings and leaves and the enderbark roots, slime dirt, the foliage (tall grass, fern, vine and the five grasses of
-/// each visible foliage type; the slime grass seeds are not declared) and the shards. The wall signs have no item of their own
+/// each visible foliage type; the slime grass seeds are not declared) and the geodes (each crystal, its block, budding block and
+/// buds) with the metal shards and clusters between them. The wall signs have no item of their own
 /// and the potted flora none at all, so neither is listed.
 pub(crate) const WORLD: &[&str] = &[
     "cobalt_ore", "raw_cobalt", "raw_cobalt_block",
+    "blaze_head", "enderman_head", "stray_head", "husk_head", "drowned_head", "spider_head", "cave_spider_head", "piglin_brute_head", "zombified_piglin_head",
     "earth_congealed_slime",
     "sky_slime_ball", "sky_slime", "sky_congealed_slime", "ichor_slime_ball", "ichor_slime", "ichor_congealed_slime", "ender_slime_ball", "ender_slime", "ender_congealed_slime",
     "greenheart_planks", "greenheart_planks_slab", "greenheart_planks_stairs", "greenheart_fence", "greenheart_fence_gate", "greenheart_door", "greenheart_trapdoor", "greenheart_pressure_plate", "greenheart_button", "greenheart_log", "stripped_greenheart_log", "greenheart_wood", "stripped_greenheart_wood", "greenheart_sign", "greenheart_hanging_sign",
@@ -165,7 +167,13 @@ pub(crate) const WORLD: &[&str] = &[
     "sky_slime_tall_grass", "sky_slime_fern", "sky_slime_vine", "sky_vanilla_slime_grass", "sky_earth_slime_grass", "sky_sky_slime_grass", "sky_ichor_slime_grass", "sky_ender_slime_grass",
     "blood_slime_tall_grass", "blood_slime_fern", "blood_vanilla_slime_grass", "blood_earth_slime_grass", "blood_sky_slime_grass", "blood_ichor_slime_grass", "blood_ender_slime_grass",
     "ender_slime_tall_grass", "ender_slime_fern", "ender_slime_vine", "ender_vanilla_slime_grass", "ender_earth_slime_grass", "ender_sky_slime_grass", "ender_ichor_slime_grass", "ender_ender_slime_grass",
-    "steel_shard", "cobalt_shard", "knightmetal_shard",
+    "earth_slime_crystal", "earth_slime_crystal_block", "budding_earth_slime_crystal", "small_earth_slime_crystal_bud", "medium_earth_slime_crystal_bud", "large_earth_slime_crystal_bud", "earth_slime_crystal_cluster",
+    "sky_slime_crystal", "sky_slime_crystal_block", "budding_sky_slime_crystal", "small_sky_slime_crystal_bud", "medium_sky_slime_crystal_bud", "large_sky_slime_crystal_bud", "sky_slime_crystal_cluster",
+    "steel_shard", "steel_cluster",
+    "ichor_slime_crystal", "ichor_slime_crystal_block", "budding_ichor_slime_crystal", "small_ichor_slime_crystal_bud", "medium_ichor_slime_crystal_bud", "large_ichor_slime_crystal_bud", "ichor_slime_crystal_cluster",
+    "cobalt_shard", "cobalt_cluster",
+    "ender_slime_crystal", "ender_slime_crystal_block", "budding_ender_slime_crystal", "small_ender_slime_crystal_bud", "medium_ender_slime_crystal_bud", "large_ender_slime_crystal_bud", "ender_slime_crystal_cluster",
+    "knightmetal_shard", "knightmetal_cluster",
 ];
 
 pub(crate) fn world_group() -> ItemGroup {

@@ -1671,7 +1671,8 @@ SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_OR
 DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT_BLUE', 'ender': 'TERRACOTTA_ORANGE'}
 # Plain items: TinkerWorld's with Item.Properties (TooltipItem only adds the lang tooltip text) and TinkerCommons' tinker slime
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
-WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
+WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball',
+               'earth_slime_crystal', 'sky_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
 # Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
 # The bottles' and the bowl's models are plain; the copper can's own loader is replaced by write_copper_can below.
@@ -1824,6 +1825,71 @@ WORLD_STATE_BLOCKS = (
     + [f'stripped_{wood}_{part}' for wood in W1_WOODS for part in ('log', 'wood')]
     + [f'{foliage}_{dirt}_slime_grass' for foliage in ('earth', 'sky', 'ender') for dirt in W1_DIRTS]
     + ['ender_slime_sapling', 'sky_slime_vine', 'ender_slime_vine'])
+
+
+# TinkerWorld's geodes (registerGeode/GeodeItemObject): each slime crystal makes a crystal block, a budding block and
+# four CrystalClusterBlock buds; the metal clusters are CrystalClusterBlocks on clusterProps. A bud's light is the
+# type's base light plus the bud's extra, capped at 15; the sounds are the vanilla amethyst sets the original's Sounds
+# builds (its per-type pitches are not part of a declaration). The budding block declares random ticks; the growth
+# itself is a later unit, as is geode worldgen. The heads are TinkerHeadType's SkullBlocks: the standing head carries
+# the item, the wall head none (its loot comes from the standing head, below).
+GEODE_TYPES = {'earth': ('COLOR_LIGHT_GREEN', 3), 'sky': ('COLOR_BLUE', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 7)}
+GEODE_BUDS = [('{name}_cluster', 7, 5, 'minecraft:amethyst_cluster'), ('small_{name}_bud', 3, 1, 'minecraft:small_amethyst_bud'),
+              ('medium_{name}_bud', 4, 2, 'minecraft:medium_amethyst_bud'), ('large_{name}_bud', 5, 4, 'minecraft:large_amethyst_bud')]
+METAL_CLUSTERS = {'steel_cluster': ('STONE', 5, 'minecraft:iron_block'), 'cobalt_cluster': ('COLOR_BLUE', 8, 'minecraft:netherite_block'),
+                  'knightmetal_cluster': ('GRASS', 12, 'minecraft:netherite_block')}
+HEAD_TYPES = ['blaze', 'enderman', 'stray', 'husk', 'drowned', 'spider', 'cave_spider', 'piglin_brute', 'zombified_piglin']
+
+
+def cluster_boxes(height):
+    """AmethystClusterBlock's outline for this height at the buds' offset 3, one box per facing."""
+    o = 3
+    return {'down': [[o, 16 - height, o, 16 - o, 16, 16 - o]], 'up': [[o, 0, o, 16 - o, height, 16 - o]],
+            'north': [[o, o, 16 - height, 16 - o, 16 - o, 16]], 'south': [[o, o, 0, 16 - o, 16 - o, height]],
+            'west': [[16 - height, o, o, 16, 16 - o, 16 - o]], 'east': [[0, o, o, height, 16 - o, 16 - o]]}
+
+
+def cluster_declaration(color, sounds, hardness, light, height):
+    """A CrystalClusterBlock: directional, non-occluding, needs the correct tool; outline and collision are one shape."""
+    shapes = {'property': 'facing', 'values': cluster_boxes(height)}
+    properties = {'hardness': hardness, 'explosion_resistance': hardness, 'sounds': sounds, 'map_color': MAP_COLORS[color],
+                  'requires_tool': True, 'occludes': False}
+    if light:
+        properties['light'] = light
+    return {'template': 'minecraft:stone', 'properties': properties,
+            'state_properties': {'facing': {'type': 'enum', 'values': ['down', 'up', 'north', 'south', 'west', 'east']},
+                                 'waterlogged': {'type': 'boolean'}},
+            'shapes': shapes, 'collision_shapes': shapes, 'item': True}
+
+
+def world_geode_blocks():
+    blocks = {}
+    for kind, (color, base_light) in GEODE_TYPES.items():
+        name = f'{kind}_slime_crystal'
+        crystal = {'hardness': 1.5, 'explosion_resistance': 1.5, 'sounds': 'minecraft:amethyst_block', 'map_color': MAP_COLORS[color], 'requires_tool': True}
+        if base_light:
+            crystal['light'] = base_light
+        blocks[f'{name}_block'] = {'template': 'minecraft:stone', 'properties': dict(crystal), 'item': True}
+        budding = dict(crystal)
+        budding['random_ticks'] = True
+        blocks[f'budding_{name}'] = {'template': 'minecraft:stone', 'properties': budding, 'item': True}
+        for key, height, extra, sounds in GEODE_BUDS:
+            blocks[key.format(name=name)] = cluster_declaration(color, sounds, 1.5, min(base_light + extra, 15), height)
+    for name, (color, light, sounds) in METAL_CLUSTERS.items():
+        blocks[name] = cluster_declaration(color, sounds, 2.5, light, 7)
+    # SkullBlock/WallSkullBlock at strength 1.0 with no tool requirement; the skull's box is its outline and collision.
+    skull = {'template': 'minecraft:stone',
+             'properties': {'hardness': 1.0, 'explosion_resistance': 1.0, 'sounds': 'minecraft:stone', 'map_color': 0, 'occludes': False},
+             'shapes': {'default': [[4, 0, 4, 12, 8, 12]]}, 'collision_shapes': {'default': [[4, 0, 4, 12, 8, 12]]}}
+    wall_shapes = {'property': 'facing', 'values': {'north': [[4, 4, 8, 12, 12, 16]], 'south': [[4, 4, 0, 12, 12, 8]],
+                                                    'east': [[8, 4, 4, 16, 12, 12]], 'west': [[0, 4, 4, 8, 12, 12]]}}
+    for head in HEAD_TYPES:
+        blocks[f'{head}_head'] = {**skull, 'state_properties': {'rotation': {'type': 'enum', 'values': [str(i) for i in range(16)]},
+                                                                'powered': {'type': 'boolean'}}, 'item': True}
+        blocks[f'{head}_wall_head'] = {**skull, 'state_properties': {'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']},
+                                                                     'powered': {'type': 'boolean'}},
+                                       'shapes': wall_shapes, 'collision_shapes': wall_shapes, 'item': False}
+    return blocks
 
 
 def smeltery_blocks():
@@ -2013,6 +2079,8 @@ def smeltery_u6d_blocks():
 
 
 SMELTERY_STATE_BLOCKS += list(smeltery_u6d_blocks())
+# The geode buds and clusters key their blockstates by facing alone, so they take the same pass-through.
+SMELTERY_STATE_BLOCKS += [name for name in world_geode_blocks() if name.endswith(('_cluster', '_bud'))]
 
 
 def write_vanilla_fuels():
@@ -2052,7 +2120,7 @@ def write_vanilla_fuels():
 
 def write_world_declarations():
     """Block and item declarations of the world units, written beside the hand-written station ones."""
-    blocks = {**world_blocks(), **smeltery_blocks()}
+    blocks = {**world_blocks(), **world_geode_blocks(), **smeltery_blocks()}
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
     for name in WORLD_ITEMS + CAST_ITEMS:
@@ -2100,6 +2168,10 @@ def upgrade_loot(node):
             result[key] = upgrade_loot(value)
         else:
             raise SystemExit(f'loot table: unknown key {key!r}')
+    if 'random_sequence' in result and 'pools' not in result:
+        # A block that drops nothing (the budding crystals) gets no pools from datagen; the port's
+        # loot schema spells the empty list out.
+        result['pools'] = []
     return result
 
 
@@ -2123,6 +2195,9 @@ def upgrade_condition(condition):
         return {'type': kind, 'term': upgrade_condition(condition['term'])}
     if kind == 'minecraft:block_state_property' and set(condition) == {'condition', 'block', 'properties'}:
         return {'type': kind, 'block': condition['block'], 'properties': condition['properties']}
+    if kind == 'minecraft:match_tool' and set(condition) == {'condition', 'predicate'} and set(condition['predicate']) == {'tag'}:
+        # 26.3 names the tool tag in the predicate's `items`, as its own amethyst cluster table does.
+        return {'type': kind, 'predicate': {'items': f"#{condition['predicate']['tag']}"}}
     raise SystemExit(f'loot table: unknown condition {condition}')
 
 
@@ -2154,6 +2229,9 @@ def copy_world_loot(names):
         if not source.exists():
             # the wall signs have no table of their own: Mantle's wood object points them at the standing sign's table
             source = GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name.replace("_wall_", "_")}.json'
+        if not source.exists() and name.endswith('_wall_head'):
+            # WallSkullBlock.lootFrom the standing head: datagen writes no table of its own, so the head's stands in.
+            source = GENERATED_DATA / f"tconstruct/loot_tables/blocks/{name.removesuffix('_wall_head')}_head.json"
         table = whole(upgrade_loot(json.loads(source.read_text(encoding='utf-8'))))
         write_json(target / 'blocks' / f'{name}.json', table)
     return len(names)
@@ -2436,7 +2514,7 @@ def main():
     fluid_blocks = write_fluid_world()
     write_copper_can()
     transfers = write_fluid_transfers()
-    world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
+    world_loot = copy_world_loot(sorted({**world_blocks(), **world_geode_blocks(), **smeltery_blocks()}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
     copy_cobalt_tags()

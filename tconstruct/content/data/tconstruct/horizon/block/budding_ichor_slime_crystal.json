@@ -1,0 +1,1 @@
+{"template":"minecraft:stone","properties":{"hardness":1.5,"explosion_resistance":1.5,"sounds":"minecraft:amethyst_block","map_color":15,"requires_tool":true,"light":10,"random_ticks":true},"item":true}
