@@ -2,7 +2,8 @@
 //! ItemCastingRecipe, RetexturedCastingRecipe, CastDuplicationRecipe, PotionCastingRecipe, ContainerFillingRecipe,
 //! MaterialCastingRecipe, CompositeCastingRecipe, ToolCastingRecipe, PartSwapCastingRecipe, TippingCastingRecipe,
 //! TipClearingCastingRecipe, MaterialFluidRecipe, MaterialCastingLookup and MoldingRecipe (MIT; see LICENSE).
-//! Tipping decodes but never matches at the station: which potion was poured is fluid NBT, and a tank stack carries none.
+//! Tipping and the potion recipes match on the poured fluid's own tag, which a tank's fluid stack now carries (the fluid
+//! NBT of the foundation work); the filling recipes still wait, as their amount is the cast container's own.
 #![allow(dead_code)]
 use crate::{
     fluid_ingredient::{id_of, int_field, FluidIngredient, InTag, ItemOutput},

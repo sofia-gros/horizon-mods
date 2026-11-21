@@ -367,6 +367,6 @@ mod tests {
         assert!(foreign_to(&data, [9, 9, 9], |_| true), "answers to a controller that is still there");
         assert!(!foreign_to(&data, [9, 9, 9], |_| false), "its controller is gone");
         assert!(!foreign_to(&NbtCompound::new(), [9, 9, 9], |_| true), "no master yet");
-        assert!(keeps_master("seared_drain") && keeps_master("seared_chute") && keeps_master("scorched_chute") && keeps_master("scorched_fuel_tank") && !keeps_master("seared_stone"));
+        assert!(keeps_master("seared_drain") && keeps_master("seared_chute") && keeps_master("scorched_chute") && keeps_master("scorched_fuel_tank") && keeps_master("seared_lantern") && keeps_master("scorched_lantern") && !keeps_master("seared_stone"));
     }
 }

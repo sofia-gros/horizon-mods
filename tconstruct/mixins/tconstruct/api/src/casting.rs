@@ -8,10 +8,10 @@
 //! `setItem`), and retextured casting sets the result's texture. Not ported here, each named where it would go: redstone swapping
 //! (nothing here reads the neighbour signal), sounds and particles (no such hook), the hopper face rules (a hopper's rules cannot
 //! be stated: the menu's `on_accepts` is told only the item, the slot and the face — not the tank or the slots it must consult —
-//! these blocks have no menu to hang it on, and there is no take rule at all), and the potion recipes.
-//! Tool casting, part swapping and tipped clearing run through the tool domain (unit 7). Tipping is the one casting kind that
-//! cannot match: which potion was poured is the fluid's NBT, and a tank's fluid stack carries only the fluid and its amount,
-//! the same gap as the potion recipes.
+//! these blocks have no menu to hang it on, and there is no take rule at all), and the filling recipes.
+//! Tool casting, part swapping and tipped clearing run through the tool domain (unit 7). Tipping and the potion recipes
+//! match on the poured fluid's own tag, which the tank's fluid stack carries since the fluid NBT work: a potion result
+//! takes the whole tag as its own, and a tipped tool takes the tag's `Potion` string as its tip.
 use crate::{
     casting_recipes::{CastPurpose, Casting, CastingKind, MaterialCasting, MaterialFluid, MaterialPredicate, Station},
     fluid_ingredient::{ItemOutput, Source},
@@ -49,11 +49,11 @@ pub(crate) trait Env {
     /// Whether the item counts as an empty station (`casts/empty/table`, `casts/empty/basin`).
     fn is_empty_cast(&self, stack: &ItemSlot) -> bool;
     /// The first casting recipe of the station that takes the cast (None: an empty station) and the fluid.
-    fn find(&self, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found>;
+    fn find(&self, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<Found>;
     /// The recipe of that id, if it still takes the cast and the fluid.
-    fn get(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found>;
+    fn get(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<Found>;
     /// What the recipe makes (`assemble`).
-    fn assemble(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<ItemSlot>;
+    fn assemble(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<ItemSlot>;
     /// The molding recipe for the item on the table and the pattern held, if any.
     fn find_molding(&self, material: &ItemSlot, pattern: Option<&ItemSlot>) -> Option<Molded>;
 }
@@ -126,7 +126,7 @@ impl State {
         self.cooling = match (&self.fluid, &self.recipe) {
             (Some(fluid), Some(recipe)) if fluid.amount as i64 >= self.capacity as i64 => {
                 let cast = self.cast(items, INPUT, env);
-                env.get(recipe, cast.as_ref(), &fluid.fluid).map_or(0, |found| found.cooling_time.max(0))
+                env.get(recipe, cast.as_ref(), fluid).map_or(0, |found| found.cooling_time.max(0))
             }
             _ => -1,
         };
@@ -134,7 +134,7 @@ impl State {
 
     /// CastingBlockEntity.initNewCasting: the amount the recipe for this fluid wants (0: nothing can start). Starting a recipe
     /// sets `recipe`, and may move the output into the input slot (a second pour onto a finished item).
-    pub(crate) fn init_new_casting(&mut self, env: &dyn Env, items: &mut Vec<Option<ItemSlot>>, fluid: &Identifier, require_cast: bool) -> i32 {
+    pub(crate) fn init_new_casting(&mut self, env: &dyn Env, items: &mut Vec<Option<ItemSlot>>, fluid: &FluidStack, require_cast: bool) -> i32 {
         slots(items);
         if self.recipe.is_some() { return 0; }
         let (has_input, has_output) = (items[INPUT].is_some(), items[OUTPUT].is_some());
@@ -163,7 +163,7 @@ impl State {
         if self.filter.as_ref().is_some_and(|filter| *filter != resource.fluid) { return 0; }
         let mut capacity = self.capacity;
         if capacity == 0 {
-            capacity = self.init_new_casting(env, items, &resource.fluid, require_cast);
+            capacity = self.init_new_casting(env, items, resource, require_cast);
             if capacity <= 0 { return 0; }
             self.capacity = capacity;
             self.filter = Some(resource.fluid.clone());
@@ -201,10 +201,10 @@ impl State {
         if self.timer < self.cooling { return; }
         let Some(fluid) = self.fluid.clone() else { return };
         let cast = self.cast(items, INPUT, env);
-        let mut found = env.get(&recipe, cast.as_ref(), &fluid.fluid);
+        let mut found = env.get(&recipe, cast.as_ref(), &fluid);
         if found.is_none() {
             // lost the recipe, or it wants more fluid than there is: look again, and come around later for the proper amount
-            found = env.find(cast.as_ref(), &fluid.fluid);
+            found = env.find(cast.as_ref(), &fluid);
             self.recipe = found.as_ref().map(|found| found.id.clone());
             if found.as_ref().is_none_or(|found| i64::from(found.fluid_amount) > i64::from(fluid.amount)) {
                 self.timer = 0;
@@ -212,7 +212,7 @@ impl State {
             }
         }
         let found = found.expect("checked above");
-        let Some(output) = env.assemble(&found.id, cast.as_ref(), &fluid.fluid) else { self.timer = 0; return };
+        let Some(output) = env.assemble(&found.id, cast.as_ref(), &fluid) else { self.timer = 0; return };
         if found.switch_slots != self.redstone {
             if !found.consumed { items[OUTPUT] = items[INPUT].take(); }
             items[INPUT] = Some(output);
@@ -420,7 +420,8 @@ impl<'a> Live<'a> {
     }
 
     /// The recipe's numbers for this cast and fluid, if it takes them.
-    fn candidate(&self, recipe: &Casting, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found> {
+    fn candidate(&self, recipe: &Casting, cast: Option<&ItemSlot>, poured: &FluidStack) -> Option<Found> {
+        let fluid = &poured.fluid;
         let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
         let in_item = |item: &Identifier, tag: &Identifier| self.in_item_tag(item, tag);
         let item = cast.map(|stack| &stack.item);
@@ -478,9 +479,24 @@ impl<'a> Live<'a> {
                 if Self::modifier_level(stack, modifier) <= 0 || Self::persistent_string(stack, modifier).is_empty() { return None; }
                 Some(base(recipe.fluid_amount(fluid, &in_fluid), recipe.cooling_time))
             }
-            // filling a held container and potions wait for fluid stacks inside items; tipping waits for the poured fluid's
-            // own NBT (which potion it is), which a tank's fluid stack does not carry
-            CastingKind::Potion { .. } | CastingKind::Filling { .. } | CastingKind::Tipping { .. } => None,
+            CastingKind::Potion { .. } => {
+                // PotionCastingRecipe.matches: the bottle and the fluid alone decide; the tag is not inspected
+                let either = |member: &Identifier, tag: &Identifier| in_fluid(member, tag) || in_item(member, tag);
+                recipe.matches(item, fluid, &either, false).then(|| base(recipe.fluid_amount(fluid, &in_fluid), recipe.cooling_time))
+            }
+            CastingKind::Tipping { modifier } => {
+                // TippingCastingRecipe.matches: the tool and the fluid, the tool carrying the modifier, and the poured
+                // fluid's tag naming a potion (a `Potion` string) the tool is not already tipped with
+                let either = |member: &Identifier, tag: &Identifier| in_fluid(member, tag) || in_item(member, tag);
+                if !recipe.matches(item, fluid, &either, false) { return None; }
+                let stack = cast?;
+                if Self::modifier_level(stack, modifier) <= 0 { return None; }
+                let potion = poured.tag.as_ref()?.get_string("Potion")?;
+                if Self::persistent_string(stack, modifier) == potion { return None; }
+                Some(base(recipe.fluid_amount(fluid, &in_fluid), recipe.cooling_time))
+            }
+            // filling the cast container itself: its amount is the container's own, which this lookup never asks
+            CastingKind::Filling { .. } => None,
         }
     }
 }
@@ -491,15 +507,16 @@ impl Env for Live<'_> {
         self.in_item_tag(&stack.item, &Identifier::parse(tag).expect("valid tag id"))
     }
 
-    fn find(&self, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found> {
+    fn find(&self, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<Found> {
         self.data.recipes.casting.iter().filter(|recipe| recipe.station == self.station).find_map(|recipe| self.candidate(recipe, cast, fluid))
     }
 
-    fn get(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found> {
+    fn get(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<Found> {
         self.data.recipes.casting.iter().find(|recipe| recipe.station == self.station && recipe.id == *id).and_then(|recipe| self.candidate(recipe, cast, fluid))
     }
 
-    fn assemble(&self, id: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<ItemSlot> {
+    fn assemble(&self, id: &Identifier, cast: Option<&ItemSlot>, poured: &FluidStack) -> Option<ItemSlot> {
+        let fluid = &poured.fluid;
         let recipe = self.data.recipes.casting.iter().find(|recipe| recipe.station == self.station && recipe.id == *id)?;
         let in_fluid = |fluid: &Identifier, tag: &Identifier| self.in_fluid_tag(fluid, tag);
         match &recipe.kind {
@@ -558,7 +575,22 @@ impl Env for Live<'_> {
                 }
                 Some(result)
             }
-            CastingKind::Potion { .. } | CastingKind::Filling { .. } | CastingKind::Tipping { .. } => None,
+            CastingKind::Potion { result } => {
+                // PotionCastingRecipe.assemble: the result item, with the poured fluid's whole tag as its own
+                let mut made = ItemSlot::new(result.clone(), 1);
+                if let Some(tag) = &poured.tag { made.custom_data = tag.clone(); }
+                Some(made)
+            }
+            CastingKind::Tipping { modifier } => {
+                // TippingCastingRecipe.assemble: a copy of the tool, its persistent data taking the poured potion's name
+                let potion = poured.tag.as_ref()?.get_string("Potion")?;
+                let mut result = cast.cloned()?;
+                let mut data = match result.custom_data.get(crate::tool_stack::TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+                data.insert(modifier.to_string(), Nbt::String(potion.to_owned()));
+                result.custom_data.insert(crate::tool_stack::TAG_PERSISTENT.into(), Nbt::Compound(data));
+                Some(result)
+            }
+            CastingKind::Filling { .. } => None,
         }
     }
 
@@ -592,7 +624,7 @@ fn with_live<R>(station: Station, f: impl FnOnce(&Live<'_>) -> R) -> Option<R> {
 
 /// What the recipe in progress will make, for the casting renderer (`CastingBlockEntity.getRecipeOutput`, through
 /// the same live recipes the tick uses).
-pub(crate) fn recipe_output(station: Station, recipe: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<ItemSlot> {
+pub(crate) fn recipe_output(station: Station, recipe: &Identifier, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<ItemSlot> {
     with_live(station, |env| env.assemble(recipe, cast, fluid)).flatten()
 }
 
@@ -713,16 +745,16 @@ mod tests {
     struct Recipes;
     impl Env for Recipes {
         fn is_empty_cast(&self, stack: &ItemSlot) -> bool { stack.item.path() == "gold_platform" }
-        fn find(&self, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found> {
-            match (cast.map(|stack| stack.item.path()), fluid.path()) {
+        fn find(&self, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<Found> {
+            match (cast.map(|stack| stack.item.path()), fluid.fluid.path()) {
                 (Some("ingot_cast"), "molten_iron") => Some(Found { id: id("t:ingot"), fluid_amount: 90, cooling_time: 60, consumed: false, switch_slots: false }),
                 (Some("blank_cast"), "molten_gold") => Some(Found { id: id("t:cast"), fluid_amount: 90, cooling_time: 20, consumed: true, switch_slots: true }),
                 (None, "molten_iron") => Some(Found { id: id("t:block"), fluid_amount: 810, cooling_time: 180, consumed: false, switch_slots: false }),
                 _ => None,
             }
         }
-        fn get(&self, recipe: &Identifier, cast: Option<&ItemSlot>, fluid: &Identifier) -> Option<Found> { self.find(cast, fluid).filter(|found| found.id == *recipe) }
-        fn assemble(&self, recipe: &Identifier, _: Option<&ItemSlot>, _: &Identifier) -> Option<ItemSlot> {
+        fn get(&self, recipe: &Identifier, cast: Option<&ItemSlot>, fluid: &FluidStack) -> Option<Found> { self.find(cast, fluid).filter(|found| found.id == *recipe) }
+        fn assemble(&self, recipe: &Identifier, _: Option<&ItemSlot>, _: &FluidStack) -> Option<ItemSlot> {
             Some(stack(match recipe.path() { "ingot" => "t:iron_ingot", "block" => "t:iron_block", _ => "t:gold_cast" }))
         }
         fn find_molding(&self, material: &ItemSlot, pattern: Option<&ItemSlot>) -> Option<Molded> {

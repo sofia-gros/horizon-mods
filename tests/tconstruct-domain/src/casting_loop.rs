@@ -127,6 +127,14 @@ fn pour_and_cool(live: &Live, cast: &ItemSlot, fluid: &Identifier) -> (State, Ve
     (state, items, taken)
 }
 
+/// A pour of a fluid stack as it is (tag included), cooled to the end: the items afterwards and how much was taken.
+fn pour_stack(live: &Live, cast: &ItemSlot, fluid: &FluidStack) -> (Vec<Option<ItemSlot>>, u32) {
+    let (mut state, mut items) = (State::default(), vec![Some(cast.clone()), None]);
+    let taken = state.fill(live, &mut items, fluid, false);
+    for _ in 0..state.cooling.max(0) { state.tick(live, &mut items); }
+    (items, taken)
+}
+
 fn material_of(stack: &ItemSlot) -> String { crate::tool_materials::part_material(&stack.custom_data).to_string() }
 
 #[test]
@@ -572,7 +580,7 @@ fn part_swapping_replaces_one_material_of_the_tool_on_the_station() {
 }
 
 #[test]
-fn tipped_clearing_washes_the_tip_off_and_tipping_waits_for_the_potions_nbt() {
+fn tipped_clearing_washes_the_tip_off_and_a_plain_pour_does_not_tip() {
     let game = game();
     let table = game.live(Station::Table);
     let arrow_item = id("tconstruct:arrow");
@@ -586,9 +594,9 @@ fn tipped_clearing_washes_the_tip_off_and_tipping_waits_for_the_potions_nbt() {
     let mut persistent = pluto_lib::NbtCompound::new();
     persistent.insert(tipped.to_string(), pluto_lib::Nbt::String("minecraft:strong_swiftness".to_owned()));
     arrow.custom_data.insert(crate::tool_stack::TAG_PERSISTENT.into(), pluto_lib::Nbt::Compound(persistent));
-    // tipping itself cannot match: which potion was poured is the fluid's NBT, and a tank stack carries none
+    // tipping cannot match a plain pour: which potion was poured is the fluid's tag, and this stack carries none
     let (_, _, taken) = pour_and_cool(&table, &arrow, &id("tconstruct:potion"));
-    assert_eq!(taken, 0, "tipping waits for fluid stacks with NBT");
+    assert_eq!(taken, 0, "tipping needs the poured fluid's tag to name a potion");
     // water washes the tip off; the tool, its modifier and its materials are otherwise untouched
     let (_, items, taken) = pour_and_cool(&table, &arrow, &id("minecraft:water"));
     assert_eq!(taken, 50, "the ammo clearing recipe takes 50 of water");
@@ -597,6 +605,56 @@ fn tipped_clearing_washes_the_tip_off_and_tipping_waits_for_the_potions_nbt() {
     assert_eq!(crate::casting::Live::persistent_string(washed, &tipped), "", "the tip is gone");
     assert_eq!(crate::modifier_entries::List::from_nbt(washed.custom_data.get(crate::tool_stack::TAG_MODIFIERS)).level(&tipped), 1, "the modifier itself stays");
     assert_eq!(materials_of(washed), materials.iter().map(ToString::to_string).collect::<Vec<_>>(), "the materials are untouched");
+}
+
+#[test]
+fn tipping_names_the_poured_potion_on_the_tool_and_potion_casting_hands_the_result_the_fluids_whole_tag() {
+    let game = game();
+    let table = game.live(Station::Table);
+    let tipped = id("tconstruct:tipped");
+    let arrow_item = id("tconstruct:arrow");
+    let stats = game.tools[&arrow_item].material_stat_types().unwrap();
+    let materials: Vec<_> = stats.iter().map(|(stat, _)| any_material(game, stat)).collect();
+    let mut arrow = tool_stack_of(game, &arrow_item, &materials);
+    let list = crate::modifier_entries::List::default().with_modifier(tipped.clone(), 1).unwrap();
+    arrow.custom_data.insert(crate::tool_stack::TAG_MODIFIERS.into(), list.to_nbt());
+    let potion_fluid = |amount: u32, potion: &str| {
+        let mut tag = pluto_lib::NbtCompound::new();
+        tag.insert("Potion".to_owned(), pluto_lib::Nbt::String(potion.to_owned()));
+        FluidStack { fluid: id("tconstruct:potion"), amount, tag: Some(tag) }
+    };
+    // 50 of a potion fluid whose tag names a potion: the arrow takes that potion as its tip
+    let (items, taken) = pour_stack(&table, &arrow, &potion_fluid(50, "minecraft:poison"));
+    assert_eq!(taken, 50, "the ammo tipping recipe takes 50 of the potion fluid");
+    let tipped_arrow = items[OUTPUT].as_ref().expect("the tipped arrow");
+    assert_eq!(tipped_arrow.item, arrow_item);
+    assert_eq!(crate::casting::Live::persistent_string(tipped_arrow, &tipped), "minecraft:poison", "the tip is the poured potion");
+    assert_eq!(crate::modifier_entries::List::from_nbt(tipped_arrow.custom_data.get(crate::tool_stack::TAG_MODIFIERS)).level(&tipped), 1, "the modifier itself stays");
+    // the same potion again does not match, a tag without a potion name does not match, and a tool without the modifier takes nothing
+    let (_, taken) = pour_stack(&table, tipped_arrow, &potion_fluid(50, "minecraft:poison"));
+    assert_eq!(taken, 0, "a tool already tipped with the poured potion takes nothing");
+    let mut no_name = pluto_lib::NbtCompound::new();
+    no_name.insert("CustomPotionColor".to_owned(), pluto_lib::Nbt::Int(1));
+    let (_, taken) = pour_stack(&table, &arrow, &FluidStack { fluid: id("tconstruct:potion"), amount: 50, tag: Some(no_name) });
+    assert_eq!(taken, 0, "a tag with no Potion string names no tip");
+    let plain = tool_stack_of(game, &arrow_item, &materials);
+    let (_, taken) = pour_stack(&table, &plain, &potion_fluid(50, "minecraft:poison"));
+    assert_eq!(taken, 0, "tipping needs the modifier on the tool");
+    // potion casting: a glass bottle and 250 of the fluid make the result item, carrying the fluid's whole tag
+    let bottle = ItemSlot::new(id("minecraft:glass_bottle"), 1);
+    let mut whole = pluto_lib::NbtCompound::new();
+    whole.insert("Potion".to_owned(), pluto_lib::Nbt::String("minecraft:healing".to_owned()));
+    whole.insert("CustomPotionColor".to_owned(), pluto_lib::Nbt::Int(12345));
+    let (items, taken) = pour_stack(&table, &bottle, &FluidStack { fluid: id("tconstruct:potion"), amount: 250, tag: Some(whole.clone()) });
+    assert_eq!(taken, 250, "the bottle recipe takes 250 of the potion fluid");
+    let made = items[OUTPUT].as_ref().expect("the potion");
+    assert_eq!(made.item, id("minecraft:potion"));
+    assert_eq!(made.custom_data, whole, "the result carries the fluid's whole tag, as PotionCastingRecipe.assemble sets it");
+    assert!(items[INPUT].is_none(), "the bottle is used up");
+    // and with no tag at all the same recipe still matches (matches never inspects the tag) and makes a plain potion
+    let (items, taken) = pour_stack(&table, &bottle, &FluidStack { fluid: id("tconstruct:potion"), amount: 250, tag: None });
+    assert_eq!(taken, 250);
+    assert!(items[OUTPUT].as_ref().expect("the plain potion").custom_data.is_empty());
 }
 
 #[test]

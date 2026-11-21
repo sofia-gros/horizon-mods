@@ -66,6 +66,10 @@ pub struct FluidDef {
     pub world_blocks: bool,
     /// The fluid has a bucket item (`<id>_bucket`) that holds 1000 and places or picks up the source when the fluid has world blocks.
     pub bucket: bool,
+    /// The bucket item keeps the fluid's own tag as the item's whole tag, instead of holding a plain 1000 of the fluid:
+    /// what the bucket holds is the fluid together with the tag it was filled from (a potion bucket, whose stack tag is
+    /// the fluid stack's tag). Only meaningful with `bucket`.
+    pub bucket_carries_tag: bool,
     /// How the fluid flows.
     pub flow: FluidFlow,
     /// The sound event a bucket makes taking the fluid up; `minecraft:item.bucket.fill` when none.
@@ -77,7 +81,7 @@ pub struct FluidDef {
 impl FluidDef {
     /// A fluid with water's attributes, no world blocks and no bucket.
     pub fn new(id: Identifier) -> Self {
-        Self { id, attributes: FluidAttributes::default(), world_blocks: false, bucket: false, flow: FluidFlow::standard(), bucket_fill_sound: None, bucket_empty_sound: None }
+        Self { id, attributes: FluidAttributes::default(), world_blocks: false, bucket: false, bucket_carries_tag: false, flow: FluidFlow::standard(), bucket_fill_sound: None, bucket_empty_sound: None }
     }
 
     /// The key of the fluid's name in the language files: `fluid.<namespace>.<path>` (`fluid.tconstruct.molten_iron`).
@@ -126,6 +130,15 @@ impl FluidDef {
     /// bucket, and, with world blocks, places and picks up the source.
     pub fn with_bucket(mut self) -> Self {
         self.bucket = true;
+        self
+    }
+
+    /// The same fluid, whose bucket item carries the fluid's tag as its own tag (Forge's `PotionBucketItem`, whose stack
+    /// tag is its fluid stack's tag): the bucket holds the fluid together with the tag of the stack it was filled from,
+    /// an empty bucket filled with a tagged stack of this fluid takes that tag as its own custom data, and emptying the
+    /// bucket hands the tag back with the fluid. Only meaningful with [`FluidDef::with_bucket`].
+    pub fn bucket_carries_tag(mut self) -> Self {
+        self.bucket_carries_tag = true;
         self
     }
 

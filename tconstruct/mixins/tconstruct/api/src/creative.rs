@@ -128,8 +128,10 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.push("blank_red_sand_cast".to_owned());
     rest.extend(casts("red_sand_"));
     // TinkerFluids.addTabItems, which the smeltery calls after the casts: the slime fluids and their bottles, the food fluids and the
-    // meat soup bowl, the stone fluids, the ore, metal and alloy fluids, then the compat metals and alloys. The splash and lingering
-    // bottles are not declared in this port, and the soulsteel bucket is in no tab in the original.
+    // meat soup bowl, the stone fluids, the ore, metal and alloy fluids, then the compat metals and alloys, and the potion buckets
+    // last. The splash and lingering bottles are not declared in this port, and the soulsteel bucket is in no tab in the original.
+    // The original's potion buckets are one stack per potion, each carrying that potion as its tag; this tab names items,
+    // so the bucket stands once for all of them.
     rest.extend(["earth_slime_bucket", "sky_slime_bucket", "ichor_bucket", "ender_slime_bucket", "earth_slime_bottle", "sky_slime_bottle", "ichor_slime_bottle", "ender_slime_bottle", "magma_bucket", "magma_bottle", "venom_bucket", "venom_bottle"].map(str::to_owned));
     rest.extend(["honey_bucket", "beetroot_soup_bucket", "mushroom_stew_bucket", "rabbit_stew_bucket", "meat_soup_bucket", "meat_soup"].map(str::to_owned));
     rest.extend(["seared_stone_bucket", "scorched_stone_bucket", "molten_clay_bucket", "molten_porcelain_bucket", "molten_glass_bucket", "molten_obsidian_bucket", "liquid_soul_bucket", "molten_ender_bucket", "blazing_blood_bucket"].map(str::to_owned));
@@ -138,7 +140,7 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(["molten_slimesteel_bucket", "molten_amethyst_bronze_bucket", "molten_rose_gold_bucket", "molten_pig_iron_bucket"].map(str::to_owned));
     rest.extend(["molten_cinderslime_bucket", "molten_queens_slime_bucket", "molten_manyullyn_bucket", "molten_hepatizon_bucket", "molten_netherite_bucket", "molten_knightmetal_bucket", "molten_knightslime_bucket"].map(str::to_owned));
     rest.extend(["molten_tin_bucket", "molten_aluminum_bucket", "molten_lead_bucket", "molten_silver_bucket", "molten_nickel_bucket", "molten_zinc_bucket", "molten_platinum_bucket", "molten_tungsten_bucket", "molten_osmium_bucket", "molten_uranium_bucket", "molten_chromium_bucket", "molten_cadmium_bucket"].map(str::to_owned));
-    rest.extend(["molten_bronze_bucket", "molten_brass_bucket", "molten_electrum_bucket", "molten_invar_bucket", "molten_constantan_bucket", "molten_pewter_bucket", "molten_nicrosil_bucket", "molten_enderium_bucket", "molten_lumium_bucket", "molten_signalum_bucket", "molten_refined_glowstone_bucket", "molten_refined_obsidian_bucket", "molten_duralumin_bucket", "molten_bendalloy_bucket", "molten_steeleaf_bucket", "fiery_liquid_bucket"].map(str::to_owned));
+    rest.extend(["molten_bronze_bucket", "molten_brass_bucket", "molten_electrum_bucket", "molten_invar_bucket", "molten_constantan_bucket", "molten_pewter_bucket", "molten_nicrosil_bucket", "molten_enderium_bucket", "molten_lumium_bucket", "molten_signalum_bucket", "molten_refined_glowstone_bucket", "molten_refined_obsidian_bucket", "molten_duralumin_bucket", "molten_bendalloy_bucket", "molten_steeleaf_bucket", "fiery_liquid_bucket", "potion_bucket"].map(str::to_owned));
     entries.extend(rest.iter().map(|name| item(name)));
     smeltery.entries(entries)
 }

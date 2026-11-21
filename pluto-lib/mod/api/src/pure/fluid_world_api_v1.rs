@@ -473,19 +473,34 @@ fn swap_held(used: &super::events_interaction_v0::UseItemOnBlockContext, held: &
 /// Registers the bucket of a fluid as a container and makes the buckets work on blocks. Called by [`FluidRegistry::register`] for a fluid
 /// with a bucket.
 pub(crate) fn register_bucket(def: &FluidDef) {
-    // 1000 millibuckets, back to an empty bucket; the empty bucket fills with this fluid (and with others registered the same way)
-    FluidItems::register(FluidItemDef::constant(FluidWorld::bucket_id(&def.id), def.id.clone(), 1000, Some(Identifier::new("minecraft", "bucket").expect("a fixed id"))));
-    let fluids: Vec<(Identifier, Identifier)> = FluidRegistry::registered()
+    // 1000 millibuckets, back to an empty bucket; the empty bucket fills with this fluid (and with others registered the same way).
+    // A fluid whose bucket carries the tag gets the tagged container instead: the bucket item's own data is the fluid's tag.
+    let empty_bucket = Identifier::new("minecraft", "bucket").expect("a fixed id");
+    let bucket_item = FluidWorld::bucket_id(&def.id);
+    if def.bucket_carries_tag {
+        FluidItems::register(FluidItemDef::tagged_constant(bucket_item, def.id.clone(), 1000, Some(empty_bucket.clone())));
+    } else {
+        FluidItems::register(FluidItemDef::constant(bucket_item, def.id.clone(), 1000, Some(empty_bucket.clone())));
+    }
+    let fluids: Vec<(Identifier, Identifier, bool)> = FluidRegistry::registered()
         .into_iter()
         .filter(|other| other.bucket && other.id != def.id)
         .chain(std::iter::once(def.clone()))
-        .map(|other| (other.id.clone(), FluidWorld::bucket_id(&other.id)))
+        .map(|other| (other.id.clone(), FluidWorld::bucket_id(&other.id), other.bucket_carries_tag))
         .collect();
     let mut buckets = fluids.into_iter();
-    if let Some((first, first_bucket)) = buckets.next() {
-        let mut item = FluidItemDef::empty_container(Identifier::new("minecraft", "bucket").expect("a fixed id"), move |fluid| fluid == &first, 1000, first_bucket);
-        for (fluid, bucket) in buckets {
-            item = item.fills(move |candidate| candidate == &fluid, 1000, bucket);
+    if let Some((first, first_bucket, first_tagged)) = buckets.next() {
+        let mut item = if first_tagged {
+            FluidItemDef::empty_container_tagged(empty_bucket.clone(), move |fluid| fluid == &first, 1000, first_bucket)
+        } else {
+            FluidItemDef::empty_container(empty_bucket.clone(), move |fluid| fluid == &first, 1000, first_bucket)
+        };
+        for (fluid, bucket, tagged) in buckets {
+            item = if tagged {
+                item.fills_tagged(move |candidate| candidate == &fluid, 1000, bucket)
+            } else {
+                item.fills(move |candidate| candidate == &fluid, 1000, bucket)
+            };
         }
         FluidItems::register(item);
     }
@@ -648,5 +663,22 @@ mod tests {
         // a fluid without world blocks gets no block behaviour
         FluidRegistry::register(FluidDef::new(id("flow_test:potion")).with_bucket());
         assert!(BlockBehaviors::get("flow_test:potion_fluid").is_none());
+    }
+
+    #[test]
+    fn a_tagged_bucket_keeps_the_fluids_tag_on_the_item_and_needs_no_world_blocks() {
+        FluidRegistry::register(FluidDef::new(id("flow_test:tagged_potion")).with_bucket().bucket_carries_tag());
+        assert!(BlockBehaviors::get("flow_test:tagged_potion_fluid").is_none(), "no world blocks, no flow behaviour");
+        let mut tag = super::super::base::NbtCompound::new();
+        tag.insert("Potion".to_owned(), super::super::base::Nbt::String("minecraft:healing".to_owned()));
+        let potion = super::super::block_entity_api_v1::FluidStack { fluid: id("flow_test:tagged_potion"), amount: 1000, tag: Some(tag.clone()) };
+        let empty = super::super::block_entity_api_v1::ItemSlot::new(id("minecraft:bucket"), 1);
+        let filled = FluidItems::fill(&empty, &potion);
+        assert_eq!(filled.container.item.to_string(), "flow_test:tagged_potion_bucket");
+        assert_eq!(filled.container.custom_data, tag, "the tag is the bucket item's own data");
+        assert_eq!(FluidItems::contents(&filled.container), Some(potion.clone()));
+        let drained = FluidItems::drain(&filled.container, None, 1000).unwrap();
+        assert_eq!(drained.fluid, potion);
+        assert_eq!(drained.container.unwrap().item, id("minecraft:bucket"));
     }
 }
