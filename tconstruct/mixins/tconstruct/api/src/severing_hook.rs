@@ -1,7 +1,11 @@
 //! Connects SeveringModule to PlutoLib's weapon-hit and loot events. ModifierLootModifier runs a tool's loot modules for the mob a player kills
 //! with it, taking the tool from the killer's hand; the loot event of a mob's death reports no tool, so the weapon-hit event, heard just before
 //! the damage that kills, leaves the tool's severing levels and looting for the loot event of that mob (matched by entity id, and only within a
-//! moment of the hit, so a mob that dies later of something else is left alone).
+//! moment of the hit, so a mob that dies later of something else is left alone). The looting left is the total the original's
+//! ModifierLootingHandler computes for a kill: the weapon's own looting plus every worn piece's armor looting modules
+//! (ArmorLootingModifierHook.getLooting), which is the total SeveringModule.processLoot reads as the context's looting modifier.
+//! PlutoLib has no looting level event, so ordinary mob drops keep rolling from the weapon's published enchantments alone;
+//! the armor part reaches the loot processing this port runs itself, as above.
 use crate::{break_speed_hook::with_held_tool, common, melee_hook, tool_damage_hook, tool_stack};
 use pluto_lib::{Identifier, LootTableEvents, ServerLivingEntityEvents};
 use std::{
@@ -75,6 +79,14 @@ pub(crate) fn register() {
                 tool_stack::looting(&stack.custom_data, env),
             )
         }) {
+            // ArmorLootingModifierHook.getLooting: every other worn piece's armor looting modules add to the weapon's
+            // looting; the hit reports the attacker's worn armor, each piece read as a valid tool like the weapon.
+            let mut looting = looting;
+            for (slot, piece) in &hit.armor {
+                if let Ok(piece_looting) = with_held_tool(piece, |env, stack| tool_stack::armor_looting(&stack.custom_data, env, slot)) {
+                    looting += piece_looting;
+                }
+            }
             leave(entity, levels, looting);
         }
     });

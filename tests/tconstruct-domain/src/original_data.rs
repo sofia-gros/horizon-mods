@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (121, 84), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (119, 83), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk transform (no walk event) is not.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Recurrent protection and restore lost health work on the damage before armor takes its share (the modify hurt hook), and stalwart's protection
@@ -148,10 +148,54 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert_eq!(unbound_of("stalwart"), ["tconstruct:protection"], "the attacker's held items are not reported");
     assert_eq!(unbound_of("restore"), ["tconstruct:restore_lost_health"], "bound to the modify hurt hook, before armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
+    // Armor looting is bound: a worn piece's modules add into the looting total the severing flow captures from the killer's hit
+    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments stay unbound: no break
+    // flow reports the breaker's worn equipment or lets a module change the enchantments a block's drops roll with, so the merge
+    // the original performs on the breaking stack before the roll has no consumer here.
+    assert!(!kinds.contains("tconstruct:armor_looting"), "armor_looting should be bound");
+    assert!(kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment is still unbound");
+    assert!(unbound_of("fortunate").is_empty(), "fortunate is fully bound");
+    assert!(unbound_of("looting").is_empty(), "looting is fully bound");
+    assert_eq!(unbound_of("looter"), ["tconstruct:attribute"], "only looter's experience multiplier attribute stays unbound");
+    assert_eq!(unbound_of("luck"), ["tconstruct:armor_harvest_enchantment"], "luck keeps only its armor harvest enchantment unbound");
+    assert_eq!(unbound_of("fortune"), ["tconstruct:armor_harvest_enchantment"]);
+    assert_eq!(unbound_of("silky"), ["tconstruct:armor_harvest_enchantment"]);
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+}
+
+#[test]
+fn shipped_armor_looting_adds_its_level_to_the_wearers_kills_in_the_listed_slots() {
+    use crate::{modifier_entries::List, tool_stack::{armor_looting, rebuild_stats, Environment, TAG_MATERIALS, TAG_UPGRADES}};
+    use pluto_lib::{Nbt, NbtCompound};
+    let world = world();
+    let helmet = &world.tools.iter().find(|(id, _)| id.path() == "plate_helmet").unwrap().1;
+    let helmet_id = Identifier::parse("tconstruct:plate_helmet").unwrap();
+    let armor_tags = pluto_lib::fixtures::registry_with_tags(&["tconstruct:plate_helmet"], &[("tconstruct:modifiable/armor", &["tconstruct:plate_helmet"]), ("tconstruct:modifiable/armor/worn", &["tconstruct:plate_helmet"])]).unwrap();
+    let env = Environment { definition: Some(helmet), has_materials: true, materials: &world.materials, modifiers: &world.registry,
+        item_tags_loaded: true, item: Some(&helmet_id), item_tags: Some(&armor_tags) };
+    let piece = |upgrades: &[(&str, i32)]| {
+        let mut nbt = NbtCompound::new();
+        nbt.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:cobalt", "tconstruct:iron"].map(|m| Nbt::String(m.into())).to_vec()));
+        let mut list = List::default();
+        for (id, level) in upgrades { list = list.with_modifier(Identifier::parse(id).unwrap(), *level).unwrap(); }
+        nbt.insert(TAG_UPGRADES.into(), list.to_nbt());
+        assert!(rebuild_stats(&mut nbt, &env).unwrap());
+        nbt
+    };
+    // looting I lists all four armor slots at one per level; a hand is not one of them.
+    let looting = piece(&[("tconstruct:looting", 1)]);
+    assert_eq!(armor_looting(&looting, &env, "head"), 1);
+    assert_eq!(armor_looting(&looting, &env, "feet"), 1);
+    assert_eq!(armor_looting(&looting, &env, "mainhand"), 0);
+    // fortunate adds a flat 1 from modifier level 2 on (its modifier level condition), nothing at level 1.
+    assert_eq!(armor_looting(&piece(&[("tconstruct:fortunate", 1)]), &env, "head"), 0);
+    assert_eq!(armor_looting(&piece(&[("tconstruct:fortunate", 2)]), &env, "head"), 1);
+    // luck I adds one in its slots; a piece without an armor looting modifier adds nothing.
+    assert_eq!(armor_looting(&piece(&[("tconstruct:luck", 1)]), &env, "chest"), 1);
+    assert_eq!(armor_looting(&piece(&[]), &env, "head"), 0);
 }
 
 /// The whole loaded original, as one world for end-to-end checks.
