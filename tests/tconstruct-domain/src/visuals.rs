@@ -162,15 +162,23 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         else if parts.contains(name) { "tool_parts" }
         // TinkerTables.addTabItems (the general tab); the Deco tab only holds retextured variants
         else if ["part_builder", "tinker_station", "modifier_worktable", "pattern", "soul_glass", "soul_glass_pane"].contains(&path) { "general" }
-        // TinkerWorld.addTabItems: ores, slimes and their dirt, the geode shards
+        // TinkerWorld.addTabItems: ores, slimes and their dirt, the slime wood sets, the foliage and the geode shards
         else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
-            || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path) { "world" }
+            || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)
+            || path.ends_with("_slime_grass") || path.ends_with("_slime_leaves") || path.ends_with("_slime_sapling") || path.ends_with("_slime_fern")
+            || path.ends_with("_slime_tall_grass") || path.ends_with("_slime_vine") || path.ends_with("_enderbark_roots")
+            || ["greenheart", "skyroot", "bloodshroom", "enderbark"].iter().any(|wood| path.starts_with(&format!("{wood}_")) || path.starts_with(&format!("stripped_{wood}_"))) { "world" }
         else { "smeltery" }
     };
     let mut wrong = Vec::new();
     for name in &declared {
         // Fluid blocks have no item in the original, and its soulsteel bucket is registered but in no tab ("future: soulsteel").
-        if name.ends_with("_fluid") || name == "tconstruct:molten_soulsteel_bucket" {
+        // The potted flora and the wall signs are blocks with no item in the original either, so they are in no tab.
+        // The ichor foliage is in no tab either: FoliageType.VISIBLE excludes ichor, and the wood section of the tab
+        // accepts only the earth, sky, blood and ender saplings and leaves.
+        if name.ends_with("_fluid") || name == "tconstruct:molten_soulsteel_bucket"
+            || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
+            || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass"].iter().any(|suffix| name.ends_with(suffix))) {
             for (tab, entries) in &groups { if entries.contains(name) { wrong.push(format!("{name} is in {tab} but the original gives it no tab")); } }
             continue;
         }

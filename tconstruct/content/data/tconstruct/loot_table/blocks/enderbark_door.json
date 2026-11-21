@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "condition": {
+            "type": "minecraft:block_state_property",
+            "block": "tconstruct:enderbark_door",
+            "properties": {
+              "half": "lower"
+            }
+          },
+          "name": "tconstruct:enderbark_door"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "tconstruct:blocks/enderbark_door"
+}
