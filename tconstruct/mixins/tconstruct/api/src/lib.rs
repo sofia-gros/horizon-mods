@@ -129,6 +129,7 @@ mod rendering;
 mod config;
 mod common;
 mod fancy_gadgets;
+mod advancements;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
@@ -177,5 +178,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     edible_hook::register();
     armor_worn::register();
     fancy_gadgets::register();
+    advancements::register();
     pluto_lib::no_hooks()
 }

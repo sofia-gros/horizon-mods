@@ -233,6 +233,8 @@ mod smeltery_tank;
 mod smeltery;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_menu.rs"]
 mod smeltery_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/advancements.rs"]
+mod advancements;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
 mod smeltery_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]
@@ -276,3 +278,5 @@ mod gadget_tests;
 mod fancy_gadgets;
 #[cfg(test)]
 mod fancy_gadget_tests;
+#[cfg(test)]
+mod advancement_tests;

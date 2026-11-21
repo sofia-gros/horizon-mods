@@ -43,6 +43,11 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
+    # Gameplay advancements and the functions their internal advancements reward, converted by the importer
+    # (display icons in the host's form); the starting book's advancement reward table rides with them.
+    re.compile(r'data/tconstruct/advancement/(?:foundry|internal|smeltery|tools|world)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/function/grant_advancement/[a-z0-9_]+\.mcfunction'),
+    re.compile(r'data/tconstruct/loot_table/gameplay/[a-z0-9_]+\.json'),
     # Crafting, smelting, blasting and stonecutting recipes of the smeltery blocks and the commons, converted to the game's own recipe format by the importer.
     re.compile(r'data/tconstruct/recipe(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
@@ -129,6 +134,171 @@ def check_loot_modifier(item, name):
     for function in item.get('functions', []):
         if function.get('function') not in LOOT_MODIFIER_FUNCTIONS:
             raise ValueError(f'unreviewed loot modifier function in {name}')
+ADVANCEMENT_TRIGGERS = {'minecraft:inventory_changed', 'minecraft:placed_block', 'minecraft:location', 'minecraft:tick', 'minecraft:player_interacted_with_entity', 'tconstruct:block_container_opened'}
+ADVANCEMENT_KEYS = {'parent', 'display', 'criteria', 'requirements', 'rewards', 'sends_telemetry_event'}
+TOOL_PREDICATE_TYPES = {'tconstruct:has_modifier', 'tconstruct:has_material', 'tconstruct:has_volatile_key', 'tconstruct:tool_action', 'tconstruct:stat_in_range', 'tconstruct:stat_in_set', 'mantle:and', 'mantle:or', 'mantle:set', 'mantle:tag', 'mantle:inverted'}
+
+
+def check_tool_predicate(node, name):
+    """Tool predicates use only the forms the advancement consumer decodes (the original's
+    advancement data forms; anything else is rejected there too, never treated as true)."""
+    if isinstance(node, str):
+        if node != 'tconstruct:has_upgrades':
+            raise ValueError(f'unreviewed tool predicate singleton in {name}')
+        return
+    if not isinstance(node, dict) or node.get('type') not in TOOL_PREDICATE_TYPES:
+        raise ValueError(f'unreviewed tool predicate in {name}')
+    kind = node['type']
+    if kind in ('mantle:and', 'mantle:or'):
+        predicates = node.get('predicates')
+        if not isinstance(predicates, list) or not predicates:
+            raise ValueError(f'a composite tool predicate needs predicates in {name}')
+        for sub in predicates:
+            check_tool_predicate(sub, name)
+    elif kind == 'mantle:inverted':
+        inner = dict(node)
+        inner['type'] = node.get('inverted_type')
+        check_tool_predicate(inner, name)
+    elif kind == 'mantle:set':
+        if not isinstance(node.get('items'), list) or not all(isinstance(entry, str) for entry in node['items']):
+            raise ValueError(f'a set tool predicate needs item IDs in {name}')
+    elif kind == 'mantle:tag':
+        if not isinstance(node.get('tag'), str):
+            raise ValueError(f'a tag tool predicate needs a tag ID in {name}')
+    elif kind == 'tconstruct:has_modifier':
+        modifier = node.get('modifier')
+        if not isinstance(modifier, dict) or modifier.get('type') != 'tconstruct:single' or not isinstance(modifier.get('modifier'), str):
+            raise ValueError(f'only single-modifier matches are reviewed in {name}')
+        if node.get('check') not in ('upgrades', 'all'):
+            raise ValueError(f'a modifier match needs its check in {name}')
+        level = node.get('level')
+        if level is not None and not isinstance(level, (int, float)) and not (isinstance(level, dict) and set(level) <= {'min', 'max'}):
+            raise ValueError(f'a modifier level must be a number or a range in {name}')
+    elif kind == 'tconstruct:has_material':
+        if not isinstance(node.get('material'), str) or ('index' in node and not isinstance(node['index'], int)):
+            raise ValueError(f'a material match needs a variant string and an integer index in {name}')
+    elif kind == 'tconstruct:has_volatile_key':
+        if not isinstance(node.get('key'), str):
+            raise ValueError(f'a volatile key match needs a key in {name}')
+    elif kind == 'tconstruct:tool_action':
+        if not isinstance(node.get('action'), str):
+            raise ValueError(f'a tool action match needs an action in {name}')
+    elif kind == 'tconstruct:stat_in_range':
+        if not isinstance(node.get('stat'), str) or any(key in node and not isinstance(node[key], (int, float)) for key in ('min', 'max')):
+            raise ValueError(f'a stat range needs a stat and numeric bounds in {name}')
+    elif kind == 'tconstruct:stat_in_set':
+        if not isinstance(node.get('stat'), str) or not isinstance(node.get('values'), list):
+            raise ValueError(f'a stat set needs a stat and values in {name}')
+
+
+def check_item_predicate(node, name):
+    if not isinstance(node, dict) or set(node) - {'item', 'items', 'tag', 'count', 'durability', 'enchantments', 'nbt', 'potion', 'type', 'predicate'}:
+        raise ValueError(f'unreviewed item predicate in {name}')
+    if 'type' in node:
+        if node['type'] != 'tconstruct:tool_stack' or 'predicate' not in node:
+            raise ValueError(f'only the tool_stack item predicate is reviewed in {name}')
+        check_tool_predicate(node['predicate'], name)
+    for key in ('item', 'tag', 'potion'):
+        if key in node and not isinstance(node[key], str):
+            raise ValueError(f'an item predicate field must be a string in {name}')
+    if 'items' in node and not (isinstance(node['items'], list) and all(isinstance(entry, str) for entry in node['items'])):
+        raise ValueError(f'an item predicate items field must be item IDs in {name}')
+
+
+def check_entity_predicates(node, name):
+    """Entity predicate condition lists, as location and interaction criteria carry them."""
+    if not isinstance(node, list):
+        raise ValueError(f'entity conditions must be a list in {name}')
+    for entry in node:
+        if not isinstance(entry, dict) or set(entry) - {'condition', 'entity', 'predicate'} or entry.get('condition') != 'minecraft:entity_properties':
+            raise ValueError(f'only entity_properties conditions are reviewed in {name}')
+        predicate = entry.get('predicate') or {}
+        if not isinstance(predicate, dict) or set(predicate) - {'type', 'location', 'equipment', 'stepping_on'}:
+            raise ValueError(f'unreviewed entity predicate in {name}')
+        if 'type' in predicate and not isinstance(predicate['type'], str):
+            raise ValueError(f'an entity type predicate must be a string in {name}')
+        location = predicate.get('location')
+        if location is not None and (not isinstance(location, dict) or set(location) - {'structure', 'biome', 'dimension', 'position', 'smokey', 'light', 'block', 'fluid'}):
+            raise ValueError(f'unreviewed location predicate in {name}')
+        equipment = predicate.get('equipment')
+        if equipment is not None:
+            if not isinstance(equipment, dict):
+                raise ValueError(f'equipment predicates must be an object in {name}')
+            for slot_predicate in equipment.values():
+                check_item_predicate(slot_predicate, name)
+
+
+def check_advancement(item, name):
+    """Gameplay advancements use only the reviewed triggers, condition shapes and predicate
+    forms: the ones the host's engine and the port's advancement consumers evaluate."""
+    if not isinstance(item, dict) or set(item) - ADVANCEMENT_KEYS:
+        raise ValueError(f'unreviewed advancement keys in {name}')
+    criteria = item.get('criteria')
+    if not isinstance(criteria, dict) or not criteria:
+        raise ValueError(f'an advancement needs criteria: {name}')
+    display = item.get('display')
+    if display is not None:
+        if not isinstance(display, dict) or set(display) - {'icon', 'title', 'description', 'frame', 'background', 'show_toast', 'announce_to_chat', 'hidden'}:
+            raise ValueError(f'unreviewed display keys in {name}')
+        icon = display.get('icon')
+        if not isinstance(icon, dict) or set(icon) != {'id'} or not isinstance(icon['id'], str):
+            raise ValueError(f'a display icon must be a single item ID in {name}')
+    rewards = item.get('rewards')
+    if rewards is not None and (not isinstance(rewards, dict) or set(rewards) - {'recipes', 'loot', 'experience', 'function'}):
+        raise ValueError(f'unreviewed rewards in {name}')
+    requirements = item.get('requirements')
+    if requirements is not None and not (isinstance(requirements, list) and all(
+            isinstance(group, list) and all(isinstance(criterion, str) and criterion in criteria for criterion in group)
+            for group in requirements)):
+        raise ValueError(f'requirements must name criteria in {name}')
+    for criterion in criteria.values():
+        if not isinstance(criterion, dict) or set(criterion) - {'trigger', 'conditions'}:
+            raise ValueError(f'unreviewed criterion keys in {name}')
+        trigger = criterion.get('trigger')
+        if trigger not in ADVANCEMENT_TRIGGERS:
+            raise ValueError(f'unreviewed advancement trigger in {name}')
+        conditions = criterion.get('conditions') or {}
+        if not isinstance(conditions, dict):
+            raise ValueError(f'criterion conditions must be an object in {name}')
+        if trigger == 'minecraft:inventory_changed':
+            if set(conditions) - {'items'}:
+                raise ValueError(f'unreviewed inventory_changed conditions in {name}')
+            for entry in conditions.get('items', []):
+                check_item_predicate(entry, name)
+        elif trigger == 'tconstruct:block_container_opened':
+            if set(conditions) != {'type'} or conditions['type'] not in ('tconstruct:smeltery', 'tconstruct:foundry'):
+                raise ValueError(f'a container opened criterion names the smeltery or the foundry in {name}')
+        elif trigger == 'minecraft:placed_block':
+            if set(conditions) - {'item', 'location', 'player'}:
+                raise ValueError(f'unreviewed placed_block conditions in {name}')
+            location = conditions.get('location')
+            if not isinstance(location, list) or not all(isinstance(entry, dict) and set(entry) <= {'block', 'condition', 'properties'} for entry in location):
+                raise ValueError(f'a placed_block location must be block predicates in {name}')
+            if 'item' in conditions:
+                check_item_predicate(conditions['item'], name)
+        elif trigger == 'minecraft:location':
+            if set(conditions) - {'player', 'stepping_on'}:
+                raise ValueError(f'unreviewed location conditions in {name}')
+            check_entity_predicates(conditions.get('player'), name)
+        elif trigger == 'minecraft:player_interacted_with_entity':
+            if set(conditions) - {'entity', 'item', 'player'}:
+                raise ValueError(f'unreviewed interaction conditions in {name}')
+            check_entity_predicates(conditions.get('entity'), name)
+            if 'item' in conditions:
+                check_item_predicate(conditions['item'], name)
+        elif trigger == 'minecraft:tick':
+            if conditions:
+                raise ValueError(f'a tick criterion carries no conditions here in {name}')
+
+
+def check_reward_loot(item, name):
+    """Advancement reward tables (gameplay) give plain items and nothing else."""
+    if not isinstance(item, dict) or item.get('type') != 'minecraft:advancement_reward' or not isinstance(item.get('pools'), list):
+        raise ValueError(f'a gameplay loot table must be an advancement reward table with pools: {name}')
+    for pool in item['pools']:
+        for entry in pool.get('entries', []):
+            if entry.get('type') != 'minecraft:item' or not isinstance(entry.get('name'), str):
+                raise ValueError(f'only plain item entries are reviewed in a gameplay loot table: {name}')
 
 
 def plan(root):
@@ -311,8 +481,14 @@ def checked_content(root, version):
                 if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
                     raise ValueError(f'a language file must map keys to strings: {name}')
                 continue
+            if '/advancement/' in name:
+                check_advancement(item, name)
+                continue
             if '/loot_table/' in name:
-                check_loot(item, name)
+                if '/gameplay/' in name:
+                    check_reward_loot(item, name)
+                else:
+                    check_loot(item, name)
                 continue
             if '/loot_modifiers/' in name:
                 check_loot_modifier(item, name)
