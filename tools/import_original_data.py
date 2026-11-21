@@ -1768,9 +1768,9 @@ def smeltery_blocks():
 def smeltery_unit6_blocks():
     """The rest of the structure blocks and the smeltery's fluid interface (TinkerSmeltery; every one requires the correct tool and
     uses structureProps, noOcclusion for the non-solid ones): grout, slabs, stairs, walls, fences, scorched pillars, glass, panes, ladders,
-    the drains and ducts (factor 2 seared, 3 scorched) and the four tank types of each kind. Templates are the vanilla block of the
+    the drains, ducts and chutes (factor 2 seared, 3 scorched) and the four tank types of each kind. Templates are the vanilla block of the
     same class (the host copies its states and shape); the slabs and stairs of the original are smeltery component block entities
-    without an `in_structure` state, the glass, pillars, ladders, drains and ducts carry it. Soul glass, chutes, fluid cannons, lanterns,
+    without an `in_structure` state, the glass, pillars, ladders, drains, ducts and chutes carry it. Soul glass, fluid cannons, lanterns,
     gauges, the casting tank, the proxy tank and the alloyer are other units."""
     facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
     in_structure = {'type': 'boolean'}
@@ -1807,7 +1807,7 @@ def smeltery_unit6_blocks():
         # the ladders' own sounds are METAL / BASALT
         blocks[f'{kind}_ladder'] = declare('minecraft:ladder', color, sound, hardness, resistance, {'in_structure': in_structure, 'bottom': {'type': 'boolean'}}, False)
         factor = 2 if base else 3
-        for part in ('drain', 'duct'):
+        for part in ('drain', 'duct', 'chute'):
             blocks[f'{kind}_{part}'] = declare('minecraft:stone', color, sound, hardness * factor, resistance * factor, {'in_structure': in_structure, 'facing': facing})
         for tank in ('fuel_tank', 'fuel_gauge', 'ingot_tank', 'ingot_gauge'):
             light = {'type': 'enum', 'values': [str(level) for level in range(16)]}

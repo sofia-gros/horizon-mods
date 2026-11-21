@@ -2550,7 +2550,7 @@ fn a_faucet_pours_shipped_molten_iron_onto_a_cast_and_the_table_makes_an_ingot_a
 /// The crafting, smelting and stonecutting recipes the importer converted for the smeltery blocks, in the game's recipe format: every one
 /// makes something this port declares (or vanilla), reads only items it declares or vanilla ones, and a shaped one defines every key its
 /// pattern uses. The obtaining chain of the casting loop (grout, seared bricks, seared stone, drains, ducts, tanks, table, basin, faucet,
-/// channel, melter, heater) is present.
+/// channel, melter, heater) is present; the scorched chute is not among them (its recipe names the obsidian pane, which this port does not declare).
 #[test]
 fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
     let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct");
@@ -2591,9 +2591,9 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 88, "the smeltery's crafting recipes (the copper can came with the fluid items, the four table recipes with the parts data) the importer converts; the rest name items this port does not declare yet");
+    assert_eq!(count, 89, "the smeltery's crafting recipes (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes) the importer converts; the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
-                 "seared_faucet", "seared_channel", "seared_melter", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel",
+                 "seared_faucet", "seared_channel", "seared_melter", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can",
                  "tinker_station", "part_builder", "modifier_worktable", "pattern"] {
         assert!(made.contains(&format!("tconstruct:{item}")), "{item} is not craftable");

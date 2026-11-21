@@ -3,8 +3,10 @@
 //! answers a faucet, channel or pipe with the controller's tank; a duct does the same for one fluid only, the fluid of the container in
 //! its slot. The structure tells these blocks their master (`master` in their saved data, written when the structure forms and cleared
 //! when a block leaves it), and a servant that already answers to another controller blocks a second structure (`isValidMaster`).
-//! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing, the drain's displayed fluid, the
-//! duct's slot synchronisation packet and the chute's item reach are not ported. A neighbour's fluid query on these blocks is answered by
+//! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing, the drain's displayed fluid and
+//! the duct's slot synchronisation packet are not ported. A chute is registered and keeps its master like a drain, but its item reach is
+//! not: PlutoLib forwards a neighbour's fluid query (`fluid_forward`) and offers no item forward to answer an item query with the
+//! master's inventory, so a chute exposes no items. A neighbour's fluid query on these blocks is answered by
 //! PlutoLib's host adapter through `FluidStorage` over the loaded block entities, because their storage is their saved data read through
 //! these hooks, which the host's own tank calls cannot serve.
 use crate::{
@@ -20,13 +22,14 @@ const DUCT_BACKGROUND: &str = "tconstruct:gui/duct";
 
 pub(crate) const DRAINS: [&str; 2] = ["seared_drain", "scorched_drain"];
 pub(crate) const DUCTS: [&str; 2] = ["seared_duct", "scorched_duct"];
+pub(crate) const CHUTES: [&str; 2] = ["seared_chute", "scorched_chute"];
 /// The saved position of the controller a servant answers to; empty (or missing) for none.
 pub(crate) const TAG_MASTER: &str = "master";
 
 /// Whether a block is a servant that keeps its master in its block entity (the structure blocks with no block entity of their own only
 /// carry `in_structure`).
 pub(crate) fn keeps_master(block: &str) -> bool {
-    DRAINS.contains(&block) || DUCTS.contains(&block) || crate::tank::capacity_of(block).is_some()
+    DRAINS.contains(&block) || DUCTS.contains(&block) || CHUTES.contains(&block) || crate::tank::capacity_of(block).is_some()
 }
 
 /// The master a servant was told (`ServantTileEntity.getMasterPos`).
@@ -127,6 +130,11 @@ pub(crate) fn register() {
         // a drain answers with the whole tank of its master
         BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })));
     }
+    for name in CHUTES {
+        let block = Identifier::new("tconstruct", name).expect("valid chute id");
+        // a chute keeps its master like a drain; its item reach is not registered (no item forward in PlutoLib, see the module notes)
+        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data());
+    }
     for name in DUCTS {
         let block = Identifier::new("tconstruct", name).expect("valid duct id");
         // SingleItemContainerMenu: one slot at (80, 20) over a 133 high window, the inventory at 51
@@ -216,6 +224,15 @@ mod tests {
         assert_eq!(storage.fill([0, 1, 1], &fluid("tconstruct:molten_iron", 20), true), 0);
     }
 
+    #[test]
+    fn a_chute_is_registered_with_a_block_entity_of_its_own() {
+        register();
+        for name in CHUTES {
+            let kind = BlockEntityTypeRegistry::get(&format!("tconstruct:{name}")).expect("chute block entity type");
+            assert_eq!(kind.block.to_string(), format!("tconstruct:{name}"));
+        }
+    }
+
     /// A neighbour reach that answers from the fluid storage of the world: what the host's adapter has to do.
     struct Reach<'a>(&'a mut MemoryBlockEntities);
     impl NeighbourOps for Reach<'_> {
@@ -260,6 +277,6 @@ mod tests {
         assert!(foreign_to(&data, [9, 9, 9], |_| true), "answers to a controller that is still there");
         assert!(!foreign_to(&data, [9, 9, 9], |_| false), "its controller is gone");
         assert!(!foreign_to(&NbtCompound::new(), [9, 9, 9], |_| true), "no master yet");
-        assert!(keeps_master("seared_drain") && keeps_master("scorched_fuel_tank") && !keeps_master("seared_stone"));
+        assert!(keeps_master("seared_drain") && keeps_master("seared_chute") && keeps_master("scorched_chute") && keeps_master("scorched_fuel_tank") && !keeps_master("seared_stone"));
     }
 }
