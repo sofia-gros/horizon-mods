@@ -18,9 +18,23 @@ pub(crate) fn sync_visuals(slot: &mut ItemSlot, env: &Environment) -> Result<(),
     slot.damage = u32::try_from(damage(data)).unwrap_or(0);
     slot.tool = match env.definition { Some(definition) => mining_component(data, definition)?, None => None };
     slot.attribute_modifiers = attribute_modifiers(data, env);
-    // The tool's enchantments come from its modifiers alone; a tool with none keeps whatever component it has (none).
-    let levels = crate::tool_stack::enchantments(data, env);
-    slot.enchantments = if levels.is_empty() && slot.enchantments.is_none() { None } else { Some(levels) };
+    // The stack's enchantments are the ones its modifiers give plus the ones a player added (anvil,
+    // enchanting table): the given ones are republished, the added ones are kept and recorded in the
+    // tool's data, where readers without the slot (the protection hook, whose damage event reports
+    // no components) can still count them. A slot built from the tool's data alone has no component
+    // to read, so the recorded set stands.
+    let given = crate::tool_stack::enchantments(data, env);
+    let added: std::collections::BTreeMap<String, i32> = match &slot.enchantments {
+        Some(current) => current.iter().filter_map(|(name, level)| {
+            let added = level - given.get(name).copied().unwrap_or(0);
+            (added > 0).then(|| (name.clone(), added))
+        }).collect(),
+        None => crate::tool_stack::added_enchantments(data),
+    };
+    let mut carried = given.clone();
+    for (name, level) in &added { *carried.entry(name.clone()).or_insert(0) += level; }
+    slot.enchantments = if carried.is_empty() { None } else { Some(carried) };
+    crate::tool_stack::set_added_enchantments(&mut slot.custom_data, &added);
     Ok(())
 }
 
@@ -162,6 +176,26 @@ mod tests {
         let before = slot.clone();
         assert_eq!(damage_slot(&mut slot, &env, 2, false, true, None, &mut || 1.0).unwrap().applied, 0);
         assert_eq!(slot, before);
+    }
+    #[test]
+    fn a_players_enchantments_survive_a_sync_and_are_recorded_in_the_tool_data() {
+        let (data, materials, registry) = world();
+        let env = Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
+        let mut slot = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        assert!(rebuild(&mut slot, &env).unwrap());
+        // The player enchants the tool; its modifiers give no enchantments.
+        slot.enchantments = Some([("minecraft:fortune".to_owned(), 2)].into_iter().collect());
+        // The next sync (here, taking damage) must not wipe the component, and must record the
+        // added levels in the tool's data for readers that never see the component.
+        damage_slot(&mut slot, &env, 1, true, true, None, &mut || 1.0).unwrap();
+        let fortune: std::collections::BTreeMap<String, i32> = [("minecraft:fortune".to_owned(), 2)].into_iter().collect();
+        assert_eq!(slot.enchantments, Some(fortune.clone()));
+        assert_eq!(crate::tool_stack::added_enchantments(&slot.custom_data), fortune);
+        // A slot rebuilt from the data alone keeps the recorded enchantments published.
+        let mut rebuilt = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        rebuilt.custom_data = slot.custom_data.clone();
+        sync_visuals(&mut rebuilt, &env).unwrap();
+        assert_eq!(rebuilt.enchantments, Some(fortune));
     }
     #[test]
     fn an_unready_environment_leaves_the_slot_untouched() {

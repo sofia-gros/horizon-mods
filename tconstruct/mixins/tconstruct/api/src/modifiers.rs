@@ -331,6 +331,8 @@ pub(crate) struct Registry {
     pub definitions_loaded: bool,
     pub generation: u64,
     pub problems: Vec<String>,
+    /// The enchantment-to-modifier map, loaded with the definitions (ModifierManager holds it too).
+    pub enchantment_map: crate::enchantment_map::EnchantmentMap,
 }
 impl Default for Registry {
     fn default() -> Self {
@@ -339,7 +341,8 @@ impl Default for Registry {
         empty.empty_sentinel = true;
         Self { static_modifiers: [(id, Arc::new(empty))].into_iter().collect(), expected: BTreeSet::new(),
             dynamic: BTreeMap::new(), tags: BTreeMap::new(), reverse_tags: BTreeMap::new(),
-            definitions_loaded: false, generation: 0, problems: Vec::new() }
+            definitions_loaded: false, generation: 0, problems: Vec::new(),
+            enchantment_map: crate::enchantment_map::EnchantmentMap::default() }
     }
 }
 impl Registry {
@@ -369,6 +372,7 @@ impl Registry {
     pub fn contains_static(&self, id: &Identifier) -> bool { self.static_modifiers.contains_key(id) || self.expected.contains(id) }
     pub fn clear_dynamic(&mut self) {
         self.dynamic.clear(); self.tags.clear(); self.reverse_tags.clear();
+        self.enchantment_map = crate::enchantment_map::EnchantmentMap::default();
         self.definitions_loaded = false; self.problems.clear();
         self.generation = self.generation.wrapping_add(1);
     }
@@ -432,6 +436,22 @@ impl Registry {
             for member in members { self.reverse_tags.entry(member.clone()).or_default().insert(tag.clone()); }
         }
     }
+
+    /// ModifierManager's apply pass reads the enchantment map after the modifiers and their
+    /// tags: `stack` is the map file's resource stack, `tag_stacks` the modifier_like
+    /// enchantment tags its `#` keys name into.
+    pub fn load_enchantment_map(&mut self, stack: Option<&pluto_lib::JsonResourceStack>, tag_stacks: &[pluto_lib::JsonResourceStack]) {
+        self.enchantment_map = crate::enchantment_map::EnchantmentMap::load(stack, tag_stacks, &|id| self.get(id).is_some());
+        self.problems.extend(self.enchantment_map.problems.iter().cloned());
+    }
+
+    /// ModifierManager.get(enchantment): the modifier a stack carrying this enchantment converts to.
+    pub fn modifier_for_enchantment(&self, enchantment: &Identifier) -> Option<&Identifier> {
+        self.enchantment_map.modifier_for(enchantment)
+    }
+
+    /// ModifierManager.hasEnchantment: the modifier is the target of an enchantment mapping.
+    pub fn has_enchantment(&self, modifier: &Identifier) -> bool { self.enchantment_map.has_enchantment(modifier) }
 
     /// Resolve before merging. Optional missing references are omitted; required
     /// missing implementations error instead of being silently replaced by empty hooks.
@@ -666,6 +686,13 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
     ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
         Identifier::new("tconstruct", "modifier_tags").unwrap(), TAG_FOLDER, |_| Ok(()),
     )?;
+    // The enchantment map's folder and its tag folder, declared so the modifiers pass below can read their stacks.
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "enchantment_map").unwrap(), crate::enchantment_map::FOLDER, |_| Ok(()),
+    )?;
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "enchantment_tags").unwrap(), crate::enchantment_map::TAG_FOLDER, |_| Ok(()),
+    )?;
     ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
         Identifier::new("tconstruct", "modifiers").unwrap(), FOLDER, move |files| {
             let context = context().and_then(|context| {
@@ -677,6 +704,11 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
                 Ok((context, tags)) => {
                     state.reload(files, &context);
                     state.load_tags(&tags);
+                    // The enchantment map rides the same pass, read after the modifiers and tags as ModifierManager reads it.
+                    let stacks = ResourceManagerHelper::reload_json_stacks(crate::enchantment_map::FOLDER).unwrap_or_default();
+                    let map_stack = stacks.iter().find(|stack| stack.id.path() == crate::enchantment_map::FILE);
+                    let tag_stacks = ResourceManagerHelper::reload_json_stacks(crate::enchantment_map::TAG_FOLDER).unwrap_or_default();
+                    state.load_enchantment_map(map_stack, &tag_stacks);
                     for problem in &state.problems { eprintln!("Tinkers: {problem}"); }
                     Ok(())
                 },

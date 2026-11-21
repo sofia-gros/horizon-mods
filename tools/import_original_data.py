@@ -200,11 +200,28 @@ def copy_modifier_recipes():
         shutil.rmtree(MODIFIER_RECIPE_TARGET)
     count = 0
     for path in sorted(MODIFIER_RECIPE_SOURCE.rglob('*.json')):
-        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier'):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting'):
             continue
         destination = MODIFIER_RECIPE_TARGET / path.relative_to(MODIFIER_RECIPE_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+def copy_enchantment_data():
+    """The enchantment-to-modifier map and the modifier_like enchantment tags its # keys name, byte
+    for byte. Every tag entry names another mod's enchantment as optional, so the tags resolve empty
+    in this game; they are kept so a datapack defining one of those enchantments makes the mapping live."""
+    shutil.copyfile(SOURCE / 'enchantments_to_modifiers.json', TARGET / 'enchantments_to_modifiers.json')
+    source = TAG_SOURCE / 'enchantment/modifier_like'
+    target = TAG_TARGET / 'enchantment/modifier_like'
+    if target.exists():
+        shutil.rmtree(target)
+    count = 0
+    for path in sorted(source.glob('*.json')):
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target / path.name)
         count += 1
     return count
 
@@ -2424,6 +2441,7 @@ def main():
     fluid_count, fluid_names = write_fluid_defs()
     write_render_data()
     tags = copy_tags() + copy_damage_tags() + copy_fluid_host_tags(fluid_names)
+    copy_enchantment_data()
     write_creative_fluids(fluid_names)
     tags += write_block_tag_ingredients()
     write_damage_vanilla()

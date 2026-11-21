@@ -21,7 +21,8 @@ CONTENT_PATHS = (
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/enchantments_to_modifiers\.json'),
+    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
@@ -233,6 +234,11 @@ def checked_content(root, version):
     for name, payload in files.items():
         if name.endswith('.json'):
             item = json.loads(payload.decode())
+            if name == 'data/tconstruct/tinkering/enchantments_to_modifiers.json':
+                # The enchantment-to-modifier map: enchantment (or #tag) IDs to modifier IDs.
+                if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
+                    raise ValueError(f'the enchantment map must map ID strings to ID strings: {name}')
+                continue
             if '/tinkering/' in name:
                 if not isinstance(item, dict):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
@@ -245,7 +251,7 @@ def checked_content(root, version):
                 continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
-                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier')
+                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
                 elif '/recipes/tools/parts/builder/' in name:
                     reviewed = ('tconstruct:part_builder',)
                 elif '/recipes/tools/severing/' in name:

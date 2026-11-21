@@ -29,6 +29,10 @@ mod tool_predicate;
 mod modifier_modules;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifiers.rs"]
 mod modifiers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/enchantment_map.rs"]
+mod enchantment_map;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/enchantment_converting.rs"]
+mod enchantment_converting;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_stats.rs"]
 mod material_stats;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_snapshot.rs"]
