@@ -3,6 +3,8 @@
     "tconstruct:ender_slime_dirt",
     "tconstruct:scorched_drain",
     "tconstruct:scorched_chute",
-    "tconstruct:foundry_controller"
+    "tconstruct:foundry_controller",
+    "tconstruct:obsidian_gauge",
+    "tconstruct:end_fluid_cannon"
   ]
 }
