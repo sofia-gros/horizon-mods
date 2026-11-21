@@ -154,7 +154,7 @@
       "name": "pluto_item_behavior_access",
       "visibility": "pub",
       "source_file": "pluto-item-behavior-access.rs",
-      "source_sha256": "2e410c492c73b2ccfb13e28b145a5259528bc555c5eebb4dc776327d0ad74218"
+      "source_sha256": "9fe009874dd2252de201997f054e8e3f391243f8d61ec07174e52aef6bd4db0e"
     },
     {
       "module_id": "pluto-item-placement-export",
@@ -270,6 +270,39 @@
       "bindings": [{"name":"m","ty":"&Mob","value":"m"},{"name":"w","ty":"&MobWorld<'_>","value":"w"}],
       "source_file": "pluto-item-mask-head.rs",
       "source_sha256": "efa9273a99a67d0d9f9f1f79f22c4add5920348fb00c2af0edf1ac269659d502"
+    },
+    {
+      "injection_id": "pluto-item-enchantability",
+      "target": "horizon_items::enchant::Enchantments::enchantable_of",
+      "file": "crates/horizon-items/src/enchant.rs",
+      "function_fingerprint": "54b23af5756c0e46287e994df120e33e223fe28da7a2d21996131490ab433daf",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [{"name":"stack","ty":"&ItemStack","value":"stack"}],
+      "source_file": "pluto-item-enchantability-head.rs",
+      "source_sha256": "7c57830a4b83cb328badca535cbbfa6c654ecbb3dfac445f3197e5f39b30d685"
+    },
+    {
+      "injection_id": "pluto-item-shear-mob",
+      "target": "horizon_client::game::creatures::Game<'_>::interact_shear_mob",
+      "file": "crates/horizon-client/src/game/creatures.rs",
+      "function_fingerprint": "cf7e91914ee4b6770309257fc197dcf97bfb52a8fc0770cb5d5f91dda285ba77",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [{"name":"game","ty":"&mut Game<'_>","value":"&mut *self"},{"name":"index","ty":"usize","value":"index"},{"name":"item","ty":"&str","value":"item"}],
+      "source_file": "pluto-item-shear-head.rs",
+      "source_sha256": "db43dba66c02dcdbf83c05d769f5d05c554e255e94346ec88bb34bcc6612cd64"
+    },
+    {
+      "injection_id": "pluto-item-shear-saddle",
+      "target": "horizon_client::game::mounts::Game<'_>::shear_saddle",
+      "file": "crates/horizon-client/src/game/mounts.rs",
+      "function_fingerprint": "756a8d9b5495e65e9d07951a8c1527aa95ea43f73a1409ba815699c8c2632285",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [{"name":"game","ty":"&mut Game<'_>","value":"&mut *self"},{"name":"index","ty":"usize","value":"index"},{"name":"item","ty":"&str","value":"item"}],
+      "source_file": "pluto-item-shear-saddle-head.rs",
+      "source_sha256": "38a95fe79eb496a1c1836496227144d3f24e306e97212e524e52c82816ced758"
     },
     {
       "injection_id": "pluto-item-placement-root-gate",
