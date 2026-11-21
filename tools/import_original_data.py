@@ -1009,8 +1009,8 @@ ASSET_TARGET = ROOT / 'tconstruct/content/assets/tconstruct'
 BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
 HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
 # Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
-SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
-SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct']
+SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller', 'scorched_alloyer'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
+SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct', 'alloyer']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
 # tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
@@ -1718,8 +1718,8 @@ def world_blocks():
 
 
 def smeltery_blocks():
-    """name -> declaration of the melter, the heater, the two heating structure controllers and the plain structure blocks
-    (TinkerSmeltery: the `seared` and `scorched` controller properties, light 13 while active; the melter adds noOcclusion;
+    """name -> declaration of the melter, the heater, the two heating structure controllers, the alloyer and the plain structure blocks
+    (TinkerSmeltery: the `seared` and `scorched` controller properties, light 13 while active; the melter and the alloyer add noOcclusion;
     `searedSolidProps`/`scorchedSolidProps` for the building blocks, which add the `in_structure` state of SearedBlock). The slab,
     stair, wall and fence variants, the pillar blocks, glass, ladders and every block with a block entity of its own are other units."""
     def controller(occludes, color, sounds, hardness, resistance):
@@ -1741,6 +1741,7 @@ def smeltery_blocks():
         'seared_heater': controller(True, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
         'smeltery_controller': controller(True, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
         'foundry_controller': controller(True, 'TERRACOTTA_BROWN', 'minecraft:basalt', 9.0, 35.0),
+        'scorched_alloyer': controller(False, 'TERRACOTTA_BROWN', 'minecraft:basalt', 9.0, 35.0),
     }
     for name in ['seared_stone', 'seared_cobble', 'seared_paver', 'seared_bricks', 'seared_cracked_bricks', 'seared_fancy_bricks', 'seared_triangle_bricks']:
         blocks[name] = structure_block('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0)
@@ -1771,7 +1772,7 @@ def smeltery_unit6_blocks():
     the drains and ducts (factor 2 seared, 3 scorched) and the four tank types of each kind. Templates are the vanilla block of the
     same class (the host copies its states and shape); the slabs and stairs of the original are smeltery component block entities
     without an `in_structure` state, the glass, pillars, ladders, drains and ducts carry it. Soul glass, chutes, fluid cannons, lanterns,
-    gauges, the casting tank, the proxy tank and the alloyer are other units."""
+    gauges, the casting tank and the proxy tank are other units."""
     facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
     in_structure = {'type': 'boolean'}
     kinds = {'seared': ('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0), 'scorched': ('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0)}

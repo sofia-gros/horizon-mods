@@ -23,6 +23,15 @@ pub(crate) fn register() {
         let id = Identifier::new("tconstruct", name).expect("valid controller id");
         BlockBehaviors::register(BlockBehavior::new(id).state_for_placement(|c| Placement::State(controller_placement(c.state.clone(), c.yaw))));
     }
+    // the alloyer is a tiny multiblock controller like the melter (AlloyerBlock extends TinyMultiblockControllerBlock):
+    // the melter's placement and shape rules are its rules too
+    let alloyer = Identifier::new("tconstruct", crate::alloyer_menu::ALLOYER).expect("valid alloyer id");
+    BlockBehaviors::register(BlockBehavior::new(alloyer)
+        .state_for_placement(|c| Placement::State(crate::melter_blocks::melter_placement(c.state.clone(), c.pos, c.yaw, c.view)))
+        .update_shape(|c| {
+            let tank = c.neighbour.as_ref().and_then(|state| c.view.is_state_in_tag(state, "tconstruct:fuel_tanks")).unwrap_or(false);
+            crate::melter_blocks::melter_shape(&c.state, c.direction, tank)
+        }));
 }
 
 #[cfg(test)]
@@ -34,6 +43,19 @@ mod tests {
     fn a_controller_faces_its_placer_and_starts_unformed() {
         let state = controller_placement(BlockState::parse("tconstruct:smeltery_controller").unwrap(), 90.0);
         assert_eq!((state.property("facing"), state.property("in_structure"), state.property("active")), (Some("east"), Some("false"), Some("false")));
+        register();
+    }
+
+    #[test]
+    fn the_alloyer_joins_a_fuel_tank_below_and_loses_its_fire_with_it() {
+        let mut view = pluto_lib::MemoryBlockView::default();
+        view.tags.insert([0, 63, 0], ["tconstruct:fuel_tanks".to_owned()].into());
+        let state = BlockState::parse("tconstruct:scorched_alloyer").unwrap();
+        let placed = crate::melter_blocks::melter_placement(state, [0, 64, 0], 180.0, &view);
+        assert_eq!((placed.property("facing"), placed.property("in_structure")), (Some("south"), Some("true")));
+        let lit = placed.with("active", "true");
+        let gone = crate::melter_blocks::melter_shape(&lit, pluto_lib::Direction::Down, false).unwrap();
+        assert_eq!((gone.property("in_structure"), gone.property("active")), (Some("false"), Some("false")));
         register();
     }
 
