@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:enderbark_planks"
+  },
+  "pattern": [
+    "##"
+  ],
+  "group": "wooden_pressure_plate",
+  "result": {
+    "id": "tconstruct:enderbark_pressure_plate"
+  }
+}

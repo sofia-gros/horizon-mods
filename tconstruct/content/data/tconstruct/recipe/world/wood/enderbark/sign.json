@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:enderbark_planks",
+    "X": [
+      "minecraft:stick"
+    ]
+  },
+  "pattern": [
+    "###",
+    "###",
+    " X "
+  ],
+  "group": "sign",
+  "result": {
+    "id": "tconstruct:enderbark_sign",
+    "count": 3
+  }
+}

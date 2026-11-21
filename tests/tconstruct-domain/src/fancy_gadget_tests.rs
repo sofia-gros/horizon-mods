@@ -62,9 +62,14 @@ fn the_gadget_recipes_whose_items_exist_converted() {
     let back = read(recipes.join("fancy_frame/reversed_reversed_gold.json"));
     assert_eq!(back["ingredients"], json!(["tconstruct:reversed_gold_item_frame", "minecraft:redstone_torch"]));
     assert_eq!(back["result"]["id"], "tconstruct:gold_item_frame");
-    // The other seven name items this port does not declare yet (obsidian_pane, the clear glass family,
-    // blazewood_slab), so the importer leaves them out until those land.
-    for missing in ["armor_stands/clear.json", "armor_stands/necrotic_bone.json", "frame/gold.json", "frame/diamond.json", "frame/manyullyn.json", "frame/netherite.json", "fancy_frame/clear.json"] {
+    // Of the seven that waited, six converted once the clear glass family and the obsidian pane were
+    // declared (the clear stand and frame, and the gold, diamond, manyullyn and netherite frames);
+    // the necrotic bone stand still names items this port does not declare yet, so the importer
+    // leaves it out until those land.
+    for converted in ["armor_stands/clear.json", "frame/gold.json", "frame/diamond.json", "frame/manyullyn.json", "frame/netherite.json", "fancy_frame/clear.json"] {
+        assert!(recipes.join(converted).exists(), "{converted} converted with its items declared");
+    }
+    for missing in ["armor_stands/necrotic_bone.json"] {
         assert!(!recipes.join(missing).exists(), "{missing} waits for its items to be declared");
     }
 }
