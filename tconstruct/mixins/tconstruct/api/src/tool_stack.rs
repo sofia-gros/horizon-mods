@@ -334,10 +334,10 @@ pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crat
     })
 }
 
-/// The levels a worn armor piece adds under each armor level key, in modifier order.
-pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+/// The levels a worn armor piece adds under each armor level key, in modifier order; `slot` is the slot the piece is worn in.
+pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(Identifier, i32)> {
     let broken = is_broken(nbt);
-    saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.armor_level_modules().filter_map(move |module| module.armor_level(entry, broken)).collect::<Vec<_>>()).collect()
+    saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.armor_level_modules().filter_map(move |module| module.armor_level(entry, slot, broken)).collect::<Vec<_>>()).collect()
 }
 /// EdibleModule: whether the tool carries the edible module, and the effects eating it has, in modifier order.
 pub(crate) fn edible(nbt: &NbtCompound, env: &Environment) -> Option<Vec<crate::edible::Effect>> {
