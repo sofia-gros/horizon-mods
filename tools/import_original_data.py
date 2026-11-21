@@ -1708,6 +1708,7 @@ def world_blocks():
     for slime, (color, light) in SLIME_TYPES.items():
         # congealed: builder(color, SLIME_BLOCK).strength(0.5F).friction(0.5F).lightLevel(type light)
         blocks[f'{slime}_congealed_slime'] = block('minecraft:dirt', color, 'minecraft:slime_block', 0.5, 0.5, False, light, friction=0.5)
+        blocks[f'{slime}_congealed_slime']['collision_shapes'] = {'default': [[1, 0, 1, 15, 15, 15]]}
         if slime != 'earth':  # the earth slime block is vanilla's
             # slimeProps: builder(color, SLIME_BLOCK).friction(0.8F).noOcclusion() (no strength: 0); ichor adds its light
             blocks[f'{slime}_slime'] = block('minecraft:slime_block', color, 'minecraft:slime_block', 0.0, 0.0, False, light, friction=0.8, occludes=False)
@@ -2133,7 +2134,27 @@ def copy_vanilla_tags():
         if values:
             write_json(target / path.relative_to(folder), {'values': values})
             count += 1
-    return count
+    # SlimeDirtBlock sustains PLAINS. VegetationBlock checks this ground tag in 26.3.
+    write_json(target / 'supports_vegetation.json', {'values': [f'tconstruct:{dirt}_slime_dirt' for dirt in DIRT_TYPES]})
+    return count + 1
+
+
+def copy_cobalt_tags():
+    """Project just U1's members and nested tag references from Forge's generated tags into c:."""
+    for kind in ('item', 'block'):
+        paths = ['ores', 'ores/cobalt', 'storage_blocks', 'storage_blocks/raw_cobalt',
+                 'ore_rates/singular', 'ores_in_ground/netherrack']
+        if kind == 'item':
+            paths += ['raw_materials', 'raw_materials/cobalt']
+        for path in paths:
+            src = GENERATED_DATA / f'forge/tags/{kind}s/{path}.json'
+            entries = json.loads(src.read_text(encoding='utf-8'))['values']
+            kept = [entry.replace('#forge:', '#c:') for entry in entries
+                    if entry in ('tconstruct:cobalt_ore', 'tconstruct:raw_cobalt', 'tconstruct:raw_cobalt_block')
+                    or entry.removeprefix('#forge:') in paths]
+            if not kept:
+                raise ValueError(f'{src}: missing cobalt membership')
+            write_json(CONTENT_DATA / f'c/tags/{kind}/{path}.json', {'values': kept})
 
 
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
@@ -2209,6 +2230,7 @@ def main():
     world_loot = copy_world_loot(sorted({**world_blocks(), **smeltery_blocks()}))
     world_worldgen = copy_world_features()
     world_tags = copy_vanilla_tags()
+    copy_cobalt_tags()
     part_names, part_models, part_textures = copy_part_assets()
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
     worn_textures, worn_rows = copy_armor_worn_assets()
