@@ -361,3 +361,82 @@ fn parts_cast_from_molten_iron_and_copper_build_a_tool_in_the_station_with_their
     let strings = built.result.custom_model_data.as_ref().map(|data| data.strings.clone()).unwrap_or_default();
     assert_eq!(strings, ["iron", "copper", "iron"], "the per-material sprites show");
 }
+
+/// The world a faucet sits in, answered the way the host answers neighbour queries: a melter holding fluid behind it,
+/// a casting table below it reached through its own fluid rule, so the table's capacity comes from the cast's recipe.
+struct FaucetWorld<'a> {
+    live: Live<'a>,
+    melter: Option<FluidStack>,
+    table: State,
+    items: Vec<Option<ItemSlot>>,
+}
+
+const FAUCET_POS: [i32; 3] = [0, 64, 0];
+const MELTER_POS: [i32; 3] = [-1, 64, 0];
+const TABLE_POS: [i32; 3] = [0, 63, 0];
+
+impl pluto_lib::NeighbourOps for FaucetWorld<'_> {
+    fn item_slots(&mut self, _: pluto_lib::BlockPos, _: pluto_lib::Direction) -> Option<Vec<pluto_lib::NeighbourSlot>> { None }
+    fn extract_item(&mut self, _: pluto_lib::BlockPos, _: pluto_lib::Direction, _: usize, _: u32) -> Option<ItemSlot> { None }
+    fn insert_item(&mut self, _: pluto_lib::BlockPos, _: pluto_lib::Direction, stack: ItemSlot) -> Option<ItemSlot> { Some(stack) }
+    fn fluid_tanks(&mut self, pos: pluto_lib::BlockPos, _: pluto_lib::Direction) -> Option<Vec<pluto_lib::NeighbourTank>> {
+        match pos {
+            MELTER_POS => Some(vec![pluto_lib::NeighbourTank { fluid: self.melter.clone(), capacity: 4_000 }]),
+            TABLE_POS => Some(vec![pluto_lib::NeighbourTank { fluid: self.table.fluid.clone(), capacity: crate::casting::HOST_CAPACITY }]),
+            _ => None,
+        }
+    }
+    fn drain_fluid(&mut self, pos: pluto_lib::BlockPos, _: pluto_lib::Direction, amount: u32) -> Option<FluidStack> {
+        if pos != MELTER_POS { return None; }
+        let held = self.melter.as_mut()?;
+        let taken = amount.min(held.amount);
+        if taken == 0 { return None; }
+        let out = FluidStack { fluid: held.fluid.clone(), amount: taken };
+        held.amount -= taken;
+        if held.amount == 0 { self.melter = None; }
+        Some(out)
+    }
+    fn fill_fluid(&mut self, pos: pluto_lib::BlockPos, _: pluto_lib::Direction, stack: &FluidStack, execute: bool) -> u32 {
+        if pos != TABLE_POS { return 0; }
+        if execute { return self.table.fill(&self.live, &mut self.items, stack, false); }
+        let (mut table, mut items) = (self.table.clone(), self.items.clone());
+        table.fill(&self.live, &mut items, stack, false)
+    }
+    fn block_state(&mut self, pos: pluto_lib::BlockPos) -> Option<String> {
+        (pos == FAUCET_POS).then(|| "tconstruct:seared_faucet[facing=east]".to_owned())
+    }
+}
+
+#[test]
+fn a_faucet_click_pours_the_melters_iron_into_the_table_and_the_cast_sets_the_capacity() {
+    use crate::faucet::{Around, State as Faucet};
+    let game = game();
+    let mut world = FaucetWorld {
+        live: game.live(Station::Table),
+        melter: Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }),
+        table: State::default(),
+        items: vec![Some(ItemSlot::new(id("tconstruct:ingot_cast"), 1)), None],
+    };
+    pluto_lib::with_neighbours(&mut world, || {
+        let facing = Around::facing_of(FAUCET_POS);
+        assert_eq!(facing, pluto_lib::Direction::East, "the faucet reads its own facing");
+        let mut faucet = Faucet::default();
+        let mut around = Around::of(FAUCET_POS, facing);
+        faucet.activate(&mut around);
+        assert!(faucet.is_pouring(), "a click starts the pour");
+        for _ in 0..20 {
+            if !faucet.is_pouring() { break; }
+            faucet.tick(&mut around);
+        }
+        assert!(!faucet.is_pouring(), "the pour ends when the melter is dry");
+    });
+    assert_eq!(world.melter, None, "the melter gave up its 90");
+    assert_eq!(world.table.fluid, Some(FluidStack { fluid: id("tconstruct:molten_iron"), amount: 90 }));
+    assert_eq!(world.table.capacity, 90, "the capacity is the ingot recipe's amount, chosen by the cast in the table");
+    // the table finishes the loop: cool it, and the ingot lands in the output while the cast stays
+    let cooling = world.table.cooling.max(0);
+    assert!(cooling > 0, "a full table starts cooling");
+    for _ in 0..cooling { world.table.tick(&world.live, &mut world.items); }
+    assert_eq!(world.items[OUTPUT].as_ref().map(|stack| stack.item.to_string()), Some("minecraft:iron_ingot".to_owned()));
+    assert_eq!(world.items[INPUT].as_ref().map(|stack| stack.item.to_string()), Some("tconstruct:ingot_cast".to_owned()));
+}
