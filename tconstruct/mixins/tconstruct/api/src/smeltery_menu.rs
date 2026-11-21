@@ -5,7 +5,6 @@
 //! their heat bars in a side panel of up to 4 columns of 7. The bucket slots and the fill and empty clicks wait for fluid items.
 use crate::{
     common,
-    fluid_values::OreRate,
     melter::{fluid_order, melt_stack, LiquidFuel, Melt},
     melting_recipes::Alloy,
     fluid_ingredient::FluidTags,
@@ -176,12 +175,15 @@ impl Env for Live<'_> {
     }
 
     fn melt(&self, kind: Kind, stack: &ItemSlot) -> Option<Melt> {
-        let rate = match kind { Kind::Smeltery => OreRate::SMELTERY, Kind::Foundry => OreRate::FOUNDRY };
-        melt_stack(self.data, self.item_tags, stack, &rate, &OreRate::FOUNDRY_BYPRODUCT).map(|(melt, _)| melt)
+        // Config.Common.smelteryOreRate / foundryOreRate, read per melt as the block entities read .get() per use.
+        let rates = crate::config::ore_rates();
+        let rate = match kind { Kind::Smeltery => rates.smeltery, Kind::Foundry => rates.foundry };
+        melt_stack(self.data, self.item_tags, stack, &rate, &rates.foundry_byproduct).map(|(melt, _)| melt)
     }
 
     fn byproducts(&self, stack: &ItemSlot) -> Vec<(Identifier, i32)> {
-        melt_stack(self.data, self.item_tags, stack, &OreRate::FOUNDRY, &OreRate::FOUNDRY_BYPRODUCT).map(|(_, byproducts)| byproducts).unwrap_or_default()
+        let rates = crate::config::ore_rates();
+        melt_stack(self.data, self.item_tags, stack, &rates.foundry, &rates.foundry_byproduct).map(|(_, byproducts)| byproducts).unwrap_or_default()
     }
 
     fn liquid_fuel(&self, fluid: &Identifier) -> Option<LiquidFuel> {
