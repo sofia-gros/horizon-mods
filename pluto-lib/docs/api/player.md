@@ -380,7 +380,7 @@ An item stack as a mod sees it. `item` is the item id, `count` how many, `damage
 ```rust
 use pluto_lib::{Nbt, StackData};
 
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("durability".to_owned(), Nbt::Int(60))].into(), custom_model_data: None };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("durability".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, enchantments: Default::default() };
 assert_eq!(tool.custom_data["durability"], Nbt::Int(60));
 assert_eq!((tool.count, tool.damage), (1, 0));
 ```
@@ -453,7 +453,7 @@ use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None, enchantments: Default::default() };
 game.stacks.insert(1, vec![Some(tool)]);
 with_ops(&mut game, || {
     assert_eq!(player.stack(0).unwrap().custom_data["level"], Nbt::Int(2));
@@ -470,7 +470,7 @@ use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into(), custom_model_data: None };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into(), custom_model_data: None, enchantments: Default::default() };
 with_ops(&mut game, || {
     assert_eq!(player.give_stack(tool), None);
     assert_eq!(player.stack(0).unwrap().max_damage, Some(60));
