@@ -1,6 +1,7 @@
 {
   "values": [
     "tconstruct:gold_bars",
-    "tconstruct:cast_chest"
+    "tconstruct:cast_chest",
+    "tconstruct:gold_platform"
   ]
 }
