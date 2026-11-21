@@ -577,6 +577,14 @@ pub(crate) fn has_fluid_filler(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.filler.is_some())
 }
 
+/// Whether the block's fluid storage is its saved data read through its type's own hooks (a fluid reader, a fluid
+/// drainer or a forwarding hook), not tanks the host holds: the host's own tank calls cannot answer for those (a
+/// forwarding block has no tanks of its own, and the host lists a block with hooks as not drainable), so the host's
+/// neighbour adapter answers them through [`FluidStorage`](super::fluid_storage_api_v1::FluidStorage) instead.
+pub(crate) fn fluid_served_from_data(block: &str) -> bool {
+    BlockEntityTypeRegistry::get(block).is_some_and(|t| t.reader.is_some() || t.drainer.is_some() || t.forward.is_some())
+}
+
 /// Whether the block's block entity has an [`BlockEntityType::on_use`] hook (the host asks it on a right click).
 pub(crate) fn has_use_hook(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.user.is_some())

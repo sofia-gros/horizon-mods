@@ -264,11 +264,26 @@ impl Controller {
                 act(&mut slot, &mut finish);
             }
             self.slots[index] = slot;
-            if emptied {
-                if let Some(held) = items.get_mut(index) { *held = None; }
-                self.keys[index] = None;
-            }
+            if emptied { self.consume(items, index, env); }
         }
+    }
+
+    /// One item of the slot has melted. The original's slot limit is 1 (`MeltingModuleInventory.getSlotLimit`), so
+    /// its removal takes exactly that one item; a stack the host let in (the window caps its slots at 1, but a saved
+    /// or handed-in stack need not be) melts one item at a time and the rest stay, starting over as a fresh insert
+    /// would (the slot's setup runs again for the remainder).
+    fn consume(&mut self, items: &mut [Option<ItemSlot>], index: usize, env: &dyn Env) {
+        let Some(held) = items.get_mut(index) else { return };
+        let Some(stack) = held.as_mut() else { self.keys[index] = None; return; };
+        stack.count = stack.count.saturating_sub(1);
+        if stack.count == 0 {
+            *held = None;
+            self.keys[index] = None;
+            return;
+        }
+        let next = stack.clone();
+        self.slots[index].set_stack(Some((env.melt(self.kind, &next).map(|melt| (melt.time, melt.temperature)), false)));
+        self.keys[index] = Some(key_of(&next));
     }
 
     pub(crate) fn heat_items(&mut self, items: &mut [Option<ItemSlot>], env: &dyn Env) {
@@ -745,6 +760,36 @@ mod tests {
         assert_eq!(iron, 18);
         assert!(controller.tank.fluids().iter().any(|fluid| fluid.fluid == id("tconstruct:liquid_soul") && fluid.amount == 50));
         assert!(controller.fuel.has_fuel(), "melting something needed fuel");
+    }
+
+    #[test]
+    fn a_stack_in_a_slot_melts_one_item_at_a_time_and_keeps_the_rest() {
+        // The original's slot limit is 1, so a stack only exists when the host put it there directly;
+        // it melts one item at a time (the recipe's output is a fixed amount, never scaled by count).
+        let (mut controller, mut items, mut world) = started();
+        world.tanks.insert([4, 2, 2], Some((id("minecraft:lava"), 100_000)));
+        items[0] = Some(ItemSlot::new(id("minecraft:iron_ingot"), 4));
+        // one ingot is 60 heating passes of 4 ticks and a finishing one; 4 * 80 ticks is past the first melt
+        run(&mut controller, &mut items, &mut world, 4 * 80);
+        let iron = |controller: &Controller| controller.tank.fluids().iter().find(|fluid| fluid.fluid == id("tconstruct:molten_iron")).map(|fluid| fluid.amount);
+        assert_eq!(iron(&controller), Some(90), "one ingot's worth, not the stack's");
+        assert_eq!(items[0].as_ref().unwrap().count, 3, "the rest of the stack stays in the slot");
+        run(&mut controller, &mut items, &mut world, 4 * 80 * 3);
+        assert_eq!(iron(&controller), Some(360));
+        assert!(items[0].is_none(), "the last ingot leaves the slot empty");
+    }
+
+    #[test]
+    fn a_fire_immune_entity_is_hurt_with_magic_and_an_immune_one_is_left_alone() {
+        let (mut controller, mut items, mut world) = started();
+        world.mobs.list = vec![
+            Entity { id: 6, kind: id("minecraft:blaze"), item: None, living: Some(Living { fire_immune: true, immune: false }) },
+            Entity { id: 7, kind: id("minecraft:zombie"), item: None, living: Some(Living { fire_immune: false, immune: true }) },
+        ];
+        // tick 12 of the cycle: the entity pass
+        run(&mut controller, &mut items, &mut world, 13);
+        assert_eq!(world.mobs.hurt, vec![(6, true, 2)], "the blaze takes the default melt by magic damage; the immune zombie is not hurt");
+        assert!(controller.tank.fluids().iter().any(|fluid| fluid.fluid == id("tconstruct:liquid_soul") && fluid.amount == 50));
     }
 
     #[test]

@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -19,6 +19,8 @@ use horizon_client::pluto_host_world as horizon_world;
 use crate::pure::base::{Identifier, Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
 use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
+use crate::pure::entity_api_v1::{self, EntityOps};
+use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
@@ -706,6 +708,36 @@ impl WorldOps for HostWorld {
         }
         changed
     }
+
+    fn block_entity_data(&mut self, dimension: &str, pos: [i32; 3]) -> Option<NbtCompound> {
+        let host = self.0.get();
+        // `mod_block_entity` reaches the block entities of the level in place; another dimension answers nothing.
+        if host.dimension() != dimension {
+            return None;
+        }
+        let entity = host.mod_block_entity(pos)?;
+        Some(compound_from_tag(&entity.nbt))
+    }
+
+    fn merge_block_entity_data(&mut self, dimension: &str, pos: [i32; 3], data: &NbtCompound) -> bool {
+        let host = self.0.get();
+        if host.dimension() != dimension {
+            return false;
+        }
+        let mut data = Some(data.clone());
+        let mut merged = false;
+        host.change_mod_block_entity(pos, &mut |entity| {
+            let Some(data) = data.take() else { return };
+            merged = with_block_entity(entity, |held, _| {
+                held.extend(data.iter().map(|(key, value)| (key.clone(), value.clone())));
+                true
+            });
+        });
+        if merged {
+            host.block_entity_sync(pos);
+        }
+        merged
+    }
 }
 
 /// The host's face for a PlutoLib one (the same six, in the same order).
@@ -748,10 +780,68 @@ fn filler_takes(host: &mut dyn Host, pos: [i32; 3], face: Option<block_api_v1::D
     taken
 }
 
+/// The block entities of the level in place as a [`BlockEntityStore`]: what [`FluidStorage`] reads and writes when a
+/// neighbour's fluid query is answered through a block's own hooks. The block entity being ticked is out of the
+/// world (the host keeps it so), so a read of its own position answers nothing, as the other reaches find.
+struct HostBlockEntities {
+    host: HostHandle,
+    dimension: String,
+}
+
+impl BlockEntityStore for HostBlockEntities {
+    fn block_at(&mut self, pos: [i32; 3]) -> Option<String> {
+        let host = self.host.get();
+        let level = host.level(&self.dimension)?;
+        let text = host.level_block_state(level, pos)?;
+        BlockState::parse(&text).ok().map(|state| state.block.to_string())
+    }
+
+    fn read(&mut self, pos: [i32; 3]) -> Option<(NbtCompound, Vec<Option<ItemSlot>>)> {
+        let mut entity = self.host.get().mod_block_entity(pos)?;
+        let mut found = None;
+        with_block_entity(&mut entity, |data, items| {
+            found = Some((data.clone(), items.clone()));
+            false
+        });
+        found
+    }
+
+    fn write(&mut self, pos: [i32; 3], data: NbtCompound, items: Vec<Option<ItemSlot>>) {
+        let mut data = Some(data);
+        let mut items = Some(items);
+        let mut wrote = false;
+        self.host.get().change_mod_block_entity(pos, &mut |entity| {
+            let (Some(data), Some(items)) = (data.take(), items.take()) else { return };
+            wrote = with_block_entity(entity, |held, held_items| {
+                *held = data;
+                *held_items = items;
+                true
+            });
+        });
+        if wrote {
+            self.host.get().block_entity_sync(pos);
+        }
+    }
+}
+
 /// The containers, tanks and block states beside a ticking block entity, over the host.
 struct HostNeighbours {
     host: HostHandle,
     dimension: String,
+}
+
+impl HostNeighbours {
+    /// The block entity store of the level in place, for the fluid queries answered through a block's own hooks.
+    fn store(&mut self) -> HostBlockEntities {
+        HostBlockEntities { host: self.host, dimension: self.dimension.clone() }
+    }
+
+    /// Whether the block at `pos` holds its fluid storage in its saved data, read through its type's hooks: those
+    /// queries are answered through [`FluidStorage`] over the store, because the host's own tank calls cannot serve
+    /// them (see `block_entity_api_v1::fluid_served_from_data`).
+    fn served_from_data(&mut self, pos: [i32; 3]) -> bool {
+        block_entity_api_v1::fluid_served_from_data(&self.host.get().block(pos))
+    }
 }
 
 impl NeighbourOps for HostNeighbours {
@@ -778,6 +868,9 @@ impl NeighbourOps for HostNeighbours {
     }
 
     fn fluid_tanks(&mut self, pos: [i32; 3], face: block_api_v1::Direction) -> Option<Vec<NeighbourTank>> {
+        if self.served_from_data(pos) {
+            return FluidStorage::new(&mut self.store()).tanks(pos);
+        }
         let tanks = self.host.get().fluid_tanks(&self.dimension, pos, host_face(face))?;
         Some(tanks.into_iter().map(|tank| NeighbourTank {
             fluid: tank.fluid.as_deref().and_then(|fluid| fluid_stack_of(fluid, tank.amount)),
@@ -786,12 +879,18 @@ impl NeighbourOps for HostNeighbours {
     }
 
     fn drain_fluid(&mut self, pos: [i32; 3], face: block_api_v1::Direction, amount: u32) -> Option<FluidStack> {
+        if self.served_from_data(pos) {
+            return FluidStorage::new(&mut self.store()).drain(pos, None, amount, true);
+        }
         let amount = i32::try_from(amount).unwrap_or(i32::MAX);
         let (fluid, drained) = self.host.get().fluid_extract(&self.dimension, pos, host_face(face), amount)?;
         fluid_stack_of(&fluid, drained)
     }
 
     fn fill_fluid(&mut self, pos: [i32; 3], face: block_api_v1::Direction, stack: &FluidStack, execute: bool) -> u32 {
+        if self.served_from_data(pos) {
+            return FluidStorage::new(&mut self.store()).fill(pos, stack, execute);
+        }
         let host = self.host.get();
         let amount = i32::try_from(stack.amount).unwrap_or(i32::MAX);
         if execute {
@@ -815,6 +914,103 @@ impl NeighbourOps for HostNeighbours {
         let host = self.host.get();
         let level = host.level(&self.dimension)?;
         host.level_block_state(level, pos)
+    }
+}
+
+/// Whether an effect id names fire resistance (the host lists a mob's effects with or without the namespace).
+fn is_fire_resistance(effect: &str) -> bool {
+    effect == "minecraft:fire_resistance" || effect == "fire_resistance"
+}
+
+/// The entities of the level in place, for a ticker: item entities with their stacks, and living entities with the
+/// facts a caller's own rules decide with (fire immunity, invulnerability, fire resistance).
+struct HostEntities {
+    host: HostHandle,
+    dimension: String,
+}
+
+impl EntityOps for HostEntities {
+    fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<entity_api_v1::WorldEntity> {
+        let host = self.host.get();
+        let items: std::collections::HashMap<u32, ItemStack> = host.item_entities(&self.dimension, min, max)
+            .into_iter().map(|entity: NativeItemEntity| (entity.id, entity.stack)).collect();
+        let mut players = host.server_players();
+        if let Some(acting) = host.acting_player() {
+            players.push(acting);
+        }
+        let mut found = Vec::new();
+        for id in host.entities_in(&self.dimension, min, max) {
+            if let Some(stack) = items.get(&id) {
+                found.push(entity_api_v1::WorldEntity {
+                    id: u64::from(id),
+                    kind: Identifier::parse("minecraft:item").expect("valid id"),
+                    item: slot_of(stack),
+                    living: None,
+                });
+                continue;
+            }
+            let Some(entity) = host.entity(id) else { continue };
+            let Some(kind) = host.entity_kind(entity) else { continue };
+            let Ok(kind_id) = Identifier::parse(&kind) else { continue };
+            let living = if kind == "minecraft:player" {
+                // A player: their game mode is what makes them invulnerable, and their effects are read by uuid.
+                // The player list names the owner of a single-player world by entity id 0; they are the fallback.
+                let player = players.iter().find(|player| player.entity_id == id as i32)
+                    .or_else(|| players.iter().find(|player| player.entity_id == 0));
+                player.map(|player| entity_api_v1::LivingFacts {
+                    fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                    invulnerable: matches!(player.game_mode, 1 | 3),
+                    fire_resistant: host.effects(player.uuid)
+                        .is_some_and(|effects| effects.iter().any(|effect| is_fire_resistance(&effect.id))),
+                })
+            } else {
+                // A mob or another living kind: its saved data says whether it is alive (a health it still has)
+                // and whether it is invulnerable; its effects say whether fire resistance is on it.
+                let data = host.entity_nbt(entity);
+                let alive = data.as_ref().is_some_and(|data| data.iter()
+                    .any(|(key, tag)| key.to_string_lossy() == "Health" && matches!(tag, Tag::Float(bits) if f32::from_bits(*bits) > 0.0)));
+                alive.then(|| entity_api_v1::LivingFacts {
+                    fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                    invulnerable: data.as_ref().is_some_and(|data| data.iter()
+                        .any(|(key, tag)| key.to_string_lossy() == "Invulnerable" && matches!(tag, Tag::Byte(value) if *value != 0))),
+                    fire_resistant: host.entity_effects(entity)
+                        .is_some_and(|effects| effects.iter().any(|(effect, _, _)| is_fire_resistance(effect))),
+                })
+            };
+            found.push(entity_api_v1::WorldEntity { id: u64::from(id), kind: kind_id, item: None, living });
+        }
+        found
+    }
+
+    fn discard(&mut self, id: u64) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return false };
+        // The host has no call that removes a dropped item; ageing it out is the game's own end for one (it is
+        // discarded at 6000 ticks), reached through the same data merge the freezing action uses.
+        let mut merge = Compound::new();
+        merge.insert("Age".into(), Tag::Short(6000));
+        host.entity_merge_nbt(entity, merge)
+    }
+
+    fn set_item(&mut self, id: u64, stack: &ItemSlot) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return false };
+        // Only the id and count are merged in: the components the entity's stack already holds stay, as a data
+        // merge keeps the keys it is not given (the remainder is the same stack with fewer items).
+        let item = stack.item.to_string();
+        let mut held = Compound::new();
+        held.insert("id".into(), Tag::String(item.as_str().into()));
+        held.insert("count".into(), Tag::Int(stack.count.min(i32::MAX as u32) as i32));
+        let mut merge = Compound::new();
+        merge.insert("Item".into(), Tag::Compound(held));
+        host.entity_merge_nbt(entity, merge)
+    }
+
+    fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        self.host.get().hurt_entity(&self.dimension, id, amount, damage_type, None)
     }
 }
 
@@ -2047,12 +2243,14 @@ impl Hooks for PlutoHooks {
         let dimension = host.dimension().to_owned();
         let handle = HostHandle::new(host);
         let entity = &mut *event.entity;
-        // The ticker sees the world of its dimension (reads, and block state writes), its neighbours' containers and tanks, and which
-        // dimension it ticks in. The ticking entity itself is out of the world, as the host documents.
+        // The ticker sees the world of its dimension (reads, and block state writes), its neighbours' containers and tanks, the
+        // entities around it, and which dimension it ticks in. The ticking entity itself is out of the world, as the host documents.
         world_api_v1::with_ticking_dimension(&dimension, || {
             world_api_v1::with_world(&mut HostWorld(handle), || {
                 neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
-                    with_block_entity(entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
+                    entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: dimension.clone() }, || {
+                        with_block_entity(entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
+                    });
                 });
             });
         });

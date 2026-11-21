@@ -18,6 +18,7 @@ pub mod living_entity_drops;
 pub mod living_entity_behavior;
 pub(crate) mod entity_spawn_api;
 pub mod entity_type_api;
+pub mod entity_api_v1;
 pub mod events_interaction_v0;
 pub mod fluid_api_v1;
 pub mod fluid_item_api_v1;

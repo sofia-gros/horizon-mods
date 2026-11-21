@@ -15,7 +15,7 @@ use crate::{
     smeltery_tank::SmelteryTank,
 };
 use pluto_lib::{
-    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockState, Direction, FluidRegistry, I18n, Identifier, ItemSlot, Nbt, NbtCompound,
+    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockState, Direction, EntityReach, FluidRegistry, I18n, Identifier, ItemSlot, Nbt, NbtCompound,
     NbtCompoundExt, Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, World,
 };
 
@@ -95,15 +95,47 @@ pub(crate) struct Live<'a> {
     entity_tags: Option<std::sync::Arc<pluto_lib::RegistryLookup>>,
     pos: Pos,
     seed: u32,
+    reach: Reach,
 }
 
 impl<'a> Live<'a> {
     pub(crate) fn new(data: &'a Data, item_tags: Option<&'a pluto_lib::RegistryLookup>, pos: Pos) -> Self {
         let seed = (pos[0] as u32).wrapping_mul(73856093) ^ (pos[1] as u32).wrapping_mul(19349663) ^ (pos[2] as u32).wrapping_mul(83492791) | 1;
-        Live { data, item_tags, entity_tags: common::entity_type_snapshot(), pos, seed }
+        Live { data, item_tags, entity_tags: common::entity_type_snapshot(), pos, seed, reach: Reach }
     }
 
     fn own_state(&self) -> Option<BlockState> { World::ticking()?.get_block_state(self.pos) }
+}
+
+/// The entities inside the structure, through PlutoLib's entity reach (the host opens it around the ticker): the
+/// facts the reach reports become the domain's, with `canMeltEntity`'s refusals (invulnerable to the damage, a
+/// creative player, fire resistance) combined into `immune`.
+struct Reach;
+
+impl Entities for Reach {
+    fn in_box(&mut self, bounds: [f64; 6]) -> Vec<crate::smeltery::Entity> {
+        EntityReach::in_box([bounds[0], bounds[1], bounds[2]], [bounds[3], bounds[4], bounds[5]]).into_iter().map(|entity| crate::smeltery::Entity {
+            id: entity.id,
+            kind: entity.kind,
+            item: entity.item,
+            living: entity.living.map(|living| crate::smeltery::Living {
+                fire_immune: living.fire_immune,
+                immune: living.invulnerable || living.fire_resistant,
+            }),
+        }).collect()
+    }
+
+    fn discard(&mut self, id: u64) { EntityReach::discard(id); }
+
+    fn set_item(&mut self, id: u64, stack: ItemSlot) { EntityReach::set_item(id, &stack); }
+
+    fn hurt(&mut self, id: u64, magic: bool, amount: i32) -> bool {
+        // The original's damage types: heat is in `is_fire` (a fire immune entity is invulnerable to it, which is
+        // why those are hurt by magic instead) and magic is in `witch_resistant_to`. The two types are not imported
+        // content yet (only `entangled` is), so the host deals a generic kind under the type's own name; the gates
+        // the original reads from the types are `canMeltEntity`'s, which the controller applies before this call.
+        EntityReach::hurt(id, amount as f32, if magic { "tconstruct:smeltery_magic" } else { "tconstruct:smeltery_heat" })
+    }
 }
 
 impl Env for Live<'_> {
@@ -182,8 +214,7 @@ impl Env for Live<'_> {
         self.entity_tags.as_ref().and_then(|tags| tags.get_tag(&tag)).is_some_and(|members| members.contains(entity))
     }
 
-    /// No entity reach in tickers yet (see the docs): nothing is picked up or hurt.
-    fn entities(&mut self) -> Option<&mut dyn Entities> { None }
+    fn entities(&mut self) -> Option<&mut dyn Entities> { Some(&mut self.reach) }
 
     fn random(&mut self, bound: usize) -> usize {
         // xorshift32, seeded from the position: only the order of mutually exclusive alloys depends on it
@@ -506,6 +537,33 @@ mod tests {
             assert_eq!(window.layout.slots.iter().flatten().count(), VISIBLE);
             assert_eq!(window.layout.inventory_y, 138.0);
         }
+    }
+
+    #[test]
+    fn the_live_env_reaches_entities_and_combines_the_melt_refusals() {
+        use pluto_lib::{with_entities, LivingFacts, MemoryEntityOps, WorldEntity};
+        let mut ops = MemoryEntityOps::default();
+        ops.entities = vec![
+            ([1.5, 64.5, 1.5], WorldEntity { id: 1, kind: id("minecraft:item"), item: Some(ItemSlot::new(id("minecraft:iron_ingot"), 2)), living: None }),
+            ([2.5, 64.5, 2.5], WorldEntity { id: 2, kind: id("minecraft:blaze"), item: None, living: Some(LivingFacts { fire_immune: true, invulnerable: false, fire_resistant: false }) }),
+            ([2.5, 64.5, 3.5], WorldEntity { id: 3, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: true }) }),
+        ];
+        let data = Data::default();
+        with_entities(&mut ops, || {
+            let mut live = Live::new(&data, None, [0, 64, 0]);
+            let entities = live.entities().expect("the reach is there");
+            let found = entities.in_box([0.0, 60.0, 0.0, 4.0, 70.0, 4.0]);
+            assert_eq!(found.len(), 3);
+            assert_eq!(found[0].item.as_ref().unwrap().count, 2);
+            assert_eq!(found[1].living, Some(crate::smeltery::Living { fire_immune: true, immune: false }));
+            assert_eq!(found[2].living, Some(crate::smeltery::Living { fire_immune: false, immune: true }), "fire resistance refuses the melt");
+            assert!(entities.hurt(2, true, 2));
+            entities.set_item(1, ItemSlot::new(id("minecraft:iron_ingot"), 1));
+            entities.discard(1);
+        });
+        assert_eq!(ops.hurt, vec![(2, 2.0, "tconstruct:smeltery_magic".to_owned())], "a fire immune entity is hurt by the magic type");
+        assert_eq!(ops.left.len(), 1);
+        assert_eq!(ops.discarded, vec![1]);
     }
 
     #[test]
