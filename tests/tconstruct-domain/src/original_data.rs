@@ -3069,3 +3069,27 @@ fn shipped_loot_modifiers_load_in_the_global_order_and_apply() {
     assert_eq!(loot[0].item, id("tconstruct:necrotic_bone"));
     assert_eq!(loot[0].count, 2);
 }
+#[test]
+fn every_shipped_fluid_effect_decodes_and_the_conditioned_ones_wait_for_their_world() {
+    let files = files("fluid_effects");
+    assert_eq!(files.len(), 85, "every fluid effect file the original ships");
+    let effects = crate::fluid_effects::Effects::load(&files, &conditions());
+    assert!(effects.problems.is_empty(), "fluid effects that do not decode: {:?}", effects.problems);
+    // The vanilla-only test world: the 40 files gated on another mod being loaded, on an integration
+    // material being forced, or on another mod's fluid tag being filled stay unloaded, as in the game.
+    assert_eq!(effects.len(), 45);
+    let loaded: Vec<String> = effects.ids().map(ToString::to_string).collect();
+    for present in ["blazing_blood", "milk", "water", "potion", "ender_slime", "molten_diamond", "molten_iron"] {
+        assert!(loaded.contains(&format!("tconstruct:{present}")), "{present} should be loaded");
+    }
+    for absent in ["concrete", "potion_create", "molten_tin", "glowstone", "redstone"] {
+        assert!(!loaded.contains(&format!("tconstruct:{absent}")), "{absent} should wait for its world");
+    }
+    // And the loaded ones are found by their fluid; a fluid whose file waits for its world finds none.
+    let tags = fluid_tags();
+    let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+    let iron = pluto_lib::FluidStack { fluid: id("tconstruct:molten_iron"), amount: 1000, tag: None };
+    assert!(effects.find(&iron, &in_tag).is_some());
+    let lead = pluto_lib::FluidStack { fluid: id("tconstruct:molten_lead"), amount: 1000, tag: None };
+    assert!(effects.find(&lead, &in_tag).is_none(), "molten lead's file waits for its world too");
+}

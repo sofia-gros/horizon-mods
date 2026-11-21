@@ -100,6 +100,7 @@ mod melting_recipes;
 mod casting_recipes;
 mod fluid_recipes;
 mod smeltery_data;
+mod fluid_effects;
 mod vanilla_fuels;
 mod melter;
 mod melter_menu;
