@@ -19,6 +19,8 @@ mod modifier_recipes;
 mod worktable_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/overslime.rs"]
 mod overslime;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/overgrowth.rs"]
+mod overgrowth;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_removal.rs"]
 mod modifier_removal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_recipes.rs"]
@@ -77,6 +79,8 @@ mod entity_facts;
 mod conditional_stat;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/knockback.rs"]
 mod knockback;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/punch.rs"]
+mod punch;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect.rs"]
 mod weapon_effect;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/thorns.rs"]
@@ -127,6 +131,10 @@ mod tool_damage_hook;
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
 mod melee_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_instrument.rs"]
+mod melee_instrument;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/kinetic_hook.rs"]
+mod kinetic_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/lifesteal_hook.rs"]
 mod lifesteal_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/severing.rs"]

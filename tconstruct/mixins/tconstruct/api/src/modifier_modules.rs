@@ -205,6 +205,11 @@ pub(crate) enum Module {
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
+    Punch { module: Box<crate::punch::Punch>, condition: Condition },
+    ReversePunch { module: Box<crate::punch::ReversePunch> },
+    MeleeInstrument { module: Box<crate::melee_instrument::MeleeInstrument>, condition: Condition },
+    Overgrowth { module: Box<crate::overgrowth::Overgrowth>, condition: Condition },
+    Kinetic,
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -744,6 +749,20 @@ impl Module {
                     .collect::<Result<Vec<_>, _>>()?;
                 Self::Attribute { attribute: format!("minecraft:{path}"), operation, formula, slots, condition: Condition::decode(fields)? }
             }
+            // PunchModule: knockback for the tool's shots, set on plain arrows and added on knockback projectiles.
+            "tconstruct:punch" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot")) => Self::Punch { module: Box::new(crate::punch::Punch::decode(fields)?), condition: Condition::decode(fields)? },
+            // ReversePunchModule: a knockback projectile pushes back on the entity it hits.
+            "tconstruct:reverse_punch" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_hit_client")) => Self::ReversePunch { module: Box::new(crate::punch::ReversePunch::decode(fields)?) },
+            // MeleeInstrumentModule: a melee hit plays the instrument the tool is made of. A predicate on a fact this port
+            // cannot report leaves the module unbound, as the other predicate modules do.
+            "tconstruct:melee_instrument" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:damage_dealt")) => {
+                let Some(module) = crate::melee_instrument::MeleeInstrument::decode(fields)? else { return Ok(None); };
+                Self::MeleeInstrument { module: Box::new(module), condition: Condition::decode(fields)? }
+            }
+            // OvergrowthModule: overslime regrows while the tool sits in an inventory.
+            "tconstruct:overgrowth" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:inventory_tick") => Self::Overgrowth { module: Box::new(crate::overgrowth::Overgrowth::decode(fields)?), condition: Condition::decode(fields)? },
+            // KineticModule: being hit feeds the wearer's insatiable effect.
+            "tconstruct:kinetic" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked" | "tconstruct:tooltip")) => Self::Kinetic,
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -806,7 +825,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1086,6 +1105,31 @@ impl Module {
     pub fn is_loot_capacity(&self) -> bool { matches!(self, Self::CapacityLoot { .. }) }
     /// The severing module's effective level of its modifier, None for any other module.
     pub fn severing_level(&self, entry: &Entry) -> Option<f32> { matches!(self, Self::Severing).then(|| entry.effective_level()) }
+    /// The knockback a punch module sets or adds on a shot of the tool, when its conditions hold.
+    pub fn punch(&self, entry: &Entry, facts: &Facts, arrow: bool) -> Option<crate::punch::Shot> {
+        let Self::Punch { module, condition } = self else { return None; };
+        module.shoot(entry, condition.matches(entry, facts), arrow)
+    }
+    /// The reverse punch module, None for any other module.
+    pub fn reverse_punch(&self) -> Option<&crate::punch::ReversePunch> {
+        let Self::ReversePunch { module } = self else { return None; };
+        Some(module)
+    }
+    /// The sound a melee instrument module plays for a hit, when its conditions and predicates hold.
+    pub fn melee_instrument(&self, entry: &Entry, facts: &Facts, materials: &[crate::tool_materials::MaterialVariant], attacker_in_tag: &dyn Fn(&Identifier) -> bool, target_in_tag: &dyn Fn(&Identifier) -> bool, roll: f32) -> Option<crate::melee_instrument::Sound> {
+        let Self::MeleeInstrument { module, condition } = self else { return None; };
+        module.sound(condition.matches(entry, facts), materials, attacker_in_tag, target_in_tag, roll)
+    }
+    /// Whether this is an overgrowth module.
+    pub fn is_overgrowth(&self) -> bool { matches!(self, Self::Overgrowth { .. }) }
+    /// Whether an overgrowth module grows the tool's overslime on this tick, when its conditions hold.
+    pub fn overgrowth(&self, entry: &Entry, facts: &Facts, nbt: &mut NbtCompound, env: &crate::tool_stack::Environment, roll: f32) -> bool {
+        let Self::Overgrowth { module, condition } = self else { return false; };
+        module.grow(entry, condition.matches(entry, facts), nbt, env, roll)
+    }
+    /// The level a kinetic module contributes to its modifier's total, None for any other module. The original counts the
+    /// plain level here (SlotInChargeModule reads the entry level), not the effective one.
+    pub fn kinetic_level(&self, entry: &Entry) -> Option<i32> { matches!(self, Self::Kinetic).then(|| entry.level) }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.
