@@ -137,6 +137,7 @@ mod config;
 mod common;
 mod fancy_gadgets;
 mod advancements;
+mod commands;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
@@ -189,5 +190,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     armor_worn::register();
     fancy_gadgets::register();
     advancements::register();
+    commands::register();
     pluto_lib::no_hooks()
 }

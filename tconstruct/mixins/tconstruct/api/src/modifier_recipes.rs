@@ -376,6 +376,8 @@ impl Recipes {
         })
     }
     pub fn len(&self) -> usize { self.recipes.len() }
+    /// Every loaded recipe, for reports that enumerate recipe usage per modifier.
+    pub fn all(&self) -> &[Recipe] { &self.recipes }
 }
 
 /// The crystal item and the NBT key holding its modifier.

@@ -296,3 +296,5 @@ mod fancy_gadgets;
 mod fancy_gadget_tests;
 #[cfg(test)]
 mod advancement_tests;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/commands.rs"]
+mod commands;
