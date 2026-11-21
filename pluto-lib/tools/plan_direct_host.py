@@ -130,10 +130,21 @@ def plan(source, output, mixins, check_native=False, check_api=False, require_co
     if checked.returncode or not check_api:
         return checked.returncode
     package = stage_api_check(stage, output / 'bundle')
+    # The shipped composition includes the bundle's native inventory gates
+    # (the pluto-inventory module), so the API check must also compile the
+    # forwarders that install into them: enable the API package's
+    # composition feature here, mirroring the game entry's mod edge. A
+    # bundle without the gates keeps the standalone (feature-off) check.
+    bundle_manifest = tomllib.loads(
+        (output / 'bundle/horizon-mixin.toml').read_text(encoding='utf-8'))
+    glue = any(entry.get('id') == 'pluto-inventory'
+               for entry in bundle_manifest.get('module', []))
     # Adding the local package requires a lockfile entry. Resolve offline from
     # the copied upstream lock, then check under --locked; never touch the pin.
     api_command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
                    str(stage / 'Cargo.toml'), '-p', package]
+    if glue:
+        api_command += ['--features', 'native-inventory-glue']
     resolved = subprocess.run(api_command)
     api_result = resolved.returncode
     if not api_result:
