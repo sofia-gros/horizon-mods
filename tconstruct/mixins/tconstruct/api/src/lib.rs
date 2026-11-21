@@ -111,6 +111,8 @@ mod tank;
 mod fluid_cannon;
 mod gauge;
 mod lantern;
+mod casting_tank;
+mod proxy_tank;
 mod smeltery_io;
 mod rendering;
 mod config;
@@ -135,6 +137,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     fluid_cannon::register();
     gauge::register();
     lantern::register();
+    casting_tank::register();
+    proxy_tank::register();
     smeltery_io::register();
     rendering::register();
     creative::register();

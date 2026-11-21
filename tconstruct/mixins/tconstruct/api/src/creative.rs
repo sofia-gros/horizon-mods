@@ -111,6 +111,7 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(["seared_faucet", "scorched_faucet", "seared_channel", "scorched_channel"].map(str::to_owned));
     rest.extend(["seared_table", "scorched_table", "seared_basin", "scorched_basin"].map(str::to_owned));
     rest.extend(["seared_fluid_cannon", "scorched_fluid_cannon", "end_fluid_cannon"].map(str::to_owned));
+    rest.extend(["seared_casting_tank", "scorched_proxy_tank"].map(str::to_owned));
     rest.extend(building("seared_bricks", &["wall"]));
     rest.extend(building("seared_stone", &[]));
     rest.extend(["seared_cracked_bricks", "seared_fancy_bricks", "seared_triangle_bricks"].map(str::to_owned));

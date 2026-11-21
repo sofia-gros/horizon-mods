@@ -221,6 +221,10 @@ mod fluid_cannon;
 mod gauge;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/lantern.rs"]
 mod lantern;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting_tank.rs"]
+mod casting_tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/proxy_tank.rs"]
+mod proxy_tank;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_io.rs"]
 mod smeltery_io;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/rendering.rs"]
