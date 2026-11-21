@@ -54,7 +54,7 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
-LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus'}
+LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus', 'minecraft:match_tool'}
 LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore'}
