@@ -53,7 +53,7 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
-LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property'}
+LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus'}
 LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore'}
@@ -68,10 +68,12 @@ MENU_KEYS = {'slots', 'data_slots', 'results'}
 def check_loot(item, name):
     """Block loot tables use only reviewed condition, function and entry kinds (the shapes the importer converts)."""
     def condition(node):
-        if node != 'minecraft:tool/can_silk_touch' and not (isinstance(node, dict) and node.get('type') in LOOT_CONDITIONS):
+        if node not in ('minecraft:tool/can_silk_touch', 'minecraft:tool/can_shear') and not (isinstance(node, dict) and node.get('type') in LOOT_CONDITIONS):
             raise ValueError(f'unreviewed loot condition in {name}')
         for term in node.get('terms', []) if isinstance(node, dict) else []:
             condition(term)
+        if isinstance(node, dict) and isinstance(node.get('term'), (str, dict)):
+            condition(node['term'])
 
     def walk(node):
         if 'condition' in node:

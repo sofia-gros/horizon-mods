@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
 //! drains, and anvils, none of which exist yet), the books, food, glass (but the soul glass, which is here), platforms and gadgets of the general tab,
-//! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
+//! tank and proxy tank of the smeltery tab, and the geodes and heads
 //! of the world tab.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -143,12 +143,28 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     smeltery.entries(entries)
 }
 
-/// TinkerWorld.addTabItems for the declared items: ores, then each slime (ball, block, congealed), slime dirt and the shards.
+/// TinkerWorld.addTabItems for the declared items: ores, then each slime (ball, block, congealed), the slime wood sets with
+/// their saplings and leaves and the enderbark roots, slime dirt, the foliage (tall grass, fern, vine and the five grasses of
+/// each visible foliage type; the slime grass seeds are not declared) and the shards. The wall signs have no item of their own
+/// and the potted flora none at all, so neither is listed.
 pub(crate) const WORLD: &[&str] = &[
     "cobalt_ore", "raw_cobalt", "raw_cobalt_block",
     "earth_congealed_slime",
     "sky_slime_ball", "sky_slime", "sky_congealed_slime", "ichor_slime_ball", "ichor_slime", "ichor_congealed_slime", "ender_slime_ball", "ender_slime", "ender_congealed_slime",
+    "greenheart_planks", "greenheart_planks_slab", "greenheart_planks_stairs", "greenheart_fence", "greenheart_fence_gate", "greenheart_door", "greenheart_trapdoor", "greenheart_pressure_plate", "greenheart_button", "greenheart_log", "stripped_greenheart_log", "greenheart_wood", "stripped_greenheart_wood", "greenheart_sign", "greenheart_hanging_sign",
+    "earth_slime_sapling", "earth_slime_leaves",
+    "skyroot_planks", "skyroot_planks_slab", "skyroot_planks_stairs", "skyroot_fence", "skyroot_fence_gate", "skyroot_door", "skyroot_trapdoor", "skyroot_pressure_plate", "skyroot_button", "skyroot_log", "stripped_skyroot_log", "skyroot_wood", "stripped_skyroot_wood", "skyroot_sign", "skyroot_hanging_sign",
+    "sky_slime_sapling", "sky_slime_leaves",
+    "bloodshroom_planks", "bloodshroom_planks_slab", "bloodshroom_planks_stairs", "bloodshroom_fence", "bloodshroom_fence_gate", "bloodshroom_door", "bloodshroom_trapdoor", "bloodshroom_pressure_plate", "bloodshroom_button", "bloodshroom_log", "stripped_bloodshroom_log", "bloodshroom_wood", "stripped_bloodshroom_wood", "bloodshroom_sign", "bloodshroom_hanging_sign",
+    "blood_slime_sapling", "blood_slime_leaves",
+    "enderbark_planks", "enderbark_planks_slab", "enderbark_planks_stairs", "enderbark_fence", "enderbark_fence_gate", "enderbark_door", "enderbark_trapdoor", "enderbark_pressure_plate", "enderbark_button", "enderbark_log", "stripped_enderbark_log", "enderbark_wood", "stripped_enderbark_wood", "enderbark_sign", "enderbark_hanging_sign",
+    "ender_slime_sapling", "ender_slime_leaves",
+    "enderbark_roots", "earth_enderbark_roots", "sky_enderbark_roots", "ichor_enderbark_roots", "ender_enderbark_roots",
     "earth_slime_dirt", "sky_slime_dirt", "ichor_slime_dirt", "ender_slime_dirt",
+    "earth_slime_tall_grass", "earth_slime_fern", "earth_vanilla_slime_grass", "earth_earth_slime_grass", "earth_sky_slime_grass", "earth_ichor_slime_grass", "earth_ender_slime_grass",
+    "sky_slime_tall_grass", "sky_slime_fern", "sky_slime_vine", "sky_vanilla_slime_grass", "sky_earth_slime_grass", "sky_sky_slime_grass", "sky_ichor_slime_grass", "sky_ender_slime_grass",
+    "blood_slime_tall_grass", "blood_slime_fern", "blood_vanilla_slime_grass", "blood_earth_slime_grass", "blood_sky_slime_grass", "blood_ichor_slime_grass", "blood_ender_slime_grass",
+    "ender_slime_tall_grass", "ender_slime_fern", "ender_slime_vine", "ender_vanilla_slime_grass", "ender_earth_slime_grass", "ender_sky_slime_grass", "ender_ichor_slime_grass", "ender_ender_slime_grass",
     "steel_shard", "cobalt_shard", "knightmetal_shard",
 ];
 

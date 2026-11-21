@@ -1114,7 +1114,7 @@ def copy_client_assets():
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
         blockstate = read(asset_source(f'blockstates/{name}.json'))
         variants = blockstate.get('variants', {})
-        if name in SMELTERY_STATE_BLOCKS and 'multipart' in blockstate:
+        if (name in SMELTERY_STATE_BLOCKS or name in WORLD_STATE_BLOCKS) and 'multipart' in blockstate:
             # the channel's parts: each applies a model (or a list of them) when its states hold
             parts = blockstate['multipart']
             applies = [apply for part in parts for apply in (part['apply'] if isinstance(part['apply'], list) else [part['apply']])]
@@ -1125,7 +1125,7 @@ def copy_client_assets():
             write(f'blockstates/{name}.json', {'multipart': converted})
             write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
             continue
-        if name in SMELTERY_STATE_BLOCKS:
+        if name in SMELTERY_STATE_BLOCKS or name in WORLD_STATE_BLOCKS:
             # The controllers declare facing/active/in_structure themselves, so the original's variants apply as they are.
             if any(needs_loader(variant['model']) for variant in variants.values()):
                 skipped.append(name)
@@ -1664,7 +1664,8 @@ GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
 MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_BROWN': 26, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
-             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56}
+             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'TERRACOTTA_BROWN': 48, 'WARPED_STEM': 56,
+             'COLOR_LIGHT_GREEN': 19, 'COLOR_CYAN': 23, 'COLOR_GREEN': 27, 'COLOR_RED': 28, 'COLOR_BLACK': 29, 'TERRACOTTA_CYAN': 45}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
 DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT_BLUE', 'ender': 'TERRACOTTA_ORANGE'}
@@ -1714,7 +1715,115 @@ def world_blocks():
     for dirt, color in DIRT_TYPES.items():
         # builder(color, SLIME_BLOCK).strength(1.9f); harvest tiers are tags and need no tool (no requiresCorrectToolForDrops)
         blocks[f'{dirt}_slime_dirt'] = block('minecraft:dirt', color, 'minecraft:slime_block', 1.9, 1.9, False)
+    blocks.update(world_w1_blocks())
     return blocks
+
+
+W1_WOODS = {'greenheart': ('COLOR_LIGHT_GREEN', 'COLOR_GREEN'), 'skyroot': ('COLOR_CYAN', 'TERRACOTTA_CYAN'),
+            'bloodshroom': ('COLOR_RED', 'COLOR_ORANGE'), 'enderbark': ('COLOR_BLACK', 'COLOR_BLACK')}  # wood -> (planks, bark) MapColor of createSlimewood
+W1_FOLIAGE = ['earth', 'sky', 'ichor', 'ender', 'blood']  # FoliageType.values()
+W1_FOLIAGE_COLORS = {'earth': 'GRASS', 'sky': 'DIAMOND', 'ichor': 'COLOR_ORANGE', 'ender': 'COLOR_PURPLE', 'blood': 'COLOR_RED'}  # FoliageType.getMapColor
+W1_NETHER_FOLIAGE = ('ichor', 'blood')  # FoliageType.isNether: nylium grass, fungus saplings, wart-block leaves
+W1_DIRTS = ['vanilla', 'earth', 'sky', 'ichor', 'ender']  # the slime grass EnumObjects, in registration order
+
+
+def world_w1_blocks():
+    """name -> declaration of the slime wood sets, the slime grass, the slime flora, the slime vines and the enderbark roots of
+    TinkerWorld (the world tab's trees and foliage), each from its Java registration. Templates carry the vanilla behaviour of the
+    Java class: the wood pieces are the oak wood blocks (Mantle's WoodBlockObject builds the vanilla block classes, and
+    createSlimewood sets the BASS instrument the oak templates already have), the overworld grass is the grass block (SnowyDirtBlock),
+    the nylium and the nether leaves are plain blocks (the dirt template: the default instrument of Properties.of()), the leaves are
+    the oak leaves, the propagule is the mangrove propagule, the roots are the mangrove roots.
+
+    The wood property function (createSlimewood) sets no strength on any variant, so every wood block is 0/0 like the sticky slime
+    blocks above whose property function likewise sets none: the default variant takes the planks map colour and the SLIME_BLOCK
+    sound with no tool requirement, the log and wood variants take the bark colour, the WOOD sound and requiresCorrectToolForDrops.
+    A log's map colour in the original depends on its axis (the planks colour on the end faces); a declaration carries one colour,
+    so the bark colour is declared.
+
+    Behaviour the declarations cannot carry, and where it lives instead: the grass spreading and bonemeal growth
+    (SlimeGrassBlock/SlimeNyliumBlock), the saplings growing into trees and huge fungi, the propagule leaves placing a hanging
+    propagule when bonemealed and the vines growing through their stages are random-tick world mechanisms of the growth lane, not
+    block properties. SlimeLeavesBlock measures its decay distance against the tconstruct:slimy_logs tag rather than logs alone;
+    the leaves template's distance behaviour is the host's and the tag distinction is not expressible in a declaration. The signs
+    are declared as plain blocks: the original's sign block entities (editable text) have no content declaration, so the signs
+    drop and render as in the original but hold no text. Push reactions (the flora and the vines are DESTROY), the flora's render
+    offsets, the compost values of TinkerWorld.commonSetup and the fire spread/burn values are registrations the declaration
+    schema has no keys for; they are documented here rather than faked. The potted blocks and the wall signs have no item in the
+    original (the wall signs drop through the standing sign's loot table, which copy_world_loot reproduces)."""
+    def declare(template, color, sounds, hardness, resistance, requires_tool, item=True, light=0, **extra):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color],
+                      'requires_tool': requires_tool, **extra}
+        if light:
+            properties['light'] = light
+        return {'template': template, 'properties': properties, 'item': item}
+
+    blocks = {}
+    # createSlimewood: (suffix, template, variant); the stripped pieces are prefixed in the block name, not suffixed
+    wood_variants = [('planks', 'minecraft:oak_planks', 'default'), ('planks_slab', 'minecraft:oak_slab', 'default'),
+                     ('planks_stairs', 'minecraft:oak_stairs', 'default'), ('fence', 'minecraft:oak_fence', 'default'),
+                     ('fence_gate', 'minecraft:oak_fence_gate', 'default'), ('door', 'minecraft:oak_door', 'default'),
+                     ('trapdoor', 'minecraft:oak_trapdoor', 'default'), ('pressure_plate', 'minecraft:oak_pressure_plate', 'default'),
+                     ('button', 'minecraft:oak_button', 'default'), ('sign', 'minecraft:oak_sign', 'default'),
+                     ('wall_sign', 'minecraft:oak_wall_sign', 'default'), ('hanging_sign', 'minecraft:oak_hanging_sign', 'default'),
+                     ('wall_hanging_sign', 'minecraft:oak_wall_hanging_sign', 'default'),
+                     ('log', 'minecraft:oak_log', 'log'), ('stripped_log', 'minecraft:oak_log', 'log'),
+                     ('wood', 'minecraft:oak_log', 'wood'), ('stripped_wood', 'minecraft:oak_log', 'wood')]
+    for wood, (planks_color, bark_color) in W1_WOODS.items():
+        for suffix, template, variant in wood_variants:
+            name = f'stripped_{wood}_{suffix[9:]}' if suffix.startswith('stripped_') else f'{wood}_{suffix}'
+            if variant == 'default':  # mapColor(planks), SoundType.SLIME_BLOCK
+                blocks[name] = declare(template, planks_color, 'minecraft:slime_block', 0.0, 0.0, False, item=suffix not in ('wall_sign', 'wall_hanging_sign'))
+            else:  # mapColor(bark), SoundType.WOOD, requiresCorrectToolForDrops
+                blocks[name] = declare(template, bark_color, 'minecraft:oak_log', 0.0, 0.0, True)
+    for foliage in W1_FOLIAGE:
+        color = W1_FOLIAGE_COLORS[foliage]
+        nether = foliage in W1_NETHER_FOLIAGE
+        for dirt in W1_DIRTS:
+            # slimeGrassProps: builder(foliage colour, SLIME_BLOCK).strength(2.0).requiresCorrectToolForDrops().randomTicks()
+            if nether:  # SlimeNyliumBlock: a plain block
+                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:dirt', color, 'minecraft:slime_block', 2.0, 2.0, True)
+            else:  # SlimeGrassBlock extends SnowyDirtBlock
+                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:grass_block', color, 'minecraft:slime_block', 2.0, 2.0, True)
+        # saplingProps: builder(foliage colour, FUNGUS in the nether else GRASS).instabreak().noCollission()
+        if foliage == 'ender':  # SlimePropaguleBlock: the mangrove propagule states come with the template
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:mangrove_propagule', color, 'minecraft:short_grass', 0.0, 0.0, False)
+        elif nether:  # SlimeFungusBlock
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:crimson_fungus', color, 'minecraft:crimson_fungus', 0.0, 0.0, False)
+        else:  # SlimeSaplingBlock
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:oak_sapling', color, 'minecraft:short_grass', 0.0, 0.0, False)
+        if nether:  # a plain block: builder(foliage colour, WART_BLOCK).strength(1.5)
+            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:dirt', color, 'minecraft:nether_wart_block', 1.5, 1.5, False)
+        else:  # SlimeLeavesBlock (the propagule leaves for ender): builder(colour, GRASS).strength(1.0).noOcclusion()
+            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:oak_leaves', color, 'minecraft:short_grass', 1.0, 1.0, False, occludes=False)
+        # fernProps/tallGrassProps: builder(foliage colour, ROOTS in the nether else GRASS).replaceable().instabreak().noCollission()
+        ground_sound = 'minecraft:crimson_roots' if nether else 'minecraft:short_grass'
+        blocks[f'{foliage}_slime_fern'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False)
+        blocks[f'{foliage}_slime_tall_grass'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False)
+        # FlowerPotBlock: no properties beyond the pot itself, and no item
+        blocks[f'potted_{foliage}_slime_fern'] = declare('minecraft:flower_pot', 'NONE', 'minecraft:flower_pot', 0.0, 0.0, False, item=False)
+        blocks[f'potted_{foliage}_slime_sapling'] = declare('minecraft:flower_pot', 'NONE', 'minecraft:flower_pot', 0.0, 0.0, False, item=False)
+    for slime in ('sky', 'ender'):
+        # SlimeVineBlock: builder(slime colour, GRASS).replaceable().strength(0.75).noCollission().randomTicks(); the growth stage is its own state
+        color, _light = SLIME_TYPES[slime]
+        blocks[f'{slime}_slime_vine'] = {**declare('minecraft:vine', color, 'minecraft:short_grass', 0.75, 0.75, False),
+                                         'state_properties': {'stage': {'type': 'enum', 'values': ['start', 'middle', 'end']}}}
+    # SlimeRootsBlock: builder(COLOR_BLACK, MANGROVE_ROOTS).instrument(BASS).strength(0.7).noOcclusion()
+    blocks['enderbark_roots'] = declare('minecraft:mangrove_roots', 'COLOR_BLACK', 'minecraft:mangrove_roots', 0.7, 0.7, False, occludes=False)
+    for slime, (color, light) in SLIME_TYPES.items():
+        # SlimeDirtBlock: builder(slime colour, MUDDY_MANGROVE_ROOTS).strength(0.7) with the slime light
+        blocks[f'{slime}_enderbark_roots'] = declare('minecraft:dirt', color, 'minecraft:muddy_mangrove_roots', 0.7, 0.7, False, light=light)
+    return blocks
+
+
+# The W1 blocks whose blockstates carry real variants or multipart parts (the rest are a single variant or the four facings the
+# generic client path already handles): the wood pieces with states, the snowy overworld grass, the propagule and the vines.
+WORLD_STATE_BLOCKS = (
+    [f'{wood}_{part}' for wood in W1_WOODS for part in ('planks_slab', 'planks_stairs', 'fence', 'fence_gate', 'door', 'trapdoor',
+                                                        'pressure_plate', 'button', 'hanging_sign', 'log', 'wood')]
+    + [f'stripped_{wood}_{part}' for wood in W1_WOODS for part in ('log', 'wood')]
+    + [f'{foliage}_{dirt}_slime_grass' for foliage in ('earth', 'sky', 'ender') for dirt in W1_DIRTS]
+    + ['ender_slime_sapling', 'sky_slime_vine', 'ender_slime_vine'])
 
 
 def smeltery_blocks():
@@ -2001,6 +2110,17 @@ def upgrade_condition(condition):
     silk = {'enchantments': [{'enchantment': 'minecraft:silk_touch', 'levels': {'min': 1}}]}
     if kind == 'minecraft:match_tool' and condition['predicate'] == silk:
         return 'minecraft:tool/can_silk_touch'
+    if kind == 'minecraft:match_tool' and condition.get('predicate') == {'items': ['minecraft:shears']}:
+        return 'minecraft:tool/can_shear'
+    if kind == 'forge:can_tool_perform_action' and set(condition) == {'condition', 'action'} and condition['action'] == 'shears_dig':
+        # Forge's tool action is the host's tool condition string, as the base game's own fern and vine tables write it
+        return 'minecraft:tool/can_shear'
+    if kind == 'minecraft:table_bonus' and set(condition) == {'condition', 'enchantment', 'chances'}:
+        return {'type': kind, 'enchantment': condition['enchantment'], 'chances': condition['chances']}
+    if kind == 'minecraft:any_of' and set(condition) == {'condition', 'terms'}:
+        return {'type': kind, 'terms': [upgrade_condition(term) for term in condition['terms']]}
+    if kind == 'minecraft:inverted' and set(condition) == {'condition', 'term'}:
+        return {'type': kind, 'term': upgrade_condition(condition['term'])}
     if kind == 'minecraft:block_state_property' and set(condition) == {'condition', 'block', 'properties'}:
         return {'type': kind, 'block': condition['block'], 'properties': condition['properties']}
     raise SystemExit(f'loot table: unknown condition {condition}')
@@ -2030,7 +2150,11 @@ def copy_world_loot(names):
     target = CONTENT_DATA / 'tconstruct/loot_table'
     shutil.rmtree(target, ignore_errors=True)
     for name in names:
-        table = whole(upgrade_loot(json.loads((GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name}.json').read_text(encoding='utf-8'))))
+        source = GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name}.json'
+        if not source.exists():
+            # the wall signs have no table of their own: Mantle's wood object points them at the standing sign's table
+            source = GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name.replace("_wall_", "_")}.json'
+        table = whole(upgrade_loot(json.loads(source.read_text(encoding='utf-8'))))
         write_json(target / 'blocks' / f'{name}.json', table)
     return len(names)
 

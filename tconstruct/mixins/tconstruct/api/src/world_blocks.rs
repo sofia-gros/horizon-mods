@@ -1,4 +1,10 @@
 //! TinkerWorld's sticky predicates and CongealedSlimeBlock's landing/contact rules (SlimeKnights, MIT).
+//!
+//! The slime wood sets, slime grass, flora, vines and enderbark roots register nothing here: what of their behaviour is
+//! portable is their vanilla templates' (the importer's declarations, `world_w1_blocks`), and their random-tick growth —
+//! grass spreading and bonemeal growth, the saplings and fungi growing, the vines advancing their stage, the propagule
+//! leaves placing a propagule — is world-mechanism work no behaviour registered in this crate expresses, so it is
+//! documented in the importer rather than faked here.
 use pluto_lib::{AfterFallContext, BlockBehavior, BlockBehaviors, EntityInsideMotionContext, Identifier, PathNodeType};
 use pluto_lib::{ItemTooltipCallback, TooltipLine};
 
