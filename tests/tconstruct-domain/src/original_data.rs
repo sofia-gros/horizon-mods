@@ -2549,6 +2549,29 @@ fn the_72_original_fluids_are_defined_with_the_original_attributes_and_names() {
 }
 
 #[test]
+fn every_original_language_file_is_shipped_with_the_originals_keys() {
+    // The original ships 20 language files and the importer copies each one whole (only line
+    // endings are normalised), so every shipped file must hold exactly the original's keys;
+    // the counts are the originals' key counts. The original's lzh file starts with a UTF-8
+    // BOM; the importer drops it as it normalises line endings, since language files are
+    // parsed as strict UTF-8 JSON by the content checks and the game.
+    let expected: [(&str, usize); 20] = [
+        ("de_de", 1900), ("en_us", 3623), ("es_ar", 2399), ("es_cl", 3261), ("es_es", 2399),
+        ("es_mx", 3233), ("fr_fr", 2688), ("id_id", 348), ("it_it", 1926), ("ja_jp", 3411),
+        ("ko_kr", 2190), ("lzh", 3219), ("pl_pl", 1360), ("pt_br", 2783), ("ru_ru", 3425),
+        ("sv_se", 1932), ("tr_tr", 2244), ("uk_ua", 3526), ("zh_cn", 3561), ("zh_tw", 2244),
+    ];
+    for (language, keys) in expected {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../tconstruct/content/assets/tconstruct/lang/{language}.json"));
+        let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{language}: {e}"));
+        let lang: Value = serde_json::from_slice(&bytes).unwrap();
+        let object = lang.as_object().unwrap();
+        assert_eq!(object.len(), keys, "{language}: key count differs from the original's");
+        assert!(object.values().all(|value| value.is_string()), "{language}: a language file maps keys to plain strings");
+    }
+}
+
+#[test]
 fn the_host_fluid_tags_hold_only_defined_fluids_and_match_the_recipe_copy_without_flowing_variants() {
     let files = host_fluid_tag_files();
     assert_eq!(files.len(), 84, "the original's tconstruct fluid tag files; forge and mantle ones stay with the recipes");
