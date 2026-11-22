@@ -25,6 +25,13 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
+    # The fluid atlas sources (tools/import_original_data.py): the game's unified atlas (screen draws and
+    # native block-entity draws) packs the walked texture folders and the base game's atlas definitions,
+    # which name only block/ and entity/conduit/; textures/fluid/ is in neither, so no fluid sprite would
+    # ever be stitched and every tank, basin and channel face naming one would be skipped. A content mod's
+    # assets/minecraft/atlases/*.json is not copied by the host's builder: its sources are appended to the
+    # base definition of the same name, so this one file adds the fluid directory to the blocks atlas.
+    re.compile(r'assets/minecraft/atlases/blocks\.json'),
     # The books' Mantle data (tools/import_original_data.py): index, appearance, section files, per-language pages and images,
     # walked by books.rs through the client resources; the two .nbt files are the structure templates of the book images folder.
     re.compile(r'assets/tconstruct/book(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|lang|png|nbt)'),
@@ -507,6 +514,16 @@ def checked_content(root, version):
                 # A language file: a flat object of translation keys to plain strings.
                 if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
                     raise ValueError(f'a language file must map keys to strings: {name}')
+                continue
+            if name == 'assets/minecraft/atlases/blocks.json':
+                # The fluid atlas sources (see CONTENT_PATHS): the host's builder appends a mod's atlas
+                # sources to the base definition of the same name, so the only reviewed shape is an object
+                # whose sources are directory sources naming a texture folder and its sprite prefix.
+                if not isinstance(item, dict) or set(item) != {'sources'} or not isinstance(item['sources'], list) or not item['sources'] or any(
+                        not isinstance(source, dict) or set(source) != {'type', 'source', 'prefix'}
+                        or source['type'] != 'minecraft:directory' or not isinstance(source['source'], str) or not isinstance(source['prefix'], str)
+                        for source in item['sources']):
+                    raise ValueError(f'an atlas definition must be an object with a sources list of directory sources: {name}')
                 continue
             if '/advancement/' in name:
                 check_advancement(item, name)

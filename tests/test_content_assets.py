@@ -427,6 +427,14 @@ class ContentAssets(unittest.TestCase):
         # GUI textures are drawn by the screens' Rust code, not by models: the sprite names the sources use.
         sources = ''.join(path.read_text(encoding='utf-8') for path in (ROOT / 'tconstruct/mixins/tconstruct/api/src').glob('*.rs'))
         used |= {f'gui/{name}' for name in re.findall(r'"tconstruct:gui/([a-z_/]+)"', sources)}
+        # Fluid sprites are drawn by the block-entity renderers and the tank windows under the names of
+        # Mantle's fluid texture table (render_data.rs), not by models: the sprite names the sources use.
+        used |= {f'fluid/{name}' for name in re.findall(r'"tconstruct:fluid/([a-z_/]+)"', sources)}
+        # Three fluid sprites are named by convention, not by a literal: the base fluid model's flowing
+        # counterpart (its still is model-named), and the inverted flowing sprites of the two gas fluids
+        # (cinderslime, ichor), which Mantle names from the flowing sprite of a fluid lighter than air.
+        used |= {'fluid/liquid/flowing', 'fluid/molten/alloy/cinderslime/flowing_inverted',
+                 'fluid/slime/ichor/flowing_inverted'}
         # Worn equipment textures are picked by the layer table and skull textures by the skull rendering
         # code, not by models: the original references both by convention, so neither is model-used.
         present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')

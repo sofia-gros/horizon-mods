@@ -768,6 +768,46 @@ def write_fluid_world():
     return count
 
 
+def copy_fluid_textures():
+    """The whole fluid texture tree of the original (textures/fluid), byte for byte: write_fluid_world copies
+    only the still texture of each fluid with a block, but the renderers also name every fluid's flowing
+    texture (render_data.rs), the two gas fluids' inverted flowing textures (Mantle's convention for a fluid
+    lighter than air: cinderslime and ichor), and the stills of the fluids without a block (potion, powdered
+    snow). PNGs are copied raw and .mcmeta files with their line endings normalised, as write_fluid_world
+    does for the stills. Left out: molten/shiny and molten/transparent, which nothing in the original names
+    (no fluid texture data, model or code reaches them) — dead files the content census forbids shipping.
+    Runs after copy_client_assets, which clears the folders it writes into. Returns the files written."""
+    source_root = asset_source('textures/fluid')
+    target_root = ASSET_TARGET / 'textures/fluid'
+    written = 0
+    for source in sorted(source_root.rglob('*')):
+        if not source.is_file():
+            continue
+        relative = source.relative_to(source_root)
+        if relative.parts[:2] in (('molten', 'shiny'), ('molten', 'transparent')):
+            continue
+        destination = target_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.suffix == '.mcmeta':
+            destination.write_bytes(source.read_bytes().replace(b'\r\n', b'\n'))
+        else:
+            shutil.copyfile(source, destination)
+        written += 1
+    return written
+
+
+def write_fluid_atlas():
+    """The fluid directory's atlas sources (assets/minecraft/atlases/blocks.json): the game's unified atlas
+    (screen draws and native block-entity draws) packs the walked texture folders and the base game's atlas
+    definitions, which name only block/ and entity/conduit/, so textures/fluid/ would never be stitched and
+    every fluid face the renderers draw would be skipped as an unknown sprite. A content mod's
+    assets/minecraft/atlases/*.json is not copied by the host's builder: its sources are appended to the
+    base definition of the same name, so this declaration adds every namespace's fluid directory to the
+    blocks atlas under the sprites' own ids (tconstruct:fluid/...)."""
+    write_json(ROOT / 'tconstruct/content/assets/minecraft/atlases/blocks.json',
+               {'sources': [{'type': 'minecraft:directory', 'source': 'fluid', 'prefix': 'fluid/'}]})
+
+
 def write_copper_can():
     """The copper can's item model: the original's own fluid container loader is not available, so the can shows its base texture
     (the fluid layer of the original's model is not drawn). Runs after copy_client_assets, which clears the folders it writes into."""
@@ -3308,6 +3348,8 @@ def main():
     crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
     fluid_blocks = write_fluid_world()
+    fluid_textures = copy_fluid_textures()
+    write_fluid_atlas()
     write_copper_can()
     transfers = write_fluid_transfers()
     world_loot = copy_world_loot(sorted({*world_blocks(), *world_geode_blocks(), *smeltery_blocks(), *gadget_blocks()} | {'cast_chest', 'crafting_station', 'fake_storage_block', 'part_chest', 'scorched_anvil', 'tinkers_anvil', 'tinkers_chest'}))
@@ -3326,7 +3368,7 @@ def main():
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes()
     layouts = copy_station_layouts()
     stale_fixed = fix_stale_item_ids()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {stale_fixed} files had the stale slime chestplate id projected; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {stale_fixed} files had the stale slime chestplate id projected; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
 
 
 if __name__ == '__main__':
