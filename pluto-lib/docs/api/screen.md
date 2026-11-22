@@ -210,6 +210,26 @@ fn cursor_room(menu: &dyn MenuAccess, result: &ItemSlot) -> u32 {
 
 **Integration status:** the public adapter and pinned local/guest source connections are implemented; the inspected v10 source composition including pick-all exclusion, stack-limit forwarding, crafting-remainder lookup and native player-inventory return passes all retained attachment guards. The component-comparison/stack-limit API examples compile; the bridge fixture is not evidence of native stack semantics. Native typechecking and gameplay are pending. Remote synthetic menus resolve by declared menu type, but recipe/saved-data synchronization remains incomplete. This is not yet verified support. It is also not a lazy crafting-result implementation: recipes must implement their own preview invalidation, amount tracking, consumption and action ordering. A callback owns its registered action; simply returning does not invoke the native action afterward. Avoid also registering the older `on_quick_move` for the same operation, since that server hook runs earlier.
 
+## Which Sprites Resolve
+
+A canvas `sprite` draw (and a native block-entity draw) names a sprite in the game's one unified atlas; a name the atlas does not hold draws nothing — the canvas call returns `false` and a block-entity face naming it is left out. The atlas packs the texture folders it walks (`gui`, `item`, `block`, `font`, `environment`, `misc`, `painting`, `entity`, `particle`, `mob_effect`, `map` of the `minecraft` namespace, and the `entity`, `mob_effect`, `particle` and `gui` folders of every content namespace) plus the sprites the atlas definitions name. Model textures are not gated by this: the terrain and item sprite system loads a model's texture file by name directly, so a texture can work on a block in the world and still not resolve on a screen.
+
+A folder outside the walked set (Tinkers' `textures/fluid/` is one) reaches the atlas through an atlas definition. A content mod ships `assets/minecraft/atlases/<atlas>.json`; the game's content builder does not copy that file — it appends the file's `sources` to the base game's definition of the same name. This declares every namespace's `fluid/` texture folder as sprites of the blocks atlas, under the textures' own ids:
+
+```json
+{
+  "sources": [
+    {
+      "type": "minecraft:directory",
+      "source": "fluid",
+      "prefix": "fluid/"
+    }
+  ]
+}
+```
+
+Shipping the same file under the mod's own namespace (`assets/tconstruct/atlases/blocks.json`) does nothing: that definition is keyed separately, and only the `minecraft:blocks` and `minecraft:items` definitions contribute file sprites to the unified atlas. Animated textures (a strip with a `.png.mcmeta`) animate in the atlas wherever they come from. If a draw must degrade gracefully when a sprite is absent, draw an underlay first — the tank windows fill the fluid's colour under its tiles for exactly this reason.
+
 ## Reference
 
 ### `ScreenLayout`
