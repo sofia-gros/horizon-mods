@@ -9,6 +9,26 @@ use crate::game::pluto_living_drops as access;
 fn killer_id(m:&Mob)->Option<u32> {
     match m.last_damage.and_then(|(damage,_)|damage.attacker) {Some(Who::Mob(id))=>Some(id),_=>None}
 }
+/// The class-adjusted equipment drop chances for this death, when a living
+/// behaviour overrides any slot's chance for this kind. Built from the
+/// effective chances the death roll itself reads.
+fn pluto_drop_chance_override(m:&Mob)->Option<Box<[f32;8]>> {
+    let sink=horizon_client::mobs::pluto_living_entity_access::sink()?;
+    if !(sink.has_drop_chance)(&m.kind.id) {return None;}
+    let slots=horizon_world::loot::EQUIPMENT_SLOTS;
+    let size=match m.species() {
+        Species::Slime|Species::MagmaCube|Species::SulfurCube=>Some(m.extra.size),
+        _=>None,
+    };
+    let mut adjusted=Box::new(std::array::from_fn(|i|drops::drop_chance(m,slots[i])));
+    let mut changed=false;
+    for (index,slot) in slots.iter().enumerate() {
+        if let Some(chance)=(sink.drop_chance)(&m.kind.id,slot,size,adjusted[index]) {
+            adjusted[index]=chance;changed=true;
+        }
+    }
+    changed.then_some(adjusted)
+}
 fn can_claim(game:&Game<'_>,killer:Option<u32>)->std::result::Result<bool,String> {
     let Some(id)=killer else {return Ok(false)};
     if let Some(mob)=game.mobs.iter().find(|mob|mob.id==id) {
@@ -85,11 +105,21 @@ impl Game<'_> {
             mob_drops:self.ui.rules.bool("mob_drops"),world_seed:self.level.seed};
         let origin=[m.position.x,m.position.y,m.position.z];
         let place=self.loot_place_at(origin,None);
+        // A class drop-chance override (e.g. the armored slime head cap)
+        // replaces the recorded chances for this death's rolls only; the
+        // mob's own record is restored untouched afterwards.
+        let chance_override=pluto_drop_chance_override(m);
+        let saved_chances=chance_override.map(|adjusted| {
+            let saved=m.extra.drop_chances.clone();
+            m.extra.drop_chances=Some(adjusted);
+            saved
+        });
         let (items,skulls)=horizon_world::loot::with_native_loot_place(place,|| {
             horizon_client::mobs::nav::pluto_entity_spawn_state::with_head_drop_eligibility(eligible,|| {
                 drops::die(m,&death,&mut self.rand_sequences,&mut self.world.random)
             })
         });
+        if let Some(saved)=saved_chances {m.extra.drop_chances=saved;}
         if skulls && let Err(error)=claim(self,source_id) {eprintln!("PlutoLib: native head claim failed: {error}");}
         let raider=horizon_client::mobs::raider::is_raider(m.species());
         let mut stacks=Vec::new();let mut rest=Vec::new();

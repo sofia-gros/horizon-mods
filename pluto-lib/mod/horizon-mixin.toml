@@ -371,6 +371,18 @@ ordinal = 0
 helper = "pluto-living-entity-fall.rs"
 bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "mob", ty = "&Mob", value = "&*self" }, { name = "distance", ty = "f64", value = "$local:distance:0" }, { name = "multiplier", ty = "f32", value = "$local:modifier:0" }]
 
+# A class causeFallDamage override replaces the inherited application before
+# it starts: cancel shapes like the living-fall cancellation, bounce rewrites
+# the motion. Unregistered kinds pay one sink check.
+[[injection]]
+id = "pluto-living-cause-fall"
+target = "horizon_client_lib::mobs::living::Mob::cause_fall_damage_at"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-living-cause-fall.rs"
+bindings = [{ name = "mob", ty = "&mut Mob", value = "&mut *self" }, { name = "distance", ty = "f64", value = "distance" }, { name = "multiplier", ty = "f32", value = "modifier" }, { name = "events", ty = "&mut Vec<MobEvent>", value = "events" }, { name = "contact", ty = "Option<(&MobWorld, [i32; 3])>", value = "contact" }]
+
 # Class attributes use native Instance transient sets; bridge scalar resistance
 # operations without writing a permanent modifier or replacing its base store.
 [[module]]

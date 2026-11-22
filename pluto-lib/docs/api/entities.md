@@ -397,7 +397,7 @@ Owned spawn origin metadata: `entity_type: Identifier`, `dimension: Identifier`,
 ```rust
 use pluto_lib::{Identifier, MobSpawnInfo};
 let info = MobSpawnInfo { entity_type: Identifier::parse("minecraft:zombie").unwrap(),
-    dimension: Identifier::parse("minecraft:overworld").unwrap(), position: [1.0, 64.0, 2.0], reason: "natural".into() };
+    dimension: Identifier::parse("minecraft:overworld").unwrap(), position: [1.0, 64.0, 2.0], reason: "natural".into(), special_multiplier: 0.5 };
 assert_eq!(info.position[1], 64.0);
 assert_eq!(info.reason, "natural");
 ```

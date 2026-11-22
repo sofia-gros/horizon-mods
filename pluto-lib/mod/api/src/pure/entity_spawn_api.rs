@@ -13,6 +13,11 @@ pub struct MobSpawnInfo {
     pub position:[f64;3],
     /// Backend reason, e.g. natural, command, spawner, structure or conversion.
     pub reason:String,
+    /// The local difficulty's special multiplier at the position
+    /// (`DifficultyInstance.getSpecialMultiplier`): 0 below effective difficulty
+    /// 2, 1 above 4, linear between. Every difficulty-scaled finalize roll of
+    /// the original (pickup loot, class equipment) reads this one value.
+    pub special_multiplier:f32,
 }
 /// Borrowed preparation view. RNG is the new mob's stream, NOT the world's
 /// independent enchantment/spawner stream. Gear reads are owned copies.
@@ -27,6 +32,23 @@ pub trait MobSpawnPreparation {
 /// slots/components reject explicitly; setting gear is not inherited finalization.
 pub trait MobSpawnCompletion:MobSpawnPreparation {
     fn set_equipment(&mut self,slot:&str,stack:StackData)->Result<(),String>;
+    /// `Mob.setCanPickUpLoot`: whether the mob may pick up dropped items.
+    /// The pickup roll itself is the callback's, drawn during preparation.
+    fn set_can_pick_up_loot(&mut self,_can:bool)->Result<(),String> { Err("mob spawn backend cannot set the pickup-loot flag".into()) }
+    /// Record one equipment slot's death-drop chance (`Mob.setDropChance`):
+    /// the Halloween pumpkin's 0, a picked-up item's 2, the default 0.085.
+    fn set_drop_chance(&mut self,_slot:&str,_chance:f32)->Result<(),String> { Err("mob spawn backend cannot set equipment drop chances".into()) }
+    /// Enchant the stack in `slot` as spawned armor (`Mob.enchantSpawnedArmor`):
+    /// the level is the callback's roll, drawn during preparation; the backend
+    /// runs the game's own enchantment selection at that level on the mob's
+    /// stream. An empty slot is left alone.
+    fn enchant_equipment(&mut self,_slot:&str,_level:i32)->Result<(),String> { Err("mob spawn backend cannot enchant spawn equipment".into()) }
+    /// Store attachment data on the still-unpublished mob, under the same
+    /// attachment id/JSON/sync policy the data-attachment API uses; the write
+    /// lands before the mob joins, so load-time readers see it. The typed
+    /// registry is not reachable here: serialize the value as the consumer's
+    /// attachment type would.
+    fn set_attached(&mut self,_attachment:&str,_json:&str,_synced:bool)->Result<(),String> { Err("mob spawn backend cannot store attachments".into()) }
 }
 /// Owned once-only work produced by a preparation callback. Captured resource
 /// generations are released on completion, error or aborted/unpublished spawn.
@@ -92,6 +114,10 @@ mod tests {
     }
     impl MobSpawnCompletion for Host {
         fn set_equipment(&mut self,_:&str,stack:StackData)->Result<(),String> { self.trace.push("replace"); self.gear=stack; Ok(()) }
+        fn set_can_pick_up_loot(&mut self,_:bool)->Result<(),String> { self.trace.push("pickup"); Ok(()) }
+        fn set_drop_chance(&mut self,_:&str,_:f32)->Result<(),String> { self.trace.push("chance"); Ok(()) }
+        fn enchant_equipment(&mut self,_:&str,_:i32)->Result<(),String> { self.trace.push("enchant"); Ok(()) }
+        fn set_attached(&mut self,_:&str,_:&str,_:bool)->Result<(),String> { self.trace.push("attach"); Ok(()) }
     }
     #[test]
     fn dispatch_keeps_preparation_before_full_initialization_and_retains_owned_actions_until_once_only_completion() {
@@ -107,18 +133,23 @@ mod tests {
             Ok(Some(Box::new(move |host:&mut dyn MobSpawnCompletion| {
                 let _lease=lease;
                 assert_eq!(host.equipment("mainhand")?.unwrap().item,"minecraft:enchanted_crossbow");
+                assert_eq!(host.info().special_multiplier,0.5);
+                host.set_can_pick_up_loot(true)?;
+                host.set_drop_chance("head",0.0)?;
+                host.enchant_equipment("head",5)?;
+                host.set_attached("test:flag","true",true)?;
                 host.set_equipment("mainhand",StackData { item:"test:replacement".into(),count:1,..Default::default() })
             }) as MobSpawnAction))
         })).unwrap();
         let mut host=Host { info:MobSpawnInfo { entity_type:Identifier::parse("minecraft:piglin").unwrap(),
-            dimension:Identifier::parse("minecraft:overworld").unwrap(),position:[0.0;3],reason:"natural".into() },
+            dimension:Identifier::parse("minecraft:overworld").unwrap(),position:[0.0;3],reason:"natural".into(),special_multiplier:0.5 },
             draws:[0.0,1.0].into(),gear:StackData::default(),trace:vec![] };
         let pending=prepare_callbacks(registry.snapshot(),&mut host).unwrap().unwrap();
         assert_eq!(live.load(Ordering::SeqCst),1);
         host.trace.extend(["default_gear","enchantment","seasonal","class_tail"]);
         host.gear.item="minecraft:enchanted_crossbow".into();
         pending.complete(&mut host).unwrap();
-        assert_eq!(host.trace,["chance","default_gear","enchantment","seasonal","class_tail","replace"]);
+        assert_eq!(host.trace,["chance","default_gear","enchantment","seasonal","class_tail","pickup","chance","enchant","attach","replace"]);
         assert_eq!(live.load(Ordering::SeqCst),0);
         assert!(prepare_callbacks(registry.snapshot(),&mut host).unwrap().is_none());
         assert!(host.draws.is_empty(),"unsuccessful selection still consumes its pre-initialization draw");

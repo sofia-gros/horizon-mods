@@ -222,6 +222,24 @@ pub fn hooks() -> Box<dyn Hooks> {
             crate::pure::living_entity_behavior::LivingEntityBehaviors::attack_damage(
                 &crate::pure::living_entity_behavior::AttackDamageContext {entity,entity_type,attribute})
         },
+        has_cause_fall:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_cause_fall,
+        cause_fall:|entity,kind,distance,multiplier,velocity,suppressing_bounce| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::cause_fall_damage(
+                &crate::pure::living_entity_behavior::CauseFallDamageContext {entity,entity_type,distance,multiplier,velocity,suppressing_bounce})
+                .map(|outcome|match outcome {
+                    crate::pure::living_entity_behavior::FallOutcome::Cancel=>
+                        horizon_client::mobs::pluto_living_entity_access::FallOutcome::Cancel,
+                    crate::pure::living_entity_behavior::FallOutcome::Bounce {velocity,sound}=>
+                        horizon_client::mobs::pluto_living_entity_access::FallOutcome::Bounce {velocity,sound:sound.map(|s|intern_sound(&s.to_string()))},
+                })
+        },
+        has_drop_chance:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_drop_chance,
+        drop_chance:|kind,slot,slime_size,chance| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::equipment_drop_chance(
+                &crate::pure::living_entity_behavior::EquipmentDropChanceContext {entity_type,slot:slot.to_string(),slime_size,chance})
+        },
     }).expect("PlutoLib living query sink installs once");
     horizon_client::entry::pluto_block::set_skull_definition_provider(|| {
         Ok(crate::pure::skull_model_registry::definitions()?.into_iter().map(|d|
@@ -283,6 +301,10 @@ pub fn hooks() -> Box<dyn Hooks> {
         horizon_client::entry::pluto_entity_spawn_access::Provider {
             enabled:crate::pure::entity_spawn_api::has_callbacks,prepare:native_spawn_prepare,
         }).expect("PlutoLib mob spawn dispatcher installs once");
+    horizon_client::entry::pluto_entity_spawn_access::set_attachment_writer(|host,entity,dimension,attachment,json,synced| {
+        let Some(kind)=json_attachment(attachment,synced) else { return false };
+        host.dimension()==dimension && kind.set(host,Holder::Entity(entity),json.to_owned()).is_ok()
+    }).expect("PlutoLib spawn attachment writer installs once");
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -811,12 +833,23 @@ struct SpawnView<'a> {
     random:&'a mut dyn spawn_access::Random,
     equipment:&'a mut dyn spawn_access::Equipment,
 }
+/// MobEvent sounds are &'static str; intern each distinct mod sound id once.
+/// The table is bounded by the distinct ids mods actually bounce with.
+fn intern_sound(id:&str)->&'static str {
+    static INTERN:std::sync::Mutex<Vec<&'static str>>=std::sync::Mutex::new(Vec::new());
+    let mut table=INTERN.lock().unwrap();
+    if let Some(found)=table.iter().find(|known|**known==id) { return found; }
+    let leaked:&'static str=Box::leak(id.to_string().into_boxed_str());
+    table.push(leaked);
+    leaked
+}
+
 fn spawn_info(info:&spawn_access::Info)->Result<crate::pure::entity_spawn_api::MobSpawnInfo,String> {
     if !info.position.iter().all(|v|v.is_finite()) { return Err("non-finite mob spawn position".into()); }
     Ok(crate::pure::entity_spawn_api::MobSpawnInfo {
         entity_type:Identifier::parse(&info.entity_type).map_err(|e|e.to_string())?,
         dimension:Identifier::parse(&info.dimension).map_err(|e|e.to_string())?,
-        position:info.position,reason:info.reason.clone(),
+        position:info.position,reason:info.reason.clone(),special_multiplier:info.special_multiplier,
     })
 }
 impl crate::pure::entity_spawn_api::MobSpawnPreparation for SpawnView<'_> {
@@ -837,6 +870,10 @@ impl crate::pure::entity_spawn_api::MobSpawnCompletion for SpawnView<'_> {
         write_stack(&mut native,&stack);
         self.equipment.set(slot,native)
     }
+    fn set_can_pick_up_loot(&mut self,can:bool)->Result<(),String> { self.equipment.set_pick_up_loot(can) }
+    fn set_drop_chance(&mut self,slot:&str,chance:f32)->Result<(),String> { self.equipment.set_drop_chance(slot,chance) }
+    fn enchant_equipment(&mut self,slot:&str,level:i32)->Result<(),String> { self.equipment.enchant(slot,level) }
+    fn set_attached(&mut self,attachment:&str,json:&str,synced:bool)->Result<(),String> { self.equipment.attach(attachment,json,synced) }
 }
 struct SpawnCompletion(crate::pure::entity_spawn_api::PreparedSpawn);
 impl spawn_access::Completion for SpawnCompletion {
