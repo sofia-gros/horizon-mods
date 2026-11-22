@@ -1186,8 +1186,7 @@ def gadget_items():
 
 def write_gadget_declarations():
     for name, declaration in gadget_items().items():
-        (HORIZON_DECLARATIONS / 'item' / f'{name}.json').write_text(
-            json.dumps(declaration, indent=2) + '\n', encoding='utf-8')
+        (HORIZON_DECLARATIONS / 'item' / f'{name}.json').write_text(json.dumps(declaration, indent=2) + '\n', encoding='utf-8', newline='\n')
 
 
 def copy_client_assets():
@@ -3228,7 +3227,7 @@ def fix_stale_item_ids():
         if 'lang' in path.parts:
             updated = updated.replace('tconstruct.slimy_chestplate', 'tconstruct.slime_chestplate')
         if updated != text:
-            path.write_text(updated, encoding='utf-8')
+            path.write_text(updated, encoding='utf-8', newline='\n')
             fixed += 1
     return fixed
 
