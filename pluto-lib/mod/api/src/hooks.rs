@@ -193,6 +193,20 @@ pub fn hooks() -> Box<dyn Hooks> {
             entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
         },
     }).expect("PlutoLib player hurt sink installs once");
+    horizon_client::entry::pluto_damage_facts_access::set_sink(horizon_client::entry::pluto_damage_facts_access::Sink {
+        attacker: |facts| {
+            let state = entity_events_v1::EntityState {
+                kind: facts.kind.clone(), sprinting: false, on_ground: facts.on_ground, in_water: facts.in_water,
+                fire_ticks: facts.fire_ticks, fire_immune: facts.fire_immune, effects: facts.effects.clone(),
+                ..entity_events_v1::EntityState::default()
+            };
+            entity_events_v1::note_attacker_facts(facts.attacker, entity_events_v1::AttackerFacts {
+                kind: facts.kind.clone(), main_hand: facts.main_hand.as_ref().map(read_stack), chest: facts.chest.as_ref().map(read_stack),
+                attack_damage: facts.attack_damage, state,
+            });
+        },
+        victim: |facts| entity_events_v1::note_victim_facts(facts.entity, entity_events_v1::VictimFacts { health: facts.health, attack_damage: facts.attack_damage }),
+    }).expect("PlutoLib damage facts sink installs once");
     horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
         factor: entity_events_v1::modify_visibility,
     }).expect("PlutoLib player visibility sink installs once");
@@ -2253,6 +2267,14 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 if duration <= 0 || amplifier < 0 { continue; }
                 if let Ok(mob) = u32::try_from(id) { horizon_client::entry::pluto_mob_effect_access::push(mob, &effect, duration, amplifier); }
             }
+            EntityAction::DropItem { target, stack } => {
+                // The host has no call that spawns an item in the world: the drop is handed to the game,
+                // which spawns it at the entity on its next tick.
+                let Ok(entity) = u32::try_from(id_of(target)) else { continue };
+                let mut native = ItemStack::new(&stack.item, stack.count);
+                write_stack(&mut native, &stack);
+                horizon_client::entry::pluto_damage_facts_access::push_drop(entity, native);
+            }
         }
     }
 }
@@ -3735,6 +3757,11 @@ impl Hooks for PlutoHooks {
     }
 
     fn entity_tick_post(&self, host: &mut dyn Host, event: &mut EntityTickPostEvent<'_>) {
+        // The actions a damage callback queued for this entity (a mob party of a hit, which no player's tick
+        // can place) land on the entity's own tick, in its dimension.
+        for (attacker, victim, action) in entity_events_v1::take_late_actions(event.entity as i32) {
+            apply_entity_actions(host, event.dimension, attacker, victim, vec![action]);
+        }
         if !entity_events_v1::entity_tick_heard() {
             return;
         }
@@ -3852,6 +3879,13 @@ impl Hooks for PlutoHooks {
 
     fn level_tick_post(&self, _host: &mut dyn Host, event: &mut LevelTickPostEvent<'_>) {
         lifecycle_events_v1::world_tick(false, event.dimension);
+        // The drops damage callbacks asked for at entities are handed to the game, which spawns each at its
+        // entity (the damage events themselves have no world to drop into).
+        for (entity, stack) in entity_events_v1::take_drop_actions() {
+            let mut native = ItemStack::new(&stack.item, stack.count);
+            write_stack(&mut native, &stack);
+            horizon_client::entry::pluto_damage_facts_access::push_drop(entity as u32, native);
+        }
     }
 
     fn chunk_load(&self, _host: &mut dyn Host, event: &mut ChunkLoadEvent<'_>) {
@@ -4237,6 +4271,16 @@ impl Hooks for PlutoHooks {
         // The hurt stage, as the damage arrives and before armor and enchantment protection take their share: what the
         // callbacks leave of the amount is what the game goes on with.
         event.amount = entity_events_v1::modify_hurt(&damage);
+        Flow::Continue
+    }
+
+    fn living_incoming_damage_v3(&self, event: &mut horizon_client::mod_api::LivingIncomingDamageV3Event<'_>) -> Flow {
+        // Observation only: this report names the parties of every hit (a mob's melee attacker included, and
+        // whether the causing entity is a player), which the v1 report cannot; the parties are remembered for
+        // the damage stage that follows in the same call. The amount and the cancellation stay the v1 hook's.
+        if let Some(attacker) = event.attacker {
+            entity_events_v1::note_damage_parties(event.victim as i32, attacker as i32, event.attacker_uuid.is_some());
+        }
         Flow::Continue
     }
 

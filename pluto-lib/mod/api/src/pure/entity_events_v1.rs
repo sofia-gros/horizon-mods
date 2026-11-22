@@ -278,6 +278,10 @@ pub enum EntityAction {
     /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
     /// the game's own rules for giving an effect apply.
     SetEffectDuration { target: ActionTarget, effect: String, duration: i32 },
+    /// `LivingEntity.spawnAtLocation` / `ModifierUtil.dropItem`: drops `stack` as an item at the target entity, at the
+    /// entity's position as the drop lands (the game's own item spawn, with its pickup delay). Reaches any living
+    /// entity the game can name, mobs and the ender dragon included; a target that has left the world drops nothing.
+    DropItem { target: ActionTarget, stack: StackData },
 }
 
 /// Which stack of a player an [`EntityAction::EditStackData`] edits.
@@ -437,11 +441,38 @@ pub struct DamageModification {
     /// pieces carrying custom data (a mod's own armor keeps its state there). Empty for an entity that is not a player.
     pub armor: Vec<(String, StackData)>,
     /// When a player's weapon hit a mob: what the player and the mob were doing as the hit landed; None otherwise.
+    /// A mob's synchronous attack (a melee swing the game names the attacker of before the hit lands) also reports
+    /// the mob's state here, from its attack snapshot; the fields the snapshot does not carry (its health, its
+    /// equipment by slot) stay None.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// The entity type id of the entity that caused the hit, such as `minecraft:zombie`; empty when the game did
+    /// not report it. A player's weapon hit reports `minecraft:player`, a mob's synchronous attack the mob's type.
+    pub attacker_kind: String,
+    /// Whether the entity that caused the hit is a player: `Some(true)` when the game names a player as the cause
+    /// (a weapon hit, or a hit whose causing entity carries a player's identity, such as a player's explosion),
+    /// `Some(false)` when it names a mob, None when the game did not say.
+    pub attacker_is_player: Option<bool>,
+    /// The stack in the causing entity's main hand, for an attacker of any kind; None for an empty hand or when
+    /// the game did not report it. For a player's attack this is the same stack as `attacker_stack`.
+    pub attacker_main_hand: Option<StackData>,
+    /// The stack on the causing entity's chest, for an attacker of any kind; None for an empty chest slot or when
+    /// the game did not report it. Only a mob's synchronous attack reports it.
+    pub attacker_chest: Option<StackData>,
+    /// The causing entity's `minecraft:attack_damage` attribute as the game reports it (a mob's, from its attack
+    /// snapshot); None when not reported.
+    pub attacker_attack_damage: Option<f32>,
+    /// The damaged entity's health as the hit arrived, before this hit's damage; None when the game did not
+    /// report it (a player victim's health is not reported at this stage).
+    pub target_health: Option<f32>,
+    /// The damaged entity's `minecraft:attack_damage` attribute as the game reports it (a mob victim's); None
+    /// when not reported.
+    pub target_attack_damage: Option<f32>,
     /// The actions to do to the damaged player (`Victim`), which callbacks add to; they land on the player's next tick (only for a player
     /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped. On a player's attack
-    /// (`attacker_stack` is set) the actions for `Attacker` land on the attacking player's next tick instead.
+    /// (`attacker_stack` is set) the actions for `Attacker` land on the attacking player's next tick instead. An action for a
+    /// party neither tick can place (a mob attacker, a mob victim) is kept for that entity's next tick, and a
+    /// [`EntityAction::DropItem`] is handed to the game to spawn at its target entity.
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
@@ -728,6 +759,103 @@ pub(crate) fn entity_tick_heard() -> bool {
     !ENTITY_TICK_PRE.is_empty() || !ENTITY_TICK_POST.is_empty()
 }
 
+/// What the game names of the entity behind a synchronous attack (a mob's melee swing) as the attack is
+/// delivered: its type, what it holds and wears, its attack attribute and the state the hit hooks read. The
+/// game names the attacker before the hit lands (its knockback scope), so the facts belong to the attack in
+/// flight; a damage event reads them matched by the attacker's entity id, and only briefly.
+#[derive(Clone, Debug)]
+pub(crate) struct AttackerFacts {
+    pub kind: String,
+    pub main_hand: Option<StackData>,
+    pub chest: Option<StackData>,
+    pub attack_damage: f32,
+    pub state: EntityState,
+}
+
+/// What the game names of a damaged entity as a hit arrives: its health before the hit, and its attack
+/// attribute (a mob's; the ender dragon's is not named, and a player's health is not named at this stage).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct VictimFacts {
+    pub health: f32,
+    pub attack_damage: Option<f32>,
+}
+
+thread_local! {
+    static ATTACKER_FACTS: RefCell<Option<(i32, AttackerFacts, std::time::Instant)>> = const { RefCell::new(None) };
+    static VICTIM_FACTS: RefCell<Option<(i32, VictimFacts, std::time::Instant)>> = const { RefCell::new(None) };
+    static DAMAGE_PARTIES: RefCell<Option<(i32, i32, bool, std::time::Instant)>> = const { RefCell::new(None) };
+}
+
+/// How long a named fact of a hit stays usable: the damage events follow in the same call, so this only has to
+/// cover the calls the game makes between naming a fact and the events that read it.
+const DAMAGE_FACTS_LIFETIME: std::time::Duration = std::time::Duration::from_millis(100);
+
+/// Names the entity behind the synchronous attack being delivered: its type, the stacks in its main hand and
+/// on its chest, its attack attribute and its state. The transport calls this as the game opens the attack;
+/// the damage events of that attack read the facts.
+pub(crate) fn note_attacker_facts(entity: i32, facts: AttackerFacts) {
+    ATTACKER_FACTS.with(|pending| *pending.borrow_mut() = Some((entity, facts, std::time::Instant::now())));
+}
+
+/// Names the health (and attack attribute, for a mob) of the entity a hit is about to land on. The transport
+/// calls this as the game opens the hit, and again for the ender dragon as its damage is worked out.
+pub(crate) fn note_victim_facts(entity: i32, facts: VictimFacts) {
+    VICTIM_FACTS.with(|pending| *pending.borrow_mut() = Some((entity, facts, std::time::Instant::now())));
+}
+
+/// Names the parties of a hit as the game works them out (its incoming-damage report, which runs inside the
+/// hit, after the hurt stage and before the damage stage): the victim, the causing entity and whether that
+/// entity is a player.
+pub(crate) fn note_damage_parties(victim: i32, attacker: i32, attacker_is_player: bool) {
+    DAMAGE_PARTIES.with(|pending| *pending.borrow_mut() = Some((victim, attacker, attacker_is_player, std::time::Instant::now())));
+}
+
+fn attacker_facts(entity: i32) -> Option<AttackerFacts> {
+    ATTACKER_FACTS.with(|pending| match &*pending.borrow() {
+        Some((who, facts, at)) if *who == entity && at.elapsed() < DAMAGE_FACTS_LIFETIME => Some(facts.clone()),
+        _ => None,
+    })
+}
+
+fn victim_facts(entity: i32) -> Option<VictimFacts> {
+    VICTIM_FACTS.with(|pending| match &*pending.borrow() {
+        Some((who, facts, at)) if *who == entity && at.elapsed() < DAMAGE_FACTS_LIFETIME => Some(*facts),
+        _ => None,
+    })
+}
+
+/// Fills a damage event's report of the causing entity and of the damaged entity's health from what the game
+/// named of this hit: the attack snapshot, the parties report and the victim snapshot, over the states the
+/// weapon-hit report brought (those stand where they exist).
+fn fill_damage_facts(modification: &mut DamageModification) {
+    let damage = modification.damage.clone();
+    if let Some(facts) = attacker_facts(damage.attacker) {
+        modification.attacker_kind = facts.kind;
+        modification.attacker_main_hand = facts.main_hand;
+        modification.attacker_chest = facts.chest;
+        modification.attacker_attack_damage = Some(facts.attack_damage);
+        if modification.attacker_state.is_none() { modification.attacker_state = Some(facts.state); }
+        modification.attacker_is_player = Some(false);
+    }
+    if modification.attacker_main_hand.is_none() { modification.attacker_main_hand = modification.attacker_stack.clone(); }
+    if modification.attacker_stack.is_some() { modification.attacker_is_player = Some(true); }
+    // The parties report runs later in the hit than the hurt stage, so the damage stage reads it and the hurt
+    // stage keeps what the snapshot said; a report names this hit by both of its entities.
+    DAMAGE_PARTIES.with(|pending| {
+        if let Some((victim, attacker, is_player, at)) = &*pending.borrow() {
+            if *victim == damage.entity && *attacker == damage.attacker && at.elapsed() < DAMAGE_FACTS_LIFETIME {
+                modification.attacker_is_player = Some(*is_player);
+            }
+        }
+    });
+    if modification.attacker_kind.is_empty() {
+        if let Some(state) = &modification.attacker_state { modification.attacker_kind = state.kind.clone(); }
+    }
+    modification.target_health = modification.target_state.as_ref().and_then(|state| state.health)
+        .or_else(|| victim_facts(damage.entity).map(|facts| facts.health));
+    modification.target_attack_damage = victim_facts(damage.entity).and_then(|facts| facts.attack_damage);
+}
+
 /// True when the damage may be applied.
 pub(crate) fn after_death(death: &LivingDamage) {
     AFTER_DEATH.invoke(death);
@@ -956,7 +1084,8 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     });
     // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, actions: RefCell::new(Vec::new()) };
+    fill_damage_facts(&mut modification);
     MODIFY_DAMAGE.invoke(&modification);
     queue_damage_actions(damage, &modification);
     modification.amount.get()
@@ -974,22 +1103,38 @@ pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
     });
     // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, actions: RefCell::new(Vec::new()) };
+    fill_damage_facts(&mut modification);
     MODIFY_HURT.invoke(&modification);
     queue_damage_actions(damage, &modification);
     modification.amount.get()
 }
 
 /// Queues the actions a damage callback asked for, at either stage: the ones for an attacking player land on that player's
-/// next tick, the ones for the wearer on the wearer's.
+/// next tick, the ones for the wearer on the wearer's, a drop is handed to the game for its target, and one for a party
+/// neither tick can place (a mob attacker, a mob victim) is kept for that entity's next tick.
 fn queue_damage_actions(damage: &LivingDamage, modification: &DamageModification) {
-    let (by_attacker, rest): (Vec<EntityAction>, Vec<EntityAction>) = modification.actions.borrow_mut().drain(..)
-        .partition(|action| modification.attacker_stack.is_some() && damage.attacker >= 0 && action_target(action) == ActionTarget::Attacker);
-    // The actions a player's attack asks for the attacker (a heal by the damage dealt) land on that player's next tick, with the damaged entity as the other party.
-    if !by_attacker.is_empty() { if let Ok(mut queue) = ATTACKER_ACTIONS.lock() { queue.extend(by_attacker.into_iter().map(|action| (damage.attacker, damage.entity, action))); } }
-    // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
-    let actions: Vec<(i32, i32, EntityAction)> = rest.into_iter().map(|action| (damage.entity, damage.attacker, action)).collect();
-    if !actions.is_empty() && !modification.armor.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
+    for action in modification.actions.borrow_mut().drain(..) {
+        // A drop lands at its target entity whatever the parties are; the game spawns it there.
+        if let EntityAction::DropItem { target, stack } = &action {
+            let entity = match target { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+            if entity >= 0 { if let Ok(mut queue) = DROP_ACTIONS.lock() { queue.push((entity, stack.clone())); } }
+            continue;
+        }
+        // The actions a player's attack asks for the attacker (a heal by the damage dealt) land on that player's next tick, with the damaged entity as the other party.
+        if action_target(&action) == ActionTarget::Attacker && modification.attacker_stack.is_some() && damage.attacker >= 0 {
+            if let Ok(mut queue) = ATTACKER_ACTIONS.lock() { queue.push((damage.attacker, damage.entity, action)); }
+            continue;
+        }
+        // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
+        if !modification.armor.is_empty() {
+            if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.push((damage.entity, damage.attacker, action)); }
+            continue;
+        }
+        // Neither tick queue can place it: keep it for the target entity's next tick instead of dropping it.
+        let entity = match action_target(&action) { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+        if entity >= 0 { if let Ok(mut queue) = LATE_ACTIONS.lock() { queue.push((entity, damage.attacker, damage.entity, action)); } }
+    }
 }
 
 /// Which party an action is done to.
@@ -997,8 +1142,30 @@ fn action_target(action: &EntityAction) -> ActionTarget {
     match action {
         EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
         | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
-        | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } => *target,
+        | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } | EntityAction::DropItem { target, .. } => *target,
     }
+}
+
+/// The stacks damage callbacks asked to drop at an entity, with the entity's id: the damage events have no
+/// world to drop into, so the transport hands them to the game, which spawns them at the entity.
+static DROP_ACTIONS: std::sync::Mutex<Vec<(i32, StackData)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the drops queued at entities, as (entity, stack); the transport calls this as the world ticks.
+pub(crate) fn take_drop_actions() -> Vec<(i32, StackData)> {
+    let Ok(mut queue) = DROP_ACTIONS.lock() else { return Vec::new() };
+    std::mem::take(&mut *queue)
+}
+
+/// The actions for a party neither the attacker's nor the wearer's tick could place, kept by the entity they
+/// are done to, with the hit's attacker and victim.
+static LATE_ACTIONS: std::sync::Mutex<Vec<(i32, i32, i32, EntityAction)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the actions kept for the entity `entity`, as (attacker, victim, action); other entities' stay queued.
+pub(crate) fn take_late_actions(entity: i32) -> Vec<(i32, i32, EntityAction)> {
+    let Ok(mut queue) = LATE_ACTIONS.lock() else { return Vec::new() };
+    let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *queue).into_iter().partition(|(who, _, _, _)| *who == entity);
+    *queue = rest;
+    mine.into_iter().map(|(_, attacker, victim, action)| (attacker, victim, action)).collect()
 }
 
 /// The actions a player's attacks asked for the attacker, with the attacker's entity id and the damaged entity's.
@@ -1053,6 +1220,51 @@ mod tests {
         forget_armor(99);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![vec!["head:example:helmet".to_string()], Vec::<String>::new()]);
+    }
+
+    #[test]
+    fn damage_events_carry_the_attack_snapshot_and_the_victims_health() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| {
+            if hit.damage.entity == 6060 {
+                log.lock().unwrap().push((hit.attacker_kind.clone(), hit.attacker_is_player, hit.attacker_main_hand.as_ref().map(|stack| stack.item.clone()),
+                    hit.attacker_chest.as_ref().map(|stack| stack.item.clone()), hit.attacker_attack_damage, hit.target_health, hit.target_attack_damage,
+                    hit.attacker_state.as_ref().map(|state| state.kind.clone())));
+            }
+        });
+        let sword = StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
+        let plate = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
+        note_attacker_facts(77, AttackerFacts { kind: "minecraft:zombie".into(), main_hand: Some(sword), chest: Some(plate), attack_damage: 3.0,
+            state: EntityState { kind: "minecraft:zombie".into(), on_ground: true, ..EntityState::default() } });
+        note_victim_facts(6060, VictimFacts { health: 14.5, attack_damage: Some(2.0) });
+        let hurt = LivingDamage { entity: 6060, kind: "minecraft:pig".into(), damage_type: "minecraft:mob_attack".into(), attacker: 77, direct: 77, amount: 4.0 };
+        modify_damage(&hurt);
+        // The parties report names the same hit's causer as a player (a tamed mob's owner credited, say): it stands over the snapshot.
+        note_damage_parties(6060, 77, true);
+        modify_damage(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![
+            ("minecraft:zombie".to_string(), Some(false), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
+            ("minecraft:zombie".to_string(), Some(true), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn a_drop_item_action_is_queued_for_its_target_and_other_actions_for_a_mob_party_are_kept_for_its_tick() {
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 7070 { return; }
+            hit.actions.borrow_mut().push(EntityAction::DropItem { target: ActionTarget::Victim, stack: StackData { item: "example:scale".into(), count: 3, ..StackData::default() } });
+            hit.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Attacker, amount: 2.0 });
+            hit.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
+        });
+        let hurt = LivingDamage { entity: 7070, kind: "minecraft:ender_dragon".into(), damage_type: "minecraft:explosion".into(), attacker: 88, direct: 88, amount: 10.0 };
+        modify_damage(&hurt);
+        assert_eq!(take_drop_actions(), vec![(7070, StackData { item: "example:scale".into(), count: 3, ..StackData::default() })]);
+        assert!(take_drop_actions().is_empty(), "the drops were taken");
+        // The heal for the (mob) attacker and the fire for the (mob) victim could go on no player's tick: both are kept, by target.
+        assert_eq!(take_late_actions(88), vec![(88, 7070, EntityAction::Heal { target: ActionTarget::Attacker, amount: 2.0 })]);
+        assert_eq!(take_late_actions(7070), vec![(88, 7070, EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 })]);
+        assert!(take_late_actions(7070).is_empty());
     }
 
     #[test]

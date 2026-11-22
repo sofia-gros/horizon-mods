@@ -1675,6 +1675,34 @@ kind = "HEAD"
 helper = "pluto-player-hurt.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "attacker", ty = "i32", value = "attacker" }]
 
+# The parties of a hit, named for the damage events: what the game knows of the mob behind a synchronous
+# attack and of the entity a hit lands on, and the drops a damage callback asks for at an entity.
+[[module]]
+id = "pluto-damage-facts-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_damage_facts_access"
+source = "pluto-damage-facts-access.rs"
+visibility = "pub"
+
+# A hit is opened on a living entity: the mods are told the health a mob victim has before the hit's hooks run.
+[[injection]]
+id = "pluto-damage-victim"
+target = "horizon_client::game::native_hooks::hurt_server"
+kind = "HEAD"
+require = 1
+helper = "pluto-damage-victim.rs"
+bindings = [{ name = "hurting", ty = "&horizon_client::health::Hurting<'_>", value = "&hurting" }]
+
+# The ender dragon's damage is worked out: the mods are told the health it has (it is no mob, so the mob
+# victim reach cannot name it).
+[[injection]]
+id = "pluto-damage-dragon"
+target = "horizon_client::game::dragon::Dragon::hurt_health"
+kind = "HEAD"
+require = 1
+helper = "pluto-damage-dragon.rs"
+bindings = [{ name = "dragon", ty = "&Dragon", value = "&*self" }]
+
 # A mob works out how far it sees the player (sneaking, invisibility, worn heads): the mods scale that range for the kind of mob that is looking.
 [[module]]
 id = "pluto-player-visibility-access"
