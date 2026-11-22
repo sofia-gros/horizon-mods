@@ -57,7 +57,7 @@ class DamageFactsTests(unittest.TestCase):
         reach = self.injection('pluto-damage-victim')
         self.assertEqual(reach['target'], 'horizon_client::game::native_hooks::hurt_server')
         self.assertEqual(reach['kind'], 'HEAD')
-        self.assertEqual(reach['require'], 1)
+        self.assertNotIn('require', reach)  # hurt_server is a free-function hook target: the weave accepts require only on site injections (E_SELECTOR)
         self.assertEqual(reach['helper'], 'pluto-damage-victim.rs')
         self.assertIn('Hurting::Mob', self.source('pluto-damage-victim.rs'))
         dragon = self.injection('pluto-damage-dragon')
