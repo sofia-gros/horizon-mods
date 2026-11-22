@@ -962,12 +962,14 @@
   "_comment": "Twilight Forest Alloys",
 
   "block.tconstruct.molten_steeleaf": "Molten Steeleaf",
+  "block.tconstruct.molten_steeleaf_fluid": "Molten Steeleaf",
   "fluid.tconstruct.molten_steeleaf": "Molten Steeleaf",
   "fluid.tconstruct.flowing_molten_steeleaf": "Flowing Molten Steeleaf",
   "item.tconstruct.molten_steeleaf_bucket": "Molten Steeleaf Bucket",
   "fluid.tconstruct.molten_steeleaf.fluid_effect": "Useful both for you and your target to maximize gained experience.",
 
   "block.tconstruct.fiery_liquid": "Fiery Liquid",
+  "block.tconstruct.fiery_liquid_fluid": "Fiery Liquid",
   "fluid.tconstruct.fiery_liquid": "Fiery Liquid",
   "fluid.tconstruct.flowing_fiery_liquid": "Flowing Fiery Liquid",
   "item.tconstruct.fiery_liquid_bucket": "Fiery Liquid Bucket",
