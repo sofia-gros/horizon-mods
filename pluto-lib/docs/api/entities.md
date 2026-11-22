@@ -1061,22 +1061,107 @@ The facade a ticker uses to reach the entities around it. Outside a ticker's sco
 - `fn position_of(id: u64) -> Option<[f64; 3]>`: where the entity stands (its feet position); `None` when the host cannot reach it.
 - `fn teleport(id: u64, pos: [f64; 3]) -> bool`: moves the entity to `pos` (`Entity.teleportTo`); a mob's navigation stops and its fall distance resets, as the game's own teleport does, and another entity keeps the way it faces. A player is never moved — the host has no call that moves a player (its teleports of players are reported by the teleport events, not ordered), and the mob and other-entity calls do not reach players either — so a player's teleport answers false.
 
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty(), "outside a scope");
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]).len(), 1);
+    assert_eq!(EntityReach::position_of(2), Some([1.5, 64.5, 1.5]));
+});
+```
+
 ### `EntityOps`
 
 `trait EntityOps`. The operations behind [`EntityReach`](#entityreach): `entities_in(min, max)`, `discard(id)`, `set_item(id, stack)`, `hurt(id, amount, damage_type)`, `position_of(id)` (default `None`) and `teleport(id, pos)` (default `false`). An adapter implements it and opens it with `with_entities`.
 
+```rust
+use pluto_lib::{EntityOps, EntityReach, ItemSlot, WorldEntity, with_entities};
+
+#[derive(Default)]
+struct EmptyWorld;
+impl EntityOps for EmptyWorld {
+    fn entities_in(&mut self, _min: [f64; 3], _max: [f64; 3]) -> Vec<WorldEntity> { Vec::new() }
+    fn discard(&mut self, _id: u64) -> bool { false }
+    fn set_item(&mut self, _id: u64, _stack: &ItemSlot) -> bool { false }
+    fn hurt(&mut self, _id: u64, _amount: f32, _damage_type: &str) -> bool { false }
+}
+
+let mut world = EmptyWorld;
+with_entities(&mut world, || {
+    assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty());
+    assert_eq!(EntityReach::position_of(7), None);
+    assert!(!EntityReach::teleport(7, [0.0, 64.0, 0.0]));
+});
+```
+
 ### `WorldEntity`
 
-`struct WorldEntity { id: u64, kind: Identifier, item: Option<ItemSlot>, living: Option<LivingFacts> }`. One entity in a box: an item entity carries its stack and no living facts, a living entity the reverse, anything else neither.
+`struct WorldEntity { id: u64, kind: Identifier, item: Option<ItemSlot>, living: Option<LivingFacts> }`. One entity in a box: an item entity carries its `item` stack and no living facts, a living entity carries `living` facts and no stack, anything else neither. `id` is the entity's id and `kind` its type.
+
+```rust
+use pluto_lib::{Identifier, LivingFacts, WorldEntity};
+
+let zombie = WorldEntity {
+    id: 7,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+};
+assert_eq!(zombie.id, 7);
+assert!(zombie.item.is_none() && zombie.living.is_some());
+```
 
 ### `LivingFacts`
 
 `struct LivingFacts { fire_immune: bool, invulnerable: bool, fire_resistant: bool }`. The facts about a living entity a consumer's rules read: it does not burn, it cannot be hurt by the damage being dealt (an invulnerable entity, a creative or spectator player), and it has fire resistance.
 
+```rust
+use pluto_lib::LivingFacts;
+
+let facts = LivingFacts { fire_immune: true, invulnerable: false, fire_resistant: false };
+assert!(facts.fire_immune && !facts.invulnerable && !facts.fire_resistant);
+```
+
 ### `MemoryEntityOps`
 
-An in-memory [`EntityOps`](#entityops) for tests: entities placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, and a `hurts_land` switch for a damage the host refuses.
+An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+for (id, kind) in [(2, "minecraft:zombie"), (3, "minecraft:cow")] {
+    ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+        id,
+        kind: Identifier::parse(kind).unwrap(),
+        item: None,
+        living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    }));
+}
+with_entities(&mut ops, || assert!(EntityReach::start_riding(2, 3)));
+assert_eq!(ops.mounts, vec![(2, 3)]);
+assert!(ops.discarded.is_empty() && ops.left.is_empty() && ops.hurt.is_empty() && ops.hurts_land);
+```
 
 ### `with_entities`
 
-`fn with_entities(ops: &mut dyn EntityOps, body: impl FnOnce() -> T) -> T`. Opens the entity reach over `ops` for `body`; the host opens it around a block entity ticker.
+`fn with_entities(ops: &mut dyn EntityOps, body: impl FnOnce() -> R) -> R`. Opens the entity reach over `ops` for `body`; the host opens it around a block entity ticker. The previous scope is restored when `body` returns.
+
+```rust
+use pluto_lib::{EntityReach, MemoryEntityOps, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+let found = with_entities(&mut ops, || EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]));
+assert!(found.is_empty());
+assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty(), "the scope is closed again");
+```
+
+

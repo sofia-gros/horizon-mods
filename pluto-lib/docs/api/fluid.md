@@ -189,7 +189,7 @@ assert_eq!(water.color, 0xFFFF_FFFF);
 
 ### `FluidDef`
 
-A fluid a mod defines. `id` is its id, `attributes` how it looks and behaves, `world_blocks` whether it has source and flowing blocks in the world, `bucket` whether it has a bucket, `flow` how it flows, and `bucket_fill_sound` / `bucket_empty_sound` the sounds of its bucket.
+A fluid a mod defines. `id` is its id, `attributes` how it looks and behaves, `world_blocks` whether it has source and flowing blocks in the world, `bucket` whether it has a bucket, `bucket_carries_tag` whether its bucket keeps the fluid's tag as the item's whole tag, `flow` how it flows, and `bucket_fill_sound` / `bucket_empty_sound` the sounds of its bucket.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -197,7 +197,7 @@ use pluto_lib::{FluidDef, Identifier};
 let def = FluidDef::new(Identifier::new("example", "honey").unwrap());
 assert_eq!(def.id.to_string(), "example:honey");
 assert_eq!(def.attributes.temperature, 300);
-assert!(!def.world_blocks && !def.bucket);
+assert!(!def.world_blocks && !def.bucket && !def.bucket_carries_tag);
 ```
 
 ### `FluidDef::new`
@@ -361,4 +361,15 @@ let ids: Vec<String> = FluidRegistry::registered().iter().map(|f| f.id.to_string
 let mut sorted = ids.clone();
 sorted.sort();
 assert_eq!(ids, sorted);
+```
+### `FluidDef::bucket_carries_tag`
+
+`fn bucket_carries_tag(self) -> FluidDef`. The same fluid, whose bucket item carries the fluid's tag as its own tag: the bucket holds the fluid together with the tag of the stack it was filled from. Only meaningful with `with_bucket`.
+
+```rust
+use pluto_lib::{FluidDef, Identifier};
+
+let def = FluidDef::new(Identifier::new("example", "potion_like").unwrap()).with_bucket().bucket_carries_tag();
+assert!(def.bucket && def.bucket_carries_tag);
+assert!(!FluidDef::new(Identifier::new("example", "plain").unwrap()).bucket_carries_tag);
 ```

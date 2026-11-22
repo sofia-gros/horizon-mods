@@ -541,3 +541,54 @@ use pluto_lib::World;
 
 assert!(!World::new("minecraft:overworld").schedule_tick([0, 0, 0], "example:oil", 5), "no world in a plain test");
 ```
+### `FluidItemDef::tagged_constant`
+
+`fn tagged_constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`. An item that always holds `amount` of `fluid` together with a tag: the stack's own custom data is the fluid's tag, so a stack with no custom data holds the plain fluid. Drained, it becomes `empty` or vanishes and hands the tag back with the fluid.
+
+```rust
+use pluto_lib::{FluidItemDef, FluidItems, Identifier, ItemSlot, Nbt, NbtCompound};
+
+let id = |text: &str| Identifier::parse(text).unwrap();
+FluidItems::register(FluidItemDef::tagged_constant(id("example:potion_bucket"), id("example:potion"), 1000, Some(id("minecraft:bucket"))));
+let mut stack = ItemSlot::new(id("example:potion_bucket"), 1);
+let mut tag = NbtCompound::new();
+tag.insert("Potion".to_owned(), Nbt::String("minecraft:healing".to_owned()));
+stack.custom_data = tag.clone();
+let contents = FluidItems::contents(&stack).unwrap();
+assert_eq!(contents.amount, 1000);
+assert_eq!(contents.tag, Some(tag));
+```
+
+### `FluidItemDef::empty_container_tagged`
+
+`fn empty_container_tagged(item: Identifier, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`. An empty item that becomes `filled` when `amount` of an accepted fluid goes in, taking the fluid's tag as the filled stack's own custom data.
+
+```rust
+use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound};
+
+let id = |text: &str| Identifier::parse(text).unwrap();
+FluidItems::register(FluidItemDef::empty_container_tagged(id("example:empty_bucket"), |fluid| fluid.path() == "potion", 1000, id("example:potion_bucket")));
+let mut tag = NbtCompound::new();
+tag.insert("Potion".to_owned(), Nbt::String("minecraft:healing".to_owned()));
+let filled = FluidItems::fill(&ItemSlot::new(id("example:empty_bucket"), 1), &FluidStack { fluid: id("example:potion"), amount: 1000, tag: Some(tag.clone()) });
+assert_eq!(filled.amount, 1000);
+assert_eq!(filled.container.item.to_string(), "example:potion_bucket");
+assert_eq!(filled.container.custom_data, tag);
+```
+
+### `FluidItemDef::fills_tagged`
+
+`fn fills_tagged(self, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`. One more filling of the same empty item, tried after the earlier ones, whose filled stack takes the fluid's tag as its own custom data. Does nothing to other kinds of item.
+
+```rust
+use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound};
+
+let id = |text: &str| Identifier::parse(text).unwrap();
+FluidItems::register(FluidItemDef::empty_container(id("example:vial"), |f| f.path() == "water_like", 250, id("example:water_vial"))
+    .fills_tagged(|f| f.path() == "potion", 250, id("example:potion_vial")));
+let mut tag = NbtCompound::new();
+tag.insert("Potion".to_owned(), Nbt::String("minecraft:swiftness".to_owned()));
+let filled = FluidItems::fill(&ItemSlot::new(id("example:vial"), 1), &FluidStack { fluid: id("example:potion"), amount: 250, tag: Some(tag.clone()) });
+assert_eq!(filled.container.item.to_string(), "example:potion_vial");
+assert_eq!(filled.container.custom_data, tag);
+```

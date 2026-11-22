@@ -1103,3 +1103,26 @@ use pluto_lib::{BlockBehavior, BlockBehaviors, Identifier};
 BlockBehaviors::register(BlockBehavior::new(Identifier::new("example", "listed").unwrap()));
 assert!(BlockBehaviors::registered().iter().any(|b| b.block().to_string() == "example:listed"));
 ```
+
+### `EntityInsideContext::act`
+
+`fn act(&self, action: EntityAction)`. Queues something to do to the entity inside (see `EntityAction`): the action is added to the context's `actions` and lands once the movement seams are done with the entity, since the seams run inside entity movement, where the entity may not be changed.
+
+```rust
+use pluto_lib::{ActionTarget, BlockState, EntityAction, EntityInsideContext};
+
+let context = EntityInsideContext {
+    dimension: "minecraft:overworld".into(),
+    state: BlockState::parse("example:punji").unwrap(),
+    pos: [0, 64, 0],
+    entity: 12,
+    kind: "minecraft:zombie".into(),
+    bounds: [0.2, 64.0, 0.2, 0.8, 65.9, 0.8],
+    fall_distance: 0.0,
+    actions: Default::default(),
+};
+context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount: 1.0, damage_type: "minecraft:generic".into() });
+let queued = context.actions.borrow();
+assert_eq!(queued.len(), 1);
+assert_eq!(queued[0], EntityAction::Hurt { target: ActionTarget::Victim, amount: 1.0, damage_type: "minecraft:generic".into() });
+```
