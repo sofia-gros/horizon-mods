@@ -3231,24 +3231,25 @@ fn every_shipped_fluid_effect_decodes_and_the_conditioned_ones_wait_for_their_wo
 
 /// The six books build from the Mantle data the importer ships: every section of each book's index is present (the
 /// transformer-generated sections with their index page), and the file-backed pages are all carried over — the counts are
-/// the original data's, counted page by page (file pages in English, one index page per generated section and per group
-/// anchor, one blank page per blank or padding entry).
+/// the original data's, counted page by page (file pages in English, one index page per generated section, one listing
+/// page per grouped section in place of the group anchors' own pages, one blank page per blank or padding entry). The
+/// books here build without registry data, so the generated pages themselves are absent; the book unit tests cover them.
 #[test]
 fn the_six_books_build_from_their_shipped_mantle_data() {
     let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/assets/tconstruct");
     let read = |path: &str| std::fs::read(assets.join(path)).ok();
-    let expected = [("materials_and_you", 8, 32), ("puny_smelting", 12, 58), ("mighty_smelting", 10, 48),
-                    ("tinkers_gadgetry", 11, 38), ("fantastic_foundry", 8, 39), ("encyclopedia", 13, 40)];
+    let expected = [("materials_and_you", 8, 30), ("puny_smelting", 12, 55), ("mighty_smelting", 10, 43),
+                    ("tinkers_gadgetry", 11, 39), ("fantastic_foundry", 8, 39), ("encyclopedia", 13, 36)];
     let mut total = 0;
     for (name, sections, pages) in expected {
-        let book = crate::books::build_book(&read, name, "en_us").unwrap_or_else(|error| panic!("{name}: {error}"));
+        let book = crate::books::build_book(&read, name, "en_us", &crate::books::GenData::default()).unwrap_or_else(|error| panic!("{name}: {error}"));
         assert_eq!(book.sections.len(), sections, "{name}'s sections");
         assert_eq!(book.page_count(), pages, "{name}'s pages");
         assert!(book.sections.iter().all(|section| !section.pages.is_empty()), "{name} has an empty section");
         total += pages;
     }
-    assert_eq!(total, 255);
-    let first = crate::books::build_book(&read, "materials_and_you", "en_us").unwrap();
+    assert_eq!(total, 242);
+    let first = crate::books::build_book(&read, "materials_and_you", "en_us", &crate::books::GenData::default()).unwrap();
     assert_eq!(first.sections[0].name, "Introduction");
     assert_eq!(first.sections[0].pages[0].title(), Some("Materials & You"), "the welcome page opens the book");
     assert_eq!(first.appearance.export_title.as_deref(), Some("Materials and You"));

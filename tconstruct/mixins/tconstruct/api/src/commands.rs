@@ -306,10 +306,10 @@ fn decimal2(value: f64, grouping: bool) -> String {
 }
 
 /// COMMA_FORMAT `#,###,###.##`.
-fn comma(value: f64) -> String { decimal2(value, true) }
+pub(crate) fn comma(value: f64) -> String { decimal2(value, true) }
 
 /// COMMA_FORMAT on an integer value.
-fn comma_int(value: i32) -> String { group_digits(i64::from(value)) }
+pub(crate) fn comma_int(value: i32) -> String { group_digits(i64::from(value)) }
 
 /// BONUS_FORMAT `#.##` with a positive prefix.
 fn bonus_format(value: f32) -> String {
@@ -464,11 +464,11 @@ fn material_name(variant: &MaterialVariant) -> String {
     I18n::translate(&base_key)
 }
 
-fn material_id_name(id: &Identifier) -> String {
+pub(crate) fn material_id_name(id: &Identifier) -> String {
     I18n::translate(&format!("material.{}.{}", id.namespace(), id.path()))
 }
 
-fn stat_type_name(id: &Identifier) -> String {
+pub(crate) fn stat_type_name(id: &Identifier) -> String {
     I18n::translate(&format!("stat.{}.{}", id.namespace(), id.path()))
 }
 
@@ -1298,7 +1298,7 @@ fn repair_line(durability: i32) -> String {
 }
 
 /// IMaterialStats.getLocalizedInfo for the port's stat records.
-fn localized_info(stats: &Stats, stat_type: &Identifier, scale: f32) -> Vec<String> {
+pub(crate) fn localized_info(stats: &Stats, stat_type: &Identifier, scale: f32) -> Vec<String> {
     match stats {
         Stats::Head { durability, mining_speed, tier, attack } => vec![
             stat_line("durability", comma_int((*durability as f32 * scale) as i32)),

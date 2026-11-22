@@ -1879,6 +1879,12 @@ impl FluidEffects {
         })
     }
 
+    /// The entry's fluid ingredient (FluidEffects.ingredient).
+    pub(crate) fn ingredient(&self) -> &FluidIngredient { &self.ingredient }
+    /// The entry's block effects, in file order (FluidEffects.blockEffects).
+    pub(crate) fn block_effects(&self) -> &[BlockEffect] { &self.block_effects }
+    /// The entry's entity effects, in file order (FluidEffects.entityEffects).
+    pub(crate) fn entity_effects(&self) -> &[EntityEffect] { &self.entity_effects }
     /// Whether the entry has any effect at all (FluidEffects.hasEffects).
     pub(crate) fn has_effects(&self) -> bool { !self.block_effects.is_empty() || !self.entity_effects.is_empty() }
     /// Whether the entry has block effects (FluidEffects.hasBlockEffects).
@@ -1975,6 +1981,12 @@ impl Effects {
     /// The ids of the loaded files, in load order.
     pub(crate) fn ids(&self) -> impl Iterator<Item = &Identifier> {
         self.entries.iter().map(|(id, _)| id)
+    }
+
+    /// Every loaded entry with its effects, in load order, for consumers that list them all
+    /// (the encyclopedia's fluid effect pages).
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (&Identifier, &FluidEffects)> {
+        self.entries.iter().map(|(id, effects)| (id, effects))
     }
 }
 
