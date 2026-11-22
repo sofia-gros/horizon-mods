@@ -161,6 +161,20 @@ name = "pluto_mob_split_game"
 source = "pluto-mob-split-game.rs"
 visibility = "pub(crate)"
 
+[[module]]
+id = "pluto-spawn-placement"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_spawn_placement"
+source = "pluto-spawn-placement.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-spawn-placement-game"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_spawn_placement_game"
+source = "pluto-spawn-placement-game.rs"
+visibility = "pub(crate)"
+
 [[injection]]
 id = "pluto-mob-split-head"
 target = "horizon_client::game::native_hooks::Game<'_>::native_mob_split"

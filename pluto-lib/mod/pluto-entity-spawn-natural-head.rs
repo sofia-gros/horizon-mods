@@ -10,6 +10,9 @@ fn pluto_entity_spawn_natural(game:&Game<'_>,request:&SpawnRequest,pending:&mut 
         Ok(true)=>{},
     }
     let Some(kind)=game.res.mob_types().get(request.entity).cloned() else { return std::ops::ControlFlow::Break(None) };
+    if !crate::game::pluto_spawn_placement_game::natural_allowed(game,request.entity,request.species,request.position) {
+        return std::ops::ControlFlow::Break(None);
+    }
     let [x,y,z]=request.position;
     let mut mob=Mob::new(0,kind,Vec3::new(x,y,z),request.yaw);
     if let Err(error)=crate::game::pluto_entity_spawn_game::prepare(game,&mut mob,"natural") {

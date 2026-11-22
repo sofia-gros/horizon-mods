@@ -310,6 +310,11 @@ pub fn hooks() -> Box<dyn Hooks> {
             active:crate::pure::mob_split_api::MobSplitCallbacks::has_callbacks,
             prepare:native_split_prepare,inherit:native_split_inherit,
         }).expect("PlutoLib mob split dispatcher installs once");
+    horizon_client::entry::pluto_spawn_placement::set_provider(
+        horizon_client::entry::pluto_spawn_placement::Provider {
+            active:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_registrations,
+            evaluate:native_spawn_placement,
+        }).expect("PlutoLib spawn placement dispatcher installs once");
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -883,6 +888,18 @@ fn native_split_inherit(host:&mut dyn Host,info:&horizon_client::entry::pluto_mo
         custom_name:info.custom_name.clone(),no_ai:info.no_ai,invulnerable:info.invulnerable,
         random:&mut split_random,children:&mut views };
     scoped(host,|| crate::pure::mob_split_api::MobSplitCallbacks::inherit(&mut view))
+}
+
+fn native_spawn_placement(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    let context=crate::pure::spawn_placement_api::SpawnPlacementContext {
+        entity_type:Identifier::parse(&facts.entity_type).ok()?,
+        dimension:Identifier::parse(&facts.dimension).ok()?,
+        position:facts.position,reason:facts.reason.clone(),peaceful:facts.peaceful,
+        block_below:Identifier::parse(&facts.block_below).ok()?,
+        fluid_at:Identifier::parse(&facts.fluid_at).ok()?,
+        fluid_below:Identifier::parse(&facts.fluid_below).ok()?,
+        block_below_valid_spawn:facts.block_below_valid_spawn,dark_enough:facts.dark_enough };
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate(&context)
 }
 
 /// MobEvent sounds are &'static str; intern each distinct mod sound id once.

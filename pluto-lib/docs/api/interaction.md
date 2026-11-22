@@ -1228,3 +1228,50 @@ use pluto_lib::MobSplitCallbacks;
 let active: bool = MobSplitCallbacks::has_callbacks();
 let _ = active;
 ```
+
+## Spawn placements
+
+### `SpawnPlacementContext`
+
+The facts of one candidate spawn position: `entity_type` and `dimension` name the spawn, `position` is the block position of the mob's feet, `reason` is the backend reason, `peaceful` reports a peaceful level, `block_below` is the block below the candidate, `fluid_at` and `fluid_below` are the fluids at and below it (`minecraft:empty` when none), `block_below_valid_spawn` says the block below is a valid spawn block for the type's base, and `dark_enough` says a monster would be dark enough to spawn there.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementContext};
+let context = SpawnPlacementContext { entity_type: Identifier::parse("example:slime").unwrap(),
+    dimension: Identifier::parse("minecraft:overworld").unwrap(), position: [0, 64, 0], reason: "natural".into(),
+    peaceful: false, block_below: Identifier::parse("example:grass").unwrap(),
+    fluid_at: Identifier::parse("minecraft:empty").unwrap(), fluid_below: Identifier::parse("minecraft:empty").unwrap(),
+    block_below_valid_spawn: true, dark_enough: true };
+assert_eq!(context.position[1], 64);
+```
+
+### `SpawnPlacementRegistry`
+
+Per-type spawn placement registration: one predicate per type, whose verdict replaces the inherited species rules for that type where the game consults placements.
+
+```rust
+use pluto_lib::SpawnPlacementRegistry;
+let _registry = SpawnPlacementRegistry;
+```
+
+### `SpawnPlacementRegistry::register`
+
+Registers a type's placement predicate; a second registration for the same type rejects.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+SpawnPlacementRegistry::register(Identifier::parse("example:slime").unwrap(), |context| {
+    !context.peaceful && context.block_below == Identifier::parse("example:grass").unwrap()
+}).unwrap();
+assert!(SpawnPlacementRegistry::is_registered(&Identifier::parse("example:slime").unwrap()));
+```
+
+### `SpawnPlacementRegistry::is_registered`
+
+Whether a placement predicate is registered for the type.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+let registered: bool = SpawnPlacementRegistry::is_registered(&Identifier::parse("example:absent").unwrap());
+let _ = registered;
+```
