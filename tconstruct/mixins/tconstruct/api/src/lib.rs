@@ -57,6 +57,8 @@ mod thorns;
 mod hit_actions;
 mod lifesteal;
 mod lifesteal_hook;
+mod monster_melee;
+mod dragon_scales;
 mod capacity;
 mod effect_immunity;
 mod tool_inventory;
@@ -198,6 +200,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     melee_hook::register();
     kinetic_hook::register();
     lifesteal_hook::register();
+    monster_melee::register();
+    dragon_scales::register();
     tool_action_hook::register();
     protection_hook::register();
     tool_damage_hook::register();

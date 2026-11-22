@@ -44,20 +44,20 @@
 //!   `wanderer_ancient_tool_weight()` per pool snapshot.
 //! - dropDragonScales: ToolEvents.livingDamage drops dragon scales at an ender dragon
 //!   hurt by a player-caused explosion for 2+ damage (the count scales with the damage
-//!   past the health clamp). PlutoLib's damage events report the victim's kind, the
-//!   damage type and the causing entity's id, but not whether the causing entity is a
-//!   player nor the victim's current health, and no PlutoLib action or surface drops an
-//!   item stack at a living entity (the drops surface is death-only, and EntityAction
-//!   has no drop variant), so the drop has no reach yet.
+//!   past the health clamp) -> dragon_scales.rs registers the damage callback and reads
+//!   `drop_dragon_scales()` per hit; PlutoLib's damage events now report whether the
+//!   causing entity is a player and the victim's health as the hit arrived, and the
+//!   drop is an EntityAction::DropItem the game spawns at the dragon.
 //! - allowMonsterMeleeModifiers: ToolEvents gates the MONSTER_MELEE_DAMAGE and
-//!   MONSTER_MELEE_HIT hooks on it. The hooks are bound in modifier_modules.rs and the
-//!   module evaluations are written, but PlutoLib's damage events fill the attacker's
-//!   stack and states only for player attacks: for a mob attacker they report neither
-//!   its entity type (the DAMAGE_MODIFIER_BLACKLIST check), its main-hand stack (the
-//!   MELEE_WEAPON tool to evaluate) nor its chest stack (the UNARMED check), and
-//!   MODIFY_KNOCKBACK, which does carry any attacker's hand stacks, reports no damage
-//!   amount and cannot change it. So no dispatch can run the hooks yet, and nothing
-//!   reads the setting.
+//!   MONSTER_MELEE_HIT hooks on it -> monster_melee.rs registers the hurt and damage
+//!   dispatches and reads `allow_monster_melee_modifiers()` per hit; PlutoLib's damage
+//!   events now report a mob attacker's entity type (the DAMAGE_MODIFIER_BLACKLIST
+//!   check), its main-hand stack (the MELEE_WEAPON tool) and its chest stack (the
+//!   UNARMED check) from the game's attack snapshot, with its attack attribute and the
+//!   victim's health and attack attribute (the unarmed branch's base-damage quirk).
+//!   The dispatch covers attacks the game delivers synchronously (a mob's melee
+//!   swing); the melee capacity edits of a hit and a player victim's attack attribute
+//!   stay unreported, as monster_melee.rs records.
 //! - disableSideInventoryWhitelist: TabbedContainerMenu.isUsable lets table screens show
 //!   neighbouring inventories whose block entity type is in `tconstruct:side_inventories`
 //!   (or any, with this on). The port's station menus have no side-inventory tabs.
@@ -534,6 +534,18 @@ pub(crate) fn head_drop(serialized_name: &str) -> bool {
 /// the same stance as `ore_rates`.
 pub(crate) fn wanderer_ancient_tool_weight() -> i32 {
     common().unwrap_or_default().wanderer_ancient_tool_weight
+}
+
+/// Whether ToolEvents.livingDamage drops dragon scales at a player-exploded ender dragon;
+/// an unloaded or invalid config drops at the default, the same stance as `ore_rates`.
+pub(crate) fn drop_dragon_scales() -> bool {
+    common().unwrap_or_default().drop_dragon_scales
+}
+
+/// Whether ToolEvents runs the monster melee hooks for a mob wielding a Tinkers tool;
+/// an unloaded or invalid config runs them at the default, the same stance as `ore_rates`.
+pub(crate) fn allow_monster_melee_modifiers() -> bool {
+    common().unwrap_or_default().allow_monster_melee_modifiers
 }
 
 fn section_mut<'m>(root: &'m mut toml::map::Map<String, toml::Value>, path: &[&str]) -> &'m mut toml::map::Map<String, toml::Value> {

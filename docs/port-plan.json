@@ -49,6 +49,8 @@
     "api/src/hit_actions.rs",
     "api/src/lifesteal.rs",
     "api/src/lifesteal_hook.rs",
+"api/src/monster_melee.rs",
+"api/src/dragon_scales.rs",
     "api/src/capacity.rs",
     "api/src/effect_immunity.rs",
     "api/src/tool_inventory.rs",
