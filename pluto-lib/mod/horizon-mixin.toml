@@ -1878,3 +1878,223 @@ kind = "HEAD"
 cancellable = true
 helper = "pluto-advancement-tag-index-head.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Fancy hanging entities: item frame and armor stand variants registered
+# with PlutoLib's hanging registry run their variant behaviour over the
+# host's vanilla frame/stand state (the variant rides in the entity's kept
+# raw NBT). Unregistered items and entities keep the vanilla paths.
+[[module]]
+id = "pluto-hanging-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_hanging_access"
+source = "pluto-hanging-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-hanging-game"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_hanging_game"
+source = "pluto-hanging-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-hanging-frame-place"
+target = "horizon_client::game::frames::Game<'_>::place_item_frame"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-frame-place.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "hit", ty = "&Hit", value = "hit" },
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-interact"
+target = "horizon_client::game::frames::Game<'_>::interact_frame"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-frame-interact.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "target", ty = "Option<InteractTarget>", value = "target" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-from-nbt"
+target = "horizon_client::entity_nbt::item_frame_from_nbt"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-frame-from-nbt.rs"
+bindings = [
+ { name = "tag", ty = "&Tag", value = "tag" },
+ { name = "id", ty = "u32", value = "id" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-tick"
+target = "horizon_client::game::frames::Game<'_>::tick_item_frames"
+kind = "RETURN"
+require = 1
+helper = "pluto-hanging-frame-tick.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-analog"
+target = "horizon_client::game::GameLevel<'_>::item_frame_analog_output"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-frame-analog.rs"
+bindings = [
+ { name = "level", ty = "&GameLevel<'_>", value = "&*self" },
+ { name = "pos", ty = "BlockPos", value = "pos" },
+ { name = "facing", ty = "Direction", value = "facing" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-explosion-head"
+target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
+kind = "HEAD"
+require = 1
+helper = "pluto-hanging-frame-explosion.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "blast", ty = "[f64; 3]", value = "blast" },
+ { name = "diameter", ty = "f64", value = "diameter" },
+ { name = "interaction", ty = "super::explosion::BlockInteraction", value = "interaction" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-explosion-return"
+target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
+kind = "RETURN"
+require = 1
+helper = "pluto-hanging-frame-explosion.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "blast", ty = "[f64; 3]", value = "blast" },
+ { name = "diameter", ty = "f64", value = "diameter" },
+ { name = "interaction", ty = "super::explosion::BlockInteraction", value = "interaction" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-drops"
+target = "horizon_client::game::frames::Game<'_>::drop_frame_items"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-frame-drops.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "f", ty = "&mut ItemFrame", value = "f" },
+ { name = "with_frame", ty = "bool", value = "with_frame" },
+ { name = "by_player", ty = "bool", value = "by_player" },
+ { name = "creative", ty = "bool", value = "creative" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-hit"
+target = "horizon_client::game::frames::Game<'_>::hit_frame"
+kind = "RETURN"
+require = 1
+helper = "pluto-hanging-frame-hit.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "i", ty = "usize", value = "i" },
+ { name = "by_player", ty = "bool", value = "by_player" },
+ { name = "creative", ty = "bool", value = "creative" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-set-item"
+target = "horizon_client::game::frames::Game<'_>::set_frame_item"
+kind = "HEAD"
+require = 1
+helper = "pluto-hanging-frame-hit.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "i", ty = "usize", value = "i" },
+ { name = "stack", ty = "&Option<ItemStack>", value = "&stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-place"
+target = "horizon_client::game::armor_stands::Game<'_>::place_armor_stand"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-stand-place.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "hit", ty = "&Hit", value = "hit" },
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-break"
+target = "horizon_client::game::armor_stands::Game<'_>::break_armor_stand_by_hit"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-stand-break.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "i", ty = "usize", value = "i" },
+ { name = "creative", ty = "bool", value = "creative" },
+ { name = "always_kills", ty = "bool", value = "always_kills" },
+ { name = "by", ty = "Option<super::commands::Target>", value = "by" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-tick-head"
+target = "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands"
+kind = "HEAD"
+require = 1
+helper = "pluto-hanging-stand-tick.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-tick-return"
+target = "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands"
+kind = "RETURN"
+require = 1
+helper = "pluto-hanging-stand-tick.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-dispense"
+target = "horizon_client::game::dispenser::Game<'_>::dispense_item"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-stand-dispense.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+ { name = "facing", ty = "Direction", value = "facing" },
+ { name = "stack", ty = "&ItemStack", value = "&stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-command"
+target = "horizon_client::game::armor_stands::Game<'_>::command_damage_stand"
+kind = "HEAD"
+cancellable = true
+require = 1
+helper = "pluto-hanging-stand-command.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "id", ty = "u32", value = "id" },
+ { name = "damage_type", ty = "&str", value = "damage_type" },
+ { name = "causing", ty = "Option<super::commands::Target>", value = "causing" }
+]
