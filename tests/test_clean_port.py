@@ -269,7 +269,7 @@ class CleanPort(unittest.TestCase):
         for path, bad in ((loot, lambda t: t.replace('minecraft:apply_bonus', 'mantle:fill_retextured_block')),
                           (loot, lambda t: t.replace('minecraft:tool/can_silk_touch', 'minecraft:random_chance')),
                           (loot, lambda t: json.dumps({'type': 'minecraft:block', 'pools': []})),
-                          (feature, lambda t: t.replace('minecraft:ore', 'minecraft:tree')),
+                          (feature, lambda t: t.replace('minecraft:ore', 'minecraft:flower')),
                           (modifier, lambda t: t.replace('neoforge:add_features', 'neoforge:add_spawns')),
                           (tag, lambda t: json.dumps({'values': ['minecraft:stone']})),
                           (tag, lambda t: json.dumps({'values': [{'id': 'othermod:ore', 'required': False}]}))):
