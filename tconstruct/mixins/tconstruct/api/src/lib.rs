@@ -120,6 +120,7 @@ mod gadgets;
 mod world_growth;
 mod worldgen;
 mod slime_entities;
+mod trader;
 mod alloyer;
 mod alloyer_menu;
 mod casting;
@@ -169,6 +170,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     world_growth::register();
     worldgen::register();
     slime_entities::register();
+    trader::register();
     alloyer_menu::register();
     casting::register();
     faucet::register();

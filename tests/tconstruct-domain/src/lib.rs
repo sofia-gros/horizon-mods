@@ -237,6 +237,8 @@ mod gadgets;
 mod world_growth;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/slime_entities.rs"]
 mod slime_entities;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/trader.rs"]
+mod trader;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer.rs"]
 mod alloyer;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer_menu.rs"]
@@ -319,6 +321,8 @@ mod world_growth_tests;
 mod worldgen_tests;
 #[cfg(test)]
 mod slime_entity_tests;
+#[cfg(test)]
+mod trader_tests;
 #[cfg(test)]
 mod armor_building;
 mod gadget_tests;

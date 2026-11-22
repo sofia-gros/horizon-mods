@@ -132,6 +132,7 @@
     "api/src/world_growth.rs",
     "api/src/worldgen.rs",
     "api/src/slime_entities.rs",
+    "api/src/trader.rs",
     "api/src/alloyer.rs",
     "api/src/alloyer_menu.rs",
     "api/src/casting.rs",
