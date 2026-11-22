@@ -574,7 +574,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 `entity_attachments` stores JSON by `(dimension, callback-local entity ID, attachment ID)`; tests simulating holder removal/ID reuse must clear the old holder themselves. `attachment_policies` records the immutable sync flag per attachment ID across holder kinds. These collections test routing and values, not native UUID ownership, save files or network delivery.
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player.
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player and `selected_slot` the selected hotbar slot of every player (0 to 8).
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -589,4 +589,139 @@ assert_eq!(game.told.len(), 1);
 assert_eq!(game.items.len(), 1);
 assert!(game.attachments.is_empty());
 assert_eq!(game.free_slots, 36);
+```
+
+
+### `StackData::enchantment_level`
+
+`fn enchantment_level(&self, id: &str) -> i32`. The level of enchantment `id` on this stack, from its own `minecraft:enchantments` component; 0 when it has none. Enchantments the item itself grants through its data are not listed here.
+
+```rust
+use pluto_lib::StackData;
+
+let mut stack = StackData { item: "minecraft:iron_pickaxe".into(), count: 1, ..Default::default() };
+stack.enchantments.insert("minecraft:fortune".into(), 3);
+assert_eq!(stack.enchantment_level("minecraft:fortune"), 3);
+assert_eq!(stack.enchantment_level("minecraft:efficiency"), 0);
+```
+
+### `ServerPlayer::selected_slot`
+
+`fn selected_slot(&self) -> Option<i32>`. The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert_eq!(player.selected_slot(), None);
+let mut game = MemoryPlayerOps { selected_slot: 3, ..Default::default() };
+with_ops(&mut game, || assert_eq!(player.selected_slot(), Some(3)));
+```
+
+### `ServerPlayer::main_hand_stack`
+
+`fn main_hand_stack(&self) -> Option<StackData>`. The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback that carries this player.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert!(player.main_hand_stack().is_none());
+let mut game = MemoryPlayerOps { selected_slot: 1, ..Default::default() };
+game.stacks.insert(1, vec![None, Some(StackData { item: "minecraft:torch".into(), count: 12, ..Default::default() })]);
+with_ops(&mut game, || {
+    let held = player.main_hand_stack().unwrap();
+    assert_eq!((held.item.as_str(), held.count), ("minecraft:torch", 12));
+});
+```
+
+### `KeyPress`
+
+A key of the player's own keyboard or mouse changed state, heard on the client for the local player only. `player` is the local player (None when the game names none), `key` is the game's own name for the key (the names key bindings use, such as `key.keyboard.left.shift` or `key.mouse.left`) and `pressed` says which way it moved: true when the key went down, false when it came up. Repeats are not reported.
+
+```rust
+use pluto_lib::{KeyPress, ServerPlayer};
+
+let press = KeyPress { player: Some(ServerPlayer { uuid: 1, name: "Alex".into() }), key: "key.keyboard.left.shift".into(), pressed: true };
+assert_eq!(press.key, "key.keyboard.left.shift");
+assert!(press.pressed && press.player.is_some());
+let release = KeyPress { player: None, key: "key.mouse.left".into(), pressed: false };
+assert!(!release.pressed && release.player.is_none());
+```
+
+### `PlayerKeyEvents`
+
+Key presses of the local player (see `KeyPress`). No instance constructor; use `EVENT`.
+
+```rust
+use pluto_lib::{KeyPress, PlayerKeyEvents};
+
+PlayerKeyEvents::EVENT.register(|press: &KeyPress| {
+    let _ = (&press.key, press.pressed);
+});
+```
+
+### `PlayerKeyEvents::EVENT`
+
+The event for a local player's key press: every callback runs, in registration order. A callback that needs the server to act sends its own packet with the networking API, as a client key press can only ever be a hint to the server.
+
+```rust
+use pluto_lib::{KeyPress, PlayerKeyEvents};
+
+PlayerKeyEvents::EVENT.register(|press: &KeyPress| {
+    if press.key == "key.keyboard.r" && press.pressed {
+        let _player = &press.player;
+    }
+});
+PlayerKeyEvents::EVENT.invoke(&KeyPress { player: None, key: "key.keyboard.r".into(), pressed: true });
+```
+
+### `InventoryTick`
+
+One inventory slot of a player ticked, heard on a server once per tick for each carried slot the game ticks. `player` is the player carrying the slot (None when the game names none), `slot` is the slot's own number in the player's inventory in the game's numbering, `selected` says whether the slot is the selected hotbar slot, and `stack` is the stack in the slot, with its damage, max damage, custom data and enchantments (None for an empty slot, or a stack the game did not read).
+
+```rust
+use pluto_lib::{InventoryTick, ServerPlayer, StackData};
+
+let tick = InventoryTick {
+    player: Some(ServerPlayer { uuid: 1, name: "Alex".into() }),
+    slot: 3,
+    selected: true,
+    stack: Some(StackData { item: "minecraft:torch".into(), count: 12, ..Default::default() }),
+};
+assert_eq!(tick.slot, 3);
+assert!(tick.selected);
+assert_eq!(tick.stack.unwrap().count, 12);
+let empty = InventoryTick { player: None, slot: 100, selected: false, stack: None };
+assert!(empty.stack.is_none() && !empty.selected);
+```
+
+### `PlayerInventoryEvents`
+
+Inventory slot ticks of players (see `InventoryTick`). No instance constructor; use `TICK`.
+
+```rust
+use pluto_lib::{InventoryTick, PlayerInventoryEvents};
+
+PlayerInventoryEvents::TICK.register(|tick: &InventoryTick| {
+    let _ = (tick.slot, tick.selected);
+});
+```
+
+### `PlayerInventoryEvents::TICK`
+
+The event for a player's inventory slot tick: every callback runs, in registration order. Callbacks that need to change the world act through the scopes the host opens around the event (the entity and world reaches).
+
+```rust
+use pluto_lib::{InventoryTick, PlayerInventoryEvents, StackData};
+
+PlayerInventoryEvents::TICK.register(|tick: &InventoryTick| {
+    if tick.selected {
+        let _item = tick.stack.as_ref().map(|stack| stack.item.as_str());
+    }
+});
+PlayerInventoryEvents::TICK.invoke(&InventoryTick {
+    player: None, slot: 3, selected: true,
+    stack: Some(StackData { item: "minecraft:torch".into(), count: 12, ..Default::default() }),
+});
 ```

@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, every entity summoned in `summons`, every explosion asked for in `explosions`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -520,6 +520,22 @@ assert_eq!(ops.summons[0].kind, "minecraft:item");
 
 One entity a `MemoryWorldOps` was asked to summon, as it was asked: `dimension`, `kind`, `pos` and `nbt`. A summon's id is its 1-based place in `MemoryWorldOps::summons`.
 
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let mut ops = MemoryWorldOps::default();
+let mut nbt = NbtCompound::new();
+nbt.insert("Item".into(), Nbt::String("minecraft:stone".into()));
+with_world(&mut ops, || {
+    assert_eq!(World::new("minecraft:overworld").summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), Some(1));
+});
+let record = &ops.summons[0];
+assert_eq!(record.dimension, "minecraft:overworld");
+assert_eq!(record.kind, "minecraft:item");
+assert_eq!(record.pos, [0.5, 64.0, 0.5]);
+assert_eq!(record.nbt.get("Item"), Some(&Nbt::String("minecraft:stone".into())));
+```
+
 ### `World::explode`
 
 `fn explode(&self, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool`. Sets off an explosion at `center` (Minecraft: `Level.explode`): entities in the radius are hurt and pushed back, `fire` starts fires on the blocks the blast exposed, and `interaction` says what happens to the blocks. `radius` is the explosion's size as the game's own calls state it (a primed tnt's is 4.0); the game accepts a finite centre within the world and a radius up to 32. Returns whether the explosion was set off (or, over Horizon, accepted for the level's seam to set off within the tick — the game has no mod call that explodes, so the request is carried to the level and goes off there); false for a centre or radius the game would refuse, or outside a callback that carries a world. The blast has no source entity: nothing is credited with it.
@@ -544,6 +560,29 @@ assert_eq!(ops.explosions[0].interaction, ExplosionInteraction::Tnt);
 
 What an explosion does to the blocks it reaches (Minecraft: `ExplosionInteraction`): `Keep` leaves them (Java: `NONE`), `Block` breaks them by the block-explosion rule (`BLOCK`), and `Tnt` breaks them by the tnt-explosion rule (`TNT`; the original's `DESTROY` is the same rule).
 
+```rust
+use pluto_lib::ExplosionInteraction;
+
+assert_eq!(ExplosionInteraction::Keep, ExplosionInteraction::Keep);
+assert_ne!(ExplosionInteraction::Block, ExplosionInteraction::Tnt);
+assert_ne!(ExplosionInteraction::Keep, ExplosionInteraction::Block);
+```
+
 ### `ExplosionRecord`
 
 One explosion a `MemoryWorldOps` was asked to set off, as it was asked: `dimension`, `center`, `radius`, `fire` and `interaction`.
+
+```rust
+use pluto_lib::{with_world, ExplosionInteraction, MemoryWorldOps, World};
+
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert!(World::new("minecraft:overworld").explode([8.5, 64.0, -2.5], 4.0, true, ExplosionInteraction::Tnt));
+});
+let record = &ops.explosions[0];
+assert_eq!(record.dimension, "minecraft:overworld");
+assert_eq!(record.center, [8.5, 64.0, -2.5]);
+assert_eq!(record.radius, 4.0);
+assert!(record.fire);
+assert_eq!(record.interaction, ExplosionInteraction::Tnt);
+```

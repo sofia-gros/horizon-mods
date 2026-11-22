@@ -225,9 +225,27 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item` and `damage`. `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
 
+```rust
+use pluto_lib::{Identifier, ThrownType};
+
+let thrown = ThrownType::new(Identifier::parse("example:rock_thrown").unwrap(), Identifier::parse("example:rock").unwrap(), 2.0).unwrap();
+assert_eq!(thrown.id.to_string(), "example:rock_thrown");
+assert_eq!(thrown.item.to_string(), "example:rock");
+assert_eq!(thrown.damage, 2.0);
+```
+
 ### `ThrownTypeRegistry`
 
 The registry of thrown types. `register` fails, keeping the earlier registration, for a duplicate id or after the declarations have been collected. `get(id)` returns the registered type. `declarations()` returns every registered type, by id, and freezes the registry, as the game's own set-once registry does.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+let id = Identifier::parse("example:pebble_thrown").unwrap();
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:pebble").unwrap(), 1.0).unwrap()).unwrap();
+assert_eq!(ThrownTypeRegistry::get(&id).unwrap().damage, 1.0);
+assert!(ThrownTypeRegistry::get(&Identifier::parse("example:missing_thrown").unwrap()).is_none());
+```
 
 ### `ProjectileSpawn`
 
@@ -247,9 +265,32 @@ assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, 
 
 `fn spawn_projectile(world: &World, spawn: &ProjectileSpawn) -> Option<u32>`. Spawns the projectile in `world` and returns the new entity's id; `None` when the world cannot summon there or outside a callback that carries a world.
 
+```rust
+use pluto_lib::{Identifier, MemoryWorldOps, ProjectileSpawn, World, spawn_projectile, with_world};
+
+let world = World::new("minecraft:overworld");
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:snowball").unwrap(), [0.0, 64.0, 0.0], [1.0, 1.0, 0.0]);
+assert_eq!(spawn_projectile(&world, &spawn), None, "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert_eq!(spawn_projectile(&world, &spawn), Some(1)));
+assert_eq!(ops.summons[0].kind, "minecraft:snowball");
+```
+
 ### `spawn_thrown`
 
 `fn spawn_thrown(world: &World, thrown: &Identifier, position: [f64; 3], motion: [f64; 3], owner: Option<u128>, data: NbtCompound) -> Option<u32>`. Spawns a registered thrown type by its id; `None` when no type is registered under `thrown`.
+
+```rust
+use pluto_lib::{Identifier, MemoryWorldOps, NbtCompound, ThrownType, ThrownTypeRegistry, World, spawn_thrown, with_world};
+
+let id = Identifier::parse("example:dart_thrown").unwrap();
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:dart").unwrap(), 3.0).unwrap()).unwrap();
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert_eq!(spawn_thrown(&world, &id, [0.0, 64.0, 0.0], [0.0, 0.5, 1.0], None, NbtCompound::new()), Some(1)));
+assert_eq!(ops.summons[0].kind, "example:dart_thrown");
+assert_eq!(spawn_thrown(&world, &Identifier::parse("example:unregistered_thrown").unwrap(), [0.0; 3], [0.0; 3], None, NbtCompound::new()), None);
+```
 
 ### `uuid_int_array`
 
@@ -259,4 +300,150 @@ assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, 
 use pluto_lib::uuid_int_array;
 
 assert_eq!(uuid_int_array(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF), [0x0011_2233, 0x4455_6677, -0x7766_5545, -0x3322_1101]);
+```
+
+### `ThrownType::new`
+
+`fn new(id: Identifier, item: Identifier, damage: f32) -> Result<ThrownType, String>`. A thrown type validated as the game validates its content form: a `minecraft:` id and a non-finite or negative `damage` are errors.
+
+```rust
+use pluto_lib::{Identifier, ThrownType};
+
+assert!(ThrownType::new(Identifier::parse("example:ok_thrown").unwrap(), Identifier::parse("example:ok").unwrap(), 0.0).is_ok());
+assert!(ThrownType::new(Identifier::parse("minecraft:arrow").unwrap(), Identifier::parse("minecraft:arrow").unwrap(), 1.0).is_err());
+assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identifier::parse("example:bad").unwrap(), -1.0).is_err());
+assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identifier::parse("example:bad").unwrap(), f32::NAN).is_err());
+```
+
+### `ThrownTypeRegistry::register`
+
+`fn register(thrown: ThrownType) -> Result<(), String>`. Registers a thrown type; a duplicate id or registration after the declarations have been collected fails, keeping the earlier registration.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+let thrown = ThrownType::new(Identifier::parse("example:stone_thrown").unwrap(), Identifier::parse("example:stone").unwrap(), 2.0).unwrap();
+ThrownTypeRegistry::register(thrown.clone()).unwrap();
+assert!(ThrownTypeRegistry::register(thrown).is_err(), "duplicate id");
+```
+
+### `ThrownTypeRegistry::get`
+
+`fn get(id: &Identifier) -> Option<ThrownType>`. The thrown type registered under `id`, if any.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+let id = Identifier::parse("example:orb_thrown").unwrap();
+assert!(ThrownTypeRegistry::get(&id).is_none());
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:orb").unwrap(), 5.0).unwrap()).unwrap();
+assert_eq!(ThrownTypeRegistry::get(&id).unwrap().item.to_string(), "example:orb");
+```
+
+### `ThrownTypeRegistry::declarations`
+
+`fn declarations() -> Result<Vec<ThrownType>, String>`. Every registered thrown type, by id; collecting them freezes the registry, as the game's own set-once registry does.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+ThrownTypeRegistry::register(ThrownType::new(Identifier::parse("example:gem_thrown").unwrap(), Identifier::parse("example:gem").unwrap(), 4.0).unwrap()).unwrap();
+let declarations = ThrownTypeRegistry::declarations().unwrap();
+assert_eq!(declarations.len(), 1);
+assert_eq!(declarations[0].id.to_string(), "example:gem_thrown");
+assert!(ThrownTypeRegistry::register(ThrownType::new(Identifier::parse("example:late_thrown").unwrap(), Identifier::parse("example:late").unwrap(), 1.0).unwrap()).is_err(), "frozen after collection");
+```
+
+### `ProjectileSpawn::new`
+
+`fn new(kind: Identifier, position: [f64; 3], motion: [f64; 3]) -> ProjectileSpawn`. A projectile of `kind` at `position` with `motion`, with no owner and no extra data.
+
+```rust
+use pluto_lib::{Identifier, ProjectileSpawn};
+
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:arrow").unwrap(), [1.0, 64.0, 1.0], [0.0, 0.5, -2.0]);
+assert_eq!(spawn.position, [1.0, 64.0, 1.0]);
+assert_eq!(spawn.motion, [0.0, 0.5, -2.0]);
+assert!(spawn.owner.is_none() && spawn.data.is_empty());
+```
+
+### `ProjectileSpawn::owner`
+
+`fn owner(self, owner: u128) -> ProjectileSpawn`. The same spawn, thrown by the entity `owner`.
+
+```rust
+use pluto_lib::{Identifier, ProjectileSpawn};
+
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:snowball").unwrap(), [0.0; 3], [1.0, 1.0, 0.0]).owner(42);
+assert_eq!(spawn.owner, Some(42));
+```
+
+### `ProjectileSpawn::data`
+
+`fn data(self, data: NbtCompound) -> ProjectileSpawn`. The same spawn, with the kind's own saved `data`.
+
+```rust
+use pluto_lib::{Identifier, Nbt, NbtCompound, ProjectileSpawn};
+
+let mut data = NbtCompound::new();
+data.insert("damage".to_owned(), Nbt::Double(2.5));
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:arrow").unwrap(), [0.0; 3], [0.0; 3]).data(data);
+assert_eq!(spawn.data.get("damage"), Some(&Nbt::Double(2.5)));
+```
+
+### `ProjectileSpawn::to_nbt`
+
+`fn to_nbt(&self) -> NbtCompound`. The saved data the spawn loads from: the kind's data with `Motion` (a list of three doubles) and `Owner` (a uuid as four ints, most significant first) written from the fields, replacing any in the data.
+
+```rust
+use pluto_lib::{Identifier, Nbt, ProjectileSpawn};
+
+let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:arrow").unwrap(), [0.0; 3], [0.0, -0.5, 2.0]).owner(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF);
+let nbt = spawn.to_nbt();
+assert_eq!(nbt.get("Motion"), Some(&Nbt::List(vec![Nbt::Double(0.0), Nbt::Double(-0.5), Nbt::Double(2.0)])));
+assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, -0x7766_5545, -0x3322_1101])));
+```
+
+### `AmmoRequest`
+
+A living entity is about to shoot and the game asks what projectile it fires. `player` is the shooting player's uuid (`None` for a mob), `name` their name (empty for a mob), `entity` the shooting mob's entity id (`None` for a player), `kind` the shooter's type, `weapon` the weapon being shot, `vanilla` the projectile stack the game picked itself, `carried` every stack the shooter carries, `supplied` the projectile stack to fire instead of `vanilla` (which a callback may set; a count of 0 means no projectile) and `edits` the whole new stacks for places the shooter carries, which callbacks add to in order to consume the source of a supplied stack.
+
+```rust
+use pluto_lib::{AmmoRequest, StackData};
+use std::cell::RefCell;
+
+let request = AmmoRequest {
+    player: Some(7), name: "Alex".into(), entity: None, kind: "minecraft:player".into(),
+    weapon: StackData { item: "minecraft:bow".into(), count: 1, ..Default::default() },
+    vanilla: None, carried: Vec::new(), supplied: RefCell::new(None), edits: RefCell::new(Vec::new()),
+};
+assert_eq!(request.player, Some(7));
+assert_eq!(request.name, "Alex");
+assert!(request.entity.is_none());
+assert_eq!(request.kind, "minecraft:player");
+assert_eq!(request.weapon.item, "minecraft:bow");
+assert!(request.vanilla.is_none() && request.carried.is_empty());
+assert!(request.supplied.borrow().is_none() && request.edits.borrow().is_empty());
+```
+
+### `ProjectileEvents::AMMO`
+
+A living entity is about to shoot a weapon and the game asks what projectile it fires (NeoForge: `LivingGetProjectileEvent`), heard before the shot. Leave a request's `supplied` alone to change nothing; set it to take over firing that stack, consuming its source yourself through its `edits`. Server only.
+
+```rust
+use pluto_lib::{AmmoRequest, Identifier, ItemSlot, ProjectileEvents, StackData};
+use std::cell::RefCell;
+
+ProjectileEvents::AMMO.register(|request| {
+    if request.name == "archer" {
+        request.supplied.borrow_mut().replace(ItemSlot::new(Identifier::parse("minecraft:arrow").unwrap(), 1));
+    }
+});
+let request = AmmoRequest {
+    player: Some(9), name: "archer".into(), entity: None, kind: "minecraft:player".into(),
+    weapon: StackData { item: "minecraft:bow".into(), count: 1, ..Default::default() },
+    vanilla: None, carried: Vec::new(), supplied: RefCell::new(None), edits: RefCell::new(Vec::new()),
+};
+ProjectileEvents::AMMO.invoke(&request);
+assert_eq!(request.supplied.borrow().as_ref().unwrap().item.to_string(), "minecraft:arrow");
 ```

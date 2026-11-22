@@ -855,3 +855,380 @@ BlockEntityTick { pos: [0; 3], data: &mut data, items: &mut items }.set_fluid(0,
 let taken = BlockEntityTypeRegistry::drain_fluid("example:reservoir", [0; 3], &mut data, &mut items, None, 200, true);
 assert_eq!(taken.unwrap().unwrap().amount, 200);
 ```
+
+## Placement, signals and item automation
+
+### `FluidStack::new`
+
+`fn new(fluid: Identifier, amount: u32) -> FluidStack`. A plain stack of `amount` millibuckets of `fluid`, with no tag (`tag` is `None`).
+
+```rust
+use pluto_lib::{FluidStack, Identifier};
+
+let stack = FluidStack::new(Identifier::parse("minecraft:water").unwrap(), 250);
+assert_eq!(stack.amount, 250);
+assert_eq!(stack.fluid.to_string(), "minecraft:water");
+assert!(stack.tag.is_none());
+```
+
+### `FluidStack::same_fluid`
+
+`fn same_fluid(&self, other: &FluidStack) -> bool`. Whether both stacks hold the same fluid with the same tag; the amounts may differ, so a tagged stack and a plain stack of one fluid are not the same fluid.
+
+```rust
+use pluto_lib::{FluidStack, Identifier, NbtCompound};
+
+let water = Identifier::parse("minecraft:water").unwrap();
+let plain = FluidStack::new(water.clone(), 100);
+assert!(plain.same_fluid(&FluidStack::new(water.clone(), 900)));
+let tagged = FluidStack { fluid: water, amount: 100, tag: Some(NbtCompound::new()) };
+assert!(!plain.same_fluid(&tagged));
+```
+
+### `BlockEntityPlace`
+
+What a placement hook receives, once, right after the block entity exists. `pos` is its position, `stack` the stack that was placed (its count is the hand's, not yet shrunk), `player` the player who placed it (`None` when the game names none), `data` the saved data it starts with and `items` its item slots; changes to `data` and `items` are saved with the chunk. A block placed by the game itself is not heard.
+
+```rust
+use pluto_lib::{BlockEntityPlace, Identifier, ItemSlot, Nbt, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), vec![None]);
+let mut placed = BlockEntityPlace {
+    pos: [1, 64, 2],
+    stack: ItemSlot::new(Identifier::parse("example:tank").unwrap(), 1),
+    player: None,
+    data: &mut data,
+    items: &mut items,
+};
+assert_eq!(placed.pos, [1, 64, 2]);
+assert!(placed.player.is_none());
+assert_eq!(placed.stack.item.to_string(), "example:tank");
+placed.data.insert("seeded".to_owned(), Nbt::Byte(1));
+assert_eq!(placed.data.len(), 1);
+assert_eq!(placed.items.len(), 1);
+```
+
+### `BlockEntityPlace::fluid`
+
+`fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index` of the data the new block entity starts with, or `None` if that tank is empty.
+
+```rust
+use pluto_lib::{BlockEntityPlace, FluidStack, Identifier, ItemSlot, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut placed = BlockEntityPlace {
+    pos: [0; 3],
+    stack: ItemSlot::new(Identifier::parse("example:tank").unwrap(), 1),
+    player: None,
+    data: &mut data,
+    items: &mut items,
+};
+assert_eq!(placed.fluid(0), None);
+placed.set_fluid(0, Some(FluidStack::new(Identifier::parse("minecraft:lava").unwrap(), 125)));
+assert_eq!(placed.fluid(0).unwrap().amount, 125);
+```
+
+### `BlockEntityPlace::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties the tank with `None`: a placed tank item's fluid seeding the tank is the usual use.
+
+```rust
+use pluto_lib::{BlockEntityPlace, FluidStack, Identifier, ItemSlot, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut placed = BlockEntityPlace {
+    pos: [0; 3],
+    stack: ItemSlot::new(Identifier::parse("example:tank").unwrap(), 1),
+    player: None,
+    data: &mut data,
+    items: &mut items,
+};
+placed.set_fluid(0, Some(FluidStack::new(Identifier::parse("minecraft:water").unwrap(), 500)));
+assert_eq!(placed.fluid(0).unwrap().amount, 500);
+placed.set_fluid(0, None);
+assert_eq!(placed.fluid(0), None);
+```
+
+### `BlockEntitySignal`
+
+What a signal hook receives when the redstone signal reaching the block entity changes. `pos` is its position, `data` its saved data, `items` its item slots, `strength` the signal strength now (0 to 15, the strongest reaching the block from its six neighbours) and `powered` whether any signal reaches it (`strength` above 0). Changes to `data` and `items` are saved with the chunk.
+
+```rust
+use pluto_lib::{BlockEntitySignal, Nbt, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut signal = BlockEntitySignal { pos: [0, 64, 0], data: &mut data, items: &mut items, strength: 15, powered: true };
+assert_eq!(signal.pos, [0, 64, 0]);
+assert_eq!(signal.strength, 15);
+assert!(signal.powered);
+signal.data.insert("last_signal".to_owned(), Nbt::Int(i32::from(signal.strength)));
+assert_eq!(signal.data.len(), 1);
+assert!(signal.items.is_empty());
+```
+
+### `BlockEntitySignal::fluid`
+
+`fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index`, or `None` if that tank is empty.
+
+```rust
+use pluto_lib::{BlockEntitySignal, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut signal = BlockEntitySignal { pos: [0; 3], data: &mut data, items: &mut items, strength: 0, powered: false };
+assert_eq!(signal.fluid(0), None);
+signal.set_fluid(0, Some(FluidStack::new(Identifier::parse("minecraft:water").unwrap(), 75)));
+assert_eq!(signal.fluid(0).unwrap().amount, 75);
+```
+
+### `BlockEntitySignal::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties the tank with `None`.
+
+```rust
+use pluto_lib::{BlockEntitySignal, FluidStack, Identifier, NbtCompound};
+
+let (mut data, mut items) = (NbtCompound::new(), Vec::new());
+let mut signal = BlockEntitySignal { pos: [0; 3], data: &mut data, items: &mut items, strength: 3, powered: true };
+signal.set_fluid(0, Some(FluidStack::new(Identifier::parse("minecraft:lava").unwrap(), 250)));
+assert_eq!(signal.fluid(0).unwrap().amount, 250);
+signal.set_fluid(0, None);
+assert_eq!(signal.fluid(0), None);
+```
+
+### `ItemFilter`
+
+Which items a block that forwards its item storage lets through: `Any` lets every item the target holds or takes through, `Only(item)` refuses inserts of another item and extractions of another item (only slots holding it, or empty ones for listing, are listed), and `Closed` lets nothing move and lists no slots.
+
+```rust
+use pluto_lib::{Identifier, ItemFilter};
+
+let buckets = ItemFilter::Only(Identifier::parse("minecraft:bucket").unwrap());
+assert_ne!(buckets, ItemFilter::Any);
+assert_ne!(ItemFilter::Closed, ItemFilter::Any);
+```
+
+### `ItemForward`
+
+Where a forwarding block's item storage really is, and what passes through it: `target` is the position of the block entity whose item slots answer for this block, and `filter` is the `ItemFilter` that narrows what passes.
+
+```rust
+use pluto_lib::{ItemFilter, ItemForward};
+
+let forward = ItemForward { target: [0, 64, 0], filter: ItemFilter::Any };
+assert_eq!((forward.target, forward.filter), ([0, 64, 0], ItemFilter::Any));
+```
+
+### `SidedAccess`
+
+The slots one face of a block opens to automation: `insert` lists the slots that take items through the face and `take` lists the slots that give items through it. The default is two empty lists.
+
+```rust
+use pluto_lib::SidedAccess;
+
+let top = SidedAccess { insert: vec![0], take: vec![] };
+assert_eq!(top.insert, vec![0]);
+assert!(top.take.is_empty());
+assert_eq!(SidedAccess::default(), SidedAccess { insert: Vec::new(), take: Vec::new() });
+```
+
+### `TransferMode`
+
+Which way an item transfer moves, for `BlockEntityTransfer`: `Insert` moves into the block entity (a hopper above, another block pushing) and `Take` moves out of it (a hopper below, another block pulling).
+
+```rust
+use pluto_lib::TransferMode;
+
+assert_ne!(TransferMode::Insert, TransferMode::Take);
+let mode = TransferMode::Insert;
+assert_eq!(mode, TransferMode::Insert);
+```
+
+### `BlockEntityTransfer`
+
+An item transfer automation wants to make, as a transfer rule is asked about it. `pos` is the block entity's position, `data` its saved data (read-only; the rule decides with it), `items` its item slots (read-only), `slot` the slot the stack would move through, `face` the face the transfer comes through (`None` when the caller names none), `mode` which way the stack moves and `stack` the stack that would move: the incoming one for an insert, the stored one for a take.
+
+```rust
+use pluto_lib::{BlockEntityTransfer, Direction, Identifier, ItemSlot, NbtCompound, TransferMode};
+
+let data = NbtCompound::new();
+let items: Vec<Option<ItemSlot>> = vec![None];
+let stack = ItemSlot::new(Identifier::parse("minecraft:bucket").unwrap(), 1);
+let transfer = BlockEntityTransfer {
+    pos: [0, 64, 0],
+    data: &data,
+    items: &items,
+    slot: 0,
+    face: Some(Direction::Up),
+    mode: TransferMode::Insert,
+    stack,
+};
+assert_eq!(transfer.pos, [0, 64, 0]);
+assert_eq!(transfer.slot, 0);
+assert_eq!(transfer.face, Some(Direction::Up));
+assert_eq!(transfer.mode, TransferMode::Insert);
+assert_eq!(transfer.stack.item.to_string(), "minecraft:bucket");
+assert!(transfer.data.is_empty() && transfer.items.len() == 1);
+```
+
+### `BlockEntityType::on_place`
+
+`fn on_place(self, placer: impl Fn(&mut BlockEntityPlace<'_>) + Send + Sync + 'static) -> BlockEntityType`. The same type, with `placer` run once when a player places the block: it seeds the new block entity from the placed stack (a tank item's fluid, a custom name, a retexture). Without one a placed block entity starts with the type's initial data alone, and what the stack carried is lost.
+
+```rust
+use pluto_lib::{BlockEntityType, FluidStack, Identifier, NbtCompoundExt};
+
+let kind = BlockEntityType::new(Identifier::parse("example:placed_tank").unwrap())
+    .item_slots(1)
+    .fluid_tanks([1000])
+    .on_place(|placed| {
+        // a tank item keeps its fluid amount in its custom data; the placed tank starts with it
+        let amount = placed.stack.custom_data.get_int("amount", 0);
+        if amount > 0 {
+            placed.set_fluid(0, Some(FluidStack::new(Identifier::parse("minecraft:lava").unwrap(), amount as u32)));
+        }
+    });
+let _ = kind;
+```
+
+### `BlockEntityType::on_signal`
+
+`fn on_signal(self, signaller: impl Fn(&mut BlockEntitySignal<'_>) + Send + Sync + 'static) -> BlockEntityType`. The same type, with `signaller` run when the redstone signal reaching the block changes (see `BlockEntitySignal`). The type must also have a ticker: the change is noticed on the block entity's own tick.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, Nbt};
+
+let kind = BlockEntityType::new(Identifier::parse("example:swapping_tank").unwrap())
+    .item_slots(2)
+    .ticker(|_tick| {})
+    .on_signal(|signal| {
+        signal.data.insert("last_signal".to_owned(), Nbt::Int(i32::from(signal.strength)));
+        if signal.powered && signal.items[0].is_some() && signal.items[1].is_none() {
+            signal.items[1] = signal.items[0].take();
+        }
+    });
+let _ = kind;
+```
+
+### `BlockEntityType::item_forward`
+
+`fn item_forward(self, forward: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<ItemForward> + Send + Sync + 'static) -> BlockEntityType`. The same type, whose item storage is another block entity's (a chute in a smeltery wall answers with the controller's inventory): `forward` is asked with the saved data and item slots, and `None` means this block has no storage of its own either. The `ItemFilter` narrows what passes.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, ItemFilter, ItemForward, Nbt};
+
+// a chute remembers its controller's position in its data
+let chute = BlockEntityType::new(Identifier::parse("example:chute").unwrap()).item_forward(|data, _items| match data.get("master") {
+    Some(Nbt::IntArray(at)) if at.len() == 3 => Some(ItemForward { target: [at[0], at[1], at[2]], filter: ItemFilter::Any }),
+    _ => None,
+});
+let _ = chute;
+```
+
+### `BlockEntityType::sided_access`
+
+`fn sided_access(self, access: impl Fn(Direction) -> SidedAccess + Send + Sync + 'static) -> BlockEntityType`. The same type, with the slots each face of the block opens to automation (see `SidedAccess`): `access` answers for a face which slots take items and which give them through it. Without one every slot takes and gives through every face.
+
+```rust
+use pluto_lib::{BlockEntityType, Direction, Identifier, SidedAccess};
+
+let kind = BlockEntityType::new(Identifier::parse("example:casting_table").unwrap())
+    .item_slots(2)
+    .sided_access(|face| match face {
+        Direction::Up => SidedAccess { insert: vec![0], take: vec![] },
+        Direction::Down => SidedAccess { insert: vec![], take: vec![1] },
+        _ => SidedAccess::default(),
+    });
+let _ = kind;
+```
+
+### `BlockEntityType::item_transfer_rule`
+
+`fn item_transfer_rule(self, rule: impl Fn(&BlockEntityTransfer<'_>) -> bool + Send + Sync + 'static) -> BlockEntityType`. The same type, with its own rule for the item transfers automation makes with it (see `BlockEntityTransfer`): `rule` is asked for each stack a hopper or another block would move in or out, with the saved data and slots at hand, and a stack it refuses does not move. Without one every transfer the faces open is allowed.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, TransferMode};
+
+let kind = BlockEntityType::new(Identifier::parse("example:casting_table").unwrap())
+    .item_slots(2)
+    .item_transfer_rule(|transfer| {
+        // nothing goes in while a cast is running, and only fluid containers go in at all
+        if transfer.mode == TransferMode::Insert && transfer.data.contains_key("casting") {
+            return false;
+        }
+        transfer.mode == TransferMode::Take || transfer.stack.item.to_string().ends_with("bucket")
+    });
+let _ = kind;
+```
+
+### `BlockEntityTypeRegistry::item_forward_of`
+
+`fn item_forward_of(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<ItemForward>`. Where the item storage of the block entity of `block` really is, from its `item_forward` hook; `None` when the block has no hook or the hook says it forwards nowhere.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemFilter, ItemForward, NbtCompound};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:item_chute").unwrap())
+    .item_forward(|_data, _items| Some(ItemForward { target: [0, 64, 0], filter: ItemFilter::Any })));
+let forward = BlockEntityTypeRegistry::item_forward_of("example:item_chute", &NbtCompound::new(), &[]).unwrap();
+assert_eq!(forward.target, [0, 64, 0]);
+assert_eq!(forward.filter, ItemFilter::Any);
+assert!(BlockEntityTypeRegistry::item_forward_of("example:no_such_block", &NbtCompound::new(), &[]).is_none());
+```
+
+### `BlockEntityTypeRegistry::item_forwards`
+
+`fn item_forwards(block: &str) -> bool`. Whether the block has an item forwarding hook, so that a `None` from `item_forward_of` means "no storage" and not "the block's own storage".
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemFilter, ItemForward};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:forwards_items").unwrap())
+    .item_forward(|_data, _items| Some(ItemForward { target: [1, 64, 1], filter: ItemFilter::Any })));
+assert!(BlockEntityTypeRegistry::item_forwards("example:forwards_items"));
+assert!(!BlockEntityTypeRegistry::item_forwards("example:no_such_block"));
+```
+
+### `BlockEntityTypeRegistry::sided_access`
+
+`fn sided_access(block: &str, face: Direction) -> Option<SidedAccess>`. The slots `face` of the block entity of `block` opens to automation, from its `sided_access` hook; `None` when the block has no hook (every slot then opens both ways).
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Direction, Identifier, SidedAccess};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:sided").unwrap())
+    .item_slots(2)
+    .sided_access(|face| match face {
+        Direction::Up => SidedAccess { insert: vec![0], take: vec![] },
+        Direction::Down => SidedAccess { insert: vec![], take: vec![1] },
+        _ => SidedAccess::default(),
+    }));
+assert_eq!(BlockEntityTypeRegistry::sided_access("example:sided", Direction::Up), Some(SidedAccess { insert: vec![0], take: vec![] }));
+assert_eq!(BlockEntityTypeRegistry::sided_access("example:sided", Direction::Down), Some(SidedAccess { insert: vec![], take: vec![1] }));
+assert!(BlockEntityTypeRegistry::sided_access("example:no_such_block", Direction::Up).is_none());
+```
+
+### `BlockEntityTypeRegistry::item_transfer_allowed`
+
+`fn item_transfer_allowed(block: &str, pos: BlockPos, data: &NbtCompound, items: &[Option<ItemSlot>], slot: usize, face: Option<Direction>, mode: TransferMode, stack: ItemSlot) -> bool`. Whether the `item_transfer_rule` of `block` allows the transfer described by the arguments; true when the block has no rule.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Direction, Identifier, ItemSlot, Nbt, NbtCompound, TransferMode};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:guarded_table").unwrap())
+    .item_slots(2)
+    .item_transfer_rule(|transfer| {
+        if transfer.mode == TransferMode::Insert && transfer.data.contains_key("casting") {
+            return false;
+        }
+        transfer.mode == TransferMode::Take || transfer.stack.item.to_string().ends_with("bucket")
+    }));
+let items: Vec<Option<ItemSlot>> = vec![None, None];
+let mut data = NbtCompound::new();
+let bucket = ItemSlot::new(Identifier::parse("minecraft:bucket").unwrap(), 1);
+let stick = ItemSlot::new(Identifier::parse("minecraft:stick").unwrap(), 1);
+assert!(BlockEntityTypeRegistry::item_transfer_allowed("example:guarded_table", [0; 3], &data, &items, 0, Some(Direction::Up), TransferMode::Insert, bucket.clone()));
+assert!(!BlockEntityTypeRegistry::item_transfer_allowed("example:guarded_table", [0; 3], &data, &items, 0, Some(Direction::Up), TransferMode::Insert, stick));
+data.insert("casting".to_owned(), Nbt::Byte(1));
+assert!(!BlockEntityTypeRegistry::item_transfer_allowed("example:guarded_table", [0; 3], &data, &items, 0, Some(Direction::Up), TransferMode::Insert, bucket));
+assert!(BlockEntityTypeRegistry::item_transfer_allowed("example:unregistered", [0; 3], &data, &items, 0, None, TransferMode::Insert, ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 1)));
+```

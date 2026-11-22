@@ -140,13 +140,15 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only).
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`.
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
 
 PlayerBlockBreakEvents::BEFORE.register(|broken: &BlockBreakContext| broken.pos[1] >= 0);
 assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([1, 70, 1])));
+let context = BlockBreakContext::at([1, 70, 1]);
+assert!(context.face.is_none() && context.yaw == 0.0 && context.pitch == 0.0 && context.extra_breaks.borrow().is_empty());
 ```
 
 ### `BlockBreakContext::at`
@@ -434,4 +436,595 @@ A break was vetoed by `BEFORE`. Receives the same `BlockBreakContext { pos }` on
 use pluto_lib::PlayerBlockBreakEvents;
 
 PlayerBlockBreakEvents::CANCELED.register(|_| {});
+```
+
+### `DiggingFacts`
+
+What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature).
+
+```rust
+use pluto_lib::DiggingFacts;
+
+let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8) };
+assert_eq!((facts.block_light, facts.sky_light, facts.sky_darken), (Some(3), Some(15), 4));
+assert_eq!(facts.biome_temperature, Some(0.8));
+assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None });
+```
+
+### `UseItemOnEntityContext`
+
+A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none) and `actions` the `EntityAction`s a callback queues for the player.
+
+```rust
+use std::cell::RefCell;
+use pluto_lib::{Hand, ServerPlayer, StackData, UseItemOnEntityContext};
+
+let click = UseItemOnEntityContext {
+    entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
+    held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+};
+assert_eq!((click.entity, click.hand), (5, Hand::Main));
+assert_eq!(click.kind, "minecraft:sheep");
+assert_eq!(click.held.as_ref().map(|held| held.item.as_str()), Some("test:kama"));
+assert_eq!(click.player.as_ref().map(|player| player.uuid), Some(9));
+assert!(click.actions.borrow().is_empty());
+```
+
+### `InteractEntityContext`
+
+A player interacted with an entity at the game's own generic claim point, before any hand-specific handling, so the context names no hand. `entity` is the entity id, `kind` its type id, `stack` the stack the interaction is made with (`None` when the game names none) and `player` the player (`None` when the game names none).
+
+```rust
+use pluto_lib::InteractEntityContext;
+
+let click = InteractEntityContext { entity: 41, kind: "minecraft:armor_stand".into(), stack: None, player: None };
+assert_eq!(click.entity, 41);
+assert_eq!(click.kind, "minecraft:armor_stand");
+assert!(click.stack.is_none() && click.player.is_none());
+```
+
+### `FishingContext`
+
+A player's fishing rod changed state. `player` is the player fishing, `state` the state's number (see `FISHING_CAST` and `FISHING_BITE`), `hand` the hand holding the rod, `rod` the rod stack in that hand (`None` when the game did not read it), `cancel` a flag a callback sets to true to cancel the state and `actions` the `EntityAction`s a callback queues for the player.
+
+```rust
+use std::cell::{Cell, RefCell};
+use pluto_lib::{FishingContext, Hand, ServerPlayer, StackData, FISHING_CAST};
+
+let fish = FishingContext {
+    player: ServerPlayer { uuid: 21, name: "Fisher".into() }, state: FISHING_CAST, hand: Hand::Main,
+    rod: Some(StackData { item: "minecraft:fishing_rod".into(), count: 1, ..Default::default() }),
+    cancel: Cell::new(false), actions: RefCell::new(Vec::new()),
+};
+assert_eq!((fish.player.uuid, fish.state, fish.hand), (21, FISHING_CAST, Hand::Main));
+assert_eq!(fish.rod.as_ref().map(|rod| rod.item.as_str()), Some("minecraft:fishing_rod"));
+assert!(!fish.cancel.get() && fish.actions.borrow().is_empty());
+```
+
+### `FISHING_CAST`
+
+The fishing state for a cast: `pub const FISHING_CAST: i32 = 0`. A `FishingContext` whose `state` is this value means the bobber was cast.
+
+```rust
+use pluto_lib::FISHING_CAST;
+
+assert_eq!(FISHING_CAST, 0);
+```
+
+### `FISHING_BITE`
+
+The fishing state for a bite: `pub const FISHING_BITE: i32 = 1`. A `FishingContext` whose `state` is this value means a fish bit.
+
+```rust
+use pluto_lib::{FISHING_BITE, FISHING_CAST};
+
+assert_eq!(FISHING_BITE, 1);
+assert_ne!(FISHING_BITE, FISHING_CAST);
+```
+
+### `BlockBreakContext::break_extra`
+
+Takes another block with this break: `fn break_extra(&self, pos: [i32; 3])`. The block itself, a duplicate and anything past 64 extra blocks are refused; the game breaks the extra blocks through its own destroy path and they fire no break events of their own.
+
+```rust
+use pluto_lib::BlockBreakContext;
+
+let context = BlockBreakContext::at([10, 64, 10]);
+context.break_extra([11, 64, 10]);
+context.break_extra([11, 64, 10]);
+context.break_extra([10, 64, 10]);
+assert_eq!(*context.extra_breaks.borrow(), vec![[11, 64, 10]]);
+```
+
+### `UseEntityCallback`
+
+Holder of the use-item-on-entity event (Fabric: `UseEntityCallback`). It is heard once for each hand the game tries, the main hand first.
+
+```rust
+use pluto_lib::UseEntityCallback;
+
+UseEntityCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
+```
+
+### `UseEntityCallback::EVENT`
+
+The event itself: `pub const EVENT: &'static Event<UseItemOnEntityContext, ActionResult>`. Runs when a player uses an item on an entity; the first answer that is not `Pass` takes the click and neither the entity's own interaction nor the item's runs.
+
+```rust
+use std::cell::RefCell;
+use pluto_lib::{ActionResult, Hand, ServerPlayer, StackData, UseEntityCallback, UseItemOnEntityContext};
+
+UseEntityCallback::EVENT.register(|click| {
+    if click.kind == "minecraft:sheep" && click.held.as_ref().is_some_and(|held| held.item == "test:kama") { ActionResult::Success } else { ActionResult::Pass }
+});
+let click = UseItemOnEntityContext {
+    entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
+    held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+};
+assert_eq!(UseEntityCallback::EVENT.invoke(&click), ActionResult::Success);
+```
+
+### `InteractEntityCallback`
+
+Holder of the generic entity-interaction event. It runs at the game's own claim point, before its hand-specific handling.
+
+```rust
+use pluto_lib::InteractEntityCallback;
+
+InteractEntityCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
+```
+
+### `InteractEntityCallback::EVENT`
+
+The event itself: `pub const EVENT: &'static Event<InteractEntityContext, ActionResult>`. Runs when a player interacts with an entity; the first answer that is not `Pass` takes the interaction and the game does not handle it.
+
+```rust
+use pluto_lib::{ActionResult, InteractEntityCallback, InteractEntityContext};
+
+InteractEntityCallback::EVENT.register(|context| if context.entity == 41 { ActionResult::Success } else { ActionResult::Pass });
+let click = InteractEntityContext { entity: 41, kind: "minecraft:armor_stand".into(), stack: None, player: None };
+assert_eq!(InteractEntityCallback::EVENT.invoke(&click), ActionResult::Success);
+let other = InteractEntityContext { entity: 42, kind: "minecraft:armor_stand".into(), stack: None, player: None };
+assert_eq!(InteractEntityCallback::EVENT.invoke(&other), ActionResult::Pass);
+```
+
+### `PlayerFishEvents`
+
+The fishing events (Bukkit: `PlayerFishEvent`). Every callback runs, and any one of them may cancel the state through the context's `cancel` flag.
+
+```rust
+use pluto_lib::PlayerFishEvents;
+
+PlayerFishEvents::EVENT.register(|_| {});
+```
+
+### `PlayerFishEvents::EVENT`
+
+The event itself: `pub const EVENT: &'static Event<FishingContext, ()>`. Runs when a player's fishing rod changes state; a cancelled cast throws no bobber and a cancelled reel-in catches nothing.
+
+```rust
+use std::cell::{Cell, RefCell};
+use pluto_lib::{FishingContext, Hand, PlayerFishEvents, ServerPlayer, StackData, FISHING_BITE, FISHING_CAST};
+
+PlayerFishEvents::EVENT.register(|fish| if fish.player.uuid == 21 && fish.state == FISHING_CAST { fish.cancel.set(true); });
+let fish = |state: i32| FishingContext {
+    player: ServerPlayer { uuid: 21, name: "Fisher".into() }, state, hand: Hand::Main,
+    rod: Some(StackData { item: "minecraft:fishing_rod".into(), count: 1, ..Default::default() }),
+    cancel: Cell::new(false), actions: RefCell::new(Vec::new()),
+};
+let cast = fish(FISHING_CAST);
+PlayerFishEvents::EVENT.invoke(&cast);
+assert!(cast.cancel.get(), "the cast is cancelled");
+let bite = fish(FISHING_BITE);
+PlayerFishEvents::EVENT.invoke(&bite);
+assert!(!bite.cancel.get(), "the bite is not");
+```
+
+## Entity reach and entity events
+
+### `EntityReach::in_box`
+
+`fn in_box(min: [f64; 3], max: [f64; 3]) -> Vec<WorldEntity>`. Every living entity and item entity whose position is inside the box (min corner, max corner), in the host's order; empty outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    let found = EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]);
+    assert_eq!(found.iter().map(|entity| entity.id).collect::<Vec<_>>(), [1, 2], "the cow stands outside the box");
+});
+```
+
+### `EntityReach::discard`
+
+`fn discard(id: u64) -> bool`. Removes the item entity `id`, which was taken whole; false outside a scope, when there is no such entity, or when it is not an item entity.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert!(EntityReach::discard(1));
+    assert!(!EntityReach::discard(1), "already gone");
+    assert!(!EntityReach::discard(2), "a living entity is not discarded");
+});
+assert_eq!(ops.discarded, vec![1]);
+```
+
+### `EntityReach::set_item`
+
+`fn set_item(id: u64, stack: &ItemSlot) -> bool`. Leaves `stack` in the item entity `id` (what did not fit where it was taken to); false outside a scope or where there is no such item entity.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    let left = ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 1);
+    assert!(EntityReach::set_item(1, &left));
+    assert!(!EntityReach::set_item(2, &left), "a living entity holds no item stack");
+});
+assert_eq!(ops.left.len(), 1);
+assert_eq!(ops.left[0].1.count, 1);
+```
+
+### `EntityReach::hurt`
+
+`fn hurt(id: u64, amount: f32, damage_type: &str) -> bool`. Hurts entity `id` by `amount` of the damage type `damage_type`, with no attacker; whether it took any. False outside a scope, for an item entity, or when the host refuses an invulnerable, dead or creative target.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert!(EntityReach::hurt(2, 5.0, "minecraft:in_fire"));
+    assert!(!EntityReach::hurt(1, 5.0, "minecraft:in_fire"), "an item entity cannot be hurt");
+});
+assert_eq!(ops.hurt, vec![(2, 5.0, "minecraft:in_fire".to_owned())]);
+```
+
+### `EntityReach::position_of`
+
+`fn position_of(id: u64) -> Option<[f64; 3]>`. Where entity `id` stands (its feet position); `None` outside a scope or when the host cannot reach it.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+assert_eq!(EntityReach::position_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::position_of(2), Some([2.5, 64.5, 2.5]));
+    assert_eq!(EntityReach::position_of(99), None, "no such entity");
+});
+```
+
+### `EntityReach::teleport`
+
+`fn teleport(id: u64, pos: [f64; 3]) -> bool`. Moves entity `id` to `pos`; a mob's navigation stops and its fall distance resets, as the game's own teleport does. False outside a scope, for a player, or when the host cannot move it.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert!(EntityReach::teleport(2, [7.5, 70.0, -3.5]));
+    assert_eq!(EntityReach::position_of(2), Some([7.5, 70.0, -3.5]));
+    assert!(!EntityReach::teleport(99, [0.0, 64.0, 0.0]), "no such entity to move");
+});
+```
+
+### `EntityReach::passengers_of`
+
+`fn passengers_of(vehicle: u64) -> Vec<u64>`. The direct passengers of `vehicle`, in the order they mounted; empty outside a scope, when the entity carries nobody, or when the host cannot say.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert!(EntityReach::passengers_of(3).is_empty());
+    assert!(EntityReach::start_riding(2, 3));
+    assert_eq!(EntityReach::passengers_of(3), vec![2]);
+});
+```
+
+### `EntityReach::vehicle_of`
+
+`fn vehicle_of(passenger: u64) -> Option<u64>`. The vehicle `passenger` rides, if it rides one; `None` outside a scope, when it rides nothing, or when the host cannot say.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::vehicle_of(2), None);
+    assert!(EntityReach::start_riding(2, 3));
+    assert_eq!(EntityReach::vehicle_of(2), Some(3));
+});
+```
+
+### `EntityReach::start_riding`
+
+`fn start_riding(passenger: u64, vehicle: u64) -> bool`. Puts `passenger` on `vehicle`; true when the mount was accepted. The host refuses what the game refuses — the same entity twice, a passenger that already rides something, a cycle, and any mount its own mount event cancels — and an accepted mount may only become observable through `vehicle_of` from the next tick. False outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert!(EntityReach::start_riding(2, 3), "the zombie mounts the cow");
+    assert!(!EntityReach::start_riding(2, 1), "already riding");
+    assert!(!EntityReach::start_riding(3, 3), "an entity cannot ride itself");
+    assert!(!EntityReach::start_riding(3, 2), "the cow mounting its own rider would close a cycle");
+});
+assert_eq!(ops.mounts, vec![(2, 3)]);
+```
+
+### `EntityReach::stop_riding`
+
+`fn stop_riding(passenger: u64) -> bool`. Takes `passenger` off whatever it rides; true when it was riding and the dismount was accepted, which the host may likewise apply at its next rider synchronisation. False outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
+    id: 3,
+    kind: Identifier::parse("minecraft:cow").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || {
+    assert!(EntityReach::start_riding(2, 3));
+    assert!(EntityReach::stop_riding(2));
+    assert_eq!(EntityReach::vehicle_of(2), None);
+    assert!(!EntityReach::stop_riding(2), "no longer riding");
+});
+assert!(ops.mounts.is_empty());
+```
+
+### `ServerEntityEvents::ENTITY_TICK_PRE`
+
+An entity is about to tick: return `false` from a callback to cancel that entity's tick (the post event is then not heard for it). Heard for every kind the game ticks, derived types included; the entity and world reaches are open while the callbacks run.
+
+```rust
+use pluto_lib::{EntityInfo, ServerEntityEvents};
+
+ServerEntityEvents::ENTITY_TICK_PRE.register(|entity: &EntityInfo| entity.kind != "minecraft:item");
+let zombie = EntityInfo { id: 9, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into() };
+let item = EntityInfo { id: 10, kind: "minecraft:item".into(), dimension: "minecraft:overworld".into() };
+assert!(ServerEntityEvents::ENTITY_TICK_PRE.invoke(&zombie));
+assert!(!ServerEntityEvents::ENTITY_TICK_PRE.invoke(&item));
+```
+
+### `ServerEntityEvents::ENTITY_TICK_POST`
+
+An entity has ticked: a notification, heard after the entity's own tick ran, and not at all for a tick that `ENTITY_TICK_PRE` cancelled.
+
+```rust
+use pluto_lib::{EntityInfo, ServerEntityEvents};
+
+ServerEntityEvents::ENTITY_TICK_POST.register(|entity: &EntityInfo| {
+    let _ = (entity.id, &entity.kind, &entity.dimension);
+});
+ServerEntityEvents::ENTITY_TICK_POST.invoke(&EntityInfo { id: 9, kind: "minecraft:cow".into(), dimension: "minecraft:overworld".into() });
+```
+
+### `CarriedSlot`
+
+One place a player carries a stack, as the wider events that report a player's whole carrying name them: `Equipment(StackSlot)` is a hand or an armor slot, and `Inventory(u32)` is a main-inventory slot, 0 to 35, the hotbar first.
+
+```rust
+use pluto_lib::{CarriedSlot, StackSlot};
+
+assert_eq!(CarriedSlot::Equipment(StackSlot::MainHand), CarriedSlot::Equipment(StackSlot::MainHand));
+assert_ne!(CarriedSlot::Equipment(StackSlot::Head), CarriedSlot::Inventory(0));
+assert_ne!(CarriedSlot::Inventory(0), CarriedSlot::Inventory(35));
+```
+
+### `CarriedStack`
+
+A stack a player carries, with the place it sits in: `slot` is where the stack sits and `stack` is the stack itself, with all its components. An event that enumerates a player's stacks reports one of these for each non-empty place.
+
+```rust
+use pluto_lib::{CarriedSlot, CarriedStack, Identifier, ItemSlot, StackSlot};
+
+let carried = CarriedStack {
+    slot: CarriedSlot::Equipment(StackSlot::MainHand),
+    stack: ItemSlot::new(Identifier::parse("minecraft:iron_pickaxe").unwrap(), 1),
+};
+assert_eq!(carried.slot, CarriedSlot::Equipment(StackSlot::MainHand));
+assert_eq!(carried.stack.count, 1);
+```
+
+### `CarriedEdit`
+
+A whole new stack for a place a player carries, which a callback queues in an event's edits: `slot` is the place to write and `stack` is the stack to put there. The host writes it after the callbacks ran; a count of 0 empties the place, and writing a place the event did not list is allowed.
+
+```rust
+use pluto_lib::{CarriedEdit, CarriedSlot, Identifier, ItemSlot};
+
+let edit = CarriedEdit {
+    slot: CarriedSlot::Inventory(0),
+    stack: ItemSlot::new(Identifier::parse("minecraft:torch").unwrap(), 0),
+};
+assert_eq!(edit.slot, CarriedSlot::Inventory(0));
+assert_eq!(edit.stack.count, 0, "a count of 0 empties the place");
 ```
