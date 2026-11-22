@@ -313,7 +313,7 @@ impl LevelEdit for Edit<'_, '_> {
         if let Some(definition) = horizon_world::level::pluto_worldgen_level::configured_json(behaviours, feature) {
             if let Some(kind) = definition.get("type").and_then(serde_json::Value::as_str) {
                 let handled = pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
-                    pluto_block::custom_feature(edit, kind, definition.get("config").unwrap_or(&serde_json::Value::Null), pos)
+                    pluto_block::custom_feature(edit, kind, definition.get("config").unwrap_or(&definition), pos)
                 });
                 if let Some(placed) = handled { return placed; }
             }
