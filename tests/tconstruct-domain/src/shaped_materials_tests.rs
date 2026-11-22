@@ -253,3 +253,94 @@ fn all_ten_shipped_shaped_materials_recipes_decode() {
         );
     }
 }
+
+#[test]
+fn shipped_material_value_ingredients_resolve_once_the_data_has_loaded() {
+    // The host asks each mod ingredient kind for its load-time item list
+    // while it parses the recipe table, and drops the recipe when the
+    // answer is empty. Before the reload listeners apply, the material
+    // data has not loaded and the answer is empty — the parse-order bug
+    // the data workaround routes around. With the data loaded (the state
+    // the listeners leave behind, which the host now reaches before the
+    // parse), every material_value ingredient in the shipped grid
+    // recipes names at least one item, so the recipes survive the parse.
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/recipe");
+    let stems = [
+        "tools/parts/pick_head",
+        "tools/parts/tool_binding",
+        "tools/parts/tool_handle",
+        "tools/armor/travelers/boots",
+        "tools/armor/travelers/chestplate",
+        "tools/armor/travelers/goggles",
+        "tools/armor/travelers/pants",
+        "tools/armor/travelers/shield",
+    ];
+    fn collect(value: &Value, out: &mut Vec<Value>) {
+        match value {
+            Value::Object(fields) => {
+                if fields.get("type").and_then(Value::as_str) == Some("tconstruct:material_value") {
+                    out.push(value.clone());
+                }
+            }
+            Value::Array(members) => members.iter().for_each(|member| collect(member, out)),
+            _ => {}
+        }
+    }
+    let mut ingredients: Vec<Value> = Vec::new();
+    for stem in stems {
+        let path = content.join(format!("{stem}.json"));
+        let recipe: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|e| panic!("{path:?}: {e}"))).unwrap();
+        let before = ingredients.len();
+        for member in recipe["key"].as_object().unwrap().values() {
+            collect(member, &mut ingredients);
+        }
+        assert!(ingredients.len() > before, "{stem} keys a material_value ingredient");
+    }
+    // The registries as the reload listeners leave them: the shipped
+    // material definitions, stats and traits, the shipped material
+    // recipes, the shipped casting tables, and the item snapshot the
+    // host hands over with them (declared items and flattened item
+    // tags, built the way casting_loop builds it), which is what a
+    // tag-keyed material ingredient enumerates through.
+    let mut definitions = crate::materials::Definitions::load(
+        &crate::original_data::files("materials/definition"),
+        &crate::original_data::conditions(),
+    );
+    let mut problems = Vec::new();
+    definitions.stats = crate::material_stats::load(&crate::original_data::stacks("materials/stats"), &mut problems);
+    definitions.traits = crate::material_traits::load(&crate::original_data::stacks("materials/traits"), &mut problems);
+    assert!(problems.is_empty(), "{problems:?}");
+    definitions.server_loaded = true;
+    let mut material_recipes = crate::material_recipes::Recipes::load(
+        &crate::original_data::recursive_files("tools/materials", "tools/materials"),
+        &crate::original_data::conditions(),
+    );
+    assert!(material_recipes.problems.is_empty(), "{:?}", material_recipes.problems);
+    material_recipes.loaded = true;
+    let loaded = Data {
+        definitions,
+        material_recipes,
+        casting: crate::original_data::fluid_recipes(false).material_casting,
+        items: Some(std::sync::Arc::new(crate::casting_loop::item_registry())),
+    };
+    for ingredient in &ingredients {
+        assert!(
+            !crate::shaped_materials::material_value_items_with(ingredient, &loaded).is_empty(),
+            "{ingredient} names at least one item once the material data has loaded",
+        );
+    }
+    // And before any of it loads, the same questions answer empty: the
+    // state the host's recipe parse used to run against.
+    let unloaded = Data {
+        definitions: crate::materials::Definitions::default(),
+        material_recipes: crate::material_recipes::Recipes::load(&[], &crate::original_data::conditions()),
+        casting: crate::casting_recipes::MaterialCasting::default(),
+        items: None,
+    };
+    for ingredient in &ingredients {
+        assert!(
+            crate::shaped_materials::material_value_items_with(ingredient, &unloaded).is_empty(),
+            "{ingredient} names nothing before the material data loads",
+        );
+    }
+}

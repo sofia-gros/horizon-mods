@@ -89,6 +89,35 @@ bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
 
+# The parse-order fix: a data load builds its content tables
+# (build_world_tables, which parses the recipes) before it applies the
+# mods' JSON reload listeners, so an ingredient of a mod's own kind was
+# answered from mod data that had not loaded yet, its load-time item
+# list came back empty, and the host dropped every recipe using one.
+# Apply the listeners first at the two points that build a load's
+# tables: a world opening and a reload. The host's own application
+# later in each flow still runs; listener application replaces the
+# loaded state wholesale, so it only refreshes the registry snapshots
+# with the tables the load just built.
+[[injection]]
+id = "pluto-reload-before-tables-open"
+target = "horizon_client::game::Game<'_>::finish_open_world"
+kind = "HEAD"
+helper = "pluto-reload-before-tables.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "prepared", ty = "&crate::game::world_loading::PreparedWorld", value = "&prepared" }
+]
+
+[[injection]]
+id = "pluto-reload-before-tables-reload"
+target = "horizon_client::game::world_entry::Game<'_>::reload_world_tables"
+kind = "HEAD"
+helper = "pluto-reload-before-tables.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
 # Capture the final owned item map, not its earlier insert/reference accesses.
 # The raw Arc is the loader's own snapshot. Native LOAD/type validation is pending native attachment validation.
 [[injection]]

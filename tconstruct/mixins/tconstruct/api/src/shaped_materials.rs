@@ -334,13 +334,23 @@ fn ingredient_items(ingredient: &MaterialIngredient, loaded: &Data, out: &mut Ve
 }
 
 /// MaterialValueIngredient.getItems: every material recipe passing the
-/// filter, flattened over its ingredient's items.
+/// filter, flattened over its ingredient's items. The host asks for this
+/// list while it parses the recipe table and drops the recipe when the
+/// answer is empty, so the answer is only as good as the data loaded at
+/// that moment: before the reload listeners apply it is empty, after
+/// them it names the real items.
 fn material_value_items(data: &Value) -> Vec<String> {
     let Some(loaded) = load_data() else { return Vec::new() };
+    material_value_items_with(data, &loaded)
+}
+
+/// The same list against an already-loaded snapshot, for the tests that
+/// pin the parse-time behaviour above.
+pub(crate) fn material_value_items_with(data: &Value, loaded: &Data) -> Vec<String> {
     let mut out = Vec::new();
     for recipe in loaded.material_recipes.recipes() {
-        if value_recipe_matches(data, recipe, &loaded) {
-            ingredient_items(&recipe.ingredient, &loaded, &mut out);
+        if value_recipe_matches(data, recipe, loaded) {
+            ingredient_items(&recipe.ingredient, loaded, &mut out);
         }
     }
     out.sort();
