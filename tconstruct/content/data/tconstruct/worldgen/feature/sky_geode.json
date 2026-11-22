@@ -16,36 +16,36 @@
     },
     "inner_placements": [
       {
-        "Name": "tconstruct:small_sky_slime_crystal_bud",
-        "Properties": {
+        "id": "tconstruct:small_sky_slime_crystal_bud",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:medium_sky_slime_crystal_bud",
-        "Properties": {
+        "id": "tconstruct:medium_sky_slime_crystal_bud",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:large_sky_slime_crystal_bud",
-        "Properties": {
+        "id": "tconstruct:large_sky_slime_crystal_bud",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:sky_slime_crystal_cluster",
-        "Properties": {
+        "id": "tconstruct:sky_slime_crystal_cluster",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:steel_cluster",
-        "Properties": {
+        "id": "tconstruct:steel_cluster",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
