@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:bloodshroom_planks"
+  },
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "group": "wooden_stairs",
+  "result": {
+    "id": "tconstruct:bloodshroom_planks_stairs",
+    "count": 4
+  }
+}

@@ -426,7 +426,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 let ticks = tick.data.get_int("ticks", 0) + 1;
                 tick.data.insert("ticks".to_owned(), Nbt::Int(ticks as i32));
                 if ticks == 1 {
-                    tick.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 500 }));
+                    tick.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 500, tag: None }));
                 }
                 if ticks == 5 {
                     println!("PLUTO-PROBE block_entity ticks={ticks} pos={:?} slots={} water={}", tick.pos, tick.items.len(), tick.fluid(0).map_or(0, |f| f.amount));

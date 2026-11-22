@@ -135,12 +135,17 @@ pub(crate) fn verify_part_material(stack: &mut ItemSlot, registry: &Definitions)
     if resolved != original { set_part_material(stack, &resolved); }
 }
 
+/// The stat types of IRepairableMaterialStats (head, limb, the platings, skull, slime): RepairKitItem.canUseMaterial accepts a material that has
+/// any of them, besides the statless repair kit stat.
+pub(crate) const REPAIRABLE_STATS: &[&str] = &["head", "limb", "plating_helmet", "plating_chestplate", "plating_leggings", "plating_boots", "plating_shield", "skull", "slime"];
+
 /// ToolPartItem's item/stat binding. Actual item registration and visuals are separate.
 #[derive(Clone, Debug)]
 pub(crate) struct ToolPart { pub item: Identifier, pub stat: Identifier }
 impl ToolPart {
     pub fn can_use(&self, material: &MaterialVariant, registry: &Definitions) -> bool {
-        material.material_id().is_some_and(|id| registry.get_stats(&id, &self.stat).is_some())
+        material.material_id().is_some_and(|id| registry.get_stats(&id, &self.stat).is_some()
+            || self.stat.path() == "repair_kit" && REPAIRABLE_STATS.iter().any(|stat| Identifier::new("tconstruct", stat).is_ok_and(|stat| registry.get_stats(&id, &stat).is_some())))
     }
     pub fn set_material(&self, stack: &mut ItemSlot, material: &MaterialVariant, registry: &Definitions) -> bool {
         if !self.can_use(material, registry) { return false; }

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "minecraft:stick"
+    ],
+    "W": "tconstruct:skyroot_planks"
+  },
+  "pattern": [
+    "W#W",
+    "W#W"
+  ],
+  "group": "wooden_fence",
+  "result": {
+    "id": "tconstruct:skyroot_fence",
+    "count": 3
+  }
+}

@@ -40,6 +40,13 @@
         }
       },
       {
+        "when": "bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_bronze"
+        }
+      },
+      {
         "when": "chorus",
         "model": {
           "type": "minecraft:model",
@@ -61,6 +68,13 @@
         }
       },
       {
+        "when": "constantan",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_constantan"
+        }
+      },
+      {
         "when": "copper",
         "model": {
           "type": "minecraft:model",
@@ -68,10 +82,24 @@
         }
       },
       {
+        "when": "electrum",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_electrum"
+        }
+      },
+      {
         "when": "ender_pearl",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/pick_head/pickaxe/head_rock"
+        }
+      },
+      {
+        "when": "fiery",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_fiery"
         }
       },
       {
@@ -96,10 +124,24 @@
         }
       },
       {
+        "when": "invar",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_invar"
+        }
+      },
+      {
         "when": "iron",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_iron"
+        }
+      },
+      {
+        "when": "ironwood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_ironwood"
         }
       },
       {
@@ -131,6 +173,13 @@
         }
       },
       {
+        "when": "lead",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_lead"
+        }
+      },
+      {
         "when": "magnetite",
         "model": {
           "type": "minecraft:model",
@@ -152,10 +201,24 @@
         }
       },
       {
+        "when": "necronium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_necronium"
+        }
+      },
+      {
         "when": "necrotic_bone",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_necrotic_bone"
+        }
+      },
+      {
+        "when": "nicrosil",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_nicrosil"
         }
       },
       {
@@ -166,10 +229,31 @@
         }
       },
       {
+        "when": "osmium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_osmium"
+        }
+      },
+      {
+        "when": "pewter",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_pewter"
+        }
+      },
+      {
         "when": "pig_iron",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_pig_iron"
+        }
+      },
+      {
+        "when": "plated_slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_plated_slimewood"
         }
       },
       {
@@ -229,6 +313,13 @@
         }
       },
       {
+        "when": "silver",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_silver"
+        }
+      },
+      {
         "when": "slimesteel",
         "model": {
           "type": "minecraft:model",
@@ -247,6 +338,20 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_steel"
+        }
+      },
+      {
+        "when": "steeleaf",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_steeleaf"
+        }
+      },
+      {
+        "when": "treated_wood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/pick_head/pickaxe/head_tconstruct_treated_wood"
         }
       },
       {

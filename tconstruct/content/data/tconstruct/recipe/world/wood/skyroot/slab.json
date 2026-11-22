@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:skyroot_planks"
+  },
+  "pattern": [
+    "###"
+  ],
+  "group": "wooden_slab",
+  "result": {
+    "id": "tconstruct:skyroot_planks_slab",
+    "count": 6
+  }
+}

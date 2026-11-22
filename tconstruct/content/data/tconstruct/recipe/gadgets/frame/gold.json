@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "M": "tconstruct:obsidian_pane",
+    "e": [
+      "minecraft:gold_nugget"
+    ]
+  },
+  "pattern": [
+    " e ",
+    "eMe",
+    " e "
+  ],
+  "group": "tconstruct:fancy_item_frame",
+  "result": {
+    "id": "tconstruct:gold_item_frame"
+  }
+}

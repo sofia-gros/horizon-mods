@@ -10,6 +10,15 @@ fn dispatch(item: &mut ItemEntity, world: &World, registry: &horizon_world::regi
     let Some(definition) = registry.state(state) else { return };
     let info = StateInfo { block: definition.name.to_string(), properties: definition.properties.iter()
         .map(|(key, value)| (key.to_string(), value.to_string())).collect() };
+    if let Some(dimension) = crate::block_contact::current_level() {
+        let bounds = item.bounds();
+        (sink.entity_inside)(&transport::EntityInside {
+            dimension: dimension.to_string(), state: info.clone(), pos: [pos.x, pos.y, pos.z], entity: item.id as i32, kind: "minecraft:item".into(),
+            bounds: [bounds.min_position().x, bounds.min_position().y, bounds.min_position().z,
+                bounds.max_position().x, bounds.max_position().y, bounds.max_position().z],
+            fall_distance: item.fall_distance,
+        });
+    }
     let Some(callback) = (sink.inside_motion)(&info) else { return };
     let mut request = InsideMotion {
         pos: [pos.x, pos.y, pos.z], entity: item.id as i32, kind: "minecraft:item".into(),

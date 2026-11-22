@@ -214,7 +214,7 @@ fn cursor_room(menu: &dyn MenuAccess, result: &ItemSlot) -> u32 {
 
 ### `ScreenLayout`
 
-Where things are in the window, in GUI pixels from its top left. `width` and `height` are the window's size (vanilla container windows are 176 wide), `slots` where each container slot is (`None` hides the slot, and it is not in the menu either, so shift-clicks skip it), `inventory_x` and `inventory_y` the player's inventory (vanilla's are 8 and 84; the hotbar is 58 below), `own_labels` whether the screen draws the title and the "Inventory" label itself, `own_background` whether it draws its own background.
+Where things are in the window, in GUI pixels from its top left. `width` and `height` are the window's size (vanilla container windows are 176 wide), `slots` where each container slot is (`None` hides the slot, and it is not in the menu either, so shift-clicks skip it), `dynamic` which slots the dynamic-slot callback positions instead (parallel to `slots`, one entry per slot; such a slot is in the menu though the static layout has no position for it), `inventory_x` and `inventory_y` the player's inventory (vanilla's are 8 and 84; the hotbar is 58 below), `own_labels` whether the screen draws the title and the "Inventory" label itself, `own_background` whether it draws its own background.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -222,6 +222,7 @@ use pluto_lib::ScreenLayout;
 let layout = ScreenLayout::new(176.0, 166.0);
 assert_eq!((layout.width, layout.height), (176.0, 166.0));
 assert!(layout.slots.is_empty());
+assert!(layout.dynamic.is_empty());
 assert_eq!((layout.inventory_x, layout.inventory_y), (8.0, 84.0));
 assert!(!layout.own_labels && !layout.own_background);
 ```
@@ -257,6 +258,18 @@ use pluto_lib::ScreenLayout;
 
 let layout = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).hidden_slot();
 assert_eq!(layout.slots[1], None);
+```
+
+### `ScreenLayout::dynamic_slot`
+
+`fn dynamic_slot(self) -> ScreenLayout`. One more container slot that the dynamic-slot callback (`ScreenHandlerType::on_dynamic_slots`) positions: the slot is in the menu — the server takes clicks on it and its item syncs like any other's — though the static layout has no position for it. Use it for slots whose place follows the menu's data or items.
+
+```rust
+use pluto_lib::ScreenLayout;
+
+let layout = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).dynamic_slot().hidden_slot();
+assert_eq!(layout.slots, vec![Some([8.0, 8.0]), None, None]);
+assert_eq!(layout.dynamic, vec![false, true, false]);
 ```
 
 ### `ScreenLayout::inventory_at`

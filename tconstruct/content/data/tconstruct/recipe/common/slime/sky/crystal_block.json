@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:sky_slime_crystal"
+  },
+  "pattern": [
+    "##",
+    "##"
+  ],
+  "group": "tconstruct:slime_crystal_block",
+  "result": {
+    "id": "tconstruct:sky_slime_crystal_block"
+  }
+}

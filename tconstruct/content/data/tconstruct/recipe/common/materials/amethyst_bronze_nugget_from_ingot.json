@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "tconstruct:amethyst_bronze_ingot"
+  ],
+  "group": "tconstruct:amethyst_bronze_nugget",
+  "result": {
+    "id": "tconstruct:amethyst_bronze_nugget",
+    "count": 9
+  }
+}

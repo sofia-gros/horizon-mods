@@ -19,6 +19,8 @@ mod modifier_recipes;
 mod worktable_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/overslime.rs"]
 mod overslime;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/overgrowth.rs"]
+mod overgrowth;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_removal.rs"]
 mod modifier_removal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_recipes.rs"]
@@ -29,6 +31,10 @@ mod tool_predicate;
 mod modifier_modules;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/modifiers.rs"]
 mod modifiers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/enchantment_map.rs"]
+mod enchantment_map;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/enchantment_converting.rs"]
+mod enchantment_converting;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_stats.rs"]
 mod material_stats;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_snapshot.rs"]
@@ -73,12 +79,24 @@ mod entity_facts;
 mod conditional_stat;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/knockback.rs"]
 mod knockback;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/punch.rs"]
+mod punch;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/projectile_modules.rs"]
+mod projectile_modules;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/shoot_hook.rs"]
+mod shoot_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/blocking_hook.rs"]
+mod blocking_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/walk_hook.rs"]
+mod walk_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect.rs"]
 mod weapon_effect;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/thorns.rs"]
 mod thorns;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/hit_actions.rs"]
 mod hit_actions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/lifesteal.rs"]
+mod lifesteal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/capacity.rs"]
 mod capacity;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/effect_immunity.rs"]
@@ -89,6 +107,8 @@ mod tool_inventory;
 mod effect_immunity_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/unequip_hook.rs"]
 mod unequip_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/update_health_hook.rs"]
+mod update_health_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/max_armor.rs"]
 mod max_armor;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/max_armor_hook.rs"]
@@ -105,6 +125,8 @@ mod weapon_effect_hook;
 mod block_break_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
 mod damage_vanilla;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/instrument_tags.rs"]
+mod instrument_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_tags.rs"]
 mod damage_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/protection.rs"]
@@ -117,8 +139,26 @@ mod tool_damage_hook;
 mod break_speed_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_hook.rs"]
 mod melee_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melee_instrument.rs"]
+mod melee_instrument;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/kinetic_hook.rs"]
+mod kinetic_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/lifesteal_hook.rs"]
+mod lifesteal_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/severing.rs"]
+mod severing;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/loot_modifiers.rs"]
+mod loot_modifiers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/loot_modifier_hook.rs"]
+mod loot_modifier_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_recycling.rs"]
 mod part_recycling;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damageable_recycling.rs"]
+mod damageable_recycling;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/station_layouts.rs"]
+mod station_layouts;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/station_layout_order.rs"]
+mod station_layout_order;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_actions.rs"]
 mod tool_actions;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_action_hook.rs"]
@@ -127,12 +167,18 @@ mod tool_action_hook;
 mod tool_slot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/edible.rs"]
 mod edible;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/books.rs"]
+mod books;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/edible_hook.rs"]
 mod edible_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_station.rs"]
 mod tool_station;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/station_menu.rs"]
 mod station_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/chests.rs"]
+mod chests;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_station.rs"]
+mod crafting_station;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/worktable_menu.rs"]
 mod worktable_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_menu.rs"]
@@ -141,6 +187,10 @@ mod part_builder_menu;
 mod creative_parts;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_tools.rs"]
 mod creative_tools;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/creative_fluids.rs"]
+mod creative_fluids;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/convention_tags.rs"]
+mod convention_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative.rs"]
 mod creative;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]
@@ -151,6 +201,12 @@ mod conditions;
 mod common;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_values.rs"]
 mod fluid_values;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_defs.rs"]
+mod fluid_defs;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/render_data.rs"]
+mod render_data;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluids.rs"]
+mod fluids;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/heating.rs"]
 mod heating;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_ingredient.rs"]
@@ -161,7 +217,122 @@ mod melting_recipes;
 mod casting_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_recipes.rs"]
 mod fluid_recipes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_data.rs"]
+mod smeltery_data;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_effects.rs"]
+mod fluid_effects;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/vanilla_fuels.rs"]
+mod vanilla_fuels;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melter.rs"]
+mod melter;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melter_menu.rs"]
+mod melter_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/melter_blocks.rs"]
+mod melter_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/world_blocks.rs"]
+mod world_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/gadgets.rs"]
+mod gadgets;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/world_growth.rs"]
+mod world_growth;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/slime_entities.rs"]
+mod slime_entities;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer.rs"]
+mod alloyer;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/alloyer_menu.rs"]
+mod alloyer_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting.rs"]
+mod casting;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/faucet.rs"]
+mod faucet;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/channel.rs"]
+mod channel;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting_blocks.rs"]
+mod casting_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/multiblock.rs"]
+mod multiblock;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_tank.rs"]
+mod smeltery_tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery.rs"]
+mod smeltery;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_menu.rs"]
+mod smeltery_menu;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/advancements.rs"]
+mod advancements;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/aoe.rs"]
+mod aoe;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/armor_interact_hook.rs"]
+mod armor_interact_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/quiver_hook.rs"]
+mod quiver_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_behavior_hook.rs"]
+mod tool_behavior_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
+mod smeltery_blocks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]
+mod tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_world.rs"]
+mod fluid_world;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_projectile.rs"]
+mod fluid_projectile;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_cannon.rs"]
+mod fluid_cannon;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/gauge.rs"]
+mod gauge;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/lantern.rs"]
+mod lantern;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/casting_tank.rs"]
+mod casting_tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/proxy_tank.rs"]
+mod proxy_tank;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_io.rs"]
+mod smeltery_io;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/rendering.rs"]
+mod rendering;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_transfers.rs"]
+mod fluid_transfers;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fluid_items.rs"]
+mod fluid_items;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/throwables.rs"]
+mod throwables;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/glow_block.rs"]
+mod glow_block;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/piggyback.rs"]
+mod piggyback;
 #[cfg(test)]
 mod reload_tests;
 #[cfg(test)]
 mod original_data;
+#[cfg(test)]
+mod casting_loop;
+#[cfg(test)]
+mod station_dispatch;
+#[cfg(test)]
+mod visuals;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/worldgen.rs"]
+mod worldgen;
+#[cfg(test)]
+mod world_block_tests;
+#[cfg(test)]
+mod world_growth_tests;
+#[cfg(test)]
+mod worldgen_tests;
+#[cfg(test)]
+mod slime_entity_tests;
+#[cfg(test)]
+mod armor_building;
+mod gadget_tests;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fancy_gadgets.rs"]
+mod fancy_gadgets;
+#[cfg(test)]
+mod fancy_gadget_tests;
+#[cfg(test)]
+mod advancement_tests;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/commands.rs"]
+mod commands;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/shaped_materials.rs"]
+mod shaped_materials;
+#[cfg(test)]
+mod shaped_materials_tests;
+#[cfg(test)]
+mod gadget_data;

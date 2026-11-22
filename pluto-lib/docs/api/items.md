@@ -50,6 +50,16 @@ ItemBehaviors::register(ItemBehavior::new(Identifier::parse("example:visor").unw
 
 > **Use with Caution.** Native attachment is source-declared, not plan/build/game validated. The current AI snapshot has an item ID, wearer UUID and observer entity ID, but not the full stack: `stack` is `None`. Do not invent stack data; return `None` if a decision requires unavailable data. This adapter affects Enderman gaze, not visibility distance, revenge, or unrelated species. Callbacks run outside registry locks; duplicates fail without replacement.
 
+A maximum stack size callback answers per stack, from the stack's custom data: a filled tank stacks to 16 while an empty one keeps the item's own maximum, which the content-declared default cannot express. `None` (and an answer of 0) retains the item's own maximum.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior, ItemBehaviors};
+ItemBehaviors::register(ItemBehavior::new(Identifier::parse("example:tank").unwrap())
+    .max_stack_size(|query| query.custom_data.contains_key("tank").then_some(16))).unwrap();
+```
+
+> **Use with Caution.** Menu stacking honours the answer today; the game's own stacking (inventory merging, pickup) awaits a host seam at its stack-limit query (see the support matrix). Callbacks run outside registry locks; duplicates fail without replacement.
+
 ## Standing and Wall Block Items
 
 A standing-and-wall item chooses between two blocks while retaining the native placement path. Register the item, standing block, wall block and attachment direction during mod initialization. This describes a Minecraft `StandingAndWallBlockItem`; it is not a callback returning a different block from `state_for_placement`.
@@ -448,6 +458,18 @@ let query = EnderMaskContext { item: "example:visor".into(), stack: None,
 assert!(query.stack.is_none());
 ```
 
+### `MaxStackSizeContext`
+
+A query with `item: String` and `custom_data: NbtCompound` (the stack's own data, empty for none). The count is what is being decided, so it is not part of the query.
+
+```rust
+use pluto_lib::{MaxStackSizeContext, Nbt, NbtCompound};
+let mut data = NbtCompound::new();
+data.insert("tank".into(), Nbt::Compound(NbtCompound::new()));
+let query = MaxStackSizeContext { item: "example:tank".into(), custom_data: data };
+assert!(query.custom_data.contains_key("tank"));
+```
+
 ### `ItemBehavior`
 
 Owned Minecraft item extension registration, cloneable without duplicating callback state.
@@ -475,6 +497,16 @@ let behavior = ItemBehavior::new(Identifier::parse("example:helmet").unwrap());
 use pluto_lib::{Identifier, ItemBehavior};
 let behavior = ItemBehavior::new(Identifier::parse("example:visor").unwrap())
     .is_ender_mask(|query| query.stack.as_ref().map(|stack| stack.damage == 0));
+```
+
+### `ItemBehavior::max_stack_size`
+
+`fn max_stack_size(self, callback: impl Fn(&MaxStackSizeContext) -> Option<u32> + Send + Sync + 'static) -> ItemBehavior`. The most items one stack of this item may hold, for the stack in the context; `None` delegates to the item's own maximum.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:tank").unwrap())
+    .max_stack_size(|query| query.custom_data.contains_key("tank").then_some(16));
 ```
 
 ### `ItemBehaviors`
@@ -626,4 +658,389 @@ use pluto_lib::{Identifier, ItemUse, ItemUseRegistry, UseAction};
 assert_eq!(ItemUseRegistry::get("example:unknown"), None);
 ItemUseRegistry::register(Identifier::new("example", "horn").unwrap(), ItemUse::new(140, UseAction::TootHorn));
 assert_eq!(ItemUseRegistry::get("example:horn").unwrap().action, UseAction::TootHorn);
+```
+
+### `StackUse::action_for`
+
+`fn action_for(self, action_for: impl Fn(&StackData) -> Option<UseAction> + Send + Sync + 'static) -> StackUse`. The same use, with the pose chosen per stack: the closure answers the stack's pose, or `None` to leave the game its own for that stack. Only asked for a stack `can_use` accepts; without it, every accepted stack takes the fixed pose.
+
+```rust
+use pluto_lib::{StackUse, UseAction};
+
+let _versatile = StackUse::new(UseAction::Block)
+    .action_for(|stack| if stack.damage > 0 { Some(UseAction::Eat) } else { None });
+```
+
+### `EnchantabilityContext`
+
+A per-stack enchantability query with `item` the item id and `custom_data` the stack's own custom data (empty for a stack that carries none). How readily the stack takes enchantments is read from `custom_data` for a tool whose materials decide it; 0 means the stack cannot be enchanted at a table at all.
+
+```rust
+use pluto_lib::{EnchantabilityContext, Nbt, NbtCompound};
+
+let mut data = NbtCompound::new();
+data.insert("material".to_owned(), Nbt::String("example:gold".to_owned()));
+let query = EnchantabilityContext { item: "example:tool".into(), custom_data: data };
+assert_eq!(query.item, "example:tool");
+assert!(query.custom_data.contains_key("material"));
+```
+
+### `ToolActionContext`
+
+A tool-action query with `item` the item id, `action` the action's name as NeoForge's `ToolActions` name it (lower case, such as `shears_dig`) and `custom_data` the stack's own custom data (empty for a stack that carries none).
+
+```rust
+use pluto_lib::{NbtCompound, ToolActionContext};
+
+let query = ToolActionContext { item: "example:kama".into(), action: "shears_harvest".into(), custom_data: NbtCompound::new() };
+assert_eq!(query.action, "shears_harvest");
+assert!(query.custom_data.is_empty());
+```
+
+### `ItemBehavior::enchantability`
+
+`fn enchantability(self, callback: impl Fn(&EnchantabilityContext) -> Option<i32> + Send + Sync + 'static) -> ItemBehavior`. How readily a stack of this item takes enchantments; `None` delegates to the item's own value. A negative answer is treated as no answer.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+
+let behavior = ItemBehavior::new(Identifier::parse("example:tool").unwrap())
+    .enchantability(|query| if query.custom_data.contains_key("unenchantable") { Some(0) } else { Some(14) });
+let _ = behavior;
+```
+
+### `ItemBehavior::can_perform_action`
+
+`fn can_perform_action(self, callback: impl Fn(&ToolActionContext) -> Option<bool> + Send + Sync + 'static) -> ItemBehavior`. Whether a stack of this item may perform the tool action in the context; `None` delegates to the item's own actions.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+
+let behavior = ItemBehavior::new(Identifier::parse("example:kama").unwrap())
+    .can_perform_action(|query| query.action.starts_with("shears_").then_some(true));
+let _ = behavior;
+```
+
+### `ItemStorage`
+
+Item queries over a `BlockEntityStore`, following forwarding blocks: the slots a block shows a face, narrowed by its forward's filter, its sided access and its transfer rule.
+
+```rust
+use pluto_lib::{ItemStorage, MemoryBlockEntities};
+
+let mut world = MemoryBlockEntities::default();
+assert!(ItemStorage::new(&mut world).slots([0, 0, 0], pluto_lib::Direction::Down).is_none(), "nothing there");
+```
+
+### `ItemStorage::new`
+
+`fn new(store: &mut dyn BlockEntityStore) -> ItemStorage`. Queries over `store`.
+
+```rust
+use pluto_lib::{ItemStorage, MemoryBlockEntities};
+
+let mut world = MemoryBlockEntities::default();
+let _storage = ItemStorage::new(&mut world);
+```
+
+### `ItemStorage::slots`
+
+`fn slots(&mut self, pos: BlockPos, face: Direction) -> Option<Vec<NeighbourSlot>>`. The slots the block at `pos` shows `face`, as the forward's filter, the face's sided access and the transfer rule narrow them; `None` where there is no storage.
+
+```rust
+use pluto_lib::{Direction, ItemStorage, MemoryBlockEntities};
+
+let mut world = MemoryBlockEntities::default();
+assert_eq!(ItemStorage::new(&mut world).slots([5, 5, 5], Direction::Up), None);
+```
+
+### `ItemStorage::extract`
+
+`fn extract(&mut self, pos: BlockPos, face: Direction, slot: usize, count: u32) -> Option<ItemSlot>`. Takes up to `count` out of `slot` of the block at `pos` through `face`; `None` when nothing came out.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Direction, Identifier, ItemSlot, ItemStorage, MemoryBlockEntities, NbtCompound};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:extract_bin").unwrap()).item_slots(1));
+let mut world = MemoryBlockEntities::default();
+world.blocks.insert([0, 0, 0], "example:extract_bin".to_owned());
+world.entities.insert([0, 0, 0], (NbtCompound::new(), vec![Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 10))]));
+let mut storage = ItemStorage::new(&mut world);
+assert_eq!(storage.extract([0, 0, 0], Direction::Down, 0, 4).unwrap().count, 4);
+assert_eq!(storage.extract([0, 0, 0], Direction::Down, 0, 0), None);
+```
+
+### `ItemStorage::insert`
+
+`fn insert(&mut self, pos: BlockPos, face: Direction, stack: ItemSlot) -> Option<ItemSlot>`. Puts as much of `stack` into the block at `pos` through `face` as its slots take, merging into stacks of the same item first, then into empty slots; the leftover that did not fit, or `None` when everything went in.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Direction, Identifier, ItemSlot, ItemStorage, MemoryBlockEntities, NbtCompound};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:insert_bin").unwrap()).item_slots(1));
+let mut world = MemoryBlockEntities::default();
+world.blocks.insert([0, 0, 0], "example:insert_bin".to_owned());
+world.entities.insert([0, 0, 0], (NbtCompound::new(), vec![None]));
+let mut storage = ItemStorage::new(&mut world);
+assert!(storage.insert([0, 0, 0], Direction::Up, ItemSlot::new(Identifier::parse("minecraft:gold_ingot").unwrap(), 5)).is_none(), "everything fit");
+let leftover = storage.insert([0, 0, 0], Direction::Up, ItemSlot::new(Identifier::parse("minecraft:gold_ingot").unwrap(), 100)).unwrap();
+assert_eq!(leftover.count, 41, "the slot filled to 64");
+```
+
+## Advancement item predicates and trigger events
+
+Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions.
+
+### `ItemSnapshot`
+
+Borrowed facts about one item stack, valid only for one synchronous evaluation: `id` the item id, `count` the stack size, `damage` its damage, `enchantments` its enchantments as (id, level) pairs, `potion` its potion id if any, `custom_name` whether it has a custom name and `components` its component tree in NBT form when the adapter could supply it (missing means unavailable, not an empty stack).
+
+```rust
+use pluto_lib::advancement_api_v1::ItemSnapshot;
+
+let enchantments = vec![("minecraft:sharpness".to_owned(), 5u32)];
+let item = ItemSnapshot { id: "example:item", count: 1, damage: 2, enchantments: &enchantments, potion: None, custom_name: false, components: None };
+assert_eq!((item.id, item.count, item.damage), ("example:item", 1, 2));
+assert_eq!(item.enchantments[0].1, 5);
+assert!(item.potion.is_none() && !item.custom_name && item.components.is_none());
+```
+
+### `TagLookup`
+
+A read-only membership query: `fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool`. The adapter owns world identity and resolution; callers supply the registry, tag and item strings and the library interprets none.
+
+```rust
+use pluto_lib::advancement_api_v1::TagLookup;
+
+struct Tags;
+impl TagLookup for Tags {
+    fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool {
+        (registry, tag, id) == ("item", "example:tag", "example:item")
+    }
+}
+assert!(Tags.in_tag("item", "example:tag", "example:item"));
+assert!(!Tags.in_tag("item", "example:tag", "example:other"));
+```
+
+### `PredicateRequest`
+
+One predicate evaluation: `predicate` the criterion's predicate form as JSON (the caller's own, uninterpreted), `item` the stack being tested and `tags` the tag lookup the callback may query.
+
+```rust
+use pluto_lib::advancement_api_v1::{ItemSnapshot, PredicateRequest, TagLookup};
+
+struct Tags;
+impl TagLookup for Tags {
+    fn in_tag(&self, _registry: &str, _tag: &str, _id: &str) -> bool { false }
+}
+let predicate = serde_json::json!({"key": 3});
+let request = PredicateRequest { predicate: &predicate, tags: &Tags, item: ItemSnapshot { id: "example:item", count: 1, damage: 0, enchantments: &[], potion: None, custom_name: false, components: None } };
+assert_eq!(request.predicate["key"], 3);
+assert_eq!(request.item.id, "example:item");
+assert!(!request.tags.in_tag("item", "example:tag", "example:item"));
+```
+
+### `PredicateResult`
+
+A callback's answer: `Unsupported` when this callback does not own the supplied predicate form, or `Handled(bool)` when it owns the form, including malformed and nonmatching cases.
+
+```rust
+use pluto_lib::advancement_api_v1::PredicateResult;
+
+assert_eq!(PredicateResult::Handled(true), PredicateResult::Handled(true));
+assert_ne!(PredicateResult::Handled(false), PredicateResult::Unsupported);
+```
+
+### `DispatchResult`
+
+The result of dispatching a request to every registered callback: `Unsupported` when none claimed it, `Handled(bool)` when exactly one did, or `Conflict` with `first` and `second`, the first two owner ids in lexical order, when two or more claimed ownership (the adapter must fail closed).
+
+```rust
+use pluto_lib::advancement_api_v1::DispatchResult;
+
+assert_eq!(DispatchResult::Handled(false), DispatchResult::Handled(false));
+assert_eq!(DispatchResult::Conflict { first: "a", second: "z" }, DispatchResult::Conflict { first: "a", second: "z" });
+assert_ne!(DispatchResult::Unsupported, DispatchResult::Handled(true));
+```
+
+### `PredicateCallback`
+
+`PredicateCallback` is the callback type `for<'a> fn(&PredicateRequest<'a>) -> PredicateResult`: a plain function that answers read-only for one request.
+
+```rust
+use pluto_lib::advancement_api_v1::{PredicateCallback, PredicateRequest, PredicateResult};
+
+fn yes(_: &PredicateRequest<'_>) -> PredicateResult { PredicateResult::Handled(true) }
+let callback: PredicateCallback = yes;
+let _ = callback;
+```
+
+### `PredicateRegistration`
+
+One registration: `id` the stable unique registration identity (not a predicate discriminator), `callback` the `PredicateCallback` and `inventory_components` whether it explicitly requests metadata-sensitive inventory events.
+
+```rust
+use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult};
+
+fn ignored(_: &PredicateRequest<'_>) -> PredicateResult { PredicateResult::Unsupported }
+let entry = PredicateRegistration { id: "example:ignored", callback: ignored, inventory_components: false };
+assert_eq!(entry.id, "example:ignored");
+assert!(!entry.inventory_components);
+```
+
+### `RegistrationError`
+
+Why a registration failed: `EmptyId` for an empty id, or `DuplicateId` for an id already registered.
+
+```rust
+use pluto_lib::advancement_api_v1::RegistrationError;
+
+assert_eq!(RegistrationError::EmptyId, RegistrationError::EmptyId);
+assert_ne!(RegistrationError::EmptyId, RegistrationError::DuplicateId);
+```
+
+### `register_item_predicate`
+
+`fn register_item_predicate(entry: PredicateRegistration) -> Result<(), RegistrationError>`. Process-lifetime registration, once during startup before inventory events or predicate evaluation; duplicate ids are rejected without replacement, and a successful registration with `inventory_components` opts into the shared component-aware inventory event adapter.
+
+```rust
+use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult, RegistrationError, register_item_predicate};
+
+fn no(_: &PredicateRequest<'_>) -> PredicateResult { PredicateResult::Handled(false) }
+let entry = PredicateRegistration { id: "example:owner", callback: no, inventory_components: false };
+register_item_predicate(entry).unwrap();
+assert_eq!(register_item_predicate(entry), Err(RegistrationError::DuplicateId));
+assert_eq!(register_item_predicate(PredicateRegistration { id: "", callback: no, inventory_components: false }), Err(RegistrationError::EmptyId));
+```
+
+### `has_item_predicates`
+
+`fn has_item_predicates() -> bool`. Whether any item predicate is registered.
+
+```rust
+use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult, has_item_predicates, register_item_predicate};
+
+fn ignored(_: &PredicateRequest<'_>) -> PredicateResult { PredicateResult::Unsupported }
+assert!(!has_item_predicates());
+register_item_predicate(PredicateRegistration { id: "example:present", callback: ignored, inventory_components: false }).unwrap();
+assert!(has_item_predicates());
+```
+
+### `inventory_component_events_requested`
+
+`fn inventory_component_events_requested() -> bool`. Whether any successful registration asked for component-aware inventory events; the native adapter reads this when deciding whether the shared inventory evaluation may stay inert.
+
+```rust
+use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult, inventory_component_events_requested, register_item_predicate};
+
+fn ignored(_: &PredicateRequest<'_>) -> PredicateResult { PredicateResult::Unsupported }
+assert!(!inventory_component_events_requested());
+register_item_predicate(PredicateRegistration { id: "example:needs_components", callback: ignored, inventory_components: true }).unwrap();
+assert!(inventory_component_events_requested());
+```
+
+### `dispatch_item_predicate`
+
+`fn dispatch_item_predicate(request: &PredicateRequest<'_>) -> DispatchResult`. Runs every registered callback for `request` outside the registry lock and settles the single, conflicting or unsupported outcome.
+
+```rust
+use pluto_lib::advancement_api_v1::{DispatchResult, ItemSnapshot, PredicateRegistration, PredicateRequest, PredicateResult, TagLookup, dispatch_item_predicate, register_item_predicate};
+
+struct Tags;
+impl TagLookup for Tags {
+    fn in_tag(&self, _registry: &str, _tag: &str, _id: &str) -> bool { false }
+}
+fn yes(_: &PredicateRequest<'_>) -> PredicateResult { PredicateResult::Handled(true) }
+register_item_predicate(PredicateRegistration { id: "example:dispatcher", callback: yes, inventory_components: false }).unwrap();
+let predicate = serde_json::json!({"anything": "uninterpreted"});
+let request = PredicateRequest { predicate: &predicate, tags: &Tags, item: ItemSnapshot { id: "example:item", count: 1, damage: 0, enchantments: &[], potion: None, custom_name: false, components: None } };
+assert_eq!(dispatch_item_predicate(&request), DispatchResult::Handled(true));
+```
+
+### `EventMatcher`
+
+`EventMatcher` is the matcher type `fn(&Value, &Value) -> bool`: it compares one submitted event payload with one criterion's conditions, both the caller's own JSON, and the library interprets neither.
+
+```rust
+use pluto_lib::advancement_api_v1::EventMatcher;
+use serde_json::Value;
+
+fn same(payload: &Value, conditions: &Value) -> bool { payload["type"] == conditions["type"] }
+let matcher: EventMatcher = same;
+assert!(matcher(&serde_json::json!({"type": "example:a"}), &serde_json::json!({"type": "example:a"})));
+assert!(!matcher(&serde_json::json!({"type": "example:a"}), &serde_json::json!({"type": "example:b"})));
+```
+
+### `QueuedEvent`
+
+A custom trigger event waiting for the native adapter: `trigger` the trigger id, `payload` the event's JSON payload and `matches` the `EventMatcher` that decides each criterion for it.
+
+```rust
+use pluto_lib::advancement_api_v1::QueuedEvent;
+use serde_json::Value;
+
+fn same(payload: &Value, conditions: &Value) -> bool { payload == conditions }
+let event = QueuedEvent { trigger: "example:opened".into(), payload: serde_json::json!({"type": "example:a"}), matches: same };
+assert_eq!(event.trigger, "example:opened");
+assert!((event.matches)(&event.payload, &serde_json::json!({"type": "example:a"})));
+```
+
+### `MAX_QUEUED_EVENTS`
+
+The most events the queue holds: `1024`. A full queue drops a new event rather than blocking gameplay.
+
+```rust
+use pluto_lib::advancement_api_v1::MAX_QUEUED_EVENTS;
+
+assert_eq!(MAX_QUEUED_EVENTS, 1024);
+```
+
+### `submit_event`
+
+`fn submit_event(trigger: &str, payload: Value, matches: EventMatcher) -> bool`. Queues one custom trigger event for the native adapter; `false` when the queue is full and the event was dropped. Submit only after the action's successful authoritative boundary.
+
+```rust
+use pluto_lib::advancement_api_v1::{queued_event_count, submit_event, take_queued_events};
+use serde_json::Value;
+
+fn same(payload: &Value, conditions: &Value) -> bool { payload["type"] == conditions["type"] }
+let _ = take_queued_events();
+assert!(submit_event("example:opened", serde_json::json!({"type": "example:a"}), same));
+assert_eq!(queued_event_count(), 1);
+let _ = take_queued_events();
+```
+
+### `take_queued_events`
+
+`fn take_queued_events() -> Vec<QueuedEvent>`. Drains every queued event, oldest first; the native adapter calls this from a game scope where it can bind events to the current actor.
+
+```rust
+use pluto_lib::advancement_api_v1::{submit_event, take_queued_events};
+use serde_json::Value;
+
+fn same(payload: &Value, conditions: &Value) -> bool { payload["type"] == conditions["type"] }
+let _ = take_queued_events();
+assert!(submit_event("example:opened", serde_json::json!({"type": "example:a"}), same));
+assert!(submit_event("example:opened", serde_json::json!({"type": "example:b"}), same));
+let drained = take_queued_events();
+assert_eq!(drained.len(), 2);
+assert_eq!(drained[0].payload["type"], "example:a");
+assert!(take_queued_events().is_empty());
+```
+
+### `queued_event_count`
+
+`fn queued_event_count() -> usize`. How many events are waiting in the queue.
+
+```rust
+use pluto_lib::advancement_api_v1::{queued_event_count, submit_event, take_queued_events};
+use serde_json::Value;
+
+fn same(_payload: &Value, _conditions: &Value) -> bool { true }
+let _ = take_queued_events();
+assert_eq!(queued_event_count(), 0);
+assert!(submit_event("example:counted", serde_json::json!({}), same));
+assert_eq!(queued_event_count(), 1);
+let _ = take_queued_events();
+assert_eq!(queued_event_count(), 0);
 ```

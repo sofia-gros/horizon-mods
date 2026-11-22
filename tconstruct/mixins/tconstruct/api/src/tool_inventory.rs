@@ -119,7 +119,7 @@ impl Items<'_> {
 
 /// InventoryModule: the slots one modifier adds.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Inventory { key: Option<Identifier>, slots: Leveling, limit: Leveling, filter: ItemFilter, pattern: Option<Identifier>, validation: (i32, i32) }
+pub(crate) struct Inventory { key: Option<Identifier>, slots: Leveling, limit: Leveling, filter: ItemFilter, pattern: Option<Identifier>, validation: (i32, i32), quiver: bool }
 
 impl Inventory {
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
@@ -138,7 +138,14 @@ impl Inventory {
             filter,
             pattern: optional("pattern")?,
             validation: crate::modifiers::range(fields.get("validation_level"))?,
+            quiver: false,
         }))
+    }
+
+    /// QuiverInventoryModule: the inventory loader's fields but no filter — the slots take the quiver's
+    /// ammunition instead (see Part::valid). The pattern still draws the slot's background.
+    pub(crate) fn decode_quiver(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        Ok(Self::decode(fields)?.map(|mut module| { module.quiver = true; module }))
     }
 
     /// The persistent-data key: the module's, else the modifier's ID.
@@ -150,18 +157,31 @@ impl Inventory {
 
 /// A bound inventory module of one modifier on one tool, with its conditions already evaluated against that tool.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Part { module: Inventory, entry: Entry, active: bool, validates: bool }
+pub(crate) struct Part { module: Inventory, entry: Entry, active: bool, validates: bool, crossbow: bool, ballista: bool }
 
 impl Part {
     /// `active`: the module's condition (modifier level range and tool predicate) holds. `tool_matches`: its tool predicate alone holds.
     pub(crate) fn new(module: Inventory, entry: Entry, active: bool, tool_matches: bool) -> Self {
         let validates = tool_matches && module.validation.0 <= entry.level && entry.level <= module.validation.1;
-        Self { module, entry, active, validates }
+        Self { module, entry, active, validates, crossbow: false, ballista: false }
     }
+    /// QuiverInventoryModule.isItemValid asks about the tool: whether it is a crossbow (fireworks count as
+    /// ammunition) and whether it is a ballista (ModifiableBowItem.isBallista: the ballistas tag and the
+    /// `tconstruct:ballista` volatile flag set). The caller notes both once the tool is known.
+    pub(crate) fn note_tool(&mut self, crossbow: bool, ballista: bool) { self.crossbow = crossbow; self.ballista = ballista; }
+    /// The ballista half of the note, which reads the tool's volatile data the part's facts do not carry.
+    pub(crate) fn note_ballista(&mut self) { self.ballista = true; }
+    pub(crate) fn is_quiver(&self) -> bool { self.module.quiver }
     fn key(&self) -> String { self.module.key(&self.entry.id) }
     fn slots(&self) -> usize { if self.active { self.module.potential_slots(self.entry.effective_level()) as usize } else { 0 } }
     fn limit(&self) -> i32 { self.module.limit.compute(self.entry.effective_level()) }
-    fn valid(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool { self.active && self.module.filter.matches(item, in_tag) }
+    fn valid(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        if !self.active { return false; }
+        if !self.module.quiver { return self.module.filter.matches(item, in_tag); }
+        in_tag(item, &Identifier::parse("minecraft:arrows").expect("valid tag"))
+            || (self.crossbow && item.to_string() == "minecraft:firework_rocket")
+            || (self.ballista && in_tag(item, &Identifier::parse("tconstruct:modifiable/ballista_ammo").expect("valid tag")))
+    }
 }
 
 // ---- the stored stacks -------------------------------------------------------------------------------------------------------------
@@ -369,6 +389,28 @@ impl ToolInventory {
         None
     }
 
+    /// The first stack a quiver draw takes: the first stored stack its own part accepts as ammunition
+    /// (Part::valid — arrows, and what the tool's form adds), in slot order over the parts. The original's
+    /// findStack tests the game's ammo predicate, which for the port's tools is the part's own validity:
+    /// a quiver part holds nothing else, as inserts are validated the same way.
+    pub(crate) fn find_ammo(&self, persistent: &NbtCompound, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<(ItemSlot, usize)> {
+        let mut start = 0;
+        for part in &self.parts {
+            let max = part.slots();
+            if max > 0 {
+                if let Some(list) = compound_list(persistent, &part.key()) {
+                    for compound in list {
+                        let slot = slot_of(compound);
+                        if slot < 0 || slot as usize >= max { continue; }
+                        if let Some(stack) = read_stack(compound).filter(|stack| part.valid(&stack.item, in_tag)) { return Some((stack, start + slot as usize)); }
+                    }
+                }
+            }
+            start += max;
+        }
+        None
+    }
+
     /// Every stack, slot order inside each module.
     pub(crate) fn all_stacks(&self, persistent: &NbtCompound) -> Vec<ItemSlot> {
         let mut stacks = Vec::new();
@@ -476,12 +518,19 @@ pub(crate) fn add_slots(volatile: &mut NbtCompound, count: i32) {
 pub(crate) enum MenuKey { Any, Normal, Shift, Control, Alt }
 
 impl MenuKey {
-    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
-        Ok(match fields.get("on_key").and_then(Value::as_str) {
-            Some("any") => Self::Any, Some("normal") => Self::Normal, Some("shift") => Self::Shift,
-            Some("control") => Self::Control, Some("alt") => Self::Alt,
+    /// One key name, as the loaders spell it (`TooltipKey` in the original).
+    pub(crate) fn from_name(name: &str) -> Result<Self, String> {
+        Ok(match name {
+            "any" => Self::Any, "normal" => Self::Normal, "shift" => Self::Shift,
+            "control" => Self::Control, "alt" => Self::Alt,
             _ => return Err("on_key must be any, normal, shift, control or alt".into()),
         })
+    }
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        match fields.get("on_key").and_then(Value::as_str) {
+            Some(name) => Self::from_name(name),
+            _ => Err("on_key must be any, normal, shift, control or alt".into()),
+        }
     }
     /// The armor keybind: opens when the key modifier held is the required one (any opens for every key).
     pub(crate) fn opens_on_keybind(self, held: MenuKey) -> bool { self == Self::Any || self == held }
@@ -514,6 +563,29 @@ mod tests {
     fn items() -> Items<'static> { Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &fits, has_item_handler: &handler } }
     fn pockets(level: i32) -> ToolInventory {
         ToolInventory::new(vec![part(module(json!({"key":"tconstruct:pockets","slots":{"each_level":3}})).unwrap(), "tconstruct:pocket", level)])
+    }
+
+    #[test]
+    fn a_quiver_takes_arrows_and_for_the_right_tool_fireworks_and_ballista_ammo() {
+        let quiver_items = Items { max_stack: &max_stack, can_fit_inside_container: &fits, has_item_handler: &handler,
+            in_tag: &|item: &Identifier, tag: &Identifier| (tag.to_string() == "minecraft:arrows" && matches!(item.path(), "arrow" | "tipped_arrow"))
+                || (tag.to_string() == "tconstruct:modifiable/ballista_ammo" && item.path() == "iron_ballista_bolt") };
+        // The shipped bulk quiver: two slots a level, no limit of its own; the trick quiver caps at 32.
+        let bulk = Inventory::decode_quiver(json!({"pattern":"tconstruct:arrow","slots":{"each_level":2}}).as_object().unwrap()).unwrap().unwrap();
+        let mut bulk_part = part(bulk, "tconstruct:bulk_quiver", 1);
+        let inventory = ToolInventory::new(vec![bulk_part.clone()]);
+        assert_eq!(inventory.slots(), 2);
+        assert!(inventory.is_item_valid(&quiver_items, 0, &stack("minecraft:arrow", 1)));
+        assert!(inventory.is_item_valid(&quiver_items, 0, &stack("minecraft:tipped_arrow", 1)));
+        assert!(!inventory.is_item_valid(&quiver_items, 0, &stack("minecraft:stick", 1)), "no filter items, only ammunition");
+        assert!(!inventory.is_item_valid(&quiver_items, 0, &stack("minecraft:firework_rocket", 1)), "fireworks need a crossbow");
+        assert!(!inventory.is_item_valid(&quiver_items, 0, &stack("tconstruct:iron_ballista_bolt", 1)), "ballista ammo needs a ballista");
+        bulk_part.note_tool(true, false);
+        assert!(ToolInventory::new(vec![bulk_part.clone()]).is_item_valid(&quiver_items, 0, &stack("minecraft:firework_rocket", 1)), "a crossbow's fireworks");
+        bulk_part.note_ballista();
+        assert!(ToolInventory::new(vec![bulk_part]).is_item_valid(&quiver_items, 0, &stack("tconstruct:iron_ballista_bolt", 1)), "a ballista's ammo");
+        let trick = Inventory::decode_quiver(json!({"pattern":"tconstruct:tipped_arrow","limit":{"flat":32},"slots":{"each_level":3}}).as_object().unwrap()).unwrap().unwrap();
+        assert_eq!(ToolInventory::new(vec![part(trick, "tconstruct:trick_quiver", 1)]).slot_limit(0), 32);
     }
 
     #[test]

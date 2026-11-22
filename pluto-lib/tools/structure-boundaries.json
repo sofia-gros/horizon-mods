@@ -16,7 +16,8 @@
     "pluto-item-placement-root-path": "pluto-item-placement-root-path.rs",
     "pluto-entity-particle-host-event": "pluto-entity-particle-event.rs",
     "pluto-armor-worn-layers": "pluto-armor-worn-layers.rs",
-    "pluto-armor-stand-worn-layers": "pluto-armor-worn-layers.rs"
+    "pluto-armor-stand-worn-layers": "pluto-armor-worn-layers.rs",
+    "pluto-block-entity-container-reach": "pluto-container-reach.rs"
   },
   "direct_attachments": [
     {"id":"pluto-block-entity-cache-generation","file":"crates/horizon-client/src/game/native_block_entity_draw.rs","before":"f2ba152dde79b3ee0610c179eee9c7dfa88974bfda492a9721fa78b1791a66e7","after":"cde2246d40e89509b11301843ca5f3df560d5f046e5b1b711e939c7260dbc206"},
@@ -34,9 +35,11 @@
     {"id":"pluto-item-placement-root-path","file":"crates/horizon-client/src/mod_content.rs","before":"14c725be4fda89fbf3dc3b9d99bbf53b008da191bca2259a84a70f2bc0890b21","after":"26f2f2864781f81060341bf7ead3063157ac12f9e03ac4fb608829f425a0ad93","helper_sha256":"2db4eb339f5d62499beed674b73a601584dd649c65f296e66c63ce6108ff5eca"},
     {"id":"pluto-entity-particle-host-event","file":"crates/horizon-client/src/game/creatures.rs","before":"e276aab6cdbc245c8840a3b43dfb966dd1b1e69707f39dd1c2fd1442d917358e","after":"e2a6a83ce2f210596cc76a9886965f89198a416ea1c3a4673a3bee42ecb4002c","helper_sha256":"6f38cc6ca96a20145ed7147e48410dbae076c23d9941971714c26403795917c1"},
     {"id":"pluto-armor-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a","after":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"},
-    {"id":"pluto-armor-stand-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","after":"8e4037a44fd52d1bf1848f32277b4c7ae06743867d906739de0244111603e14a","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"}
+    {"id":"pluto-armor-stand-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","after":"8e4037a44fd52d1bf1848f32277b4c7ae06743867d906739de0244111603e14a","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"},
+    {"id":"pluto-block-entity-container-reach","file":"crates/horizon-client/src/game/machines/native_items.rs","before":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d","after":"e1dd3344a019f1f230d3faf401c2f083b041300999e4b93f36e7ecf984b37807","helper_sha256":"a2cc74811cb3d7c477c1da235ded1bd68d0b962f2e8535fda00d10d7c7259236"}
   ],
   "official_source_sha256": {
+    "crates/horizon-client/src/game/machines/native_items.rs":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d",
     "crates/horizon-client/src/game/armor_stands.rs":"72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a",
     "crates/horizon-client/src/menu.rs": "aa6d55c0d5dc90ad17ae361cf8547227ab675e98cbcb56f1aea3bea65657b9ec",
     "crates/horizon-client/src/game/menu_clicks.rs": "48d2e5ebd0cfe3e7186dd1c44edde127c19ee3e31c57f75fd55fd63eeaf5fb16",
@@ -92,7 +95,7 @@
       "name": "pluto_item_behavior_access",
       "visibility": "pub",
       "source_file": "pluto-item-behavior-access.rs",
-      "source_sha256": "2e410c492c73b2ccfb13e28b145a5259528bc555c5eebb4dc776327d0ad74218"
+      "source_sha256": "9fe009874dd2252de201997f054e8e3f391243f8d61ec07174e52aef6bd4db0e"
     },
     {
       "module_id": "pluto-entity-type-access",
@@ -116,7 +119,7 @@
       "name": "pluto_mob_inside",
       "visibility": "pub(crate)",
       "source_file": "pluto-mob-inside.rs",
-      "source_sha256": "14fe0df369a17b5d2e14513733d0470d33f9400ecffff298720e49bf80efc615"
+      "source_sha256": "417cb92d1af0972a7f0bff91952b322e12d06c95e819f3bda1914f66cbb1b4c0"
     },
     {
       "module_id": "pluto-item-inside",
@@ -124,7 +127,7 @@
       "name": "pluto_item_inside",
       "visibility": "pub",
       "source_file": "pluto-item-inside.rs",
-      "source_sha256": "241b94a2fd6df1fccb17f876949092283686c58a605934363d9bdfd8b6c5d106"
+      "source_sha256": "ad01ee6b4457d33e54cd13d7584caf491925de736aa099aa90e2028a3fb06ebf"
     },
     {
       "module_id": "pluto-contact-sweep",
@@ -180,7 +183,7 @@
       "name": "pluto_block_inside",
       "visibility": "pub(crate)",
       "source_file": "pluto-block-inside.rs",
-      "source_sha256": "4e8d596c02bce5c7c16393e301d96d2560dc9da690cfe2a7168277e4cc47697b"
+      "source_sha256": "2a5cf3e6576a70f399a463795b4adabdeade4b6a4cf7ead0ee04dc4117314428"
     },
     {
       "module_id": "pluto-block-motion",
@@ -204,7 +207,7 @@
       "name": "pluto_block_level",
       "visibility": "pub(crate)",
       "source_file": "pluto-block-level.rs",
-      "source_sha256": "1ce43d269e715e56bd5d91ad07d24aff8274494255da7002b3a1ca7ca43a5def"
+      "source_sha256": "f3bd19dbee68af94b5a22d8a3d5811921e81d25bfb24d84d834d09a23cdc1d95"
     },
     {
       "module_id": "pluto-structure-generation",
@@ -292,7 +295,7 @@
       "name": "pluto_block_access",
       "visibility": "pub",
       "source_file": "pluto-block-access.rs",
-      "source_sha256": "b2a544fb043c83b53a03804e3f4a3cc2251cc6cfae74620844712a9b376012bc"
+      "source_sha256": "4596aa5820fdd90864744f4ccf4e1bad21f06e5c2e3c93fc76d197ffd990250c"
     },
     {
       "module_id": "pluto-block",
@@ -300,7 +303,7 @@
       "name": "pluto_block",
       "visibility": "pub",
       "source_file": "pluto-block.rs",
-      "source_sha256": "793de9519d11aed24d3451bb84b4b2e994f735ff2d45c3a2963211bdcf48a311"
+      "source_sha256": "2c75e04a9cc395be41a1ff315b452f3a12f27394526e654ebcaa8b82797af3ff"
     },
     {
       "module_id": "pluto-tree-level",
@@ -357,7 +360,7 @@
       "cancellable": false,
       "bindings": [{"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"}],
       "source_file": "pluto-world-contact-flush.rs",
-      "source_sha256": "9073ef85cec5c13ceb94a201886f2c860abc6a81e50682f5612fe77c601c4379"
+      "source_sha256": "327963c7083ac9ea325ba63fc6ec21100a8d75ff1f06db27b4dd1fb0b6f6d7ff"
     },
     {
       "injection_id": "pluto-mob-inside-motion",

@@ -1,0 +1,6 @@
+{
+  "parent": "tconstruct:item/tool_state/05",
+  "textures": {
+    "layer0": "tconstruct:item/tool/dagger/blade_tconstruct_lead"
+  }
+}

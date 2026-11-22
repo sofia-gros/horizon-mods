@@ -9,6 +9,50 @@ pub use exports::*;
 /// Harness-only fixtures: construct through the real snapshot validator without
 /// exposing a production API or duplicating its registry-membership rules.
 pub mod fixtures {
+    use super::pure::block_api_v1 as blocks;
+
+    pub fn slime_flags(state: &super::BlockState) -> (Option<bool>, Option<bool>) {
+        (blocks::slime_block(state), blocks::sticky_block(state))
+    }
+    pub fn stick_to(state: &super::BlockState, other: &super::BlockState) -> Option<bool> {
+        blocks::stick_to(state, other)
+    }
+    pub fn landing_damage(c: &mut super::FallOnContext) {
+        blocks::fall_on(&c.state.block.to_string(), c);
+    }
+    pub fn after_fall(c: &mut super::AfterFallContext) {
+        let handler = blocks::after_fall_handler(&c.state.block.to_string()).unwrap();
+        blocks::apply_after_fall(&handler, c);
+    }
+    pub fn inside_motion(c: &mut super::EntityInsideMotionContext) {
+        let handler = blocks::inside_motion_handler(&c.state.block.to_string()).unwrap();
+        blocks::apply_inside_motion(&handler, c);
+    }
+    pub fn path_node(c: &super::PathNodeTypeContext<'_>) -> Option<super::PathNodeType> {
+        blocks::path_node_type(c)
+    }
+    /// Same dispatch the native random-tick hook performs; true when a behaviour answered.
+    pub fn random_tick(block: &str, c: &mut super::TickContext<'_>) -> bool {
+        blocks::random_tick(block, c)
+    }
+    pub fn can_bonemeal(block: &str, c: &super::BonemealContext<'_>) -> Option<bool> {
+        blocks::can_bonemeal(block, c)
+    }
+    pub fn bonemeal_success(block: &str, c: &mut super::TickContext<'_>) -> Option<bool> {
+        blocks::bonemeal_success(block, c)
+    }
+    pub fn on_bonemeal(block: &str, c: &mut super::TickContext<'_>) {
+        blocks::on_bonemeal(block, c)
+    }
+    pub fn survives(block: &str, c: &super::SurviveContext<'_>) -> Option<bool> {
+        blocks::survives(block, c)
+    }
+    pub fn placement(block: &str, c: &super::PlacementContext<'_>) -> super::Placement {
+        blocks::placement(block, c)
+    }
+    pub fn shape_update(block: &str, c: &super::ShapeUpdateContext<'_>) -> Option<super::BlockState> {
+        blocks::shape_update(block, c)
+    }
     /// Same dispatch called by the native server-payload hook; no socket simulation.
     pub fn client_payload(channel: &str, data: &[u8]) {
         super::pure::networking_api_v1::from_server(channel, data);
@@ -137,6 +181,10 @@ mod trade_pool_tests;
 mod item_mask_adapter_tests;
 
 #[cfg(test)]
+#[path = "../../../mod/pluto-item-behavior-tests.rs"]
+mod item_behavior_adapter_tests;
+
+#[cfg(test)]
 #[path = "../../../mod/pluto-player-visibility-access.rs"]
 mod player_visibility_access_tests;
 #[cfg(test)]
@@ -181,10 +229,14 @@ mod api_pages {
     page!(Screen, "screen.md");
     page!(Renderer, "renderer.md");
     page!(Fluid, "fluid.md");
+    page!(Neighbours, "neighbours.md");
+    page!(FluidItems, "fluid-items.md");
     page!(I18n, "i18n.md");
     page!(World, "world.md");
     page!(Worldgen, "worldgen.md");
     page!(Projectile, "projectile.md");
+    page!(Book, "book.md");
+    page!(Recipe, "recipe.md");
     page!(Player, "player.md");
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");

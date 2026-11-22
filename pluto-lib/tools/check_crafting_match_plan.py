@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Reserve the canonical deny-only crafting-match boundary in a complete plan.
+"""Reserve the canonical crafting-match boundary in a complete plan.
 
-An earlier cancellation could bypass admission; a later rewrite could resurrect
-an output. Reuse the established exclusive-boundary validator without changing
-its placement metadata or relaxing either group's composition requirements.
+An earlier cancellation could bypass admission or assembly; a later rewrite
+could resurrect an output. Reuse the established exclusive-boundary validator
+without changing its placement metadata or relaxing either group's
+composition requirements.
 """
 import importlib.util
 import json
@@ -43,9 +44,19 @@ NATIVE_SOURCES = {
 
 def check(plan, workspace):
     if _shared.native_bundle(plan):
-        # Shaped/mirrored, shapeless and special matching remain native; the
-        # active bundle has no deny-only admission extension.
-        _shared.check_native(plan, workspace, NATIVE_SOURCES, {'assemble_if_matches'})
+        # Shaped/mirrored, shapeless and special matching remain native except
+        # for the reviewed crafting-match attachments the bundle now composes
+        # (owner decision, 2026-11-22): check_native admits the module and
+        # veto by exact pinned identity only, and once the native inventory
+        # gates are composed (pluto-inventory module present) both reviewed
+        # attachments are required exactly once, so the assembly path cannot
+        # silently lose the hooks its forwarders feed.
+        matched = _shared.check_native(plan, workspace, NATIVE_SOURCES, {'assemble_if_matches'})
+        if any(entry.get('module_id') == 'pluto-inventory' for entry in plan.get('modules', [])):
+            for meta in _shared.bundle_entries():
+                key = meta.get('injection_id', meta.get('module_id'))
+                if matched.get(key, 0) != 1:
+                    raise ValueError('reviewed crafting-match attachment missing or duplicated: ' + key)
         return
     metadata = entries()
     check_order(plan, metadata)
@@ -61,7 +72,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, TypeError, StopIteration) as error:
         print('Crafting-match composition rejected: ' + str(error), file=sys.stderr)
         return 1
-    print('Crafting-match boundary verified; native preservation supplies no custom admission veto.')
+    print('Crafting-match boundary verified; the reviewed bundle veto is the only admission extension.')
     return 0
 
 

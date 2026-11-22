@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:stripped_bloodshroom_log",
+    "X": "minecraft:chain"
+  },
+  "pattern": [
+    "X X",
+    "###",
+    "###"
+  ],
+  "group": "hanging_sign",
+  "result": {
+    "id": "tconstruct:bloodshroom_hanging_sign",
+    "count": 6
+  }
+}

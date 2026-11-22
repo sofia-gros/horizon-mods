@@ -3,7 +3,9 @@
 //! Only sources, wearer conditions and formulas over data this port holds are decoded: the wearer is the `target` of the hit, as PlutoLib
 //! reported it as of their last tick (health, temperature, light, height, crouching, water, armor coverage), so a condition or formula variable
 //! on anything else stays unbound. The attacking entity is asked by its entity type tags and what it was doing (burning, in the air), as for
-//! melee damage.
+//! melee damage, and a formula variable of the attacker reads the state PlutoLib reported for it with the hit, as
+//! `EntityProtectionVariable` reads the damage source's entity (health, light, the equipment it holds, and the rest of `entity_facts.rs`);
+//! a hit that brought no attacker (a fall, a block) leaves those variables at their fallback, as the original leaves them.
 use crate::{damage_tags::DamageTags, mining_speed::StatFormula};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -97,10 +99,6 @@ impl Protection {
         let Some(wearer) = crate::melee_damage::TargetCondition::decode_for("target", fields.get("wearing_entity"))? else { return Ok(None); };
         let Some(attacker) = crate::melee_damage::TargetCondition::decode_for("attacker", fields.get("attacker"))? else { return Ok(None); };
         let source = match fields.get("damage_source") { None | Some(Value::Null) => SourceCondition::Any, Some(value) => match SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) } };
-        // A variable of the formula reads the wearer (`which: target`). The entity that caused the damage is not reported as a mob's hit lands, so a
-        // variable of the attacker stays unbound rather than always taking its fallback.
-        let reads_attacker = fields.get("variables").and_then(Value::as_object).is_some_and(|variables| variables.values().any(|variable| variable.get("which").and_then(Value::as_str) == Some("attacker")));
-        if reads_attacker { return Ok(None); }
         let Some(formula) = StatFormula::decode_in(fields, &["level", "protection", "multiplier", "base"], crate::mining_speed::EntityScope::Hit)? else { return Ok(None); };
         Ok(Some(Self { source, wearer, attacker, formula }))
     }

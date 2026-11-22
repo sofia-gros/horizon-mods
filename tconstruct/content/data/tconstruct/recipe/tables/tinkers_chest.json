@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": [
+      "minecraft:chest",
+      "minecraft:trapped_chest"
+    ],
+    "l": [
+      "minecraft:lapis_lazuli"
+    ],
+    "p": "tconstruct:pattern",
+    "w": "#minecraft:planks"
+  },
+  "pattern": [
+    " p ",
+    "lCl",
+    "lwl"
+  ],
+  "result": {
+    "id": "tconstruct:tinkers_chest"
+  }
+}

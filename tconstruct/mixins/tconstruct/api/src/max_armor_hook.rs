@@ -20,8 +20,8 @@ pub(crate) fn register() {
         let mut claims = Vec::new();
         let mut levels = Vec::new();
         // A broken piece still counts for the modules that allow it; with_held_tool leaves a piece it cannot read alone.
-        for (_, piece) in &tick.armor {
-            let Ok((piece_claims, piece_levels)) = with_held_tool(piece, |env, stack| (tool_stack::max_armor_claims(&stack.custom_data, env), tool_stack::armor_levels(&stack.custom_data, env))) else { continue; };
+        for (slot, piece) in &tick.armor {
+            let Ok((piece_claims, piece_levels)) = with_held_tool(piece, |env, stack| (tool_stack::max_armor_claims(&stack.custom_data, env), tool_stack::armor_levels(&stack.custom_data, env, slot))) else { continue; };
             claims.extend(piece_claims);
             levels.extend(piece_levels);
         }

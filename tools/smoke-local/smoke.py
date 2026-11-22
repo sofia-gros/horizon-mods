@@ -8,10 +8,10 @@ non-zero and says which step failed. Nothing here claims more than it executed.
 Steps: (1) pin check, (2) launch offscreen into a fresh test world, (3) wait for
 the control endpoint and world readiness (= game started, mod hooks loaded),
 (4) two assertions: in survival, the mod's data recipes turn 1 flint + 4 sticks into the
-three TConstruct parts and then a flint pickaxe (inventory crafting grid); and the real Part Builder
+three TConstruct parts and then a pickaxe (inventory crafting grid); and the real Part Builder
 block opens a container screen, (5) clean quit.
 """
-import argparse, json, os, subprocess, sys, tempfile, time
+import argparse, json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
@@ -36,10 +36,16 @@ if not (a.resources / 'horizon-resources.json').is_file():
 a.run_dir.mkdir(parents=True, exist_ok=True)
 run = Path(tempfile.mkdtemp(prefix='smoke-', dir=a.run_dir))
 endpoint = run / 'control.json'
-env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off', RUST_MIN_STACK='16777216')
-for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME'):
+# Install the content mod exactly like the other harnesses (tool_build.py): without a
+# game dir carrying horizon-mods/tconstruct the exe launches bare and no mod content
+# (recipes, blocks) exists, so the assertions below can never pass.
+game_dir = run / 'game'
+shutil.copytree(root / 'tconstruct/content', game_dir / 'horizon-mods/tconstruct')
+(game_dir / 'horizon-mods.txt').write_text('mod.tconstruct:true' + chr(10), encoding='utf-8', newline=chr(10))
+env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1', HORIZON_TELEMETRY_URL='off', HORIZON_LAUNCHER_NO_SELF_UPDATE='1', RUST_MIN_STACK='16777216')
+for key in ('HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'TMP', 'TEMP'):
     folder = run / key.lower(); folder.mkdir(); env[key] = str(folder)
-cmd = [str(a.game.resolve()), '--resources', str(a.resources.resolve()), '--control-socket', str(endpoint), '--offscreen',
+cmd = [str(a.game.resolve()), '--home', env['HORIZON_HOME'], '--game-dir', str(game_dir), '--resources', str(a.resources.resolve()), '--control-socket', str(endpoint), '--offscreen',
        '--world', 'Probe', '--seed', '42', '--creative', '--test-terrain', '--render-distance', '2', '--width', *(('1280', '--height', '720') if a.screenshots else ('640', '--height', '360'))]
 log = (run / 'game.log').open('w')
 proc = subprocess.Popen(cmd, cwd=run, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -68,9 +74,9 @@ try:
         time.sleep(.3)
     step = 'world ready'
     ctl('wait-ready', '120', timeout=125)
-    step = 'assertion: craft flint pickaxe from parts'
+    step = 'assertion: craft pickaxe from parts'
     # Data recipes only (no mod command): flint -> pick head, 2 sticks (vertical) -> handle,
-    # 2 sticks (horizontal) -> binding, then the three parts -> flint pickaxe.
+    # 2 sticks (horizontal) -> binding, then the three parts -> pickaxe.
     for c in ('clear @s', 'gamemode survival @s', 'give @s minecraft:flint 1', 'give @s minecraft:stick 4'):
         ctl('command', c)
     time.sleep(1)
@@ -85,19 +91,24 @@ try:
     click(stick_slot); click(100, 'right'); click(102, 'right'); click(stick_slot); craft(10)   # handle (vertical); put the other 2 sticks back first
     click(stick_slot); click(100, 'right'); click(101, 'right'); craft(11)     # binding (horizontal)
     click(9); click(100); click(10); click(101); click(11); click(102)  # the three parts
-    craft(12)                                                # flint pickaxe
+    craft(12)                                                # pickaxe
     shot('crafted-flint-pickaxe.png')
     ctl('close'); time.sleep(.5)
     counts = ctl('inventory')['counts']
-    assert counts.get('tconstruct:flint_pickaxe') == 1, counts
-    assert not any(counts.get(x) for x in ('tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle')), counts
+    assert counts.get('tconstruct:pickaxe') == 1, counts
+    assert not any(counts.get(x) for x in ('tconstruct:pick_head', 'tconstruct:tool_binding', 'tconstruct:tool_handle')), counts
     step = 'assertion: Part Builder opens'
     # The real Part Builder block (mod hooks): placing it and right-clicking must open a container screen with slots.
     ctl('command', 'setblock 0 71 2 tconstruct:part_builder'); ctl('command', 'tp @s 0.5 71 0.5'); time.sleep(2.5 if a.screenshots else 1)
     ctl('look-at-block', '0', '71', '2'); time.sleep(.5); opened = ctl('interact', '0', '71', '2'); time.sleep(2)
+    # Poll the screen read: server-commit latency in this environment makes a
+    # single snapshot unreliable, so retry until the station slots settle.
+    deadline = time.monotonic() + 30
     screen = ctl('screen')
+    while sorted(x['slot'] for x in screen['slots'] if x['slot'] >= 300) != [300, 301, 302] and time.monotonic() < deadline:
+        time.sleep(1); screen = ctl('screen')
     assert opened.get('screen') == 'container' and screen['screen'] == 'container', (opened.get('screen'), screen['screen'])
-    assert len([x for x in screen['slots'] if x['slot'] >= 300]) >= 9, 'Part Builder container has no station slots'
+    assert sorted(x['slot'] for x in screen['slots'] if x['slot'] >= 300) == [300, 301, 302], 'Part Builder station slots must be exactly [300, 301, 302]'
     shot('part-builder.png')
     ctl('close'); time.sleep(.5)
     step = 'quit'

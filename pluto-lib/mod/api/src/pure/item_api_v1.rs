@@ -11,8 +11,11 @@ use std::sync::{Mutex, OnceLock};
 use super::base::{Event, Identifier};
 pub use super::standing_wall_item::StandingAndWallBlockItem;
 pub use super::item_registry::{ItemRegistry,ItemRegistrySnapshot};
-pub use super::item_behavior::{EnderMaskContext, ItemBehavior, ItemBehaviors};
+pub use super::item_behavior::{EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext};
 pub(crate) use super::item_behavior::ender_mask;
+pub(crate) use super::item_behavior::max_stack_size;
+pub(crate) use super::item_behavior::enchantability;
+pub(crate) use super::item_behavior::can_perform_action;
 pub(crate) use super::standing_wall_item::standing_wall_bindings;
 
 /// One tooltip line to add.
@@ -231,6 +234,7 @@ impl ItemUse {
 type StackCheck = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> bool + Send + Sync>;
 type StackTime = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> i32 + Send + Sync>;
 type StackFood = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> Option<Food> + Send + Sync>;
+type StackAction = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> Option<UseAction> + Send + Sync>;
 
 /// How one stack of an item is used over time, decided per stack (Fabric: `Item.getMaxUseTime(ItemStack)` and `Item.use` reading the stack's
 /// components, which `ItemUse` cannot express because it answers for every stack of the item alike). Build it with [`StackUse::new`] and the
@@ -238,6 +242,7 @@ type StackFood = std::sync::Arc<dyn Fn(&super::player_api::StackData) -> Option<
 #[derive(Clone)]
 pub struct StackUse {
     action: UseAction,
+    action_for: Option<StackAction>,
     can_use: StackCheck,
     use_time: StackTime,
     food: Option<StackFood>,
@@ -246,7 +251,7 @@ pub struct StackUse {
 
 impl std::fmt::Debug for StackUse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StackUse").field("action", &self.action).field("food", &self.food.is_some()).field("requires_hunger", &self.requires_hunger).finish()
+        f.debug_struct("StackUse").field("action", &self.action).field("action_for", &self.action_for.is_some()).field("food", &self.food.is_some()).field("requires_hunger", &self.requires_hunger).finish()
     }
 }
 
@@ -254,7 +259,15 @@ impl StackUse {
     /// A use in the given pose that every stack may start, for 0 ticks (so nothing happens until [`StackUse::use_time`] says otherwise), with no
     /// food.
     pub fn new(action: UseAction) -> Self {
-        Self { action, can_use: std::sync::Arc::new(|_| true), use_time: std::sync::Arc::new(|_| 0), food: None, requires_hunger: false }
+        Self { action, action_for: None, can_use: std::sync::Arc::new(|_| true), use_time: std::sync::Arc::new(|_| 0), food: None, requires_hunger: false }
+    }
+
+    /// The same, with the pose chosen per stack (a tool that blocks with one modifier and is eaten with
+    /// another): the closure answers the stack's pose, or None to leave the game its own for that stack.
+    /// Only asked for a stack `can_use` accepts; without it, every accepted stack takes the fixed pose.
+    pub fn action_for(mut self, action_for: impl Fn(&super::player_api::StackData) -> Option<UseAction> + Send + Sync + 'static) -> Self {
+        self.action_for = Some(std::sync::Arc::new(action_for));
+        self
     }
 
     /// The same, where `can_use` decides whether this registration applies to the stack (a broken tool, a tool without the stat that makes it
@@ -358,7 +371,11 @@ pub(crate) fn has_stack_use(item: &str) -> bool {
 /// The pose of `stack` when its item has a per-stack use that accepts the stack; None leaves the game's own pose.
 pub(crate) fn stack_use_action(stack: &super::player_api::StackData) -> Option<UseAction> {
     let behavior = ItemUseRegistry::stack_use(&stack.item)?;
-    (behavior.can_use)(stack).then(|| behavior.action())
+    if !(behavior.can_use)(stack) { return None; }
+    match &behavior.action_for {
+        Some(action_for) => action_for(stack),
+        None => Some(behavior.action()),
+    }
 }
 
 /// The use time of `stack` when its item has a per-stack use that accepts the stack (never below 0); None leaves the game's own time.
@@ -432,6 +449,16 @@ mod tests {
         ItemUseRegistry::register_stack(Identifier::new("test", "tool").unwrap(), StackUse::new(UseAction::Drink).use_time(|_| -5));
         assert_eq!(stack_use_duration(&stack(0)), Some(0), "an accepted stack with a negative time is no use at all");
         assert!(stack_use_may_start(&stack(0), false, false), "the default accepts every stack and needs no hunger");
+        // A per-stack pose: the same item blocks with one stack and is eaten with another.
+        ItemUseRegistry::register_stack(
+            Identifier::new("test", "tool").unwrap(),
+            StackUse::new(UseAction::Block)
+                .can_use(|stack| hunger(stack) >= 0)
+                .action_for(|stack| match hunger(stack) { 0 => None, 1 => Some(UseAction::Eat), _ => Some(UseAction::Block) }),
+        );
+        assert_eq!(stack_use_action(&stack(2)), Some(UseAction::Block));
+        assert_eq!(stack_use_action(&stack(1)), Some(UseAction::Eat), "the selector's pose wins over the fixed one");
+        assert_eq!(stack_use_action(&stack(0)), None, "a stack the selector declines keeps the game's pose");
     }
 
     #[test]

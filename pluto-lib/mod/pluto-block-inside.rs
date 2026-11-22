@@ -7,6 +7,17 @@ pub(super) fn dispatch(world: &mut MotionWorld<'_, '_, '_>, state: BlockStateId,
     let Some(sink) = transport::landing_sink() else { return };
     let Some(definition) = world.assets.registry.state(state) else { return };
     let info = StateInfo { block: definition.name.to_string(), properties: definition.properties.iter().map(|(k,v)|(k.to_string(),v.to_string())).collect() };
+    if !world.player.client_side {
+        if let Some(dimension) = crate::block_contact::current_level() {
+            let bounds = world.player.bounds();
+            (sink.entity_inside)(&transport::EntityInside {
+                dimension: dimension.to_string(), state: info.clone(), pos: [pos.x, pos.y, pos.z], entity: world.player.entity_id, kind: "minecraft:player".into(),
+                bounds: [bounds.min_position().x, bounds.min_position().y, bounds.min_position().z,
+                    bounds.max_position().x, bounds.max_position().y, bounds.max_position().z],
+                fall_distance: world.player.fall_distance,
+            });
+        }
+    }
     let Some(callback) = (sink.inside_motion)(&info) else { return };
     let player = &mut world.player;
     let mut request = InsideMotion {

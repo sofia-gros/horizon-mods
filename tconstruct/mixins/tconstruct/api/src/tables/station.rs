@@ -32,7 +32,8 @@ pub(crate) fn resolve_input(stack: &ItemSlot, resolver: &Resolver) -> Input {
             return Input::Kit { material, kit_amount, count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
         }
     }
-    if let Some(recipe) = resolver.recipes.and_then(|recipes| recipes.find(&stack.item, resolver.in_tag)) {
+    let instrument = crate::material_recipes::instrument_of(stack);
+    if let Some(recipe) = resolver.recipes.and_then(|recipes| recipes.find_facts(&stack.item, resolver.in_tag, &crate::material_recipes::StackFacts { instrument: instrument.as_ref(), ..Default::default() })) {
         if let Some(material) = recipe.material.material_id() {
             return Input::Material { item: stack.item.clone(), material, value: recipe.value, needed: recipe.needed, count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
         }

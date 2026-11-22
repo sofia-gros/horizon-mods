@@ -18,6 +18,9 @@ PIN = '441f49d57e344bd56b90fd4af5c4e443ff3937c9'
 PACKAGE = 'horizon-native-game'
 
 # launcher/src/native_mods/api.rs at PIN: main_rs and stage's native-game manifest.
+# One deliberate composition extension: the pluto_lib edge enables the API
+# package's `native-inventory-glue` feature, because the shipped bundle now
+# carries the native inventory gates those forwarders install into.
 MANIFEST = '''[package]
 name = "horizon-native-game"
 version = "0.1.0"
@@ -32,7 +35,7 @@ horizon-client = { path = "../horizon-client", default-features = false }
 horizon-threads = { path = "../horizon-threads" }
 horizon-mods = { path = "../horizon-mods" }
 horizon-official = { path = "../horizon-official", optional = true }
-mod_0 = { package = "mod-pluto_lib", path = "../../native-api/pluto_lib" }
+mod_0 = { package = "mod-pluto_lib", path = "../../native-api/pluto_lib", features = ["native-inventory-glue"] }
 mod_1 = { package = "mod-tconstruct", path = "../../native-api/tconstruct" }
 [features]
 default = ["horizon-client/default", "official"]

@@ -944,12 +944,14 @@
   "_comment": "Twilight Forest Alloys",
 
   "block.tconstruct.molten_steeleaf": "溶融した葉鋼",
+  "block.tconstruct.molten_steeleaf_fluid": "溶融した葉鋼",
   "fluid.tconstruct.molten_steeleaf": "溶融した葉鋼",
   "fluid.tconstruct.flowing_molten_steeleaf": "流れる溶融した葉鋼",
   "item.tconstruct.molten_steeleaf_bucket": "溶融した葉鋼入りバケツ",
   "fluid.tconstruct.molten_steeleaf.fluid_effect": "自分も相手も、得られる経験値を最大化できる",
 
   "block.tconstruct.fiery_liquid": "灼熱の液体",
+  "block.tconstruct.fiery_liquid_fluid": "灼熱の液体",
   "fluid.tconstruct.fiery_liquid": "灼熱の液体",
   "fluid.tconstruct.flowing_fiery_liquid": "流れる灼熱の液体",
   "item.tconstruct.fiery_liquid_bucket": "灼熱の液体入りバケツ",

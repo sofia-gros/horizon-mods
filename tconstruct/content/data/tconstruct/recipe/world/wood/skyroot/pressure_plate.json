@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:skyroot_planks"
+  },
+  "pattern": [
+    "##"
+  ],
+  "group": "wooden_pressure_plate",
+  "result": {
+    "id": "tconstruct:skyroot_pressure_plate"
+  }
+}

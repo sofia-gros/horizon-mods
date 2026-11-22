@@ -1,0 +1,1 @@
+{"template":"minecraft:ladder","properties":{"hardness":3.0,"explosion_resistance":9.0,"sounds":"minecraft:iron_block","map_color":21,"requires_tool":true,"occludes":false},"state_properties":{"in_structure":{"type":"boolean"},"bottom":{"type":"boolean"}},"item":true}

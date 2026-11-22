@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:book",
+    [
+      "tconstruct:sky_slime_ball"
+    ]
+  ],
+  "result": {
+    "id": "tconstruct:tinkers_gadgetry"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:magma_block",
+    [
+      "minecraft:soul_sand",
+      "minecraft:soul_soil"
+    ],
+    [
+      "minecraft:soul_sand",
+      "minecraft:soul_soil"
+    ],
+    [
+      "minecraft:soul_sand",
+      "minecraft:soul_soil"
+    ],
+    [
+      "minecraft:soul_sand",
+      "minecraft:soul_soil"
+    ],
+    "minecraft:gravel",
+    "minecraft:gravel",
+    "minecraft:gravel",
+    "minecraft:gravel"
+  ],
+  "result": {
+    "id": "tconstruct:nether_grout",
+    "count": 8
+  }
+}

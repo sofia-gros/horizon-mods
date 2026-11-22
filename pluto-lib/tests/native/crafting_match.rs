@@ -196,13 +196,29 @@ mod tests {
             result: template(stack("tconstruct:fake_ingot", "test:iron", 9)),
         };
         check_reference(r, reverse);
-        // Unavailable semantic components fail closed; no private identity is inferred.
-        let mut opaque = grid();
-        let s = opaque[0].as_mut().unwrap();
+        // A stack that retains wire still exposes its current decoded
+        // components to crafting facts: the host's own ingredient test reads
+        // the same decoded data at match time, so the material verifies and
+        // the match proceeds. The shared capture stays fail-closed for wire
+        // stacks; only the crafting capture reads through.
+        let mut wired = grid();
+        let s = wired[0].as_mut().unwrap();
         let decoded = s.clone();
         s.data_mut().wire =
             horizon_items::item_data::Wire::new(decoded, std::sync::Arc::from([1u8]));
-        assert!(find(recipe(), &opaque, 3).is_none());
+        assert!(
+            pluto_component_view::ItemFacts::capture(s)
+                .view()
+                .components
+                .is_none()
+        );
+        assert!(
+            pluto_component_view::ItemFacts::capture_crafting(s)
+                .view()
+                .components
+                .is_some()
+        );
+        assert!(find(recipe(), &wired, 3).is_some());
         // Native find proceeds to a later recipe when the marked candidate is denied.
         let recipes = Recipes {
             cooking: vec![],

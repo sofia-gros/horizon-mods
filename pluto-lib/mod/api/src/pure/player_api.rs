@@ -8,6 +8,8 @@
 use std::cell::Cell;
 use std::marker::PhantomData;
 
+use super::base::Event;
+
 /// What the game can do for a player. Implemented once, in `hooks.rs`, over Horizon's `Host`.
 pub trait PlayerOps {
     /// Queues a bounded mod payload; unsupported hosts must report failure.
@@ -77,6 +79,10 @@ pub trait PlayerOps {
     fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
         false
     }
+    /// The player's selected hotbar slot (0 to 8); None if unknown.
+    fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        None
+    }
 }
 
 /// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
@@ -107,6 +113,17 @@ pub struct StackData {
     pub custom_data: crate::pure::base::NbtCompound,
     /// The stack's `minecraft:custom_model_data` component, which item models select on; None for none.
     pub custom_model_data: Option<CustomModelData>,
+    /// The stack's own `minecraft:enchantments` component as enchantment id to level (such as `minecraft:fortune` to 3); empty when
+    /// the stack has none of its own or the game did not report them. Enchantments the item itself grants through its data (a tool's
+    /// modifier-granted levels kept in `custom_data`) are not listed here; this is the component the game itself applies.
+    pub enchantments: std::collections::BTreeMap<String, i32>,
+}
+
+impl StackData {
+    /// The level of enchantment `id` on this stack (0 when it has none), from its own `minecraft:enchantments` component.
+    pub fn enchantment_level(&self, id: &str) -> i32 {
+        self.enchantments.get(id).copied().unwrap_or(0)
+    }
 }
 
 /// The values an item model can select on (Minecraft: the `minecraft:custom_model_data` component, `CustomModelData`). An item definition
@@ -344,10 +361,93 @@ impl ServerPlayer {
         with_current(false, |ops| ops.update_stack(self.uuid, slot, &new.item, new))
     }
 
+    /// The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
+    pub fn selected_slot(&self) -> Option<i32> {
+        with_current(None, |ops| ops.selected_slot(self.uuid))
+    }
+
+    /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
+    pub fn main_hand_stack(&self) -> Option<StackData> {
+        self.selected_slot().and_then(|slot| self.stack(slot))
+    }
+
     /// Empty slots in the 36-slot main inventory (Fabric: counting `PlayerInventory.getEmptySlot`). 0 outside a callback.
     pub fn empty_slots(&self) -> u32 {
         with_current(0, |ops| ops.empty_slots(self.uuid))
     }
+}
+
+/// A key of the player's own keyboard or mouse changed state (NeoForge: `InputEvent.Key`; Bukkit has no equivalent). It is heard on
+/// the client, for the local player only: `key` is the game's own name for the key (the names key bindings use, such as
+/// `key.keyboard.left.shift` or `key.mouse.left`), repeats are not reported, and `pressed` says which way it moved. A callback that
+/// needs the server to act (swapping what worn armor holds, say) sends its own packet with the networking API, as a client key press
+/// can only ever be a hint to the server; the worn stacks themselves are read through the usual player and entity events.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct KeyPress {
+    /// The local player; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// The game's name for the key.
+    pub key: String,
+    /// True when the key went down, false when it came up.
+    pub pressed: bool,
+}
+
+static KEY_PRESS: Event<KeyPress, ()> = Event::void();
+
+/// Key presses of the local player (see [`KeyPress`]).
+pub struct PlayerKeyEvents;
+
+impl PlayerKeyEvents {
+    /// The event: every callback runs, in registration order.
+    pub const EVENT: &'static Event<KeyPress, ()> = &KEY_PRESS;
+}
+
+/// Whether any callback hears key presses (the host adapter skips its work when none does).
+pub(crate) fn key_heard() -> bool {
+    !KEY_PRESS.is_empty()
+}
+
+/// Reports a key press to the callbacks.
+pub(crate) fn key_press(press: &KeyPress) {
+    KEY_PRESS.invoke(press);
+}
+
+/// One inventory slot of a player ticked (NeoForge: `PlayerTickEvent` has no slot-level counterpart; the closest is
+/// Bukkit's inventory events — the shape follows the game's own per-slot inventory tick, the hook an item's
+/// `inventoryTick` answers in the original). Heard on a server, once per tick for each carried slot the game ticks:
+/// the stack the slot holds, whether the slot is the selected hotbar slot, and the player carrying it. Callbacks that
+/// need to change the world act through the scopes the host opens around the event (the entity and world reaches).
+#[derive(Clone, Debug, PartialEq)]
+pub struct InventoryTick {
+    /// The player carrying the slot; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// The slot's own number in the player's inventory, in the game's numbering.
+    pub slot: i32,
+    /// Whether the slot is the selected hotbar slot.
+    pub selected: bool,
+    /// The stack in the slot, with its damage, max damage, custom data and enchantments; None when the game names
+    /// none (an empty slot, or a stack it did not read).
+    pub stack: Option<StackData>,
+}
+
+static INVENTORY_TICK: Event<InventoryTick, ()> = Event::void();
+
+/// Inventory slot ticks of players (see [`InventoryTick`]).
+pub struct PlayerInventoryEvents;
+
+impl PlayerInventoryEvents {
+    /// The event: every callback runs, in registration order.
+    pub const TICK: &'static Event<InventoryTick, ()> = &INVENTORY_TICK;
+}
+
+/// Whether any callback hears inventory ticks (the host adapter skips its work when none does).
+pub(crate) fn inventory_tick_heard() -> bool {
+    !INVENTORY_TICK.is_empty()
+}
+
+/// Reports an inventory slot tick to the callbacks.
+pub(crate) fn inventory_tick(tick: &InventoryTick) {
+    INVENTORY_TICK.invoke(tick);
 }
 
 /// An in-memory game for tests: the players it knows keep messages, items and attachments in plain collections. Run code that uses
@@ -377,6 +477,8 @@ pub struct MemoryPlayerOps {
     pub food: Option<FoodStatus>,
     /// The main inventory slots of every player, by player; a missing player has none.
     pub stacks: std::collections::HashMap<u128, Vec<Option<StackData>>>,
+    /// The selected hotbar slot of every player (0 to 8).
+    pub selected_slot: i32,
 }
 
 impl MemoryPlayerOps {
@@ -491,6 +593,9 @@ impl PlayerOps for MemoryPlayerOps {
             _ => false,
         }
     }
+    fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        Some(self.selected_slot)
+    }
 }
 
 #[cfg(test)]
@@ -499,7 +604,7 @@ mod stack_tests {
     use crate::pure::base::Nbt;
 
     fn pickaxe(damage: u32) -> StackData {
-        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None }
+        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, enchantments: Default::default() }
     }
 
     #[test]
@@ -686,5 +791,19 @@ mod tests {
         let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| with_ops(&mut ops, || panic!("boom"))));
         assert!(caught.is_err());
         assert!(!player().send_message("after"), "the scope must be closed");
+    }
+
+    #[test]
+    fn inventory_ticks_reach_their_callbacks_with_the_slot_and_stack() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<(i32, bool, Option<String>)>> = Mutex::new(Vec::new());
+        PlayerInventoryEvents::TICK.register(|tick| {
+            SEEN.lock().unwrap().push((tick.slot, tick.selected, tick.stack.as_ref().map(|stack| stack.item.clone())));
+        });
+        assert!(inventory_tick_heard());
+        inventory_tick(&InventoryTick { player: None, slot: 3, selected: true, stack: None });
+        inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, enchantments: std::collections::BTreeMap::new() }) });
+        let seen = SEEN.lock().unwrap().clone();
+        assert_eq!(seen, vec![(3, true, None), (100, false, Some("minecraft:torch".into()))]);
     }
 }

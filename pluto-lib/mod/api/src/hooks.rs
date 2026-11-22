@@ -9,19 +9,30 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
+    InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
+    IngredientEvent, IngredientTestEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
+#[cfg(feature = "native-inventory-glue")]
+use crate::pure::advancement_api_v1;
+use crate::pure::recipe_api_v1;
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use horizon_client::pluto_host_world as horizon_world;
 use crate::pure::base::{Identifier, Nbt, NbtCompound};
-use crate::pure::block_entity_api_v1::{self, ItemSlot};
+use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
+use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
+use crate::pure::entity_api_v1::{self, EntityOps};
+use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
+use crate::pure::item_storage_api_v1::ItemStorage;
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
+use crate::pure::book_api_v1::{self, BookOps, BookView};
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
@@ -103,7 +114,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             };
             crate::pure::color_provider_api_v1::ColorProviderRegistry::item_color(
                 &crate::pure::color_provider_api_v1::ItemColorContext {
-                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data},tint_index,
+                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data,enchantments:Default::default()},tint_index,
                 })
         },
     ).expect("PlutoLib item colour provider installs once before native rendering");
@@ -248,6 +259,26 @@ pub fn hooks() -> Box<dyn Hooks> {
             item: item.to_owned(), stack: entity_events_v1::worn_piece(wearer, "head").filter(|stack| stack.item == item), wearer_uuid: Some(wearer), observer_entity: Some(observer),
         })
     }).expect("PlutoLib item mask dispatcher installs once");
+    horizon_client::entry::pluto_block::set_max_stack_dispatcher(|item, data| {
+        item_api_v1::max_stack_size(&item_api_v1::MaxStackSizeContext {
+            item: item.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item max stack dispatcher installs once");
+    horizon_client::entry::pluto_block::set_enchantability_dispatcher(|item, data| {
+        item_api_v1::enchantability(&item_api_v1::EnchantabilityContext {
+            item: item.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item enchantability dispatcher installs once");
+    horizon_client::entry::pluto_block::set_tool_action_dispatcher(|item, data, action| {
+        item_api_v1::can_perform_action(&item_api_v1::ToolActionContext {
+            item: item.to_owned(), action: action.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item tool action dispatcher installs once");
+    horizon_client::entry::pluto_block::set_schedule_drain(|dimension, edit| {
+        world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
+        // The extra blocks a break's callbacks asked for go through the game's own destroy path, drops and all.
+        events_interaction_v0::apply_pending_extra_breaks(dimension, |pos| edit.break_block(pos, true) == Some(true));
+    });
     horizon_client::entry::pluto_entity_spawn_access::set_provider(
         horizon_client::entry::pluto_entity_spawn_access::Provider {
             enabled:crate::pure::entity_spawn_api::has_callbacks,prepare:native_spawn_prepare,
@@ -312,7 +343,281 @@ pub fn hooks() -> Box<dyn Hooks> {
             },
         );
     });
+    // The pure advancement/recipe forwarders install into the native
+    // inventory gates carried by the pluto_lib bundle; see
+    // install_native_inventory_forwarders.
+    install_native_inventory_forwarders();
     Box::new(PlutoHooks)
+}
+
+/// Install the pure advancement/recipe forwarders into the host's native
+/// inventory gates (`horizon_client::pluto_inventory` and
+/// `horizon_client::game::pluto_advancement_event_source`). Those gates are
+/// attachments of this bundle (migrated from the retired
+/// pluto_native_creative package), so the installs sit behind the
+/// `native-inventory-glue` feature: a composition that includes the
+/// bundle's attachments enables it; a standalone API build does not.
+#[cfg(feature = "native-inventory-glue")]
+fn install_native_inventory_forwarders() {
+    horizon_client::pluto_inventory::advancements::predicates::register_item_predicate(
+        horizon_client::pluto_inventory::advancements::predicates::PredicateRegistration {
+            id: "pluto_lib:advancement_api_v1",
+            callback: advancement_predicate_forward,
+            inventory_components: false,
+        },
+    )
+    .expect("PlutoLib advancement predicate forwarder installs once");
+    horizon_client::game::pluto_advancement_event_source::set_event_source(advancement_event_source)
+        .expect("PlutoLib advancement event source installs once");
+    horizon_client::pluto_inventory::crafting::assembly::register(
+        horizon_client::pluto_inventory::crafting::assembly::Registration {
+            id: "pluto_lib:recipe_api_v1",
+            interest: recipe_assembly_interest,
+            callback: recipe_assembly_forward,
+        },
+    )
+    .expect("PlutoLib recipe assembly forwarder installs once");
+}
+
+/// Without the native inventory gates (a standalone API build) there is
+/// nothing to install into; the pure registries are unaffected.
+#[cfg(not(feature = "native-inventory-glue"))]
+fn install_native_inventory_forwarders() {}
+
+/// The native half of the pure advancement API's item predicates: the host's
+/// dispatch consults only the native inventory-api registry, so this
+/// forwarder carries evaluations into the pure registry, converting the
+/// native component facts into the pure snapshot. A pure conflict fails
+/// closed, exactly as the host dispatch treats a native one.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_predicate_forward(
+    request: &horizon_client::pluto_inventory::advancements::predicates::PredicateRequest<'_>,
+) -> horizon_client::pluto_inventory::advancements::predicates::PredicateResult {
+    use horizon_client::pluto_inventory::advancements::predicates as native;
+    // With no pure registrations the native matcher keeps its exact
+    // behaviour, including avoiding the conversion work below.
+    if !advancement_api_v1::has_item_predicates() {
+        return native::PredicateResult::Unsupported;
+    }
+    struct Tags<'a>(&'a dyn native::TagLookup);
+    impl advancement_api_v1::TagLookup for Tags<'_> {
+        fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool {
+            self.0.in_tag(registry, tag, id)
+        }
+    }
+    let tags = Tags(request.tags);
+    let components = request.item.components.and_then(advancement_components);
+    let forwarded = advancement_api_v1::PredicateRequest {
+        predicate: request.predicate,
+        item: advancement_api_v1::ItemSnapshot {
+            id: request.item.id,
+            count: request.item.count,
+            damage: request.item.damage,
+            enchantments: request.item.enchantments,
+            potion: request.item.potion,
+            custom_name: request.item.custom_name,
+            components: components.as_ref(),
+        },
+        tags: &tags,
+    };
+    match advancement_api_v1::dispatch_item_predicate(&forwarded) {
+        advancement_api_v1::DispatchResult::Unsupported => native::PredicateResult::Unsupported,
+        advancement_api_v1::DispatchResult::Handled(matched) => {
+            native::PredicateResult::Handled(matched)
+        }
+        advancement_api_v1::DispatchResult::Conflict { .. } => {
+            native::PredicateResult::Handled(false)
+        }
+    }
+}
+
+/// The pure snapshot's component tree is the stack's custom data compound:
+/// take it out of the native component patch and convert it. A stack whose
+/// patch carries no custom data has an empty compound; a tree that cannot
+/// be represented in pure NBT (an end tag, unpaired UTF-16) is unavailable
+/// rather than partial, and consumers requiring components fail closed.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_components(
+    value: &horizon_client::pluto_inventory::advancements::predicates::ComponentValue,
+) -> Option<Nbt> {
+    use horizon_client::pluto_inventory::advancements::predicates::ComponentValue;
+    if !matches!(value, ComponentValue::Compound(_)) {
+        return None;
+    }
+    match value.get("minecraft:custom_data") {
+        Some(custom) => advancement_component(custom),
+        None => Some(Nbt::Compound(NbtCompound::new())),
+    }
+}
+
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_component(
+    value: &horizon_client::pluto_inventory::advancements::predicates::ComponentValue,
+) -> Option<Nbt> {
+    use horizon_client::pluto_inventory::advancements::predicates::ComponentValue;
+    Some(match value {
+        ComponentValue::End => return None,
+        ComponentValue::Byte(v) => Nbt::Byte(*v),
+        ComponentValue::Short(v) => Nbt::Short(*v),
+        ComponentValue::Int(v) => Nbt::Int(*v),
+        ComponentValue::Long(v) => Nbt::Long(*v),
+        ComponentValue::Float(bits) => Nbt::Float(f32::from_bits(*bits)),
+        ComponentValue::Double(bits) => Nbt::Double(f64::from_bits(*bits)),
+        ComponentValue::ByteArray(v) => Nbt::ByteArray(v.clone()),
+        ComponentValue::String(v) => Nbt::String(String::from_utf16(&v.0).ok()?),
+        ComponentValue::List(v) => {
+            Nbt::List(v.iter().map(advancement_component).collect::<Option<Vec<_>>>()?)
+        }
+        ComponentValue::Compound(v) => Nbt::Compound(
+            v.iter()
+                .map(|(key, value)| {
+                    Some((String::from_utf16(&key.0).ok()?, advancement_component(value)?))
+                })
+                .collect::<Option<NbtCompound>>()?,
+        ),
+        ComponentValue::IntArray(v) => Nbt::IntArray(v.clone()),
+        ComponentValue::LongArray(v) => Nbt::LongArray(v.clone()),
+    })
+}
+
+/// The native advancement drain's per-tick hand-off. Forward the pure
+/// registry's component-event request into the shared inventory gate, then
+/// take the queued events: the drain runs at the head of the only tick
+/// that evaluates inventory criteria, so the request lands before every
+/// evaluation, and no event submitted since the previous tick is missed.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_event_source::QueuedEvent> {
+    if advancement_api_v1::inventory_component_events_requested() {
+        horizon_client::pluto_inventory::advancements::request_pure_inventory_component_events();
+    }
+    advancement_api_v1::take_queued_events()
+        .into_iter()
+        .map(|event| horizon_client::game::pluto_advancement_event_source::QueuedEvent {
+            trigger: event.trigger,
+            payload: event.payload,
+            matches: event.matches,
+        })
+        .collect()
+}
+
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_assembly_interest(
+    _: &horizon_client::pluto_inventory::crafting::matching::RecipeFacts<'_>,
+) -> bool {
+    recipe_api_v1::has_assembly_providers()
+}
+
+/// The native half of the pure recipe API's crafting assembly: the host's
+/// crafting gate consults only the native inventory-api registry, so this
+/// forwarder carries evaluations into the pure registry, converting the
+/// native stack facts into pure views. A pure assembly's custom data
+/// compound becomes the native decision's component tree.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_assembly_forward(
+    request: &horizon_client::pluto_inventory::crafting::matching::Request<'_>,
+) -> horizon_client::pluto_inventory::crafting::assembly::Decision {
+    use horizon_client::pluto_inventory::crafting::assembly::Decision;
+    use horizon_client::pluto_inventory::recipe_book::placement::Form;
+    if !recipe_api_v1::has_assembly_providers() {
+        return Decision::Pass;
+    }
+    let facts = recipe_api_v1::RecipeFacts {
+        form: match request.recipe.form {
+            Form::Shaped { width, height } => {
+                recipe_api_v1::RecipeForm::Shaped { width, height }
+            }
+            Form::Shapeless => recipe_api_v1::RecipeForm::Shapeless,
+            Form::Special => recipe_api_v1::RecipeForm::Special,
+            // Cooking recipes never assemble in a crafting grid, and the
+            // pure registry models grid forms only: no provider evaluation
+            // applies, so the native result stands.
+            Form::Cooking => return Decision::Pass,
+        },
+        result_item: request.recipe.template.and_then(|t| t.item),
+        result_count: request.recipe.template.map_or(0, |t| t.count),
+    };
+    let Some(evaluation) = recipe_api_v1::prepare_assembly(&facts) else {
+        return Decision::Pass;
+    };
+    // Owned pure component trees behind the borrowed views, alive for the
+    // synchronous evaluation only.
+    let cell_data: Vec<Option<Nbt>> = request
+        .input
+        .cells
+        .iter()
+        .map(|cell| cell.and_then(|snap| snap.components.and_then(advancement_components)))
+        .collect();
+    let cells: Vec<Option<recipe_api_v1::StackView<'_>>> = request
+        .input
+        .cells
+        .iter()
+        .zip(&cell_data)
+        .map(|(cell, data)| {
+            cell.map(|snap| recipe_api_v1::StackView {
+                id: snap.id,
+                count: snap.count,
+                damage: snap.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let result_data = request
+        .result
+        .and_then(|snap| snap.components.and_then(advancement_components));
+    let result = request.result.map(|snap| recipe_api_v1::StackView {
+        id: snap.id,
+        count: snap.count,
+        damage: snap.damage,
+        custom_data: result_data.as_ref(),
+    });
+    let forwarded = recipe_api_v1::AssemblyRequest {
+        recipe: &facts,
+        grid: recipe_api_v1::GridFacts {
+            width: request.input.width,
+            height: request.input.height,
+            left: request.input.left,
+            top: request.input.top,
+            cells: &cells,
+        },
+        result,
+    };
+    match evaluation.evaluate(&forwarded) {
+        recipe_api_v1::AssemblyOutcome::Native => Decision::Pass,
+        recipe_api_v1::AssemblyOutcome::Denied { .. } => Decision::Deny,
+        recipe_api_v1::AssemblyOutcome::Assembled { custom_data, .. } => Decision::Assemble {
+            custom_data: nbt_component(&Nbt::Compound(custom_data)),
+        },
+    }
+}
+
+/// Pure NBT as the native component tree (the reverse of
+/// `advancement_component`): strings cross as UTF-16 code units and floats
+/// as their bit patterns, exactly as the native tree stores them.
+#[cfg(feature = "native-inventory-glue")]
+fn nbt_component(
+    value: &Nbt,
+) -> horizon_client::pluto_inventory::advancements::predicates::ComponentValue {
+    use horizon_client::pluto_inventory::advancements::predicates::{ComponentText, ComponentValue};
+    match value {
+        Nbt::Byte(v) => ComponentValue::Byte(*v),
+        Nbt::Short(v) => ComponentValue::Short(*v),
+        Nbt::Int(v) => ComponentValue::Int(*v),
+        Nbt::Long(v) => ComponentValue::Long(*v),
+        Nbt::Float(v) => ComponentValue::Float(v.to_bits()),
+        Nbt::Double(v) => ComponentValue::Double(v.to_bits()),
+        Nbt::ByteArray(v) => ComponentValue::ByteArray(v.clone()),
+        Nbt::String(v) => ComponentValue::String(ComponentText(v.encode_utf16().collect())),
+        Nbt::List(v) => ComponentValue::List(v.iter().map(nbt_component).collect()),
+        Nbt::Compound(v) => ComponentValue::Compound(
+            v.iter()
+                .map(|(key, value)| {
+                    (ComponentText(key.encode_utf16().collect()), nbt_component(value))
+                })
+                .collect(),
+        ),
+        Nbt::IntArray(v) => ComponentValue::IntArray(v.clone()),
+        Nbt::LongArray(v) => ComponentValue::LongArray(v.clone()),
+    }
 }
 
 fn resolve_dynamic_screen_slots(
@@ -405,7 +710,7 @@ fn read_stack(stack: &ItemStack) -> player_api::StackData {
         Some(Tag::Int(value)) => Some(*value),
         _ => None,
     };
-    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data, custom_model_data: read_custom_model_data(stack) }
+    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data, custom_model_data: read_custom_model_data(stack), enchantments: read_enchantments(stack).unwrap_or_default() }
 }
 
 /// The stack's own `minecraft:custom_model_data` component as PlutoLib's `CustomModelData`, None when it has none.
@@ -441,7 +746,7 @@ fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,reso
             .map_err(|e|format!("invalid item prototype NBT: {e}"))?;
         if used!=prototype.custom_data.len() { return Err("trailing item prototype NBT".into()); }
         let Some(Nbt::Compound(custom_data))=strict(&tag) else { return Err("unsupported item prototype custom data".into()) };
-        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data,custom_model_data:None })
+        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data,custom_model_data:None,enchantments:Default::default() })
     }).collect::<Result<Vec<_>,String>>()?;
     crate::pure::item_registry::ItemRegistrySnapshot::decode(lookup,stacks)?
         .with_crafting_remainders(defaults.iter().map(|prototype|(prototype.id.clone(),prototype.crafting_remainder.clone())).collect()).map(Some)
@@ -454,6 +759,13 @@ fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
     // the stack's own durability: a component the game reads before the item's
     stack.data_mut().set_other("minecraft:max_damage", new.max_damage.filter(|m| *m > 0).map(Tag::Int));
     stack.data_mut().set_other("minecraft:custom_data", (!new.custom_data.is_empty()).then(|| Tag::Compound(compound_to_tag(&new.custom_data))));
+    // the stack's own enchantments travel with it too, as `write_slot` keeps a slot's
+    if new.enchantments != read_enchantments(stack).unwrap_or_default() {
+        stack.data_mut().set_other("minecraft:enchantments", (!new.enchantments.is_empty()).then(|| {
+            let compound: NbtCompound = new.enchantments.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
+            Tag::Compound(compound_to_tag(&compound))
+        }));
+    }
     // the stack's own model selection: the item definition reads it, so it must travel with the stack
     stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&new.custom_model_data));
     stack.tidy();
@@ -586,6 +898,12 @@ impl screen_handler_api_v1::MenuAccess for StagedMenu<'_, '_> {
         }
     }
     fn max_stack_count(&self, stack: &ItemSlot) -> u32 {
+        // A registered per-stack maximum (a filled tank stacks to 16) wins over the item's own.
+        if let Some(limit) = item_api_v1::max_stack_size(&item_api_v1::MaxStackSizeContext {
+            item: stack.item.to_string(), custom_data: stack.custom_data.clone(),
+        }) {
+            return limit;
+        }
         native_slot(Some(stack.clone())).map_or(0, |stack| {
             horizon_client::menu::pluto_menu_actions::max_stack_count(self.env, &stack)
         })
@@ -689,6 +1007,15 @@ impl WorldOps for HostWorld {
     fn set_block_state(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
         let Ok(parsed) = BlockState::parse(state) else { return false };
         let host = self.0.get();
+        // The block already there keeps its block entity (the ticking one included): only the named properties change.
+        if host.block(pos) == parsed.block.to_string() {
+            for (key, value) in &parsed.properties {
+                if host.block_property(pos, key).as_deref() != Some(value.as_str()) {
+                    host.set_block_property(pos, key, value);
+                }
+            }
+            return parsed.properties.iter().all(|(key, value)| host.block_property(pos, key).as_deref() == Some(value.as_str()));
+        }
         let Some(id) = host.default_state(&parsed.block.to_string()) else { return false };
         let changed = host.set_block(dimension, pos, id, 3);
         for (key, value) in &parsed.properties {
@@ -696,12 +1023,477 @@ impl WorldOps for HostWorld {
         }
         changed
     }
+
+    fn schedule_block_tick(&mut self, dimension: &str, pos: [i32; 3], block: &str, delay: i32) -> bool {
+        // The mod-facing host has no scheduling call, so the request is queued and the level's
+        // own tick seams apply it in that dimension (see world_api_v1::queue_block_tick).
+        world_api_v1::queue_block_tick(dimension, pos, block, delay)
+    }
+
+    fn block_entity_data(&mut self, dimension: &str, pos: [i32; 3]) -> Option<NbtCompound> {
+        let host = self.0.get();
+        // `mod_block_entity` reaches the block entities of the level in place; another dimension answers nothing.
+        if host.dimension() != dimension {
+            return None;
+        }
+        let entity = host.mod_block_entity(pos)?;
+        Some(compound_from_tag(&entity.nbt))
+    }
+
+    fn merge_block_entity_data(&mut self, dimension: &str, pos: [i32; 3], data: &NbtCompound) -> bool {
+        let host = self.0.get();
+        if host.dimension() != dimension {
+            return false;
+        }
+        let mut data = Some(data.clone());
+        let mut merged = false;
+        host.change_mod_block_entity(pos, &mut |entity| {
+            let Some(data) = data.take() else { return };
+            merged = with_block_entity(entity, |held, _| {
+                held.extend(data.iter().map(|(key, value)| (key.clone(), value.clone())));
+                true
+            });
+        });
+        if merged {
+            host.block_entity_sync(pos);
+        }
+        merged
+    }
+
+    fn summon_entity(&mut self, dimension: &str, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {
+        // The host's summon is `/summon` itself (API 59): it loads any kind from its data, projectiles
+        // included, and answers the new entity's id.
+        self.0.get().summon(dimension, kind, pos, compound_to_tag(nbt))
+    }
+
+    fn explode(&mut self, dimension: &str, center: [f64; 3], radius: f32, fire: bool, interaction: world_api_v1::ExplosionInteraction) -> bool {
+        // The mod-facing host has no explosion call (the game's own `native_explode`, API 66, lives
+        // inside the game for native mods), so the request is queued and the level's mob-event seam
+        // sets it off in that dimension (see pluto_explosion_access), as block ticks are queued for
+        // the tick seams. A centre or radius the game would refuse is refused here instead of queued.
+        if !center.iter().all(|value| value.is_finite() && value.abs() <= 30_000_000.0)
+            || !radius.is_finite() || radius <= 0.0 || radius > 32.0 {
+            return false;
+        }
+        use horizon_client::entry::pluto_explosion_access::Blast;
+        let blast = match interaction {
+            world_api_v1::ExplosionInteraction::Keep => Blast::Keep,
+            world_api_v1::ExplosionInteraction::Block => Blast::Block,
+            world_api_v1::ExplosionInteraction::Tnt => Blast::Tnt,
+        };
+        horizon_client::entry::pluto_explosion_access::push(dimension, center, radius, fire, blast)
+    }
+}
+
+/// PlutoLib's own mod id: the id its mod screen opens under (API 111).
+const PLUTO_MOD_ID: &str = "pluto_lib";
+
+/// The book the reader is reading now, kept on the host side because the screen hooks that draw it and
+/// turn its pages do not run inside a callback scope. Cleared when the book screen closes.
+static BOOK_VIEW: std::sync::Mutex<Option<BookView>> = std::sync::Mutex::new(None);
+
+/// PlutoLib's book reach over Horizon's mod screen: opening asks the game to open PlutoLib's own screen
+/// over the world, and the screen hooks below draw the current page into it. Opening is a client act —
+/// off the client thread the host answers false and nothing opens.
+struct HostBookOps(HostHandle);
+
+impl BookOps for HostBookOps {
+    fn open_book(&mut self, book: &Identifier) -> bool {
+        if book_api_v1::BookRegistry::get(book).is_none() {
+            return false;
+        }
+        if let Ok(mut view) = BOOK_VIEW.lock() {
+            *view = Some(BookView::new(book.clone()));
+        }
+        let opened = self.0.get().mod_screen_open(PLUTO_MOD_ID);
+        if !opened {
+            if let Ok(mut view) = BOOK_VIEW.lock() {
+                *view = None;
+            }
+        }
+        opened
+    }
+
+    fn close_book(&mut self) -> bool {
+        let host = self.0.get();
+        if host.mod_screen() != Some(PLUTO_MOD_ID) {
+            return false;
+        }
+        host.mod_screen_close(PLUTO_MOD_ID);
+        if let Ok(mut view) = BOOK_VIEW.lock() {
+            *view = None;
+        }
+        true
+    }
+
+    fn open_book_id(&mut self) -> Option<Identifier> {
+        if self.0.get().mod_screen() != Some(PLUTO_MOD_ID) {
+            return None;
+        }
+        BOOK_VIEW.lock().ok()?.as_ref().map(|view| view.book.clone())
+    }
+}
+
+/// Whether the screen showing is PlutoLib's own mod screen.
+fn book_screen_is_ours(host: &dyn Host, screen_id: &str) -> bool {
+    screen_id == "mod" && host.mod_screen() == Some(PLUTO_MOD_ID)
+}
+
+/// The book being read and where the reader is in it, when a book is open.
+fn open_book_view() -> Option<(book_api_v1::Book, BookView)> {
+    let view = BOOK_VIEW.lock().ok()?.clone()?;
+    let book = book_api_v1::BookRegistry::get(&view.book)?;
+    Some((book, view))
+}
+
+fn set_book_view(view: BookView) {
+    if let Ok(mut held) = BOOK_VIEW.lock() {
+        *held = Some(view);
+    }
+}
+
+/// The host's face for a PlutoLib one (the same six, in the same order).
+fn host_face(face: block_api_v1::Direction) -> horizon_client::mod_api::Direction {
+    horizon_client::mod_api::Direction::ALL[face as usize]
+}
+
+fn fluid_stack_of(fluid: &str, amount: i32) -> Option<FluidStack> {
+    let fluid = Identifier::parse(fluid).ok()?;
+    u32::try_from(amount).ok().filter(|&amount| amount > 0).map(|amount| FluidStack { fluid, amount, tag: None })
+}
+
+/// How much of `offered` the block entity at `pos` takes by its own fluid rule (`BlockEntityType::fluid_filler`); `None` when its block
+/// has none. With `execute` the filler's changes are kept (and sent to the clients), otherwise they are thrown away.
+fn filler_takes(host: &mut dyn Host, pos: [i32; 3], face: Option<block_api_v1::Direction>, offered: &FluidStack, execute: bool) -> Option<u32> {
+    let block = host.block(pos);
+    if !block_entity_api_v1::has_fluid_filler(&block) {
+        return None;
+    }
+    let mut taken = None;
+    if execute {
+        let mut fluid = Some(offered.clone());
+        host.change_mod_block_entity(pos, &mut |entity| {
+            let Some(fluid) = fluid.take() else { return };
+            with_block_entity(entity, |data, items| {
+                taken = block_entity_api_v1::BlockEntityTypeRegistry::fill_fluid(&block, pos, data, items, fluid, face, true);
+                true
+            });
+        });
+        if taken.is_some() {
+            host.block_entity_sync(pos);
+        }
+    } else {
+        let mut entity = host.mod_block_entity(pos)?;
+        with_block_entity(&mut entity, |data, items| {
+            taken = block_entity_api_v1::BlockEntityTypeRegistry::fill_fluid(&block, pos, data, items, offered.clone(), face, false);
+            false
+        });
+    }
+    taken
+}
+
+/// The block entities of the level in place as a [`BlockEntityStore`]: what [`FluidStorage`] reads and writes when a
+/// neighbour's fluid query is answered through a block's own hooks. The block entity being ticked is out of the
+/// world (the host keeps it so), so a read of its own position answers nothing, as the other reaches find.
+struct HostBlockEntities {
+    host: HostHandle,
+    dimension: String,
+}
+
+impl BlockEntityStore for HostBlockEntities {
+    fn block_at(&mut self, pos: [i32; 3]) -> Option<String> {
+        let host = self.host.get();
+        let level = host.level(&self.dimension)?;
+        let text = host.level_block_state(level, pos)?;
+        BlockState::parse(&text).ok().map(|state| state.block.to_string())
+    }
+
+    fn read(&mut self, pos: [i32; 3]) -> Option<(NbtCompound, Vec<Option<ItemSlot>>)> {
+        let mut entity = self.host.get().mod_block_entity(pos)?;
+        let mut found = None;
+        with_block_entity(&mut entity, |data, items| {
+            found = Some((data.clone(), items.clone()));
+            false
+        });
+        found
+    }
+
+    fn write(&mut self, pos: [i32; 3], data: NbtCompound, items: Vec<Option<ItemSlot>>) {
+        let mut data = Some(data);
+        let mut items = Some(items);
+        let mut wrote = false;
+        self.host.get().change_mod_block_entity(pos, &mut |entity| {
+            let (Some(data), Some(items)) = (data.take(), items.take()) else { return };
+            wrote = with_block_entity(entity, |held, held_items| {
+                *held = data;
+                *held_items = items;
+                true
+            });
+        });
+        if wrote {
+            self.host.get().block_entity_sync(pos);
+        }
+    }
+}
+
+/// The containers, tanks and block states beside a ticking block entity, over the host.
+struct HostNeighbours {
+    host: HostHandle,
+    dimension: String,
+}
+
+impl HostNeighbours {
+    /// The block entity store of the level in place, for the fluid queries answered through a block's own hooks.
+    fn store(&mut self) -> HostBlockEntities {
+        HostBlockEntities { host: self.host, dimension: self.dimension.clone() }
+    }
+
+    /// Whether the block at `pos` holds its fluid storage in its saved data, read through its type's hooks: those
+    /// queries are answered through [`FluidStorage`] over the store, because the host's own tank calls cannot serve
+    /// them (see `block_entity_api_v1::fluid_served_from_data`).
+    fn served_from_data(&mut self, pos: [i32; 3]) -> bool {
+        block_entity_api_v1::fluid_served_from_data(&self.host.get().block(pos))
+    }
+
+    /// Whether the block at `pos` holds its item storage in its saved data, answered through its type's hooks (an item
+    /// forward, a sided access or a transfer rule): those queries are answered through [`ItemStorage`] over the store,
+    /// because the host's own container calls open every slot every way and cannot serve them (see
+    /// `block_entity_api_v1::item_served_from_data`).
+    fn item_served_from_data(&mut self, pos: [i32; 3]) -> bool {
+        block_entity_api_v1::item_served_from_data(&self.host.get().block(pos))
+    }
+}
+
+impl NeighbourOps for HostNeighbours {
+    fn item_slots(&mut self, pos: [i32; 3], face: block_api_v1::Direction) -> Option<Vec<NeighbourSlot>> {
+        if self.item_served_from_data(pos) {
+            return ItemStorage::new(&mut self.store()).slots(pos, face);
+        }
+        let slots = self.host.get().container_slots(&self.dimension, pos, host_face(face))?;
+        Some(slots.into_iter().map(|(slot, stack, can_take)| NeighbourSlot { slot, stack: stack.as_ref().and_then(slot_of), can_take }).collect())
+    }
+
+    fn extract_item(&mut self, pos: [i32; 3], face: block_api_v1::Direction, slot: usize, count: u32) -> Option<ItemSlot> {
+        if self.item_served_from_data(pos) {
+            return ItemStorage::new(&mut self.store()).extract(pos, face, slot, count);
+        }
+        self.host.get().extract_item(&self.dimension, pos, host_face(face), slot, count).and_then(|stack| slot_of(&stack))
+    }
+
+    fn insert_item(&mut self, pos: [i32; 3], face: block_api_v1::Direction, stack: ItemSlot) -> Option<ItemSlot> {
+        if self.item_served_from_data(pos) {
+            return ItemStorage::new(&mut self.store()).insert(pos, face, stack);
+        }
+        let Some(native) = native_slot(Some(stack.clone())) else { return Some(stack) };
+        match self.host.get().insert_item(pos, host_face(face), native) {
+            None => None,
+            Some(left) if left.count == 0 => None,
+            Some(left) => {
+                let mut rest = stack;
+                rest.count = left.count;
+                Some(rest)
+            }
+        }
+    }
+
+    fn fluid_tanks(&mut self, pos: [i32; 3], face: block_api_v1::Direction) -> Option<Vec<NeighbourTank>> {
+        if self.served_from_data(pos) {
+            return FluidStorage::new(&mut self.store()).tanks(pos);
+        }
+        let tanks = self.host.get().fluid_tanks(&self.dimension, pos, host_face(face))?;
+        Some(tanks.into_iter().map(|tank| NeighbourTank {
+            fluid: tank.fluid.as_deref().and_then(|fluid| fluid_stack_of(fluid, tank.amount)),
+            capacity: u32::try_from(tank.capacity).unwrap_or(0),
+        }).collect())
+    }
+
+    fn drain_fluid(&mut self, pos: [i32; 3], face: block_api_v1::Direction, amount: u32) -> Option<FluidStack> {
+        if self.served_from_data(pos) {
+            return FluidStorage::new(&mut self.store()).drain(pos, None, amount, true);
+        }
+        let amount = i32::try_from(amount).unwrap_or(i32::MAX);
+        let (fluid, drained) = self.host.get().fluid_extract(&self.dimension, pos, host_face(face), amount)?;
+        fluid_stack_of(&fluid, drained)
+    }
+
+    fn fill_fluid(&mut self, pos: [i32; 3], face: block_api_v1::Direction, stack: &FluidStack, execute: bool) -> u32 {
+        if self.served_from_data(pos) {
+            return FluidStorage::new(&mut self.store()).fill(pos, stack, execute);
+        }
+        let host = self.host.get();
+        let amount = i32::try_from(stack.amount).unwrap_or(i32::MAX);
+        if execute {
+            // The host asks `custom_fluid_fill` for a block with its own fluid rule and fills the declared tanks of the others.
+            let left = host.fluid_insert(pos, host_face(face), &stack.fluid.to_string(), amount);
+            return (amount - left).clamp(0, amount) as u32;
+        }
+        if let Some(taken) = filler_takes(host, pos, Some(face), stack, false) {
+            return taken.min(stack.amount);
+        }
+        let fluid = stack.fluid.to_string();
+        let Some(tanks) = host.fluid_tanks(&self.dimension, pos, host_face(face)) else { return 0 };
+        let room: i32 = tanks.iter()
+            .filter(|tank| tank.can_fill && tank.fluid.as_deref().is_none_or(|held| held == fluid))
+            .map(|tank| (tank.capacity - tank.amount).max(0))
+            .sum();
+        room.min(amount).max(0) as u32
+    }
+
+    fn block_state(&mut self, pos: [i32; 3]) -> Option<String> {
+        let host = self.host.get();
+        let level = host.level(&self.dimension)?;
+        host.level_block_state(level, pos)
+    }
+}
+
+/// Whether an effect id names fire resistance (the host lists a mob's effects with or without the namespace).
+fn is_fire_resistance(effect: &str) -> bool {
+    effect == "minecraft:fire_resistance" || effect == "fire_resistance"
+}
+
+/// The entities of the level in place, for a ticker: item entities with their stacks, and living entities with the
+/// facts a caller's own rules decide with (fire immunity, invulnerability, fire resistance).
+struct HostEntities {
+    host: HostHandle,
+    dimension: String,
+}
+
+impl EntityOps for HostEntities {
+    fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<entity_api_v1::WorldEntity> {
+        let host = self.host.get();
+        let items: std::collections::HashMap<u32, ItemStack> = host.item_entities(&self.dimension, min, max)
+            .into_iter().map(|entity: NativeItemEntity| (entity.id, entity.stack)).collect();
+        let mut players = host.server_players();
+        if let Some(acting) = host.acting_player() {
+            players.push(acting);
+        }
+        let mut found = Vec::new();
+        for id in host.entities_in(&self.dimension, min, max) {
+            if let Some(stack) = items.get(&id) {
+                found.push(entity_api_v1::WorldEntity {
+                    id: u64::from(id),
+                    kind: Identifier::parse("minecraft:item").expect("valid id"),
+                    item: slot_of(stack),
+                    living: None,
+                });
+                continue;
+            }
+            let Some(entity) = host.entity(id) else { continue };
+            let Some(kind) = host.entity_kind(entity) else { continue };
+            let Ok(kind_id) = Identifier::parse(&kind) else { continue };
+            let living = if kind == "minecraft:player" {
+                // A player: their game mode is what makes them invulnerable, and their effects are read by uuid.
+                // The player list names the owner of a single-player world by entity id 0; they are the fallback.
+                let player = players.iter().find(|player| player.entity_id == id as i32)
+                    .or_else(|| players.iter().find(|player| player.entity_id == 0));
+                player.map(|player| entity_api_v1::LivingFacts {
+                    fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                    invulnerable: matches!(player.game_mode, 1 | 3),
+                    fire_resistant: host.effects(player.uuid)
+                        .is_some_and(|effects| effects.iter().any(|effect| is_fire_resistance(&effect.id))),
+                })
+            } else {
+                // A mob or another living kind: its saved data says whether it is alive (a health it still has)
+                // and whether it is invulnerable; its effects say whether fire resistance is on it.
+                let data = host.entity_nbt(entity);
+                let alive = data.as_ref().is_some_and(|data| data.iter()
+                    .any(|(key, tag)| key.to_string_lossy() == "Health" && matches!(tag, Tag::Float(bits) if f32::from_bits(*bits) > 0.0)));
+                alive.then(|| entity_api_v1::LivingFacts {
+                    fire_immune: host.entity_fire_immune(entity).unwrap_or(false),
+                    invulnerable: data.as_ref().is_some_and(|data| data.iter()
+                        .any(|(key, tag)| key.to_string_lossy() == "Invulnerable" && matches!(tag, Tag::Byte(value) if *value != 0))),
+                    fire_resistant: host.entity_effects(entity)
+                        .is_some_and(|effects| effects.iter().any(|(effect, _, _)| is_fire_resistance(effect))),
+                })
+            };
+            found.push(entity_api_v1::WorldEntity { id: u64::from(id), kind: kind_id, item: None, living });
+        }
+        found
+    }
+
+    fn discard(&mut self, id: u64) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return false };
+        // The host has no call that removes a dropped item; ageing it out is the game's own end for one (it is
+        // discarded at 6000 ticks), reached through the same data merge the freezing action uses.
+        let mut merge = Compound::new();
+        merge.insert("Age".into(), Tag::Short(6000));
+        host.entity_merge_nbt(entity, merge)
+    }
+
+    fn set_item(&mut self, id: u64, stack: &ItemSlot) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return false };
+        // Only the id and count are merged in: the components the entity's stack already holds stay, as a data
+        // merge keeps the keys it is not given (the remainder is the same stack with fewer items).
+        let item = stack.item.to_string();
+        let mut held = Compound::new();
+        held.insert("id".into(), Tag::String(item.as_str().into()));
+        held.insert("count".into(), Tag::Int(stack.count.min(i32::MAX as u32) as i32));
+        let mut merge = Compound::new();
+        merge.insert("Item".into(), Tag::Compound(held));
+        host.entity_merge_nbt(entity, merge)
+    }
+
+    fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        self.host.get().hurt_entity(&self.dimension, id, amount, damage_type, None)
+    }
+
+    fn position_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        let host = self.host.get();
+        if let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) {
+            if let Some(position) = host.entity_position(entity) { return Some(position); }
+        }
+        // The player list names players by entity id (0 for the owner of a single-player world).
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)).map(|player| player.position)
+    }
+
+    fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
+        // another entity is moved keeping the way it faces. A player is reached by neither call — the
+        // host has no call that moves a player — so a player's teleport answers false here.
+        if host.teleport_mob(&self.dimension, id, pos) {
+            return true;
+        }
+        let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
+        host.move_entity(&self.dimension, id, pos, rotation[0], rotation[1])
+    }
+
+    // Riding crosses to the game through the passenger transport: it keeps the last rider snapshot of this
+    // dimension and queues mount and dismount requests for the game's own rider synchronisation to apply, so an
+    // accepted request is observable from the next tick and a refusal there is final.
+    fn passengers_of(&mut self, vehicle: u64) -> Vec<u64> {
+        let Ok(vehicle) = u32::try_from(vehicle) else { return Vec::new() };
+        horizon_client::game::pluto_entity_ride_access::passengers_of(&self.dimension, vehicle).into_iter().map(u64::from).collect()
+    }
+
+    fn vehicle_of(&mut self, passenger: u64) -> Option<u64> {
+        let passenger = u32::try_from(passenger).ok()?;
+        horizon_client::game::pluto_entity_ride_access::vehicle_of(&self.dimension, passenger).map(u64::from)
+    }
+
+    fn start_riding(&mut self, passenger: u64, vehicle: u64) -> bool {
+        let (Ok(passenger), Ok(vehicle)) = (u32::try_from(passenger), u32::try_from(vehicle)) else { return false };
+        horizon_client::game::pluto_entity_ride_access::request_mount(&self.dimension, passenger, vehicle)
+    }
+
+    fn stop_riding(&mut self, passenger: u64) -> bool {
+        let Ok(passenger) = u32::try_from(passenger) else { return false };
+        horizon_client::game::pluto_entity_ride_access::request_dismount(&self.dimension, passenger)
+    }
 }
 
 /// Runs `f` with the player scope and the world scope both open over the host.
 fn scoped<R>(host: &mut dyn Host, f: impl FnOnce() -> R) -> R {
     let handle = HostHandle::new(host);
-    player_api::with_ops(&mut HostOps(handle), || world_api_v1::with_world(&mut HostWorld(handle), f))
+    player_api::with_ops(&mut HostOps(handle), || world_api_v1::with_world(&mut HostWorld(handle), || book_api_v1::with_books(&mut HostBookOps(handle), f)))
 }
 
 impl PlayerOps for HostOps {
@@ -739,6 +1531,10 @@ impl PlayerOps for HostOps {
             }
             None => false,
         }
+    }
+
+    fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        self.host().acting_player().map(|acting| i32::from(acting.selected_slot))
     }
 
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
@@ -958,6 +1754,12 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
         crouching: player.sneaking,
         ..entity_events_v1::EntityState::default()
     };
+    // The equipment slots that hold something, the hands and the armor alike.
+    let mut equipment = Vec::new();
+    for (name, slot) in [("mainhand", EquipmentSlot::MainHand), ("offhand", EquipmentSlot::OffHand), ("head", EquipmentSlot::Head), ("chest", EquipmentSlot::Chest), ("legs", EquipmentSlot::Legs), ("feet", EquipmentSlot::Feet)] {
+        if host.player_equipment(player.uuid, slot).is_some() { equipment.push(name.to_owned()); }
+    }
+    state.equipment = Some(equipment);
     let [x, y, z] = player.position;
     let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
     read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
@@ -969,8 +1771,16 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
 }
 
 /// What the break hook read before the block went, kept for the end of the same break.
-struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer }
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32 }
 static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
+
+/// The face each player last started digging, by uuid: the break hook itself is not told the face, but the dig's start is
+/// (`left_click_block`), and a break belongs to the dig the player last started.
+static LAST_DIG_FACE: std::sync::Mutex<std::collections::BTreeMap<u128, block_api_v1::Direction>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// The last redstone strength reported to each block entity that hears signal changes, by dimension and position: a
+/// change is what is reported, and the first sight of a block entity counts as one.
+static LAST_SIGNAL: std::sync::Mutex<std::collections::BTreeMap<(String, [i32; 3]), u8>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
 /// The acting player, their dimension and main-hand stack, and the block at `pos`, as the block break events report them.
 fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::BlockBreakContext {
@@ -978,10 +1788,13 @@ fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::B
     let dimension = acting.as_ref().map(|player| player.dimension.to_string()).unwrap_or_default();
     let state = match host.level(&dimension) { Some(level) => host.level_block_state(level, pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
     let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack));
+    let face = acting.as_ref().and_then(|player| LAST_DIG_FACE.lock().ok().and_then(|last| last.get(&player.uuid).copied()));
+    let (yaw, pitch) = acting.as_ref().map(|player| (player.yaw, player.pitch)).unwrap_or_default();
     events_interaction_v0::BlockBreakContext {
         pos, dimension, state,
         player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
         held, actions: std::cell::RefCell::new(Vec::new()),
+        face, yaw, pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
     }
 }
 
@@ -1000,6 +1813,7 @@ fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
         let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
         let context = events_interaction_v0::BlockBreakContext {
             pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, actions: std::cell::RefCell::new(Vec::new()),
+            face: entry.face, yaw: entry.yaw, pitch: entry.pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
         };
         scoped(host, || events_interaction_v0::after_block_break(&context));
         let actions = context.actions.take();
@@ -1052,6 +1866,64 @@ fn edit_player_stack(host: &mut dyn Host, selected: u8, slot: entity_events_v1::
     let Some(mut held) = slot_of(&*stack) else { return };
     if !entity_events_v1::edit_custom_data(&mut held.custom_data, edits) { return; }
     write_slot(stack, &held);
+}
+
+/// Every stack the player carries, as [`CarriedStack`](entity_events_v1::CarriedStack)s: their equipment first (hands, then feet to head),
+/// then the main inventory. The inventory is only readable for the acting player (the host's carried reach names no player), so another
+/// player's answer holds their equipment alone. Empty places are left out.
+fn carried_stacks(host: &mut dyn Host, player: u128) -> Vec<entity_events_v1::CarriedStack> {
+    let mut carried = Vec::new();
+    for (slot, native) in [
+        (entity_events_v1::StackSlot::MainHand, EquipmentSlot::MainHand),
+        (entity_events_v1::StackSlot::OffHand, EquipmentSlot::OffHand),
+        (entity_events_v1::StackSlot::Feet, EquipmentSlot::Feet),
+        (entity_events_v1::StackSlot::Legs, EquipmentSlot::Legs),
+        (entity_events_v1::StackSlot::Chest, EquipmentSlot::Chest),
+        (entity_events_v1::StackSlot::Head, EquipmentSlot::Head),
+    ] {
+        if let Some(stack) = host.player_equipment(player, native).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack)) {
+            carried.push(entity_events_v1::CarriedStack { slot: entity_events_v1::CarriedSlot::Equipment(slot), stack });
+        }
+    }
+    if host.acting_player().is_some_and(|acting| acting.uuid == player) {
+        for index in 0..36 {
+            if let Some(stack) = host.carried_stack(index).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack)) {
+                carried.push(entity_events_v1::CarriedStack { slot: entity_events_v1::CarriedSlot::Inventory(u32::try_from(index).unwrap_or(0)), stack });
+            }
+        }
+    }
+    carried
+}
+
+/// Writes the stacks a callback put back through a carried-stack channel (see
+/// [`CarriedEdit`](entity_events_v1::CarriedEdit)): an inventory place through the host's carried reach (the acting player's only), an
+/// equipment place through the living entity's own equipment write, as the use handlers do. A place the host cannot reach is skipped.
+fn apply_carried_edits(host: &mut dyn Host, player: u128, edits: Vec<entity_events_v1::CarriedEdit>) {
+    for edit in edits {
+        match edit.slot {
+            entity_events_v1::CarriedSlot::Inventory(index) => {
+                if host.acting_player().is_some_and(|acting| acting.uuid == player) {
+                    if let Some(target) = i32::try_from(index).ok().and_then(|index| host.carried_stack(index)) {
+                        write_slot(target, &edit.stack);
+                    }
+                }
+            }
+            entity_events_v1::CarriedSlot::Equipment(slot) => {
+                let native = match slot {
+                    entity_events_v1::StackSlot::MainHand => EquipmentSlot::MainHand,
+                    entity_events_v1::StackSlot::OffHand => EquipmentSlot::OffHand,
+                    entity_events_v1::StackSlot::Feet => EquipmentSlot::Feet,
+                    entity_events_v1::StackSlot::Legs => EquipmentSlot::Legs,
+                    entity_events_v1::StackSlot::Chest => EquipmentSlot::Chest,
+                    entity_events_v1::StackSlot::Head => EquipmentSlot::Head,
+                };
+                let living = host.entity_by_uuid(player).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.living(entity));
+                if let Some(living) = living {
+                    living.set_equipment(host, native, native_slot(Some(edit.stack)));
+                }
+            }
+        }
+    }
 }
 
 /// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
@@ -1129,6 +2001,15 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 let Ok(entity) = u32::try_from(id_of(target)) else { continue };
                 host.hurt_entity(dimension, entity, amount, &damage_type, None);
             }
+            EntityAction::Teleport { target, position } => {
+                // A mob is teleported by the game's own call (its navigation stops, its fall distance
+                // resets); another entity is moved keeping the way it faces. A player is reached by
+                // neither — the host has no call that moves a player — so a player's teleport is skipped.
+                let Ok(id) = u32::try_from(id_of(target)) else { continue };
+                if host.teleport_mob(dimension, id, position) { continue; }
+                let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
+                host.move_entity(dimension, id, position, rotation[0], rotation[1]);
+            }
             EntityAction::SetEffectDuration { target, effect, duration } => {
                 if duration <= 0 { continue; }
                 let id = id_of(target);
@@ -1159,6 +2040,33 @@ fn compound_from_tag(compound: &Compound) -> NbtCompound {
 
 fn compound_to_tag(compound: &NbtCompound) -> Compound {
     compound.iter().map(|(key, nbt)| (key.as_str().into(), tag_from_nbt(nbt))).collect()
+}
+
+/// A custom data compound from its JSON form, for transports that carry data as JSON (the item
+/// behaviour transport). JSON has no byte or null: booleans read as 0/1 bytes and null as an
+/// empty string; the queries this feeds inspect keys, structure and strings, which JSON keeps.
+fn nbt_from_json(value: &serde_json::Value) -> NbtCompound {
+    match value {
+        serde_json::Value::Object(map) => map.iter().map(|(key, value)| (key.clone(), nbt_value_from_json(value))).collect(),
+        _ => NbtCompound::new(),
+    }
+}
+
+fn nbt_value_from_json(value: &serde_json::Value) -> Nbt {
+    match value {
+        serde_json::Value::Null => Nbt::String(String::new()),
+        serde_json::Value::Bool(flag) => Nbt::Byte(i8::from(*flag)),
+        serde_json::Value::Number(number) => {
+            if let Some(int) = number.as_i64() {
+                if let Ok(int) = i32::try_from(int) { Nbt::Int(int) } else { Nbt::Long(int) }
+            } else {
+                Nbt::Double(number.as_f64().unwrap_or(0.0))
+            }
+        }
+        serde_json::Value::String(text) => Nbt::String(text.clone()),
+        serde_json::Value::Array(values) => Nbt::List(values.iter().map(nbt_value_from_json).collect()),
+        serde_json::Value::Object(_) => Nbt::Compound(nbt_from_json(value)),
+    }
 }
 
 /// A stack as an item slot: item, count, damage, max damage and custom data; None for an item id PlutoLib cannot name.
@@ -1201,7 +2109,8 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     }
     // The stack's own enchantments: the host applies them (fortune, silk touch, respiration...) to the holder or wearer.
     if slot.enchantments != read_enchantments(stack) {
-        stack.data_mut().set_other("minecraft:enchantments", slot.enchantments.as_ref().map(|levels| {
+        let component = enchantments_component(stack);
+        stack.data_mut().set_other(component, slot.enchantments.as_ref().map(|levels| {
             let compound: NbtCompound = levels.iter().map(|(id, level)| (id.clone(), Nbt::Int(*level))).collect();
             Tag::Compound(compound_to_tag(&compound))
         }));
@@ -1213,9 +2122,16 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     stack.tidy();
 }
 
-/// The stack's own `minecraft:enchantments` component as enchantment id to level, None when it has none of its own.
+/// The component a stack's enchantments live in: vanilla keeps an enchanted book's in
+/// `minecraft:stored_enchantments` (EnchantedBookItem reads and writes that one), everything
+/// else's in `minecraft:enchantments`. A slot's enchantments are the stack's, whichever it is.
+fn enchantments_component(stack: &ItemStack) -> &'static str {
+    if stack.item.as_ref() == "minecraft:enchanted_book" { "minecraft:stored_enchantments" } else { "minecraft:enchantments" }
+}
+
+/// The stack's own enchantments component as enchantment id to level, None when it has none of its own.
 fn read_enchantments(stack: &ItemStack) -> Option<std::collections::BTreeMap<String, i32>> {
-    match stack.data().and_then(|d| d.other("minecraft:enchantments")) {
+    match stack.data().and_then(|d| d.other(enchantments_component(stack))) {
         Some(Tag::Compound(levels)) => Some(compound_from_tag(levels).into_iter().filter_map(|(id, level)| match level { Nbt::Int(level) => Some((id, level)), _ => None }).collect()),
         _ => None,
     }
@@ -1352,7 +2268,14 @@ fn worn_stack(item:&str,count:i32,components:&std::collections::BTreeMap<String,
             _=>return None,
         },
     };
-    Some(player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data})
+    let enchantments=match components.get("minecraft:enchantments") {
+        None=>Default::default(),
+        Some(value)=>match horizon_client::scoreboard::json_to_tag(value) {
+            Tag::Compound(data)=>compound_from_tag(&data).into_iter().filter_map(|(id, level)| match level { Nbt::Int(level) => Some((id, level)), _ => None }).collect(),
+            _=>Default::default(),
+        },
+    };
+    Some(player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data,enchantments})
 }
 fn skull_model_to_native(part:&horizon_client::mod_api::ModelPart)->horizon_client::entry::pluto_block::SkullModelPart {
     let p=part.store_pose();
@@ -1822,6 +2745,35 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
             block_api_v1::fall_on(&block, &mut context);
             request.damage = context.damage;
         },
+        entity_inside: |notice| {
+            let Some(state) = to_state(&notice.state) else { return };
+            let block = state.block.to_string();
+            let actions = block_api_v1::inside(&block, &block_api_v1::EntityInsideContext {
+                dimension: notice.dimension.clone(), state, pos: notice.pos, entity: notice.entity, kind: notice.kind.clone(),
+                bounds: notice.bounds, fall_distance: notice.fall_distance,
+                actions: std::cell::RefCell::new(Vec::new()),
+            });
+            // The seams run inside entity movement, where the entity may not be changed: what the callback
+            // did to it travels in plain data to where the game may change it (pluto_contact_access,
+            // drained where the mob effects land, after hits and on player ticks).
+            if let Ok(entity) = u32::try_from(notice.entity) {
+                use horizon_client::entry::pluto_contact_access::Contact;
+                for action in actions {
+                    match action {
+                        entity_events_v1::EntityAction::SetFire { target: entity_events_v1::ActionTarget::Victim, seconds } => {
+                            horizon_client::entry::pluto_contact_access::push(entity, Contact::Fire(seconds));
+                        }
+                        entity_events_v1::EntityAction::AddEffect { target: entity_events_v1::ActionTarget::Victim, effect, amplifier, duration } => {
+                            horizon_client::entry::pluto_contact_access::push(entity, Contact::Effect(effect, duration, amplifier));
+                        }
+                        entity_events_v1::EntityAction::Hurt { target: entity_events_v1::ActionTarget::Victim, amount, damage_type } => {
+                            horizon_client::entry::pluto_contact_access::push(entity, Contact::Hurt(damage_type, amount));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        },
         survives,
         placement,
         update_shape,
@@ -1904,8 +2856,38 @@ impl Hooks for PlutoHooks {
         block_entity_api_v1::create(event.block).map(|(id, data)| (id, compound_to_tag(&data)))
     }
 
+    fn place_block(&self, host: &mut dyn Host, event: &mut PlaceBlockEvent<'_>) {
+        let pos = event.pos;
+        let block = host.block(pos);
+        if !block_entity_api_v1::has_place_hook(&block) {
+            return;
+        }
+        let Some(stack) = slot_of(event.stack) else { return };
+        let player = host.acting_player().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() });
+        // The placement hook sees the same reach as a use: its dimension, the world, and the neighbours' containers and tanks.
+        let dimension = host.dimension().to_owned();
+        let handle = HostHandle::new(host);
+        let mut ran = false;
+        world_api_v1::with_ticking_dimension(&dimension, || {
+            world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
+                    host.change_mod_block_entity(pos, &mut |entity| {
+                        ran = with_block_entity(entity, |data, items| block_entity_api_v1::place(&block, pos, stack.clone(), player.clone(), data, items));
+                    });
+                });
+            });
+        });
+        if ran {
+            host.block_entity_sync(pos);
+        }
+    }
+
     fn block_entity_container(&self, _host: &dyn Host, event: &mut BlockEntityContainerEvent<'_>) -> Option<ModContainer> {
         let slots = block_entity_api_v1::item_slots(event.block)? as usize;
+        // A type with sided access declares the faces it opens; every other opens every slot every way.
+        if let Some((faces, inputs, outputs)) = block_entity_api_v1::container_access(event.block) {
+            return Some(ModContainer { slots, faces: std::array::from_fn(|face| faces.get(face).cloned().unwrap_or_default()), inputs, outputs, menu: block_entity_api_v1::menu(event.block) });
+        }
         let all: Vec<usize> = (0..slots).collect();
         Some(ModContainer { slots, faces: std::array::from_fn(|_| all.clone()), inputs: all.clone(), outputs: all, menu: block_entity_api_v1::menu(event.block) })
     }
@@ -1922,9 +2904,126 @@ impl Hooks for PlutoHooks {
         }
     }
 
-    fn block_entity_tick(&self, _host: &mut dyn Host, event: &mut BlockEntityTickEvent<'_>) {
+    fn block_entity_tick(&self, host: &mut dyn Host, event: &mut BlockEntityTickEvent<'_>) {
         let (pos, id) = (event.pos, event.entity.id.clone());
-        with_block_entity(event.entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
+        let dimension = host.dimension().to_owned();
+        // The signal reaching the block, for a type that hears it change: read before the host handle wraps the host.
+        let block = block_entity_api_v1::block_of(&id);
+        let signal = block.as_deref().is_some_and(block_entity_api_v1::has_signal_hook)
+            .then(|| host.neighbor_signal(&dimension, pos).clamp(0, 15) as u8)
+            .filter(|strength| {
+                // Only a change is reported (the first sight of a block entity counts as one, so a hook can settle its state).
+                let key = (dimension.clone(), pos);
+                match LAST_SIGNAL.lock() {
+                    Ok(mut last) if last.get(&key) != Some(strength) => { last.insert(key, *strength); true }
+                    Ok(_) => false,
+                    Err(_) => true,
+                }
+            });
+        let handle = HostHandle::new(host);
+        let entity = &mut *event.entity;
+        // The ticker sees the world of its dimension (reads, and block state writes), its neighbours' containers and tanks, the
+        // entities around it, and which dimension it ticks in. The ticking entity itself is out of the world, as the host documents.
+        world_api_v1::with_ticking_dimension(&dimension, || {
+            world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
+                    entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: dimension.clone() }, || {
+                        if let Some(strength) = signal {
+                            with_block_entity(entity, |data, items| block_entity_api_v1::signal(&id, pos, data, items, strength));
+                        }
+                        with_block_entity(entity, |data, items| block_entity_api_v1::tick(&id, pos, data, items));
+                    });
+                });
+            });
+        });
+    }
+
+    fn custom_block_fluids(&self, _host: &dyn Host, event: &mut CustomBlockFluidsEvent<'_>) {
+        // A block with its own fluid rule (`fluid_filler`) answers fills itself; every other mod block keeps the host's tank storage.
+        if block_entity_api_v1::has_fluid_filler(event.block) {
+            event.custom = true;
+        }
+    }
+
+    fn custom_fluid_tanks(&self, host: &dyn Host, event: &mut CustomFluidTanksEvent) -> Option<Vec<NativeFluidTankView>> {
+        let entity = host.mod_block_entity(event.pos)?;
+        let block = block_entity_api_v1::block_of(&entity.id)?;
+        let tanks = block_entity_api_v1::tank_contents(&block, &compound_from_tag(&entity.nbt))?;
+        Some(tanks.into_iter().enumerate().map(|(tank, (content, capacity))| NativeFluidTankView {
+            tank,
+            content: content.map(|stack| NativeFluidStack { fluid: stack.fluid.to_string(), amount: stack.amount.min(i32::MAX as u32) as i32, components: stack.tag.as_ref().map(compound_to_tag).unwrap_or_default() }),
+            capacity: capacity.min(i32::MAX as u32) as i32,
+            can_fill: true,
+            can_drain: false,
+        }).collect())
+    }
+
+    fn custom_fluid_fill(&self, host: &mut dyn Host, event: &mut CustomFluidFillEvent<'_>) -> Option<i32> {
+        let fluid = Identifier::parse(&event.resource.fluid).ok()?;
+        let tag = (!event.resource.components.is_empty()).then(|| compound_from_tag(&event.resource.components));
+        let offered = FluidStack { fluid, amount: u32::try_from(event.resource.amount).ok()?, tag };
+        let face = event.side.map(|side| direction(side as u8));
+        let execute = matches!(event.action, NativeFluidAction::Execute);
+        let taken = filler_takes(host, event.pos, face, &offered, execute).unwrap_or(0);
+        Some(taken.min(offered.amount) as i32)
+    }
+
+    fn custom_fluid_drain(&self, _host: &mut dyn Host, _event: &mut CustomFluidDrainEvent<'_>) -> Option<NativeFluidStack> {
+        // A block with its own fluid rule only takes fluid in; nothing is drained out of it by another block.
+        None
+    }
+
+    fn right_click_block_v2(&self, host: &mut dyn Host, event: &mut RightClickBlockV2Event) -> Flow {
+        use crate::pure::base::action_result::ActionResult;
+        let pos = event.pos;
+        let block = host.block(pos);
+        if !block_entity_api_v1::has_use_hook(&block) {
+            return Flow::Continue;
+        }
+        let Some(player) = host.acting_player() else { return Flow::Continue };
+        let slot = if matches!(event.hand, Hand::Off) { EquipmentSlot::OffHand } else { EquipmentSlot::MainHand };
+        let held = host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
+        let sneaking = host.sneaking();
+        let mut outcome = None;
+        let mut hand = Some(held.clone());
+        // The use handler sees the same reach as a ticker: its dimension, the world, and the neighbours' containers and
+        // tanks. Outside that reach every neighbour query answers "nothing there", so a faucet could never find the tank
+        // behind it or the table below it, and a click on it would change nothing.
+        let dimension = host.dimension().to_owned();
+        let handle = HostHandle::new(host);
+        world_api_v1::with_ticking_dimension(&dimension, || {
+            world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
+                    host.change_mod_block_entity(pos, &mut |entity| {
+                        let Some(hand) = hand.take() else { return };
+                        with_block_entity(entity, |data, items| {
+                            outcome = block_entity_api_v1::BlockEntityTypeRegistry::use_block(&block, pos, data, items, hand, sneaking);
+                            true
+                        });
+                    });
+                });
+            });
+        });
+        let Some(outcome) = outcome else { return Flow::Continue };
+        host.block_entity_sync(pos);
+        if outcome.held != held {
+            let living = host.entity_by_uuid(player.uuid).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.living(entity));
+            if let Some(living) = living {
+                living.set_equipment(host, slot, native_slot(outcome.held.clone()));
+            }
+        }
+        for given in outcome.give {
+            let Some(stack) = native_slot(Some(given)) else { continue };
+            let Some(left) = host.give_stack(player.uuid, stack) else { continue };
+            // The inventory is full: the rest lands at the player's feet.
+            let mut item = NbtCompound::new();
+            item.insert("id".to_owned(), Nbt::String(left.item.to_string()));
+            item.insert("count".to_owned(), Nbt::Int(left.count.min(i32::MAX as u32) as i32));
+            let mut nbt = NbtCompound::new();
+            nbt.insert("Item".to_owned(), Nbt::Compound(item));
+            host.summon(&player.dimension, "minecraft:item", player.position, compound_to_tag(&nbt));
+        }
+        if matches!(outcome.result, ActionResult::Pass) { Flow::Continue } else { Flow::Cancel }
     }
 
     fn menu_button_v2(&self, _host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
@@ -1939,6 +3038,40 @@ impl Hooks for PlutoHooks {
                 write_slot(&mut stack, &s);
                 stack
             });
+        }
+    }
+
+    /// A mod-defined ingredient kind in a recipe file: the pure registry
+    /// names the item ids it can match (the host keeps the recipe only if
+    /// the list is non-empty).
+    fn ingredient(&self, event: &mut IngredientEvent<'_>) {
+        let data = serde_json::Value::Object(event.data.clone());
+        if let Some(items) = recipe_api_v1::ingredient_items(event.kind, &data) {
+            event.items.extend(items);
+        }
+    }
+
+    /// The craft-time half of a mod-defined ingredient kind: the pure
+    /// registry accepts or refuses this concrete stack; unclaimed kinds
+    /// keep the acceptance the load-time list gave them.
+    fn ingredient_test(&self, event: &mut IngredientTestEvent<'_>) {
+        if !recipe_api_v1::has_ingredient_kinds() {
+            return;
+        }
+        let id = event.stack.item.to_string();
+        let custom = match event.stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+            Some(Tag::Compound(compound)) => Some(Nbt::Compound(compound_from_tag(compound))),
+            _ => None,
+        };
+        let view = recipe_api_v1::StackView {
+            id: &id,
+            count: event.stack.count,
+            damage: event.stack.damage,
+            custom_data: custom.as_ref(),
+        };
+        let data = serde_json::Value::Object(event.data.clone());
+        if let Some(accepted) = recipe_api_v1::ingredient_test(event.kind, &data, &view) {
+            event.accept = accepted;
         }
     }
 
@@ -1963,7 +3096,21 @@ impl Hooks for PlutoHooks {
     fn container_accepts(&self, _host: &dyn Host, event: &mut ContainerAcceptsEvent<'_>) -> Flow {
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return Flow::Continue };
         let face = event.face.map(|d| direction(d as u8));
-        if screen_handler_api_v1::accepts(&block, event.pos, event.slot, &event.stack.item, event.stack.count, face) { Flow::Continue } else { Flow::Cancel }
+        if !screen_handler_api_v1::accepts(&block, event.pos, event.slot, &event.stack.item, event.stack.count, face) {
+            return Flow::Cancel;
+        }
+        // The block entity type's own transfer rule answers too, with its saved data at hand (a menu's rules cannot see it).
+        // The event only lends the entity, so the rule is asked over a snapshot, as the renderer reads one.
+        if block_entity_api_v1::item_served_from_data(&block) {
+            if let Some(stack) = slot_of(event.stack) {
+                let data = compound_from_tag(&event.entity.nbt);
+                let items: Vec<Option<ItemSlot>> = event.entity.items.iter().map(|slot| slot.as_ref().and_then(slot_of)).collect();
+                if !block_entity_api_v1::BlockEntityTypeRegistry::item_transfer_allowed(&block, event.pos, &data, &items, event.slot, face, block_entity_api_v1::TransferMode::Insert, stack) {
+                    return Flow::Cancel;
+                }
+            }
+        }
+        Flow::Continue
     }
 
     fn block_entity_submit(&self, host: &dyn Host, event: &mut BlockEntitySubmitEvent<'_>) {
@@ -1978,7 +3125,13 @@ impl Hooks for PlutoHooks {
             .snapshot().ok().map(|snapshot| compound_from_tag(&snapshot));
         let mut canvas = HostDraw { host, draw: &mut *event.draw, state: event.state,
             client_data: client_data.as_ref() };
-        block_entity_renderer_api_v1::render(event.block, event.pos, &data, &mut canvas);
+        // The renderer also sees the entity's item slots: they live outside the saved data, and a renderer that
+        // draws the contents (a melter's items, a cast on a table) has no other way to reach them.
+        let items: Vec<Option<ItemSlot>> = event.entity.items
+            .iter()
+            .map(|slot| slot.as_ref().and_then(slot_of))
+            .collect();
+        block_entity_renderer_api_v1::render(event.block, event.pos, &data, &items, &mut canvas);
     }
 
     fn screen(&self, _host: &dyn Host, event: &mut ScreenEvent<'_>) -> Option<NativeScreen> {
@@ -1986,7 +3139,22 @@ impl Hooks for PlutoHooks {
         let mut screen = NativeScreen::default();
         screen.width = layout.width;
         screen.height = layout.height;
-        screen.slots = layout.slots;
+        // The host reads a slot with no position as not in the menu at all: it hides the slot on
+        // the server too, so a click on it never reaches the block entity. A dynamic slot is in
+        // the menu — only its position waits on the menu's state — so it keeps a position here,
+        // off the panel where nothing is drawn or clicked, until the dynamic-slot refresh
+        // replaces it with the state's own answer. A hidden slot keeps no position and stays
+        // out of the menu.
+        screen.slots = layout
+            .slots
+            .iter()
+            .zip(&layout.dynamic)
+            .map(|(slot, dynamic)| match slot {
+                Some(position) => Some(*position),
+                None if *dynamic => Some([-10000.0, -10000.0]),
+                None => None,
+            })
+            .collect();
         screen.inventory_y = layout.inventory_y;
         screen.inventory_x = layout.inventory_x;
         screen.own_labels = layout.own_labels;
@@ -2010,6 +3178,94 @@ impl Hooks for PlutoHooks {
         screen_handler_api_v1::tooltip(event.block, event.at, event.data, event.lines);
     }
 
+    fn screen_render_post(&self, host: &dyn Host, event: &mut ScreenRenderPostEvent<'_>) {
+        // PlutoLib's own mod screen is where its books open: draw the page the reader is on.
+        if !book_screen_is_ours(host, event.screen.id) {
+            return;
+        }
+        let Some((book, view)) = open_book_view() else { return };
+        let mut canvas = HostCanvas { host, batch: &mut *event.batch };
+        book_api_v1::draw_book(&mut canvas, &book, &view, event.screen.rect);
+    }
+
+    fn screen_mouse_button_pressed_pre(&self, host: &dyn Host, event: &mut ScreenMouseButtonPressedPreEvent<'_>) -> Flow {
+        if event.button != 0 || !book_screen_is_ours(host, event.screen.id) {
+            return Flow::Continue;
+        }
+        let Some((book, mut view)) = open_book_view() else { return Flow::Continue };
+        let turned = match book_api_v1::book_click(&book, &view, event.screen.rect, event.screen.mouse) {
+            book_api_v1::BookClick::NextPage => view.next_page(&book),
+            book_api_v1::BookClick::PrevPage => view.prev_page(&book),
+            book_api_v1::BookClick::Section(section) => view.goto_section(&book, section),
+            book_api_v1::BookClick::None => return Flow::Continue,
+        };
+        if turned {
+            set_book_view(view);
+        }
+        Flow::Cancel
+    }
+
+    fn screen_mouse_scrolled_pre(&self, host: &dyn Host, event: &mut ScreenMouseScrolledPreEvent<'_>) -> Flow {
+        if !book_screen_is_ours(host, event.screen.id) {
+            return Flow::Continue;
+        }
+        let Some((book, mut view)) = open_book_view() else { return Flow::Continue };
+        // A negative vertical (the wheel rolled down) turns forward, a positive one back.
+        let turned = if event.scroll[1] < 0.0 {
+            view.next_page(&book)
+        } else if event.scroll[1] > 0.0 {
+            view.prev_page(&book)
+        } else {
+            false
+        };
+        if turned {
+            set_book_view(view);
+        }
+        Flow::Cancel
+    }
+
+    fn screen_key_pressed_pre(&self, host: &dyn Host, event: &mut ScreenKeyPressedPreEvent<'_>) -> Flow {
+        if !book_screen_is_ours(host, event.screen.id) {
+            return Flow::Continue;
+        }
+        let Some((book, mut view)) = open_book_view() else { return Flow::Continue };
+        let key = event.key.to_ascii_lowercase();
+        let turned = match key.as_str() {
+            "arrowright" | "right" | "pagedown" | "space" => view.next_page(&book),
+            "arrowleft" | "left" | "pageup" => view.prev_page(&book),
+            "home" => {
+                let moved = view.page != 0;
+                view.page = 0;
+                moved
+            }
+            "end" => {
+                let last = book.page_count().saturating_sub(1);
+                let moved = view.page != last;
+                view.page = last;
+                moved
+            }
+            _ => return Flow::Continue,
+        };
+        if turned {
+            set_book_view(view);
+        }
+        Flow::Cancel
+    }
+
+    fn screen_closing(&self, host: &dyn Host, event: &mut ScreenClosingEvent<'_>) {
+        if event.screen.id != "mod" {
+            return;
+        }
+        // The reader closed the book (Escape, or the game moved on): forget where they were. While the
+        // screen closes the game may already report no mod screen, so a held view with no other owner
+        // named is treated as ours.
+        if host.mod_screen().is_none() || host.mod_screen() == Some(PLUTO_MOD_ID) {
+            if let Ok(mut view) = BOOK_VIEW.lock() {
+                *view = None;
+            }
+        }
+    }
+
     fn block_entity_update_tag(&self, event: &mut BlockEntityUpdateTagEvent<'_>) -> Option<Compound> {
         block_entity_api_v1::update_tag(&event.entity.id, &compound_from_tag(&event.entity.nbt)).map(|tag| compound_to_tag(&tag))
     }
@@ -2021,6 +3277,9 @@ impl Hooks for PlutoHooks {
     }
 
     fn projectile_impact(&self, host: &mut dyn Host, event: &mut ProjectileImpactEvent<'_>) -> Flow {
+        // The native telling names the hit, not the projectile's flight: its motion and its saved data
+        // are read off the live entity while it is still here.
+        let entity = host.entity(event.projectile);
         let hit = ProjectileImpact {
             dimension: event.dimension.to_owned(),
             projectile: event.projectile,
@@ -2031,14 +3290,46 @@ impl Hooks for PlutoHooks {
             block: event.block,
             face: event.face,
             at: event.at,
+            motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
+            data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+            discard: std::cell::Cell::new(false),
+            motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
         };
-        let allowed = scoped(host, || projectile_events_v1::impact(&hit));
+        // The callbacks see the world and the entities around the hit, as a block entity tick does;
+        // afterwards the actions they queued are done to the hit's parties (the entity it hit as the
+        // victim, the thrower as the attacker; a block hit has no victim, so victim actions go
+        // nowhere), whether the hit itself is cancelled or not.
+        let handle = HostHandle::new(host);
+        let dimension = event.dimension.to_owned();
+        let allowed = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || projectile_events_v1::impact(&hit)));
+        let actions: Vec<entity_events_v1::EntityAction> = hit.actions.borrow_mut().drain(..).collect();
+        if !actions.is_empty() {
+            let victim = event.entity.and_then(|id| i32::try_from(id).ok()).unwrap_or(-1);
+            let attacker = i32::try_from(event.owner).ok().unwrap_or(-1);
+            apply_entity_actions(host, event.dimension, attacker, victim, actions);
+        }
+        // What the callbacks settled on the projectile itself, done as the hook returns: a discard
+        // removes it (the game's own remove call, which discards projectiles), a new motion sends it
+        // flying on — the bounce a cancelled hit turns into.
+        if hit.discard.get() {
+            host.remove_entity(event.dimension, event.projectile);
+        } else if let Some(motion) = hit.motion_after.borrow_mut().take() {
+            if let Some(entity) = entity {
+                host.entity_set_velocity(entity, motion);
+            }
+        }
         if allowed { Flow::Continue } else { Flow::Cancel }
     }
 
     fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
         if !projectile_events_v1::launch_heard() { return; }
-        let launch = projectile_events_v1::ProjectileLaunch { player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned() };
+        let entity = host.entity(event.entity);
+        let launch = projectile_events_v1::ProjectileLaunch {
+            player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned(),
+            motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
+            data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+        };
         scoped(host, || projectile_events_v1::launched(&launch));
     }
 
@@ -2063,6 +3354,142 @@ impl Hooks for PlutoHooks {
         let (allowed, actions) = scoped(host, || entity_events_v1::shear(&attempt));
         if !actions.is_empty() { apply_player_actions(host, player, actions); }
         cancel_if(!allowed)
+    }
+
+    fn living_get_projectile(&self, host: &mut dyn Host, event: &mut LivingGetProjectileEvent<'_>) {
+        if !projectile_events_v1::ammo_heard() {
+            return;
+        }
+        let request = projectile_events_v1::AmmoRequest {
+            player: event.player,
+            name: event.name.to_owned(),
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            weapon: read_stack(event.weapon),
+            vanilla: event.projectile.as_ref().and_then(|stack| slot_of(stack)),
+            // Only the acting player's inventory is readable (the host's carried reach names no player); a mob's request, or
+            // another player's, carries no stacks and can only be answered from what the callback itself knows.
+            carried: event.player.filter(|uuid| host.acting_player().is_some_and(|acting| acting.uuid == *uuid)).map(|uuid| carried_stacks(host, uuid)).unwrap_or_default(),
+            supplied: std::cell::RefCell::new(None),
+            edits: std::cell::RefCell::new(Vec::new()),
+        };
+        let (supplied, edits) = scoped(host, || projectile_events_v1::ammo(&request));
+        if let Some(supplied) = supplied {
+            // The game shrinks nothing when the projectile is a mod's: the callback's edits are its consumption.
+            *event.projectile = native_slot(Some(supplied));
+        }
+        if let Some(player) = event.player {
+            apply_carried_edits(host, player, edits);
+        }
+    }
+
+    fn key(&self, host: &mut dyn Host, event: &mut KeyEvent<'_>) {
+        if !player_api::key_heard() {
+            return;
+        }
+        let press = player_api::KeyPress {
+            player: host.acting_player().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            key: event.key.to_owned(),
+            pressed: event.pressed,
+        };
+        scoped(host, || player_api::key_press(&press));
+    }
+
+    fn interact_entity_v2(&self, host: &mut dyn Host, event: &mut InteractEntityV2Event<'_>) -> Flow {
+        if !events_interaction_v0::use_item_on_entity_heard() {
+            return Flow::Continue;
+        }
+        let player = host.acting_player();
+        let context = events_interaction_v0::UseItemOnEntityContext {
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            hand: match event.hand { Hand::Off => events_interaction_v0::Hand::Off, _ => events_interaction_v0::Hand::Main },
+            held: event.stack.map(read_stack),
+            player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            actions: std::cell::RefCell::new(Vec::new()),
+        };
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let handle = HostHandle::new(host);
+        let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::use_item_on_entity(&context)));
+        let actions = context.actions.take();
+        if let Some(player) = player {
+            if !actions.is_empty() { apply_player_actions(host, player.uuid, actions); }
+        }
+        cancel_if(handled)
+    }
+
+    fn interact_entity(&self, host: &mut dyn Host, event: &mut InteractEntityEvent<'_>) -> Flow {
+        if !events_interaction_v0::entity_interact_heard() {
+            return Flow::Continue;
+        }
+        let player = host.acting_player();
+        let context = events_interaction_v0::InteractEntityContext {
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            stack: event.stack.map(read_stack),
+            player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+        };
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let handle = HostHandle::new(host);
+        let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::entity_interact(&context)));
+        cancel_if(handled)
+    }
+
+    fn inventory_tick(&self, host: &mut dyn Host, event: &mut InventoryTickEvent) {
+        if !player_api::inventory_tick_heard() {
+            return;
+        }
+        let player = host.acting_player();
+        let tick = player_api::InventoryTick {
+            player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            slot: event.slot,
+            selected: event.selected,
+            stack: host.carried_stack(event.slot).filter(|stack| stack.count > 0).map(|stack| read_stack(stack)),
+        };
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let handle = HostHandle::new(host);
+        scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || player_api::inventory_tick(&tick)));
+    }
+
+    fn entity_tick_pre(&self, host: &mut dyn Host, event: &mut EntityTickPreEvent<'_>) -> Flow {
+        if !entity_events_v1::entity_tick_heard() {
+            return Flow::Continue;
+        }
+        let info = entity_events_v1::EntityInfo { id: event.entity, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() };
+        let handle = HostHandle::new(host);
+        let allowed = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: info.dimension.clone() }, || entity_events_v1::entity_tick_before(&info)));
+        cancel_if(!allowed)
+    }
+
+    fn entity_tick_post(&self, host: &mut dyn Host, event: &mut EntityTickPostEvent<'_>) {
+        if !entity_events_v1::entity_tick_heard() {
+            return;
+        }
+        let info = entity_events_v1::EntityInfo { id: event.entity, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() };
+        let handle = HostHandle::new(host);
+        scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: info.dimension.clone() }, || entity_events_v1::entity_tick_after(&info)));
+    }
+
+    fn player_fish_v2(&self, host: &mut dyn Host, event: &mut PlayerFishV2Event<'_>) -> Flow {
+        if !events_interaction_v0::fishing_heard() {
+            return Flow::Continue;
+        }
+        let rod = match event.hand {
+            Hand::Off => host.player_equipment(event.player, EquipmentSlot::OffHand),
+            _ => host.held_stack(event.player),
+        }.map(|stack| read_stack(&stack));
+        let context = events_interaction_v0::FishingContext {
+            player: player_api::ServerPlayer { uuid: event.player, name: event.name.to_owned() },
+            state: event.state,
+            hand: match event.hand { Hand::Off => events_interaction_v0::Hand::Off, _ => events_interaction_v0::Hand::Main },
+            rod,
+            cancel: std::cell::Cell::new(false),
+            actions: std::cell::RefCell::new(Vec::new()),
+        };
+        scoped(host, || events_interaction_v0::fishing(&context));
+        let actions = context.actions.take();
+        if !actions.is_empty() { apply_player_actions(host, event.player, actions); }
+        cancel_if(context.cancel.get())
     }
 
     fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_>) {
@@ -2186,8 +3613,9 @@ impl Hooks for PlutoHooks {
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
         if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
-            for id in entity_events_v1::player_tick(&tick) { host.remove_effect(player.uuid, &id); }
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            // The world scope is open while the tick runs, so a callback may work on the blocks around the player.
+            for id in scoped(host, || entity_events_v1::player_tick(&tick)) { host.remove_effect(player.uuid, &id); }
             // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
             let own = entity_events_v1::take_tick_actions(&tick);
             if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }
@@ -2210,6 +3638,10 @@ impl Hooks for PlutoHooks {
         // Actions the armor's counters do to the mob that hit the wearer (fire, freezing, knockback) land here too.
         for (mob, action) in entity_events_v1::take_wearer_actions(player.entity_id) {
             apply_entity_actions(host, &player.dimension, mob, player.entity_id, vec![action]);
+        }
+        // What the player's own attacks asked for on the attacker (a heal by the damage dealt) lands here, with the damaged entity as the other party.
+        for (victim, action) in entity_events_v1::take_attacker_actions(player.entity_id) {
+            apply_entity_actions(host, &player.dimension, player.entity_id, victim, vec![action]);
         }
         // Effects the armor's counters put on the wearer land here, where a host is at hand.
         for grant in entity_events_v1::take_self_effects(player.entity_id) {
@@ -2239,8 +3671,10 @@ impl Hooks for PlutoHooks {
         scoped(host, || entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension));
     }
 
-    fn use_item(&self, _host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
-        cancel_if(events_interaction_v0::use_item(&event.stack.item, event.stack.count))
+    fn use_item(&self, host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
+        // Scoped like use_item_on and the finish event: a callback here may reach for the player, the
+        // world and the client reaches (a book item opens its book), which only exist inside the scope.
+        cancel_if(scoped(host, || events_interaction_v0::use_item(&event.stack.item, event.stack.count)))
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
@@ -2307,9 +3741,18 @@ impl Hooks for PlutoHooks {
             let eyes_in_water = host.level_block_state(level, eyes).is_some_and(|state| state.starts_with("minecraft:water") || state.contains("waterlogged=true"));
             events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water }
         });
+        // The light at the block being dug and the temperature of the biome it stands in, for the variables that read them.
+        // The event names no face, so the light is the dug block's own, not the block on the side that was hit.
+        let (block_light, sky_light) = host.light(event.pos);
+        let (rain, thunder) = host.weather();
+        let facts = events_interaction_v0::DiggingFacts {
+            block_light: Some(block_light), sky_light: Some(sky_light),
+            sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()),
+            biome_temperature: host.biome(event.pos).as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, event.pos[1])),
+        };
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);
-        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held, player));
+        event.speed = world_api_v1::with_world(&mut tags, || events_interaction_v0::break_speed(event.pos, block, event.original, event.speed, held, player, facts));
     }
 
     fn block_clone_item(&self, host: &dyn Host, event: &mut BlockCloneItemEvent<'_>) -> Option<ItemStack> {
@@ -2330,6 +3773,25 @@ impl Hooks for PlutoHooks {
         cancel_if(events_interaction_v0::attack_entity(event.entity, event.kind, event.pos))
     }
 
+    fn left_click_block(&self, host: &mut dyn Host, event: &mut LeftClickBlockEvent) -> Flow {
+        // The break hook is not told the face; the dig's start is, and a break belongs to the dig the player last started.
+        if let Some(player) = host.acting_player() {
+            let face = match event.face {
+                [0, -1, 0] => Some(block_api_v1::Direction::Down),
+                [0, 1, 0] => Some(block_api_v1::Direction::Up),
+                [0, 0, -1] => Some(block_api_v1::Direction::North),
+                [0, 0, 1] => Some(block_api_v1::Direction::South),
+                [-1, 0, 0] => Some(block_api_v1::Direction::West),
+                [1, 0, 0] => Some(block_api_v1::Direction::East),
+                _ => None,
+            };
+            if let (Some(face), Ok(mut last)) = (face, LAST_DIG_FACE.lock()) {
+                last.insert(player.uuid, face);
+            }
+        }
+        Flow::Continue
+    }
+
     fn destroy_block(&self, host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
         if !events_interaction_v0::block_break_heard() { return Flow::Continue; }
         let context = break_context(host, event.pos);
@@ -2337,9 +3799,15 @@ impl Hooks for PlutoHooks {
         let allowed = scoped(host, || events_interaction_v0::before_block_break(&context));
         let actions = context.actions.take();
         if let (Some(player), false) = (&context.player, actions.is_empty()) { apply_player_actions(host, player.uuid, actions); }
+        // The extra blocks an allowed break's callbacks asked for are broken by the level seams (see the schedule drain in `hooks()`).
+        if allowed {
+            for extra in context.extra_breaks.take() {
+                events_interaction_v0::queue_extra_break(&context.dimension, extra);
+            }
+        }
         // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
         let pending = match (allowed, context.player) {
-            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension, state: context.state, player }),
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, face: context.face, yaw: context.yaw, pitch: context.pitch }),
             _ => None,
         };
         if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
@@ -2419,11 +3887,21 @@ impl Hooks for PlutoHooks {
             Err(error)=>{ eprintln!("PlutoLib: item prototypes unavailable: {error}"); None }
         };
         let native=horizon_client::registries::pluto_reload_registry::current();
-        let base=native.as_ref().and_then(|records|records.iter().find(|r|r.id=="minecraft:fluid")).map(|r|r.entries.as_slice());
+        let native_fluids=native.as_ref().and_then(|records|records.iter().find(|r|r.id=="minecraft:fluid"));
+        let base=native_fluids.map(|r|r.entries.as_slice());
         let fluids=match crate::pure::fluid_api_v1::FluidRegistrySnapshot::capture(base) {
             Ok(snapshot)=>snapshot,
             Err(error)=>{ eprintln!("PlutoLib: fluid registry unavailable: {error}"); None }
         };
+        // The fluid lookup joins the native fluids with the ones PlutoLib defines and carries the loaded fluid tags,
+        // so `reload_registry("minecraft:fluid")` answers for mod fluids too.
+        let mut registries=registries;
+        if let Some(record)=native_fluids {
+            match crate::pure::fluid_api_v1::reload_lookup(&record.entries,&record.tags) {
+                Ok(lookup)=>{ registries.insert(Identifier::parse("minecraft:fluid").expect("valid registry ID"),lookup); },
+                Err(error)=>eprintln!("PlutoLib: fluid reload registry unavailable: {error}"),
+            }
+        }
         let result=crate::pure::fluid_api_v1::with_fluid_registry(fluids,||
             crate::pure::item_registry::with_item_registry(items,||
                 resource_loader_v0::with_reload_folders(registries,resources,||
@@ -2482,7 +3960,11 @@ impl Hooks for PlutoHooks {
             direct: event.direct,
             amount: event.amount,
         };
-        cancel_if(!entity_events_v1::allow_damage(&damage))
+        if !entity_events_v1::allow_damage(&damage) { return Flow::Cancel; }
+        // The hurt stage, as the damage arrives and before armor and enchantment protection take their share: what the
+        // callbacks leave of the amount is what the game goes on with.
+        event.amount = entity_events_v1::modify_hurt(&damage);
+        Flow::Continue
     }
 
     fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
@@ -2509,6 +3991,7 @@ impl Hooks for PlutoHooks {
                 state.health = saved.health;
                 state.max_health = saved.max_health;
                 state.armor_coverage = saved.armor_coverage;
+                state.equipment = saved.equipment;
             }
             let eyes = host.entity_eye_position(entity);
             if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }
@@ -2596,9 +4079,11 @@ impl Hooks for PlutoHooks {
         // The host names the item but not the stack; the player's hand and armor are searched for one of that item.
         let mut found = host.held_stack(player).filter(|held| held.item.to_string() == event.item);
         let from_hand = found.is_some();
-        for slot in [horizon_client::mod_api::EquipmentSlot::Feet, horizon_client::mod_api::EquipmentSlot::Legs, horizon_client::mod_api::EquipmentSlot::Chest, horizon_client::mod_api::EquipmentSlot::Head] {
+        let mut worn = from_hand.then_some(entity_events_v1::CarriedSlot::Equipment(entity_events_v1::StackSlot::MainHand));
+        for (stack_slot, slot) in [(entity_events_v1::StackSlot::Feet, horizon_client::mod_api::EquipmentSlot::Feet), (entity_events_v1::StackSlot::Legs, horizon_client::mod_api::EquipmentSlot::Legs), (entity_events_v1::StackSlot::Chest, horizon_client::mod_api::EquipmentSlot::Chest), (entity_events_v1::StackSlot::Head, horizon_client::mod_api::EquipmentSlot::Head)] {
             if found.is_some() { break; }
-            found = host.player_equipment(player, slot).filter(|worn| worn.item.to_string() == event.item);
+            found = host.player_equipment(player, slot).filter(|stack| stack.item.to_string() == event.item);
+            if found.is_some() { worn = Some(entity_events_v1::CarriedSlot::Equipment(stack_slot)); }
         }
         let stack = found.as_ref().map(read_stack);
         let slot = found.as_ref().and_then(slot_of);
@@ -2607,10 +4092,12 @@ impl Hooks for PlutoHooks {
         let holder = host.acting_player().filter(|acting| acting.uuid == player)
             .or_else(|| host.server_players().into_iter().find(|listed| listed.uuid == player))
             .map(|listed| player_entity_state(host, &listed));
-        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None), holder };
+        let wear = entity_events_v1::ItemDamage { player, name, item: event.item.to_owned(), stack, slot, amount: std::cell::Cell::new(event.amount), cancel: std::cell::Cell::new(false), replacement: std::cell::RefCell::new(None), holder, worn, carried: carried_stacks(host, player), edits: std::cell::RefCell::new(Vec::new()) };
         match entity_events_v1::modify_item_damage(&wear) {
-            Some((amount, replacement)) => {
+            Some((amount, replacement, edits)) => {
                 event.amount = amount;
+                // The edits a callback made to the holder's other stacks (a durability share's shield on the stack that took it).
+                apply_carried_edits(host, player, edits);
                 // A replacement goes to the main-inventory stack that carried the old data (a held tool, usually); the game then
                 // wears it by 0. A worn armor piece is replaced by the game's own wear step, which takes the stack from
                 // `pluto_item_wear_access` and wears it by 0; otherwise the wear stays in `amount`.

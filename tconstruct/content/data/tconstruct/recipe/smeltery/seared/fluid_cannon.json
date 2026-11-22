@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": [
+      "minecraft:copper_ingot"
+    ],
+    "R": [
+      "minecraft:redstone"
+    ],
+    "T": [
+      "tconstruct:seared_fuel_gauge",
+      "tconstruct:seared_ingot_gauge"
+    ]
+  },
+  "pattern": [
+    " R ",
+    "CTC",
+    "CCC"
+  ],
+  "result": {
+    "id": "tconstruct:seared_fluid_cannon"
+  }
+}

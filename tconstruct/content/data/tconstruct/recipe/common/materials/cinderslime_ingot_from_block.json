@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "tconstruct:cinderslime_block"
+  ],
+  "group": "tconstruct:cinderslime_ingot",
+  "result": {
+    "id": "tconstruct:cinderslime_ingot",
+    "count": 9
+  }
+}

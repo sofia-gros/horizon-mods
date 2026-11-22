@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    [
+      "tconstruct:greenheart_log",
+      "tconstruct:stripped_greenheart_log",
+      "tconstruct:greenheart_wood",
+      "tconstruct:stripped_greenheart_wood"
+    ]
+  ],
+  "group": "planks",
+  "result": {
+    "id": "tconstruct:greenheart_planks",
+    "count": 4
+  }
+}

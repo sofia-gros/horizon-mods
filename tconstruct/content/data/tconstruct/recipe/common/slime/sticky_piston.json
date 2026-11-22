@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "minecraft:slime_ball",
+      "tconstruct:sky_slime_ball",
+      "tconstruct:ichor_slime_ball",
+      "tconstruct:ender_slime_ball"
+    ],
+    "P": "minecraft:piston"
+  },
+  "pattern": [
+    "#",
+    "P"
+  ],
+  "result": {
+    "id": "minecraft:sticky_piston"
+  }
+}

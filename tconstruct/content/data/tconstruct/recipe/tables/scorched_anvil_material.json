@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "m": {
+      "type": "tconstruct:material",
+      "item": "tconstruct:fake_storage_block",
+      "material": {
+        "type": "mantle:tag",
+        "tag": "tconstruct:compatibility_metals/alloys"
+      }
+    },
+    "s": [
+      "tconstruct:scorched_stone",
+      "tconstruct:polished_scorched_stone",
+      "tconstruct:scorched_bricks",
+      "tconstruct:scorched_road",
+      "tconstruct:chiseled_scorched_bricks"
+    ]
+  },
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "parts": "m",
+  "result": {
+    "id": "tconstruct:scorched_anvil"
+  }
+}

@@ -166,6 +166,13 @@
         }
       },
       {
+        "when": "steeleaf",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/arrow_head/ammo/arrow_head_tconstruct_steeleaf"
+        }
+      },
+      {
         "when": "wool",
         "model": {
           "type": "minecraft:model",

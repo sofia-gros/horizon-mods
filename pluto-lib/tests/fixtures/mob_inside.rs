@@ -76,16 +76,21 @@ mod block_contact {
     pub struct Contact<'a> { pub entity:i32,pub kind:&'a str,pub block:&'a str,pub state:u32,pub position:crate::position::BlockPos }
     pub enum Event<'a> { StepOn(Contact<'a>),Inside(Contact<'a>) }
     pub fn emit(_:Event) {}
+    pub fn current_level()->Option<&'static str> { None }
 }
 pub mod level {
     pub mod pluto_block_access {
+        #[derive(Clone)]
         pub struct StateInfo { pub block:String,pub properties:Vec<(String,String)> }
+        pub struct EntityInside { pub dimension:String,pub state:StateInfo,pub pos:[i32;3],pub entity:i32,
+            pub kind:std::sync::Arc<str>,pub bounds:[f64;6],pub fall_distance:f64 }
         pub struct InsideMotion {
             pub pos:[i32;3],pub entity:i32,pub kind:std::sync::Arc<str>,pub server:bool,
             pub suppressing_bounce:bool,pub position:[f64;3],pub previous_position:[f64;3],
             pub velocity:[f64;3],pub sync_velocity:bool,pub step_sound:Option<[f32;2]>,
         }
-        pub struct Sink { pub inside_motion:fn(&StateInfo)->Option<fn(&mut InsideMotion)> }
+        pub struct Sink { pub inside_motion:fn(&StateInfo)->Option<fn(&mut InsideMotion)>,
+            pub entity_inside:fn(&EntityInside) }
         pub fn landing_sink()->Option<Sink> { None }
     }
     pub mod pluto_contact_effects {

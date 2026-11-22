@@ -1,0 +1,1 @@
+{"template":"minecraft:cake","properties":{"hardness":0.5,"explosion_resistance":0.5,"sounds":"minecraft:white_wool","map_color":0,"requires_tool":false},"item":true,"collision_shapes":{"default":[[1,8,1,15,16,15]]}}

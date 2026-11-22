@@ -69,7 +69,7 @@ mod tests {
     fn item_factories_copy_all_stack_data_and_invalid_replacements_leave_prior_factory_intact() {
         let id=Identifier::parse("example:crumbs").unwrap();
         let original=StackData {item:"example:painted_item".into(),count:2,damage:4,max_damage:Some(30),
-            custom_data:[("test:colour".into(),Nbt::Int(0x123456))].into_iter().collect(),custom_model_data:None};
+            custom_data:[("test:colour".into(),Nbt::Int(0x123456))].into_iter().collect(),custom_model_data:None,enchantments:Default::default()};
         ParticleFactoryRegistry::register_item(id.clone(),original.clone()).unwrap();
         let mut copy=ParticleFactoryRegistry::item(&id).unwrap();
         assert_eq!(copy,original); copy.count=99; copy.custom_data.clear();

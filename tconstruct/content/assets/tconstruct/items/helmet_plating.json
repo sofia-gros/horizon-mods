@@ -5,6 +5,13 @@
     "index": 0,
     "cases": [
       {
+        "when": "aluminum",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_aluminum"
+        }
+      },
+      {
         "when": "amethyst_bronze",
         "model": {
           "type": "minecraft:model",
@@ -16,6 +23,13 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_ancient"
+        }
+      },
+      {
+        "when": "bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_bronze"
         }
       },
       {
@@ -33,10 +47,31 @@
         }
       },
       {
+        "when": "constantan",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_constantan"
+        }
+      },
+      {
         "when": "copper",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_copper"
+        }
+      },
+      {
+        "when": "electrum",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_electrum"
+        }
+      },
+      {
+        "when": "fiery",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_fiery"
         }
       },
       {
@@ -51,6 +86,13 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_hepatizon"
+        }
+      },
+      {
+        "when": "invar",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_invar"
         }
       },
       {
@@ -89,6 +131,13 @@
         }
       },
       {
+        "when": "lead",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_lead"
+        }
+      },
+      {
         "when": "magnetite",
         "model": {
           "type": "minecraft:model",
@@ -103,10 +152,31 @@
         }
       },
       {
+        "when": "nicrosil",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_nicrosil"
+        }
+      },
+      {
         "when": "obsidian",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_obsidian"
+        }
+      },
+      {
+        "when": "osmium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_osmium"
+        }
+      },
+      {
+        "when": "pewter",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_pewter"
         }
       },
       {
@@ -145,6 +215,13 @@
         }
       },
       {
+        "when": "silver",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_silver"
+        }
+      },
+      {
         "when": "slimesteel",
         "model": {
           "type": "minecraft:model",
@@ -156,6 +233,13 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_steel"
+        }
+      },
+      {
+        "when": "steeleaf",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/helmet_plating/armor/plate/helmet/plating_tconstruct_steeleaf"
         }
       }
     ],

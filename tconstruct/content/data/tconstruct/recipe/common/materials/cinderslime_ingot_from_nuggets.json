@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "tconstruct:cinderslime_nugget"
+    ],
+    "*": "tconstruct:cinderslime_nugget"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "group": "tconstruct:cinderslime_ingot",
+  "result": {
+    "id": "tconstruct:cinderslime_ingot"
+  }
+}

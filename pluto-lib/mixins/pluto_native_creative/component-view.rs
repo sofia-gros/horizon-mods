@@ -28,6 +28,31 @@ pub fn from_nbt(tag: horizon_world::nbt::Tag) -> ComponentValue {
     }
 }
 
+/// The exact inverse of `from_nbt`, for writing a provider's component tree
+/// back into the game's tag form (component patches, assembled results).
+pub fn to_nbt(value: ComponentValue) -> horizon_world::nbt::Tag {
+    use horizon_world::nbt::{JavaString, Tag as Native};
+    match value {
+        ComponentValue::End => Native::End,
+        ComponentValue::Byte(v) => Native::Byte(v),
+        ComponentValue::Short(v) => Native::Short(v),
+        ComponentValue::Int(v) => Native::Int(v),
+        ComponentValue::Long(v) => Native::Long(v),
+        ComponentValue::Float(v) => Native::Float(v),
+        ComponentValue::Double(v) => Native::Double(v),
+        ComponentValue::ByteArray(v) => Native::ByteArray(v),
+        ComponentValue::String(v) => Native::String(JavaString(v.0)),
+        ComponentValue::List(v) => Native::List(v.into_iter().map(to_nbt).collect()),
+        ComponentValue::Compound(v) => Native::Compound(
+            v.into_iter()
+                .map(|(key, v)| (JavaString(key.0), to_nbt(v)))
+                .collect(),
+        ),
+        ComponentValue::IntArray(v) => Native::IntArray(v),
+        ComponentValue::LongArray(v) => Native::LongArray(v),
+    }
+}
+
 pub struct ItemFacts {
     view: crate::advancements::ItemView,
     components: Option<ComponentValue>,

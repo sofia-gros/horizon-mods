@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "tconstruct:pig_iron_nugget"
+    ],
+    "*": "tconstruct:pig_iron_nugget"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "group": "tconstruct:pig_iron_ingot",
+  "result": {
+    "id": "tconstruct:pig_iron_ingot"
+  }
+}

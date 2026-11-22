@@ -47,6 +47,13 @@
         }
       },
       {
+        "when": "necronium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/ribcage/armor/slime/chestplate/ribcage_tconstruct_necronium"
+        }
+      },
+      {
         "when": "necrotic_bone",
         "model": {
           "type": "minecraft:model",

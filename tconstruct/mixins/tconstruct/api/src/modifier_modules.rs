@@ -1,5 +1,5 @@
 //! Data-driven modifier modules with a ModifierCondition (SlimeKnights, MIT; see LICENSE):
-//! volatile_flag, volatile_int, modifier_slot, rarity and stat_boost. Every other module the
+//! volatile_flag, volatile_int, volatile_float, modifier_slot, rarity and stat_boost. Every other module the
 //! original ships is recorded as unbound by the caller; a module of these kinds with a hook
 //! binding or stat Tinkers cannot honor is also unbound, never half-installed.
 use crate::{
@@ -35,6 +35,11 @@ impl Condition {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation { Add, Percent, MultiplyBase, MultiplyConditional, MultiplyAll }
 
+/// MaterialRepairModule's repair amount: the constant `durability` field, or the durability of the repair
+/// material's stats of one type (MaterialRepairModule.getDurability).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum RepairAmount { Constant(i32), StatType(Identifier) }
+
 /// The shipped presentation-only modules. Tinkers has no client text/colour rendering to feed, so these are
 /// recorded with their data and have no effect on game state (in the original they only style names, bars and tooltips).
 #[derive(Clone, Debug, PartialEq)]
@@ -51,13 +56,31 @@ pub(crate) enum Display {
     VariantName { formatter: Identifier },
     /// StatTooltipModule (tooltip): the stat line it adds.
     StatTooltip { stat: Identifier, condition: Condition },
+    /// BannerModule (display name, tooltip): colours the name by the first stored pattern and lists them.
+    BannerPatterns,
+    /// DyeModule (display name): names the modifier by the dye colour stored on the tool.
+    Dyed,
+    /// TrimModule (display name): formats the name with the trim material and pattern stored on the tool.
+    /// The trim itself is the game's own layer on worn armor; a held tool's trim has no layer to draw on
+    /// here (an armor layer is one texture and a tint, and no stack carries a trim component).
+    Trim,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Module {
     Flag { id: Identifier, condition: Condition },
     Rarity(i32),
+    /// SweepingEdgeModule: a leveling value (no condition) added onto the volatile float `tconstruct:sweep_percent`.
+    Sweep { flat: f32, each: f32 },
     Int { id: Identifier, flat: i32, each: i32, condition: Condition },
+    /// VolatileFloatModule: a float added onto the volatile data under its flag (and onto a launched
+    /// projectile's persistent data, the same second half the int and flag modules have).
+    Float { id: Identifier, flat: f32, each: f32, condition: Condition },
+    /// CraftCountModule: multiplies how many of the tool a craft produces (station building and part swapping).
+    CraftCount { flat: f32, each: f32, condition: Condition },
+    /// MaterialRepairModule: a material that repairs the tool, for a constant durability or the durability of
+    /// one of the material's stat types.
+    MaterialRepair { material: Identifier, amount: RepairAmount, condition: Condition },
     Slot { name: String, flat: i32, each: i32, condition: Condition },
     Boost { stat: Stat, operation: Operation, flat: f32, each: f32, condition: Condition },
     /// SetStatModule for the harvest tier: the tier becomes the larger of the current one and this.
@@ -116,20 +139,56 @@ pub(crate) enum Module {
     CapacityMining { module: Box<crate::capacity::MiningFill>, condition: Condition },
     /// LootToCapacityModule: the loot of a block the tool breaks, eaten into a capacity bar.
     CapacityLoot { module: Box<crate::capacity::LootFill>, condition: Condition },
+    /// LaunchCapacityModule: a projectile the tool launches that adds to (or drains) a capacity bar.
+    CapacityLaunch { module: Box<crate::capacity::LaunchFill>, condition: Condition },
+    /// LifestealModule: the melee half (a critical hit of a fully charged swing heals its wielder by a share of the damage dealt).
+    Lifesteal { module: Box<crate::lifesteal::Lifesteal>, condition: Condition },
     /// InventoryModule: item slots the modifier adds to the tool, kept in its persistent data.
     Inventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
+    /// QuiverInventoryModule: an inventory whose slots take the quiver's ammunition (arrows, and for the right
+    /// tool also fireworks and ballista ammo) instead of a filter's items.
+    QuiverInventory { module: Box<crate::tool_inventory::Inventory>, condition: Condition },
+    /// UpdateHealthModule: armor that refreshes its wearer's health as it goes on or comes off.
+    UpdateHealth { module: crate::wearer_modules::UpdateHealth, condition: Condition },
     /// InventoryMenuModule: the key that opens the tool's inventory screen.
     InventoryMenu(crate::tool_inventory::MenuKey),
     /// InventorySlotMenuModule: clicking the tool in the player's inventory opens its inventory screen.
     InventorySlotMenu,
+    /// BulkQuiverModule (BowAmmoModifierHook): the tool fires arrows from its own inventory; when it checks the
+    /// standard arrows first, the quiver is only a backup for when the game found none itself.
+    BulkQuiver { check_standard_arrows: bool },
+    /// TrickQuiverModule (BowAmmoModifierHook): the tool fires the stack in the selected slot of its own inventory.
+    TrickQuiver,
+    /// ShieldStrapModule (ArmorInteractModifierHook): the armor keybind on one of these keys rotates the piece's
+    /// inventory through the off hand. The swap itself is armor_interact_hook's; see there for the server surface.
+    ShieldStrap { keys: Vec<crate::tool_inventory::MenuKey> },
+    /// ToolBeltModule (ArmorInteractModifierHook): the armor keybind on one of these keys swaps the piece's
+    /// inventory with the wearer's main inventory, slot for slot.
+    ToolBelt { keys: Vec<crate::tool_inventory::MenuKey> },
+    /// ShareDurabilityModule (ToolDamageModifierHook): wear on this tool also damages it directly by the consume
+    /// amount, and charges the shield bar of a random other carried tool by the grant amount per point.
+    ShareDurability { shield: Identifier, grant: (i32, i32), consume: (i32, i32) },
+    /// ShearsModule (ToolActionModifierHook): the tool performs the four shear actions while its condition holds.
+    /// The shearing it starts rides the game's shear gates (see tool_behavior_hook); the entity-interact shearing
+    /// of sheep and kin has no gate to ride (the port's item behaviour notes name the match guards), and the
+    /// area shearing around a target needs a nearby-entity enumeration no event offers.
+    Shears { flat: f32, per_level: f32, expanded: f32, condition: Condition },
+    /// FishingModule (ToolActionModifierHook): the tool performs the fishing rod cast action. The cast itself
+    /// spawns the original's own hook entity, which no spawn reach in this tree can create (the projectile and
+    /// book services of the foundation lane are not in this base), so only the action answer is bound.
+    Fishing,
     /// MaxArmorAttributeModule: an attribute worked from the largest level among the worn pieces.
     MaxArmorAttribute { module: Box<crate::max_armor::MaxArmorAttribute>, condition: Condition },
     /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
     ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
+    /// ShowOffhandModule: a chest piece counts 1 toward the `tconstruct:show_empty_offhand` armor level while worn.
+    ShowOffhand { allow_broken: bool },
     /// MobDisguiseModule: armor that makes mobs of one type see its wearer from half as far for each level.
     MobDisguise { module: crate::mob_disguise::MobDisguise },
     /// EdibleModule: a tool with a hunger stat can be eaten with a right click.
     Edible,
+    /// SeveringModule: when the mob it kills drops no head, the severing recipes for the mob may add their item (ProcessLootModifierHook).
+    Severing,
     /// EdibleConsumeDurabilityModule: eating the tool wears it.
     EdibleWear { usage: crate::edible::DurabilityUsage, condition: Condition },
     /// EdibleCureRandomEffectModule: eating the tool cures one of the eater's effects.
@@ -155,8 +214,12 @@ pub(crate) enum Module {
     ToolActions { actions: Vec<String>, condition: Condition },
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
+    /// ToolActionWalkerTransformModule: walking turns the ground under a replaceable cell into its transformed state.
+    WalkTransform { action: crate::tool_actions::ToolAction, sound: String, radius: crate::wearer_modules::Leveling, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
+    /// LootingModule.Armor: a worn piece adds this looting to its wearer's kills while it sits in one of the listed slots.
+    ArmorLooting { flat: f32, each: f32, slots: Vec<String>, condition: Condition },
     /// ClearEffectOnUnequipModule: taking the armor off takes the effect off its wearer.
     ClearEffectOnUnequip { effect: Identifier, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
@@ -166,8 +229,12 @@ pub(crate) enum Module {
     DepthProtection { module: crate::wearer_modules::DepthProtection, condition: Condition },
     /// OvershieldModule: protection paid for with the overslime on the piece.
     Overshield { module: crate::wearer_modules::Overshield },
-    /// RestoreLostHealthModule (on the modify damage hook): armor that turns part of the damage into slow healing.
-    RestoreLostHealth { module: Box<crate::wearer_modules::RestoreLostHealth>, condition: Condition },
+    /// RecurrentProtectionModule (on the modify hurt hook): armor that builds momentum as its wearer takes damage.
+    RecurrentProtection { module: crate::wearer_modules::RecurrentProtection },
+    /// RestoreLostHealthModule: armor that turns part of the damage into slow healing. The module runs on the hook it is
+    /// bound to: `hurt` as the damage arrives, before armor (the shipped `restore`), `damage` on what armor left (the
+    /// shipped `rebuff`, the module type's default binding); a binding to both runs it at both.
+    RestoreLostHealth { module: Box<crate::wearer_modules::RestoreLostHealth>, condition: Condition, hurt: bool, damage: bool },
     /// DamageOnUnequipModule: taking the armor off hurts its wearer.
     DamageOnUnequip { module: crate::wearer_modules::DamageOnUnequip, condition: Condition },
     /// ReduceEffectOnUnequipModule: taking the armor off shortens the wearer's effects of one category.
@@ -175,10 +242,34 @@ pub(crate) enum Module {
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
+    Punch { module: Box<crate::punch::Punch>, condition: Condition },
+    ReversePunch { module: Box<crate::punch::ReversePunch> },
+    /// DamageOnShootModule: firing the tool hurts its holder.
+    DamageOnShoot { module: crate::projectile_modules::DamageOnShoot, condition: Condition },
+    /// ExtinguishCampfireModule: a right click that puts out lit campfires.
+    CampfireExtinguish { condition: Condition },
+    /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
+    Blocking,
+    /// InfinityModule: the launcher fires its named ammo without the shooter carrying any, paid for with
+    /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
+    /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
+    Infinity { module: crate::projectile_modules::Infinity },
+    MeleeInstrument { module: Box<crate::melee_instrument::MeleeInstrument>, condition: Condition },
+    Overgrowth { module: Box<crate::overgrowth::Overgrowth>, condition: Condition },
+    Kinetic,
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
 const OVERRIDE_MULTIPLIER: &str = "tconstruct:override_multiplier";
+
+/// How a quiver module draws ammunition from its modifier's inventory (BowAmmoModifierHook).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum QuiverDraw {
+    /// BulkQuiverModule: the first ammunition stack; a backup only when it checks the standard arrows.
+    Bulk { check_standard_arrows: bool },
+    /// TrickQuiverModule: the stack in the selected slot, whatever it is.
+    Trick,
+}
 
 /// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
 fn is_known_slot(name: &str) -> bool { !name.is_empty() }
@@ -262,6 +353,25 @@ fn float(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
         Some(_) => Err(format!("{key} must be a number")),
     }
 }
+/// LevelingIntModule.FIELD: the `level` field is a leveling int whose plain number means the amount for each level (LevelingInt.EACH_LEVEL),
+/// or an object with `flat` and `each_level` parts; absent, it is the level itself. Returns (flat, each_level).
+fn leveling_int(fields: &Map<String, Value>) -> Result<(f32, f32), String> {
+    match fields.get("level") {
+        None | Some(Value::Null) => Ok((0.0, 1.0)),
+        Some(Value::Number(number)) => Ok((0.0, number.as_f64().ok_or("level must be a number")? as f32)),
+        Some(Value::Object(level)) => Ok((float(level, "flat")?, float(level, "each_level")?)),
+        Some(_) => Err("level must be a number or a leveling value".into()),
+    }
+}
+/// A predicate field that is absent or the always-true `mantle:any`; a module with any other predicate depends on state its event lacks.
+fn is_any_predicate(fields: &Map<String, Value>, key: &str) -> bool {
+    match fields.get(key) {
+        None | Some(Value::Null) => true,
+        Some(Value::Object(predicate)) => predicate.get("type").and_then(Value::as_str) == Some("mantle:any"),
+        Some(_) => false,
+    }
+}
+
 /// ModuleWithKey.FIELD: an optional persistent-data key, the modifier's ID when absent.
 fn optional_key(fields: &Map<String, Value>) -> Result<Option<Identifier>, String> {
     match fields.get("key").filter(|value| !value.is_null()) { None => Ok(None), Some(_) => identifier(fields, "key").map(Some) }
@@ -276,6 +386,33 @@ fn slot_name(fields: &Map<String, Value>, key: &str) -> Result<String, String> {
 
 fn identifier(fields: &Map<String, Value>, key: &str) -> Result<Identifier, String> {
     Identifier::parse(fields.get(key).and_then(Value::as_str).ok_or_else(|| format!("{key} must be an ID string"))?).map_err(|e| e.to_string())
+}
+
+/// LevelingInt.LOADABLE for a required field: a plain number is the per-level amount (the EACH_LEVEL form), an
+/// object names `flat` and `each_level`; both parts are shorts. Returns (flat, each_level).
+fn leveling_int_keyed(fields: &Map<String, Value>, key: &str) -> Result<(i32, i32), String> {
+    let part = |value: &Value| -> Result<i32, String> {
+        let Value::Number(number) = value else { return Err(format!("{key} must be a leveling int")); };
+        let value = crate::materials::number_int(&number.to_string());
+        if (-32768..=32767).contains(&value) { Ok(value) } else { Err(format!("{key} must fit in a short")) }
+    };
+    match fields.get(key).filter(|value| !value.is_null()) {
+        Some(Value::Object(object)) => {
+            let named = |name: &str| match object.get(name).filter(|value| !value.is_null()) { None => Ok(0), Some(value) => part(value) };
+            Ok((named("flat")?, named("each_level")?))
+        }
+        Some(value) => Ok((0, part(value)?)),
+        None => Err(format!("{key} must be a leveling int")),
+    }
+}
+
+/// LevelingInt.compute: `flat + each_level * level`, truncated.
+pub(crate) fn leveling_compute(leveling: (i32, i32), level: f32) -> i32 { (leveling.0 as f32 + leveling.1 as f32 * level) as i32 }
+
+/// The `on_key` list of an armor interact module (ShieldStrapModule/ToolBeltModule read a set of tooltip keys).
+fn key_list(fields: &Map<String, Value>) -> Result<Vec<crate::tool_inventory::MenuKey>, String> {
+    let Some(Value::Array(keys)) = fields.get("on_key").filter(|value| !value.is_null()) else { return Err("on_key must be a list of key names".into()); };
+    keys.iter().map(|key| match key.as_str() { Some(name) => crate::tool_inventory::MenuKey::from_name(name), None => Err("on_key must be a list of key names".into()) }).collect()
 }
 
 impl Module {
@@ -302,12 +439,39 @@ impl Module {
             "tconstruct:volatile_int" if only("tconstruct:volatile_data") => Self::Int {
                 id: identifier(fields, "flag")?, flat: short(fields, "flat")?, each: short(fields, "each_level")?, condition: Condition::decode(fields)?,
             },
+            // The float binds on its volatile data hook, like the flag and the int; a binding of nothing but the
+            // projectile launch hook stays unbound (a flag bound that way is unbound too), as the launched
+            // projectile's persistent data has no consumer yet.
+            "tconstruct:volatile_float" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:projectile_launch"))
+                && (hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:volatile_data")) => Self::Float {
+                id: identifier(fields, "flag")?, flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)?,
+            },
+            "tconstruct:craft_count" if only("tconstruct:craft_count") => {
+                // CraftCountModule: the multiplier is a required leveling value object.
+                let multiplier = fields.get("multiplier").filter(|value| !value.is_null()).ok_or("multiplier missing")?.as_object().ok_or("multiplier must be a leveling value")?;
+                Self::CraftCount { flat: float(multiplier, "flat")?, each: float(multiplier, "each_level")?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:material_repair" if only("tconstruct:material_repair") => {
+                // MaterialRepairModule.LOADER: the either form keyed on durability, then stat_type.
+                let amount = if let Some(value) = fields.get("durability").filter(|value| !value.is_null()) {
+                    let amount = value.as_i64().ok_or("durability must be an integer")?;
+                    if amount < 1 || amount > i64::from(i32::MAX) { return Err("durability must be at least 1".into()); }
+                    RepairAmount::Constant(amount as i32)
+                } else if fields.get("stat_type").is_some_and(|value| !value.is_null()) {
+                    RepairAmount::StatType(identifier(fields, "stat_type")?)
+                } else { return Err("material repair needs a durability or a stat_type".into()); };
+                Self::MaterialRepair { material: identifier(fields, "material")?, amount, condition: Condition::decode(fields)? }
+            }
             "tconstruct:modifier_slot" if only("tconstruct:volatile_data") => {
                 let name = fields.get("name").and_then(Value::as_str).ok_or("name must be a slot name")?;
                 if !name.bytes().all(|byte| matches!(byte, b'a'..=b'z' | b'0'..=b'9' | b'_')) { return Err(format!("invalid modifier slot name {name}")); }
                 // The older count field is the per-level amount when each_level is absent.
                 let each = if fields.contains_key("each_level") { short(fields, "each_level")? } else { short(fields, "count")? };
                 Self::Slot { name: name.to_owned(), flat: short(fields, "flat")?, each, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:sweeping_edge" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:tooltip")) => {
+                // SweepingEdgeModule has no condition: its loader reads only the leveling value.
+                Self::Sweep { flat: float(fields, "flat")?, each: float(fields, "each_level")? }
             }
             "tconstruct:trait" if only("tconstruct:modifier_traits") => {
                 let level = match fields.get("level").filter(|value| !value.is_null()) {
@@ -367,7 +531,11 @@ impl Module {
             }
             "tconstruct:stat_boost" if only("tconstruct:tool_stats") => {
                 let stat_id = identifier(fields, "stat")?;
-                // A stat of another domain (tanks, food) is not representable here.
+                // A stat of another domain (tanks, food) is not representable here. `tconstruct:tank_capacity` in
+                // particular is the capacity stat of the tool's fluid tank (ToolTankHelper, fed by the tank trait's
+                // module): this port has no tool tank at all — no tank module, no fluid stored on a tool — so the stat
+                // would measure a tank that does not exist, and the boost stays unbound until the tank itself is ported
+                // (the same missing piece as the overburn and smashing modules' own tank forms).
                 let Some(stat) = Stat::from_id(&stat_id) else { return Ok(None); };
                 let operation = match fields.get("operation").and_then(Value::as_str) {
                     Some("add") => Operation::Add, Some("percent") => Operation::Percent,
@@ -453,6 +621,12 @@ impl Module {
             "tconstruct:mining_capacity" if only("tconstruct:block_harvest") => {
                 Self::CapacityMining { module: Box::new(crate::capacity::MiningFill::decode(fields)?), condition: Condition::decode(fields)? }
             }
+            "tconstruct:launch_capacity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown")) => {
+                Self::CapacityLaunch { module: Box::new(crate::capacity::LaunchFill::decode(fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:lifesteal" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:projectile_launch" | "tconstruct:projectile_hit" | "tconstruct:tooltip")) => {
+                match crate::lifesteal::Lifesteal::decode(fields)? { Some(module) => Self::Lifesteal { module: Box::new(module), condition: Condition::decode(fields)? }, None => return Ok(None) }
+            }
             "tconstruct:loot_to_capacity" if only("tconstruct:process_loot") => {
                 Self::CapacityLoot { module: Box::new(crate::capacity::LootFill::decode(fields)?), condition: Condition::decode(fields)? }
             }
@@ -468,10 +642,44 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:quiver_inventory" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:inventory" | "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:slot_stack")) => {
+                match crate::tool_inventory::Inventory::decode_quiver(fields)? {
+                    Some(module) => Self::QuiverInventory { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:update_health" if only("tconstruct:equipment_change") => {
+                match crate::wearer_modules::UpdateHealth::decode(fields)? {
+                    Some(module) => Self::UpdateHealth { module, condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:inventory_menu" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:armor_interact" | "tconstruct:general_interact")) => {
                 Self::InventoryMenu(crate::tool_inventory::MenuKey::decode(fields)?)
             }
             "tconstruct:inventory_slot_menu" if only("tconstruct:slot_stack") => Self::InventorySlotMenu,
+            "tconstruct:bulk_quiver" if only("tconstruct:bow_ammo") => {
+                // BulkQuiverModule.LOADER: the one field defaults to checking the standard arrows.
+                let check = match fields.get("check_standard_arrows").filter(|value| !value.is_null()) {
+                    None => true,
+                    Some(Value::Bool(value)) => *value,
+                    Some(_) => return Err("check_standard_arrows must be a boolean".into()),
+                };
+                Self::BulkQuiver { check_standard_arrows: check }
+            }
+            "tconstruct:trick_quiver" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:general_interact" | "tconstruct:remove")) => Self::TrickQuiver,
+            "tconstruct:shield_strap" if only("tconstruct:armor_interact") => Self::ShieldStrap { keys: key_list(fields)? },
+            "tconstruct:tool_belt" if only("tconstruct:armor_interact") => Self::ToolBelt { keys: key_list(fields)? },
+            "tconstruct:share_durability" if only("tconstruct:tool_damage") => Self::ShareDurability {
+                shield: identifier(fields, "shield")?,
+                grant: leveling_int_keyed(fields, "grant")?,
+                consume: leveling_int_keyed(fields, "consume")?,
+            },
+            "tconstruct:shears" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:tool_action")) => {
+                // ShearsModule.LOADER: three FROM_ZERO floats, all optional, over a modifier condition.
+                Self::Shears { flat: float(fields, "flat")?, per_level: float(fields, "per_level")?, expanded: float(fields, "expanded")?, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:fishing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_action" | "tconstruct:equipment_change")) => Self::Fishing,
             "tconstruct:max_armor_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
                 match crate::max_armor::MaxArmorAttribute::decode(fields)? {
                     Some(module) => Self::MaxArmorAttribute { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -480,6 +688,13 @@ impl Module {
             }
             "tconstruct:armor_level" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::ArmorLevel { module: Box::new(crate::max_armor::ArmorLevel::decode(fields)?) }
+            }
+            "tconstruct:show_offhand" if only("tconstruct:equipment_change") => {
+                // ShowOffhandModule is an enum module: the required mode says whether a broken piece still counts.
+                Self::ShowOffhand { allow_broken: match fields.get("mode").and_then(Value::as_str) {
+                    Some("allow_broken") => true, Some("disallow_broken") => false,
+                    _ => return Err("mode must be allow_broken or disallow_broken".into()),
+                } }
             }
             "tconstruct:mob_disguise" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::MobDisguise { module: crate::mob_disguise::MobDisguise::decode(fields)? }
@@ -541,11 +756,25 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            // ExtinguishCampfireModule is a BlockTransformModule like the tool action transform: a right click that puts
+            // out a lit campfire. Like the transform sharing its consumer, only the clicked block is transformed, not the
+            // tool's AOE neighbours (BlockTransformModule.afterBlockUse runs both in the original).
+            "tconstruct:campfire_extinguish" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:aoe_highlight")) => {
+                Self::CampfireExtinguish { condition: Condition::decode(fields)? }
+            }
+            // BlockingModule: a right click raises the tool like a shield (the per-stack use the blocking hook registers).
+            "tconstruct:blocking" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_action")) => Self::Blocking,
             "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
                 let require_ground = match fields.get("require_ground") { Some(Value::Bool(value)) => *value, None | Some(Value::Null) => false, Some(_) => return Err("require_ground must be boolean".into()) };
                 Self::ToolAction { action, sound, require_ground, condition: Condition::decode(fields)? }
+            }
+            // ToolActionWalkerTransformModule (BOOT_WALK + TOOL_ACTION): the boot form of the transform above.
+            "tconstruct:tool_action_walk_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:boot_walk" | "tconstruct:tool_action")) => {
+                let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
+                let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
+                Self::WalkTransform { action, sound, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
             }
             // Presentation-only modules: one block, bound as recorded no-ops (Java: display name, durability display and tooltip hooks only).
             "tconstruct:show_interaction_source" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::InteractionSource),
@@ -558,6 +787,11 @@ impl Module {
                 Self::Display(Display::DurabilityColor { color })
             }
             "tconstruct:stat_tooltip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tooltip") => Self::Display(Display::StatTooltip { stat: identifier(fields, "stat")?, condition: Condition::decode(fields)? }),
+            // The cosmetic modules: presentation in the original too (a coloured or formatted display name, a tooltip of
+            // patterns); their removal halves forget what they stored, which `on_removed` below runs.
+            "tconstruct:banner" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:tooltip")) => Self::Display(Display::BannerPatterns),
+            "tconstruct:dye" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove")) => Self::Display(Display::Dyed),
+            "tconstruct:trim" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove")) => Self::Display(Display::Trim),
             "tconstruct:tool_actions" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tool_action") => {
                 let names = fields.get("tool_actions").and_then(Value::as_array).ok_or("tool_actions must be an array")?;
                 let mut actions = Vec::new();
@@ -566,14 +800,27 @@ impl Module {
             }
             "tconstruct:constant_enchantment" | "tconstruct:enchantment_ignoring_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:enchantments" | "tconstruct:tooltip" | "tconstruct:protection")) && (kind == "tconstruct:enchantment_ignoring_protection" || !hooks.iter().any(|bound| bound.to_string() == "tconstruct:protection")) => {
                 let name = identifier(fields, "name")?.to_string();
-                // `level` is a plain number (a flat level) or a leveling value with flat and each_level parts.
-                let (flat, each) = match fields.get("level") {
-                    Some(Value::Number(number)) => (number.as_f64().ok_or("level must be a number")? as f32, 0.0),
-                    Some(Value::Object(level)) => (float(level, "flat")?, float(level, "each_level")?),
-                    _ => return Err("level must be a number or a leveling value".into()),
-                };
+                let (flat, each) = leveling_int(fields)?;
                 Self::Enchantment { name, flat, each, ignoring: kind == "tconstruct:enchantment_ignoring_protection", condition: Condition::decode(fields)? }
             }
+            // LootingModule.Weapon: the looting level the tool adds when it kills. The game takes the looting of the killer's weapon from the weapon's own
+            // enchantments, so a module whose holder, target and damage source predicates accept everything is exactly a constant looting enchantment.
+            "tconstruct:weapon_looting" if only("tconstruct:weapon_looting") => {
+                if !["holder", "target", "damage_source"].iter().all(|key| is_any_predicate(fields, key)) { return Ok(None); }
+                let (flat, each) = leveling_int(fields)?;
+                Self::Enchantment { name: "minecraft:looting".to_owned(), flat, each, ignoring: false, condition: Condition::decode(fields)? }
+            }
+            // LootingModule.Armor: a worn piece adds its level to the looting of its wearer's kills in the listed slots. The loot
+            // flows of this port carry no holder, target or damage source, so only the ANY forms bind (as for weapon looting).
+            "tconstruct:armor_looting" if only("tconstruct:armor_looting") => {
+                if !["holder", "target", "damage_source"].iter().all(|key| is_any_predicate(fields, key)) { return Ok(None); }
+                let (flat, each) = leveling_int(fields)?;
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                    .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::ArmorLooting { flat, each, slots, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:severing" if only("tconstruct:process_loot") => Self::Severing,
             "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::AdjustDamage::decode(fields)? else { return Ok(None); };
                 Self::AdjustDamage { module, condition: Condition::decode(fields)? }
@@ -589,10 +836,19 @@ impl Module {
             "tconstruct:overshield" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 Self::Overshield { module: crate::wearer_modules::Overshield::decode(fields)? }
             }
-            // Only on the modify damage hook, which PlutoLib hears after armor: the same module on the modify hurt hook works on the damage before it.
-            "tconstruct:restore_lost_health" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
+            // Only on the modify hurt hook: this port hears that hook on its modify damage event, whose amount is the
+            // damage after vanilla's armor and enchantment protection, as the original's LivingHurtEvent hands it over.
+            "tconstruct:recurrent_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_hurt" | "tconstruct:tooltip")) => {
+                Self::RecurrentProtection { module: crate::wearer_modules::RecurrentProtection::decode(fields)? }
+            }
+            // On the modify hurt hook the module works on the damage as it arrives, before armor; on the modify damage hook
+            // (the default binding, and the shipped rebuff) on what armor left. A binding to no stage runs nowhere.
+            "tconstruct:restore_lost_health" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_hurt" | "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
+                let hurt = hooks.iter().any(|bound| bound.to_string() == "tconstruct:modify_hurt");
+                let damage = hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:modify_damage");
+                if !hurt && !damage { return Ok(None); }
                 let Some(module) = crate::wearer_modules::RestoreLostHealth::decode(fields)? else { return Ok(None); };
-                Self::RestoreLostHealth { module: Box::new(module), condition: Condition::decode(fields)? }
+                Self::RestoreLostHealth { module: Box::new(module), condition: Condition::decode(fields)?, hurt, damage }
             }
             "tconstruct:damage_on_unequip" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:equipment_change") => {
                 Self::DamageOnUnequip { module: crate::wearer_modules::DamageOnUnequip::decode(fields)?, condition: Condition::decode(fields)? }
@@ -604,7 +860,16 @@ impl Module {
                 Self::ClearEffectOnUnequip { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
-                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound.
+                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound. The Tinkers ones
+                // (TinkerAttributes: generic.bouncy, generic.jump_boost, generic.knockback_multiplier, the good and bad effect
+                // duration multipliers, generic.crouch_damage_multiplier, generic.chrysophilite, player.use_item_speed,
+                // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier)
+                // cannot bind yet for two reasons: PlutoLib has no way to register an attribute the game does not have, so a
+                // stack entry naming one would be data nothing applies, and every reader of those attributes in the original
+                // is a Tinkers event handler over a game system PlutoLib does not report (experience gains, jumps and falls,
+                // knockback taken, critical hits, effect applications, using an item, swimming). The two with a reader in
+                // this port are the exceptions above and below: the protection cap is the port's own protection math, and
+                // chrysophilite is worked out in the loot flow itself. Binding the rest waits on attribute registration.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
                 if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
                     let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
@@ -630,6 +895,30 @@ impl Module {
                     .collect::<Result<Vec<_>, _>>()?;
                 Self::Attribute { attribute: format!("minecraft:{path}"), operation, formula, slots, condition: Condition::decode(fields)? }
             }
+            // PunchModule: knockback for the tool's shots, set on plain arrows and added on knockback projectiles.
+            "tconstruct:punch" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot")) => Self::Punch { module: Box::new(crate::punch::Punch::decode(fields)?), condition: Condition::decode(fields)? },
+            // ReversePunchModule: a knockback projectile pushes back on the entity it hits.
+            "tconstruct:reverse_punch" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_hit_client")) => Self::ReversePunch { module: Box::new(crate::punch::ReversePunch::decode(fields)?) },
+            // MeleeInstrumentModule: a melee hit plays the instrument the tool is made of. A predicate on a fact this port
+            // cannot report leaves the module unbound, as the other predicate modules do.
+            "tconstruct:melee_instrument" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:damage_dealt")) => {
+                let Some(module) = crate::melee_instrument::MeleeInstrument::decode(fields)? else { return Ok(None); };
+                Self::MeleeInstrument { module: Box::new(module), condition: Condition::decode(fields)? }
+            }
+            // OvergrowthModule: overslime regrows while the tool sits in an inventory.
+            "tconstruct:overgrowth" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:inventory_tick") => Self::Overgrowth { module: Box::new(crate::overgrowth::Overgrowth::decode(fields)?), condition: Condition::decode(fields)? },
+            // KineticModule: being hit feeds the wearer's insatiable effect.
+            "tconstruct:kinetic" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked" | "tconstruct:tooltip")) => Self::Kinetic,
+            // DamageOnShootModule: firing the tool hurts its holder (the sling half has no event here; a mob
+            // shooting cannot be hurt back either, as the launch event takes no actions).
+            "tconstruct:damage_on_shoot" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:sling_launch")) => {
+                Self::DamageOnShoot { module: crate::projectile_modules::DamageOnShoot::decode(fields)?, condition: Condition::decode(fields)? }
+            }
+            // InfinityModule: the bow ammo half binds on the ammo event; the removal half is run by the remove paths.
+            "tconstruct:infinity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:remove")) => {
+                let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
+                Self::Infinity { module }
+            }
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -643,6 +932,11 @@ impl Module {
             Self::Rarity(ordinal) => {
                 let current = nbt_int(data.get("tconstruct:rarity"));
                 if *ordinal > current { data.insert("tconstruct:rarity".into(), Nbt::Int(*ordinal)); }
+            }
+            Self::Sweep { flat, each } => {
+                // addVolatileData: the value for the effective level joins the sweep percent already there.
+                let previous = data.get("tconstruct:sweep_percent").and_then(|value| value.as_f64()).unwrap_or(0.0) as f32;
+                data.insert("tconstruct:sweep_percent".into(), Nbt::Float(previous + flat + each * entry.effective_level()));
             }
             Self::Int { id, flat, each, condition } => {
                 if condition.matches(entry, facts) {
@@ -675,12 +969,19 @@ impl Module {
                     if !name.is_empty() && *matching == name { add_slots(data, bonus, *count); }
                 }
             }
-            Self::Inventory { module, condition } => {
+            Self::Float { id, flat, each, condition } => {
+                if condition.matches(entry, facts) {
+                    // VolatileFloatModule.updateVolatileData: the computed value is added onto the flag's.
+                    let previous = data.get(&id.to_string()).and_then(Nbt::as_f64).unwrap_or(0.0) as f32;
+                    data.insert(id.to_string(), Nbt::Float(previous + *flat + *each * entry.effective_level()));
+                }
+            }
+            Self::Inventory { module, condition } | Self::QuiverInventory { module, condition } => {
                 // ToolInventoryCapability.addSlots, when the module's condition holds.
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
-            Self::InventoryMenu(_) | Self::InventorySlotMenu => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } => {}
+            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -700,8 +1001,16 @@ impl Module {
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
             // CapacityBarValidator.onRemoved empties the bar.
             Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
+            // TrickQuiverModule.onRemoved forgets the selected slot.
+            Self::TrickQuiver => { persistent.remove("tconstruct:trick_quiver_selected"); }
+            // InfinityModule.onRemoved forgets the stored variant.
+            Self::Infinity { module } => { if let Some(key) = module.variant_key(modifier) { persistent.remove(&key); } }
+            // DyeModule.onRemoved forgets the dye colour, stored under the modifier's own ID.
+            Self::Display(Display::Dyed) => { persistent.remove(&modifier.to_string()); }
+            // TrimModule.onRemoved forgets the trim pattern and material.
+            Self::Display(Display::Trim) => { persistent.remove(&format!("{modifier}_pattern")); persistent.remove(&format!("{modifier}_material")); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
-            Self::Inventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
+            Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -806,9 +1115,11 @@ impl Module {
         let percent = module.percent(entry);
         (percent != 0.0).then(|| (module.category(), percent))
     }
-    /// The restore-lost-health module's result for `amount` of damage taken, when its conditions hold.
-    pub fn restore_lost_health(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, amount: f32, roll: &mut dyn FnMut() -> f32) -> Option<crate::wearer_modules::Restore> {
-        let Self::RestoreLostHealth { module, condition } = self else { return None; };
+    /// The restore-lost-health module's result for `amount` of damage taken at the stage `hurt` names (the damage as it
+    /// arrives, before armor, or what armor left), when the module is bound to that stage and its conditions hold.
+    pub fn restore_lost_health(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, amount: f32, hurt: bool, roll: &mut dyn FnMut() -> f32) -> Option<crate::wearer_modules::Restore> {
+        let Self::RestoreLostHealth { module, condition, hurt: on_hurt, damage: on_damage } = self else { return None; };
+        if (hurt && !on_hurt) || (!hurt && !on_damage) { return None; }
         if !condition.matches(entry, facts) { return None; }
         module.restore(entry, source, amount, roll)
     }
@@ -818,27 +1129,89 @@ impl Module {
     pub fn shield(&self) -> Option<&crate::capacity::Shield> { match self { Self::DurabilityShield { shield } => Some(shield), _ => None } }
     /// The inventory this module adds to a tool, with its conditions evaluated against the tool.
     pub fn inventory_part(&self, entry: &Entry, facts: &Facts) -> Option<crate::tool_inventory::Part> {
-        let Self::Inventory { module, condition } = self else { return None; };
-        Some(crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts)))
+        match self {
+            Self::Inventory { module, condition } => Some(crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts))),
+            Self::QuiverInventory { module, condition } => {
+                let mut part = crate::tool_inventory::Part::new((**module).clone(), entry.clone(), condition.matches(entry, facts), condition.tool_matches(facts));
+                // Whether the tool is a crossbow is a fact of the tool; whether it is a ballista also reads its
+                // volatile data, which the caller notes (tool_stack::inventory).
+                let crossbow = facts.item.is_some_and(|item| (facts.in_tag)(item, &Identifier::parse("tconstruct:modifiable/ranged/crossbows").expect("valid tag")));
+                part.note_tool(crossbow, false);
+                Some(part)
+            }
+            _ => None,
+        }
+    }
+    /// CraftCountModule.modifyCraftCount: the running count multiplied by the module's value, when its
+    /// condition holds (the caller stops the chain at zero, as the composed hook does).
+    pub fn craft_count(&self, entry: &Entry, facts: &Facts, count: f32) -> f32 {
+        let Self::CraftCount { flat, each, condition } = self else { return count; };
+        if condition.matches(entry, facts) { count * (*flat + *each * entry.effective_level()) } else { count }
+    }
+    /// MaterialRepairModule.getRepairAmount for one material stack: the module's amount times the modifier's
+    /// level, for its own material when the condition holds. `durability_of` answers a stat type's durability
+    /// for a material (the definition-level lookup).
+    pub fn material_repair_amount(&self, entry: &Entry, facts: &Facts, material: &Identifier, durability_of: &dyn Fn(&Identifier, &Identifier) -> i32) -> i32 {
+        let Self::MaterialRepair { material: own, amount, condition } = self else { return 0; };
+        if own != material || !condition.matches(entry, facts) { return 0; }
+        let base = match amount { RepairAmount::Constant(amount) => *amount, RepairAmount::StatType(stat) => durability_of(material, stat) };
+        base * entry.level
+    }
+    /// MaterialRepairModule.isRepairMaterial: the material is the module's and the condition holds.
+    pub fn is_repair_material(&self, entry: &Entry, facts: &Facts, material: &Identifier) -> bool {
+        let Self::MaterialRepair { material: own, condition, .. } = self else { return false; };
+        own == material && condition.matches(entry, facts)
+    }
+    /// MaterialRepairModule.addRepairMaterials: the module's material, with no condition check.
+    pub fn repair_material(&self) -> Option<&Identifier> {
+        let Self::MaterialRepair { material, .. } = self else { return None; };
+        Some(material)
+    }
+    /// VolatileFloatModule on a launched projectile: the value it adds to the projectile's persistent data
+    /// under its flag, when its condition holds (the launch event reports no stack to write it to, so this
+    /// half has no live caller yet, like the projectile power helpers).
+    pub fn projectile_float(&self, entry: &Entry, facts: &Facts) -> Option<(Identifier, f32)> {
+        let Self::Float { id, flat, each, condition } = self else { return None; };
+        if condition.matches(entry, facts) { Some((id.clone(), *flat + *each * entry.effective_level())) } else { None }
+    }
+    /// UpdateHealthModule for a change in `slot`: the health delta going on (equipped) or coming off.
+    pub fn update_health(&self, entry: &Entry, facts: &Facts, slot: &str, equipped: bool) -> f32 {
+        let Self::UpdateHealth { module, condition } = self else { return 0.0; };
+        if condition.matches(entry, facts) { module.delta(entry, slot, equipped) } else { 0.0 }
     }
     /// The key that opens the inventory screen, for an inventory menu module.
     pub fn inventory_menu_key(&self) -> Option<crate::tool_inventory::MenuKey> {
         if let Self::InventoryMenu(key) = self { Some(*key) } else { None }
+    }
+    /// The quiver draw this module performs over its own modifier's inventory, if it is a quiver module.
+    pub fn quiver_draw(&self) -> Option<QuiverDraw> {
+        match self {
+            Self::BulkQuiver { check_standard_arrows } => Some(QuiverDraw::Bulk { check_standard_arrows: *check_standard_arrows }),
+            Self::TrickQuiver => Some(QuiverDraw::Trick),
+            _ => None,
+        }
     }
     /// The claim a worn piece makes on an attribute through a max armor attribute module, when its conditions hold.
     pub fn max_armor_candidate(&self, entry: &Entry, facts: &Facts, broken: bool) -> Option<crate::max_armor::Candidate> {
         let Self::MaxArmorAttribute { module, condition } = self else { return None; };
         module.candidate(entry, condition.matches(entry, facts), broken)
     }
-    /// The key and levels an armor level module adds for a worn piece.
-    pub fn armor_level(&self, entry: &Entry, broken: bool) -> Option<(Identifier, i32)> {
-        let Self::ArmorLevel { module } = self else { return None; };
-        module.level(entry, broken)
+    /// The key and levels an armor level module adds for a piece worn in `slot`.
+    pub fn armor_level(&self, entry: &Entry, slot: &str, broken: bool) -> Option<(Identifier, i32)> {
+        match self {
+            Self::ArmorLevel { module } => module.level(entry, broken),
+            // ShowOffhandModule adds a flat 1 (never scaled by level) when a chest piece is equipped and takes it back
+            // when it comes off; the per-tick totals over the worn pieces are the port's form of that, so a worn chest
+            // piece counts 1 while the mode's broken rule holds.
+            Self::ShowOffhand { allow_broken } => (slot == "chest" && (!broken || *allow_broken))
+                .then(|| (Identifier::new("tconstruct", "show_empty_offhand").expect("valid key"), 1)),
+            _ => None,
+        }
     }
     /// Whether this is a max armor attribute module.
     pub fn is_max_armor_attribute(&self) -> bool { matches!(self, Self::MaxArmorAttribute { .. }) }
     /// Whether this is an armor level module.
-    pub fn is_armor_level(&self) -> bool { matches!(self, Self::ArmorLevel { .. }) }
+    pub fn is_armor_level(&self) -> bool { matches!(self, Self::ArmorLevel { .. } | Self::ShowOffhand { .. }) }
     /// Whether this is an effect immunity module.
     pub fn is_effect_immunity(&self) -> bool { matches!(self, Self::EffectImmunity { .. }) }
     /// The mob type a disguise module makes the wearer pass for, with the count it adds.
@@ -886,10 +1259,65 @@ impl Module {
         let Self::CapacityLoot { module, condition } = self else { return None; };
         condition.matches(entry, facts).then_some(&**module)
     }
+    /// The bar a launch capacity module fills and by how much for one projectile launched, when its conditions hold.
+    pub fn launch_capacity(&self, entry: &Entry, facts: &Facts) -> Option<(Option<&Identifier>, i32)> {
+        let Self::CapacityLaunch { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| module.grant_for(entry))
+    }
+    /// The health a lifesteal module gives the wielder of a critical melee hit that dealt `damage`, when its conditions hold.
+    pub fn lifesteal(&self, entry: &Entry, facts: &Facts, damage: f32, blacklisted: bool, attacker_in_tag: &dyn Fn(&Identifier) -> bool, target_in_tag: &dyn Fn(&Identifier) -> bool) -> Option<f32> {
+        let Self::Lifesteal { module, condition } = self else { return None; };
+        module.heal(entry, condition.matches(entry, facts), damage, blacklisted, attacker_in_tag, target_in_tag)
+    }
+    /// Whether this is a launch capacity module.
+    pub fn is_launch_capacity(&self) -> bool { matches!(self, Self::CapacityLaunch { .. }) }
+    /// Whether this is a lifesteal module.
+    pub fn is_lifesteal(&self) -> bool { matches!(self, Self::Lifesteal { .. }) }
     /// Whether this is a mining capacity module.
     pub fn is_mining_capacity(&self) -> bool { matches!(self, Self::CapacityMining { .. }) }
     /// Whether this is a loot to capacity module.
     pub fn is_loot_capacity(&self) -> bool { matches!(self, Self::CapacityLoot { .. }) }
+    /// The severing module's effective level of its modifier, None for any other module.
+    pub fn severing_level(&self, entry: &Entry) -> Option<f32> { matches!(self, Self::Severing).then(|| entry.effective_level()) }
+    /// The knockback a punch module sets or adds on a shot of the tool, when its conditions hold.
+    pub fn punch(&self, entry: &Entry, facts: &Facts, arrow: bool) -> Option<crate::punch::Shot> {
+        let Self::Punch { module, condition } = self else { return None; };
+        module.shoot(entry, condition.matches(entry, facts), arrow)
+    }
+    /// The reverse punch module, None for any other module.
+    pub fn reverse_punch(&self) -> Option<&crate::punch::ReversePunch> {
+        let Self::ReversePunch { module } = self else { return None; };
+        Some(module)
+    }
+    /// The sound a melee instrument module plays for a hit, when its conditions and predicates hold.
+    pub fn melee_instrument(&self, entry: &Entry, facts: &Facts, materials: &[crate::tool_materials::MaterialVariant], attacker_in_tag: &dyn Fn(&Identifier) -> bool, target_in_tag: &dyn Fn(&Identifier) -> bool, roll: f32) -> Option<crate::melee_instrument::Sound> {
+        let Self::MeleeInstrument { module, condition } = self else { return None; };
+        module.sound(condition.matches(entry, facts), materials, attacker_in_tag, target_in_tag, roll)
+    }
+    /// Whether this is an overgrowth module.
+    pub fn is_overgrowth(&self) -> bool { matches!(self, Self::Overgrowth { .. }) }
+    /// Whether an overgrowth module grows the tool's overslime on this tick, when its conditions hold.
+    pub fn overgrowth(&self, entry: &Entry, facts: &Facts, nbt: &mut NbtCompound, env: &crate::tool_stack::Environment, roll: f32) -> bool {
+        let Self::Overgrowth { module, condition } = self else { return false; };
+        module.grow(entry, condition.matches(entry, facts), nbt, env, roll)
+    }
+    /// The level a kinetic module contributes to its modifier's total, None for any other module. The original counts the
+    /// plain level here (SlotInChargeModule reads the entry level), not the effective one.
+    pub fn kinetic_level(&self, entry: &Entry) -> Option<i32> { matches!(self, Self::Kinetic).then(|| entry.level) }
+    /// A recurrent protection module and the level its entry contributes to the total over the worn pieces,
+    /// None for any other module. The original counts the plain level here too (SlotInChargeModule).
+    pub fn recurrent_protection(&self, entry: &Entry) -> Option<(i32, crate::wearer_modules::RecurrentProtection)> {
+        match self { Self::RecurrentProtection { module } => Some((entry.level, module.clone())), _ => None }
+    }
+    /// What a damage on shoot module hurts the tool's holder by for firing it: the damage type and the amount.
+    pub fn damage_on_shoot(&self, entry: &Entry, facts: &Facts) -> Option<(String, f32)> {
+        let Self::DamageOnShoot { module, condition } = self else { return None; };
+        if condition.matches(entry, facts) { module.hurt(entry) } else { None }
+    }
+    /// The infinity module, if this is one.
+    pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
+        match self { Self::Infinity { module } => Some(module), _ => None }
+    }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.
@@ -947,15 +1375,48 @@ impl Module {
         let level = (flat + each * entry.effective_level()) as i32;
         (level > 0 && condition.matches(entry, facts)).then(|| (name.clone(), level))
     }
+    /// ArmorLootingModifierHook for one worn piece: the looting this module adds while the piece sits in `slot`
+    /// (LootingModule.Armor.updateArmorLooting: the slot must be listed and the condition must match).
+    pub fn armor_looting(&self, entry: &Entry, facts: &Facts, slot: &str) -> i32 {
+        let Self::ArmorLooting { flat, each, slots, condition } = self else { return 0; };
+        if !slots.iter().any(|listed| listed.as_str() == slot) || !condition.matches(entry, facts) { return 0; }
+        let level = (flat + each * entry.effective_level()) as i32;
+        if level > 0 { level } else { 0 }
+    }
     /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
     pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
         let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), *require_ground))
     }
-    /// ToolActionModifierHook.canPerformAction for a tool actions module (ToolActionsModule): whether `name` is one of its actions.
+    /// The walk transform this module performs, with its sound and its radius at the entry's effective level
+    /// (ArmorWalkRadiusModule.getRadius; the EXPANDED volatile the original adds is written by no module this port
+    /// binds, so it contributes 0 here as everywhere else the port reads volatile data).
+    pub fn walk_transform(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, f32)> {
+        let Self::WalkTransform { action, sound, radius, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (*action, sound.clone(), radius.compute(entry.effective_level())))
+    }
+    /// ToolActionModifierHook.canPerformAction: a tool actions module answers for its named actions, a shears
+    /// module for the four shear actions and a fishing module for the cast, each while its condition holds
+    /// (ShearsModule.canPerformAction, FishingModule.canPerformAction); a blocking module performs the shield
+    /// block action, and a walk transform module its own action, while its condition holds.
     pub fn can_perform_action(&self, entry: &Entry, facts: &Facts, name: &str) -> bool {
-        let Self::ToolActions { actions, condition } = self else { return false; };
-        condition.matches(entry, facts) && actions.iter().any(|action| action == name)
+        match self {
+            Self::ToolActions { actions, condition } => condition.matches(entry, facts) && actions.iter().any(|action| action == name),
+            Self::Shears { condition, .. } => condition.matches(entry, facts) && matches!(name, "shears_dig" | "shears_harvest" | "shears_carve" | "shears_disarm"),
+            Self::Fishing => name == "fishing_rod_cast",
+            // BlockingModule.canPerformAction: a blocking tool performs the shield block action.
+            Self::Blocking => name == "shield_block",
+            // ToolActionWalkerTransformModule.canPerformAction: its own action, while its condition holds.
+            Self::WalkTransform { action, condition, .. } => condition.matches(entry, facts) && action.name() == name,
+            _ => false,
+        }
+    }
+    /// Whether this is a blocking module (BlockingModule: the tool is raised like a shield on a right click).
+    pub fn blocking(&self) -> bool { matches!(self, Self::Blocking) }
+    /// Whether a campfire extinguish module puts out a lit campfire the tool is used on, when its conditions hold.
+    pub fn extinguishes_campfires(&self, entry: &Entry, facts: &Facts) -> bool {
+        let Self::CampfireExtinguish { condition } = self else { return false; };
+        condition.matches(entry, facts)
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
@@ -1288,7 +1749,9 @@ mod tests {
         assert_eq!(dense.repair_factor(&Entry::new(id("test:m"), 6), &f, 10.0), 10.0, "outside the level range nothing changes");
         // Unsupported shapes are unbound: an entity predicate or data-defined variables.
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"entity":{"type":"tconstruct:sneaking"}})).is_none());
-        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0}}})).is_none());
+        assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","slots":["mainhand"],"fallback":0.0}}})).is_some(), "an equipment count over the reported slots binds");
+        let bad = json!({"type":"tconstruct:reduce_tool_damage","formula":["$count"],"variables":{"count":{"type":"tconstruct:entity","entity_type":"tconstruct:equipment_count","fallback":0.0}}});
+        assert!(Module::decode("tconstruct:reduce_tool_damage", bad.as_object().unwrap(), &[]).is_err(), "the loader requires the slots list, as in the original");
         assert!(decode(json!({"type":"tconstruct:reduce_tool_damage","flat":1.0,"cause":{"type":"mantle:and"}})).is_none());
     }
     #[test]
@@ -1314,6 +1777,47 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:show_interaction_source","hooks":["tconstruct:tooltip"]})).is_none(), "a foreign hook binding stays unbound");
     }
     #[test]
+    fn sweeping_edge_adds_its_leveling_value_onto_the_sweep_percent() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let f = facts(None, &in_tag);
+        // The shipped module: each_level 0.25 and no flat, so level 1 adds 0.25 and level 2 adds 0.50.
+        let module = decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25})).unwrap();
+        let mut data = NbtCompound::new();
+        module.apply_volatile(&Entry::new(id("tconstruct:sweeping_edge"), 1), &f, &mut data);
+        assert_eq!(data["tconstruct:sweep_percent"], Nbt::Float(0.25));
+        // A second module adds onto what is already there, as the original accumulates the float.
+        module.apply_volatile(&Entry::new(id("tconstruct:sweeping_edge"), 2), &f, &mut data);
+        assert_eq!(data["tconstruct:sweep_percent"], Nbt::Float(0.75));
+        // The flat part does not scale: flat 0.5 with each_level 0.25 at level 2 is 1.0.
+        let flat = decode(json!({"type":"tconstruct:sweeping_edge","flat":0.5,"each_level":0.25})).unwrap();
+        let mut data = NbtCompound::new();
+        flat.apply_volatile(&Entry::new(id("tconstruct:sweeping_edge"), 2), &f, &mut data);
+        assert_eq!(data["tconstruct:sweep_percent"], Nbt::Float(1.0));
+        // Only the volatile data and tooltip bindings are honored.
+        assert!(decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25,"hooks":["tconstruct:volatile_data"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25,"hooks":["tconstruct:tooltip"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:sweeping_edge","each_level":0.25,"hooks":["tconstruct:melee_hit"]})).is_none());
+        assert!(Module::decode("tconstruct:sweeping_edge", json!({"each_level":"high"}).as_object().unwrap(), &[]).is_err());
+    }
+    #[test]
+    fn show_offhand_counts_a_flat_one_on_the_chest_only() {
+        let key = id("tconstruct:show_empty_offhand");
+        let entry = Entry::new(id("tconstruct:stripping"), 3);
+        // The shipped module: disallow_broken. The count is a flat 1 at any level, on the chest only.
+        let strict = decode(json!({"type":"tconstruct:show_offhand","mode":"disallow_broken"})).unwrap();
+        assert_eq!(strict.armor_level(&entry, "chest", false), Some((key.clone(), 1)));
+        assert_eq!(strict.armor_level(&entry, "head", false), None);
+        assert_eq!(strict.armor_level(&entry, "chest", true), None, "a broken piece counts nothing in this mode");
+        let lenient = decode(json!({"type":"tconstruct:show_offhand","mode":"allow_broken"})).unwrap();
+        assert_eq!(lenient.armor_level(&entry, "chest", true), Some((key.clone(), 1)));
+        // The worn totals keep the key while such a piece is worn.
+        assert_eq!(crate::max_armor::totals(vec![strict.armor_level(&entry, "chest", false).unwrap()])[&key], 1);
+        // The mode is required and must be one of the two enum names; a foreign hook binding stays unbound.
+        assert!(Module::decode("tconstruct:show_offhand", json!({}).as_object().unwrap(), &[]).is_err());
+        assert!(Module::decode("tconstruct:show_offhand", json!({"mode":"sometimes"}).as_object().unwrap(), &[]).is_err());
+        assert!(decode(json!({"type":"tconstruct:show_offhand","mode":"disallow_broken","hooks":["tconstruct:tooltip"]})).is_none());
+    }
+    #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
@@ -1331,5 +1835,74 @@ mod tests {
         }
         // A well-formed predicate of a type this port lacks leaves just that module unbound.
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","tool":{"type":"tconstruct:has_hook","hook":"x:y"}})).is_none());
+    }
+
+    #[test]
+    fn craft_count_multiplies_the_running_count_by_its_leveling_value() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped cheap (half) and economical (double).
+        let cheap = decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":0.5}})).unwrap();
+        let economical = decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":2.0}})).unwrap();
+        let entry = Entry::new(id("test:count"), 1);
+        assert_eq!(cheap.craft_count(&entry, &f, 16.0), 8.0);
+        assert_eq!(economical.craft_count(&entry, &f, 16.0), 32.0);
+        // Per level on top of the flat part.
+        let leveled = decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":1.0,"each_level":0.5}})).unwrap();
+        assert_eq!(leveled.craft_count(&Entry::new(id("test:count"), 3), &f, 10.0), 25.0);
+        // Another hook binding is not honored, and the multiplier is required.
+        assert!(decode(json!({"type":"tconstruct:craft_count","multiplier":{"flat":2.0},"hooks":["tconstruct:volatile_data"]})).is_none());
+        assert!(Module::decode("tconstruct:craft_count", json!({}).as_object().unwrap(), &[]).is_err());
+    }
+
+    #[test]
+    fn material_repair_pays_its_amount_times_the_level_for_its_own_material() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        let no_durability = |_: &Identifier, _: &Identifier| 0;
+        // The shipped stringy: string repairs for a constant 140.
+        let stringy = decode(json!({"type":"tconstruct:material_repair","material":"tconstruct:string","durability":140})).unwrap();
+        let entry = Entry::new(id("tconstruct:stringy"), 2);
+        assert_eq!(stringy.material_repair_amount(&entry, &f, &id("tconstruct:string"), &no_durability), 280);
+        assert_eq!(stringy.material_repair_amount(&entry, &f, &id("tconstruct:wood"), &no_durability), 0, "another material");
+        assert!(stringy.is_repair_material(&entry, &f, &id("tconstruct:string")));
+        assert_eq!(stringy.repair_material(), Some(&id("tconstruct:string")));
+        // The stat type form reads the material's durability for that stat type.
+        let typed = decode(json!({"type":"tconstruct:material_repair","material":"tconstruct:wood","stat_type":"tconstruct:handle"})).unwrap();
+        let durability_of = |_: &Identifier, _: &Identifier| 60;
+        assert_eq!(typed.material_repair_amount(&Entry::new(id("test:typed"), 1), &f, &id("tconstruct:wood"), &durability_of), 60);
+        // The either form needs one of its keys, and a constant is at least 1.
+        assert!(Module::decode("tconstruct:material_repair", json!({"material":"a:b"}).as_object().unwrap(), &[]).is_err());
+        assert!(Module::decode("tconstruct:material_repair", json!({"material":"a:b","durability":0}).as_object().unwrap(), &[]).is_err());
+    }
+
+    #[test]
+    fn volatile_float_adds_onto_the_flag_and_onto_a_projectile() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped experienced: half a point of experience a level, on both hooks.
+        let experienced = decode(json!({"type":"tconstruct:volatile_float","flag":"tconstruct:experience","each_level":0.5,"hooks":["tconstruct:volatile_data","tconstruct:projectile_launch"]})).unwrap();
+        let entry = Entry::new(id("tconstruct:experienced"), 3);
+        let mut data = NbtCompound::new();
+        data.insert("tconstruct:experience".into(), Nbt::Float(1.0));
+        experienced.apply_volatile(&entry, &f, &mut data);
+        assert_eq!(data["tconstruct:experience"], Nbt::Float(2.5), "added onto what the flag held");
+        assert_eq!(experienced.projectile_float(&entry, &f), Some((id("tconstruct:experience"), 1.5)));
+        // A binding of nothing but the launch hook stays unbound, like the flag's.
+        assert!(decode(json!({"type":"tconstruct:volatile_float","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
+        assert!(decode(json!({"type":"tconstruct:volatile_float","flag":"a:b"})).is_some(), "no hooks field binds the default");
+    }
+
+    #[test]
+    fn update_health_binds_for_armor_slots_and_stays_unbound_for_hands() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped revitalizing armor module carries no bonus; the hand one cannot be reported.
+        let armor = decode(json!({"type":"tconstruct:update_health","slots":["feet","legs","chest","head"],"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert_eq!(armor.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "chest", true), 0.0);
+        assert!(decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"],"hooks":["tconstruct:equipment_change"]})).is_none());
+        let bonus = decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["feet"],"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", true), 4.0);
+        assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", false), -4.0);
     }
 }

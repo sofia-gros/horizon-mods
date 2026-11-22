@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "tconstruct:pig_iron_ingot"
+  ],
+  "group": "tconstruct:pig_iron_nugget",
+  "result": {
+    "id": "tconstruct:pig_iron_nugget",
+    "count": 9
+  }
+}

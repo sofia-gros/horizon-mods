@@ -25,14 +25,23 @@ pub trait ScreenCanvas {
 }
 
 /// Where things are in a window, in GUI pixels from its top left (Minecraft: `Slot.x`, `Slot.y`).
+///
+/// A container slot is in the menu in one of two ways: at the position `slots` gives it, or — when
+/// the matching entry of `dynamic` is set — at the position the window's dynamic-slot callback
+/// (`ScreenHandlerType::on_dynamic_slots`) gives it for the menu's current state. A slot that is
+/// neither is hidden: it is not in the menu at all, on the server either, so no click reaches it and
+/// shift-clicks skip it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScreenLayout {
     /// The window's width; vanilla container windows are 176.
     pub width: f32,
     /// The window's height.
     pub height: f32,
-    /// Where each container slot is; `None` hides the slot (it is not in the menu either, so shift-clicks skip it).
+    /// Where each container slot is; `None` leaves the slot's place to `dynamic` (or hides the slot).
     pub slots: Vec<Option<[f32; 2]>>,
+    /// Which slots the dynamic-slot callback positions: such a slot is in the menu though the static
+    /// layout has no position for it. Parallel to `slots`, one entry per slot.
+    pub dynamic: Vec<bool>,
     /// The left column of the player's inventory (vanilla's is 8).
     pub inventory_x: f32,
     /// The top row of the player's inventory (vanilla's is 84; the hotbar is 58 below it).
@@ -46,18 +55,33 @@ pub struct ScreenLayout {
 impl ScreenLayout {
     /// A window `width` by `height` with no slots, the inventory at vanilla's place and the game drawing the panel and the labels.
     pub fn new(width: f32, height: f32) -> Self {
-        Self { width, height, slots: Vec::new(), inventory_x: 8.0, inventory_y: 84.0, own_labels: false, own_background: false }
+        Self { width, height, slots: Vec::new(), dynamic: Vec::new(), inventory_x: 8.0, inventory_y: 84.0, own_labels: false, own_background: false }
     }
 
     /// The same layout with one more container slot at `(x, y)`.
     pub fn slot(mut self, x: f32, y: f32) -> Self {
         self.slots.push(Some([x, y]));
+        self.dynamic.push(false);
         self
     }
 
-    /// The same layout with one more container slot that is hidden.
+    /// The same layout with one more container slot that is hidden: it is not in the menu at all, so
+    /// the server refuses clicks on it and its item is never shown. For a slot whose place depends
+    /// on the menu's state, use `dynamic_slot` instead.
     pub fn hidden_slot(mut self) -> Self {
         self.slots.push(None);
+        self.dynamic.push(false);
+        self
+    }
+
+    /// The same layout with one more container slot the dynamic-slot callback positions
+    /// (`ScreenHandlerType::on_dynamic_slots`): the slot is in the menu — the server takes clicks on
+    /// it and its item syncs like any other's — though the static layout has no position for it. Use
+    /// this for slots whose place follows the menu's data or items (a tool station's inputs, a paged
+    /// chest's grid).
+    pub fn dynamic_slot(mut self) -> Self {
+        self.slots.push(None);
+        self.dynamic.push(true);
         self
     }
 
@@ -617,5 +641,15 @@ mod tests {
         assert!(accepts("test:oven", [0; 3], 0, "test:coal", 1, None));
         assert!(!accepts("test:oven", [0; 3], 0, "test:junk", 1, Some(Direction::Up)));
         assert!(accepts("test:none", [0; 3], 0, "test:junk", 1, None));
+    }
+
+    #[test]
+    fn dynamic_slots_are_in_the_menu_without_a_static_position_and_hidden_ones_are_not() {
+        let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).dynamic_slot().hidden_slot();
+        assert_eq!(declared.slots, vec![Some([8.0, 8.0]), None, None], "neither kind has a static position");
+        assert_eq!(declared.dynamic, vec![false, true, false], "only the dynamic slot is in the menu without one");
+        ScreenHandlerRegistry::register(ScreenHandlerType::new(Identifier::parse("test:dynamic_layout").unwrap(), declared));
+        let layout = layout("test:dynamic_layout").unwrap();
+        assert_eq!(layout.dynamic, vec![false, true, false], "the registry hands the declaration back whole");
     }
 }

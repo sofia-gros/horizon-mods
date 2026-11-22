@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "tconstruct:obsidian_pane",
+    "G": [
+      "minecraft:glass_pane"
+    ]
+  },
+  "pattern": [
+    " C ",
+    "CGC",
+    " C "
+  ],
+  "result": {
+    "id": "tconstruct:obsidian_gauge",
+    "count": 4
+  }
+}

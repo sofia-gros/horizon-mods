@@ -41,6 +41,7 @@ DECLARATION_HASHES = {
     'pluto-armor-stand-worn-layers': 'b05d7e67e819cea384b368d61af4ba336f9aba941a19d20b39338c6e4944818f',
     'pluto-block-entity-cache-generation': 'f8e21e6c9424b94864b9bbb22d15332eb4f4070157617cc0031c664f2007d06f',
     'pluto-living-drop-state': 'e8204433c51ef8d9a66931bc851816aacedbf7db00153a2fcf10de7ebf824551',
+    'pluto-block-entity-container-reach': 'fe4212c7ab75aec4802abb750e29e4a81ad61a37a1a9145e247fd6d2333ebd2c',
 }
 
 
@@ -55,6 +56,12 @@ def validate_transferred_declarations(parsed):
         encoded = json.dumps(entries[0], sort_keys=True, separators=(',', ':')).encode('utf-8')
         if hashlib.sha256(encoded).hexdigest() != expected:
             raise ValueError(f'{site}: full declaration changed; review direct attachment')
+
+
+# Files the build tree does not have: helper fragments for the generated `Host` (source in this directory, never an official file).
+ADDED_FILES = {
+    'tools/native-hook-fragments/pluto_container_reach.json': 'pluto-container-reach-fragment.json',
+}
 
 
 STATES = {
@@ -176,6 +183,13 @@ def prepare(source, output):
         manifest, count = re.subn(pattern, '', manifest, flags=re.S)
         if count != 1:
             raise ValueError(f'{site}: cannot transfer attachment ownership')
+    added = {}
+    for relative, name in ADDED_FILES.items():
+        if (source / relative).exists():
+            raise ValueError(f'{relative}: an added file must not replace an official file')
+        data = (Path(__file__).resolve().parent / name).read_bytes().replace(b'\r\n', b'\n')
+        overrides[relative] = data
+        added[relative] = hashlib.sha256(data).hexdigest()
     generated = tomllib.loads(manifest)
     if any(s['id'] in STATES for s in generated.get('state', [])):
         raise ValueError('duplicate state ownership in generated bundle')
@@ -199,7 +213,7 @@ def prepare(source, output):
             bundle_digest.update(hashlib.sha256(path.read_bytes()).digest())
     receipt = {'horizon_revision': parsed['compatibility']['horizon_revision'],
                'bundle_sha256': bundle_digest.hexdigest(),
-               'attachments': receipts, 'native_verified': False}
+               'attachments': receipts, 'added_files': added, 'native_verified': False}
     (output / 'direct-host.json').write_text(newline='\n', data=json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     return receipt
 

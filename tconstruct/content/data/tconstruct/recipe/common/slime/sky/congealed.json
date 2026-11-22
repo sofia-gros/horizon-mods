@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "tconstruct:sky_slime_ball"
+    ]
+  },
+  "pattern": [
+    "##",
+    "##"
+  ],
+  "group": "tconstruct:congealed_slime",
+  "result": {
+    "id": "tconstruct:sky_congealed_slime"
+  }
+}

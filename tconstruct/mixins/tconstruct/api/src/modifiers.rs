@@ -14,6 +14,8 @@ pub(crate) struct Modifier {
     pub id: Identifier,
     pub priority: i32,
     pub level_display: Identifier,
+    /// The `unique` level display's parameters (unique_until, first_unique), when it has them.
+    pub level_display_unique: Option<(i32, bool)>,
     pub tooltips: BTreeSet<String>,
     pub translation_key: Option<String>,
     modules: Vec<crate::modifier_modules::Module>,
@@ -64,12 +66,27 @@ impl Modifier {
     pub fn decode(name: Identifier, value: &Value) -> Result<Self, String> {
         let fields = value.as_object().ok_or("modifier must be an object")?;
         let priority = fields.get("priority").filter(|v| !v.is_null()).map(integer).transpose()?.unwrap_or(i32::MIN);
+        let mut display_unique = None;
         let display = match fields.get("level_display").filter(|v| !v.is_null()) {
             None => Identifier::new("tconstruct", "default").unwrap(),
-            Some(Value::Object(fields)) => id(fields.get("type").ok_or("level display type missing")?)?,
+            Some(Value::Object(fields)) => {
+                let kind = id(fields.get("type").ok_or("level display type missing")?)?;
+                if kind.path() == "unique" {
+                    // The unique display's parameters decide the name per level, so they are
+                    // retained for name rendering; map_level's formula is not.
+                    let until = fields.get("unique_until").filter(|v| !v.is_null()).map(integer).transpose()?.ok_or("unique level display needs unique_until")?;
+                    let first = match fields.get("first_unique") {
+                        None | Some(Value::Null) => false,
+                        Some(Value::Bool(value)) => *value,
+                        Some(_) => return Err("first_unique must be a boolean".into()),
+                    };
+                    display_unique = Some((until, first));
+                }
+                kind
+            }
             Some(value) => id(value)?,
         };
-        // map_level and unique carry parameters that only the (unported) renderer reads.
+        // map_level carries parameters that only the (unported) renderer reads.
         if display.namespace() != "tconstruct" || !["default", "single_level", "no_levels", "pluses", "map_level", "unique"].contains(&display.path()) {
             return Err(format!("unimplemented level display {display}"));
         }
@@ -113,7 +130,7 @@ impl Modifier {
             }
         }
         Ok(Self { id: name, priority: if priority == i32::MIN { 100 } else { priority },
-            level_display: display, tooltips, translation_key, modules, unbound, empty_sentinel: false })
+            level_display: display, level_display_unique: display_unique, tooltips, translation_key, modules, unbound, empty_sentinel: false })
     }
     /// Whether any module of this modifier adds nested traits (it has a MODIFIER_TRAITS binding).
     /// Every module, in definition order.
@@ -137,6 +154,31 @@ impl Modifier {
     pub fn repair_factor(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, mut factor: f32) -> f32 {
         for module in &self.modules { factor = module.repair_factor(entry, facts, factor); }
         factor
+    }
+    /// CraftCountModifierHook for one modifier: the running count after its modules (the caller stops at zero).
+    pub fn craft_count(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, mut count: f32) -> f32 {
+        for module in &self.modules { count = module.craft_count(entry, facts, count); }
+        count
+    }
+    /// MaterialRepairModifierHook.getRepairAmount for one modifier: its modules' amounts added.
+    pub fn material_repair_amount(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, material: &Identifier, durability_of: &dyn Fn(&Identifier, &Identifier) -> i32) -> i32 {
+        self.modules.iter().map(|module| module.material_repair_amount(entry, facts, material, durability_of)).sum()
+    }
+    /// MaterialRepairModifierHook.isRepairMaterial for one modifier.
+    pub fn is_repair_material(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, material: &Identifier) -> bool {
+        self.modules.iter().any(|module| module.is_repair_material(entry, facts, material))
+    }
+    /// MaterialRepairModifierHook.addRepairMaterials for one modifier: every module's material.
+    pub fn repair_materials(&self) -> impl Iterator<Item = &Identifier> {
+        self.modules.iter().filter_map(|module| module.repair_material())
+    }
+    /// The floats this modifier's volatile float modules add to a launched projectile's persistent data.
+    pub fn projectile_floats(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, f32)> {
+        self.modules.iter().filter_map(|module| module.projectile_float(entry, facts)).collect()
+    }
+    /// UpdateHealthModule for one modifier and a change in `slot`: the health delta going on or coming off.
+    pub fn update_health(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str, equipped: bool) -> f32 {
+        self.modules.iter().map(|module| module.update_health(entry, facts, slot, equipped)).sum()
     }
     /// The volatile-data hook with tool facts (item tags, modifier levels, persistent keys).
     pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
@@ -170,9 +212,17 @@ impl Modifier {
     pub fn enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(String, i32)> {
         self.modules.iter().filter_map(|module| module.enchantment(entry, facts)).collect()
     }
+    /// ArmorLootingModifierHook over this modifier's modules for a piece worn in `slot`: the looting they add together.
+    pub fn armor_looting(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str) -> i32 {
+        self.modules.iter().map(|module| module.armor_looting(entry, facts, slot)).sum()
+    }
     /// The tool actions this modifier's transform modules perform on a right click.
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
+    }
+    /// The walk transforms of this modifier, each with the modifier's id (the wear cause), its action, sound and radius.
+    pub fn walk_transforms(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::tool_actions::ToolAction, String, f32)> {
+        self.modules.iter().filter_map(|module| module.walk_transform(entry, facts)).map(|(action, sound, radius)| (entry.id.clone(), action, sound, radius)).collect()
     }
     /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
     pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
@@ -208,8 +258,14 @@ impl Modifier {
     pub fn melee_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_melee_capacity()) }
     /// The mining capacity modules.
     pub fn mining_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_mining_capacity()) }
+    /// The launch capacity modules.
+    pub fn launch_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_launch_capacity()) }
+    /// The lifesteal modules.
+    pub fn lifesteal_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_lifesteal()) }
     /// The loot to capacity modules.
     pub fn loot_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_loot_capacity()) }
+    /// The effective levels of this modifier's severing modules, one per module.
+    pub fn severing_levels(&self, entry: &Entry) -> Vec<f32> { self.modules.iter().filter_map(|module| module.severing_level(entry)).collect() }
     /// The damage to capacity modules.
     pub fn damage_capacity_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> { self.modules.iter().filter(|module| module.is_damage_capacity()) }
     /// The durability shields.
@@ -225,6 +281,11 @@ impl Modifier {
     /// The keys of the inventory menu modules.
     pub fn inventory_menu_keys(&self) -> Vec<crate::tool_inventory::MenuKey> {
         self.modules.iter().filter_map(|module| module.inventory_menu_key()).collect()
+    }
+    /// The quiver draw of this modifier (its first quiver module), if it has one: the draw looks into this
+    /// modifier's own inventory parts, as the original's modules read their own entry's inventory capability.
+    pub fn quiver_draw(&self) -> Option<crate::modifier_modules::QuiverDraw> {
+        self.modules.iter().find_map(|module| module.quiver_draw())
     }
     /// The max armor attribute modules.
     pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
@@ -296,6 +357,8 @@ pub(crate) struct Registry {
     pub definitions_loaded: bool,
     pub generation: u64,
     pub problems: Vec<String>,
+    /// The enchantment-to-modifier map, loaded with the definitions (ModifierManager holds it too).
+    pub enchantment_map: crate::enchantment_map::EnchantmentMap,
 }
 impl Default for Registry {
     fn default() -> Self {
@@ -304,7 +367,8 @@ impl Default for Registry {
         empty.empty_sentinel = true;
         Self { static_modifiers: [(id, Arc::new(empty))].into_iter().collect(), expected: BTreeSet::new(),
             dynamic: BTreeMap::new(), tags: BTreeMap::new(), reverse_tags: BTreeMap::new(),
-            definitions_loaded: false, generation: 0, problems: Vec::new() }
+            definitions_loaded: false, generation: 0, problems: Vec::new(),
+            enchantment_map: crate::enchantment_map::EnchantmentMap::default() }
     }
 }
 impl Registry {
@@ -334,6 +398,7 @@ impl Registry {
     pub fn contains_static(&self, id: &Identifier) -> bool { self.static_modifiers.contains_key(id) || self.expected.contains(id) }
     pub fn clear_dynamic(&mut self) {
         self.dynamic.clear(); self.tags.clear(); self.reverse_tags.clear();
+        self.enchantment_map = crate::enchantment_map::EnchantmentMap::default();
         self.definitions_loaded = false; self.problems.clear();
         self.generation = self.generation.wrapping_add(1);
     }
@@ -397,6 +462,22 @@ impl Registry {
             for member in members { self.reverse_tags.entry(member.clone()).or_default().insert(tag.clone()); }
         }
     }
+
+    /// ModifierManager's apply pass reads the enchantment map after the modifiers and their
+    /// tags: `stack` is the map file's resource stack, `tag_stacks` the modifier_like
+    /// enchantment tags its `#` keys name into.
+    pub fn load_enchantment_map(&mut self, stack: Option<&pluto_lib::JsonResourceStack>, tag_stacks: &[pluto_lib::JsonResourceStack]) {
+        self.enchantment_map = crate::enchantment_map::EnchantmentMap::load(stack, tag_stacks, &|id| self.get(id).is_some());
+        self.problems.extend(self.enchantment_map.problems.iter().cloned());
+    }
+
+    /// ModifierManager.get(enchantment): the modifier a stack carrying this enchantment converts to.
+    pub fn modifier_for_enchantment(&self, enchantment: &Identifier) -> Option<&Identifier> {
+        self.enchantment_map.modifier_for(enchantment)
+    }
+
+    /// ModifierManager.hasEnchantment: the modifier is the target of an enchantment mapping.
+    pub fn has_enchantment(&self, modifier: &Identifier) -> bool { self.enchantment_map.has_enchantment(modifier) }
 
     /// Resolve before merging. Optional missing references are omitted; required
     /// missing implementations error instead of being silently replaced by empty hooks.
@@ -605,14 +686,38 @@ mod tests {
     }
 }
 
+/// The modifiers the original defines only in code (a Java class, no data file) that a material trait names and Tinkers has not ported:
+/// DwarvenModifier (copper), StrongBonesModifier (bone), ConductingModifier (blazing bone), EnderportingModifier (ender pearl and ender slime
+/// vine), InsatiableModifier (jadeite), LaceratingModifier (nahuatl), MomentumModifier (hepatizon) and SelfDestructiveModifier (gunpowder).
+/// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
+/// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
+pub(crate) const CODE_MODIFIERS: &[&str] = &["conducting", "dwarven", "enderporting", "insatiable", "lacerating", "momentum", "self_destructive", "strong_bones"];
+
+pub(crate) fn unported_code_modifiers() -> Result<Vec<Modifier>, String> {
+    CODE_MODIFIERS.iter().map(|name| {
+        let id = Identifier::new("tconstruct", name).map_err(|e| e.to_string())?;
+        let mut modifier = Modifier::decode(id.clone(), &serde_json::json!({}))?;
+        modifier.unbound = vec![id];
+        Ok(modifier)
+    }).collect()
+}
+
 pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<Arc<RwLock<Registry>>, String> {
     // Overslime is defined in code in the original; it survives every reload as a static modifier.
     let mut registry = Registry::default();
     for modifier in crate::overslime::code_modifiers()? { registry.register_static(modifier)?; }
+    for modifier in unported_code_modifiers()? { registry.register_static(modifier)?; }
     let state = Arc::new(RwLock::new(registry));
     let output = state.clone();
     ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
         Identifier::new("tconstruct", "modifier_tags").unwrap(), TAG_FOLDER, |_| Ok(()),
+    )?;
+    // The enchantment map's folder and its tag folder, declared so the modifiers pass below can read their stacks.
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "enchantment_map").unwrap(), crate::enchantment_map::FOLDER, |_| Ok(()),
+    )?;
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "enchantment_tags").unwrap(), crate::enchantment_map::TAG_FOLDER, |_| Ok(()),
     )?;
     ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
         Identifier::new("tconstruct", "modifiers").unwrap(), FOLDER, move |files| {
@@ -625,6 +730,11 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
                 Ok((context, tags)) => {
                     state.reload(files, &context);
                     state.load_tags(&tags);
+                    // The enchantment map rides the same pass, read after the modifiers and tags as ModifierManager reads it.
+                    let stacks = ResourceManagerHelper::reload_json_stacks(crate::enchantment_map::FOLDER).unwrap_or_default();
+                    let map_stack = stacks.iter().find(|stack| stack.id.path() == crate::enchantment_map::FILE);
+                    let tag_stacks = ResourceManagerHelper::reload_json_stacks(crate::enchantment_map::TAG_FOLDER).unwrap_or_default();
+                    state.load_enchantment_map(map_stack, &tag_stacks);
                     for problem in &state.problems { eprintln!("Tinkers: {problem}"); }
                     Ok(())
                 },

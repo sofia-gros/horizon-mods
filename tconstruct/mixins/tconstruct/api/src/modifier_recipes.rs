@@ -34,6 +34,10 @@ impl Sized {
     pub(crate) fn test(&self, stack: &(Identifier, u32), in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         stack.1 >= self.amount && self.ingredient.matches(&stack.0, in_tag)
     }
+    /// The same test with the stack's facts (an instrument it carries, a fluid it holds).
+    pub(crate) fn test_facts(&self, stack: &(Identifier, u32), in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, facts: &crate::material_recipes::StackFacts) -> bool {
+        stack.1 >= self.amount && self.ingredient.matches_facts(&stack.0, in_tag, facts)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -305,10 +309,17 @@ impl Recipe {
 /// ModifierRecipe.checkMatch: each ingredient takes the first unused matching slot (empty slots count
 /// as used) and nothing may be left over. Returns the slot taken by each ingredient.
 pub(crate) fn check_match(ingredients: &[Sized], inputs: &[Option<(Identifier, u32)>], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<Vec<usize>> {
+    check_match_facts(ingredients, inputs, &[], in_tag)
+}
+
+/// check_match with a facts entry per input slot (slots past the list read as a stack without any).
+pub(crate) fn check_match_facts(ingredients: &[Sized], inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<Vec<usize>> {
     let mut used: Vec<bool> = inputs.iter().map(Option::is_none).collect();
     let mut taken = Vec::with_capacity(ingredients.len());
     for ingredient in ingredients {
-        let slot = (0..inputs.len()).find(|&slot| !used[slot] && inputs[slot].as_ref().is_some_and(|stack| ingredient.test(stack, in_tag)))?;
+        let slot = (0..inputs.len()).find(|&slot| !used[slot] && inputs[slot].as_ref().is_some_and(|stack| {
+            ingredient.test_facts(stack, in_tag, &facts.get(slot).copied().unwrap_or_default())
+        }))?;
         used[slot] = true;
         taken.push(slot);
     }
@@ -349,7 +360,24 @@ impl Recipes {
     pub fn find_crystal(&self, tool: &Identifier, modifier: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Recipe> {
         self.recipes.iter().find(|recipe| recipe.allow_crystal && matches!(recipe.kind, Kind::Single | Kind::Incremental { .. }) && &recipe.result == modifier && recipe.tools.matches(tool, in_tag))
     }
+    /// ModifierRecipeLookup.isRecipeModifier: some loaded recipe adds `modifier` spending the named
+    /// slot type (none: a slotless recipe). A multilevel recipe registers under its first level's
+    /// slots, as its constructor passes those to the shared base; a slot count of 0 registers as
+    /// slotless (SlotCount.type), which the decoder already rejects, so it cannot occur here.
+    pub fn is_recipe_modifier(&self, slot_type: Option<&str>, modifier: &Identifier) -> bool {
+        self.recipes.iter().any(|recipe| {
+            if &recipe.result != modifier { return false; }
+            let slots = if recipe.levels.is_empty() { recipe.slots.as_ref() } else { recipe.levels[0].slots.as_ref() };
+            match (slot_type, slots) {
+                (None, None) => true,
+                (Some(name), Some((registered, _))) => registered == name,
+                _ => false,
+            }
+        })
+    }
     pub fn len(&self) -> usize { self.recipes.len() }
+    /// Every loaded recipe, for reports that enumerate recipe usage per modifier.
+    pub fn all(&self) -> &[Recipe] { &self.recipes }
 }
 
 /// The crystal item and the NBT key holding its modifier.
@@ -500,7 +528,7 @@ mod tests {
         };
         assert!(bad(json!({"inputs":[]})) && bad(json!({"slots":{"upgrades":1,"abilities":1}})) && bad(json!({"slots":{"Bad Name":1}})) && bad(json!({"slots":{"upgrades":0}})));
         assert!(bad(json!({"level":{"min":3,"max":2}})) && bad(json!({"max_tool_size":0})) && bad(json!({"result":3})));
-        assert!(bad(json!({"inputs":[{"type":"tconstruct:block_tag","tag":"tconstruct:tanks"}]})), "ingredients this port lacks reject the recipe");
+        assert!(bad(json!({"inputs":[{"type":"tconstruct:not_ported","tag":"tconstruct:tanks"}]})), "ingredients this port lacks reject the recipe");
     }
     #[test]
     fn recipes_load_in_id_order_with_conditions_and_report_unsupported_ones() {

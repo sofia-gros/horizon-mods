@@ -7,10 +7,12 @@
 //! The callbacks see states as [`BlockState`] text and the surroundings through a [`BlockView`]. PlutoLib owns the game's hook for each
 //! question once, so two mods never compete for it: each behaviour is asked only about its own block.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use super::base::Identifier;
+use super::entity_events_v1::EntityAction;
 use super::block_entity_api_v1::BlockPos;
 use super::item_group_api_v1::ItemStack;
 use super::world_api_v1::BlockState;
@@ -500,7 +502,7 @@ impl<'a> ShapeUpdateContext<'a> {
 }
 
 /// An entity is inside the block (Minecraft: `entityInside`).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EntityInsideContext {
     /// The dimension, such as `minecraft:overworld`.
     pub dimension: String,
@@ -512,6 +514,29 @@ pub struct EntityInsideContext {
     pub entity: i32,
     /// The entity's type, such as `minecraft:zombie`.
     pub kind: String,
+    /// The entity's bounding box, as `[min x, min y, min z, max x, max y, max z]` (`Entity.getBoundingBox`):
+    /// the box the original's contact tests are computed from — a punji, for one, hurts only a living
+    /// entity whose box crosses the block's mid-plane on the facing axis.
+    pub bounds: [f64; 6],
+    /// How far the entity has fallen, in blocks (`Entity.fallDistance`): the original's fall bonus on
+    /// contact damage reads it — the same punji deals the fall distance + 1 more after a fall.
+    pub fall_distance: f64,
+    /// What the callback does to the entity, which the game does after the callback ran (the seams run
+    /// inside entity movement, where the entity may not be changed): add to it with [`EntityInsideContext::act`].
+    pub actions: RefCell<Vec<EntityAction>>,
+}
+
+impl EntityInsideContext {
+    /// Queues something to do to the entity inside (see [`EntityAction`]): it lands once the movement
+    /// seams are done with the entity.
+    pub fn act(&self, action: EntityAction) {
+        self.actions.borrow_mut().push(action);
+    }
+
+    /// The queued actions, taken out (the sink reads them after the callback).
+    pub(crate) fn take_actions(&self) -> Vec<EntityAction> {
+        std::mem::take(&mut *self.actions.borrow_mut())
+    }
 }
 
 /// A server-side landing's calculated damage before hurt handling. This is
@@ -910,10 +935,11 @@ pub(crate) fn pick(block: &str, context: &PickContext) -> Option<ItemStack> {
     BlockBehaviors::get(block)?.pick_stack.and_then(|f| f(context))
 }
 
-pub(crate) fn inside(block: &str, context: &EntityInsideContext) {
+pub(crate) fn inside(block: &str, context: &EntityInsideContext) -> Vec<EntityAction> {
     if let Some(f) = BlockBehaviors::get(block).and_then(|b| b.entity_inside) {
         f(context);
     }
+    context.take_actions()
 }
 
 #[cfg(test)]

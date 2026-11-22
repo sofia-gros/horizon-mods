@@ -137,7 +137,11 @@ fn build(ctx: &Context, inputs: &[Option<Input>]) -> Result<Outcome, String> {
     let items: Vec<Option<Identifier>> = inputs.iter().map(|input| input.as_ref().and_then(|input| input.item().cloned())).collect();
     for (tool_item, definition) in ctx.tools {
         let parts = definition.tool_parts();
-        if parts.is_empty() || !tool_build::matches(true, &items, parts, &[]) { continue; }
+        // A building recipe's parts fill every material slot of the tool (the original's ToolBuildingRecipe takes
+        // its parts from the definition). A tool whose parts cover only some slots takes the rest from a cast fluid
+        // in the original (the slimesuit pieces, the plate shield) and has no building recipe, so the station must
+        // not invent one for it: building it here would produce a tool with the fluid's slot left unfilled.
+        if parts.is_empty() || definition.material_stat_types().is_some_and(|types| types.len() != parts.len()) || !tool_build::matches(true, &items, parts, &[]) { continue; }
         let env = ctx.environment(tool_item, definition);
         let materials: Vec<MaterialVariant> = inputs.iter().take(parts.len()).map(|input| match input {
             Some(Input::Part { material, .. }) => material.clone(), _ => MaterialVariant::unknown() }).collect();
@@ -182,15 +186,17 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
         });
     }
     let list = tool_materials(&tool.custom_data, definition.material_stat_types().is_some());
-    let can_repair = |material: &Identifier| definition.is_repair_material(&list, material);
+    let env = ctx.environment(&tool.item, definition);
+    // MaterialRepairToolHook.canRepairWith: the definition's own repair materials, or any modifier's.
+    let can_repair = |material: &Identifier| definition.is_repair_material(&list, material) || crate::tool_stack::modifier_is_repair_material(&tool.custom_data, &env, material);
     if !tool_repair::matches(&tool.custom_data, true, &slots, can_repair) { return Ok(Outcome::NoMatch); }
     if !is_broken(&tool.custom_data) && damage(&tool.custom_data) == 0 {
         return Ok(Outcome::Failure("recipe.tconstruct.tool_repair.fully_repaired".to_owned()));
     }
-    let env = ctx.environment(&tool.item, definition);
     let mut result = tool.clone();
     result.count = 1;
-    let amount_for = |material: &Identifier| definition.repair_amount(&list, material, ctx.materials);
+    // MaterialRepairToolHook.getRepairAmount: the larger of the definition's amount and the modifiers'.
+    let amount_for = |material: &Identifier| definition.repair_amount(&list, material, ctx.materials).max(crate::tool_stack::modifier_repair_amount(&tool.custom_data, &env, material) as f32);
     let factor = |value: f32| crate::tool_stack::repair_factor(&tool.custom_data, &env, value);
     let Some(plan) = tool_repair::plan(damage(&tool.custom_data), &slots, amount_for, factor) else { return Ok(Outcome::NoMatch); };
     tool_slot::repair_slot(&mut result, &env, plan.repaired)?;
@@ -215,18 +221,19 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
     let env = ctx.environment(&tool.item, definition);
     // MaterialCastingLookup.getItemCost needs casting recipes, which are not loaded: no part cost,
     // so a swap repairs only when the caller forces it (never here).
-    let max_stack = (ctx.item_max)(&tool.item).min(16);
-    Ok(match tool_swap::swap_material(&tool.custom_data, i32::try_from(tool.count).unwrap_or(1), &env, material, index, 0, false, max_stack)? {
+    let item_max = (ctx.item_max)(&tool.item);
+    let max_stack = item_max.min(16);
+    Ok(match tool_swap::swap_material(&tool.custom_data, i32::try_from(tool.count).unwrap_or(1), &env, material, index, 0, false, max_stack, item_max)? {
         tool_swap::Outcome::Pass => Outcome::NoMatch,
         tool_swap::Outcome::Failure(key) => Outcome::Failure(key),
-        tool_swap::Outcome::Success { tool: data, size } => {
+        tool_swap::Outcome::Success { tool: data, size, shrink } => {
             let mut result = tool.clone();
             result.custom_data = data;
             result.count = u32::try_from(size).unwrap_or(1);
             tool_slot::sync_visuals(&mut result, &env)?;
             let mut consumed = vec![0; inputs.len()];
             consumed[slot] = 1;
-            Outcome::Crafted(Crafted { result, consumed, tool_shrink: max_stack, leftover: Vec::new() })
+            Outcome::Crafted(Crafted { result, consumed, tool_shrink: shrink, leftover: Vec::new() })
         }
     })
 }

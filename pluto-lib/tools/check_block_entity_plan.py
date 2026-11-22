@@ -96,7 +96,10 @@ HOOK_TARGETS = SPAWN_TARGETS | {TARGET, MASK_TARGET, TRADE_TARGET, RELOAD_TARGET
     'horizon_client::mod_content::Plan::override_gameplay',
     "horizon_client_lib::mod_content::Plan<'_>::override_gameplay",
     'horizon_client::mod_content::resource_root',
-    "horizon_client::mod_content::Overlay<'_>::write"}
+    "horizon_client::game::machines::native_items::Game<'_>::native_container_slots",
+    "horizon_client::mod_content::Overlay<'_>::write",
+    'horizon_items::enchant::Enchantments::enchantable_of',
+    "horizon_client::game::mounts::Game<'_>::shear_saddle"}
 
 
 # Detect both historical re-export spellings and current owning-crate targets.
