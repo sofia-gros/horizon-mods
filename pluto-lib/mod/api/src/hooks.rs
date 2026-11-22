@@ -324,8 +324,11 @@ pub fn hooks() -> Box<dyn Hooks> {
     horizon_client::entry::pluto_block::set_feature_dispatcher(|world, kind, configuration, origin| {
         use crate::pure::worldgen_api_v1::{FeatureContext, FeatureTypeRegistry};
         let id = Identifier::parse(kind).ok()?;
-        match FeatureTypeRegistry::generate(&id, configuration, &mut FeatureContext { world: &mut GameEditor(world), origin }) {
-            Ok(result) => result,
+        let generated = FeatureTypeRegistry::generate(&id, configuration, &mut FeatureContext { world: &mut GameEditor(&mut *world), origin });
+        match generated {
+            Ok(Some(result)) => Some(result),
+            Ok(None) if kind == "minecraft:tree" => routed_tree(world, configuration, origin),
+            Ok(None) => None,
             Err(error) => {
                 eprintln!("pluto_lib: feature type {id} rejected configuration: {error}");
                 Some(false)
@@ -2618,6 +2621,25 @@ impl<T: horizon_client::entry::pluto_block::RootEdit + ?Sized> crate::pure::worl
     fn sample_state_provider(&mut self, index: usize, pos: [i32; 3]) -> Result<BlockState, String> {
         let state = self.0.sample_state_provider(index, pos)?;
         to_state(&state).ok_or_else(|| "invalid sampled block identifier".to_owned())
+    }
+}
+
+/// Place a native tree configuration whose root placer or decorators are
+/// registered component types. The host tree codec decodes only native
+/// component types, so such a configuration cannot be placed natively at
+/// all; decode the components through the worldgen registries and place the
+/// tree explicitly, as the vanilla registries resolve them during configured
+/// feature placement. None means the configuration names no registered
+/// component and native placement keeps it, including its errors.
+fn routed_tree(world: &mut dyn horizon_client::entry::pluto_block::LevelEdit, configuration: &serde_json::Value, origin: [i32; 3]) -> Option<bool> {
+    use crate::pure::block_api_v1::BlockEditor as _;
+    match crate::pure::worldgen_api_v1::native_tree_route(configuration) {
+        Ok(Some(route)) => Some(GameEditor(world).place_tree_with_plan(&route.configuration, origin, route.roots.as_ref(), &route.plan)),
+        Ok(None) => None,
+        Err(error) => {
+            eprintln!("pluto_lib: tree configuration rejected: {error}");
+            Some(false)
+        }
     }
 }
 

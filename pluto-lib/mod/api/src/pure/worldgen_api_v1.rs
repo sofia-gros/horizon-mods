@@ -236,6 +236,80 @@ impl TreeDecoratorTypeRegistry {
     }
 }
 
+/// A native tree configuration prepared for explicit placement through
+/// BlockEditor::place_tree_with_plan: the configuration rewritten to the form
+/// the host tree codec accepts, the decoded root override, and the decoration
+/// plan interleaving native and custom steps in configuration order.
+pub struct NativeTreeRoute {
+    /// The tree configuration with every registered component rewritten to
+    /// its native base: a registered root placer is retagged to the native
+    /// mangrove placer whose simulation the override rides on (the codec's
+    /// object already carries the mangrove fields), and registered decorators
+    /// are removed from the array the host decodes.
+    pub configuration: Value,
+    /// The decoded per-position root override, when the configuration's root
+    /// placer type is registered. None keeps the native root simulation.
+    pub roots: Option<RootPlacement>,
+    /// Native and custom decorator steps in configuration order; every native
+    /// entry of the rewritten configuration appears exactly once.
+    pub plan: Vec<TreeDecoration>,
+}
+
+/// Prepare a `minecraft:tree` configuration whose root placer or decorators
+/// use registered component types for explicit placement. This is the reach
+/// the vanilla registries give a configured feature: the host tree codec only
+/// decodes native component types, so a configuration naming a registered
+/// root placer or decorator cannot be placed natively at all.
+///
+/// Ok(None) means the configuration needs no routing (it names no registered
+/// component, or its shape is not a tree configuration object) and native
+/// placement keeps it, including its errors. A registered codec's rejection
+/// stays an error. No world access is performed.
+pub fn native_tree_route(configuration: &Value) -> Result<Option<NativeTreeRoute>, String> {
+    let Some(object) = configuration.as_object() else { return Ok(None) };
+    let mut native = configuration.clone();
+    let mut roots = None;
+    if let Some(root_placer) = object.get("root_placer") {
+        match root_placer.get("type").and_then(Value::as_str) {
+            Some("minecraft:mangrove_root_placer") => {}
+            Some(kind) => {
+                let Ok(id) = Identifier::parse(kind) else { return Ok(None) };
+                let Some(placement) = RootPlacementTypeRegistry::decode(&id, root_placer)? else { return Ok(None) };
+                roots = Some(placement);
+                if let Some(root) = native.get_mut("root_placer").and_then(Value::as_object_mut) {
+                    root.insert("type".to_owned(), Value::String("minecraft:mangrove_root_placer".to_owned()));
+                }
+            }
+            None => return Ok(None),
+        }
+    }
+    let mut plan = Vec::new();
+    let mut custom = false;
+    if let Some(decorators) = object.get("decorators") {
+        let Some(entries) = decorators.as_array() else { return Ok(None) };
+        let mut native_entries: Vec<Value> = Vec::new();
+        for entry in entries {
+            let Some(kind) = entry.get("type").and_then(Value::as_str) else { return Ok(None) };
+            let Ok(id) = Identifier::parse(kind) else { return Ok(None) };
+            match TreeDecoratorTypeRegistry::decode(&id, entry)? {
+                Some(decorator) => {
+                    custom = true;
+                    plan.push(TreeDecoration::Custom(decorator));
+                }
+                None => {
+                    plan.push(TreeDecoration::Native(native_entries.len()));
+                    native_entries.push(entry.clone());
+                }
+            }
+        }
+        native["decorators"] = Value::Array(native_entries);
+    }
+    if roots.is_none() && !custom {
+        return Ok(None);
+    }
+    Ok(Some(NativeTreeRoute { configuration: native, roots, plan }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -342,5 +416,78 @@ mod tests {
         assert_eq!(context.world.block_state([-3, 72, 8]).unwrap().block.to_string(), "minecraft:glass");
         assert!(context.world.is_air([-3, 73, 8]));
         assert_eq!(FeatureTypeRegistry::generate(&id, &Value::Null, &mut context), Ok(Some(false)));
+    }
+
+    #[test]
+    fn native_tree_route_rewrites_registered_components_and_keeps_native_ones() {
+        let root_id = Identifier::parse("example:routed_root").unwrap();
+        assert!(RootPlacementTypeRegistry::register(root_id, |value| {
+            if value.get("disabled").and_then(Value::as_bool) == Some(true) { return Err("routed root disabled".into()); }
+            Ok(RootPlacement::new(WorldgenBindings::default(), |_| Ok(None)))
+        }));
+        let decorator_id = Identifier::parse("example:routed_decorator").unwrap();
+        assert!(TreeDecoratorTypeRegistry::register(decorator_id, |value| {
+            if value.get("disabled").and_then(Value::as_bool) == Some(true) { return Err("routed decorator disabled".into()); }
+            Ok(TreeDecorator::new(|_| Ok(())))
+        }));
+
+        // A purely native tree needs no routing, and non-objects are not trees.
+        let native_tree = serde_json::json!({
+            "root_placer": {"type": "minecraft:mangrove_root_placer"},
+            "decorators": [{"type": "minecraft:beehive", "probability": 0.05}],
+        });
+        assert!(native_tree_route(&native_tree).unwrap().is_none());
+        assert!(native_tree_route(&Value::Null).unwrap().is_none());
+        // An unregistered root type is not routable either; native placement
+        // keeps the configuration and its own decode error.
+        let unknown_root = serde_json::json!({
+            "root_placer": {"type": "example:unregistered_root"},
+            "decorators": [],
+        });
+        assert!(native_tree_route(&unknown_root).unwrap().is_none());
+
+        // Registered root + registered decorator interleaved with a native one.
+        let tree = serde_json::json!({
+            "root_placer": {
+                "type": "example:routed_root",
+                "trunk_offset_y": {"type": "minecraft:uniform", "min_inclusive": 1, "max_inclusive": 3},
+                "root_variants": [{"matches": ["minecraft:dirt"]}],
+            },
+            "decorators": [
+                {"type": "example:routed_decorator", "probability": 0.5},
+                {"type": "minecraft:beehive", "probability": 0.05},
+            ],
+        });
+        let route = native_tree_route(&tree).unwrap().unwrap();
+        assert!(route.roots.is_some());
+        // The native form retags the root placer and keeps its other fields.
+        assert_eq!(route.configuration["root_placer"]["type"], "minecraft:mangrove_root_placer");
+        assert_eq!(route.configuration["root_placer"]["root_variants"][0]["matches"][0], "minecraft:dirt");
+        // The registered decorator leaves the native array; the plan keeps
+        // configuration order with the native entry re-indexed.
+        assert_eq!(route.configuration["decorators"], serde_json::json!([{"type": "minecraft:beehive", "probability": 0.05}]));
+        assert_eq!(route.plan.len(), 2);
+        assert!(matches!(route.plan[0], TreeDecoration::Custom(_)));
+        assert!(matches!(route.plan[1], TreeDecoration::Native(0)));
+
+        // A registered decorator alone also routes, without a root override.
+        let decorated = serde_json::json!({
+            "decorators": [{"type": "example:routed_decorator"}],
+        });
+        let route = native_tree_route(&decorated).unwrap().unwrap();
+        assert!(route.roots.is_none());
+        assert_eq!(route.configuration["decorators"], serde_json::json!([]));
+        assert!(matches!(route.plan[0], TreeDecoration::Custom(_)));
+
+        // Registered codecs' rejections stay errors instead of falling back.
+        let bad_root = serde_json::json!({
+            "root_placer": {"type": "example:routed_root", "disabled": true},
+            "decorators": [],
+        });
+        assert_eq!(native_tree_route(&bad_root).err().as_deref(), Some("routed root disabled"));
+        let bad_decorator = serde_json::json!({
+            "decorators": [{"type": "example:routed_decorator", "disabled": true}],
+        });
+        assert_eq!(native_tree_route(&bad_decorator).err().as_deref(), Some("routed decorator disabled"));
     }
 }
