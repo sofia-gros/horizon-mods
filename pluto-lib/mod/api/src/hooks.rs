@@ -2436,6 +2436,37 @@ impl ScreenCanvas for HostCanvas<'_> {
         self.host.sprite(self.batch, name, src, dst)
     }
 
+    fn sprite_tinted(&mut self, name: &str, src: [f32; 4], sheet: [f32; 2], dst: [f32; 4], argb: u32) -> bool {
+        // A zero-size probe: it draws nothing and answers whether the texture exists, which the
+        // paint call below (it returns nothing) cannot say.
+        if !self.host.sprite(self.batch, name, [0.0; 4], [0.0; 4]) { return false; }
+        let draw = horizon_client::hud_layout::GuiDraw::Blit {
+            texture: std::borrow::Cow::Owned(name.to_owned()),
+            blend: horizon_client::hud_layout::Blend::Textured,
+            x: dst[0].round() as i32, y: dst[1].round() as i32,
+            w: dst[2].round() as i32, h: dst[3].round() as i32,
+            uv: [src[0], src[1]], src: [src[2].round() as i32, src[3].round() as i32],
+            tex: [sheet[0].round() as i32, sheet[1].round() as i32], color: argb,
+        };
+        self.host.gui_paint(self.batch, &[draw]);
+        true
+    }
+
+    fn atlas_sprite(&mut self, name: &str, dst: [f32; 4], argb: u32) {
+        let draw = horizon_client::hud_layout::GuiDraw::AtlasSprite {
+            sprite: std::borrow::Cow::Owned(name.to_owned()),
+            x: dst[0].round() as i32, y: dst[1].round() as i32,
+            w: dst[2].round() as i32, h: dst[3].round() as i32, color: argb,
+        };
+        self.host.gui_paint(self.batch, &[draw]);
+    }
+
+    fn item(&mut self, item: &ItemSlot, at: [f32; 2], size: f32) -> bool {
+        let mut stack = ItemStack::new(&item.item.to_string(), item.count);
+        write_slot(&mut stack, item);
+        self.host.item_stack(self.batch, &stack, at, size)
+    }
+
     fn text(&mut self, text: &str, at: [f32; 2], rgb: u32, shadow: bool) {
         self.host.text(self.batch, text, at, rgb, shadow);
     }

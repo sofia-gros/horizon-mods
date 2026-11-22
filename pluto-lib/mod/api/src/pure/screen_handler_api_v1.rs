@@ -18,6 +18,23 @@ pub trait ScreenCanvas {
     fn fill(&mut self, rect: [f32; 4], argb: u32);
     /// Draws the part `src` (`[x, y, width, height]`, in texture pixels) of the GUI texture `name` into `dst`; false if there is no such texture.
     fn sprite(&mut self, name: &str, src: [f32; 4], dst: [f32; 4]) -> bool;
+    /// Draws the part `src` (in texture pixels) of the GUI texture `name`, a sheet of `sheet` pixels, into `dst`, tinted by `argb`:
+    /// `sprite` with a colour, for the translucent shades and covers of the original screens. False if there is no such texture.
+    fn sprite_tinted(&mut self, name: &str, src: [f32; 4], sheet: [f32; 2], dst: [f32; 4], argb: u32) -> bool {
+        let _ = (name, src, sheet, dst, argb);
+        false
+    }
+    /// Draws the block/item atlas sprite `name` (such as `tconstruct:gui/tinker_pattern/pick_head`) stretched into `dst`, tinted
+    /// by `argb`. The host gives no answer for a missing sprite: an unknown name draws nothing.
+    fn atlas_sprite(&mut self, name: &str, dst: [f32; 4], argb: u32) {
+        let _ = (name, dst, argb);
+    }
+    /// Draws `stack`'s item icon with its top left at `at`, `size` GUI pixels square, as the game draws it in a slot (model and
+    /// decorations, without the count). False when nothing was drawn (an unknown item or an empty stack).
+    fn item(&mut self, stack: &ItemSlot, at: [f32; 2], size: f32) -> bool {
+        let _ = (stack, at, size);
+        false
+    }
     /// Draws `text` with its top left at `at`, in colour `rgb`, with a shadow if asked.
     fn text(&mut self, text: &str, at: [f32; 2], rgb: u32, shadow: bool);
     /// The width of `text` in GUI pixels.
