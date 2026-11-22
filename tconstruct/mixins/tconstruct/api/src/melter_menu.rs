@@ -1,8 +1,9 @@
 //! The melter and heater block entities, their windows and slot rules over PlutoLib's public API
 //! (SlimeKnights MelterBlockEntity, HeaterBlockEntity, MelterContainerMenu, SingleItemContainerMenu, MelterScreen and
 //! the GuiMeltingModule/GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The melter menu holds its three melting
-//! slots; the original's fourth slot there is the heater's own and lives in the heater's window. The tank is drawn as a
-//! flat fill in the fluid's colour and its tooltip names the amount; putting fluid in and out with a held item needs fluid
+//! slots; the original's fourth slot there is the heater's own and lives in the heater's window. The tank is drawn as the
+//! fluid's still texture tiled over a flat fill of its colour (the fill is what shows where the host's atlas holds no
+//! sprite for the texture) and its tooltip names the amount; putting fluid in and out with a held item needs fluid
 //! items, which come with the casting unit.
 use crate::{
     common,
@@ -45,6 +46,28 @@ fn fluid_color(id: &Identifier) -> u32 {
     if color >> 24 == 0 { color | 0xFF00_0000 } else { color }
 }
 
+/// `GuiUtil.renderTiledFluid`: the fluid's still texture tiled over `rect` in 16 pixel tiles, tinted `argb`. Every
+/// tile restarts the texture at its top left and the last tile of a row or column is clipped to the part that fits,
+/// which the canvas's tinted sub-rectangle draw expresses directly. A fluid with no texture of its own draws nothing;
+/// the flat fill the caller drew under the rect first is what shows then. A gas (lighter than air) is drawn
+/// unflipped: the canvas has no flipped draw, and the original's own flip carries a "causes tiling errors" note.
+pub(crate) fn draw_tiled_fluid(canvas: &mut dyn ScreenCanvas, fluid: &Identifier, rect: [f32; 4], argb: u32) {
+    let Some(visual) = crate::rendering::visual(fluid) else { return };
+    let (mut rows_left, mut top) = (rect[3], rect[1]);
+    while rows_left > 0.0 {
+        let tile_height = rows_left.min(16.0);
+        let (mut columns_left, mut left) = (rect[2], rect[0]);
+        while columns_left > 0.0 {
+            let tile_width = columns_left.min(16.0);
+            canvas.sprite_tinted(&visual.still, [0.0, 0.0, tile_width, tile_height], [16.0, 16.0], [left, top, tile_width, tile_height], argb);
+            left += tile_width;
+            columns_left -= tile_width;
+        }
+        top += tile_height;
+        rows_left -= tile_height;
+    }
+}
+
 fn tank_fluid(data: &[i32]) -> Option<Identifier> {
     let which = data.get(DATA_TANK_FLUID).copied().unwrap_or(0);
     (which > 0).then(|| melter::fluid_order().get(which as usize - 1).cloned()).flatten()
@@ -65,8 +88,11 @@ pub(crate) fn draw_melter(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data:
     let amount = get(DATA_TANK_AMOUNT);
     if amount > 0 {
         let height = (TANK[3] * (amount.min(MELTER_CAPACITY) as f32) / MELTER_CAPACITY as f32).floor();
-        let color = tank_fluid(data).map_or(0xFF_FF_FF_FF, |fluid| fluid_color(&fluid));
-        canvas.fill([x + TANK[0], y + TANK[1] + TANK[3] - height, TANK[2], height], color);
+        let fluid = tank_fluid(data);
+        let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+        let rect = [x + TANK[0], y + TANK[1] + TANK[3] - height, TANK[2], height];
+        canvas.fill(rect, color);
+        if let Some(fluid) = &fluid { draw_tiled_fluid(canvas, fluid, rect, color); }
     }
     canvas.sprite(MELTER_BACKGROUND, [176.0, 0.0, 52.0, 52.0], [x + TANK[0], y + TANK[1], 52.0, 52.0]);
     let temperature = get(2);
@@ -162,10 +188,11 @@ mod tests {
     use super::*;
 
     #[derive(Default)]
-    struct Recorder { sprites: Vec<(String, [f32; 4], [f32; 4])>, fills: Vec<([f32; 4], u32)> }
+    struct Recorder { sprites: Vec<(String, [f32; 4], [f32; 4])>, fills: Vec<([f32; 4], u32)>, tinted: Vec<(String, [f32; 4], [f32; 4], u32)> }
     impl ScreenCanvas for Recorder {
         fn fill(&mut self, rect: [f32; 4], argb: u32) { self.fills.push((rect, argb)); }
         fn sprite(&mut self, name: &str, src: [f32; 4], dst: [f32; 4]) -> bool { self.sprites.push((name.to_owned(), src, dst)); true }
+        fn sprite_tinted(&mut self, name: &str, src: [f32; 4], _: [f32; 2], dst: [f32; 4], argb: u32) -> bool { self.tinted.push((name.to_owned(), src, dst, argb)); true }
         fn text(&mut self, _: &str, _: [f32; 2], _: u32, _: bool) {}
         fn text_width(&self, _: &str) -> f32 { 0.0 }
     }
@@ -198,6 +225,26 @@ mod tests {
         let bars: Vec<_> = canvas.sprites.iter().filter(|s| s.1[0] >= 176.0 && s.1[1] >= 150.0).collect();
         assert_eq!(bars.len(), 1, "only the occupied slot has a bar");
         assert_eq!((bars[0].1, bars[0].2), ([176.0, 158.0, 3.0, 8.0], [28.0, 62.0, 3.0, 8.0]), "half of 16 pixels, drawn from the bottom of slot 1");
+    }
+
+    #[test]
+    fn a_tiled_fluid_restarts_its_texture_every_sixteen_pixels_and_clips_the_last_tile_of_a_row_and_column() {
+        let mut canvas = Recorder::default();
+        let iron = Identifier::parse("tconstruct:molten_iron").unwrap();
+        draw_tiled_fluid(&mut canvas, &iron, [10.0, 20.0, 40.0, 40.0], 0xFF12_3456);
+        // 40 pixels is two full tiles and an 8 pixel rest, in both directions; every tile reads the still
+        // texture from its top left, clipped to the tile's own size
+        let mut expected = Vec::new();
+        for (top, height) in [(20.0, 16.0), (36.0, 16.0), (52.0, 8.0)] {
+            for (left, width) in [(10.0, 16.0), (26.0, 16.0), (42.0, 8.0)] {
+                expected.push(("tconstruct:fluid/molten/ore/iron/still".to_owned(), [0.0, 0.0, width, height], [left, top, width, height], 0xFF12_3456));
+            }
+        }
+        assert_eq!(canvas.tinted, expected);
+        // a fluid with no texture data of its own draws nothing (the caller's fill stays)
+        let mut canvas = Recorder::default();
+        draw_tiled_fluid(&mut canvas, &Identifier::parse("test:unknown").unwrap(), [0.0, 0.0, 32.0, 32.0], 0xFFFF_FFFF);
+        assert!(canvas.tinted.is_empty());
     }
 
     #[test]
