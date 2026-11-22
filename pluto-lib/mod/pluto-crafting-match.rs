@@ -128,17 +128,20 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Verdict {
     }
     // Inspect exact cropped cells, not a compressed stack list or synthetic grid.
     // No component capture occurs until at least one policy requests inspection.
+    // Crafting capture reads the stacks' current decoded components even when
+    // they retain wire: grid stacks in real gameplay always do, and the native
+    // ingredient test the veto defers to reads the same data.
     let captures: Vec<_> = input
         .cells
         .iter()
-        .map(|cell| cell.map(ItemFacts::capture))
+        .map(|cell| cell.map(ItemFacts::capture_crafting))
         .collect();
     let cells: Vec<_> = captures
         .iter()
         .map(|cell| cell.as_ref().map(ItemFacts::view))
         .collect();
     let result = template.map(|template| template.create());
-    let result = result.as_ref().map(ItemFacts::capture);
+    let result = result.as_ref().map(ItemFacts::capture_crafting);
     let request = Request {
         recipe: &facts,
         input: InputFacts {

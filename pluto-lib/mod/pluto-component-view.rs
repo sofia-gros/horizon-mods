@@ -92,6 +92,26 @@ impl ItemFacts {
         };
         Self { view, components }
     }
+    /// Crafting facts: like `capture`, but the components always come from
+    /// the stack's current decoded data, retained wire or not. The host's
+    /// own ingredient test at match time reads that same decoded data, and
+    /// a crafting grid only ever holds live stacks, so for crafting the
+    /// decoded components are the ground truth the native match uses. The
+    /// shared `capture` stays fail-closed for wire stacks because its other
+    /// consumers project saved/synced state, where an opaque patch may
+    /// carry facts the codec cannot represent; suppressing components here
+    /// instead hid exactly the component-carrying stacks real gameplay
+    /// puts in the grid (every synced or given stack retains wire), which
+    /// made material assembly read every grid material as unknown.
+    pub fn capture_crafting(stack: &crate::items::ItemStack) -> Self {
+        let mut facts = Self::capture(stack);
+        facts.components = Some(
+            crate::item_data::encode_components(stack)
+                .map(from_nbt)
+                .unwrap_or_else(|| ComponentValue::Compound(Default::default())),
+        );
+        facts
+    }
     pub fn view(&self) -> ItemSnapshot<'_> {
         ItemSnapshot {
             id: &self.view.id,
