@@ -147,6 +147,47 @@ name = "pluto_entity_spawn_game"
 source = "pluto-entity-spawn-game.rs"
 visibility = "pub(crate)"
 
+[[module]]
+id = "pluto-mob-split"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_mob_split"
+source = "pluto-mob-split.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-mob-split-game"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_mob_split_game"
+source = "pluto-mob-split-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-mob-split-head"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mob_split"
+kind = "RETURN"
+require = 1
+helper = "pluto-mob-split-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "parent", ty = "u32", value = "parent" },
+ { name = "kind", ty = "&str", value = "kind" },
+ { name = "size", ty = "i32", value = "size" },
+ { name = "child_size", ty = "i32", value = "child_size" },
+ { name = "count", ty = "&mut u32", value = "count" },
+ { name = "cancel", ty = "&mut bool", value = "cancel" },
+]
+
+[[injection]]
+id = "pluto-mob-split-children"
+target = "horizon_client::game::creatures::Game<'_>::split_dead_cube"
+kind = "RETURN"
+require = 1
+helper = "pluto-mob-split-children.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "m", ty = "&Mob", value = "&*m" },
+]
+
 [[injection]]
 id = "pluto-entity-spawn-runtime"
 target = "horizon_client::game::creatures::Game<'_>::spawn_mob_internal"

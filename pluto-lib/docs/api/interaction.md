@@ -1028,3 +1028,203 @@ let edit = CarriedEdit {
 assert_eq!(edit.slot, CarriedSlot::Inventory(0));
 assert_eq!(edit.stack.count, 0, "a count of 0 empties the place");
 ```
+
+## Living class landings and death drops
+
+### `CauseFallDamageContext`
+
+The landing a class `cause_fall_damage` decides on: `entity` and `entity_type` name the landing entity, `distance` is the fall distance after any living-fall event adjustment, `multiplier` is the damage multiplier the landing carries, `velocity` is the entity's motion as it lands, and `suppressing_bounce` reports a sneaking player (a mob never suppresses).
+
+```rust
+use pluto_lib::{CauseFallDamageContext, Identifier};
+let context = CauseFallDamageContext { entity: 7, entity_type: Identifier::parse("example:bouncer").unwrap(),
+    distance: 5.0, multiplier: 1.0, velocity: [0.0, -1.5, 0.0], suppressing_bounce: false };
+assert_eq!(context.distance, 5.0);
+assert!(!context.suppressing_bounce);
+```
+
+### `FallOutcome`
+
+What a `cause_fall_damage` override does instead of applying fall damage: `Cancel` applies nothing beyond the block's own `fallOn`; `Bounce` rebounds with the given motion, airborne again, playing `sound` at the entity when present.
+
+```rust
+use pluto_lib::{FallOutcome, Identifier};
+let outcome = FallOutcome::Bounce { velocity: [0.0, 0.9, 0.0], sound: Some(Identifier::parse("example:bounce").unwrap()) };
+assert!(matches!(outcome, FallOutcome::Bounce { .. }));
+assert_eq!(FallOutcome::Cancel, FallOutcome::Cancel);
+```
+
+### `EquipmentDropChanceContext`
+
+The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, and `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only.
+
+```rust
+use pluto_lib::{EquipmentDropChanceContext, Identifier};
+let context = EquipmentDropChanceContext { entity_type: Identifier::parse("example:armored").unwrap(),
+    slot: "head".into(), slime_size: Some(4), chance: 2.0 };
+assert_eq!(context.chance, 2.0);
+assert_eq!(context.slot, "head");
+```
+
+### `LivingEntityBehavior::cause_fall_damage`
+
+Registers the class's own `causeFallDamage`: returning an outcome replaces the inherited fall-damage application for the landing; returning `None` keeps it.
+
+```rust
+use pluto_lib::{FallOutcome, Identifier, LivingEntityBehavior};
+let behavior = LivingEntityBehavior::new(Identifier::parse("example:bouncer").unwrap())
+    .cause_fall_damage(|context| (context.distance > 2.0).then_some(FallOutcome::Cancel));
+let _ = behavior;
+```
+
+### `LivingEntityBehavior::equipment_drop_chance`
+
+Registers the class's own per-slot equipment drop chance at death; returning `None` keeps the recorded chance for that slot.
+
+```rust
+use pluto_lib::{Identifier, LivingEntityBehavior};
+let behavior = LivingEntityBehavior::new(Identifier::parse("example:armored").unwrap())
+    .equipment_drop_chance(|context| (context.chance > 0.25).then_some(0.25));
+let _ = behavior;
+```
+
+### `LivingEntityBehaviors::cause_fall_damage`
+
+Dispatches the registered `cause_fall_damage` override for the context's type; `None` keeps the inherited application.
+
+```rust
+use pluto_lib::{CauseFallDamageContext, Identifier, LivingEntityBehaviors};
+let context = CauseFallDamageContext { entity: 1, entity_type: Identifier::parse("example:unregistered").unwrap(),
+    distance: 9.0, multiplier: 1.0, velocity: [0.0; 3], suppressing_bounce: false };
+assert_eq!(LivingEntityBehaviors::cause_fall_damage(&context), None);
+```
+
+### `LivingEntityBehaviors::equipment_drop_chance`
+
+Dispatches the registered per-slot drop chance for the context's type; `None` keeps the recorded chance.
+
+```rust
+use pluto_lib::{EquipmentDropChanceContext, Identifier, LivingEntityBehaviors};
+let context = EquipmentDropChanceContext { entity_type: Identifier::parse("example:unregistered").unwrap(),
+    slot: "head".into(), slime_size: None, chance: 0.085 };
+assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&context), None);
+```
+
+## Mob splits
+
+### `MobSplitContext`
+
+The dying parent and the split the game is about to perform: `parent` is the parent entity, `position` its position, `size` its size and `child_size` the children's size (half of it).
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitContext};
+let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
+    position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
+assert_eq!(context.child_size, 2);
+assert_eq!(context.parent.id, 7);
+```
+
+### `MobSplitRandom`
+
+Random draws for inheritance decisions, from the parent's own stream.
+
+```rust
+use pluto_lib::MobSplitRandom;
+struct Fixed;
+impl MobSplitRandom for Fixed {
+    fn next_float(&mut self) -> f32 { 0.25 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> { Ok(bound - 1) }
+}
+let mut random = Fixed;
+assert_eq!(random.next_float(), 0.25);
+assert_eq!(random.next_int(3), Ok(2));
+```
+
+### `MobSplitChild`
+
+One spawned child, dressed before it joins the world; its `EntityInfo` carries the child's real id, so attachment writes land on the child.
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitChild, StackData};
+struct Child { info: EntityInfo }
+impl MobSplitChild for Child {
+    fn info(&self) -> EntityInfo { self.info.clone() }
+    fn set_equipment(&mut self, _: &str, _: StackData) -> Result<(), String> { Ok(()) }
+    fn set_custom_name(&mut self, _: Option<String>) -> Result<(), String> { Ok(()) }
+    fn set_no_ai(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+    fn set_invulnerable(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+}
+let child = Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } };
+assert_eq!(child.info().id, 8);
+```
+
+### `MobSplitInheritance`
+
+The inheritance view handed to split callbacks after the game spawned the children: `context` is the split, `head` is the parent's head stack (children receive copies), `head_drop_chance` is the parent's recorded head drop chance, `custom_name`, `no_ai` and `invulnerable` are the parent's flags, `random` draws from the parent's stream, and `children` are the spawned children in the game's spawn order.
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitChild, MobSplitContext, MobSplitInheritance, MobSplitRandom, StackData};
+struct Fixed;
+impl MobSplitRandom for Fixed {
+    fn next_float(&mut self) -> f32 { 0.5 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> { Ok(bound - 1) }
+}
+struct Child { info: EntityInfo }
+impl MobSplitChild for Child {
+    fn info(&self) -> EntityInfo { self.info.clone() }
+    fn set_equipment(&mut self, _: &str, _: StackData) -> Result<(), String> { Ok(()) }
+    fn set_custom_name(&mut self, _: Option<String>) -> Result<(), String> { Ok(()) }
+    fn set_no_ai(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+    fn set_invulnerable(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+}
+let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
+    position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
+let mut random = Fixed;
+let mut children: Vec<Box<dyn MobSplitChild>> = vec![Box::new(Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } })];
+let view = MobSplitInheritance { context: &context, head: None, head_drop_chance: 0.085,
+    custom_name: None, no_ai: false, invulnerable: false, random: &mut random, children: &mut children };
+assert_eq!(view.children.len(), 1);
+assert_eq!(view.head_drop_chance, 0.085);
+```
+
+### `MobSplitCallback`
+
+A split observer with two phases, both defaulting to keeping the game's split: `prepare` tunes the child count or cancels the split; `inherit` dresses the spawned children.
+
+```rust
+use pluto_lib::MobSplitCallback;
+struct Observer;
+impl MobSplitCallback for Observer {}
+let _observer = Observer;
+```
+
+### `MobSplitCallbacks`
+
+The registration-order split dispatch: preparation callbacks run in order before the game spawns, inheritance callbacks in order after.
+
+```rust
+use pluto_lib::MobSplitCallbacks;
+let _registry = MobSplitCallbacks;
+```
+
+### `MobSplitCallbacks::register`
+
+Registers a split callback under a unique name; duplicate names reject.
+
+```rust
+use pluto_lib::{MobSplitCallback, MobSplitCallbacks};
+struct Observer;
+impl MobSplitCallback for Observer {}
+MobSplitCallbacks::register("example:observer", Observer).unwrap();
+assert!(MobSplitCallbacks::has_callbacks());
+```
+
+### `MobSplitCallbacks::has_callbacks`
+
+Whether any split callback is registered; the native split hooks stay inert while none is.
+
+```rust
+use pluto_lib::MobSplitCallbacks;
+let active: bool = MobSplitCallbacks::has_callbacks();
+let _ = active;
+```

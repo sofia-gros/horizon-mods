@@ -305,6 +305,11 @@ pub fn hooks() -> Box<dyn Hooks> {
         let Some(kind)=json_attachment(attachment,synced) else { return false };
         host.dimension()==dimension && kind.set(host,Holder::Entity(entity),json.to_owned()).is_ok()
     }).expect("PlutoLib spawn attachment writer installs once");
+    horizon_client::entry::pluto_mob_split::set_provider(
+        horizon_client::entry::pluto_mob_split::Provider {
+            active:crate::pure::mob_split_api::MobSplitCallbacks::has_callbacks,
+            prepare:native_split_prepare,inherit:native_split_inherit,
+        }).expect("PlutoLib mob split dispatcher installs once");
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -833,6 +838,53 @@ struct SpawnView<'a> {
     random:&'a mut dyn spawn_access::Random,
     equipment:&'a mut dyn spawn_access::Equipment,
 }
+struct SplitRandom<'a>(&'a mut dyn horizon_client::entry::pluto_mob_split::Random);
+impl crate::pure::mob_split_api::MobSplitRandom for SplitRandom<'_> {
+    fn next_float(&mut self)->f32 { self.0.next_float() }
+    fn next_int(&mut self,bound:i32)->Result<i32,String> { self.0.next_int(bound) }
+}
+struct SplitChildView<'a> {
+    native:&'a mut Box<dyn horizon_client::entry::pluto_mob_split::Child>,
+    kind:String,
+    dimension:String,
+}
+impl crate::pure::mob_split_api::MobSplitChild for SplitChildView<'_> {
+    fn info(&self)->crate::pure::entity_events_v1::EntityInfo {
+        crate::pure::entity_events_v1::EntityInfo { id:self.native.id(),kind:self.kind.clone(),dimension:self.dimension.clone() }
+    }
+    fn set_equipment(&mut self,slot:&str,stack:player_api::StackData)->Result<(),String> {
+        let mut native=ItemStack::new(&stack.item,stack.count);
+        write_stack(&mut native,&stack);
+        self.native.set_equipment(slot,native)
+    }
+    fn set_custom_name(&mut self,name:Option<String>)->Result<(),String> { self.native.set_custom_name(name) }
+    fn set_no_ai(&mut self,no_ai:bool)->Result<(),String> { self.native.set_no_ai(no_ai) }
+    fn set_invulnerable(&mut self,invulnerable:bool)->Result<(),String> { self.native.set_invulnerable(invulnerable) }
+}
+fn split_context(info:&horizon_client::entry::pluto_mob_split::Info)->crate::pure::mob_split_api::MobSplitContext {
+    crate::pure::mob_split_api::MobSplitContext {
+        parent:crate::pure::entity_events_v1::EntityInfo { id:info.entity,kind:info.entity_type.clone(),dimension:info.dimension.clone() },
+        position:info.position,size:info.size,child_size:info.child_size }
+}
+fn native_split_prepare(info:&horizon_client::entry::pluto_mob_split::Info,count:&mut u32,cancel:&mut bool)->Result<(),String> {
+    crate::pure::mob_split_api::MobSplitCallbacks::prepare(&split_context(info),count,cancel)
+}
+fn native_split_inherit(host:&mut dyn Host,info:&horizon_client::entry::pluto_mob_split::Info,
+    random:&mut dyn horizon_client::entry::pluto_mob_split::Random,
+    children:&mut [Box<dyn horizon_client::entry::pluto_mob_split::Child>])->Result<(),String> {
+    let context=split_context(info);
+    let head=info.head.as_ref().map(read_stack);
+    let mut views:Vec<Box<dyn crate::pure::mob_split_api::MobSplitChild>>=children.iter_mut().map(|child|
+        Box::new(SplitChildView { native:child,kind:info.entity_type.clone(),dimension:info.dimension.clone() })
+            as Box<dyn crate::pure::mob_split_api::MobSplitChild>).collect();
+    let mut split_random=SplitRandom(random);
+    let mut view=crate::pure::mob_split_api::MobSplitInheritance {
+        context:&context,head,head_drop_chance:info.head_drop_chance,
+        custom_name:info.custom_name.clone(),no_ai:info.no_ai,invulnerable:info.invulnerable,
+        random:&mut split_random,children:&mut views };
+    scoped(host,|| crate::pure::mob_split_api::MobSplitCallbacks::inherit(&mut view))
+}
+
 /// MobEvent sounds are &'static str; intern each distinct mod sound id once.
 /// The table is bounded by the distinct ids mods actually bounce with.
 fn intern_sound(id:&str)->&'static str {
