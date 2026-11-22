@@ -76,6 +76,33 @@ def main():
     def container_slots():
         return {s['slot']: s for s in ctl('screen')['slots']}
 
+    def await_slot(slot, pred, ticks=1200):
+        """Poll a container slot until `pred` accepts its screen entry. A click
+        on a mod menu is committed by the server (the guest click path) and the
+        preview is computed there, so in the offscreen harness the round trip
+        takes seconds of wall time, far beyond a fixed wait: poll the way
+        put() polls the inventory for a given item to arrive."""
+        got = container_slots().get(slot, {'item': None, 'components': ''})
+        for _ in range(ticks // 10):
+            if pred(got):
+                return got
+            ctl('wait', '10')
+            got = container_slots().get(slot, {'item': None, 'components': ''})
+        return got
+
+    def await_button(slot, pred, button, ticks=300, tries=6):
+        """Run `button()` (a menu button click) until the preview it computes
+        appears in `slot`. The button acts on the server's committed inputs,
+        and a click that lands before the placements commit computes nothing,
+        so click again while polling instead of trusting a single click."""
+        got = container_slots().get(slot, {'item': None, 'components': ''})
+        for _ in range(tries):
+            if pred(got):
+                return got
+            button()
+            got = await_slot(slot, pred, ticks)
+        return got
+
     def put(item, material, container_slot):
         """Give a part, pick it from the player's inventory and drop it in a container slot."""
         ctl('command', f'give @s tconstruct:{item}[custom_data={{Material:"tconstruct:{material}"}}] 1')
@@ -96,17 +123,23 @@ def main():
     def open_menu(pos, label):
         # A single ctl interact is flaky in the current host build: it can answer that no face
         # of the block is visible even with the player standing in front of it, and the run then
-        # dies before the scenario starts. Retry the open a bounded number of times, the way the
-        # station diagnosis probes did, until the container menu is up.
-        for _ in range(12):
-            try:
-                ctl('interact', *pos, 'up')
-            except RuntimeError:
-                ctl('wait', '5')
-                continue
-            ctl('wait', '10')
+        # dies before the scenario starts. Aim at the block first (the visibility check uses the
+        # current view), then retry the open a bounded number of times, cycling faces, the way
+        # the station diagnosis probes did, until the container menu is up. The server-side
+        # open can also land before the client screen flips, and further interacts then answer
+        # "the container screen is open": poll the screen itself as the success check.
+        try:
+            ctl('look-at-block', *pos)
+        except RuntimeError:
+            pass
+        faces = ('up', 'north', 'south', 'east', 'west', 'down')
+        for attempt in range(30):
             if ctl('screen')['screen'] == 'container':
                 return
+            try:
+                ctl('interact', *pos, faces[attempt % len(faces)])
+            except RuntimeError:
+                pass
             ctl('wait', '5')
         raise AssertionError(label)
 
@@ -146,14 +179,10 @@ def main():
 
         for item, material, slot in [('pick_head', 'wood', inputs[0]), ('tool_handle', 'wood', inputs[1]), ('tool_binding', 'wood', inputs[2])]:
             put(item, material, slot)
-        # The station ticker can take a while to answer now that the content load has grown,
-        # so poll the result slot with the same patience put() uses for parts (up to ~100 ticks).
-        preview = container_slots()[result_slot]
-        for _ in range(20):
-            if preview.get('item') == 'tconstruct:pickaxe':
-                break
-            ctl('wait', '5')
-            preview = container_slots()[result_slot]
+        # The clicks are committed by the server and the ticker's preview is computed
+        # there; in the offscreen harness that round trip takes seconds, so poll the
+        # result slot with real patience (await_slot), not a fixed ~100 ticks.
+        preview = await_slot(result_slot, lambda s: s.get('item') == 'tconstruct:pickaxe')
         assert preview.get('item') == 'tconstruct:pickaxe', preview
         assert 'tic_stats' in preview.get('components', ''), 'the previewed tool has no rebuilt stats: ' + str(preview)
         assert 'attribute_modifiers' in preview.get('components', '') and 'tconstruct:tool_attack_damage' in preview.get('components', ''), 'the previewed melee tool publishes no attack attributes: ' + str(preview)
@@ -163,8 +192,21 @@ def main():
         bounds = ui_slots()[result_slot]
         ctl('click-at', bounds[0] + 8, bounds[1] + 8)
         ctl('wait', '5')
+        # The take is a server-committed click too: poll until the tool is carried.
         screen = ctl('screen')
+        for _ in range(60):
+            if screen['carried'] and screen['carried']['item'] == 'tconstruct:pickaxe':
+                break
+            ctl('wait', '10')
+            screen = ctl('screen')
         assert screen['carried'] and screen['carried']['item'] == 'tconstruct:pickaxe', screen['carried']
+        # The consumed parts clear server-side in the same commit, but their slot
+        # sync reaches the screen on its own tick: poll until the row reads empty.
+        for _ in range(60):
+            screen = ctl('screen')
+            if all(s.get('item') is None for s in screen['slots'] if first <= s['slot'] <= first + 4):
+                break
+            ctl('wait', '10')
         assert all(s.get('item') is None for s in screen['slots'] if first <= s['slot'] <= first + 4), 'parts were not consumed'
         assert any(s['slot'] == result_slot and s.get('item') is None for s in screen['slots']), 'result slot not cleared'
         ctl('click-slot', tool)
@@ -173,7 +215,7 @@ def main():
         result['scenarios'].append('taking the pickaxe consumed the parts and gave the tool')
 
         put('pick_head', 'rock', inputs[0])
-        swapped = container_slots()[result_slot]
+        swapped = await_slot(result_slot, lambda s: s.get('item') == 'tconstruct:pickaxe' and 'tconstruct:rock' in s.get('components', ''))
         assert swapped.get('item') == 'tconstruct:pickaxe' and 'tconstruct:rock' in swapped.get('components', ''), swapped
         shot('04-head-swap-preview.png')
         result['scenarios'].append('a stone head previews a head swap on the placed pickaxe')
@@ -197,11 +239,9 @@ def main():
             ctl('click-at', bounds[0] + 8, bounds[1] + 8)
             ctl('wait', '5')
         shot('05-part-builder-inputs.png')
-        origin = ui_slots()[first]
-        ctl('click-at', origin[0] - 8 + 34 + 9, origin[1] - 24 + 18 + 9)
-        ctl('wait', '10')
-        built = container_slots()[first + 2]
-        assert built.get('item', '').startswith('tconstruct:') and 'tconstruct:wood' in built.get('components', ''), built
+        built = await_button(first + 2, lambda s: str(s.get('item') or '').startswith('tconstruct:') and 'tconstruct:wood' in s.get('components', ''),
+                             lambda: ctl('click-at', ui_slots()[first][0] - 8 + 34 + 9, ui_slots()[first][1] - 24 + 18 + 9))
+        assert str(built.get('item') or '').startswith('tconstruct:') and 'tconstruct:wood' in built.get('components', ''), built
         shot('06-part-builder-result.png')
         result['scenarios'].append('the part builder offers a pattern button and previews a wood part')
 
@@ -228,8 +268,9 @@ def main():
         ctl('click-at', origin[0] - 8 + 34 + 9, origin[1] - 24 + 18 + 9)
         ctl('wait', '10')
         shot('06b-part-recycling.png')
-        recycled = container_slots()[first + 2]
-        assert recycled.get('item', '').startswith('tconstruct:') and 'tconstruct:wood' in recycled.get('components', ''), recycled
+        recycled = await_button(first + 2, lambda s: str(s.get('item') or '').startswith('tconstruct:') and 'tconstruct:wood' in s.get('components', ''),
+                                lambda: ctl('click-at', ui_slots()[first][0] - 8 + 34 + 9, ui_slots()[first][1] - 24 + 18 + 9))
+        assert str(recycled.get('item') or '').startswith('tconstruct:') and 'tconstruct:wood' in recycled.get('components', ''), recycled
         result['scenarios'].append('the part builder takes a pickaxe apart into a wood part with a venom bottle')
 
         # Modifier worktable opens with its four slots.
@@ -262,7 +303,8 @@ def main():
         ctl('click-at', origin[0] - 8 + 54 + 9, origin[1] - 24 + 18 + 9)
         ctl('wait', '10')
         shot('07b-worktable-removal.png')
-        removed = container_slots()[wfirst + 3]
+        removed = await_button(wfirst + 3, lambda s: s.get('item') == 'tconstruct:pickaxe' and 'sharpness' not in s.get('components', ''),
+                               lambda: ctl('click-at', ui_slots()[wfirst][0] - 8 + 54 + 9, ui_slots()[wfirst][1] - 24 + 18 + 9))
         assert removed.get('item') == 'tconstruct:pickaxe' and 'sharpness' not in removed.get('components', ''), removed
         result['scenarios'].append('the worktable previews taking a modifier off a tool with a wet sponge')
 
@@ -287,7 +329,7 @@ def main():
             ctl('click-at', bounds[0] + 8, bounds[1] + 8)
             ctl('wait', '5')
             inv = ctl('screen')['slots']
-        repaired = container_slots()[result_slot]
+        repaired = await_slot(result_slot, lambda s: s.get('item') == 'tconstruct:pickaxe' and 'respiration' in s.get('components', ''))
         shot('08-repair-preview.png')
         assert repaired.get('item') == 'tconstruct:pickaxe', repaired
         assert 'Damage' not in repaired.get('components', '') or 'Damage: 20' not in repaired.get('components', ''), repaired
@@ -316,7 +358,7 @@ def main():
             ctl('click-at', bounds[0] + 8, bounds[1] + 8)
             ctl('wait', '5')
             inv = ctl('screen')['slots']
-        crystal_result = container_slots()[result_slot]
+        crystal_result = await_slot(result_slot, lambda s: s.get('item') == 'tconstruct:pickaxe' and 'sharpness' in s.get('components', ''))
         shot('08b-modifier-crystal.png')
         assert crystal_result.get('item') == 'tconstruct:pickaxe' and 'sharpness' in crystal_result.get('components', ''), crystal_result
         result['scenarios'].append('a modifier crystal alone on the station applies its modifier')
@@ -331,7 +373,7 @@ def main():
         first = min(i for i in ui_slots() if i >= 300)
         put('helmet_plating', 'cobalt', first + 1)
         put('maille', 'iron', first + 2)
-        helmet = container_slots()[first + 5]
+        helmet = await_slot(first + 5, lambda s: s.get('item') == 'tconstruct:plate_helmet')
         shot('08c-plate-helmet.png')
         print('PLATE HELMET', json.dumps(helmet)[:500], flush=True)
         helmet_components = helmet.get('components', '')
@@ -566,7 +608,10 @@ def main():
                 if first:
                     ctl('look-at-entity', first[0]['id'])
                     ctl('wait', '30')
-                    ctl('attack', first[0]['id'])
+                    try:
+                        ctl('attack', first[0]['id'])
+                    except RuntimeError:
+                        pass  # best effort: the warm-up hit only rebuilds attributes
                     ctl('wait', '30')
                 ctl('command', 'kill @e[type=minecraft:husk]')
                 ctl('command', f'summon minecraft:husk {rock[0]} {rock[1]} {rock[2]} {{NoAI:1b,PersistenceRequired:1b}}')
@@ -575,14 +620,26 @@ def main():
                 ctl('command', 'data merge entity @e[type=minecraft:husk,limit=1,sort=nearest] {Fire:400s}')
                 ctl('wait', '5')
             ctl('select', 1)
-            found = ctl('entities', 8, 'husk')
-            listed = found.get('mobs') or found.get('entities') or []
-            assert listed, found
-            target = listed[0]['id']
-            ctl('look-at-entity', target)
-            ctl('wait', '30')
-            reply = ctl('attack', target)
-            assert reply.get('hit'), reply
+            # The listed entity can vanish from the client's tracking before the
+            # attack lands ("no entity"): list again and retry, the way the
+            # menu opens retry, instead of dying on the race.
+            reply = None
+            for _ in range(10):
+                found = ctl('entities', 8, 'husk')
+                listed = found.get('mobs') or found.get('entities') or []
+                if not listed:
+                    ctl('wait', '10')
+                    continue
+                target = listed[0]['id']
+                ctl('look-at-entity', target)
+                ctl('wait', '30')
+                try:
+                    reply = ctl('attack', target)
+                except RuntimeError:
+                    ctl('wait', '10')
+                    continue
+                break
+            assert reply is not None and reply.get('hit'), reply
             return reply['health_before'] - reply['health']
 
         plain_damage = hit_damage('')
