@@ -5,8 +5,10 @@
 //! trigger: a rising neighbour signal sets `triggered` and the shot follows four ticks later, once per rising edge.
 //! Shooting is `FluidCannonBlockEntity.shoot` whole (see [`shoot`]): the fluid's effects run against the block in front
 //! when they can, else the fluid flies as a `FluidEffectProjectile` (`crate::fluid_projectile`) of effects-amount times
-//! power, else the shot fails with the dispenser fail sound. What has no reach is not faked: the shot's fluid particles
-//! and the fail's BLOCK_ACTIVATE game event (no particle emission or game event surface), and the face sturdiness that
+//! power, else the shot fails with the dispenser fail sound. A shot the block in front consumes sends the
+//! original's fluid particles at the hit location, carrying the tank's fluid (the send is real; the fluid
+//! particle's per-spawn sprite awaits a host channel — see `crate::particles`). What has no reach is not
+//! faked: the fail's BLOCK_ACTIVATE game event (no game event surface), and the face sturdiness that
 //! gates the projectile is answered by approximation, as [`shoot`] notes. The use hook is told no click position, so it
 //! cannot split the block into the original's tank zone (the top half) and item zone: a held fluid container trades with
 //! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite is ported (the
@@ -25,7 +27,7 @@ use crate::fluid_world::{block_context, holder, slot_write_back, stack_of_slot, 
 use crate::tank::Tank;
 use pluto_lib::{
     ActionResult, ActionTarget, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
-    EntityAction, EntityInsideContext, FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, PathNodeType, Placement, World,
+    EntityAction, EntityInsideContext, FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, ParticleData, PathNodeType, Placement, World,
 };
 
 /// The cannons of `TinkerSmeltery`: name, tank capacity, and the shot's power, velocity and inaccuracy
@@ -146,7 +148,8 @@ fn fail(world: &mut LiveWorld, pos: BlockPos) -> Shot {
 /// `FluidCannonBlockEntity.shoot`: the tank fluid's effects, found as the original finds them, run
 /// against the block in front when the entry has block effects and a block with a shape stands
 /// there (spending what they consume, the context's stack going back into the slot, the fluid
-/// particles and the PARTICLES_SHOOT level event aside — no particle surface); else, when the face
+/// particles sent at the hit location, the PARTICLES_SHOOT level event aside — no level event
+/// surface); else, when the face
 /// in front is not sturdy, a projectile of `effects amount x power` millibuckets flies with the
 /// llama spit sound, and the tank is spent by what flew. A shot that cannot spawn its projectile
 /// (the kind unpublished or the chunk unloaded — see `crate::fluid_projectile`) fails without
@@ -186,9 +189,15 @@ pub(crate) fn shoot(
             let mut context = block_context(world, holder(slot_stack(items), None, centre(pos)), target, opposite, location);
             let consumed = effects.apply_to_block(&fluid, power, &mut context, tags);
             if consumed > 0 {
+                // The context's stack goes back into the slot; take it out first, as the context
+                // holds the world the send below needs.
+                let holder_stack = context.env.holder.stack.clone();
+                // The original's shot particles (FluidCannonBlockEntity.shoot): ten fluid particles at
+                // the hit location, carrying the tank's fluid as it was shot, before it is spent.
+                world.world().send_particles("tconstruct:fluid", &ParticleData::Fluid(fluid.clone()), location, [0.1, 0.2, 0.1], 0.2, 10);
                 tank.drain(Some(&held.fluid), consumed, true);
                 tank.write(data);
-                if let Some(slot) = items.first_mut() { slot_write_back(slot, &context.env.holder.stack); }
+                if let Some(slot) = items.first_mut() { slot_write_back(slot, &holder_stack); }
                 return Shot::AppliedBlock;
             }
         }

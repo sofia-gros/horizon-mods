@@ -12,7 +12,9 @@
 //!   value, knockback scale and damage types and bypasses invulnerability time; the game's blast
 //!   seam takes none of those, so an explosion fluid's entity damage is the game's for its radius,
 //!   not the effect's damage value.
-//! - Particles (destroy particles, the cannon's shot particles) have no emission surface; sounds do.
+//! - Destroy particles have no emission surface: they are the destroy-block crumble level event,
+//!   not a particle send. The cannon's shot particles do send, through the world handle (see
+//!   `crate::fluid_cannon`); sounds do.
 //! - Potion contents are not read: no potion registry reach hands out a potion's effects, so
 //!   `potion` / `potion_cloud` effects find no effects to give (their fluid's other effects still run).
 //! - The vanilla interaction pipelines are not reachable, so `interact` effects answer Pass.
@@ -209,7 +211,8 @@ impl WorldAccess for LiveWorld {
     fn set_block(&mut self, pos: BlockPos, state: &BlockState) -> bool { self.world.set_block_state(pos, state) }
 
     fn destroy_particles(&mut self, _pos: BlockPos, _state: &BlockState) {
-        // No particle emission surface; the block still goes away by the caller's own set.
+        // The destroy-block crumble is a level event, not a particle send, and has no surface; the
+        // block still goes away by the caller's own set.
     }
 
     fn play_sound(&mut self, at: [f64; 3], sound: &str, volume: f32, pitch: f32) {

@@ -151,6 +151,7 @@ mod fancy_gadgets;
 mod advancements;
 mod shaped_materials;
 mod commands;
+mod particles;
 mod aoe;
 mod armor_interact_hook;
 mod quiver_hook;
@@ -223,5 +224,6 @@ pub fn hooks() -> pluto_lib::ModHooks {
     advancements::register();
     shaped_materials::register();
     commands::register();
+    particles::register();
     pluto_lib::no_hooks()
 }

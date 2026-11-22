@@ -14,10 +14,12 @@
 //! (`<name>_spawn_egg`, declared by the importer on the vanilla slime egg) carries the original's colours:
 //! sky 0x47eff5/0xacfff4, ender 0x6300b0/0xd37cff, terracube 0xafb9d6/0xa1a7b1 — recorded in `TYPES`; the
 //! 26.3 egg form has no tint layers (every vanilla egg has its own texture, and the original ships none for
-//! its eggs), so the eggs render unmodelled for now. Each type's ambient particle is the particle type of
-//! its own name (`tconstruct:sky_slime` etc., a plain particle type in the original); PlutoLib's entity
-//! particle override only replaces a landing particle with an item-crumb factory, which a plain particle
-//! type is not, so the particle types remain unregistered.
+//! its eggs), so the eggs render unmodelled for now. Each type's particle is the particle type of its own
+//! name (`tconstruct:sky_slime` etc.): a plain particle type in the original whose client factory is a
+//! breaking-item particle of the type's own slime ball (the terracube's is a clay ball) — exactly the
+//! item-crumb shape PlutoLib's entity particle override replaces a landing particle with. `crate::particles`
+//! declares the three types with those factories and points each type's override at its own type, the
+//! host-side shape of the slime classes' `getParticleType()`.
 //!
 //! Class behaviour (ArmoredSlimeEntity, shared by all three, over the vanilla Slime class):
 //! - the three transient attribute modifiers registered here (armor, armor toughness and knockback

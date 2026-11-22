@@ -340,3 +340,7 @@ mod shaped_materials;
 mod shaped_materials_tests;
 #[cfg(test)]
 mod gadget_data;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/particles.rs"]
+mod particles;
+#[cfg(test)]
+mod particle_tests;

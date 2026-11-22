@@ -80,6 +80,7 @@
     "api/src/damage_vanilla.rs",
     "api/src/instrument_tags.rs",
     "api/src/part_recycling.rs",
+    "api/src/particles.rs",
     "api/src/damageable_recycling.rs",
     "api/src/tool_actions.rs",
     "api/src/tool_action_hook.rs",
