@@ -443,7 +443,7 @@ PlayerBlockBreakEvents::CANCELED.register(|_| {});
 What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature).
 
 ```rust
-use pluto_lib::DiggingFacts;
+use pluto_lib::events_interaction_v0::DiggingFacts;
 
 let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8) };
 assert_eq!((facts.block_light, facts.sky_light, facts.sky_darken), (Some(3), Some(15), 4));
