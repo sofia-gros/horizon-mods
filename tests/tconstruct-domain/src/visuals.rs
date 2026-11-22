@@ -211,3 +211,79 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     assert!(groups["fluids"].iter().all(|item| item.ends_with("_tank") || item.ends_with("_gauge")), "{:?}", groups["fluids"]);
     assert!(declared.len() > 240, "{}", declared.len());
 }
+
+#[test]
+fn every_fluid_sprite_the_render_table_names_is_shipped() {
+    // The block-entity renderers and the tank windows draw each fluid's still and flowing sprites under
+    // the names of Mantle's fluid texture table (render_data::fluid_texture). A named sprite with no
+    // shipped texture file cannot resolve in the game: the face naming it is left undrawn.
+    let mut problems = Vec::new();
+    let mut sprites = BTreeSet::new();
+    for fluid in crate::fluid_defs::FLUIDS {
+        let id = format!("tconstruct:{}", fluid.name);
+        let Some(texture) = crate::render_data::fluid_texture(&id) else {
+            problems.push(format!("{id}: no fluid texture row"));
+            continue;
+        };
+        for sprite in [texture.still, texture.flowing] {
+            sprites.insert(sprite);
+            match sprite.strip_prefix("tconstruct:") {
+                Some(path) if assets().join(format!("textures/{path}.png")).is_file() => {}
+                _ => problems.push(format!("{id}: sprite {sprite} has no shipped texture")),
+            }
+        }
+    }
+    assert!(problems.is_empty(), "{problems:#?}");
+    assert!(sprites.len() > 100, "{}", sprites.len());
+}
+
+#[test]
+fn the_fluid_sprites_are_in_the_games_atlas_and_the_texture_tree_is_complete() {
+    // The game's unified atlas (screen draws and native block-entity draws) packs the walked texture
+    // folders and the base game's atlas definitions, which name only block/ and entity/conduit/, so a
+    // fluid sprite is stitched only because the content ships assets/minecraft/atlases/blocks.json: the
+    // host's content builder appends a mod's atlas sources to the base definition of the same name
+    // instead of copying the file. Pin the declaration exactly; it is the reviewed shape port.py allows.
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content");
+    let atlas = read(content.join("assets/minecraft/atlases/blocks.json"));
+    assert_eq!(atlas, serde_json::json!({"sources": [{"type": "minecraft:directory", "source": "fluid", "prefix": "fluid/"}]}));
+    // The shipped fluid textures are exactly the sprites the render table names, plus the ones named by
+    // convention: the base fluid model's liquid pair (its still is the parent model's texture) and the
+    // inverted flowing sprite of each gas (a fluid lighter than air, density below zero), which Mantle
+    // names from the flowing sprite. The original's molten/shiny and molten/transparent folders are
+    // named by nothing in the original and stay unshipped.
+    let mut expected = BTreeSet::new();
+    for fluid in crate::fluid_defs::FLUIDS {
+        let texture = crate::render_data::fluid_texture(&format!("tconstruct:{}", fluid.name)).unwrap();
+        for sprite in [texture.still, texture.flowing] {
+            expected.insert(sprite.strip_prefix("tconstruct:fluid/").unwrap().to_owned());
+        }
+        if fluid.density < 0 {
+            expected.insert(texture.flowing.strip_prefix("tconstruct:fluid/").unwrap().replace("/flowing", "/flowing_inverted"));
+        }
+    }
+    expected.insert("liquid/still".to_owned());
+    expected.insert("liquid/flowing".to_owned());
+    let root = assets().join("textures/fluid");
+    let mut shipped = BTreeSet::new();
+    let mut stack = vec![root.clone()];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "png") {
+                let relative = path.strip_prefix(&root).unwrap().with_extension("");
+                shipped.insert(relative.to_string_lossy().replace('\\', "/"));
+                // A sprite taller than wide is an animation strip: without its .mcmeta the atlas packs
+                // the whole strip as one sprite instead of animating its frames.
+                let bytes = std::fs::read(&path).unwrap();
+                let (w, h) = (u32::from_be_bytes(bytes[16..20].try_into().unwrap()), u32::from_be_bytes(bytes[20..24].try_into().unwrap()));
+                if h > w {
+                    assert!(path.with_extension("png.mcmeta").is_file(), "{path:?}: animated strip without its .mcmeta");
+                }
+            }
+        }
+    }
+    assert_eq!(shipped, expected);
+}
