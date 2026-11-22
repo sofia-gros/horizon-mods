@@ -789,7 +789,7 @@ assert_eq!(leftover.count, 41, "the slot filled to 64");
 
 ## Advancement item predicates and trigger events
 
-Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions.
+Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions. A mod also publishes its resolved item-tag snapshots, so criteria naming its tags resolve against the world data the mod itself loaded.
 
 ### `ItemSnapshot`
 
@@ -1043,4 +1043,62 @@ assert!(submit_event("example:counted", serde_json::json!({}), same));
 assert_eq!(queued_event_count(), 1);
 let _ = take_queued_events();
 assert_eq!(queued_event_count(), 0);
+```
+
+### `TagSnapshot`
+
+`type TagSnapshot = BTreeMap<String, Option<Vec<String>>>`. One owner's resolved item-tag snapshot for advancement matching: tag id to member ids. `Some(empty)` is a known empty tag; `None` is a tag the owner knows but cannot currently resolve, which matching fails closed on rather than falling back to the native table. Tags absent from the snapshot are not the owner's business.
+
+```rust
+use pluto_lib::advancement_api_v1::TagSnapshot;
+
+let mut snapshot = TagSnapshot::new();
+snapshot.insert("example:tag".into(), Some(vec!["example:item".into()]));
+snapshot.insert("example:unavailable".into(), None);
+snapshot.insert("example:empty".into(), Some(Vec::new()));
+assert_eq!(snapshot["example:tag"], Some(vec!["example:item".to_string()]));
+assert_eq!(snapshot["example:unavailable"], None);
+assert_eq!(snapshot["example:empty"], Some(Vec::new()));
+```
+
+### `publish_tag_snapshot`
+
+`fn publish_tag_snapshot(owner: &str, snapshot: TagSnapshot)`. Publishes one owner's current resolved item-tag snapshot, replacing the owner's previous publication wholesale. Publishing an empty snapshot releases the ownership; the publication is retained as an empty snapshot so the adapter releases the owner's world-side ownership on its next tick. Consumers publish when their data (re)loads and release when it unloads.
+
+```rust
+use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshots};
+
+let mut snapshot = TagSnapshot::new();
+snapshot.insert("example:tag".into(), Some(vec!["example:item".into()]));
+publish_tag_snapshot("example:docs", snapshot);
+assert!(tag_snapshots().contains(&("example:docs".to_string(), {
+    let mut snapshot = TagSnapshot::new();
+    snapshot.insert("example:tag".into(), Some(vec!["example:item".into()]));
+    snapshot
+})));
+publish_tag_snapshot("example:docs", TagSnapshot::new());
+assert!(tag_snapshots().contains(&("example:docs".to_string(), TagSnapshot::new())));
+```
+
+### `tag_snapshot_generation`
+
+`fn tag_snapshot_generation() -> u64`. The publication generation: 0 before the first publication, bumped by every `publish_tag_snapshot` call. The native adapter compares it against the generation it last applied to a world's store, so an unchanged publication costs one comparison per tick.
+
+```rust
+use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshot_generation};
+
+let before = tag_snapshot_generation();
+publish_tag_snapshot("example:docs", TagSnapshot::new());
+assert_eq!(tag_snapshot_generation(), before + 1);
+```
+
+### `tag_snapshots`
+
+`fn tag_snapshots() -> Vec<(String, TagSnapshot)>`. Every currently published owner snapshot, cloned for the native adapter; pure consumers only publish.
+
+```rust
+use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshots};
+
+publish_tag_snapshot("example:docs", TagSnapshot::new());
+assert!(tag_snapshots().iter().any(|(owner, snapshot)| owner == "example:docs" && snapshot.is_empty()));
 ```

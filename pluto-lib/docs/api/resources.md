@@ -249,6 +249,19 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 }
 ```
 
+### `RegistryLookup::tags`
+
+`fn tags(&self) -> &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>`. Every captured tag with its members, for consumers that republish the resolved snapshot (the advancement tag overlay). A tag the reload did not capture is not in this map.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:item").unwrap()) {
+    for (tag, members) in items.tags() {
+        let _count = (tag, members.len());
+    }
+}
+```
+
 ### `RegistryLookup::with_extra_tags`
 
 `fn with_extra_tags(&self, extra: &[(Identifier, Vec<Identifier>)]) -> RegistryLookup`. A copy whose tags also hold the given members (a mod that needs a convention tag such as `forge:ingots/iron` that nothing in the game defines). Members that are not registry entries are dropped, and a tag with no remaining member is not created. The original snapshot is unchanged; redo it for every reload.

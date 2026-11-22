@@ -67,6 +67,7 @@ pub(crate) fn with_convention_tags(items: pluto_lib::RegistryLookup) -> pluto_li
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap()).map(with_convention_tags);
     if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
+    if let Some(items) = &items { crate::advancements::publish_tags(items); }
     if let Some(prototypes) = pluto_lib::ItemRegistry::snapshot() { *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = Some(Arc::new(prototypes)); }
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
         *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = Some(Arc::new(entities));
@@ -187,6 +188,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         crate::tool_definitions::register();
         let stopped = materials.clone();
         pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
+            crate::advancements::release_tags();
             *ITEMS.write().expect("item snapshot lock poisoned") = None;
             *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = None;
             *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;

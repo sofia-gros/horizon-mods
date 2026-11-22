@@ -372,6 +372,13 @@ fn install_native_inventory_forwarders() {
     .expect("PlutoLib advancement predicate forwarder installs once");
     horizon_client::game::pluto_advancement_event_source::set_event_source(advancement_event_source)
         .expect("PlutoLib advancement event source installs once");
+    horizon_client::game::pluto_advancement_tag_source::set_tag_source(
+        horizon_client::game::pluto_advancement_tag_source::TagSource {
+            generation: advancement_tag_generation,
+            snapshots: advancement_tag_snapshots,
+        },
+    )
+    .expect("PlutoLib advancement tag source installs once");
     horizon_client::pluto_inventory::crafting::assembly::register(
         horizon_client::pluto_inventory::crafting::assembly::Registration {
             id: "pluto_lib:recipe_api_v1",
@@ -499,6 +506,30 @@ fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_eve
             trigger: event.trigger,
             payload: event.payload,
             matches: event.matches,
+        })
+        .collect()
+}
+
+/// The native tag driver's generation probe: the pure registry's
+/// publication counter, forwarded without touching the snapshots, so an
+/// unchanged publication costs the driver one comparison per tick.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_tag_generation() -> u64 {
+    advancement_api_v1::tag_snapshot_generation()
+}
+
+/// The native tag driver's snapshot pull: every owner's current pure
+/// publication, converted to the native transport form (the pure snapshot
+/// map is already the native map's shape). The driver calls this only
+/// when the generation moved or a world's store was never driven.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_tag_snapshots(
+) -> Vec<horizon_client::game::pluto_advancement_tag_source::OwnedSnapshot> {
+    advancement_api_v1::tag_snapshots()
+        .into_iter()
+        .map(|(owner, tags)| horizon_client::game::pluto_advancement_tag_source::OwnedSnapshot {
+            owner,
+            tags,
         })
         .collect()
 }

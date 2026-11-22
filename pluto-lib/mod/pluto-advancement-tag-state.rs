@@ -8,10 +8,16 @@ pub struct TagState {
     // The game adapter owns the concrete immutable (snapshot, tree, index) type.
     // No lower-layer reference to a client library type or global cache exists.
     pub cache: Option<std::sync::Arc<dyn std::any::Any + Send + Sync>>,
+    // The submitting library's publication generation last applied to this
+    // store by the owner driver; 0 means never driven. Per-world like the
+    // rest of this state, so a parked world keeps its own mark and a
+    // cleared store is driven again.
+    pub applied: u64,
 }
 impl TagState {
     pub fn clear(&mut self) {
         self.owners = Default::default();
         self.cache = None;
+        self.applied = 0;
     }
 }

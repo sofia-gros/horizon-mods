@@ -113,6 +113,9 @@ impl RegistryLookup {
     }
     /// Members of a captured tag; None means absent, Some(empty) means present but empty.
     pub fn get_tag(&self,tag:&Identifier)->Option<&std::collections::BTreeSet<Identifier>> { self.tags.get(tag) }
+    /// Every captured tag with its members, for consumers that republish the resolved snapshot
+    /// (the advancement tag overlay). A tag the reload did not capture is not in this map.
+    pub fn tags(&self)->&std::collections::BTreeMap<Identifier,std::collections::BTreeSet<Identifier>> { &self.tags }
     pub(crate) fn from_parts(entries:&[String],tags:&[(String,Vec<String>)])->Result<Self,String> {
         let parse=|id:&str| Identifier::parse(id).map_err(|e|format!("invalid registry snapshot ID: {e}"));
         let entries=entries.iter().map(|id|parse(id)).collect::<Result<std::collections::BTreeSet<_>,_>>()?;

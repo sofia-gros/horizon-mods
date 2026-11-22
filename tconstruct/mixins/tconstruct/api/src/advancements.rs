@@ -97,6 +97,40 @@ pub(crate) fn container_opened(block_entity_type: &str) -> bool {
     )
 }
 
+/// The owner id this mod publishes its advancement tag overlay under.
+const TAG_OWNER: &str = "tconstruct";
+
+/// The advancement tag overlay snapshot of a captured item lookup: every resolved tag
+/// with its members, in the advancement API's snapshot form. The shipped criteria resolve
+/// `#tag` references (tconstruct's own tags, the Forge convention tags the lookup adds,
+/// the vanilla tags it captured) against this snapshot through the native adapter's
+/// per-world store, because the engine's own tag table never sees the mod's data; the
+/// overlay is the same world-resolved data the rest of the port reads.
+fn tag_snapshot(
+    tags: &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>,
+) -> pluto_lib::advancement_api_v1::TagSnapshot {
+    tags.iter()
+        .map(|(tag, members)| (tag.to_string(), Some(members.iter().map(ToString::to_string).collect())))
+        .collect()
+}
+
+/// Publish a captured item lookup's tags as this mod's advancement overlay snapshot.
+/// Called from the shared item capture on every data reload, so a reload re-drives the
+/// current world's store before the next criteria evaluation.
+pub(crate) fn publish_tags(items: &pluto_lib::RegistryLookup) {
+    pluto_lib::advancement_api_v1::publish_tag_snapshot(TAG_OWNER, tag_snapshot(items.tags()));
+}
+
+/// Release the overlay ownership: the server stopped, so the snapshot the world stores
+/// were driven from no longer exists (the stores themselves die with their worlds, and
+/// the tags-clear boundary resets them if a world is reloaded).
+pub(crate) fn release_tags() {
+    pluto_lib::advancement_api_v1::publish_tag_snapshot(
+        TAG_OWNER,
+        pluto_lib::advancement_api_v1::TagSnapshot::new(),
+    );
+}
+
 /// What a tool predicate may ask about: the stack's own saved data, its item, and — only for
 /// tool actions — the loaded definition and registries behind it.
 pub(crate) struct ToolView<'a> {
@@ -441,5 +475,24 @@ mod tests {
         assert_eq!(queued[0].trigger, BLOCK_CONTAINER_OPENED);
         assert!((queued[0].matches)(&queued[0].payload, &json!({"type": "tconstruct:smeltery"})));
         assert!(!(queued[0].matches)(&queued[0].payload, &json!({"type": "tconstruct:foundry"})));
+    }
+
+    #[test]
+    fn the_tag_snapshot_carries_every_resolved_tag_with_its_members() {
+        let id = |text: &str| Identifier::parse(text).unwrap();
+        let mut tags = std::collections::BTreeMap::new();
+        tags.insert(
+            id("tconstruct:modifiable"),
+            [id("tconstruct:pickaxe"), id("tconstruct:axe")].into_iter().collect(),
+        );
+        tags.insert(id("tconstruct:casts/gold"), std::collections::BTreeSet::new());
+        let snapshot = tag_snapshot(&tags);
+        assert_eq!(snapshot.len(), 2);
+        assert_eq!(
+            snapshot["tconstruct:modifiable"],
+            Some(vec!["tconstruct:axe".to_string(), "tconstruct:pickaxe".to_string()]),
+            "members travel in the lookup's set order"
+        );
+        assert_eq!(snapshot["tconstruct:casts/gold"], Some(Vec::new()), "a known empty tag stays known");
     }
 }

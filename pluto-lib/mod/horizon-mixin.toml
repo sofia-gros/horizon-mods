@@ -1703,6 +1703,13 @@ name = "pluto_advancement_event_source"
 source = "pluto-advancement-event-source.rs"
 visibility = "pub"
 
+[[module]]
+id = "pluto-advancement-tag-source"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_tag_source"
+source = "pluto-advancement-tag-source.rs"
+visibility = "pub"
+
 # The only host-shaped item predicate boundary. Consumers see PlutoLib facts.
 [[injection]]
 id = "pluto-item-predicate"

@@ -14,6 +14,14 @@
 //! Register once during startup, before inventory events or predicate
 //! evaluation. Callbacks must be read-only. No content keys or eligibility
 //! rules live here.
+//!
+//! Consumers also publish their resolved item-tag snapshots here: the
+//! criteria a mod ships resolve `#tag` references against the world the
+//! player is in, and the native engine's own tag table does not carry the
+//! mod's data. A consumer publishes the snapshot its own data resolved to
+//! under its owner id; the adapter applies it to the current world's store
+//! and answers those tags from it, failing closed on a tag the owner marks
+//! unavailable instead of falling back.
 
 use std::collections::BTreeMap;
 use std::sync::{Mutex, RwLock};
@@ -209,6 +217,52 @@ pub fn queued_event_count() -> usize {
     EVENT_QUEUE.lock().unwrap_or_else(|error| error.into_inner()).len()
 }
 
+/// One owner's resolved item-tag snapshot for advancement matching, in
+/// host-independent form: tag id -> member ids. `Some(empty)` is a known
+/// empty tag; `None` is a tag the owner knows but cannot currently resolve,
+/// which matching must fail closed on rather than fall back to the native
+/// table. Tags absent from the snapshot are not the owner's business: the
+/// adapter leaves them to the native table.
+pub type TagSnapshot = BTreeMap<String, Option<Vec<String>>>;
+
+static TAG_SNAPSHOTS: Mutex<BTreeMap<String, TagSnapshot>> = Mutex::new(BTreeMap::new());
+static TAG_GENERATION: Mutex<u64> = Mutex::new(0);
+
+/// Publish one owner's current resolved item-tag snapshot for advancement
+/// matching, replacing the owner's previous publication wholesale.
+/// Publishing an empty snapshot releases the ownership: the publication is
+/// retained as an empty snapshot so the adapter releases the owner's
+/// world-side ownership on its next tick. Consumers publish when their
+/// data (re)loads and release when it unloads; the adapter applies
+/// publications to the current world's store on its advancement tick and
+/// leaves owners it never hears from unmanaged.
+pub fn publish_tag_snapshot(owner: &str, snapshot: TagSnapshot) {
+    TAG_SNAPSHOTS
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .insert(owner.to_owned(), snapshot);
+    *TAG_GENERATION.lock().unwrap_or_else(|error| error.into_inner()) += 1;
+}
+
+/// The publication generation: 0 before the first publication, bumped by
+/// every `publish_tag_snapshot` call. The native adapter compares it
+/// against the generation it last applied to a world's store, so an
+/// unchanged publication costs one comparison per tick.
+pub fn tag_snapshot_generation() -> u64 {
+    *TAG_GENERATION.lock().unwrap_or_else(|error| error.into_inner())
+}
+
+/// Every currently published owner snapshot, cloned for the native
+/// adapter. Pure consumers only publish; the adapter reads.
+pub fn tag_snapshots() -> Vec<(String, TagSnapshot)> {
+    TAG_SNAPSHOTS
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .iter()
+        .map(|(owner, snapshot)| (owner.clone(), snapshot.clone()))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -334,5 +388,36 @@ mod tests {
         assert!(!(drained[0].matches)(&drained[0].payload, &serde_json::json!({"type": "example:b"})));
         assert_eq!(queued_event_count(), 0);
         assert!(take_queued_events().is_empty());
+    }
+
+    fn snapshot(members: Option<Vec<&str>>) -> TagSnapshot {
+        [("example:tag".to_string(), members.map(|v| v.into_iter().map(str::to_owned).collect()))]
+            .into_iter()
+            .collect()
+    }
+
+    #[test]
+    fn tag_snapshots_publish_replace_and_release_per_owner() {
+        // The publication registry is process-global; unique owner ids keep
+        // this test observing only its own publications, and it releases
+        // them again so no other test is affected.
+        let before = tag_snapshot_generation();
+        publish_tag_snapshot("example:owner-a", snapshot(Some(vec!["example:x"])));
+        publish_tag_snapshot("example:owner-b", snapshot(None));
+        assert_eq!(tag_snapshot_generation(), before + 2);
+        let published = tag_snapshots();
+        assert!(published.contains(&("example:owner-a".to_string(), snapshot(Some(vec!["example:x"])))));
+        assert!(published.contains(&("example:owner-b".to_string(), snapshot(None))));
+        // Replacement is wholesale, never a merge.
+        publish_tag_snapshot("example:owner-a", snapshot(Some(vec!["example:z"])));
+        let published = tag_snapshots();
+        assert!(published.contains(&("example:owner-a".to_string(), snapshot(Some(vec!["example:z"])))));
+        assert!(!published.contains(&("example:owner-a".to_string(), snapshot(Some(vec!["example:x"])))));
+        // An empty publication is retained as an empty snapshot, so the
+        // adapter can release the owner's world-side ownership.
+        publish_tag_snapshot("example:owner-a", TagSnapshot::new());
+        assert!(tag_snapshots().contains(&("example:owner-a".to_string(), TagSnapshot::new())));
+        publish_tag_snapshot("example:owner-b", TagSnapshot::new());
+        assert_eq!(tag_snapshot_generation(), before + 5);
     }
 }
