@@ -360,18 +360,7 @@
       "cancellable": false,
       "bindings": [{"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"}],
       "source_file": "pluto-world-contact-flush.rs",
-      "source_sha256": "9073ef85cec5c13ceb94a201886f2c860abc6a81e50682f5612fe77c601c4379"
-    },
-    {
-      "injection_id": "pluto-explosion-flush-head",
-      "target": "horizon_client::game::creatures::Game<'_>::handle_mob_events_reusable",
-      "file": "crates/horizon-client/src/game/creatures.rs",
-      "function_fingerprint": "0a747c535180b5a072b9ed11e9c04d7eabc4533f194afd76f99f6ccac4256ceb",
-      "kind": "HEAD",
-      "cancellable": false,
-      "bindings": [{"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"}],
-      "source_file": "pluto-explosion-flush-head.rs",
-      "source_sha256": "6dc16b4ff140aee61b35b9b0f313d34066802080e4e2c0de4cd513e00be0620c"
+      "source_sha256": "327963c7083ac9ea325ba63fc6ec21100a8d75ff1f06db27b4dd1fb0b6f6d7ff"
     },
     {
       "injection_id": "pluto-mob-inside-motion",

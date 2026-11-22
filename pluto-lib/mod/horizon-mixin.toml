@@ -1617,13 +1617,6 @@ name = "pluto_explosion_flush"
 source = "pluto-explosion-flush.rs"
 visibility = "pub(crate)"
 
-[[injection]]
-id = "pluto-explosion-flush-head"
-target = "horizon_client::game::creatures::Game<'_>::handle_mob_events_reusable"
-kind = "HEAD"
-helper = "pluto-explosion-flush-head.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
 # Native inventory gates for the pure advancement/recipe forwarders in the
 # API package (hooks.rs, behind the `native-inventory-glue` feature). This is
 # the transport subset migrated from the retired pluto_native_creative
