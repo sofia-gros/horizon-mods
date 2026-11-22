@@ -16,36 +16,36 @@
     },
     "inner_placements": [
       {
-        "Name": "tconstruct:small_earth_slime_crystal_bud",
-        "Properties": {
+        "id": "tconstruct:small_earth_slime_crystal_bud",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:medium_earth_slime_crystal_bud",
-        "Properties": {
+        "id": "tconstruct:medium_earth_slime_crystal_bud",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:large_earth_slime_crystal_bud",
-        "Properties": {
+        "id": "tconstruct:large_earth_slime_crystal_bud",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:earth_slime_crystal_cluster",
-        "Properties": {
+        "id": "tconstruct:earth_slime_crystal_cluster",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
       },
       {
-        "Name": "tconstruct:steel_cluster",
-        "Properties": {
+        "id": "tconstruct:steel_cluster",
+        "properties": {
           "facing": "up",
           "waterlogged": "false"
         }
