@@ -1,0 +1,37 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "h": {
+      "type": "tconstruct:material",
+      "item": "tconstruct:pick_head",
+      "material": {
+        "type": "tconstruct:stat_type",
+        "stat_type": "tconstruct:head"
+      }
+    },
+    "b": {
+      "type": "tconstruct:material",
+      "item": "tconstruct:tool_handle",
+      "material": {
+        "type": "tconstruct:stat_type",
+        "stat_type": "tconstruct:handle"
+      }
+    },
+    "g": {
+      "type": "tconstruct:material",
+      "item": "tconstruct:tool_binding",
+      "material": {
+        "type": "tconstruct:stat_type",
+        "stat_type": "tconstruct:binding"
+      }
+    }
+  },
+  "pattern": [
+    "hb",
+    "g "
+  ],
+  "parts": "hbg",
+  "result": {
+    "id": "tconstruct:pickaxe"
+  }
+}

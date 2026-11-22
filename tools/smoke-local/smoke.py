@@ -8,7 +8,7 @@ non-zero and says which step failed. Nothing here claims more than it executed.
 Steps: (1) pin check, (2) launch offscreen into a fresh test world, (3) wait for
 the control endpoint and world readiness (= game started, mod hooks loaded),
 (4) two assertions: in survival, the mod's data recipes turn 1 flint + 4 sticks into the
-three TConstruct parts and then a flint pickaxe (inventory crafting grid); and the real Part Builder
+three TConstruct parts and then a pickaxe (inventory crafting grid); and the real Part Builder
 block opens a container screen, (5) clean quit.
 """
 import argparse, json, os, shutil, subprocess, sys, tempfile, time
@@ -74,9 +74,9 @@ try:
         time.sleep(.3)
     step = 'world ready'
     ctl('wait-ready', '120', timeout=125)
-    step = 'assertion: craft flint pickaxe from parts'
+    step = 'assertion: craft pickaxe from parts'
     # Data recipes only (no mod command): flint -> pick head, 2 sticks (vertical) -> handle,
-    # 2 sticks (horizontal) -> binding, then the three parts -> flint pickaxe.
+    # 2 sticks (horizontal) -> binding, then the three parts -> pickaxe.
     for c in ('clear @s', 'gamemode survival @s', 'give @s minecraft:flint 1', 'give @s minecraft:stick 4'):
         ctl('command', c)
     time.sleep(1)
@@ -91,12 +91,12 @@ try:
     click(stick_slot); click(100, 'right'); click(102, 'right'); click(stick_slot); craft(10)   # handle (vertical); put the other 2 sticks back first
     click(stick_slot); click(100, 'right'); click(101, 'right'); craft(11)     # binding (horizontal)
     click(9); click(100); click(10); click(101); click(11); click(102)  # the three parts
-    craft(12)                                                # flint pickaxe
+    craft(12)                                                # pickaxe
     shot('crafted-flint-pickaxe.png')
     ctl('close'); time.sleep(.5)
     counts = ctl('inventory')['counts']
-    assert counts.get('tconstruct:flint_pickaxe') == 1, counts
-    assert not any(counts.get(x) for x in ('tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle')), counts
+    assert counts.get('tconstruct:pickaxe') == 1, counts
+    assert not any(counts.get(x) for x in ('tconstruct:pick_head', 'tconstruct:tool_binding', 'tconstruct:tool_handle')), counts
     step = 'assertion: Part Builder opens'
     # The real Part Builder block (mod hooks): placing it and right-clicking must open a container screen with slots.
     ctl('command', 'setblock 0 71 2 tconstruct:part_builder'); ctl('command', 'tp @s 0.5 71 0.5'); time.sleep(2.5 if a.screenshots else 1)

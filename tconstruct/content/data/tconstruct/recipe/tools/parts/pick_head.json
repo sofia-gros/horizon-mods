@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "f": {
+      "type": "tconstruct:material_value",
+      "material": {
+        "type": "tconstruct:stat_type",
+        "stat_type": "tconstruct:head"
+      },
+      "value": 1.0
+    }
+  },
+  "pattern": [
+    "f"
+  ],
+  "parts": "f",
+  "result": {
+    "id": "tconstruct:pick_head"
+  }
+}
