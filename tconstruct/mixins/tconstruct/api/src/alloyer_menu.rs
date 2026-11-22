@@ -1,6 +1,7 @@
 //! The scorched alloyer block entity and its window over PlutoLib's public API (SlimeKnights AlloyerBlockEntity,
 //! AlloyerContainerMenu, AlloyerScreen and the GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The window
-//! shows the output tank, the input tanks beside the block and the fuel gauge; it has no slots of its own (the
+//! shows the output tank and the input tanks beside the block with their fluids' still textures tiled over flat
+//! fills of their colours, and the fuel gauge; it has no slots of its own (the
 //! original's fuel slot is the heater's own and lives in the heater's window, as with the melter). Putting fluid in
 //! and out by clicking a tank with a held container is not ported; the block itself trades with a held container on
 //! use, like the melter. The fuel gauge's fluid fill is not drawn, again as with the melter's window.
@@ -151,15 +152,21 @@ pub(crate) fn draw_alloyer(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data
         let (amount, capacity) = (get(data, base), get(data, base + 2));
         if amount > 0 && capacity > 0 {
             let height = (INPUT[1] * (amount.min(capacity) as f32) / capacity as f32).floor();
-            let color = fluid_at(data, base + 1).map_or(0xFF_FF_FF_FF, |fluid| fluid_color(&fluid));
-            canvas.fill([x + INPUT_X[index], y + 16.0 + INPUT[1] - height, INPUT[0], height], color);
+            let fluid = fluid_at(data, base + 1);
+            let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+            let rect = [x + INPUT_X[index], y + 16.0 + INPUT[1] - height, INPUT[0], height];
+            canvas.fill(rect, color);
+            if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
         }
     }
     let amount = get(data, DATA_OUTPUT_AMOUNT);
     if amount > 0 {
         let height = (OUTPUT[3] * (amount.min(ALLOYER_CAPACITY) as f32) / ALLOYER_CAPACITY as f32).floor();
-        let color = fluid_at(data, DATA_OUTPUT_FLUID).map_or(0xFF_FF_FF_FF, |fluid| fluid_color(&fluid));
-        canvas.fill([x + OUTPUT[0], y + OUTPUT[1] + OUTPUT[3] - height, OUTPUT[2], height], color);
+        let fluid = fluid_at(data, DATA_OUTPUT_FLUID);
+        let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+        let rect = [x + OUTPUT[0], y + OUTPUT[1] + OUTPUT[3] - height, OUTPUT[2], height];
+        canvas.fill(rect, color);
+        if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
     }
     canvas.sprite(BACKGROUND, [176.0, 0.0, 34.0, 52.0], [x + OUTPUT[0], y + OUTPUT[1], 34.0, 52.0]);
 }

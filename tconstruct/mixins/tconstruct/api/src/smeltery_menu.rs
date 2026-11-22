@@ -1,7 +1,8 @@
 //! The smeltery and foundry controllers as block entities, with their windows over PlutoLib's public API (SlimeKnights
 //! HeatingStructureBlockEntity, HeatingStructureContainerMenu, HeatingStructureScreen, HeatingStructureSideInventoryScreen and
-//! the GuiSmelteryTank, GuiFuelModule and GuiMeltingModule it draws; MIT, see LICENSE). The window shows the tank as stacked
-//! flat fills in the fluids' colours (click a fluid to move it to the bottom), the fuel gauge, and the melting slots with
+//! the GuiSmelteryTank, GuiFuelModule and GuiMeltingModule it draws; MIT, see LICENSE). The window shows the tank as the
+//! fluids' still textures tiled in stacked bands over flat fills of their colours (click a fluid to move it to the
+//! bottom), the fuel gauge filled the same way, and the melting slots with
 //! their heat bars in a side panel of up to 4 columns of 7. The bucket slots and the fill and empty clicks wait for fluid items.
 use crate::{
     common,
@@ -283,17 +284,22 @@ fn fluid_at(data: &[i32], list_index: usize) -> Option<Identifier> {
 
 fn inside(at: [f32; 2], rect: [f32; 4]) -> bool { at[0] >= rect[0] && at[0] < rect[0] + rect[2] && at[1] >= rect[1] && at[1] < rect[1] + rect[3] }
 
-/// The stacked fluids of the tank from the bottom up, each as high as its share of the capacity: (list index, top, height).
+/// The stacked fluids of the tank from the bottom up: (list index, top, height). The heights are
+/// `GuiSmelteryTank.calcLiquidHeights` over the larger of the contained amount and the capacity (see
+/// `rendering::calc_liquid_heights`): every fluid is at least 3 high, the empty part of a tank that is not
+/// full keeps 3 of the height, and the excess comes off the tallest fluids.
 pub(crate) fn tank_bands(data: &[i32]) -> Vec<(usize, f32, f32)> {
     let count = data.get(D_FLUID_COUNT).copied().unwrap_or(0).clamp(0, MAX_FLUIDS as i32) as usize;
-    let contained: i32 = (0..count).map(|index| join(data, D_FLUIDS + 3 * index + 1)).sum();
-    let capacity = join(data, D_CAPACITY).max(contained).max(1) as f32;
+    let amounts: Vec<i32> = (0..count).map(|index| join(data, D_FLUIDS + 3 * index + 1)).collect();
+    let contained: i32 = amounts.iter().sum();
+    let capacity = join(data, D_CAPACITY).max(contained).max(1);
+    let heights = crate::rendering::calc_liquid_heights(&amounts, capacity, TANK[3] as i32, 3);
     let mut bottom = TANK[1] + TANK[3];
     let mut bands = Vec::new();
-    for index in 0..count {
-        let height = (TANK[3] * join(data, D_FLUIDS + 3 * index + 1) as f32 / capacity).floor();
-        bottom -= height;
-        bands.push((index, bottom, height));
+    for (index, height) in heights.into_iter().enumerate() {
+        if height <= 0 { continue; }
+        bottom -= height as f32;
+        bands.push((index, bottom, height as f32));
     }
     bands
 }
@@ -317,13 +323,20 @@ pub(crate) fn draw_window(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data:
     let (amount, capacity) = (join(data, D_FUEL_AMOUNT), join(data, D_FUEL_CAPACITY));
     if amount > 0 && capacity > 0 {
         let height = (FUEL[3] * amount.min(capacity) as f32 / capacity as f32).floor();
-        let color = (get(D_FUEL_FLUID) > 0).then(|| fluid_color(&fluid_order()[get(D_FUEL_FLUID) as usize - 1])).unwrap_or(0xFF_FF_FF_FF);
-        canvas.fill([x + FUEL[0], y + FUEL[1] + FUEL[3] - height, FUEL[2], height], color);
+        let fluid = (get(D_FUEL_FLUID) > 0).then(|| fluid_order().get(get(D_FUEL_FLUID) as usize - 1).cloned()).flatten();
+        let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+        let rect = [x + FUEL[0], y + FUEL[1] + FUEL[3] - height, FUEL[2], height];
+        canvas.fill(rect, color);
+        if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
     }
     // the tank
     for (index, top, height) in tank_bands(data) {
         if height > 0.0 {
-            canvas.fill([x + TANK[0], y + top, TANK[2], height], fluid_at(data, index).map_or(0xFF_FF_FF_FF, |fluid| fluid_color(&fluid)));
+            let fluid = fluid_at(data, index);
+            let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+            let rect = [x + TANK[0], y + top, TANK[2], height];
+            canvas.fill(rect, color);
+            if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
         }
     }
     canvas.sprite(BACKGROUND, [176.0, 0.0, 80.0, 106.0], [x + TANK[0], y + TANK[1], 80.0, 106.0]);
@@ -469,11 +482,17 @@ mod tests {
         let (cap_high, cap_low) = split(1000);
         let data = data_with(&[(D_CAPACITY, cap_high), (D_CAPACITY + 1, cap_low), (D_FLUID_COUNT, 2), (D_FLUIDS + 1, high), (D_FLUIDS + 2, low), (D_FLUIDS + 4, high2), (D_FLUIDS + 5, low2)]);
         let bands = tank_bands(&data);
-        assert_eq!(bands, vec![(0, 69.0, 53.0), (1, 43.0, 26.0)], "106 * 500 / 1000 = 53 and 106 * 250 / 1000 = 26 from the bottom at 122");
+        // calcLiquidHeights: ceil(106 * 500 / 1000) = 53 and ceil(106 * 250 / 1000) = 27, from the bottom at 122
+        assert_eq!(bands, vec![(0, 69.0, 53.0), (1, 42.0, 27.0)]);
         assert_eq!(fluid_clicked([20.0, 100.0], &data), Some(0));
         assert_eq!(fluid_clicked([20.0, 50.0], &data), Some(1));
         assert_eq!(fluid_clicked([20.0, 20.0], &data), None, "the empty part of the tank");
         assert_eq!(fluid_clicked([150.0, 100.0], &data), None);
+        // a trace of fluid still draws the minimum band of 3, as calcLiquidHeights gives every fluid at least the minimum
+        let (high, low) = split(1);
+        let data = data_with(&[(D_CAPACITY, cap_high), (D_CAPACITY + 1, cap_low), (D_FLUID_COUNT, 1), (D_FLUIDS + 1, high), (D_FLUIDS + 2, low)]);
+        assert_eq!(tank_bands(&data), vec![(0, 119.0, 3.0)]);
+        assert_eq!(fluid_clicked([20.0, 120.0], &data), Some(0), "the minimum band is clickable");
         // a capacity beyond 32767 survives the two halves
         let (high, low) = split(1_000_000);
         assert_eq!(join(&data_with(&[(0, high), (1, low)]), 0), 1_000_000);
