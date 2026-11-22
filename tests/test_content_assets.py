@@ -435,6 +435,10 @@ class ContentAssets(unittest.TestCase):
         # (cinderslime, ichor), which Mantle names from the flowing sprite of a fluid lighter than air.
         used |= {'fluid/liquid/flowing', 'fluid/molten/alloy/cinderslime/flowing_inverted',
                  'fluid/slime/ichor/flowing_inverted'}
+        # Particle sprites are named by the shipped particle definitions (assets/tconstruct/particles/*.json),
+        # whose texture ids are relative to textures/particle/: the host's particle loader reads them from there.
+        for path in (ASSETS / 'particles').glob('*.json'):
+            used |= {f'particle/{split(t)[1]}' for t in load(path).get('textures', []) if split(t)[0] == 'tconstruct'}
         # Worn equipment textures are picked by the layer table and skull textures by the skull rendering
         # code, not by models: the original references both by convention, so neither is model-used.
         present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
