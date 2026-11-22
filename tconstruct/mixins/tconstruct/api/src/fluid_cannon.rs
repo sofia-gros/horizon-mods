@@ -41,6 +41,12 @@ pub(crate) fn capacity_of(name: &str) -> Option<i32> { CANNONS.iter().find(|(can
 
 fn cannon_tank(name: &str, data: &NbtCompound) -> Tank { Tank::read(data, capacity_of(name).unwrap_or(BUCKET * 2)) }
 
+/// `SearedTankBlock.getAnalogOutputSignal` over the cannon's tank — a cannon is a seared tank, so
+/// the original answers a comparator with `ITankBlockEntity.comparatorStrength`. No host surface
+/// answers a comparator read yet, the same missing analog output as every tank's (the melter's, the
+/// alloyer's), so the strength stands as the port's record of the rule, as the casting tank's does.
+pub(crate) fn comparator(name: &str, data: &NbtCompound) -> i32 { cannon_tank(name, data).comparator() }
+
 pub(crate) fn read_tanks(name: &str, data: &NbtCompound) -> Vec<NeighbourTank> {
     let tank = cannon_tank(name, data);
     vec![NeighbourTank { fluid: tank.fluid.map(|fluid| FluidStack { fluid: fluid.fluid, amount: fluid.amount as u32, tag: None }), capacity: tank.capacity as u32 }]
@@ -138,7 +144,7 @@ fn fail(world: &mut LiveWorld, pos: BlockPos) -> Shot {
 /// particles and the PARTICLES_SHOOT level event aside — no particle surface); else, when the face
 /// in front is not sturdy, a projectile of `effects amount x power` millibuckets flies with the
 /// llama spit sound, and the tank is spent by what flew. A shot that cannot spawn its projectile
-/// (PlutoLib's entity registry is still a stub — see `crate::fluid_projectile`) fails without
+/// (the kind unpublished or the chunk unloaded — see `crate::fluid_projectile`) fails without
 /// spending, as does a fluid without effects.
 pub(crate) fn shoot(
     name: &str,
@@ -324,6 +330,19 @@ mod tests {
         let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: Vec::new() };
         assert_eq!(use_cannon("seared_fluid_cannon", &mut used), ActionResult::Success);
         assert_eq!(used.held.as_ref().map(|slot| slot.count), Some(2));
+    }
+
+    #[test]
+    fn the_comparator_reads_the_cannons_fill() {
+        let mut data = NbtCompound::new();
+        let mut items = vec![None];
+        assert_eq!(comparator("end_fluid_cannon", &data), 0, "an empty cannon reads nothing");
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 2000, tag: None }, face: None, execute: true };
+        assert_eq!(fill_tank("end_fluid_cannon", &mut fill), 2000);
+        assert_eq!(comparator("end_fluid_cannon", &data), 1 + 14 * 2000 / 4000);
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 2000, tag: None }, face: None, execute: true };
+        assert_eq!(fill_tank("end_fluid_cannon", &mut fill), 2000);
+        assert_eq!(comparator("end_fluid_cannon", &data), 15, "a full cannon reads full");
     }
 
     #[test]

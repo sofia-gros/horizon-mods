@@ -5,10 +5,13 @@
 //! the engine's contract expects — the effect that needs it does not run — and each such answer is
 //! named below rather than faked:
 //!
-//! - No explosion surface exists in PlutoLib's world API, so [`LiveWorld::explode`] does nothing: the
-//!   explosion effects of the shipped fluids (magma, redstone, several molten metals) charge for their
-//!   scale, as the engine's accounting does for any context, but no explosion happens until PlutoLib
-//!   grows an explode operation.
+//! - Explosions go through PlutoLib's world explosion operation (the request is queued where it is
+//!   made and the level's mob-event seam sets it off), which is the game's own `Level.explode`: the
+//!   radius, the fire and the block interaction are the effect's, but the blast hurts and pushes
+//!   entities as the game's explosion does. The original's CustomExplosion carries its own damage
+//!   value, knockback scale and damage types and bypasses invulnerability time; the game's blast
+//!   seam takes none of those, so an explosion fluid's entity damage is the game's for its radius,
+//!   not the effect's damage value.
 //! - Particles (destroy particles, the cannon's shot particles) have no emission surface; sounds do.
 //! - Potion contents are not read: no potion registry reach hands out a potion's effects, so
 //!   `potion` / `potion_cloud` effects find no effects to give (their fluid's other effects still run).
@@ -25,8 +28,8 @@
 //!   Area targets (an area effect's neighbours) are reached for hurts and facts only.
 use crate::common;
 use crate::fluid_effects::{
-    ActiveEffect, BlockContext, BreakSpec, CloudSpec, EntityInteractSpec, EntityTarget, ExplosionSpec, Holder, InteractSpec,
-    InteractionResult, NewEffect, PlaceSpec, PotionEffect, PushReaction, Stack, WorldAccess,
+    ActiveEffect, BlockContext, BlockInteraction, BreakSpec, CloudSpec, EntityInteractSpec, EntityTarget, ExplosionSpec, Holder,
+    InteractSpec, InteractionResult, NewEffect, PlaceSpec, PotionEffect, PushReaction, Stack, WorldAccess,
 };
 use crate::fluid_ingredient::{ItemOutput, Source};
 use pluto_lib::{
@@ -215,8 +218,16 @@ impl WorldAccess for LiveWorld {
 
     fn drop_item(&mut self, at: [f64; 3], stack: &Stack) { self.drop(at, stack); }
 
-    fn explode(&mut self, _spec: &ExplosionSpec) {
-        // No explosion operation exists in PlutoLib's world surface; see the module note.
+    fn explode(&mut self, spec: &ExplosionSpec) {
+        // The game's blast in the effect's shape: radius, fire and block interaction carry over;
+        // the effect's damage, knockback and damage type do not (see the module note). The
+        // original's `none` interacts with no blocks at all, which is the game's Keep.
+        let interaction = match spec.interaction {
+            BlockInteraction::Keep | BlockInteraction::None => pluto_lib::ExplosionInteraction::Keep,
+            BlockInteraction::DestroyWithDecay => pluto_lib::ExplosionInteraction::Block,
+            BlockInteraction::Destroy => pluto_lib::ExplosionInteraction::Tnt,
+        };
+        self.world.explode(spec.at, spec.radius, spec.place_fire, interaction);
     }
 
     fn spawn_cloud(&mut self, spec: &CloudSpec) {
@@ -625,5 +636,33 @@ mod tests {
         assert!(matches!(queued[0], EntityAction::AddEffect { amplifier: 1, duration: 100, .. }));
         assert!(matches!(queued[1], EntityAction::SetFire { seconds: 3, .. }), "41 ticks round up to 3 seconds");
         assert_eq!(ops.hurt.len(), 1);
+    }
+
+    #[test]
+    fn an_explosion_effect_sets_off_the_games_blast_in_the_effects_shape() {
+        // magma's entry, as the shipped data declares it: an explosion on blocks, radius a half
+        // plus a half per level, destroying with decay and placing fire
+        let files = vec![(id("tconstruct:magma"), serde_json::json!({
+            "fluid": {"fluid": "tconstruct:magma", "amount": 100},
+            "block_effects": [{"type": "tconstruct:explosion", "block_interaction": "destroy_with_decay", "damage": {"each_level": 2.0}, "knockback": {"flat": 1.0}, "place_fire": true, "radius": {"each_level": 0.5, "flat": 0.5}}],
+        }))];
+        let context = crate::conditions::Context { items: None, config: Default::default() };
+        let data = crate::fluid_effects::Data { effects: crate::fluid_effects::Effects::load(&files, &context), loaded: true };
+        let tags = crate::fluid_ingredient::FluidTags::default();
+        let fluid = FluidStack { fluid: id("tconstruct:magma"), amount: 100, tag: None };
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        let mut live = LiveWorld::new(World::new("minecraft:overworld"));
+        let consumed = pluto_lib::with_world(&mut ops, || {
+            let mut context = block_context(&mut live, holder(Stack::empty(), None, [0.5, 64.5, 0.5]), [0, 64, 0], Direction::North, [0.5, 64.5, 0.5]);
+            data.apply_to_block(&fluid, 1.0, &mut context, &tags)
+        });
+        assert_eq!(consumed, 100, "one level of magma is spent on its explosion");
+        assert_eq!(ops.explosions.len(), 1, "the blast is the world's, in the effect's shape");
+        let blast = &ops.explosions[0];
+        assert_eq!(blast.dimension, "minecraft:overworld");
+        assert_eq!(blast.center, [0.5, 64.5, 0.5]);
+        assert_eq!(blast.radius, 1.0, "a half plus a half for the one level");
+        assert!(blast.fire);
+        assert_eq!(blast.interaction, pluto_lib::ExplosionInteraction::Block, "destroy_with_decay is the game's block rule");
     }
 }

@@ -5,11 +5,12 @@
 //!
 //! The type is declared derived from the game's llama spit, whose flight it shares (the original is
 //! a llama spit in movement: drag 0.99 in air, gravity -0.06), with the original's own numbers:
-//! 0.25 by 0.25, tracking range 4 chunks, no velocity updates. PlutoLib's native entity registry is
-//! still a stub, so a summon of the kind cannot load in the game yet and a cannon whose shot cannot
-//! spawn fails the shot without spending fluid (see `fluid_cannon`); the spawn carries the original's
-//! saved data (`fluid`, `power`, `knockback`, `water_inertia`, `cannon`), so what flies once the
-//! registry lands is the original's projectile.
+//! 0.25 by 0.25, tracking range 4 chunks, no velocity updates. The declaration is published into
+//! the game's entity tables by PlutoLib's entity type provider (its content-overlay export clones
+//! the llama spit's catalog row under the new id) and the spawn goes through the game's summon,
+//! which loads any published kind; a cannon whose shot cannot spawn (the kind unpublished, the
+//! chunk unloaded) fails the shot without spending fluid (see `fluid_cannon`). The spawn carries
+//! the original's saved data (`fluid`, `power`, `knockback`, `water_inertia`, `cannon`).
 //!
 //! In flight, a shot is followed in memory by the id PlutoLib's spawn returned: the impact report
 //! carries no saved data to read the fluid back from, so the record is the port's stand-in for the
@@ -99,9 +100,8 @@ fn fluid_nbt(fluid: &FluidStack) -> NbtCompound {
 
 /// Fires a fluid projectile from a cannon (the original's cannon constructor): it starts at the
 /// cannon's centre stepped 0.7 along the facing, carries `fluid` at `power`, and is followed under
-/// the id the spawn returns. None when the world cannot summon the kind there — with PlutoLib's
-/// entity registry still a stub, that is every shot today, and the caller fails the shot without
-/// spending fluid.
+/// the id the spawn returns. None when the world cannot summon the kind there (the kind
+/// unpublished, the chunk unloaded), and the caller fails the shot without spending fluid.
 pub(crate) fn launch(
     world: &World,
     cannon: BlockPos,
@@ -146,6 +146,13 @@ enum Flight {
     Ends,
 }
 
+/// The flight's direction as the original reads it (its delta movement): the motion the impact
+/// reports the projectile arrived with. A host that could not reach the projectile reports zero,
+/// and the way it came — against the hit face — stands in.
+fn flight_direction(hit: &ProjectileImpact) -> [f64; 3] {
+    if hit.motion.iter().any(|axis| *axis != 0.0) { hit.motion } else { [-hit.face[0] as f64, -hit.face[1] as f64, -hit.face[2] as f64] }
+}
+
 /// The entity half of a hit (FluidEffectProjectile.onHitEntity, the knockback aside — see the module
 /// note): with entity effects, they run against the target at the shot's power; what they spend is
 /// gone, and the shot flies on with the rest, through the entity and on to what is behind it.
@@ -154,7 +161,7 @@ fn on_entity_hit(hit: &ProjectileImpact, shot: &Shot, world: &mut LiveWorld, eff
     if !described.map_or(false, |(_, has_entity, _)| has_entity) {
         return Flight::FliesOn(shot.fluid.amount);
     }
-    let delta = [-hit.face[0] as f64, -hit.face[1] as f64, -hit.face[2] as f64];
+    let delta = flight_direction(hit);
     let mut target = LiveTarget::victim(hit, &hit.actions);
     let mut context = EntityContext {
         env: Env { world, holder: holder(shot.stack.clone(), Some((hit.projectile as i32, delta)), hit.at) },
@@ -176,8 +183,8 @@ fn on_block_hit(hit: &ProjectileImpact, shot: &Shot, world: &mut LiveWorld, effe
         return Flight::Ends;
     }
     let face = Direction::ALL.into_iter().find(|direction| direction.offset() == hit.face).unwrap_or(Direction::Up);
-    // The flight's direction, which the impact does not carry: the way it came, against the face.
-    let delta = [-hit.face[0] as f64, -hit.face[1] as f64, -hit.face[2] as f64];
+    // The flight's direction, which orders the neighbours below as the original's does.
+    let delta = flight_direction(hit);
     let shot_holder = holder(shot.stack.clone(), Some((hit.projectile as i32, delta)), hit.at);
     let mut remaining = shot.fluid.amount;
     let mut context = block_context(world, shot_holder, hit.block, face, hit.at);
@@ -347,5 +354,35 @@ mod tests {
         let flight = with_world(&mut ops, || on_block_hit(&hit, &shot, &mut live, &data, &tags));
         assert!(matches!(flight, Flight::Ends), "the block stands afterwards (it became obsidian), so the flight ends");
         assert_eq!(ops.blocks[&("minecraft:overworld".to_owned(), [0, 64, -1])], "minecraft:obsidian");
+    }
+
+    #[test]
+    fn a_block_hits_neighbours_follow_the_flights_direction() {
+        // the shot arrives travelling mostly east against a south face: the leftover is spent on
+        // the neighbours in the flight's order — east's far side first, then north's — not in the
+        // order the face alone would give (north's far side, then above)
+        let world = World::new("minecraft:overworld");
+        let mut ops = MemoryWorldOps::default();
+        for pos in [[0, 64, -1], [-1, 64, -1], [1, 64, -1], [0, 64, -2], [0, 64, 0], [0, 63, -1], [0, 65, -1]] {
+            ops.blocks.insert(("minecraft:overworld".to_owned(), pos), "minecraft:stone".to_owned());
+        }
+        let data = effects_data();
+        let tags = FluidTags::default();
+        let shot = Shot { fluid: FluidStack { fluid: id("tconstruct:molten_obsidian"), amount: 150, tag: None }, power: 1.0, cannon: Some([0, 64, 0]), stack: Stack::empty() };
+        let hit = ProjectileImpact {
+            dimension: "minecraft:overworld".to_owned(), projectile: 3, kind: FLUID_SPIT.to_owned(), owner: -1,
+            entity: None, entity_kind: String::new(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
+            motion: [1.0, 0.0, -0.2], data: NbtCompound::new(), discard: std::cell::Cell::new(false), motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
+        };
+        let mut live = LiveWorld::new(world);
+        let flight = with_world(&mut ops, || on_block_hit(&hit, &shot, &mut live, &data, &tags));
+        assert!(matches!(flight, Flight::Ends));
+        let at = |pos: [i32; 3]| ops.blocks.get(&("minecraft:overworld".to_owned(), pos)).map(String::as_str);
+        assert_eq!(at([0, 64, -1]), Some("minecraft:obsidian"), "the hit block takes the first level");
+        assert_eq!(at([-1, 64, -1]), Some("minecraft:obsidian"), "east's far side is nearest the flight");
+        assert_eq!(at([0, 64, 0]), Some("minecraft:obsidian"), "north's far side is next, and the shot is spent");
+        assert_eq!(at([0, 64, -2]), Some("minecraft:stone"), "the face's order would have spent here instead");
+        assert_eq!(at([0, 65, -1]), Some("minecraft:stone"), "three levels were all the shot carried");
     }
 }
