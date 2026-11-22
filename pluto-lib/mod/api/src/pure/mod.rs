@@ -19,6 +19,7 @@ pub mod living_entity_drops;
 pub mod living_entity_behavior;
 pub mod mob_split_api;
 pub mod spawn_placement_api;
+pub mod hanging_api_v1;
 pub(crate) mod entity_spawn_api;
 pub mod entity_type_api;
 pub mod entity_api_v1;

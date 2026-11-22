@@ -26,6 +26,7 @@ pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDro
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, CauseFallDamageContext, FallOutcome, EquipmentDropChanceContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
 pub use crate::pure::mob_split_api::{self, MobSplitContext, MobSplitRandom, MobSplitChild, MobSplitInheritance, MobSplitCallback, MobSplitCallbacks};
 pub use crate::pure::spawn_placement_api::{self, SpawnPlacementContext, SpawnPlacementRegistry};
+pub use crate::pure::hanging_api_v1::{self, FrameVariant, HangingRegistry, StandVariant};
 pub use crate::pure::events_interaction_v0::{
     self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, FishingContext, PlayerBlockBreakEvents, PlayerFishEvents, UseBlockCallback, UseBlockContext,
     UseEntityCallback, InteractEntityCallback, InteractEntityContext, UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext, UseItemOnEntityContext, Hand, FISHING_BITE, FISHING_CAST,
