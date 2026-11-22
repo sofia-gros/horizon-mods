@@ -2698,6 +2698,10 @@ fn every_original_language_file_is_shipped_with_the_originals_keys() {
     // the counts are the originals' key counts. The original's lzh file starts with a UTF-8
     // BOM; the importer drops it as it normalises line endings, since language files are
     // parsed as strict UTF-8 JSON by the content checks and the game.
+    // One deliberate exception: the port declares its fiery-liquid and molten-steeleaf fluid
+    // blocks with `_fluid`-suffixed ids, so en_us and ja_jp (the languages the port maintains)
+    // carry those two blocks' names as extra keys, each repeating its base key's text.
+    const PORT_ADDED_KEYS: [&str; 2] = ["block.tconstruct.fiery_liquid_fluid", "block.tconstruct.molten_steeleaf_fluid"];
     let expected: [(&str, usize); 20] = [
         ("de_de", 1900), ("en_us", 3623), ("es_ar", 2399), ("es_cl", 3261), ("es_es", 2399),
         ("es_mx", 3233), ("fr_fr", 2688), ("id_id", 348), ("it_it", 1926), ("ja_jp", 3411),
@@ -2709,8 +2713,15 @@ fn every_original_language_file_is_shipped_with_the_originals_keys() {
         let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{language}: {e}"));
         let lang: Value = serde_json::from_slice(&bytes).unwrap();
         let object = lang.as_object().unwrap();
-        assert_eq!(object.len(), keys, "{language}: key count differs from the original's");
+        let added = if ["en_us", "ja_jp"].contains(&language) { PORT_ADDED_KEYS.len() } else { 0 };
+        assert_eq!(object.len(), keys + added, "{language}: key count differs from the original's");
         assert!(object.values().all(|value| value.is_string()), "{language}: a language file maps keys to plain strings");
+        if added > 0 {
+            for key in PORT_ADDED_KEYS {
+                let base = key.strip_suffix("_fluid").unwrap();
+                assert_eq!(object.get(key), object.get(base), "{language}: {key} repeats its base key's text");
+            }
+        }
     }
 }
 
