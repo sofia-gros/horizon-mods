@@ -231,6 +231,16 @@ fn all_ten_shipped_shaped_materials_recipes_decode() {
     let recipes = load_recipes(&files);
     let total: usize = recipes.values().map(Vec::len).sum();
     assert_eq!(total, expected.len(), "every converted recipe registers");
+    // A material ingredient counts wherever it sits: the host-parse
+    // workaround wraps it in an alternatives list behind a plain
+    // representative item, so it can nest inside `Any`.
+    fn keeps_material(ingredient: &KeyIngredient) -> bool {
+        match ingredient {
+            KeyIngredient::Material(_) => true,
+            KeyIngredient::Any(members) => members.iter().any(keeps_material),
+            KeyIngredient::Plain(_) => false,
+        }
+    }
     for (stem, (result, parts)) in &expected {
         let candidates = &recipes[&id(result)];
         let recipe = candidates
@@ -238,7 +248,7 @@ fn all_ten_shipped_shaped_materials_recipes_decode() {
             .find(|recipe| recipe.parts.iter().collect::<String>() == *parts)
             .unwrap_or_else(|| panic!("{stem} registers under {result} with parts {parts}"));
         assert!(
-            recipe.key.values().any(|ingredient| matches!(ingredient, KeyIngredient::Material(_))),
+            recipe.key.values().any(keeps_material),
             "{stem} keeps a material ingredient",
         );
     }

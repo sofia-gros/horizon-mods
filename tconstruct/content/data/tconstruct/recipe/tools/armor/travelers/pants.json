@@ -2,6 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "key": {
     "c": [
+      "tconstruct:fake_ingot",
       {
         "type": "tconstruct:material_value",
         "material": {
@@ -32,14 +33,17 @@
       }
     ],
     "f": "minecraft:flint",
-    "l": {
-      "type": "tconstruct:material_value",
-      "material": {
-        "type": "tconstruct:stat_type",
-        "stat_type": "tconstruct:cuirass"
-      },
-      "value": 1.0
-    }
+    "l": [
+      "minecraft:leather",
+      {
+        "type": "tconstruct:material_value",
+        "material": {
+          "type": "tconstruct:stat_type",
+          "stat_type": "tconstruct:cuirass"
+        },
+        "value": 1.0
+      }
+    ]
   },
   "pattern": [
     "lfl",

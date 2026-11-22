@@ -1,22 +1,28 @@
 {
   "type": "minecraft:crafting_shaped",
   "key": {
-    "c": {
-      "type": "tconstruct:material_value",
-      "material": {
-        "type": "tconstruct:stat_type",
-        "stat_type": "tconstruct:shield_core"
-      },
-      "value": 1.0
-    },
-    "l": {
-      "type": "tconstruct:material_value",
-      "material": {
-        "type": "tconstruct:stat_type",
-        "stat_type": "tconstruct:cuirass"
-      },
-      "value": 1.0
-    },
+    "c": [
+      "minecraft:oak_planks",
+      {
+        "type": "tconstruct:material_value",
+        "material": {
+          "type": "tconstruct:stat_type",
+          "stat_type": "tconstruct:shield_core"
+        },
+        "value": 1.0
+      }
+    ],
+    "l": [
+      "minecraft:leather",
+      {
+        "type": "tconstruct:material_value",
+        "material": {
+          "type": "tconstruct:stat_type",
+          "stat_type": "tconstruct:cuirass"
+        },
+        "value": 1.0
+      }
+    ],
     "s": [
       "minecraft:stick"
     ]
