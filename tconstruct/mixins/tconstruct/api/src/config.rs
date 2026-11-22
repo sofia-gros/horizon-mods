@@ -11,13 +11,14 @@
 //!   force_integration_materials (integration material definitions and fluid effects).
 //!   The other props' only original data users are files the host loads itself, whose
 //!   conditions cannot name a config value: gravel_to_flint, glass_recipe_fix and
-//!   slime_recipe_fix are recipe-level conditions on `recipe/` files, spawn_with_book is the
-//!   conditional starting-book advancement, and slimy_loot_chests conditions Mantle loot
-//!   injectors (no injector data ships, and PlutoLib has no loot-table injection surface).
-//!   The host's recipe/advancement condition vocabulary is the closed neoforge set (an
-//!   unknown type never loads) and PlutoLib has no seam into host data loading, so those
-//!   files load unconditionally here; the props stay parsed and evaluable for any data the
-//!   port itself loads.
+//!   slime_recipe_fix are recipe-level conditions on host crafting recipes, spawn_with_book
+//!   conditions the starting-book advancement, and slimy_loot_chests conditions Mantle loot
+//!   injectors. The converted content ships those recipes with the condition stripped and
+//!   the advancement unwrapped, and no loot-injector data ships at all: the host's
+//!   recipe/advancement condition vocabulary is the closed neoforge set (an unknown type
+//!   never loads) and PlutoLib has no seam into host data loading, so those files load
+//!   unconditionally here; the props stay parsed and evaluable for any data the port
+//!   itself loads.
 //! - repairKitAmount: RepairKitItem.getRepairAmount and CraftingTableRepairKitRecipe ->
 //!   station_menu.rs reads `repair_kit_amount()`.
 //! - The four ore rates (melter/smeltery/foundry/foundry byproduct): MelterBlockEntity,
@@ -41,12 +42,22 @@
 //!   ancient-tool listing to the wandering trader's rare trades -> trader.rs registers the
 //!   listing with TradeOfferHelper at level 2; its provider reads
 //!   `wanderer_ancient_tool_weight()` per pool snapshot.
-//! - dropDragonScales: ToolEvents drops dragonScale items when a player-caused explosion
-//!   damages an ender dragon. The port's damage hooks do not report that event shape.
+//! - dropDragonScales: ToolEvents.livingDamage drops dragon scales at an ender dragon
+//!   hurt by a player-caused explosion for 2+ damage (the count scales with the damage
+//!   past the health clamp). PlutoLib's damage events report the victim's kind, the
+//!   damage type and the causing entity's id, but not whether the causing entity is a
+//!   player nor the victim's current health, and no PlutoLib action or surface drops an
+//!   item stack at a living entity (the drops surface is death-only, and EntityAction
+//!   has no drop variant), so the drop has no reach yet.
 //! - allowMonsterMeleeModifiers: ToolEvents gates the MONSTER_MELEE_DAMAGE and
-//!   MONSTER_MELEE_HIT hooks on it. Those hooks are bound in modifier_modules.rs, but the
-//!   port's melee dispatch (melee_hook.rs) only reports player attacks, so nothing reads
-//!   the setting yet.
+//!   MONSTER_MELEE_HIT hooks on it. The hooks are bound in modifier_modules.rs and the
+//!   module evaluations are written, but PlutoLib's damage events fill the attacker's
+//!   stack and states only for player attacks: for a mob attacker they report neither
+//!   its entity type (the DAMAGE_MODIFIER_BLACKLIST check), its main-hand stack (the
+//!   MELEE_WEAPON tool to evaluate) nor its chest stack (the UNARMED check), and
+//!   MODIFY_KNOCKBACK, which does carry any attacker's hand stacks, reports no damage
+//!   amount and cannot change it. So no dispatch can run the hooks yet, and nothing
+//!   reads the setting.
 //! - disableSideInventoryWhitelist: TabbedContainerMenu.isUsable lets table screens show
 //!   neighbouring inventories whose block entity type is in `tconstruct:side_inventories`
 //!   (or any, with this on). The port's station menus have no side-inventory tabs.
