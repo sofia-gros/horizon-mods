@@ -49,8 +49,13 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/loot_modifiers/(?:lustrous/)?[a-z0-9_]+\.json'), re.compile(r'data/forge/loot_modifiers/global_loot_modifiers\.json'),
     # Slime islands (tools/import_original_data.py): the island structures and their sets, the island biome tags the
     # structures name, and the binary NBT templates the repalleter produced (payloads are not JSON; shape only).
+    # Each template ships twice: the original's plural `structures/` folder and, byte-identical, the singular
+    # `structure/` folder — the host's content-mod builder forwards only `data/<ns>/structure/**.nbt` into the
+    # worldgen loader's template folder, so without the singular copies the loader's template store holds
+    # nothing for the islands and every island start is rejected as a missing or empty template.
     re.compile(r'data/tconstruct/worldgen/(?:structure|structure_set)/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/structures/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
+    re.compile(r'data/tconstruct/structure/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
     re.compile(r'data/tconstruct/tags/worldgen/biome(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),

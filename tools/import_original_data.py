@@ -2682,8 +2682,9 @@ def copy_world_features():
 def copy_world_structures():
     """The slime islands: the six `tconstruct:island` structures and their four random-spread sets ship as the
     original's data (the consumer codecs are api/src/worldgen.rs), with the five island biome tags and the 25 island
-    template NBTs. The structures' spawn overrides name the slime entity types of the later slime-mob unit; the data
-    ships as the original has it."""
+    template NBTs (each twice: the original's `structures/` folder and the host template loader's `structure/`
+    folder, as the copy loop explains). The structures' spawn overrides name the slime entity types of the later
+    slime-mob unit; the data ships as the original has it."""
     source = GENERATED_DATA / 'tconstruct'
     count = 0
     for name in WORLD_STRUCTURES:
@@ -2704,6 +2705,14 @@ def copy_world_structures():
             target = CONTENT_DATA / f'tconstruct/structures/islands/{material}/{size}.nbt'
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(base / f'{size}.nbt', target)
+            count += 1
+            # The host's content-mod builder forwards only `data/<ns>/structure/**.nbt` (singular) into the
+            # worldgen loader's template folder; the original's plural folder is never read there, so each
+            # template ships a second, identical copy under the singular folder — without it the loader's
+            # template store stays empty and every island start is rejected as a missing template.
+            host_target = CONTENT_DATA / f'tconstruct/structure/islands/{material}/{size}.nbt'
+            host_target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(base / f'{size}.nbt', host_target)
             count += 1
     return count
 

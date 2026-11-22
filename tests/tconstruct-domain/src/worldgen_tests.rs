@@ -635,6 +635,16 @@ fn worldgen_content_is_complete() {
             rolls: Vec::new(),
         };
         assert!(plan(&mut world, &structure).is_some(), "structure {name} should plan");
+        // Every template the structure names must ship in both template folders (see the template loop below).
+        for entry in structure["templates"].as_array().unwrap() {
+            let template = entry["data"].as_str().unwrap().strip_prefix("tconstruct:islands/").unwrap();
+            for folder in ["structures", "structure"] {
+                let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../tconstruct/content/data/tconstruct")
+                    .join(format!("{folder}/islands/{template}.nbt"));
+                assert!(path.is_file(), "structure {name} template {template} should ship under {folder}/");
+            }
+        }
     }
     for name in ["end_sky_island", "nether_ocean_island", "overworld_ocean_island", "overworld_sky_island"] {
         let set = content(&format!("worldgen/structure_set/{name}.json"));
@@ -644,7 +654,11 @@ fn worldgen_content_is_complete() {
     for name in ["blood", "clay", "earthslime", "enderslime", "skyslime"] {
         assert!(content_exists(&format!("tags/worldgen/biome/islands/{name}.json")), "island tag {name}");
     }
-    // All 25 island templates ship, gzip-compressed like the originals.
+    // All 25 island templates ship, gzip-compressed like the originals, each with a byte-identical copy
+    // under the host's singular `structure/` folder: the host's content-mod builder forwards only
+    // `data/<ns>/structure/**.nbt` into the worldgen loader's template folder, so a template that ships
+    // only in the original's plural folder never reaches the loader's template store and the island
+    // start is rejected as a missing or empty template.
     let mut templates = 0;
     for material in ["blood", "dirt", "earth", "ender", "sky"] {
         for size in ["0x1x0", "2x2x4", "4x1x6", "8x1x11", "11x1x11"] {
@@ -654,6 +668,11 @@ fn worldgen_content_is_complete() {
             let bytes = std::fs::read(&path).unwrap_or_else(|error| panic!("read {}: {error}", path.display()));
             assert!(bytes.len() > 100, "template {material}/{size} should be non-trivial");
             assert_eq!(&bytes[..2], &[0x1f, 0x8b], "template {material}/{size} should stay gzipped");
+            let host_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../tconstruct/content/data/tconstruct")
+                .join(format!("structure/islands/{material}/{size}.nbt"));
+            let host_bytes = std::fs::read(&host_path).unwrap_or_else(|error| panic!("read {}: {error}", host_path.display()));
+            assert_eq!(host_bytes, bytes, "template {material}/{size} host copy should be identical");
             templates += 1;
         }
     }
