@@ -179,7 +179,6 @@ visibility = "pub(crate)"
 id = "pluto-mob-split-head"
 target = "horizon_client::game::native_hooks::Game<'_>::native_mob_split"
 kind = "RETURN"
-require = 1
 helper = "pluto-mob-split-head.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
@@ -195,7 +194,6 @@ bindings = [
 id = "pluto-mob-split-children"
 target = "horizon_client::game::creatures::Game<'_>::split_dead_cube"
 kind = "RETURN"
-require = 1
 helper = "pluto-mob-split-children.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
@@ -1966,7 +1964,6 @@ bindings = [
 id = "pluto-hanging-frame-tick"
 target = "horizon_client::game::frames::Game<'_>::tick_item_frames"
 kind = "RETURN"
-require = 1
 helper = "pluto-hanging-frame-tick.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
@@ -2002,7 +1999,6 @@ bindings = [
 id = "pluto-hanging-frame-explosion-return"
 target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
 kind = "RETURN"
-require = 1
 helper = "pluto-hanging-frame-explosion.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
@@ -2030,7 +2026,6 @@ bindings = [
 id = "pluto-hanging-frame-hit"
 target = "horizon_client::game::frames::Game<'_>::hit_frame"
 kind = "RETURN"
-require = 1
 helper = "pluto-hanging-frame-hit.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
@@ -2093,7 +2088,6 @@ bindings = [
 id = "pluto-hanging-stand-tick-return"
 target = "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands"
 kind = "RETURN"
-require = 1
 helper = "pluto-hanging-stand-tick.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
