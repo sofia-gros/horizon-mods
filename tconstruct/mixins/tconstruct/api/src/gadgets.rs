@@ -4,14 +4,15 @@
 //! piggyback rides on a carry effect, and the books need a book UI; PlutoLib offers none of those services.
 //!
 //! Punji (PunjiBlock) sticks to any sturdy face, points away from the block holding it, and joins to
-//! same-facing neighbours along its local north and east. Not ported, each named:
-//! - the contact damage (1, plus fall distance + 1 after a fall, from the cactus source, only for a living
-//!   entity whose box crosses the block's mid-plane on the facing axis): the entity-inside callback does
-//!   fire since FND1 and a Hurt action from it lands, but the pinned host's inside seam
-//!   (pluto-lib/mod/pluto-block-inside.rs over horizon's pluto_block_access transport) fires only for the
-//!   player entity — the original damages any living entity — and the transport carries neither the
-//!   entity's bounding box nor its fall distance, the two numbers the mid-plane test and the fall bonus
-//!   are computed from. Wiring the player-only, box-less half would not be the original's behaviour.
+//! same-facing neighbours along its local north and east. Its contact damage is ported (the
+//! entity_inside callback below): 1, plus the fall distance + 1 after a fall, from the cactus source,
+//! only for a living entity whose box crosses the block's mid-plane on the facing axis — decided
+//! from the notice's bounding box and fall distance exactly as PunjiBlock.entityInside decides it,
+//! for players and mobs alike (the inside seams carry both, with box and fall distance). Two
+//! differences of shape, not of numbers: the queued hurt lands where the contact actions drain
+//! (after a hit, or on the player's tick) rather than inside the movement call itself, so it can
+//! land a tick after the crossing; and "living" is read from the notice's kind — the seams carry
+//! players, mobs and item entities, and of those only the items are not living. Not ported, each named:
 //! - the 0.4 speed factor: the host's block properties have no speed-factor key.
 //! - waterlogging: left out of the declaration, as with the pouring blocks (no fluid logging here).
 //! - the per-facing collision box: the declaration holds one default box (the floor one, 3,0,3 to 13,6,13);
@@ -33,9 +34,9 @@
 //! The Tinkers effects the cakes give (bouncy, double jump, antigravity, returning) are other units' work;
 //! given to a player they are skipped by the game until those land, the same as the slime bottles' effects.
 use pluto_lib::{
-    ActionResult, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, EffectInstance, Identifier,
-    ItemTooltipCallback, PathNodeType, PistonBehavior, Placement, PlacementContext, ShapeUpdateContext,
-    TooltipLine, UseItemOnBlockCallback, UseItemOnBlockContext, World,
+    ActionResult, ActionTarget, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, EffectInstance,
+    EntityAction, EntityInsideContext, Identifier, ItemTooltipCallback, PathNodeType, PistonBehavior, Placement,
+    PlacementContext, ShapeUpdateContext, TooltipLine, UseItemOnBlockCallback, UseItemOnBlockContext, World,
 };
 
 fn id(name: &str) -> Identifier {
@@ -94,6 +95,7 @@ pub(crate) fn register() {
             .can_survive(|context| punji_survives(&context.state, context.pos, context.view))
             .state_for_placement(punji_placement)
             .update_shape(punji_update)
+            .entity_inside(punji_inside)
             .path_node_type(|_| Some(PathNodeType::Damaging))
             .piston_behavior(PistonBehavior::Destroy),
     );
@@ -204,6 +206,35 @@ pub(crate) fn punji_update(context: &ShapeUpdateContext<'_>) -> Option<BlockStat
     state = state.with("northeast", bool_text(connected(context.view, facing, east.relative(north_pos))));
     state = state.with("northwest", bool_text(connected(context.view, facing, east.opposite().relative(north_pos))));
     Some(state)
+}
+
+/// PunjiBlock.entityInside's damage decision: the sticks hurt only an entity in the same half of
+/// the block as they are — on the facing axis, the entity's box must cross the block's mid-plane
+/// (for a positive facing the box's max must pass the plane, for a negative one its min must).
+/// The damage is 1, plus the fall distance + 1 once the entity has fallen any distance at all.
+pub(crate) fn punji_damage(facing: Direction, pos: [i32; 3], bounds: [f64; 6], fall_distance: f64) -> Option<f32> {
+    let offset = facing.offset();
+    let axis = (0..3).find(|&axis| offset[axis] != 0).expect("a direction steps along one axis");
+    let mid = pos[axis] as f64 + 0.5;
+    if offset[axis] > 0 {
+        if bounds[axis + 3] <= mid { return None; }
+    } else if bounds[axis] >= mid {
+        return None;
+    }
+    let mut damage = 1.0f32;
+    if fall_distance > 0.0 {
+        damage += fall_distance as f32 + 1.0;
+    }
+    Some(damage)
+}
+
+/// PunjiBlock.entityInside: a living entity in the sticks' half is hurt by the cactus source.
+/// The seams carry players, mobs and item entities; of those only the items are not living.
+pub(crate) fn punji_inside(context: &EntityInsideContext) {
+    if context.kind == "minecraft:item" { return; }
+    if let Some(amount) = punji_damage(facing_of(&context.state), context.pos, context.bounds, context.fall_distance) {
+        context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: "minecraft:cactus".to_owned() });
+    }
 }
 
 // --- The hanging ichor cake (InvertedCakeBlock) ---

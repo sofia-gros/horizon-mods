@@ -9,9 +9,14 @@
 //! and the fail's BLOCK_ACTIVATE game event (no particle emission or game event surface), and the face sturdiness that
 //! gates the projectile is answered by approximation, as [`shoot`] notes. The use hook is told no click position, so it
 //! cannot split the block into the original's tank zone (the top half) and item zone: a held fluid container trades with
-//! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite (an entity inside it
-//! takes knightmetal damage) has no path in the block's entity-inside notice, which only names the entity; its path type
-//! is ported. What a broken cannon drops of its slot follows the host's slot storage, as the melter's inventory does.
+//! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite is ported (the
+//! entity_inside callback below), and so is the plain knightmetal block's identical bite — KnightMetalBlock.entityInside
+//! is the body KnightMetalFluidCannonBlock's is copied from: an entity inside takes KnightMetalBlock.BLOCK_DAMAGE of
+//! tconstruct:knightmetal damage, queued as a hurt action and landed by the game's own hurt call where the contact
+//! actions drain. The host's hurt call reaches living entities only, where the original calls hurt on any entity: a
+//! non-living one takes nothing from the original's call in practice either, but here the refusal is the host's, not
+//! the damage type's. Both blocks' path type is ported. What a broken cannon drops of its slot follows the host's
+//! slot storage, as the melter's inventory does.
 use crate::fluid_effects::{self, WorldAccess};
 use crate::fluid_ingredient::FluidTags;
 use crate::fluid_projectile;
@@ -19,8 +24,8 @@ use crate::fluid_values::BUCKET;
 use crate::fluid_world::{block_context, holder, slot_write_back, stack_of_slot, LiveWorld};
 use crate::tank::Tank;
 use pluto_lib::{
-    ActionResult, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
-    FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, PathNodeType, Placement, World,
+    ActionResult, ActionTarget, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
+    EntityAction, EntityInsideContext, FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, PathNodeType, Placement, World,
 };
 
 /// The cannons of `TinkerSmeltery`: name, tank capacity, and the shot's power, velocity and inaccuracy
@@ -274,6 +279,15 @@ pub(crate) fn cannon_trigger(state: &BlockState, signal: Option<bool>) -> Option
     }
 }
 
+/// `KnightMetalBlock.BLOCK_DAMAGE`: what an entity inside a knightmetal block or the end cannon takes.
+const KNIGHTMETAL_BITE: f32 = 4.0;
+
+/// `KnightMetalBlock.entityInside`, and `KnightMetalFluidCannonBlock`'s copy of it: the entity inside
+/// is hurt by the knightmetal damage source (TinkerDamageTypes.KNIGHTMETAL), with no attacker.
+fn knightmetal_bite(context: &EntityInsideContext) {
+    context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount: KNIGHTMETAL_BITE, damage_type: "tconstruct:knightmetal".to_owned() });
+}
+
 pub(crate) fn register() {
     for (name, ..) in CANNONS {
         let block = Identifier::new("tconstruct", name).expect("valid cannon id");
@@ -291,9 +305,16 @@ pub(crate) fn register() {
         if name == "end_fluid_cannon" {
             // `KnightMetalFluidCannonBlock.getBlockPathType`: mobs avoid it as damaging.
             behaviour = behaviour.path_node_type(|_| Some(PathNodeType::Damaging));
+            // `KnightMetalFluidCannonBlock.entityInside`: the knightmetal bite.
+            behaviour = behaviour.entity_inside(knightmetal_bite);
         }
         BlockBehaviors::register(behaviour);
     }
+    // KnightMetalBlock itself: the same bite and the same path type, on the plain block, which
+    // otherwise rides its vanilla template with no behaviour of its own.
+    BlockBehaviors::register(BlockBehavior::new(Identifier::new("tconstruct", "knightmetal_block").expect("valid block id"))
+        .entity_inside(knightmetal_bite)
+        .path_node_type(|_| Some(PathNodeType::Damaging)));
 }
 
 #[cfg(test)]
@@ -310,6 +331,20 @@ mod tests {
         assert_eq!((capacity_of("seared_fluid_cannon"), capacity_of("scorched_fluid_cannon"), capacity_of("end_fluid_cannon"), capacity_of("seared_fuel_tank")), (Some(2000), Some(2000), Some(4000), None));
         let numbers: Vec<(f32, f32, f32)> = CANNONS.iter().map(|(_, _, power, velocity, inaccuracy)| (*power, *velocity, *inaccuracy)).collect();
         assert_eq!(numbers, [(1.0, 1.1, 4.5), (2.0, 1.5, 6.0), (1.5, 3.0, 3.0)]);
+    }
+
+    #[test]
+    fn the_knightmetal_bite_queues_four_knightmetal_damage_and_registers_on_both_blocks() {
+        let context = EntityInsideContext {
+            dimension: "minecraft:overworld".to_owned(), state: BlockState::parse("tconstruct:end_fluid_cannon").unwrap(),
+            pos: [0, 64, 0], entity: 7, kind: "minecraft:zombie".to_owned(), bounds: [0.0; 6], fall_distance: 0.0,
+            actions: std::cell::RefCell::new(Vec::new()),
+        };
+        knightmetal_bite(&context);
+        assert_eq!(context.actions.borrow().as_slice(), [EntityAction::Hurt { target: ActionTarget::Victim, amount: 4.0, damage_type: "tconstruct:knightmetal".to_owned() }]);
+        register();
+        assert!(BlockBehaviors::get("tconstruct:end_fluid_cannon").is_some());
+        assert!(BlockBehaviors::get("tconstruct:knightmetal_block").is_some());
     }
 
     #[test]

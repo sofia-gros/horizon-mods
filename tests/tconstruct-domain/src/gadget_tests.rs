@@ -287,3 +287,43 @@ fn the_blood_cakes_regeneration_is_short_and_other_blocks_pass() {
     assert_eq!(eat(&mut world, &mut ops, pos), ActionResult::Pass);
     assert_eq!(block_at(&world, pos), "minecraft:stone");
 }
+
+fn inside_context(state: BlockState, kind: &str, bounds: [f64; 6], fall_distance: f64) -> pluto_lib::EntityInsideContext {
+    pluto_lib::EntityInsideContext {
+        dimension: "minecraft:overworld".to_owned(), state, pos: [0, 64, 0], entity: 3,
+        kind: kind.to_owned(), bounds, fall_distance, actions: std::cell::RefCell::new(Vec::new()),
+    }
+}
+
+#[test]
+fn punji_damage_follows_the_facing_half_and_the_fall() {
+    // Facing down (negative on Y): the entity's min must cross below the mid-plane (y = 64.5).
+    assert_eq!(crate::gadgets::punji_damage(Direction::Down, [0, 64, 0], [0.2, 64.6, 0.2, 0.8, 65.8, 0.8], 0.0), None);
+    assert_eq!(crate::gadgets::punji_damage(Direction::Down, [0, 64, 0], [0.2, 64.5, 0.2, 0.8, 65.8, 0.8], 0.0), None);
+    assert_eq!(crate::gadgets::punji_damage(Direction::Down, [0, 64, 0], [0.2, 64.2, 0.2, 0.8, 65.8, 0.8], 0.0), Some(1.0));
+    // Facing up (positive on Y): the entity's max must cross above the mid-plane.
+    assert_eq!(crate::gadgets::punji_damage(Direction::Up, [0, 64, 0], [0.2, 63.2, 0.2, 0.8, 64.5, 0.8], 0.0), None);
+    assert_eq!(crate::gadgets::punji_damage(Direction::Up, [0, 64, 0], [0.2, 63.2, 0.2, 0.8, 64.6, 0.8], 0.0), Some(1.0));
+    // Facing north (negative on Z, mid-plane z = 0.5) and east (positive on X, mid-plane x = 0.5).
+    assert_eq!(crate::gadgets::punji_damage(Direction::North, [0, 64, 0], [0.2, 64.0, 0.5, 0.8, 65.8, 1.8], 0.0), None);
+    assert_eq!(crate::gadgets::punji_damage(Direction::North, [0, 64, 0], [0.2, 64.0, 0.4, 0.8, 65.8, 1.8], 0.0), Some(1.0));
+    assert_eq!(crate::gadgets::punji_damage(Direction::East, [0, 64, 0], [-0.8, 64.0, 0.2, 0.5, 65.8, 0.8], 0.0), None);
+    assert_eq!(crate::gadgets::punji_damage(Direction::East, [0, 64, 0], [-0.8, 64.0, 0.2, 0.6, 65.8, 0.8], 0.0), Some(1.0));
+    // The fall bonus: once the entity has fallen at all, the damage is 1 + (fall distance + 1).
+    assert_eq!(crate::gadgets::punji_damage(Direction::Down, [0, 64, 0], [0.2, 64.2, 0.2, 0.8, 65.8, 0.8], 3.0), Some(5.0));
+}
+
+#[test]
+fn punji_inside_queues_cactus_damage_for_a_living_entity_only() {
+    let crossing = inside_context(punji("down"), "minecraft:zombie", [0.2, 64.2, 0.2, 0.8, 65.8, 0.8], 0.0);
+    crate::gadgets::punji_inside(&crossing);
+    assert_eq!(crossing.actions.borrow().as_slice(), [pluto_lib::EntityAction::Hurt { target: pluto_lib::ActionTarget::Victim, amount: 1.0, damage_type: "minecraft:cactus".to_owned() }]);
+    // An item entity is not living: the original's instanceof check leaves it alone.
+    let item = inside_context(punji("down"), "minecraft:item", [0.2, 64.2, 0.2, 0.8, 65.8, 0.8], 0.0);
+    crate::gadgets::punji_inside(&item);
+    assert!(item.actions.borrow().is_empty());
+    // A living entity in the other half of the block is left alone.
+    let clear = inside_context(punji("down"), "minecraft:zombie", [0.2, 64.6, 0.2, 0.8, 65.8, 0.8], 0.0);
+    crate::gadgets::punji_inside(&clear);
+    assert!(clear.actions.borrow().is_empty());
+}
