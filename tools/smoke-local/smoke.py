@@ -101,9 +101,14 @@ try:
     # The real Part Builder block (mod hooks): placing it and right-clicking must open a container screen with slots.
     ctl('command', 'setblock 0 71 2 tconstruct:part_builder'); ctl('command', 'tp @s 0.5 71 0.5'); time.sleep(2.5 if a.screenshots else 1)
     ctl('look-at-block', '0', '71', '2'); time.sleep(.5); opened = ctl('interact', '0', '71', '2'); time.sleep(2)
+    # Poll the screen read: server-commit latency in this environment makes a
+    # single snapshot unreliable, so retry until the station slots settle.
+    deadline = time.monotonic() + 30
     screen = ctl('screen')
+    while sorted(x['slot'] for x in screen['slots'] if x['slot'] >= 300) != [300, 301, 302] and time.monotonic() < deadline:
+        time.sleep(1); screen = ctl('screen')
     assert opened.get('screen') == 'container' and screen['screen'] == 'container', (opened.get('screen'), screen['screen'])
-    assert len([x for x in screen['slots'] if x['slot'] >= 300]) >= 9, 'Part Builder container has no station slots'
+    assert sorted(x['slot'] for x in screen['slots'] if x['slot'] >= 300) == [300, 301, 302], 'Part Builder station slots must be exactly [300, 301, 302]'
     shot('part-builder.png')
     ctl('close'); time.sleep(.5)
     step = 'quit'
