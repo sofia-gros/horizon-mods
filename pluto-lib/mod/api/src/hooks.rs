@@ -1286,6 +1286,26 @@ impl WorldOps for HostWorld {
         };
         horizon_client::entry::pluto_explosion_access::push(dimension, center, radius, fire, blast)
     }
+
+    fn send_particles(&mut self, _dimension: &str, particle: &str, data: &crate::pure::particle_api_v1::ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
+        use horizon_client::mod_api::{ParticleOptions, ParticleType};
+        // A vanilla name resolves to the host's own type; any other namespaced name is a mod's own
+        // type, sent by name (the host's API 103): Horizon clients draw it from the sprite set in the
+        // mod's assets, clients without the set draw nothing and vanilla clients are not sent it. The
+        // spawn's data has no channel yet: a fluid-sprite type's sprite is chosen from the fluid at
+        // spawn time, and the host's sprite sets are static per type, so a fluid spawn is sent by name
+        // like any other and draws nothing until the host grows a spawn-time sprite channel.
+        let _ = data;
+        let options = if particle.contains(':') && !particle.starts_with("minecraft:") {
+            ParticleOptions::named(particle)
+        } else {
+            match ParticleType::from_name(particle) {
+                Some(kind) => ParticleOptions::simple(kind),
+                None => return false,
+            }
+        };
+        self.0.get().send_particles(&options, None, at, spread, speed, count)
+    }
 }
 
 /// PlutoLib's own mod id: the id its mod screen opens under (API 111).

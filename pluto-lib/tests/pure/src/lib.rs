@@ -241,4 +241,5 @@ mod api_pages {
     page!(Attachments, "attachments.md");
     page!(Config, "config.md");
     page!(Commands, "commands.md");
+    page!(Particles, "particles.md");
 }

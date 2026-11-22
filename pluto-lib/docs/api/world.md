@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, every entity summoned in `summons`, every explosion asked for in `explosions`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, every entity summoned in `summons`, every explosion asked for in `explosions`, every particle send asked for in `particles`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};

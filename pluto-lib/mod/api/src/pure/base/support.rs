@@ -210,6 +210,18 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "native attachment source/site review, native client adapter validation and real original-factory sprite/physics/RNG gates; connect actual entity emission and network/type consumers",
     },
     SupportEntry {
+        api: "particle_api_v1::ParticleTypeRegistry::{register,factory,registered,register_entity_particle}",
+        support: Support::Stub,
+        behaviour: "particle-type declarations are pure-tested: item-crumb factories validate and store through the item-factory registry (whose named-request bridge and cube-landing override are the transports), sprite-set factories are declarations over the sprite set the mod ships in its particle assets (the host engine loads those itself), fluid-sprite factories declare a per-spawn fluid sprite; entity-particle replacement delegates to the factory registry's override rules",
+        unblocked_by: "native attachment validation of the consumers the declarations feed (the item-factory transports above and the host's mod sprite-set loading); a host spawn-time sprite channel for the fluid factory's per-spawn texture and tint",
+    },
+    SupportEntry {
+        api: "world_api_v1::World::send_particles / WorldOps::send_particles",
+        support: Support::Stub,
+        behaviour: "validation and the memory host are pure-tested; the HostWorld adapter is source-declared over the level bridge's send: a vanilla name resolves to the host's own type, any other namespaced name is sent by name for clients to draw from the mod's sprite set; the spawn's data is not carried (no host channel), so a fluid-sprite spawn draws nothing yet",
+        unblocked_by: "native attachment validation of the bridge send call (the combined build is the first compile of the adapter), then native/game verification of a named send; a host spawn-time data channel for fluid sprites",
+    },
+    SupportEntry {
         api: "color_provider_api_v1::ColorProviderRegistry::{register_item,item_color}",
         support: Support::Stub,
         behaviour: "owned-stack item registration/direct lookup work; shared baked-layer LOAD adapter and merged-component forwarding are source-declared, native-unvalidated; structural helper test covers RGB/ARGB, sparse indices, decline/special/native fallback and shared-geometry isolation, not native rendering; indices above 4095 retain native tint",

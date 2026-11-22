@@ -10,6 +10,7 @@ use std::marker::PhantomData;
 
 use super::base::{Identifier, IdentifierError, Nbt, NbtCompound};
 use super::block_entity_api_v1::BlockPos;
+use super::particle_api_v1::ParticleData;
 
 /// A block with its properties, as `/setblock` writes it: `minecraft:oak_stairs[facing=east,half=bottom]`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -126,6 +127,15 @@ pub trait WorldOps {
     /// blocks it leaves. False when the host cannot explode there (a centre or radius the game refuses,
     /// a chunk that is not loaded). The default host cannot explode.
     fn explode(&mut self, _dimension: &str, _center: [f64; 3], _radius: f32, _fire: bool, _interaction: ExplosionInteraction) -> bool {
+        false
+    }
+    /// Sends particles of the type `particle` in the dimension (Minecraft: `ServerLevel.sendParticles`):
+    /// `count` particles around `at`, each offset by a Gaussian times `spread` and moving at a Gaussian
+    /// times `speed`; a count of 0 sends one particle moving along `spread` scaled by `speed`. `data` is
+    /// the spawn's own data (a fluid for a fluid-sprite type, [`ParticleData::Plain`] otherwise). False
+    /// when the host cannot send them (an unknown vanilla type, a name that is not namespaced, or no
+    /// authoritative level). The default host cannot send particles.
+    fn send_particles(&mut self, _dimension: &str, _particle: &str, _data: &ParticleData, _at: [f64; 3], _spread: [f64; 3], _speed: f64, _count: i32) -> bool {
         false
     }
 }
@@ -293,6 +303,27 @@ impl World {
         }
         with_current(false, |ops| ops.explode(&self.dimension, center, radius, fire, interaction))
     }
+
+    /// Minecraft: `ServerLevel.sendParticles`. Sends particles of the type `particle` (a vanilla name
+    /// such as `minecraft:flame`, or a mod's own type declared with
+    /// [`ParticleTypeRegistry`](super::particle_api_v1::ParticleTypeRegistry)) to the players near `at`:
+    /// `count` of them, each offset by a Gaussian times `spread` and moving at a Gaussian times
+    /// `speed`; a count of 0 sends one particle moving along `spread` scaled by `speed`, which is how
+    /// the original aims a single attack particle. `data` is the spawn's own data — the fluid for a
+    /// fluid-sprite type, [`ParticleData::Plain`] for the rest. True means the game accepted the send,
+    /// not that every client drew it: a client without a mod type's sprite set draws nothing, and a
+    /// vanilla client is not sent a mod's type at all. False outside a callback, for a position,
+    /// spread or speed the game would refuse, for a negative count, or when the host cannot send.
+    pub fn send_particles(&self, particle: &str, data: &ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
+        // Refused here, before the ops are asked, so every host adapter (and the memory ops) answers
+        // the same way: the game refuses non-finite values and positions outside the world.
+        if !at.iter().all(|value| value.is_finite() && value.abs() <= 30_000_000.0)
+            || !spread.iter().all(|value| value.is_finite())
+            || !speed.is_finite() || count < 0 {
+            return false;
+        }
+        with_current(false, |ops| ops.send_particles(&self.dimension, particle, data, at, spread, speed, count))
+    }
 }
 
 /// A block tick a host-side callback asked for. The mod-facing host has no call that schedules a
@@ -385,6 +416,25 @@ pub struct ExplosionRecord {
     pub interaction: ExplosionInteraction,
 }
 
+/// One particle send a [`MemoryWorldOps`] was asked for, as it was asked.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParticleRecord {
+    /// The dimension sent in.
+    pub dimension: String,
+    /// The particle type's name.
+    pub particle: String,
+    /// The spawn's own data.
+    pub data: ParticleData,
+    /// Where the send is centred.
+    pub at: [f64; 3],
+    /// The Gaussian offset scale, per axis.
+    pub spread: [f64; 3],
+    /// The Gaussian speed scale.
+    pub speed: f64,
+    /// How many particles; 0 is one particle moving along `spread`.
+    pub count: i32,
+}
+
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
 #[derive(Default, Debug)]
 pub struct MemoryWorldOps {
@@ -400,6 +450,8 @@ pub struct MemoryWorldOps {
     pub summons: Vec<SummonRecord>,
     /// The explosions asked for so far, in order.
     pub explosions: Vec<ExplosionRecord>,
+    /// The particle sends asked for so far, in order.
+    pub particles: Vec<ParticleRecord>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -442,6 +494,11 @@ impl WorldOps for MemoryWorldOps {
 
     fn explode(&mut self, dimension: &str, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool {
         self.explosions.push(ExplosionRecord { dimension: dimension.to_owned(), center, radius, fire, interaction });
+        true
+    }
+
+    fn send_particles(&mut self, dimension: &str, particle: &str, data: &ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
+        self.particles.push(ParticleRecord { dimension: dimension.to_owned(), particle: particle.to_owned(), data: data.clone(), at, spread, speed, count });
         true
     }
 }
@@ -589,5 +646,34 @@ mod tests {
             fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
         }
         with_world(&mut NoExplode, || assert!(!world.explode([0.5, 64.0, 0.5], 4.0, false, ExplosionInteraction::Block)));
+    }
+
+    #[test]
+    fn particle_sends_are_recorded_and_refusals_record_nothing() {
+        let world = World::new("minecraft:overworld");
+        let fluid = ParticleData::Fluid(super::super::block_entity_api_v1::FluidStack::new(super::super::base::Identifier::parse("example:molten_glass").unwrap(), 250));
+        let mut ops = MemoryWorldOps::default();
+        with_world(&mut ops, || {
+            assert!(world.send_particles("tconstruct:fluid", &fluid, [1.5, 64.0, -2.5], [0.1, 0.2, 0.1], 0.2, 10));
+            assert!(world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [1.0, 0.0, 0.0], 0.0, 0), "a count of 0 is the aimed single particle");
+            assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [f64::NAN, 64.0, 0.0], [0.0, 0.0, 0.0], 0.0, 1), "no position, no send");
+            assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [30_000_001.0, 64.0, 0.0], [0.0, 0.0, 0.0], 0.0, 1), "outside the world");
+            assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [f64::INFINITY, 0.0, 0.0], 0.0, 1), "no spread, no send");
+            assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [0.0, 0.0, 0.0], f64::NAN, 1), "no speed, no send");
+            assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [0.0, 0.0, 0.0], 0.0, -1), "a negative count is refused");
+        });
+        assert_eq!(ops.particles, vec![
+            ParticleRecord { dimension: "minecraft:overworld".into(), particle: "tconstruct:fluid".into(), data: fluid, at: [1.5, 64.0, -2.5], spread: [0.1, 0.2, 0.1], speed: 0.2, count: 10 },
+            ParticleRecord { dimension: "minecraft:overworld".into(), particle: "minecraft:flame".into(), data: ParticleData::Plain, at: [0.0, 64.0, 0.0], spread: [1.0, 0.0, 0.0], speed: 0.0, count: 0 },
+        ]);
+        // Outside a callback the send is refused, and a host that does not implement sending keeps the default answer.
+        assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [0.0, 0.0, 0.0], 0.0, 1));
+        struct NoSend;
+        impl WorldOps for NoSend {
+            fn block_state(&mut self, _: &str, _: BlockPos) -> Option<String> { None }
+            fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
+            fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+        }
+        with_world(&mut NoSend, || assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [0.0, 0.0, 0.0], 0.0, 1)));
     }
 }

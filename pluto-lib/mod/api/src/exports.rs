@@ -18,6 +18,7 @@ pub use crate::pure::armor_renderer_api_v1::{self, ArmorLayer, ArmorLayerKind, A
 pub use crate::pure::command_api_v2::{self, CommandContext, CommandRegistrar, CommandRegistrationCallback};
 pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry, ConfigSpec, ModConfig};
 pub use crate::pure::particle_factory_registry::{self, ParticleFactoryRegistry};
+pub use crate::pure::particle_api_v1::{self, ParticleData, ParticleFactory, ParticleTypeRegistry};
 pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullModelRegistry};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
 pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
@@ -52,7 +53,7 @@ pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage
 pub use crate::pure::item_storage_api_v1::{self, ItemStorage};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
 pub use crate::pure::entity_api_v1::{self, EntityOps, EntityReach, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
-pub use crate::pure::world_api_v1::{self, BlockState, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, Region, SummonRecord, World, WorldOps, with_ticking_dimension, with_world};
+pub use crate::pure::world_api_v1::{self, BlockState, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, ParticleRecord, Region, SummonRecord, World, WorldOps, with_ticking_dimension, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, NativeTreeRoute, native_tree_route, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, RegistryLookup, JsonResourceStack, ResourceManagerHelper, ResourceType, reload_event};
 pub use crate::pure::advancement_api_v1::{self, DispatchResult, EventMatcher, ItemSnapshot, PredicateCallback, PredicateRegistration, PredicateRequest, PredicateResult, QueuedEvent, RegistrationError, TagLookup};
