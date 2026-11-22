@@ -59,11 +59,11 @@ let icon = BookIcon::from_json(&serde_json::json!({"item": "minecraft:crafting_t
 assert_eq!(icon.item().to_string(), "minecraft:crafting_table");
 ```
 
-Three page kinds are decoded into their own variants — `mantle:text`, `mantle:image_text` and `mantle:crafting` — and drawn in full. Any other kind (a smelting page, a material page, ...) decodes to `BookPage::Opaque` with its JSON kept as NBT, so registering a book never loses a page; a renderer for the kind can be added without changing the book.
+Three page kinds are decoded into their own variants — `mantle:text`, `mantle:image_text` and `mantle:crafting` — and drawn in full. Any other kind (a smelting page, ...) decodes to `BookPage::Opaque` with its JSON kept as NBT, so registering a book never loses a page; a renderer for the kind can be added without changing the book. Pages the original generates from its registries (a page per material, tool or modifier) are not in the files at all: the consumer builds them as `BookPage::Table` pages, keeping the generated content's own kind id, and rebuilds the book with `BookRegistry::replace` when its registries reload.
 
 ## Turning pages
 
-Pages are addressed by one flat index across the sections, as a reader flipping through meets them. `BookView` holds where a reader is and applies the turning rules; the host keeps one while the book is open. On the book screen, the reader turns with the arrows at the page's foot, the mouse wheel, the arrow and page keys, and jumps with the section list on the left (drawn when the book has more than one section). Escape closes the book, as it closes any screen.
+Pages are addressed by one flat index across the sections, as a reader flipping through meets them. `BookView` holds where a reader is and applies the turning rules; the host keeps one while the book is open. On the book screen, the reader turns with the arrows at the page's foot, the mouse wheel, the arrow and page keys, jumps with the section list on the left (drawn when the book has more than one section), and follows a table row's link where a page has one. Escape closes the book, as it closes any screen.
 
 ```rust
 use pluto_lib::{Book, BookPage, BookRegistry, BookSection, BookText, BookView, Identifier};
@@ -93,7 +93,7 @@ BookRegistry::register(book).unwrap();
 
 `draw_book` draws the current page onto a `ScreenCanvas` — the same surface the menu screens draw on (see [screen](screen.md)) — and `book_click` reads a click against the same layout, so what is drawn is exactly what can be clicked.
 
-> **Use with Caution.** Host adapter written, not yet compiled or game-verified. The host opens the screen through the game's mod-screen call and draws through the screen hooks; two renderer limits are the canvas's, not the data's: the canvas has one text size, so `large_page_titles` is carried but cannot scale a title, and the canvas cannot draw items, so a crafting page draws its grid and recipe id but not the recipe's items.
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. The host opens the screen through the game's mod-screen call and draws through the screen hooks; two renderer limits are the canvas's, not the data's: the canvas has one text size, so `large_page_titles` is carried but cannot scale a title, and a crafting page draws its grid and recipe id but not the recipe's items (resolving a recipe to its items is the consumer's side of the screen). Table rows draw their icons as items.
 
 ```rust
 use pluto_lib::{Book, BookPage, BookSection, BookText, BookView, Identifier, ScreenCanvas, draw_book};
@@ -159,7 +159,7 @@ assert_eq!(section.pages.len(), 1);
 
 ### `BookPage`
 
-One page. `Text` and `ImageText` carry a `title` and `text` runs (an image page also its `image`); `Crafting` carries a `title`, the `recipe` it shows, a `grid_size` and a `description`; `Opaque` keeps any other kind's `kind` id and `data`. `kind()` is the Mantle page kind's id and `title()` the page's title. `BookPage::from_json(kind, data)` decodes one localized page from its JSON (see [Building a book](#building-a-book-from-the-original-data)).
+One page. `Text` and `ImageText` carry a `title` and `text` runs (an image page also its `image`); `Crafting` carries a `title`, the `recipe` it shows, a `grid_size` and a `description`; `Table` carries the `kind` of the content it stands for, a `title`, `intro` text, its `rows` and `text` below them — the page a mod generates from its registries (one row per material, tool or modifier); `Opaque` keeps any other kind's `kind` id and `data`. `kind()` is the Mantle page kind's id and `title()` the page's title. `BookPage::from_json(kind, data)` decodes one localized page from its JSON (see [Building a book](#building-a-book-from-the-original-data)).
 
 ```rust
 use pluto_lib::{BookPage, BookText};
@@ -170,6 +170,24 @@ let page = BookPage::Text {
 };
 assert_eq!(page.kind(), "mantle:text");
 assert_eq!(page.title(), Some("Welcome"));
+```
+
+### `BookRow`
+
+One row of a table page: `Header { icon, text }` names what follows (a group, a stat block) and is drawn underlined; `Entry { icon, label, value, link }` is one entry of the table — its `label`, an optional `value` drawn right-aligned on the same line, an optional `icon`, and an optional `link` to the flat index of another page of the same book, which a click on the row opens. A row is one line tall when drawn; a table longer than a page is split into several table pages by its producer.
+
+```rust
+use pluto_lib::{BookIcon, BookRow, Identifier};
+
+let header = BookRow::Header { icon: None, text: "Metals".into() };
+assert!(matches!(header, BookRow::Header { .. }));
+let entry = BookRow::Entry {
+    icon: Some(BookIcon::Item(Identifier::parse("minecraft:iron_ingot").unwrap())),
+    label: "Iron".into(),
+    value: Some("tier 2".into()),
+    link: Some(3),
+};
+assert!(matches!(entry, BookRow::Entry { link: Some(3), .. }));
 ```
 
 ### `BookText`
@@ -252,7 +270,7 @@ assert_eq!(appearance.arrow_color, 0);
 
 ### `BookRegistry`
 
-The registry of books a reader can open. `register(book)` fails, keeping the earlier registration, for a duplicate id, a book with no sections, a section with no name or a section with no pages. `get(id)` returns the registered book and `all()` every registered book, by id.
+The registry of books a reader can open. `register(book)` fails, keeping the earlier registration, for a duplicate id, a book with no sections, a section with no name or a section with no pages. `replace(book)` registers a book over any earlier registration of its id — the rebuild a mod makes when the registries its generated pages come from reload. `get(id)` returns the registered book and `all()` every registered book, by id.
 
 ```rust
 use pluto_lib::{Book, BookPage, BookRegistry, BookSection, BookText, Identifier};
@@ -291,7 +309,7 @@ assert_eq!(view.page, 0);
 
 ### `BookClick` and `book_click`
 
-What a click on the book screen means: `NextPage`, `PrevPage`, `Section(index)` or `None`. `book_click(book, view, area, at)` reads a click at `at` (GUI pixels, in the same space as `area`, the screen's panel rect) against the layout `draw_book` draws.
+What a click on the book screen means: `NextPage`, `PrevPage`, `Section(index)`, `Page(index)` (a table row's link) or `None`. `book_click(book, view, area, at)` reads a click at `at` (GUI pixels, in the same space as `area`, the screen's panel rect) against the layout `draw_book` draws.
 
 ### `draw_book`
 
@@ -623,6 +641,27 @@ assert!(BookRegistry::register(book.clone()).is_ok());
 assert!(BookRegistry::register(book).is_err(), "duplicate id");
 ```
 
+### `BookRegistry::replace`
+
+Registers a book over any earlier registration of the same id, with `fn replace(book: Book) -> Result<(), String>`; it fails, keeping the earlier registration, for a book with no sections, a section with no name or a section with no pages. A book already open keeps the copy it opened with.
+
+```rust
+use pluto_lib::{Book, BookPage, BookRegistry, BookSection, BookText, Identifier};
+
+let id = Identifier::parse("example:replace_guide").unwrap();
+let build = |body: &str| Book::new(id.clone(), vec![
+    BookSection { name: "Start".into(), icon: None, pages: vec![
+        BookPage::Text { title: None, text: vec![BookText::plain(body)] },
+    ]},
+]);
+BookRegistry::replace(build("first")).unwrap();
+BookRegistry::replace(build("rebuilt")).unwrap();
+assert_eq!(BookRegistry::get(&id).unwrap().page_count(), 1);
+let mut bad = build("bad");
+bad.sections.clear();
+assert!(BookRegistry::replace(bad).is_err(), "a book with no sections is refused");
+```
+
 ### `BookRegistry::get`
 
 The book registered under an id, if any, with `fn get(id: &Identifier) -> Option<Book>`.
@@ -753,7 +792,7 @@ assert_eq!(view.section(&book), 1);
 
 ### `BookClick`
 
-What a click on the book screen means: `None` when nothing was clicked, `NextPage` for the next-page arrow, `PrevPage` for the previous-page arrow, or `Section(index)` for a section's row in the section list.
+What a click on the book screen means: `None` when nothing was clicked, `NextPage` for the next-page arrow, `PrevPage` for the previous-page arrow, `Section(index)` for a section's row in the section list, or `Page(index)` for a table row's link (the flat index of the page it opens). A link click is read against the rows the last `draw_book` of that page drew, so it lands exactly on the row that was drawn.
 
 ```rust
 use pluto_lib::BookClick;
@@ -761,6 +800,7 @@ use pluto_lib::BookClick;
 assert_eq!(BookClick::None, BookClick::None);
 assert_ne!(BookClick::NextPage, BookClick::PrevPage);
 assert_eq!(BookClick::Section(1), BookClick::Section(1));
+assert_eq!(BookClick::Page(4), BookClick::Page(4));
 ```
 
 ### `book_click`

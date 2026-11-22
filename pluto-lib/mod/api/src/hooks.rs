@@ -3492,6 +3492,13 @@ impl Hooks for PlutoHooks {
             book_api_v1::BookClick::NextPage => view.next_page(&book),
             book_api_v1::BookClick::PrevPage => view.prev_page(&book),
             book_api_v1::BookClick::Section(section) => view.goto_section(&book, section),
+            book_api_v1::BookClick::Page(page) => {
+                let moved = page < book.page_count() && view.page != page;
+                if moved {
+                    view.page = page;
+                }
+                moved
+            }
             book_api_v1::BookClick::None => return Flow::Continue,
         };
         if turned {

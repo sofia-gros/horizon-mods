@@ -1,6 +1,7 @@
 //! Books a reader opens on the client (Mantle: `mantle:book`): a mod registers a book's sections and pages once, and any
 //! callback that carries a player can ask for the book to open. The content model follows the original book data format
-//! (an index of sections, an appearance, and pages of text, image-and-text and crafting kinds); the drawing and the page
+//! (an index of sections, an appearance, and pages of text, image-and-text and crafting kinds, plus table pages a mod
+//! builds from its registries — a row per material, tool or modifier, say); the drawing and the page
 //! turning are done here, over the same [`ScreenCanvas`] the menu screens draw on, so they can be tested without the game.
 //!
 //! Opening is a client act: the host opens PlutoLib's own mod screen and the screen hooks draw the current page into it.
@@ -14,6 +15,7 @@ use std::marker::PhantomData;
 use std::sync::Mutex;
 
 use super::base::{Identifier, Nbt, NbtCompound};
+use super::block_entity_api_v1::ItemSlot;
 use super::screen_handler_api_v1::ScreenCanvas;
 
 /// One run of text on a page (Mantle: one entry of a page's `text` list). `paragraph` asks for a blank line before it.
@@ -77,9 +79,35 @@ impl GridSize {
     }
 }
 
-/// One page of a book. The first three kinds are the ones this renderer draws in full; any other Mantle page kind
-/// (a smelting page, a material page, ...) is kept as [`BookPage::Opaque`] with its data intact, so a book loses
-/// nothing by being registered before its kind has a renderer.
+/// One row of a [`BookPage::Table`]: a header naming what follows, or one entry of the table. A row is one line
+/// tall when drawn; a producer whose table is longer than a page splits it into several table pages itself
+/// (the original's contents do the same across a two-page spread).
+#[derive(Clone, Debug, PartialEq)]
+pub enum BookRow {
+    /// A header row (a group title, a stat block's name): drawn underlined, with its icon when it has one.
+    Header {
+        /// The row's icon, if it has one.
+        icon: Option<BookIcon>,
+        /// The header's text.
+        text: String,
+    },
+    /// One entry of the table: a label, an optional value drawn after it, and an optional link to another
+    /// page of the same book (the flat page index, as the original's index and listing pages link).
+    Entry {
+        /// The row's icon, if it has one.
+        icon: Option<BookIcon>,
+        /// The entry's label.
+        label: String,
+        /// The entry's value, drawn right-aligned on the same line, if it has one.
+        value: Option<String>,
+        /// The flat index of the page a click on this row opens, if the row is a link.
+        link: Option<usize>,
+    },
+}
+
+/// One page of a book. Text, image-and-text, crafting and table pages are the kinds this renderer draws in full;
+/// any other Mantle page kind (a smelting page, ...) is kept as [`BookPage::Opaque`] with its data intact, so a
+/// book loses nothing by being registered before its kind has a renderer.
 #[derive(Clone, Debug, PartialEq)]
 pub enum BookPage {
     /// Text only (Mantle: `mantle:text`).
@@ -109,6 +137,22 @@ pub enum BookPage {
         /// The text under the grid.
         description: Vec<BookText>,
     },
+    /// A table of registry entries (a page a mod generates from its registries: one row per material of a
+    /// material page, per tool of an index page, ...). The page keeps the `kind` of the content it stands for
+    /// (a material page keeps `tconstruct:melee_harvest_material`, say), so a book's pages keep the original's
+    /// kinds even though one renderer draws them all.
+    Table {
+        /// The page kind's id, such as `tconstruct:melee_harvest_material`.
+        kind: String,
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// Text drawn above the rows.
+        intro: Vec<BookText>,
+        /// The table's rows, in order.
+        rows: Vec<BookRow>,
+        /// Text drawn below the rows.
+        text: Vec<BookText>,
+    },
     /// A page kind this renderer does not draw yet; `data` is the page's own data, converted from its JSON.
     Opaque {
         /// The page kind's id, such as `mantle:smelting`.
@@ -125,6 +169,7 @@ impl BookPage {
             Self::Text { .. } => "mantle:text",
             Self::ImageText { .. } => "mantle:image_text",
             Self::Crafting { .. } => "mantle:crafting",
+            Self::Table { kind, .. } => kind,
             Self::Opaque { kind, .. } => kind,
         }
     }
@@ -132,7 +177,7 @@ impl BookPage {
     /// The page's title, if it has one. An opaque page's title is read from its data's `title` string, if it has one.
     pub fn title(&self) -> Option<&str> {
         match self {
-            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::Crafting { title, .. } => title.as_deref(),
+            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } => title.as_deref(),
             Self::Opaque { data, .. } => data.get("title").and_then(Nbt::as_str),
         }
     }
@@ -402,7 +447,8 @@ struct Registry {
 }
 
 impl Registry {
-    fn register(&mut self, book: Book) -> Result<(), String> {
+    /// The shape every registered book must have, shared by registration and replacement.
+    fn validate(book: &Book) -> Result<(), String> {
         if book.sections.is_empty() {
             return Err(format!("book {} has no sections", book.id));
         }
@@ -414,11 +460,22 @@ impl Registry {
                 return Err(format!("book {}'s section {} has no pages", book.id, section.name));
             }
         }
+        Ok(())
+    }
+
+    fn register(&mut self, book: Book) -> Result<(), String> {
+        Self::validate(&book)?;
         let key = book.id.to_string();
         if self.books.contains_key(&key) {
             return Err(format!("book {key} already registered"));
         }
         self.books.insert(key, book);
+        Ok(())
+    }
+
+    fn replace(&mut self, book: Book) -> Result<(), String> {
+        Self::validate(&book)?;
+        self.books.insert(book.id.to_string(), book);
         Ok(())
     }
 
@@ -442,6 +499,15 @@ impl BookRegistry {
     /// sections, a section with no name or a section with no pages.
     pub fn register(book: Book) -> Result<(), String> {
         BOOKS.lock().map_err(|_| "book registry poisoned")?.register(book)
+    }
+
+    /// Registers a book, replacing any earlier registration of the same id (or registering it fresh when
+    /// there is none): a mod whose book content is generated from its registries rebuilds the book when
+    /// those registries reload, and the rebuild takes the first build's place. Fails, keeping the earlier
+    /// registration, for a book with no sections, a section with no name or a section with no pages. A
+    /// book already open keeps the copy it opened with, so a reader's pages never change mid-read.
+    pub fn replace(book: Book) -> Result<(), String> {
+        BOOKS.lock().map_err(|_| "book registry poisoned")?.replace(book)
     }
 
     /// The book registered under `id`, if any.
@@ -519,7 +585,15 @@ pub enum BookClick {
     PrevPage,
     /// A section's row in the section list.
     Section(usize),
+    /// A table row's link: the flat index of the page it opens.
+    Page(usize),
 }
+
+/// The link rows of the page most recently drawn: the book and flat page they belong to, and each link
+/// row's rect with the flat page it opens. [`draw_book`] records them and [`book_click`] reads them, so
+/// a click is read against exactly the layout that was drawn — a table page's text runs wrap, so where a
+/// row sits cannot be recomputed without the canvas that measured the text.
+static LINK_ROWS: Mutex<Option<(Identifier, usize, Vec<([f32; 4], usize)>)>> = Mutex::new(None);
 
 /// The renderer's geometry, in GUI pixels: the book panel is centered in the screen area and capped at
 /// Mantle-like proportions; inside it, a section rail on the left (when the book has more than one
@@ -543,6 +617,8 @@ const PAD: f32 = 10.0;
 const LINE: f32 = 10.0;
 /// A section row's height in the rail.
 const ROW: f32 = 12.0;
+/// A table row's height: the row's icon is 10 tall, with one of leading above and below.
+const TABLE_ROW: f32 = 12.0;
 
 fn layout(area: [f32; 4], book: &Book) -> Layout {
     let width = area[2].min(PANEL_MAX[0]).max(0.0);
@@ -582,6 +658,17 @@ pub fn book_click(book: &Book, view: &BookView, area: [f32; 4], at: [f32; 2]) ->
             }
         }
     }
+    if let Ok(rows) = LINK_ROWS.lock() {
+        if let Some((book_id, page, rows)) = &*rows {
+            if *book_id == book.id && *page == view.page {
+                for (rect, target) in rows {
+                    if inside(*rect, at) {
+                        return BookClick::Page(*target);
+                    }
+                }
+            }
+        }
+    }
     BookClick::None
 }
 
@@ -593,6 +680,20 @@ const INK: u32 = 0xFF2E_2015;
 const FADED_INK: u32 = 0xFF6B_5636;
 /// The colour behind a grid cell's item.
 const CELL: u32 = 0xFFC9_B586;
+/// The colour a table row's link is drawn in.
+const LINK_INK: u32 = 0xFF2F_4E9E;
+
+/// The stack a row's icon draws as: the icon's item, with its data as the stack's custom data.
+fn icon_slot(icon: &BookIcon) -> ItemSlot {
+    match icon {
+        BookIcon::Item(item) => ItemSlot::new(item.clone(), 1),
+        BookIcon::ItemWithData { item, data } => {
+            let mut slot = ItemSlot::new(item.clone(), 1);
+            slot.custom_data = data.clone();
+            slot
+        }
+    }
+}
 
 /// Wraps `text` to lines of at most `width` GUI pixels, measured by the canvas. A word longer than a
 /// line is split by characters; an empty text gives no lines.
@@ -652,9 +753,11 @@ fn draw_text_block(canvas: &mut dyn ScreenCanvas, text: &[BookText], x: f32, mut
 
 /// Draws the page `view` shows of `book` into `area` (the mod screen's panel rect, GUI pixels): the
 /// panel, the section rail, the page's title and content, and the page arrows. The canvas's one text
-/// size means `large_page_titles` cannot scale a title, and the canvas has no item drawing, so a
-/// crafting page draws its grid and recipe id but not the recipe's items; both are renderer limits,
-/// not data limits — the book keeps everything.
+/// size means `large_page_titles` cannot scale a title, and a crafting page draws its grid and recipe
+/// id but not the recipe's items (resolving a recipe to its items is the consumer's side of the
+/// screen); both are renderer limits, not data limits — the book keeps everything. A table page's
+/// rows draw their icons as items and their links in the link colour, and the rows' places are
+/// recorded for [`book_click`].
 pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, area: [f32; 4]) {
     let layout = layout(area, book);
     let appearance = &book.appearance;
@@ -677,8 +780,7 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             if index == current {
                 canvas.fill([rail[0] - 2.0, y - 1.0, rail[2] + 4.0, ROW], CELL);
             }
-            // The rail names its sections; a section's icon is book data for a canvas that can draw
-            // items, which this one cannot, so the name stands in for it either way.
+            // The rail names its sections; the sections' icons are book data the rail does not draw.
             let label = section.name.as_str();
             let color = if index == current { INK } else { FADED_INK };
             canvas.text(label, [rail[0], y], color, false);
@@ -729,6 +831,42 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             canvas.text(&recipe.to_string(), [content[0], y], FADED_INK, false);
             y += LINE + 2.0;
             draw_text_block(canvas, description, content[0], y, content[2], bottom, INK);
+        }
+        BookPage::Table { intro, rows, text, .. } => {
+            y = draw_text_block(canvas, intro, content[0], y, content[2], bottom, INK);
+            let mut links = Vec::new();
+            for row in rows {
+                if y + TABLE_ROW > bottom + 4.0 {
+                    break;
+                }
+                let (icon, label, value, link, header) = match row {
+                    BookRow::Header { icon, text } => (icon, text.as_str(), None, None, true),
+                    BookRow::Entry { icon, label, value, link } => (icon, label.as_str(), value.as_deref(), *link, false),
+                };
+                let mut x = content[0];
+                if let Some(icon) = icon {
+                    canvas.item(&icon_slot(icon), [x, y + 1.0], 10.0);
+                    x += 14.0;
+                }
+                let color = if link.is_some() { LINK_INK } else { INK };
+                canvas.text(label, [x, y + 1.0], color, false);
+                if header {
+                    let width = canvas.text_width(label);
+                    canvas.fill([x, y + TABLE_ROW - 1.5, width, 1.0], FADED_INK);
+                }
+                if let Some(value) = value {
+                    let value_x = content[0] + content[2] - canvas.text_width(value);
+                    canvas.text(value, [value_x.max(x), y + 1.0], INK, false);
+                }
+                if let Some(target) = link {
+                    links.push(([content[0], y, content[2], TABLE_ROW], target));
+                }
+                y += TABLE_ROW;
+            }
+            if let Ok(mut recorded) = LINK_ROWS.lock() {
+                *recorded = Some((book.id.clone(), view.page, links));
+            }
+            draw_text_block(canvas, text, content[0], y + 2.0, content[2], bottom, INK);
         }
         BookPage::Opaque { kind, .. } => {
             canvas.text(kind, [content[0], y], FADED_INK, false);
@@ -1008,6 +1146,62 @@ mod tests {
         assert_eq!(canvas.fills.len(), 1 + 1 + 18, "panel, current-section marker and 9 cells with inners");
         let drawn: Vec<&str> = canvas.texts.iter().map(|(text, _)| text.as_str()).collect();
         assert!(drawn.contains(&"minecraft:crafting_table") && drawn.contains(&"craft things"));
+    }
+
+    #[test]
+    fn replace_swaps_a_registration_and_keeps_it_on_a_bad_book() {
+        let mut registry = Registry::default();
+        registry.register(sample_book()).unwrap();
+        let id = Identifier::parse("test:field_guide").unwrap();
+        let mut rebuilt = sample_book();
+        rebuilt.sections.truncate(1);
+        registry.replace(rebuilt).unwrap();
+        assert_eq!(registry.get(&id).unwrap().page_count(), 2, "the rebuild took the first build's place");
+        let mut bad = sample_book();
+        bad.sections.clear();
+        assert!(registry.replace(bad).is_err(), "a book with no sections is refused");
+        assert_eq!(registry.get(&id).unwrap().page_count(), 2, "the earlier registration stands");
+        let fresh = Book::new(Identifier::parse("test:fresh").unwrap(), sample_book().sections);
+        registry.replace(fresh).unwrap();
+        assert_eq!(registry.all().len(), 2, "replace also registers a book that was not there");
+    }
+
+    #[test]
+    fn a_table_page_draws_its_rows_and_its_link_rows_click_through() {
+        let icon = BookIcon::Item(Identifier::parse("minecraft:iron_ingot").unwrap());
+        let book = Book::new(
+            Identifier::parse("test:tables").unwrap(),
+            vec![BookSection {
+                name: "Materials".into(),
+                icon: None,
+                pages: vec![
+                    BookPage::Table {
+                        kind: "mantle:index".into(),
+                        title: Some("Materials".into()),
+                        intro: vec![BookText::plain("pick one")],
+                        rows: vec![
+                            BookRow::Header { icon: None, text: "Metals".into() },
+                            BookRow::Entry { icon: Some(icon), label: "Iron".into(), value: Some("tier 2".into()), link: Some(1) },
+                            BookRow::Entry { icon: None, label: "Stone".into(), value: None, link: None },
+                        ],
+                        text: vec![],
+                    },
+                    text_page("Iron", "the iron page"),
+                ],
+            }],
+        );
+        assert_eq!(book.page(0).map(|page| page.kind()), Some("mantle:index"), "a table page keeps its content's kind");
+        let area = [0.0, 0.0, 400.0, 300.0];
+        let view = BookView::new(book.id.clone());
+        let mut canvas = Recorder::default();
+        draw_book(&mut canvas, &book, &view, area);
+        let drawn: Vec<&str> = canvas.texts.iter().map(|(text, _)| text.as_str()).collect();
+        assert!(drawn.contains(&"Metals") && drawn.contains(&"Iron") && drawn.contains(&"tier 2") && drawn.contains(&"Stone"), "header, entries and values are drawn: {drawn:?}");
+        // The Iron row's own drawn position clicks as a link to its page; the Stone row's does not.
+        let (_, at) = canvas.texts.iter().find(|(text, _)| text == "Iron").unwrap();
+        assert_eq!(book_click(&book, &view, area, [at[0] + 1.0, at[1] + 1.0]), BookClick::Page(1));
+        let (_, at) = canvas.texts.iter().find(|(text, _)| text == "Stone").unwrap();
+        assert_eq!(book_click(&book, &view, area, [at[0] + 1.0, at[1] + 1.0]), BookClick::None);
     }
 
     #[test]
