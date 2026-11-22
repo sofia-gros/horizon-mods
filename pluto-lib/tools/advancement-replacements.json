@@ -1,6 +1,6 @@
 {
-  "official_horizon": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
-  "official_mixins": "e8cd0aa38cffef49cb2e088ef716baa107148c02",
+  "official_horizon": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
+  "official_mixins": "e59da9094f0c2fdda6c627fe9eff22dec6a906f0",
   "plan_schema": 6,
   "policy": "exclusive target ownership for conditional full-body replacements",
   "boundaries": [
@@ -17,14 +17,14 @@
         }
       ],
       "injection_id": "advancement-tag-index",
-      "file_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+      "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
       "helper": "advancement-tag-index.rs",
       "helper_sha256": "30cbcea5ede2cbbb46da65c35630d233cf8aa4bdb7015a240272a3a3e5532379"
     },
     {
       "target": "horizon_client::game::advancements::Game<'_>::check_inventory_trigger",
       "priority": 100,
-      "function_fingerprint": "04e809ecd447bdf18afb79d105e170190a056e2e85849476b87e6c7df205d018",
+      "function_fingerprint": "62b218b2711fb6a423d17dc043c2f2bdee4641f3a3ae38ba8e823edeb9af62ff",
       "file": "crates/horizon-client/src/game/advancements.rs",
       "bindings": [
         {
@@ -34,9 +34,102 @@
         }
       ],
       "injection_id": "inventory-advancement-components",
-      "file_sha256": "a31910d9f940113fb32cf709345cb8dd2953bb77f8634b6d0a186e043c8d6bc4",
+      "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
       "helper": "inventory-advancements.rs",
       "helper_sha256": "5728349cc5513bf22f7628d9887a84b73482775eccfe30766f6ea388cf1459bc"
+    }
+  ],
+  "bundle_attachments": [
+    {
+      "target": "horizon_client::game::advancements::Game<'_>::tick_advancements",
+      "priority": 0,
+      "kind": "HEAD",
+      "cancellable": false,
+      "function_fingerprint": "f38ecf522ba1ac4ea0ccab5124fbcc6afc676bd7162d755562cd320bc659aee2",
+      "file": "crates/horizon-client/src/game/advancements.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "self"
+        }
+      ],
+      "injection_id": "pluto-advancement-event-drain",
+      "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
+      "helper": "pluto-advancement-event-drain-head.rs",
+      "helper_sha256": "12bdee4976de3860e7f2e3f1ce5d8988c9f97878ea6f14012bc1fb6ddff890fc"
+    },
+    {
+      "target": "horizon_client::game::advancements::Game<'_>::check_inventory_trigger",
+      "priority": 0,
+      "kind": "HEAD",
+      "cancellable": true,
+      "function_fingerprint": "62b218b2711fb6a423d17dc043c2f2bdee4641f3a3ae38ba8e823edeb9af62ff",
+      "file": "crates/horizon-client/src/game/advancements.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "self"
+        }
+      ],
+      "injection_id": "pluto-inventory-advancement-components",
+      "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
+      "helper": "pluto-inventory-advancements.rs",
+      "helper_sha256": "5728349cc5513bf22f7628d9887a84b73482775eccfe30766f6ea388cf1459bc"
+    },
+    {
+      "target": "horizon_client::game::advancements::Game<'_>::inventory_index",
+      "priority": 0,
+      "kind": "HEAD",
+      "cancellable": true,
+      "function_fingerprint": "6ad410eb60d3c2901ac3f3eba95b7f513f121491cd4fddb34c5711c97300d401",
+      "file": "crates/horizon-client/src/game/advancements.rs",
+      "bindings": [
+        {
+          "name": "game",
+          "ty": "&mut Game<'_>",
+          "value": "self"
+        }
+      ],
+      "injection_id": "pluto-advancement-tag-index",
+      "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
+      "helper": "pluto-advancement-tag-index-head.rs",
+      "helper_sha256": "d2c55dc3440c5c7607b2d6d1c4e43d1394c4aa251490fe974d5d60c58ddafc50"
+    },
+    {
+      "target": "horizon_client::game::advancements::<View<'_,'_> as adv::World>::in_tag",
+      "priority": 0,
+      "kind": "HEAD",
+      "cancellable": true,
+      "function_fingerprint": "456f1cedb7d7758c80bd45a5f224115ecb64728b9ccf4853db1ac2ad73d81808",
+      "file": "crates/horizon-client/src/game/advancements.rs",
+      "bindings": [
+        {
+          "name": "view",
+          "ty": "&View<'_, '_>",
+          "value": "&*self"
+        },
+        {
+          "name": "registry",
+          "ty": "&str",
+          "value": "registry"
+        },
+        {
+          "name": "tag",
+          "ty": "&str",
+          "value": "tag"
+        },
+        {
+          "name": "id",
+          "ty": "&str",
+          "value": "id"
+        }
+      ],
+      "injection_id": "pluto-advancement-tag-predicate",
+      "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
+      "helper": "pluto-advancement-tag-predicate-head.rs",
+      "helper_sha256": "fc97d85dfbed6e21e551f0f36f8218ad6615c5800f22f6ec387f9fd1222e0b9b"
     }
   ]
 }
