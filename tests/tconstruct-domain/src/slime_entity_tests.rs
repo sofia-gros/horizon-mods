@@ -1,8 +1,9 @@
 //! The slime mobs: the registered types and class queries against the original's values, and the shipped
 //! data (entity loot tables, spawn biome modifiers, spawn egg declarations) in the converted shapes.
-use crate::slime_entities::TYPES;
-use pluto_lib::{AttackDamageContext, AttributeModifierOperation, CalculateFallDamageContext, Identifier, JumpPowerContext, LivingEntityBehaviors};
+use crate::slime_entities::{TYPES, SlimeSplit, civil_from_days, finalize_spawn, head_drop_chance, sky_fall, tag_placement, teleport_destination, terracube_placement, terracube_rolls};
+use pluto_lib::{AttackDamageContext, AttributeModifierOperation, CalculateFallDamageContext, CauseFallDamageContext, EntityInfo, EquipmentDropChanceContext, FallOutcome, Identifier, JumpPowerContext, LivingEntityBehaviors, MobSpawnCompletion, MobSpawnInfo, MobSpawnPreparation, MobSplitCallback, MobSplitChild, MobSplitContext, MobSplitInheritance, MobSplitRandom, SpawnPlacementContext, StackData};
 use serde_json::Value;
+use std::collections::VecDeque;
 use std::path::PathBuf;
 
 fn id(text: &str) -> Identifier {
@@ -152,12 +153,235 @@ fn the_spawn_eggs_are_declared_for_the_registered_types_and_listed_in_the_world_
 
 #[test]
 fn the_spawn_placement_block_tags_ship_with_the_predicates_inputs() {
-    // The placement predicates themselves are not registered (no surface; see slime_entities), but the
-    // block tags they read are shipped data and name the crystal blocks over the slime grass.
+    // The block tags the placement predicates read are shipped data and name the crystal blocks over
+    // the slime grass; the derived types' registered predicates carry the tags' current expansion in
+    // TYPES, pinned here against the shipped JSONs.
     for (name, crystal) in [("earth", "earth_slime_crystal_block"), ("sky", "sky_slime_crystal_block"), ("ender", "ender_slime_crystal_block")] {
         let tag = content(&format!("tconstruct/tags/block/slime_spawn/{name}.json"));
         let values: Vec<&str> = tag["values"].as_array().unwrap().iter().map(|value| value.as_str().unwrap()).collect();
         assert!(values.contains(&format!("tconstruct:{crystal}").as_str()), "{name}");
         assert!(values.contains(&format!("#tconstruct:slimy_grass/{name}").as_str()), "{name}");
     }
+    for slime in TYPES.iter().filter(|slime| slime.spawn_tag.is_some()) {
+        let name = slime.name.trim_end_matches("_slime");
+        let grass = content(&format!("tconstruct/tags/block/slimy_grass/{name}.json"));
+        let mut expected: Vec<String> = grass["values"].as_array().unwrap().iter().map(|value| value.as_str().unwrap().to_owned()).collect();
+        expected.push(format!("tconstruct:{name}_slime_crystal_block"));
+        expected.push(format!("tconstruct:budding_{name}_slime_crystal"));
+        expected.sort();
+        let mut actual: Vec<String> = slime.spawn_blocks.iter().map(|block| block.to_string()).collect();
+        actual.sort();
+        assert_eq!(actual, expected, "{name}: the predicate's expansion is the shipped tag's expansion");
+    }
+}
+
+// The spawn finalization, split inheritance, placement and landing behaviour, driven through the
+// factored functions with scripted randomness: the draw order and thresholds are the original's.
+
+struct ScriptedSpawn {
+    info: MobSpawnInfo,
+    floats: VecDeque<f32>,
+    ints: VecDeque<i32>,
+    pickup: Option<bool>,
+    gear: std::collections::BTreeMap<String, StackData>,
+    chances: Vec<(String, f32)>,
+    enchants: Vec<(String, i32)>,
+    attached: Vec<(String, String, bool)>,
+}
+
+impl ScriptedSpawn {
+    fn new(kind: &str, special_multiplier: f32, floats: &[f32], ints: &[i32]) -> Self {
+        ScriptedSpawn {
+            info: MobSpawnInfo { entity_type: Identifier::parse(kind).unwrap(), dimension: Identifier::parse("minecraft:overworld").unwrap(), position: [0.0, 64.0, 0.0], reason: "natural".into(), special_multiplier },
+            floats: floats.iter().copied().collect(),
+            ints: ints.iter().copied().collect(),
+            pickup: None,
+            gear: std::collections::BTreeMap::new(),
+            chances: Vec::new(),
+            enchants: Vec::new(),
+            attached: Vec::new(),
+        }
+    }
+}
+
+impl MobSpawnPreparation for ScriptedSpawn {
+    fn info(&self) -> &MobSpawnInfo { &self.info }
+    fn next_float(&mut self) -> f32 { self.floats.pop_front().unwrap_or(0.0) }
+    fn next_double(&mut self) -> f64 { 0.0 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> {
+        let value = self.ints.pop_front().unwrap_or(0);
+        if value < 0 || value >= bound { return Err(format!("scripted int {value} out of bound {bound}")); }
+        Ok(value)
+    }
+    fn equipment(&self, _slot: &str) -> Result<Option<StackData>, String> { Ok(None) }
+}
+
+impl MobSpawnCompletion for ScriptedSpawn {
+    fn set_equipment(&mut self, slot: &str, stack: StackData) -> Result<(), String> { self.gear.insert(slot.to_string(), stack); Ok(()) }
+    fn set_can_pick_up_loot(&mut self, can: bool) -> Result<(), String> { self.pickup = Some(can); Ok(()) }
+    fn set_drop_chance(&mut self, slot: &str, chance: f32) -> Result<(), String> { self.chances.push((slot.to_string(), chance)); Ok(()) }
+    fn enchant_equipment(&mut self, slot: &str, level: i32) -> Result<(), String> { self.enchants.push((slot.to_string(), level)); Ok(()) }
+    fn set_attached(&mut self, attachment: &str, json: &str, synced: bool) -> Result<(), String> { self.attached.push((attachment.to_string(), json.to_string(), synced)); Ok(()) }
+}
+
+#[test]
+fn finalizing_a_terracube_rolls_its_helmet_and_enchantment() {
+    // Pickup roll 0.4 passes at 0.55; the helmet roll 0.1 passes at 0.15; quality starts at
+    // nextInt(3) = 1 and two of the three 0.25 rolls land, giving quality 3 — the iron helmet;
+    // the enchantment level is 5 + 1.0 * nextInt(18) = 15.
+    let mut spawn = ScriptedSpawn::new("tconstruct:terracube", 1.0, &[0.4, 0.1, 0.2, 0.3, 0.1], &[1, 10]);
+    let action = finalize_spawn(&mut spawn).expect("finalization").expect("an action");
+    action(&mut spawn).expect("applying the action");
+    assert_eq!(spawn.pickup, Some(true));
+    assert_eq!(spawn.gear["head"].item, "minecraft:iron_helmet");
+    assert_eq!(spawn.enchants, [("head".to_string(), 15)]);
+    assert!(spawn.attached.is_empty(), "a terracube never turns metal");
+    // With no helmet roll, nothing is equipped and nothing is enchanted.
+    let mut spawn = ScriptedSpawn::new("tconstruct:terracube", 1.0, &[0.6, 0.2], &[]);
+    let action = finalize_spawn(&mut spawn).expect("finalization").expect("an action");
+    action(&mut spawn).expect("applying the action");
+    assert_eq!(spawn.pickup, Some(false), "0.6 fails the 0.55 pickup roll");
+    assert!(spawn.gear.is_empty());
+    assert!(spawn.enchants.is_empty());
+    // Other kinds are not the callback's business.
+    let mut other = ScriptedSpawn::new("minecraft:zombie", 1.0, &[], &[]);
+    assert!(finalize_spawn(&mut other).expect("finalization").is_none());
+}
+
+#[test]
+fn finalizing_a_sky_slime_records_its_metal_flag() {
+    // The metal roll (0.15, unscaled by difficulty) lands at 0.1; the helmet roll fails at 0.9, so
+    // the flag is the whole result and no tool needs building.
+    let mut spawn = ScriptedSpawn::new("tconstruct:sky_slime", 1.0, &[0.4, 0.1, 0.9], &[]);
+    let action = finalize_spawn(&mut spawn).expect("finalization").expect("an action");
+    action(&mut spawn).expect("applying the action");
+    assert_eq!(spawn.pickup, Some(true));
+    assert_eq!(spawn.attached, [("tconstruct:metal".to_string(), "true".to_string(), true)]);
+}
+
+#[test]
+fn terracube_rolls_map_quality_to_the_vanilla_helmets() {
+    // Quality 5 (nextInt(3) = 2, all three increments) is the turtle helmet; quality 0 is leather.
+    let mut view = ScriptedSpawn::new("tconstruct:terracube", 1.0, &[0.0, 0.0, 0.0, 0.0], &[2, 0]);
+    let (stack, level) = terracube_rolls(&mut view, 1.0).expect("a helmet roll");
+    assert_eq!(stack.item, "minecraft:turtle_helmet");
+    assert_eq!(level, 5);
+    let mut view = ScriptedSpawn::new("tconstruct:terracube", 1.0, &[0.0, 0.9, 0.9, 0.9], &[0, 17]);
+    let (stack, level) = terracube_rolls(&mut view, 1.0).expect("a helmet roll");
+    assert_eq!(stack.item, "minecraft:leather_helmet");
+    assert_eq!(level, 22, "5 + 17 at multiplier 1");
+}
+
+#[test]
+fn the_sky_slimes_bounce_and_the_head_cap_follow_the_original() {
+    let fall = |distance: f64, velocity: [f64; 3]| CauseFallDamageContext {
+        entity: 1,
+        entity_type: Identifier::parse("tconstruct:sky_slime").unwrap(),
+        distance, multiplier: 1.0, velocity, suppressing_bounce: false,
+    };
+    match sky_fall(&fall(10.0, [1.9, -2.0, 0.95])) {
+        Some(FallOutcome::Bounce { velocity, sound }) => {
+            for (actual, expected) in velocity.iter().zip([2.0, 1.8, 1.0]) {
+                assert!((actual - expected).abs() < 1e-9, "x and z divide by 0.95, y flips at 0.9: {velocity:?}");
+            }
+            assert_eq!(sound.map(|sound| sound.to_string()), Some("tconstruct:slimy_bounce".to_string()));
+        }
+        other => panic!("expected a bounce, got {other:?}"),
+    }
+    assert!(matches!(sky_fall(&fall(2.0, [0.0, -1.0, 0.0])), Some(FallOutcome::Cancel)), "a short fall is cancelled outright");
+    assert!(sky_fall(&CauseFallDamageContext { suppressing_bounce: true, ..fall(10.0, [0.0, -2.0, 0.0]) }).is_none(), "the suppressing branch is declined for mobs");
+    // The head drop cap: above 0.25 with size over 1 caps to 0.25; at size 1 the chance stands.
+    let chance = |size: Option<i32>, chance: f32| EquipmentDropChanceContext {
+        entity_type: Identifier::parse("tconstruct:sky_slime").unwrap(), slot: "head".into(), slime_size: size, chance,
+    };
+    assert_eq!(head_drop_chance(&chance(Some(4), 2.0)), Some(0.25));
+    assert_eq!(head_drop_chance(&chance(Some(1), 2.0)), None);
+    assert_eq!(head_drop_chance(&chance(Some(4), 0.1)), None);
+}
+
+struct ScriptedRandom { floats: VecDeque<f32>, ints: VecDeque<i32> }
+impl MobSplitRandom for ScriptedRandom {
+    fn next_float(&mut self) -> f32 { self.floats.pop_front().unwrap_or(0.0) }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> {
+        let value = self.ints.pop_front().unwrap_or(0);
+        if value < 0 || value >= bound { return Err(format!("scripted int {value} out of bound {bound}")); }
+        Ok(value)
+    }
+}
+
+#[derive(Default)]
+struct FakeChildState {
+    gear: std::collections::BTreeMap<String, StackData>,
+    name: Option<Option<String>>,
+    no_ai: Option<bool>,
+    invulnerable: Option<bool>,
+}
+struct FakeChild { id: u32, state: std::rc::Rc<std::cell::RefCell<FakeChildState>> }
+impl MobSplitChild for FakeChild {
+    fn info(&self) -> EntityInfo { EntityInfo { id: self.id, kind: "tconstruct:sky_slime".into(), dimension: "minecraft:overworld".into() } }
+    fn set_equipment(&mut self, slot: &str, stack: StackData) -> Result<(), String> { self.state.borrow_mut().gear.insert(slot.to_string(), stack); Ok(()) }
+    fn set_custom_name(&mut self, name: Option<String>) -> Result<(), String> { self.state.borrow_mut().name = Some(name); Ok(()) }
+    fn set_no_ai(&mut self, no_ai: bool) -> Result<(), String> { self.state.borrow_mut().no_ai = Some(no_ai); Ok(()) }
+    fn set_invulnerable(&mut self, invulnerable: bool) -> Result<(), String> { self.state.borrow_mut().invulnerable = Some(invulnerable); Ok(()) }
+}
+
+#[test]
+fn split_children_inherit_the_head_stack_by_the_originals_draws() {
+    let helmet = StackData { item: "minecraft:iron_helmet".into(), count: 1, ..StackData::default() };
+    let run = |chance: f32, ints: &[i32], floats: &[f32]| {
+        let mut random = ScriptedRandom { floats: floats.iter().copied().collect(), ints: ints.iter().copied().collect() };
+        let states: Vec<std::rc::Rc<std::cell::RefCell<FakeChildState>>> = (0..3).map(|_| Default::default()).collect();
+        let mut children: Vec<Box<dyn MobSplitChild>> = states.iter().enumerate().map(|(id, state)| Box::new(FakeChild { id: id as u32, state: state.clone() }) as Box<dyn MobSplitChild>).collect();
+        let context = MobSplitContext { parent: EntityInfo { id: 9, kind: "tconstruct:sky_slime".into(), dimension: "minecraft:overworld".into() }, position: [0.0; 3], size: 4, child_size: 2 };
+        let mut view = MobSplitInheritance {
+            context: &context,
+            head: Some(helmet.clone()), head_drop_chance: chance,
+            custom_name: Some("Bob".into()), no_ai: true, invulnerable: false,
+            random: &mut random, children: &mut children,
+        };
+        SlimeSplit.inherit(&mut view).expect("inheritance");
+        states
+    };
+    // Drop chance 2.0: only the drawn child (index 1) receives the head stack, no copies.
+    let children = run(2.0, &[1], &[]);
+    let worn: Vec<bool> = children.iter().map(|child| child.borrow().gear.contains_key("head")).collect();
+    assert_eq!(worn, [false, true, false]);
+    // Drop chance below 1: the other children copy at 0.25 — the first copies at 0.1, the second not at 0.5.
+    let children = run(0.5, &[1], &[0.1, 0.5]);
+    let worn: Vec<bool> = children.iter().map(|child| child.borrow().gear.contains_key("head")).collect();
+    assert_eq!(worn, [true, true, false]);
+    // Every child inherits the name, no-AI and invulnerability flags.
+    let children = run(2.0, &[0], &[]);
+    assert!(children.iter().all(|child| { let state = child.borrow(); state.name == Some(Some("Bob".to_string())) && state.no_ai == Some(true) && state.invulnerable == Some(false) }));
+}
+
+#[test]
+fn the_placement_predicates_follow_the_originals_rules() {
+    let context = |peaceful: bool, reason: &str, below: &str, fluid_at: &str, fluid_below: &str, valid: bool, dark: bool| SpawnPlacementContext {
+        entity_type: Identifier::parse("tconstruct:sky_slime").unwrap(),
+        dimension: Identifier::parse("minecraft:overworld").unwrap(),
+        position: [0, 64, 0], reason: reason.into(), peaceful,
+        block_below: Identifier::parse(below).unwrap(),
+        fluid_at: Identifier::parse(fluid_at).unwrap(),
+        fluid_below: Identifier::parse(fluid_below).unwrap(),
+        block_below_valid_spawn: valid, dark_enough: dark,
+    };
+    let sky = TYPES.iter().find(|slime| slime.name == "sky_slime").unwrap();
+    assert!(!tag_placement(&context(true, "natural", "tconstruct:sky_sky_slime_grass", "minecraft:empty", "minecraft:empty", true, true), sky.spawn_blocks), "never on peaceful");
+    assert!(tag_placement(&context(false, "spawner", "minecraft:stone", "minecraft:empty", "minecraft:empty", false, false), sky.spawn_blocks), "always from a spawner");
+    assert!(tag_placement(&context(false, "natural", "tconstruct:sky_sky_slime_grass", "minecraft:empty", "minecraft:empty", false, false), sky.spawn_blocks), "on its slime grass");
+    assert!(!tag_placement(&context(false, "natural", "minecraft:grass_block", "minecraft:empty", "minecraft:empty", true, true), sky.spawn_blocks), "not on plain grass");
+    assert!(terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:water", "minecraft:water", false, false)), "in water");
+    assert!(terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:empty", "minecraft:empty", true, true)), "a valid dark spot");
+    assert!(!terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:empty", "minecraft:empty", true, false)), "not in the light");
+    assert!(!terracube_placement(&context(true, "spawner", "minecraft:stone", "minecraft:water", "minecraft:water", true, true)), "never on peaceful, even from a spawner");
+}
+
+#[test]
+fn teleport_destinations_and_the_civil_calendar_match_their_sources() {
+    assert_eq!(teleport_destination([100.0, 70.0, -50.0], 0.5, 0, 0.5), [100.0, 70.0, -50.0]);
+    assert_eq!(teleport_destination([0.0, 70.0, 0.0], 0.0, 300, 1.0), [-8.0, 320.0, 8.0], "the vertical clamps to the build range");
+    assert_eq!(civil_from_days(0), (1970, 1, 1));
+    assert_eq!(civil_from_days(19723), (2024, 1, 1));
+    assert_eq!(civil_from_days(20089), (2025, 1, 1));
 }
