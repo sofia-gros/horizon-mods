@@ -3,6 +3,15 @@
 
 An earlier cancellable HEAD can bypass a veto, and RETURN can restore a denied
 placement. Until another composition is proved, both targets have one owner.
+
+Owner decision, 2026-11-22: the pluto_lib bundle is now the composition, so
+check_native also admits the crafting-match module and veto when they match
+the reviewed bundle_attachments in crafting-match-boundaries.json exactly
+(pinned identity, phase, priority, bindings, function fingerprint, packaged
+helper bytes and pristine file digest). The bundle's forwarders already
+install into these hooks; without them the assembly path has nothing to
+feed. The placement boundaries themselves remain exclusively native and
+nothing else is exempted.
 """
 import hashlib
 import json
@@ -38,6 +47,9 @@ def verify_source(plan, workspace, metadata, helpers=None):
         if hook.get('helper_source','').encode() != source: raise ValueError('placement plan helper differs')
 # The trait bundle has no placement veto provider. Preserve the fixed native
 # definition and UI entry, not the retired copied bundle's optional policy.
+# (The reviewed crafting-match attachments in crafting-match-boundaries.json
+# are admitted by exact identity in check_native below; they are not
+# placement hooks and do not change this preservation.)
 NATIVE_SOURCES = {
     'crates/horizon-client/src/crafting.rs': '298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e',
     'crates/horizon-client/src/game/recipe_book.rs': '5e672aaa709de25a66c657c57925043e198b00a825ba42e7b7cfbcd4bb77c018',
@@ -49,17 +61,66 @@ def native_bundle(plan):
                for section in ('injections', 'modules', 'states') for entry in plan.get(section, []))
 
 
-def check_native(plan, workspace, sources, methods):
-    """Shared strict preservation check for unattached recipe boundaries."""
+BUNDLE_MOD_ID = 'pluto_lib'
+
+
+def bundle_entries():
+    data = json.loads((ROOT / 'tools/crafting-match-boundaries.json').read_text())
+    return data.get('bundle_attachments', [])
+
+
+def _bundle_match(entry, section, meta, helpers):
+    """Exact reviewed bundle attachment: pinned identity and phase fields,
+    and the plan-carried bytes bound to the packaged bundle file."""
+    if entry.get('mod_id') != BUNDLE_MOD_ID:
+        return False
+    if 'injection_id' in meta:
+        if section != 'injections':
+            return False
+        for key in ('injection_id', 'target', 'file', 'kind', 'cancellable',
+                    'priority', 'bindings', 'function_fingerprint'):
+            if entry.get(key) != meta[key]:
+                return False
+        packaged = (Path(helpers) / meta['helper']).read_bytes()
+        return (digest(packaged) == meta['helper_sha256']
+                and entry.get('helper_source', '').encode() == packaged)
+    if section != 'modules':
+        return False
+    for key in ('module_id', 'name', 'file', 'fingerprint'):
+        if entry.get(key) != meta[key]:
+            return False
+    if entry.get('visibility', 'pub(crate)') != meta['visibility']:
+        return False
+    packaged = (Path(helpers) / meta['source_file']).read_bytes()
+    return (digest(packaged) == meta['source_sha256']
+            and entry.get('source', '').encode() == packaged)
+
+
+def check_native(plan, workspace, sources, methods, reviewed=None, helpers=None):
+    """Shared strict preservation check for unattached recipe boundaries.
+
+    An entry that trips the preservation test is admitted only when it
+    matches a reviewed bundle attachment exactly (see bundle_entries); the
+    return value counts those admissions per attachment identity so the
+    owning guard can require them once the composition is present.
+    """
     if plan.get('schema') != 6:
         raise ValueError('unreviewed native recipe plan schema')
+    reviewed = bundle_entries() if reviewed is None else reviewed
+    helpers = ROOT / 'mod' if helpers is None else Path(helpers)
+    matched = {}
     for section in ('injections', 'modules', 'states'):
         for entry in plan.get(section, []):
             if any(c.get('file') in sources for c in entry.get('constructors', [])):
                 raise ValueError('state constructor changes a preserved native recipe source')
             if (entry.get('mod_id') == MOD_ID or entry.get('file') in sources
                     or entry.get('target', '').rsplit('::', 1)[-1] in methods):
-                raise ValueError('native recipe boundary must remain unattached; no mixed legacy adapter')
+                hit = next((meta for meta in reviewed
+                            if _bundle_match(entry, section, meta, helpers)), None)
+                if hit is None:
+                    raise ValueError('native recipe boundary must remain unattached; no mixed legacy adapter')
+                key = hit.get('injection_id', hit.get('module_id'))
+                matched[key] = matched.get(key, 0) + 1
     root = Path(workspace)
     for name, expected in sources.items():
         source = root / name
@@ -70,6 +131,7 @@ def check_native(plan, workspace, sources, methods):
             raise ValueError('native recipe plan source differs')
         if digest(source.read_bytes()) != expected:
             raise ValueError('native recipe workspace source differs')
+    return matched
 
 
 def check(plan, workspace):

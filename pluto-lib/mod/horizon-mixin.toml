@@ -1630,9 +1630,13 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 # package: the shared inventory API crate, its client-library export, the
 # component/stack views the item-predicate boundary uses, and the
 # advancement event source/sink in the game module. The legacy package's
-# remaining boundaries (advancement trigger/index replacements, the
-# crafting-match veto, the station ingredient parser, recipe placement) stay
-# native-preserved under the retained guards and are not composed here.
+# remaining boundaries stayed native-preserved under the retained guards at
+# that step. Owner decision, 2026-11-22: the crafting-match pair and the
+# advancement drain/trigger/index attachments are composed at the end of
+# this manifest under the reviewed bundle branches of the retained guards
+# (bundle_attachments in crafting-match-boundaries.json and
+# advancement-replacements.json). The station ingredient parser and recipe
+# placement stay native-preserved.
 # Rename record: the stack-storage module below is named `pluto_stack_store`
 # in this bundle, not the legacy `pluto_stack_storage` — that name is
 # reserved by the wire-snapshot guard for the native-preserved module, and
@@ -1685,3 +1689,96 @@ kind = "HEAD"
 cancellable = true
 helper = "pluto-item-predicate-head.rs"
 bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }, { name = "w", ty = "&dyn World", value = "w" }]
+
+# Reviewed boundary attachments (owner decision, 2026-11-22). The bundle is
+# now the composition, so the retained guards admit exactly these attachments
+# under their reviewed bundle branches: pinned helper bytes, function
+# fingerprints and pristine file digests in crafting-match-boundaries.json
+# and advancement-replacements.json (bundle_attachments). Priority is the
+# bundle default 0, like every other pluto_lib injection: each target has
+# exactly one reviewed hook, so HEAD ordering against other hooks on these
+# targets cannot arise inside this composition. (The retired package planned
+# at priority 100 to order itself against third-party mods.)
+
+# Provider admission/assembly evaluation for the crafting-match veto below.
+[[module]]
+id = "pluto-crafting-match"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_matching"
+source = "pluto-crafting-match.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-crafting-match-veto"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-crafting-match-veto-head.rs"
+bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+
+# Queued custom advancement events drain into the native sink each tick.
+[[injection]]
+id = "pluto-advancement-event-drain"
+target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
+kind = "HEAD"
+helper = "pluto-advancement-event-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Component-aware inventory events, backed by the shared inventory API facade.
+[[injection]]
+id = "pluto-inventory-advancement-components"
+target = "horizon_client::game::advancements::Game<'_>::check_inventory_trigger"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-inventory-advancements.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Custom item-tag overlays for advancement matching: per-world state on the
+# chunk map, its game-side sink, and the read paths (candidate index and the
+# World::in_tag predicate) the components replacement above consults.
+[[module]]
+id = "pluto-advancement-tag-state"
+file = "crates/horizon-client-render/src/chunk_map.rs"
+name = "pluto_advancement_tag_state"
+source = "pluto-advancement-tag-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "pluto-advancement-tags"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_advancement_tag_state::TagState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "pluto-advancement-tags-sink"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_tags"
+source = "pluto-advancement-tags.rs"
+
+[[injection]]
+id = "pluto-advancement-tags-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "pluto-advancement-tags-clear-head.rs"
+bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-advancement-tag-predicate"
+target = "horizon_client::game::advancements::<View<'_,'_> as adv::World>::in_tag"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-tag-predicate-head.rs"
+bindings = [{ name = "view", ty = "&View<'_, '_>", value = "&*self" }, { name = "registry", ty = "&str", value = "registry" }, { name = "tag", ty = "&str", value = "tag" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "pluto-advancement-tag-index"
+target = "horizon_client::game::advancements::Game<'_>::inventory_index"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-tag-index-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]

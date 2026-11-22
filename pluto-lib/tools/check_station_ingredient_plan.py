@@ -46,6 +46,8 @@ def check(plan, workspace):
     if _shared.native_bundle(plan):
         # Keep both the station caller and its Ingredient::parse implementation.
         # This is not the retired custom station-parser registration capability.
+        # (The shared validator's reviewed crafting-match exception covers the
+        # crafting.rs module/veto only; it does not extend to this boundary.)
         _shared.check_native(plan, workspace, NATIVE_SOURCES, {'ingredient'})
         return
     metadata = entries()
