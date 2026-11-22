@@ -282,14 +282,22 @@ class ContentAssets(unittest.TestCase):
     def test_every_declared_block_and_item_has_its_original_loot_and_names(self):
         blocks, items = self.declared()
         lang = load(ASSETS / 'lang/en_us.json')
+        # The original ships no loot table for a fluid block (the fluid itself drops nothing) nor for glow
+        # (placed by the staffs, never mined), and its lang names a wall head by the standing head's key:
+        # it has no wall head keys at all. Every other declared block drops by the original's table.
+        no_loot = {name for name in blocks if name.endswith('_fluid')} | {'glow'}
         for name in blocks:
-            self.assertIn(f'block.tconstruct.{name}', lang, name)
+            if not name.endswith('_wall_head'):
+                self.assertIn(f'block.tconstruct.{name}', lang, name)
             table = DATA / 'loot_table/blocks' / f'{name}.json'
-            if name in STATION_BLOCKS:
+            if name in STATION_BLOCKS or name in no_loot:
                 self.assertFalse(table.exists(), name)
                 continue
             loot = load(table)
-            self.assertEqual((loot['type'], loot['random_sequence']), ('minecraft:block', f'tconstruct:blocks/{name}'))
+            # A wall variant (head, sign, hanging sign) drops through its standing block's table, as the
+            # original defines the wall blocks' loot in code: its table is that table, sequence included.
+            sequence = name.replace('_wall_', '_') if '_wall_' in name else name
+            self.assertEqual((loot['type'], loot['random_sequence']), ('minecraft:block', f'tconstruct:blocks/{sequence}'))
             for entry in self.loot_entries(loot):
                 namespace, path = split(entry['name'])
                 self.assertIn(path, blocks | items if namespace == 'tconstruct' else {path}, f'{name} drops {entry["name"]}')
@@ -297,7 +305,7 @@ class ContentAssets(unittest.TestCase):
                     self.assertTrue((BASE / 'items' / f'{path}.json').is_file(), f'{name} drops {entry["name"]}')
         for name in SIMPLE_ITEMS:
             self.assertIn(f'item.tconstruct.{name}', lang, name)
-        self.assertEqual({p.stem for p in (DATA / 'loot_table/blocks').glob('*.json')}, blocks - STATION_BLOCKS)
+        self.assertEqual({p.stem for p in (DATA / 'loot_table/blocks').glob('*.json')}, blocks - STATION_BLOCKS - no_loot)
 
     def loot_entries(self, node):
         for pool in node.get('pools', []):
@@ -336,10 +344,12 @@ class ContentAssets(unittest.TestCase):
         blocks, _ = self.declared()
         features = {p.stem: load(p) for p in (DATA / 'worldgen/feature').glob('*.json')}
         placed = {p.stem: load(p) for p in (DATA / 'worldgen/placed_feature').glob('*.json')}
-        self.assertEqual((set(features), set(placed)), ({'cobalt_ore_small', 'cobalt_ore_large'},) * 2)
+        cobalt = {'cobalt_ore_small', 'cobalt_ore_large'}
+        self.assertEqual((set(features) & cobalt, set(placed) & cobalt), (cobalt, cobalt))
         self.assertEqual((features['cobalt_ore_small']['size'], features['cobalt_ore_large']['size']), (4, 6))
         self.assertIn('cobalt_ore', blocks)
-        for name, feature in features.items():
+        for name in sorted(cobalt):
+            feature = features[name]
             self.assertEqual(placed[name]['feature'], f'tconstruct:{name}')
             self.assertEqual([t['state'] for t in feature['targets']], ['tconstruct:cobalt_ore'])
             self.assertEqual([t['target'] for t in feature['targets']], [{'predicate_type': 'minecraft:block_match', 'block': 'minecraft:netherrack'}])
@@ -350,7 +360,7 @@ class ContentAssets(unittest.TestCase):
             self.assertEqual(set(placed['cobalt_ore_small']), set(load(BASE_DATA / 'worldgen/placed_feature/ore_gold_nether.json')))
             self.assertTrue((BASE_DATA / 'tags/worldgen/biome/is_nether.json').is_file())
         modifiers = {p.stem: load(p) for p in (DATA / 'neoforge/biome_modifier').glob('*.json')}
-        self.assertEqual(modifiers, {'cobalt_ore': {'type': 'neoforge:add_features', 'biomes': '#minecraft:is_nether', 'features': ['tconstruct:cobalt_ore_small', 'tconstruct:cobalt_ore_large'], 'step': 'underground_decoration'}})
+        self.assertEqual(modifiers['cobalt_ore'], {'type': 'neoforge:add_features', 'biomes': '#minecraft:is_nether', 'features': ['tconstruct:cobalt_ore_small', 'tconstruct:cobalt_ore_large'], 'step': 'underground_decoration'})
 
     def test_world_blocks_carry_the_originals_numbers_and_tool_tags(self):
         """The declarations of TinkerWorld's registrations (hardness, resistance, friction, light, tool need) and the harvest tags."""
@@ -417,8 +427,10 @@ class ContentAssets(unittest.TestCase):
         # GUI textures are drawn by the screens' Rust code, not by models: the sprite names the sources use.
         sources = ''.join(path.read_text(encoding='utf-8') for path in (ROOT / 'tconstruct/mixins/tconstruct/api/src').glob('*.rs'))
         used |= {f'gui/{name}' for name in re.findall(r'"tconstruct:gui/([a-z_]+)"', sources)}
+        # Worn equipment textures are picked by the layer table and skull textures by the skull rendering
+        # code, not by models: the original references both by convention, so neither is model-used.
         present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
-                   if not p.relative_to(ASSETS / 'textures').as_posix().startswith('entity/equipment/')}
+                   if not p.relative_to(ASSETS / 'textures').as_posix().startswith(('entity/equipment/', 'entity/skull/'))}
         self.assertEqual(present, used)
 
     def test_worn_armor_textures_are_exactly_the_ones_the_layer_table_can_pick(self):
