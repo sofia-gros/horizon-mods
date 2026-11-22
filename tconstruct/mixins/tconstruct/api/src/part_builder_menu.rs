@@ -1,10 +1,14 @@
 //! Part builder block entity, window and result-slot ownership over PlutoLib's public API.
 //! SlimeKnights (MIT; see LICENSE) defines the recipes and PartBuilderBlockEntity's behavior.
 //! Slot 0 holds the material, slot 1 the pattern and slot 2 the result. Pattern buttons are published
-//! to the window as menu data: slot 0 the selected button (-1 for none), slot 1 the button count and
-//! slots 2.. one entry per button (the part's index plus one), so the client needs no recipes.
-//! Window textures, scrolling, the material-value readout and retexturing are presentation work
-//! that is not ported yet.
+//! to the window as menu data: slot 0 the selected button (-1 for none), slot 1 the button count,
+//! slot 2 the scroll offset, slot 3 which of the material and pattern slots hold an item, and
+//! slots 4.. one entry per button (the part's index plus one), so the client needs no recipes.
+//! The window is drawn as the original's screen draws it: the `part_builder.png` background, the
+//! pattern buttons in a four-by-four grid with the original's faces and pattern sprites, the
+//! scrollbar, and the empty-slot icons. The list pages by clicking above or below the scrollbar
+//! handle (the screen surface offers menu windows no mouse wheel and no drag), and the
+//! material-value readout and the side material panel are not ported.
 use crate::{
     common, material_recipes::{LeftoverSource, Recipes as MaterialRecipes},
     materials::Definitions,
@@ -22,16 +26,52 @@ pub(crate) const MATERIAL_SLOT: usize = 0;
 pub(crate) const PATTERN_SLOT: usize = 1;
 pub(crate) const RESULT_SLOT: usize = 2;
 const SLOT_COUNT: usize = 3;
-/// Menu data: selected button, button count, then one entry per button.
-const HEADER: usize = 2;
+/// Menu data: selected button, button count, scroll offset, filled slots, then one entry per button.
+const DATA_SCROLL: usize = 2;
+const DATA_FILLED: usize = 3;
+const HEADER: usize = 4;
 pub(crate) const MAX_BUTTONS: usize = 30;
 pub(crate) const DATA_SLOTS: usize = HEADER + MAX_BUTTONS;
 const NAME: &str = "part_builder";
 /// The selected pattern, saved in the block entity's data.
 const SELECTED: &str = "pattern";
-/// Button grid on the window: top left, size of a button and columns.
-const GRID: (f32, f32, f32) = (34.0, 18.0, 18.0);
-const COLUMNS: usize = 5;
+/// The button list's scroll offset (a button index), saved in the block entity's data.
+const SCROLL: &str = "scroll";
+/// Button ids paging the list one window up or down (the pattern buttons are 1.. by position).
+const SCROLL_UP: i32 = 1000;
+const SCROLL_DOWN: i32 = 1001;
+/// The window's textures: its own sheet and the shared icon sheet.
+const BACKGROUND: &str = "tconstruct:gui/part_builder";
+const ICONS: &str = "tconstruct:gui/icons";
+/// Button grid on the window: top left, size of a button and columns (`PartBuilderScreen`).
+const GRID: (f32, f32, f32) = (51.0, 15.0, 18.0);
+const COLUMNS: usize = 4;
+/// Buttons visible at once: four columns by four rows.
+const VISIBLE: usize = 16;
+
+/// The largest scroll offset for a button count: whole rows past the visible four, in buttons.
+fn max_offset(count: usize) -> usize {
+    count.div_ceil(COLUMNS).saturating_sub(VISIBLE / COLUMNS) * COLUMNS
+}
+
+/// The button at a window point, as its absolute index in the button list.
+fn button_at(at: [f32; 2], offset: usize, count: usize) -> Option<usize> {
+    let (x, y) = (at[0] - GRID.0, at[1] - GRID.1);
+    if x < 0.0 || y < 0.0 { return None; }
+    let (column, row) = ((x / GRID.2) as usize, (y / GRID.2) as usize);
+    if column >= COLUMNS { return None; }
+    let index = offset + row * COLUMNS + column;
+    (index < count).then_some(index)
+}
+
+/// A click on the scrollbar track, as a paging button id: above the handle pages up, below it
+/// pages down, on the handle nothing. `None` anywhere else, and whenever every button fits.
+fn scroll_at(at: [f32; 2], offset: usize, count: usize) -> Option<i32> {
+    if count <= VISIBLE { return None; }
+    if !(126.0..138.0).contains(&at[0]) || !(15.0..87.0).contains(&at[1]) { return None; }
+    let handle_top = 15.0 + 59.0 * (offset / COLUMNS) as f32 / (max_offset(count) / COLUMNS) as f32;
+    if at[1] < handle_top { Some(SCROLL_UP) } else if at[1] >= handle_top + 15.0 { Some(SCROLL_DOWN) } else { None }
+}
 
 /// What the table would craft for the current slots and selection.
 pub(crate) struct Computation {
@@ -199,11 +239,13 @@ fn craft_once(menu: &mut dyn MenuAccess, selected: Option<&str>) -> Option<ItemS
     Some(crafted.result)
 }
 
-fn publish(tick: &mut pluto_lib::BlockEntityTick<'_>, computation: &Computation) {
+fn publish(tick: &mut pluto_lib::BlockEntityTick<'_>, computation: &Computation, filled: i32, scroll: i64) {
     let order = pattern_order();
     tick.set_menu_data(0, computation.selected.map_or(-1, |index| index as i32));
     let shown = computation.buttons.len().min(MAX_BUTTONS);
     tick.set_menu_data(1, shown as i32);
+    tick.set_menu_data(DATA_SCROLL, (scroll.max(0) as usize).min(max_offset(shown)) as i32);
+    tick.set_menu_data(DATA_FILLED, filled);
     for (index, pattern) in computation.buttons.iter().take(shown).enumerate() {
         tick.set_menu_data(HEADER + index, order.iter().position(|known| known == pattern).map_or(0, |position| position as i32 + 1));
     }
@@ -220,35 +262,50 @@ fn display_name(pattern: &Identifier) -> String {
 /// Registers the block entity type and the window. Called once from the product's hooks.
 pub(crate) fn register() {
     let id = Identifier::new("tconstruct", NAME).expect("valid part builder id");
-    let layout = ScreenLayout::new(176.0, 214.0).inventory_at(8.0, 132.0)
-        .slot(8.0, 24.0).slot(8.0, 44.0).slot(148.0, 34.0);
-    let button_at = |at: [f32; 2], count: usize| -> Option<usize> {
-        let (x, y) = (at[0] - GRID.0, at[1] - GRID.1);
-        if x < 0.0 || y < 0.0 { return None; }
-        let (column, row) = ((x / GRID.2) as usize, (y / GRID.2) as usize);
-        let index = row * COLUMNS + column;
-        (column < COLUMNS && index < count).then_some(index)
-    };
+    let layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background()
+        .slot(29.0, 43.0).slot(8.0, 43.0).slot(148.0, 42.0);
     let mut window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(|rule| { if rule.slot == RESULT_SLOT { rule.may_place = false; } })
         .exclude_from_pick_all(RESULT_SLOT)
         .on_draw(move |draw| {
+            let canvas = &mut *draw.canvas;
+            let (ox, oy) = (draw.origin[0], draw.origin[1]);
             let selected = draw.data.first().copied().unwrap_or(-1);
             let count = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            for index in 0..count.min(MAX_BUTTONS) {
-                let (x, y) = (draw.origin[0] + GRID.0 + (index % COLUMNS) as f32 * GRID.2, draw.origin[1] + GRID.1 + (index / COLUMNS) as f32 * GRID.2);
-                let color = if selected == index as i32 { 0xFF80C0FF } else { 0xFF8B8B8B };
-                draw.canvas.fill([x, y, GRID.2 - 1.0, GRID.2 - 1.0], color);
-                draw.canvas.text(&(index + 1).to_string(), [x + 5.0, y + 5.0], 0x202020, false);
+            let offset = draw.data.get(DATA_SCROLL).copied().unwrap_or(0).max(0) as usize;
+            canvas.sprite(BACKGROUND, [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
+            // The scrollbar handle: the enabled face while buttons are hidden, the disabled one else.
+            let scrollable = count > VISIBLE;
+            let progress = if scrollable { (offset / COLUMNS) as f32 / (max_offset(count) / COLUMNS) as f32 } else { 0.0 };
+            canvas.sprite(BACKGROUND, [if scrollable { 176.0 } else { 188.0 }, 0.0, 12.0, 15.0], [ox + 126.0, oy + 15.0 + 59.0 * progress, 12.0, 15.0]);
+            // The empty slots' icons, as Mantle's empty-slot icons draw them over the slot.
+            let filled = draw.data.get(DATA_FILLED).copied().unwrap_or(0);
+            if filled & 1 == 0 { canvas.sprite(ICONS, [54.0, 234.0, 18.0, 18.0], [ox + 28.0, oy + 42.0, 18.0, 18.0]); }
+            if filled & 2 == 0 { canvas.sprite(ICONS, [0.0, 216.0, 18.0, 18.0], [ox + 7.0, oy + 42.0, 18.0, 18.0]); }
+            let order = pattern_order();
+            for cell in 0..VISIBLE {
+                let index = offset + cell;
+                if index >= count { break; }
+                let (x, y) = (ox + GRID.0 + (cell % COLUMNS) as f32 * GRID.2, oy + GRID.1 + (cell / COLUMNS) as f32 * GRID.2);
+                canvas.sprite(BACKGROUND, [176.0, if selected == index as i32 { 33.0 } else { 15.0 }, 18.0, 18.0], [x, y, 18.0, 18.0]);
+                if let Some(sprite) = draw.data.get(HEADER + index).copied().filter(|value| *value > 0)
+                    .and_then(|value| order.get(value as usize - 1))
+                    .and_then(|pattern| crate::station_layouts::pattern_sprite_of(pattern)) {
+                    canvas.atlas_sprite(sprite, [x + 1.0, y + 1.0, 16.0, 16.0], 0xFFFF_FFFF);
+                }
             }
         })
         .on_click(move |press| {
+            if press.right { return None; }
             let count = press.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            (!press.right).then(|| button_at(press.at, count.min(MAX_BUTTONS))).flatten().map(|index| index as i32 + 1)
+            let offset = press.data.get(DATA_SCROLL).copied().unwrap_or(0).max(0) as usize;
+            if let Some(scroll) = scroll_at(press.at, offset, count) { return Some(scroll); }
+            button_at(press.at, offset, count).map(|index| index as i32 + 1)
         })
         .on_tooltip(move |tip| {
             let count = tip.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            if let Some(index) = button_at(tip.at, count.min(MAX_BUTTONS)) {
+            let offset = tip.data.get(DATA_SCROLL).copied().unwrap_or(0).max(0) as usize;
+            if let Some(index) = button_at(tip.at, offset, count) {
                 let order = pattern_order();
                 if let Some(pattern) = tip.data.get(HEADER + index).copied().filter(|value| *value > 0).and_then(|value| order.get(value as usize - 1)) {
                     tip.lines.push(display_name(pattern));
@@ -256,6 +313,15 @@ pub(crate) fn register() {
             }
         })
         .on_button(|press| {
+            if press.id == SCROLL_UP || press.id == SCROLL_DOWN {
+                let selected = selected_of(press.data);
+                let Some(computation) = compute(press.items, selected.as_deref()) else { return; };
+                let count = computation.buttons.len().min(MAX_BUTTONS);
+                let current = press.data.get_int(SCROLL, 0).max(0) as usize;
+                let next = if press.id == SCROLL_UP { current.saturating_sub(VISIBLE) } else { (current + VISIBLE).min(max_offset(count)) };
+                press.data.insert(SCROLL.to_owned(), Nbt::Int(next as i32));
+                return;
+            }
             // The press names a button by its position in the sorted list; resolve it against the current slots.
             let Some(index) = usize::try_from(press.id - 1).ok() else { return; };
             let selected = selected_of(press.data);
@@ -274,9 +340,19 @@ pub(crate) fn register() {
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:part_builder").ticker(|tick| {
+            // Keep the staged stacks' model data in step with their material data, as in the
+            // station windows (a stack written outside the stations renders untextured otherwise).
+            for slot in tick.items.iter_mut().flatten() {
+                crate::tool_materials::heal_model(slot);
+            }
             let selected = selected_of(tick.data);
             let (computation, _) = refresh(tick.items, selected.as_deref());
-            if let Some(computation) = computation { publish(tick, &computation); }
+            if let Some(computation) = computation {
+                let filled = tick.items.iter().take(2).enumerate()
+                    .fold(0i32, |bits, (slot, item)| if item.is_some() { bits | (1 << slot) } else { bits });
+                let scroll = tick.data.get_int(SCROLL, 0);
+                publish(tick, &computation, filled, scroll);
+            }
         }),
     );
 }
@@ -302,5 +378,33 @@ mod tests {
     fn pattern_buttons_get_readable_names() {
         assert_eq!(display_name(&Identifier::parse("tconstruct:pick_head").unwrap()), "Pick Head");
         assert_eq!(pattern_order().len(), 40, "27 tool parts, the repair kit, the eight cast shapes and the four remaining recycling shapes");
+    }
+
+    #[test]
+    fn every_offered_pattern_has_a_window_sprite() {
+        for pattern in pattern_order() {
+            assert!(crate::station_layouts::pattern_sprite_code(&pattern) > 0, "{pattern}");
+        }
+    }
+
+    #[test]
+    fn buttons_address_the_scrolled_window() {
+        assert_eq!(button_at([52.0, 16.0], 0, 40), Some(0));
+        assert_eq!(button_at([52.0, 16.0], 16, 40), Some(16));
+        assert_eq!(button_at([52.0 + 18.0 * 3.0, 16.0 + 18.0 * 3.0], 0, 40), Some(15));
+        assert_eq!(button_at([52.0, 16.0], 0, 0), None);
+        assert_eq!(button_at([10.0, 16.0], 0, 40), None, "left of the grid");
+    }
+
+    #[test]
+    fn scrolling_pages_by_whole_rows() {
+        assert_eq!(max_offset(16), 0);
+        assert_eq!(max_offset(17), 4);
+        assert_eq!(max_offset(40), 24);
+        assert_eq!(scroll_at([130.0, 20.0], 0, 40), None, "on the handle");
+        assert_eq!(scroll_at([130.0, 80.0], 0, 40), Some(SCROLL_DOWN));
+        assert_eq!(scroll_at([130.0, 20.0], 24, 40), Some(SCROLL_UP));
+        assert_eq!(scroll_at([100.0, 80.0], 0, 40), None, "outside the track");
+        assert_eq!(scroll_at([130.0, 80.0], 0, 16), None, "nothing to scroll");
     }
 }

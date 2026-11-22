@@ -128,6 +128,20 @@ pub(crate) fn sync_model(stack: &mut ItemSlot) {
     sync_overlay_flags(&mut model.flags, &stack.custom_data);
     stack.custom_model_data = Some(model).filter(|model| !model.is_empty());
 }
+/// Re-derives the model data of a stack that carries material data but whose `custom_model_data` was
+/// never written or fell out of step. Stacks reach the stations from outside the writes that keep the
+/// two in step (a `/give` naming only `custom_data`, another mod, an older save), and the item models
+/// can only read `custom_model_data`, so such a part or tool renders as the bare grey sprite the item
+/// definition falls back to while its data says otherwise. The original reads the material from the
+/// stack's data on the client, so it has no such state. Stacks without material data are left alone.
+/// True when the stack changed.
+pub(crate) fn heal_model(stack: &mut ItemSlot) -> bool {
+    if model_strings(&stack.custom_data).is_none() { return false; }
+    let before = stack.custom_model_data.clone();
+    sync_model(stack);
+    stack.custom_model_data != before
+}
+
 pub(crate) fn verify_part_material(stack: &mut ItemSlot, registry: &Definitions) {
     let original = part_material(&stack.custom_data);
     if original == MaterialVariant::unknown() { return; }
@@ -247,5 +261,27 @@ mod tests {
         stack.custom_data.remove(crate::tool_stack::TAG_UPGRADES);
         sync_model(&mut stack);
         assert_eq!(stack.custom_model_data.unwrap().flags, vec![true], "a removed modifier clears its flag and the trailing falses are dropped");
+    }
+    #[test]
+    fn healing_rederives_the_model_of_a_stack_written_outside_the_stations() {
+        // A part given with only its material data (a `/give` naming `custom_data` alone) carries no
+        // model data: healing derives the sprite key its item definition selects on.
+        let mut part = ItemSlot::new(Identifier::parse("tconstruct:pick_head").unwrap(), 1);
+        part.custom_data.insert("Material".into(), Nbt::String("tconstruct:wood".into()));
+        assert!(part.custom_model_data.is_none());
+        assert!(heal_model(&mut part));
+        assert_eq!(part.custom_model_data.as_ref().unwrap().strings, ["wood"]);
+        assert!(!heal_model(&mut part), "a stack already in step is left alone");
+        // A tool's strings follow its material list the same way.
+        let mut tool = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        tool.custom_data.insert(crate::tool_stack::TAG_MATERIALS.into(),
+            Nbt::List(vec![Nbt::String("tconstruct:iron".into()), Nbt::String("tconstruct:wood".into()), Nbt::String("tconstruct:string".into())]));
+        assert!(heal_model(&mut tool));
+        assert_eq!(tool.custom_model_data.as_ref().unwrap().strings, ["iron", "wood", "string"]);
+        // Stacks with no material data are not the stations' business, model data and all.
+        let mut plain = ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 4);
+        plain.custom_model_data.get_or_insert_with(Default::default).strings = vec!["kept".into()];
+        assert!(!heal_model(&mut plain));
+        assert_eq!(plain.custom_model_data.as_ref().unwrap().strings, ["kept"]);
     }
 }

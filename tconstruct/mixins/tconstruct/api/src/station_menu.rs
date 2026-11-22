@@ -17,9 +17,14 @@
 //! - The original's window also carries the player's armor and offhand slots and the neighbouring
 //!   chests as side inventories; a menu here can reach neither the player's equipment slots nor a
 //!   neighbour's items.
-//! - The station texture and the layouts' ghost slot icons are presentation the canvas cannot do
-//!   (it fills and writes text; it cannot draw item icons), so tabs are numbered squares, as the
-//!   part builder's pattern buttons are.
+//! - The side info panels and the armor stand preview do not carry over (the screen surface has no
+//!   text panels and no entities), nor does the rename text field (no text input), nor a tab's
+//!   hover face (the draw callback is not told where the cursor is).
+//!
+//! The window itself is drawn as the original's screen draws it: the `tinker.png` background, the
+//! active layout's icon large under its translucent cover, a translucent background and an opaque
+//! border at every shown slot, the pattern icon of every empty slot, and the layout tabs in a
+//! six-column strip on the left with the original's button faces, beams and decorations.
 use crate::{
     common, station_layout_order::TAB_ORDER, station_layouts::{self, Layout},
     tables::{lazy_result::LazyResultContainer, station::{self, Resolver}},
@@ -28,22 +33,56 @@ use crate::{
 };
 use pluto_lib::{
     BlockEntityType, BlockEntityTypeRegistry, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
-    ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction, SlotClick,
+    ScreenCanvas, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction, SlotClick,
 };
 
 /// Menu data: slot 0 the active tab (0 for the main layout, else the tab's position in TAB_ORDER
-/// plus one), then an x,y pair per station slot (the tool, then the inputs).
+/// plus one), then an x,y pair per station slot (the tool, then the inputs), then one pattern-sprite
+/// code per station slot (`station_layouts::pattern_sprite_code`), then a bitmask of the slots
+/// holding an item. The last two carry what the original's screen reads from the menu itself: the
+/// pattern an empty slot shows, and whether the slot is empty.
 const DATA_TAB: usize = 0;
 const DATA_POSITIONS: usize = 1;
 /// The result slot's fixed position (`LazyResultSlot` sits at (114, 38) in every station window).
 const RESULT_POSITION: (i32, i32) = (114, 38);
 /// The selected layout's name in the block entity's data; absent is the main layout.
 const SELECTED: &str = "layout";
-/// The tab sidebar: two columns of squares left of the window (left, top, size).
-const TABS: (f32, f32, f32) = (-46.0, 18.0, 18.0);
-const TAB_COLUMNS: usize = 2;
+/// The window's textures: the station sheet and the shared icon sheet, both 256x256.
+const TINKER: &str = "tconstruct:gui/tinker";
+const ICONS: &str = "tconstruct:gui/icons";
+const SHEET: [f32; 2] = [256.0, 256.0];
+/// The layout tabs left of the window, as the original's buttons widget places them: 18px buttons
+/// with 4px spacing in six columns, the widget's top at the window top plus its beams (9px), its
+/// right edge 2px left of the window (`TinkerStationButtonsWidget`: width(6) = 6*18 + 5*4 = 128).
+const TAB_COLUMNS: usize = 6;
+const TAB_LEFT: f32 = -130.0;
+const TAB_TOP: f32 = 9.0;
+const TAB_SIZE: f32 = 18.0;
+const TAB_STEP: f32 = 22.0;
 /// Button ids: 1 is the main layout, 2.. the TAB_ORDER layouts in order.
 const MAIN_BUTTON: i32 = 1;
+
+/// What a tab button shows: the layout's icon from the shipped layout data — the tool item for the
+/// tool layouts, a pattern for the repair button and the two pattern-icon layouts.
+enum TabIcon {
+    Item(&'static str),
+    Pattern(&'static str),
+}
+
+/// The tab icons in button order: the main layout first, then TAB_ORDER.
+const TAB_ICONS: &[TabIcon] = &[
+    TabIcon::Pattern("tconstruct:button_repair"),
+    TabIcon::Item("tconstruct:dagger"), TabIcon::Item("tconstruct:sword"),
+    TabIcon::Item("tconstruct:hand_axe"), TabIcon::Item("tconstruct:kama"),
+    TabIcon::Item("tconstruct:mattock"), TabIcon::Item("tconstruct:pickadze"),
+    TabIcon::Item("tconstruct:pickaxe"), TabIcon::Item("tconstruct:arrow"),
+    TabIcon::Pattern("tconstruct:thrown_ammo"), TabIcon::Item("tconstruct:crossbow"),
+    TabIcon::Item("tconstruct:fishing_rod"), TabIcon::Item("tconstruct:cleaver"),
+    TabIcon::Item("tconstruct:broad_axe"), TabIcon::Item("tconstruct:excavator"),
+    TabIcon::Item("tconstruct:scythe"), TabIcon::Item("tconstruct:sledge_hammer"),
+    TabIcon::Item("tconstruct:vein_hammer"), TabIcon::Item("tconstruct:javelin"),
+    TabIcon::Item("tconstruct:longbow"), TabIcon::Pattern("tconstruct:plate_armor"),
+];
 
 /// Builds the read-only recipe context from the loaded server registries and runs `read`.
 /// `None` while any registry has not loaded, so a station never crafts from partial state.
@@ -178,14 +217,79 @@ fn tab_value(layout: &Layout) -> i32 {
     TAB_ORDER.iter().position(|name| layout.name.path() == *name).map_or(0, |index| index as i32 + 1)
 }
 
-/// The tab button at a window point, as (button id, tab index or none for the main layout).
+/// The tab button at a window point, as a button id (the main layout first).
 fn tab_at(at: [f32; 2]) -> Option<i32> {
-    let (x, y) = (at[0] - TABS.0, at[1] - TABS.1);
+    let (x, y) = (at[0] - TAB_LEFT, at[1] - TAB_TOP);
     if x < 0.0 || y < 0.0 { return None; }
-    let (column, row) = ((x / TABS.2) as usize, (y / TABS.2) as usize);
-    if column >= TAB_COLUMNS { return None; }
+    let (column, row) = ((x / TAB_STEP) as usize, (y / TAB_STEP) as usize);
+    if column >= TAB_COLUMNS || x % TAB_STEP >= TAB_SIZE || y % TAB_STEP >= TAB_SIZE { return None; }
     let index = row * TAB_COLUMNS + column;
     (index <= TAB_ORDER.len()).then_some(index as i32 + MAIN_BUTTON)
+}
+
+/// Draws one layout icon at a window point: a pattern from the block atlas, or a plain stack of the
+/// layout's tool item (the original's `renderIcon`).
+fn draw_icon(canvas: &mut dyn ScreenCanvas, icon: &TabIcon, at: [f32; 2], size: f32) {
+    match icon {
+        TabIcon::Pattern(pattern) => {
+            let pattern = Identifier::parse(pattern).expect("valid tab pattern");
+            if let Some(sprite) = station_layouts::pattern_sprite_of(&pattern) {
+                canvas.atlas_sprite(sprite, [at[0], at[1], size, size], 0xFFFF_FFFF);
+            }
+        }
+        TabIcon::Item(item) => {
+            let stack = ItemSlot::new(Identifier::parse(item).expect("valid tab item"), 1);
+            canvas.item(&stack, at, size);
+        }
+    }
+}
+
+/// Draws the window as `TinkerStationScreen` does: the `tinker.png` background, the active layout's
+/// icon large under the translucent item cover, a translucent background and an opaque border at
+/// every shown slot, the pattern of every empty slot, and the tab strip with its beams, decorations
+/// and button faces. `metal` is the anvils' style; the tinker station's is wood (the original picks
+/// by input count: metal above three). A tab's hover face is not drawn: the draw callback is not
+/// told where the cursor is.
+fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icons_at: usize, filled_at: usize) {
+    let canvas = &mut *draw.canvas;
+    let (ox, oy) = (draw.origin[0], draw.origin[1]);
+    let data = draw.data;
+    let active = data.get(DATA_TAB).copied().unwrap_or(0);
+    canvas.sprite(TINKER, [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
+    if let Some(icon) = TAB_ICONS.get(active as usize) { draw_icon(canvas, icon, [ox + 12.5, oy + 22.0], 59.2); }
+    canvas.sprite_tinted(TINKER, [176.0, 18.0, 70.0, 64.0], SHEET, [ox + 7.0, oy + 18.0, 70.0, 64.0], 0xD1FF_FFFF);
+    let position = |slot: usize| {
+        let (x, y) = (data.get(DATA_POSITIONS + slot * 2).copied().unwrap_or(-1), data.get(DATA_POSITIONS + slot * 2 + 1).copied().unwrap_or(-1));
+        (x >= 0 && y >= 0).then_some((x as f32, y as f32))
+    };
+    for slot in 0..=input_count {
+        let Some((x, y)) = position(slot) else { continue; };
+        canvas.sprite_tinted(TINKER, [176.0, 0.0, 18.0, 18.0], SHEET, [ox + x - 1.0, oy + y - 1.0, 18.0, 18.0], 0x47FF_FFFF);
+    }
+    let filled = data.get(filled_at).copied().unwrap_or(0);
+    for slot in 0..=input_count {
+        let Some((x, y)) = position(slot) else { continue; };
+        canvas.sprite(TINKER, [194.0, 0.0, 18.0, 18.0], [ox + x - 1.0, oy + y - 1.0, 18.0, 18.0]);
+        if filled & (1 << slot) == 0 {
+            if let Some(sprite) = data.get(icons_at + slot).copied().and_then(station_layouts::pattern_sprite) {
+                canvas.atlas_sprite(sprite, [ox + x, oy + y, 16.0, 16.0], 0xFFFF_FFFF);
+            }
+        }
+    }
+    let beam_v = if metal { 209.0 } else { 202.0 };
+    canvas.sprite(TINKER, [0.0, beam_v, 2.0, 7.0], [ox + TAB_LEFT - 2.0, oy, 2.0, 7.0]);
+    canvas.sprite(TINKER, [2.0, beam_v, 129.0, 7.0], [ox + TAB_LEFT, oy, 128.0, 7.0]);
+    canvas.sprite(TINKER, [131.0, beam_v, 2.0, 7.0], [ox + TAB_LEFT + 128.0, oy, 2.0, 7.0]);
+    let (decoration_u, face_v) = if metal { (36.0, 198.0) } else { (18.0, 180.0) };
+    let count = TAB_ORDER.len() + 1;
+    for index in 0..count {
+        let (x, y) = (ox + TAB_LEFT + (index % TAB_COLUMNS) as f32 * TAB_STEP, oy + TAB_TOP + (index / TAB_COLUMNS) as f32 * TAB_STEP);
+        canvas.sprite(TINKER, [decoration_u, 198.0, 18.0, 2.0], [x, y - 2.0, 18.0, 2.0]);
+        if index < count - TAB_COLUMNS { canvas.sprite(TINKER, [decoration_u, 196.0, 18.0, 2.0], [x, y + TAB_SIZE, 18.0, 2.0]); }
+        let face_u = if index as i32 == active { 144.0 } else { 180.0 };
+        canvas.sprite(ICONS, [face_u, face_v, 18.0, 18.0], [x, y, 18.0, 18.0]);
+        if let Some(icon) = TAB_ICONS.get(index) { draw_icon(canvas, icon, [x + 1.0, y + 1.0], 16.0); }
+    }
 }
 
 /// A tab's display name: its item translation when it has one, else its path as words.
@@ -207,7 +311,11 @@ fn register_station(name: &'static str, input_count: usize) {
     let id = Identifier::new("tconstruct", name).expect("valid station id");
     let result_slot = input_count + 1;
     let slot_count = result_slot + 1;
-    let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0);
+    // Menu data past the positions: the slots' icon codes, then the filled bitmask.
+    let icons_at = DATA_POSITIONS + (input_count + 1) * 2;
+    let filled_at = icons_at + input_count + 1;
+    let metal = input_count > 4;
+    let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background();
     // The tool slot and the inputs are in the menu; the selected layout positions them.
     for _ in 0..input_count + 1 { layout = layout.dynamic_slot(); }
     layout = layout.slot(RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32);
@@ -226,16 +334,7 @@ fn register_station(name: &'static str, input_count: usize) {
             positions.push(Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32]));
             Some(positions)
         })
-        .on_draw(|draw| {
-            let active = draw.data.get(DATA_TAB).copied().unwrap_or(0);
-            for index in 0..=TAB_ORDER.len() {
-                let (x, y) = (draw.origin[0] + TABS.0 + (index % TAB_COLUMNS) as f32 * TABS.2, draw.origin[1] + TABS.1 + (index / TAB_COLUMNS) as f32 * TABS.2);
-                let selected = (index == 0 && active == 0) || (index > 0 && active == index as i32);
-                let color = if selected { 0xFF80C0FF } else { 0xFF8B8B8B };
-                draw.canvas.fill([x, y, TABS.2 - 1.0, TABS.2 - 1.0], color);
-                draw.canvas.text(&(index + 1).to_string(), [x + 5.0, y + 5.0], 0x202020, false);
-            }
-        })
+        .on_draw(move |draw| draw_station(draw, metal, input_count, icons_at, filled_at))
         .on_click(|press| (!press.right).then(|| tab_at(press.at)).flatten())
         .on_tooltip(|tip| {
             if let Some(button) = tab_at(tip.at) {
@@ -256,6 +355,13 @@ fn register_station(name: &'static str, input_count: usize) {
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(id).item_slots(slot_count as u32).menu(&format!("tconstruct:{name}")).ticker(move |tick| {
+            // A stack can reach a slot with its material data but without the model data the item
+            // definitions select on (a `/give` naming only `custom_data`, another mod's stack, an
+            // older save): it then renders as the untextured base sprite. Keep the staged stacks
+            // in step, as the original's model loader reads the material from the stack itself.
+            for slot in tick.items.iter_mut().take(input_count + 1).flatten() {
+                crate::tool_materials::heal_model(slot);
+            }
             refresh_result(tick.items, input_count);
             let selected = selected_of(tick.data);
             let layout = active_layout(name, selected.as_deref());
@@ -267,6 +373,13 @@ fn register_station(name: &'static str, input_count: usize) {
                 tick.set_menu_data(DATA_POSITIONS + slot * 2, x);
                 tick.set_menu_data(DATA_POSITIONS + slot * 2 + 1, y);
             }
+            for (slot, layout_slot) in layout.slots(&main, input_count).into_iter().enumerate() {
+                let code = layout_slot.and_then(|layout_slot| layout_slot.icon.as_ref()).map_or(0, station_layouts::pattern_sprite_code);
+                tick.set_menu_data(icons_at + slot, code);
+            }
+            let filled = tick.items.iter().take(input_count + 1).enumerate()
+                .fold(0i32, |bits, (slot, item)| if item.is_some() { bits | (1 << slot) } else { bits });
+            tick.set_menu_data(filled_at, filled);
         }),
     );
 }
@@ -297,11 +410,13 @@ mod tests {
     }
 
     #[test]
-    fn tabs_sit_in_two_columns_and_the_main_layout_is_first() {
-        assert_eq!(tab_at([TABS.0 + 1.0, TABS.1 + 1.0]), Some(MAIN_BUTTON));
-        assert_eq!(tab_at([TABS.0 + TABS.2 + 1.0, TABS.1 + 1.0]), Some(MAIN_BUTTON + 1));
-        assert_eq!(tab_at([TABS.0 + 1.0, TABS.1 + TABS.2 + 1.0]), Some(MAIN_BUTTON + 2));
+    fn tabs_sit_in_six_columns_and_the_main_layout_is_first() {
+        assert_eq!(tab_at([TAB_LEFT + 1.0, TAB_TOP + 1.0]), Some(MAIN_BUTTON));
+        assert_eq!(tab_at([TAB_LEFT + TAB_STEP + 1.0, TAB_TOP + 1.0]), Some(MAIN_BUTTON + 1));
+        assert_eq!(tab_at([TAB_LEFT + 1.0, TAB_TOP + TAB_STEP + 1.0]), Some(MAIN_BUTTON + 6));
+        assert_eq!(tab_at([TAB_LEFT + TAB_SIZE + 2.0, TAB_TOP + 1.0]), None, "the spacing between buttons is not a tab");
         assert_eq!(tab_at([0.0, 0.0]), None, "inside the window is not a tab");
+        assert_eq!(TAB_ICONS.len(), TAB_ORDER.len() + 1);
         assert_eq!(tab_value(&station_layouts::baked_main("tinker_station")), 0);
     }
 }

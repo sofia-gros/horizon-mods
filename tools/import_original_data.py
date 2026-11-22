@@ -1143,6 +1143,15 @@ HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
 # Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
 SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller', 'scorched_alloyer'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
 SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct', 'alloyer']
+# Station screens' textures and the pattern sprites their windows draw (station_layouts' sprite table).
+STATION_GUI_TEXTURES = ['tinker', 'part_builder', 'icons']
+STATION_PATTERN_SPRITES = ['adze_head', 'arrow_head', 'arrow_part', 'arrow_shaft', 'block', 'boots_plating',
+    'bow_grip', 'bow_limb', 'bowstring', 'broad_axe_head', 'broad_blade', 'button_repair', 'chestplate_plating',
+    'coin', 'crystal', 'dust', 'fletching', 'gear', 'gem', 'hammer_head', 'helmet_plating', 'ingot', 'laces',
+    'lapis', 'large_plate', 'leggings_plating', 'maille', 'nugget', 'pick_head', 'pickaxe', 'plate', 'plate_armor',
+    'plating', 'quartz', 'repair_kit', 'ribcage', 'rod', 'scale', 'shard', 'shell', 'shield_core',
+    'small_axe_head', 'small_blade', 'thrown_ammo', 'tool_binding', 'tool_handle', 'tough_binding',
+    'tough_handle', 'wire']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
 # tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
 # tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
@@ -1314,6 +1323,10 @@ def copy_client_assets():
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else variant['model']}})
     for texture in SMELTERY_GUI_TEXTURES:
         import_texture(f'tconstruct:gui/{texture}')
+    for texture in STATION_GUI_TEXTURES:
+        import_texture(f'tconstruct:gui/{texture}')
+    for sprite in STATION_PATTERN_SPRITES:
+        import_texture(f'tconstruct:gui/tinker_pattern/{sprite}')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
         if name.endswith('_spawn_egg'):
             # The original's egg model is the vanilla tint template, which 26.3 dropped for per-egg textures the
