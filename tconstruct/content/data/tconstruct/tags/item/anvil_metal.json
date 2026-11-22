@@ -1,47 +1,47 @@
 {
   "values": [
     {
-      "id": "#forge:storage_blocks/slimesteel",
+      "id": "tconstruct:slimesteel_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/amethyst_bronze",
+      "id": "tconstruct:amethyst_bronze_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/rose_gold",
+      "id": "tconstruct:rose_gold_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/pig_iron",
+      "id": "tconstruct:pig_iron_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/cinderslime",
+      "id": "tconstruct:cinderslime_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/queens_slime",
+      "id": "tconstruct:queens_slime_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/manyullyn",
+      "id": "tconstruct:manyullyn_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/hepatizon",
+      "id": "tconstruct:hepatizon_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/knightmetal",
+      "id": "tconstruct:knightmetal_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/knightslime",
+      "id": "tconstruct:knightslime_block",
       "required": false
     },
     {
-      "id": "#forge:storage_blocks/netherite",
+      "id": "minecraft:netherite_block",
       "required": false
     },
     {

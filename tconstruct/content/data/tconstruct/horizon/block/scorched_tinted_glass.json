@@ -1,0 +1,1 @@
+{"template":"minecraft:tinted_glass","properties":{"hardness":2.5,"explosion_resistance":8.0,"sounds":"minecraft:glass","map_color":48,"requires_tool":true,"occludes":false},"state_properties":{"in_structure":{"type":"boolean"}},"item":true}

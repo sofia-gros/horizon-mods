@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    [
+      "tconstruct:enderbark_log",
+      "tconstruct:stripped_enderbark_log",
+      "tconstruct:enderbark_wood",
+      "tconstruct:stripped_enderbark_wood"
+    ]
+  ],
+  "group": "planks",
+  "result": {
+    "id": "tconstruct:enderbark_planks",
+    "count": 4
+  }
+}

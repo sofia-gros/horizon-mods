@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "M": [
+      "minecraft:diamond"
+    ],
+    "e": "tconstruct:obsidian_pane"
+  },
+  "pattern": [
+    " e ",
+    "eMe",
+    " e "
+  ],
+  "group": "tconstruct:fancy_item_frame",
+  "result": {
+    "id": "tconstruct:diamond_item_frame"
+  }
+}

@@ -71,6 +71,15 @@ impl Stat {
         }
     }
 }
+/// HarvestTiers sort order: gold sorts directly after wood despite sharing its level;
+/// an unrecognized tier sorts as the lowest.
+fn tier_rank(tier: &Identifier) -> usize {
+    ["wood", "gold", "stone", "iron", "diamond", "netherite"].iter().position(|name| *name == tier.path()).unwrap_or(0)
+}
+/// HarvestTiers.min, as MaxTierModule.modifyTier applies it.
+pub(crate) fn tier_min(left: &Identifier, right: &Identifier) -> Identifier {
+    if tier_rank(right) < tier_rank(left) { right.clone() } else { left.clone() }
+}
 #[derive(Clone, Debug)]
 struct FloatBuilder { base: f32, add: f32, percent: f32, multiply: f32 }
 #[derive(Clone, Debug, Default)]
@@ -121,7 +130,7 @@ impl Builder {
     }
     pub fn tier(&self) -> Identifier { self.tier.clone().unwrap_or_else(|| Identifier::parse("minecraft:wood").unwrap()) }
     pub(crate) fn update_tier(&mut self, tier: &Identifier) {
-        let rank = |tier: &Identifier| ["wood", "gold", "stone", "iron", "diamond", "netherite"].iter().position(|name| *name == tier.path()).unwrap_or(0);
+        let rank = |tier: &Identifier| tier_rank(tier);
         // HarvestTiers.max stores the larger tier even when it equals the default, so the
         // stat key exists (and is serialized) once any contribution touched it.
         if self.tier.is_none() || rank(tier) > rank(&self.tier()) { self.tier = Some(tier.clone()); }

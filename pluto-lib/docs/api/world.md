@@ -62,6 +62,26 @@ with_world(&mut ops, || {
 
 > **Use with Caution.** A `World` reaches the game only while a callback that carries a world runs (a command, a projectile impact, a player joining or leaving). Elsewhere its methods do nothing and say so (`None`, `false`). Whole-block writes of blocks with block entities create the block entity, but a block entity's data starts at its initial data.
 
+## Reading a Box of Blocks, and the World of a Ticking Block Entity
+
+A machine that checks a structure around itself needs two things a command does not: the world of the block entity that is ticking, and a box of blocks read all at once. `World::ticking()` is the dimension the host is ticking a block entity in; `read_region` reads every block between two corners and answers `None` unless all of them are loaded, so a check never judges half a region:
+
+```rust
+use pluto_lib::{with_ticking_dimension, with_world, MemoryWorldOps, World};
+
+let mut ops = MemoryWorldOps::default();
+let walls_are_stone = with_ticking_dimension("minecraft:overworld", || {
+    with_world(&mut ops, || {
+        let world = World::ticking()?;
+        let region = world.read_region([0, 64, 0], [2, 65, 2])?;
+        Some(region.state([1, 64, 1]).is_some_and(|state| state.block.path() == "air"))
+    })
+});
+assert_eq!(walls_are_stone, Some(true));
+```
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `block_entity_tick` in `hooks.rs` opens `with_ticking_dimension` (the host's level in place) and the `with_world` scope around every ticker of `BlockEntityTypeRegistry`, so `World::ticking` and `read_region` work inside tickers. The ticking block entity is kept out of the world while it ticks: `set_block_state` of a block that is already there changes only the properties the state names (through the host's property write, so the block entity stays; properties the state leaves out keep their value), while a different block is placed whole and a block with a block entity gets a fresh one. A region read is one block read per position: keep boxes to what the check needs (the smeltery reads at most 16 by 16 by 64).
+
 ## Drawing from the Server World's Random Stream
 
 Use `World::random_float` for behavior that should consume the same stream as vanilla's level logic, such as two independently pitched block sounds. It draws from the existing authoritative dimension, never from a new generator or the clock:
@@ -107,6 +127,70 @@ assert_eq!(ParticleFactoryRegistry::item(&particle).unwrap().item, "minecraft:cl
 > **Use with Caution.** Registration and independent stack copies are pure-tested. A source-declared adapter handles named requests through the native client particle API: the requesting Game resolves the stack's current Ground model, then delegates once with ordinary Item options to preserve native validation and simulation. Its actual HEAD/bridge helpers pass trace-facade tests, not native stack conversion, model baking, particle settings/RNG or rendering. Cube landing emission now has a source-declared particle-kind override and a shared mob-event consumer used by both the host and remote-client tick. It changes only the kind, leaving the inherited loop/positions/RNG in place. The actual selector/event/constructor helper chain passes trace-facade tests, not the native loop or model/filter/RNG/render pipeline. Other engine-direct named requests, nonzero particle bursts, arbitrary entity emitters and network type registration remain incomplete or unverified. No custom particle physics or sprite-set factory is provided by this item-constructor API. Tinkers registers its original Sky/Ender slime-ball and Terracube clay-ball factories here.
 
 ## Reference
+
+### `World::ticking`
+
+`World::ticking() -> Option<World>` is the world of the block entity being ticked (Minecraft: `BlockEntity.getLevel`); `None` outside a ticker.
+
+```rust
+use pluto_lib::{with_ticking_dimension, World};
+assert!(World::ticking().is_none());
+with_ticking_dimension("minecraft:the_nether", || assert_eq!(World::ticking().unwrap().dimension, "minecraft:the_nether"));
+```
+
+### `with_ticking_dimension`
+
+`with_ticking_dimension(dimension, || ...)` is the scope the host opens around a ticker, so that `World::ticking` answers.
+
+```rust
+use pluto_lib::{with_ticking_dimension, World};
+with_ticking_dimension("minecraft:overworld", || assert!(World::ticking().is_some()));
+```
+
+### `World::read_region`
+
+`read_region(from, to) -> Option<Region>` (Minecraft: `Level.hasChunksAt` then `getBlockState` over the box; corners in any order); `None` unless every block is loaded.
+
+```rust
+use pluto_lib::World;
+assert!(World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).is_none(), "outside a world scope nothing is loaded");
+```
+
+### `Region`
+
+The blocks `read_region` read: `state(pos)` and `bounds()`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert!(World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).is_some()));
+```
+
+### `Region::state`
+
+`fn state(&self, pos: BlockPos) -> Option<&BlockState>`. The state read at `pos`, `None` outside the box.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    let region = World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).unwrap();
+    assert!(region.state([0, 0, 0]).is_some() && region.state([5, 5, 5]).is_none());
+});
+```
+
+### `Region::bounds`
+
+`fn bounds(&self) -> (BlockPos, BlockPos)`. The corners given to `read_region`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    let region = World::new("minecraft:overworld").read_region([0, 0, 0], [1, 1, 1]).unwrap();
+    assert_eq!(region.bounds(), ([0, 0, 0], [1, 1, 1]));
+});
+```
 
 ### `ParticleFactoryRegistry`
 
@@ -237,7 +321,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), and `block_in_tag(block, tag) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -277,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -374,3 +458,92 @@ use pluto_lib::{BlockState, Identifier, World};
 let stone = BlockState::new(Identifier::new("minecraft", "stone").unwrap());
 assert!(!World::new("minecraft:overworld").set_block_state([0, 64, 0], &stone), "outside a callback nothing is set");
 ```
+
+### `World::block_entity_data`
+
+`fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound>`. The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); `None` where there is none, the chunk is not loaded or the call is made outside a callback.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` answers it from the host's `mod_block_entity` (the data a mod block entity saves, without its position and id), in the dimension in place only: a call for another dimension answers `None`, and so does a block entity the host does not hold for a mod (a vanilla chest).
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let mut ops = MemoryWorldOps::default();
+let mut data = NbtCompound::new();
+data.insert("master".to_owned(), Nbt::IntArray(vec![0, 64, 0]));
+ops.entities.insert(("minecraft:overworld".to_owned(), [1, 64, 0]), data);
+let world = World::new("minecraft:overworld");
+assert!(world.block_entity_data([1, 64, 0]).is_none(), "outside a world scope");
+with_world(&mut ops, || assert!(world.block_entity_data([1, 64, 0]).unwrap().contains_key("master")));
+```
+
+### `World::merge_block_entity_data`
+
+`fn merge_block_entity_data(&self, pos: BlockPos, data: &NbtCompound) -> bool`. Merges `data` into the saved data of the block entity at `pos`: each key given replaces the same key, the others stay. A controller uses it to tell the blocks of its structure who their master is. False if there is no block entity there or the call is made outside a callback.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` merges through the host's `change_mod_block_entity` in the dimension in place and syncs the block entity to clients; another dimension, or a block entity the host does not hold for a mod, answers false.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let mut ops = MemoryWorldOps::default();
+ops.entities.insert(("minecraft:overworld".to_owned(), [1, 64, 0]), NbtCompound::new());
+let mut master = NbtCompound::new();
+master.insert("master".to_owned(), Nbt::IntArray(vec![0, 64, 0]));
+let world = World::new("minecraft:overworld");
+assert!(!world.merge_block_entity_data([1, 64, 0], &master), "outside a world scope");
+with_world(&mut ops, || assert!(world.merge_block_entity_data([1, 64, 0], &master)));
+assert_eq!(ops.entities.len(), 1);
+```
+
+### `World::summon`
+
+`fn summon(&self, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32>`. Summons an entity of `kind` at `pos`, loaded from the saved data `nbt` (Minecraft: `/summon <kind> <pos> <nbt>`; the game writes the position itself, so `nbt` needs no `Pos`, and passengers in the data come along). Returns the new entity's id; `None` when the chunk is not loaded, the position is out of bounds, the kind is one the game cannot load, a callback kept the entity out, or the call is made outside a callback that carries a world. Projectile kinds load like any other; [projectile](projectile.md) builds its spawns on this.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` summons through the host's summon call (the game's own `/summon`, API 59) in the dimension named, and answers the id it returns.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, Nbt, NbtCompound, World};
+
+let world = World::new("minecraft:overworld");
+let mut nbt = NbtCompound::new();
+nbt.insert("Item".into(), Nbt::String("minecraft:stone".into()));
+assert_eq!(world.summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), None, "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert_eq!(world.summon("minecraft:item", [0.5, 64.0, 0.5], &nbt), Some(1));
+});
+assert_eq!(ops.summons[0].kind, "minecraft:item");
+```
+
+### `SummonRecord`
+
+One entity a `MemoryWorldOps` was asked to summon, as it was asked: `dimension`, `kind`, `pos` and `nbt`. A summon's id is its 1-based place in `MemoryWorldOps::summons`.
+
+### `World::explode`
+
+`fn explode(&self, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool`. Sets off an explosion at `center` (Minecraft: `Level.explode`): entities in the radius are hurt and pushed back, `fire` starts fires on the blocks the blast exposed, and `interaction` says what happens to the blocks. `radius` is the explosion's size as the game's own calls state it (a primed tnt's is 4.0); the game accepts a finite centre within the world and a radius up to 32. Returns whether the explosion was set off (or, over Horizon, accepted for the level's seam to set off within the tick — the game has no mod call that explodes, so the request is carried to the level and goes off there); false for a centre or radius the game would refuse, or outside a callback that carries a world. The blast has no source entity: nothing is credited with it.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` validates the centre and radius as the game's `native_explode` (API 66) does and queues the request on `pluto_explosion_access`; the level's mob-event seam (`pluto_explosion_flush`) sets it off with `native_explode` in the dimension named, like the block ticks the seams drain.
+
+```rust
+use pluto_lib::{with_world, ExplosionInteraction, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.explode([0.0, 64.0, 0.0], 4.0, false, ExplosionInteraction::Tnt), "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert!(world.explode([8.5, 64.0, -2.5], 4.0, true, ExplosionInteraction::Tnt));
+    assert!(!world.explode([8.5, 64.0, -2.5], 0.0, false, ExplosionInteraction::Keep), "no radius, no blast");
+});
+assert_eq!(ops.explosions.len(), 1);
+assert_eq!(ops.explosions[0].interaction, ExplosionInteraction::Tnt);
+```
+
+### `ExplosionInteraction`
+
+What an explosion does to the blocks it reaches (Minecraft: `ExplosionInteraction`): `Keep` leaves them (Java: `NONE`), `Block` breaks them by the block-explosion rule (`BLOCK`), and `Tnt` breaks them by the tnt-explosion rule (`TNT`; the original's `DESTROY` is the same rule).
+
+### `ExplosionRecord`
+
+One explosion a `MemoryWorldOps` was asked to set off, as it was asked: `dimension`, `center`, `radius`, `fire` and `interaction`.

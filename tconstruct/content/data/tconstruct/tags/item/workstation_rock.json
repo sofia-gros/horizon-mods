@@ -1,31 +1,43 @@
 {
   "values": [
     {
-      "id": "#forge:normal_stone",
+      "id": "minecraft:cobblestone",
       "required": false
     },
     {
-      "id": "#forge:blackstone",
+      "id": "minecraft:mossy_cobblestone",
       "required": false
     },
     {
-      "id": "#forge:granite",
+      "id": "minecraft:stone",
       "required": false
     },
     {
-      "id": "#forge:diorite",
+      "id": "minecraft:blackstone",
       "required": false
     },
     {
-      "id": "#forge:andesite",
+      "id": "minecraft:granite",
       "required": false
     },
     {
-      "id": "#forge:deepslate",
+      "id": "minecraft:diorite",
       "required": false
     },
     {
-      "id": "#forge:basalt",
+      "id": "minecraft:andesite",
+      "required": false
+    },
+    {
+      "id": "minecraft:cobbled_deepslate",
+      "required": false
+    },
+    {
+      "id": "minecraft:deepslate",
+      "required": false
+    },
+    {
+      "id": "minecraft:basalt",
       "required": false
     },
     "minecraft:tuff",

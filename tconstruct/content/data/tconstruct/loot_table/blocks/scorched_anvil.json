@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:block",
+  "modifier": [
+    {
+      "type": "minecraft:copy_custom_data",
+      "source": "block_entity",
+      "ops": [
+        {
+          "op": "replace",
+          "source": "Material",
+          "target": "Material"
+        }
+      ]
+    }
+  ],
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "tconstruct:scorched_anvil"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "tconstruct:blocks/scorched_anvil"
+}

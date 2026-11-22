@@ -119,7 +119,7 @@ mod tests {
         let id=Identifier::parse("example:dyed_item").unwrap();
         let next=id.clone();
         let context=ItemColorContext { stack:StackData { item:id.to_string(),count:2,damage:5,max_damage:Some(40),
-            custom_data:[("rgb".into(),Nbt::Int(0x123456))].into_iter().collect(), custom_model_data:None },tint_index:3 };
+            custom_data:[("rgb".into(),Nbt::Int(0x123456))].into_iter().collect(), custom_model_data:None, enchantments:Default::default() },tint_index:3 };
         let expected=context.clone();
         let seen=Arc::new(Mutex::new(Vec::new())); let captured=seen.clone();
         ColorProviderRegistry::register_item(&[id],move |context| {

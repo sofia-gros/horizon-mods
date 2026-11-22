@@ -41,12 +41,19 @@ pub(crate) fn snapshot(game:&super::Game<'_>)->Option<Vec<horizon_client::regist
         });
     }
     // The complete exported static registry, not a renderer catalog or a
-    // hardcoded water/lava list. Membership is consumed separately from the
-    // RegistryLookup tag API: this export has tag IDs, not fluid tag members.
+    // hardcoded water/lava list. The export has tag IDs, not members, so the
+    // tags are read the way the game reads its own (`items::load_tags` over the
+    // resource root's `data/<namespace>/tags/fluid` and the world's pack
+    // stack, nested `#tag`s expanded). A failed read leaves the tags empty:
+    // every `get_tag` is then None (unavailable), never an empty member set.
     if let Some(export)=super::command_export(&game.options.resources,game.options.dedicated.is_none()) {
         if let Some(fluids)=export.by_registry.get("minecraft:fluid").filter(|registry|!registry.ids.is_empty()) {
+            let tags=match horizon_client::items::load_tags(&game.options.resources,"fluid",&game.pack_files()) {
+                Ok(tags)=>tags.into_iter().map(|(tag,members)|(tag,members.into_iter().collect())).collect(),
+                Err(error)=>{ log::warn!("Horizon: the fluid tags are not captured: {error}"); Vec::new() },
+            };
             registries.push(horizon_client::registries::pluto_reload_registry::Registry {
-                id:"minecraft:fluid".into(),entries:fluids.ids.clone(),tags:Vec::new(),item_defaults:None,
+                id:"minecraft:fluid".into(),entries:fluids.ids.clone(),tags,item_defaults:None,
             });
         }
     }

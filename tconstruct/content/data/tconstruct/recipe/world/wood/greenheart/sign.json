@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:greenheart_planks",
+    "X": [
+      "minecraft:stick"
+    ]
+  },
+  "pattern": [
+    "###",
+    "###",
+    " X "
+  ],
+  "group": "sign",
+  "result": {
+    "id": "tconstruct:greenheart_sign",
+    "count": 3
+  }
+}

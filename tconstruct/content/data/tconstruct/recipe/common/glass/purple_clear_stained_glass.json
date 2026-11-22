@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:clear_glass",
+    "X": [
+      "minecraft:purple_dye"
+    ]
+  },
+  "pattern": [
+    "###",
+    "#X#",
+    "###"
+  ],
+  "group": "tconstruct:stained_clear_glass",
+  "result": {
+    "id": "tconstruct:purple_clear_stained_glass",
+    "count": 8
+  }
+}

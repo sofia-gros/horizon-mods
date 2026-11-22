@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:scorched_brick",
+    "B": [
+      "minecraft:quartz"
+    ]
+  },
+  "pattern": [
+    "###",
+    "#B#",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:scorched_fuel_tank"
+  }
+}

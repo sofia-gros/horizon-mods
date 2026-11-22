@@ -83,7 +83,12 @@ class ContentAssets(unittest.TestCase):
             self.assertEqual(definition['model']['type'], 'minecraft:model')
             self.assertTrue(self.resolves('models', 'json', definition['model']['model']), name)
         for name in blocks:
-            for variant in load(ASSETS / 'blockstates' / f'{name}.json')['variants'].values():
+            blockstate = load(ASSETS / 'blockstates' / f'{name}.json')
+            # a multipart block state (the channel) applies a model, or a list of them, per part
+            applied = list(blockstate['variants'].values()) if 'variants' in blockstate else [
+                apply for part in blockstate['multipart'] for apply in (part['apply'] if isinstance(part['apply'], list) else [part['apply']])]
+            self.assertTrue(applied, name)
+            for variant in applied:
                 self.assertTrue(self.resolves('models', 'json', variant['model']), name)
         for path in (ASSETS / 'items').glob('*.json'):
             self.assertIn(path.stem, blocks | items, f'item definition for an undeclared id: {path.name}')
@@ -409,6 +414,9 @@ class ContentAssets(unittest.TestCase):
         used = set()
         for path in (ASSETS / 'models').rglob('*.json'):
             used |= {split(t)[1] for t in load(path).get('textures', {}).values() if split(t)[0] == 'tconstruct'}
+        # GUI textures are drawn by the screens' Rust code, not by models: the sprite names the sources use.
+        sources = ''.join(path.read_text(encoding='utf-8') for path in (ROOT / 'tconstruct/mixins/tconstruct/api/src').glob('*.rs'))
+        used |= {f'gui/{name}' for name in re.findall(r'"tconstruct:gui/([a-z_]+)"', sources)}
         present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
                    if not p.relative_to(ASSETS / 'textures').as_posix().startswith('entity/equipment/')}
         self.assertEqual(present, used)

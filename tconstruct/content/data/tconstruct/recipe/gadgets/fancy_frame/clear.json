@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "M": "tconstruct:clear_glass",
+    "e": "tconstruct:clear_glass_pane"
+  },
+  "pattern": [
+    " e ",
+    "eMe",
+    " e "
+  ],
+  "group": "tconstruct:fancy_item_frame",
+  "result": {
+    "id": "tconstruct:clear_item_frame"
+  }
+}

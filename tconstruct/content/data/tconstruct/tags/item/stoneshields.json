@@ -1,11 +1,19 @@
 {
   "values": [
     {
-      "id": "#forge:stone",
+      "id": "minecraft:stone",
       "required": false
     },
     {
-      "id": "#forge:cobblestone",
+      "id": "minecraft:cobbled_deepslate",
+      "required": false
+    },
+    {
+      "id": "minecraft:cobblestone",
+      "required": false
+    },
+    {
+      "id": "minecraft:mossy_cobblestone",
       "required": false
     },
     {
@@ -13,7 +21,7 @@
       "required": false
     },
     {
-      "id": "#forge:end_stones",
+      "id": "minecraft:end_stone",
       "required": false
     },
     {

@@ -655,7 +655,7 @@ assert_eq!(view.is_state_in_tag(&log, "example:leaves"), Some(false));
 
 ### `EntityInsideContext`
 
-An entity is inside the block. `dimension` is the dimension id, `state` the block's state, `pos` its position, `entity` the entity's id and `kind` its type.
+An entity is inside the block. `dimension` is the dimension id, `state` the block's state, `pos` its position, `entity` the entity's id and `kind` its type. `bounds` is the entity's bounding box as `[min x, min y, min z, max x, max y, max z]` and `fall_distance` how far it has fallen, in blocks: the two numbers the original's contact tests and fall bonuses are computed from (a punji hurts only a living entity whose box crosses the block's mid-plane, and deals the fall distance + 1 more after a fall).
 
 ```rust
 use pluto_lib::{BlockState, EntityInsideContext};
@@ -666,8 +666,13 @@ let context = EntityInsideContext {
     pos: [0, 64, 0],
     entity: 12,
     kind: "minecraft:zombie".into(),
+    bounds: [0.2, 64.0, 0.2, 0.8, 65.9, 0.8],
+    fall_distance: 3.5,
+    actions: Default::default(),
 };
 assert_eq!(context.kind, "minecraft:zombie");
+assert_eq!(context.bounds[4], 65.9);
+assert_eq!(context.fall_distance, 3.5);
 assert_eq!((context.entity, context.pos), (12, [0, 64, 0]));
 assert_eq!(context.dimension, "minecraft:overworld");
 assert_eq!(context.state.block.path(), "post");
@@ -933,7 +938,7 @@ assert_eq!(behavior.block().path(), "cushion");
 
 ### `BlockBehavior::entity_inside`
 
-`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. Stub: the callbacks are accepted and not called yet (see the support matrix).
+`fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. The player, mob and item movement seams invoke the callbacks on the server side, with the level's dimension, the block's full state, the entity's id and kind, its bounding box and its fall distance (see the support matrix for what is not covered).
 
 ```rust
 use pluto_lib::{BlockBehavior, Identifier};

@@ -97,6 +97,17 @@ pub(crate) fn register() {
     ProjectileEvents::SHOOT_BOW.register(|shot| {
         shot.actions.borrow_mut().extend(usage_actions(&[&shot.main_hand, &shot.off_hand], crate::weapon_effect::Usage::Launch { primary: true }));
     });
+    // Launch capacity (LaunchCapacityModule): the bar of the launcher in either hand (the first Tinkers tool, as the usage effects pick it) is
+    // filled or drained once for each arrow. The host reads the hands anew for each arrow and applies the edit at once, so a multishot's
+    // arrows add up.
+    ProjectileEvents::SHOOT_BOW.register(|shot| {
+        for (slot, stack) in [(StackSlot::MainHand, &shot.main_hand), (StackSlot::OffHand, &shot.off_hand)] {
+            let Some(held) = stack.as_ref() else { continue; };
+            let Ok(edits) = with_held_tool(held, |env, tool| tool_stack::launch_capacity_edits(&tool.custom_data, env)) else { continue; };
+            if !edits.is_empty() { shot.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot, item: held.item.clone(), edits }); }
+            break;
+        }
+    });
     // Shearing a mob with a tool (MobEffectModule.ToolUsage's shear half): heard before the shears act.
     ServerEntityEvents::SHEAR.register(|attempt| {
         attempt.actions.borrow_mut().extend(usage_actions(&[&attempt.tool], crate::weapon_effect::Usage::Shear { target: true }));

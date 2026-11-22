@@ -3,8 +3,13 @@
 
 Source: the read-only checkout at .local/tconstruct-source (revision pinned by
 tconstruct/compatibility.json). Files are copied byte for byte, never edited, so the content
-root stays a mechanical projection of the original. Other-mod integration is left out:
-the minotaur axe and every material whose condition depends on external ingot tags.
+root stays a mechanical projection of the original. Other-mod integration is left out
+only where the original registers content on another mod's behalf: the minotaur axe.
+The sixteen integration materials are copied with everything else, condition payload
+included; the port evaluates data conditions at load, so they stay inactive until
+another mod fills their ingot tags (or force_integration_materials is set), as in Java.
+One divergence from Java: this port bakes its creative tabs from the shipped data
+rather than the loaded registry, so the sixteen appear in the tab tables while inactive.
 """
 import json
 from pathlib import Path
@@ -25,10 +30,7 @@ TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tags'
 TAG_FOLDER_NAMES = {'items': 'item', 'blocks': 'block', 'entity_types': 'entity_type'}
 
 
-def external(condition):
-    """True when a material condition is about ingots another mod must supply."""
-    text = json.dumps(condition)
-    return 'mantle:tag_filled' in text or 'forge:mod_loaded' in text
+REPAIRABLE = ['head', 'limb', 'plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'skull', 'slime']
 
 
 def write_creative_parts(skipped):
@@ -51,23 +53,90 @@ def write_creative_parts(skipped):
     parts = re.findall(r'\("([a-z_]+)", "([a-z_]+)"\)', table)
     # RepairKitItem is a material item with its own stat type but is not a ToolPart.
     parts.append(('repair_kit', 'repair_kit'))
+    # FakeIngotItem is a RepairKitItem for the compatibility materials that lack an ingot form (its row is
+    # intersected with that material tag below, and with whether the material is shipped at all).
+    parts.append(('fake_ingot', 'repair_kit'))
+    compat = set()
+    compat_path = TARGET / 'tags/materials/compatibility_metals.json'
+    if compat_path.exists():
+        for entry in json.loads(compat_path.read_text(encoding='utf-8'))['values']:
+            text = entry if isinstance(entry, str) else entry.get('id', '')
+            if text.startswith('tconstruct:') and '/' not in text:
+                compat.add(text.split(':', 1)[1])
     lines = ['//! Tool parts with the visible shipped materials that can make them, in creative-tab order.',
              '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
              'pub(crate) const PARTS: &[(&str, &[&str])] = &[']
     for item, stat in parts:
-        materials = [name for name in order if f'tconstruct:{stat}' in stats.get(name, set())]
+        # RepairKitItem.canUseMaterial: the repair kit stat or any stat type of IRepairableMaterialStats
+        wanted = {f'tconstruct:{stat}'} | ({f'tconstruct:{name}' for name in REPAIRABLE} if stat == 'repair_kit' else set())
+        materials = [name for name in order if wanted & stats.get(name, set())]
+        if item == 'fake_ingot':
+            # FakeIngotItem.canUseMaterial: only the compatibility materials (the missing-item half of the
+            # check needs the loaded material recipes, so a material with an ingot recipe may still be listed).
+            materials = [name for name in materials if name in compat]
         lines.append(f'    ("{item}", &[' + ', '.join(f'"{name}"' for name in materials) + ']),')
     lines.append('];')
+    # ModifierCrystalItem.addVariants: every modifier a modifier recipe makes (ModifierRecipeLookup.getRecipeModifierList, sorted by id),
+    # except the extract blacklist; the original reads them from the loaded recipes, the tab here is fixed when the mod starts.
+    def tag_members(path, seen=()):
+        found = set()
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            text = entry if isinstance(entry, str) else entry['id']
+            if text.startswith('#tconstruct:') and (TARGET / 'tags/modifiers' / f'{text[12:]}.json').is_file():
+                found |= tag_members(TARGET / 'tags/modifiers' / f'{text[12:]}.json')
+            elif text.startswith('tconstruct:'):
+                found.add(text)
+        return found
+    blacklist = tag_members(TARGET / 'tags/modifiers/extract_blacklist/tools.json')
+    modifier_made = set()
+    for path in MODIFIER_RECIPE_SOURCE.rglob('*.json'):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('type') in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:swappable_modifier'):
+            result = data['result']
+            modifier_made.add(result if isinstance(result, str) else result['name'])
+    crystals = sorted(name for name in modifier_made if name not in blacklist)
+    lines += ['', '/// Modifiers that get a modifier crystal stack, by id (namespace tconstruct).', 'pub(crate) const CRYSTALS: &[&str] = &[']
+    lines += [f'    "{name}",' for name in crystals] + ['];']
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_parts.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
-ARMOR_TOOLS = ['travelers_helmet', 'travelers_chestplate', 'travelers_leggings', 'travelers_boots', 'travelers_shield',
-               'plate_helmet', 'plate_chestplate', 'plate_leggings', 'plate_boots', 'plate_shield',
-               'slime_helmet', 'slime_chestplate', 'slime_leggings', 'slime_boots', 'slime_wings']
+# TinkerTools.addTabItems order: tools that lack materials, small tools, broad tools, ranged, ancient tools, then armor (minotaur_axe is another mod's).
+TOOL_ORDER = ['flint_and_brick', 'sky_staff', 'earth_staff', 'ichor_staff', 'ender_staff',
+              'pickaxe', 'pickadze', 'mattock', 'hand_axe', 'kama', 'dagger', 'sword',
+              'sledge_hammer', 'vein_hammer', 'excavator', 'broad_axe', 'scythe', 'cleaver',
+              'crossbow', 'longbow', 'fishing_rod', 'javelin', 'arrow', 'shuriken', 'throwing_axe',
+              'melting_pan', 'war_pick', 'battlesign', 'swasher',
+              'travelers_helmet', 'travelers_chestplate', 'travelers_leggings', 'travelers_boots', 'travelers_shield',
+              'plate_helmet', 'plate_chestplate', 'plate_leggings', 'plate_boots', 'plate_shield',
+              'slime_helmet', 'slime_chestplate', 'slime_leggings', 'slime_boots', 'slime_wings']
+
+
+def write_creative_fluids(fluid_names):
+    """creative_fluids.rs: the fluids of the Tanks tab in registry order, each with whether the original (TankItem.addFilledVariants)
+    fills the ingot tank and gauge for it (the `tooltips/metal` fluid tag) instead of the fuel ones; `hide_in_creative_tanks` ones are left out."""
+    def members(name):
+        data = json.loads((FLUID_HOST_TAG_TARGET / f'{name}.json').read_text(encoding='utf-8'))
+        found = set()
+        for entry in data['values']:
+            text = entry if isinstance(entry, str) else entry['id']
+            if text.startswith('#tconstruct:') and (FLUID_HOST_TAG_TARGET / f'{text[12:]}.json').is_file():
+                found |= members(text[12:])
+            elif not text.startswith('#'):
+                found.add(text.removeprefix('tconstruct:'))
+        return found
+    metal, hidden = members('tooltips/metal'), members('hide_in_creative_tanks')
+    lines = ['//! The fluids of the Tanks creative tab, in registry order, and whether each is a metal (ingot tanks instead of fuel tanks).',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const FLUIDS: &[(&str, bool)] = &[']
+    for name in fluid_names:
+        if name not in hidden:
+            lines.append('    ("%s", %s),' % (name, 'true' if name in metal else 'false'))
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_fluids.rs').write_text(chr(10).join(lines) + chr(10), encoding='utf-8', newline=chr(10))
 
 
 def write_creative_tools():
-    """creative_tools.rs: the armor and shield stacks of the Tools tab, as ToolBuildHandler.addVariants lists them.
+    """creative_tools.rs: the stacks of the Tools tab, as ToolBuildHandler.addVariants lists them (a tool with no materials is one plain stack).
 
     Per tool, one material list for each visible material (same order as the parts tab) that has any of the
     tool's stat types; slots whose stat type the material lacks take the first visible material with it
@@ -85,15 +154,15 @@ def write_creative_tools():
     source = (ROOT / 'tconstruct/mixins/tconstruct/api/src/tool_parts.rs').read_text(encoding='utf-8')
     table = source.split('const PARTS')[1].split('];')[0]
     part_stat = dict(re.findall(r'\("([a-z_]+)", "([a-z_]+)"\)', table))
-    lines = ['//! Armor and shield stacks of the Tools creative tab: per tool, the material of each slot for every entry.',
+    lines = ['//! Stacks of the Tools creative tab: per tool, the material of each slot for every entry.',
              '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
-             'pub(crate) const ARMOR: &[(&str, &[&[&str]])] = &[']
-    for tool in ARMOR_TOOLS:
+             'pub(crate) const TOOLS: &[(&str, &[&[&str]])] = &[']
+    for tool in TOOL_ORDER:
         modules = json.loads((TARGET / 'tool_definitions' / f'{tool}.json').read_text(encoding='utf-8'))['modules']
         required = []
         for module in modules:
             if module['type'] == 'tconstruct:part_stats':
-                required = [part_stat[part.split(':')[1]] for part in module['parts']]
+                required = [part_stat[(part if isinstance(part, str) else part['item']).split(':')[1]] for part in module['parts']]
             elif module['type'] == 'tconstruct:material_stats':
                 required = [(entry if isinstance(entry, str) else entry['stat']).split(':')[1] for entry in module['stat_types']]
         has = lambda name, stat: f'tconstruct:{stat}' in stats.get(name, set())
@@ -102,6 +171,8 @@ def write_creative_tools():
         for name in order:
             if any(has(name, stat) for stat in required):
                 entries.append([name if has(name, stat) else first[i] for i, stat in enumerate(required)])
+        if not required:
+            entries = [[]]  # no materials: one plain stack
         rows = ', '.join('&[' + ', '.join(f'"{m}"' for m in entry) + ']' for entry in entries)
         lines.append(f'    ("{tool}", &[{rows}]),')
     lines.append('];')
@@ -143,11 +214,28 @@ def copy_modifier_recipes():
         shutil.rmtree(MODIFIER_RECIPE_TARGET)
     count = 0
     for path in sorted(MODIFIER_RECIPE_SOURCE.rglob('*.json')):
-        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier'):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting'):
             continue
         destination = MODIFIER_RECIPE_TARGET / path.relative_to(MODIFIER_RECIPE_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+def copy_enchantment_data():
+    """The enchantment-to-modifier map and the modifier_like enchantment tags its # keys name, byte
+    for byte. Every tag entry names another mod's enchantment as optional, so the tags resolve empty
+    in this game; they are kept so a datapack defining one of those enchantments makes the mapping live."""
+    shutil.copyfile(SOURCE / 'enchantments_to_modifiers.json', TARGET / 'enchantments_to_modifiers.json')
+    source = TAG_SOURCE / 'enchantment/modifier_like'
+    target = TAG_TARGET / 'enchantment/modifier_like'
+    if target.exists():
+        shutil.rmtree(target)
+    count = 0
+    for path in sorted(source.glob('*.json')):
+        target.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target / path.name)
         count += 1
     return count
 
@@ -173,6 +261,99 @@ def copy_recycling_recipes():
         shutil.copyfile(path, destination)
         count += 1
     return count
+
+
+DAMAGEABLE_RECYCLE_SOURCES = [
+    (ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/recycling',
+     ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/recycling'),
+    (ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tables/recycling',
+     ROOT / 'tconstruct/content/data/tconstruct/recipes/tables/recycling'),
+]
+
+
+def copy_damageable_recycling_recipes():
+    """The part builder's damageable recycling recipes (`tconstruct:part_builder_recycling`: a vanilla item or a
+    material-less tool breaks into fixed results, scaled by its remaining durability), byte for byte. They sit
+    beside the tool recycling recipes in the tools tree and alone in the tables tree."""
+    count = 0
+    for source, target in DAMAGEABLE_RECYCLE_SOURCES:
+        for path in sorted(source.rglob('*.json')):
+            if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:part_builder_recycling':
+                continue
+            destination = target / path.relative_to(source)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            count += 1
+    return count
+
+
+LAYOUT_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering/station_layouts'
+LAYOUT_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/station_layouts'
+# The layouts TinkerTables.commonSetup registers as required: the main layout of each station block.
+REQUIRED_LAYOUTS = ['tinker_station', 'tinkers_anvil', 'scorched_anvil']
+
+
+def copy_station_layouts():
+    """The tinker station slot layouts, byte for byte, plus station_layout_order.rs: the tab order of the
+    non-main layouts (StationSlotLayoutLoader's sorted list: by sortIndex, then name), which the window
+    publishes button indices into. A layout without a sortIndex is a station's main layout."""
+    if LAYOUT_TARGET.exists():
+        shutil.rmtree(LAYOUT_TARGET)
+    LAYOUT_TARGET.mkdir(parents=True)
+    layouts = {}
+    for path in sorted(LAYOUT_SOURCE.glob('*.json')):
+        shutil.copyfile(path, LAYOUT_TARGET / path.name)
+        layouts[path.stem] = json.loads(path.read_text(encoding='utf-8'))
+    missing = [name for name in REQUIRED_LAYOUTS if name not in layouts]
+    if missing:
+        raise SystemExit(f'required station layouts missing: {missing}')
+    tabs = sorted((data['sortIndex'], name) for name, data in layouts.items() if 'sortIndex' in data)
+    lines = ['//! The station layouts the window offers as tabs, in the loader\'s order (sortIndex, then name).',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const TAB_ORDER: &[&str] = &[']
+    lines += [f'    "{name}",' for _, name in tabs] + ['];']
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/station_layout_order.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(layouts)
+
+
+SEVERING_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/severing'
+SEVERING_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tools/severing'
+LOOT_MODIFIER_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/loot_modifiers'
+LOOT_MODIFIER_TARGET = ROOT / 'tconstruct/content/data/tconstruct/loot_modifiers'
+GLOBAL_LOOT_MODIFIER_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/forge/loot_modifiers/global_loot_modifiers.json'
+GLOBAL_LOOT_MODIFIER_TARGET = ROOT / 'tconstruct/content/data/forge/loot_modifiers/global_loot_modifiers.json'
+
+
+def copy_severing_recipes():
+    """The severing recipes that turn a mob type into an item, byte for byte. The recipes whose output depends on the entity's own state
+    (ageable, mooshroom, player, sheep and snow golem) are left out: the loot event reports no such state."""
+    if SEVERING_TARGET.exists():
+        shutil.rmtree(SEVERING_TARGET)
+    count = 0
+    for path in sorted(SEVERING_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:severing':
+            continue
+        destination = SEVERING_TARGET / path.relative_to(SEVERING_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+def copy_loot_modifiers():
+    """The global loot modifiers and the list that orders them, byte for byte. The list keeps its Forge-era
+    folder: the port's own loot engine reads it to learn the order the modifiers run in."""
+    if LOOT_MODIFIER_TARGET.exists():
+        shutil.rmtree(LOOT_MODIFIER_TARGET)
+    count = 0
+    for path in sorted(LOOT_MODIFIER_SOURCE.rglob('*.json')):
+        destination = LOOT_MODIFIER_TARGET / path.relative_to(LOOT_MODIFIER_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    GLOBAL_LOOT_MODIFIER_TARGET.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(GLOBAL_LOOT_MODIFIER_SOURCE, GLOBAL_LOOT_MODIFIER_TARGET)
+    return count + 1
 
 
 def copy_part_builder_recipes():
@@ -232,8 +413,8 @@ def copy_fluid_recipes():
 
 def copy_fluid_tags():
     """The fluid tags the recipes name (forge:molten_iron, mantle:soup...), byte for byte, in the mod's own folder per
-    namespace. They are not placed in the host's tags/fluid folder: the Tinkers fluids are not registered yet, and a tag
-    naming an unknown fluid would be rejected by the game."""
+    namespace, for the recipes' FluidTags. The host's own tag folder gets the converted tconstruct ones
+    (copy_fluid_host_tags): these keep the flowing variants and the forge/mantle namespaces the host does not have."""
     if FLUID_TAG_TARGET.exists():
         shutil.rmtree(FLUID_TAG_TARGET)
     count = 0
@@ -243,12 +424,499 @@ def copy_fluid_tags():
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, destination)
             count += 1
+    # Mantle defines `mantle:water` itself (the recipes of composite oxidation and tipped arrow cleaning name it); its own definition is water.
+    write_json(FLUID_TAG_TARGET / 'mantle/water.json', {'values': ['minecraft:water', 'minecraft:flowing_water']})
+    return count + 1
+
+
+FLUID_EFFECT_SOURCE = SOURCE / 'fluid_effects'
+FLUID_EFFECT_TARGET = TARGET / 'fluid_effects'
+
+
+def copy_fluid_effects():
+    """The fluid effects (tinkering/fluid_effects), byte for byte: the engine in fluid_effects.rs decodes them with
+    the original's FluidEffectManager semantics, load conditions and all."""
+    if FLUID_EFFECT_TARGET.exists():
+        shutil.rmtree(FLUID_EFFECT_TARGET)
+    count = 0
+    for path in sorted(FLUID_EFFECT_SOURCE.rglob('*.json')):
+        destination = FLUID_EFFECT_TARGET / path.relative_to(FLUID_EFFECT_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+FLUID_JAVA = ROOT / '.local/tconstruct-source/src/main/java/slimeknights/tconstruct/fluids/TinkerFluids.java'
+FLUID_TEXTURES = ROOT / '.local/tconstruct-source/src/generated/resources/assets/tconstruct/mantle/fluid_texture'
+FLUID_DEFS_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/fluid_defs.rs'
+FLUID_HOST_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tags/fluid'
+# FluidType.Properties defaults (Forge): water's numbers. The helper builders of TinkerFluids start from these.
+FLUID_DEFAULT = {'temperature': 300, 'light': 0, 'density': 1000, 'viscosity': 1000}
+FLUID_BUILDERS = {
+    'cool': {},
+    'powder': {},
+    'slime': {'density': 1600, 'viscosity': 1600},
+    'hot': {'density': 2000, 'viscosity': 10000, 'temperature': 1000},
+}
+FLUID_SETTERS = {'temperature': 'temperature', 'lightLevel': 'light', 'density': 'density', 'viscosity': 'viscosity'}
+
+
+def fluid_properties(expression):
+    """Evaluate one FluidType.Properties chain of TinkerFluids (`hot("x").temperature(900).lightLevel(6)`): the helper
+    builder's defaults, then each setter in order. Anything this does not know stops the import."""
+    values = dict(FLUID_DEFAULT)
+    base = re.search(r'\b(cool|powder|slime|hot)\(("[a-z_]*"\s*)?\)', expression)
+    if not base:
+        raise SystemExit(f'fluid properties without a known builder: {expression}')
+    values.update(FLUID_BUILDERS[base.group(1)])
+    for name, argument in re.findall(r'\.(\w+)\((-?\d+)\)', expression[base.end():]):
+        if name not in FLUID_SETTERS:
+            raise SystemExit(f'unknown fluid property setter {name} in {expression}')
+        values[FLUID_SETTERS[name]] = int(argument)
+    return values
+
+
+def fluid_type_expression(name, rest):
+    """The FluidType.Properties expression of one registration line: the second argument of registerSlime(name, props),
+    or the argument of .type(...) / .invertedType(...) up to the call that follows it."""
+    if rest.startswith(', '):
+        return rest[2:rest.index(').bucket(') if ').bucket(' in rest else len(rest)]
+    found = re.search(r'\.(?:type|invertedType)\((.*?)\)\.(?:bucket|block|burningBlock|commonTag|unplacable|tickRate|flowing|invertedFlowing)\(', rest)
+    if not found:
+        raise SystemExit(f'fluid {name}: no type in {rest}')
+    return found.group(1)
+
+
+# FluidDeferredRegisterExtension: level decrease per block, slope find distance and tick rate of each family (Forge's defaults: 1, 4, 5).
+FLUID_FAMILIES = {'register': (1, 4, 5), 'registerSlime': (1, 4, 50), 'registerStone': (2, 2, 40), 'registerMetal': (3, 3, 30), 'registerGem': (4, 4, 45), 'registerGlass': (8, 8, 30)}
+# net.minecraft.world.level.material.MapColor ids
+MAP_COLORS = {name: index for index, name in enumerate(
+    'NONE GRASS SAND WOOL FIRE ICE METAL PLANT SNOW CLAY DIRT STONE WATER WOOD QUARTZ COLOR_ORANGE COLOR_MAGENTA COLOR_LIGHT_BLUE COLOR_YELLOW COLOR_LIGHT_GREEN '
+    'COLOR_PINK COLOR_GRAY COLOR_LIGHT_GRAY COLOR_CYAN COLOR_PURPLE COLOR_BLUE COLOR_BROWN COLOR_GREEN COLOR_RED COLOR_BLACK GOLD DIAMOND LAPIS EMERALD PODZOL NETHER '
+    'TERRACOTTA_WHITE TERRACOTTA_ORANGE TERRACOTTA_MAGENTA TERRACOTTA_LIGHT_BLUE TERRACOTTA_YELLOW TERRACOTTA_LIGHT_GREEN TERRACOTTA_PINK TERRACOTTA_GRAY '
+    'TERRACOTTA_LIGHT_GRAY TERRACOTTA_CYAN TERRACOTTA_PURPLE TERRACOTTA_BLUE TERRACOTTA_BROWN TERRACOTTA_GREEN TERRACOTTA_RED TERRACOTTA_BLACK CRIMSON_NYLIUM '
+    'CRIMSON_STEM CRIMSON_HYPHAE WARPED_NYLIUM WARPED_STEM WARPED_HYPHAE WARPED_WART_BLOCK DEEPSLATE RAW_IRON GLOW_LICHEN'.split())}
+FLUID_EFFECTS = {'MobEffects.POISON': 'minecraft:poison', 'MobEffects.MOVEMENT_SLOWDOWN': 'minecraft:slowness', 'MobEffects.BLINDNESS': 'minecraft:blindness',
+                 'TinkerEffects.bouncy.get()': 'tconstruct:bouncy', 'TinkerEffects.ricochet.get()': 'tconstruct:ricochet', 'TinkerEffects.enderference.get()': 'tconstruct:enderference'}
+
+
+def duration(text):
+    """A MobEffectInstance duration such as `5*20` or `250`."""
+    if not re.fullmatch(r'[0-9 *]+', text):
+        raise SystemExit(f'effect duration {text}')
+    result = 1
+    for factor in text.split('*'):
+        result *= int(factor)
+    return result
+
+
+def fluid_block(name, rest):
+    """The block of one registration: None when it has none (`.unplacable()`), else its map colour, light and contact rule."""
+    burning = re.search(r'\.burningBlock\(MapColor\.(\w+),\s*(\d+),\s*(\d+),\s*([\d.]+)f\)', rest)
+    if burning:
+        return {'color': burning.group(1), 'light': int(burning.group(2)), 'contact': ('burning', int(burning.group(3)), float(burning.group(4)))}
+    start = rest.find('.block(')
+    if start < 0:
+        if '.unplacable()' in rest:
+            return None
+        raise SystemExit(f'fluid {name}: block not understood: {rest}')
+    depth, index = 0, start + len('.block')
+    for index in range(start + len('.block'), len(rest)):
+        depth += rest[index] == '('
+        depth -= rest[index] == ')'
+        if depth == 0:
+            break
+    inner = rest[start + len('.block(') : index]
+    plain = re.fullmatch(r'MapColor\.(\w+),\s*(\d+)', inner)
+    if plain:
+        return {'color': plain.group(1), 'light': int(plain.group(2)), 'contact': None}
+    burn = re.fullmatch(r'createBurning\(MapColor\.(\w+),\s*(\d+),\s*(\d+),\s*([\d.]+)f\)', inner)
+    if burn:
+        return {'color': burn.group(1), 'light': int(burn.group(2)), 'contact': ('burning', int(burn.group(3)), float(burn.group(4)))}
+    effect = re.fullmatch(r'createEffect\(MapColor\.(\w+),\s*(\d+),\s*\(\)\s*->\s*new MobEffectInstance\(([\w.()]+),\s*([0-9 *]+)(?:,\s*(\d+))?\)\)', inner)
+    if not effect or effect.group(3) not in FLUID_EFFECTS:
+        raise SystemExit(f'fluid {name}: block not understood: {inner}')
+    block = {'color': effect.group(1), 'light': int(effect.group(2)),
+             'contact': ('effect', FLUID_EFFECTS[effect.group(3)], int(effect.group(5) or 0), duration(effect.group(4)))}
+    return block
+
+
+def fluid_registrations():
+    """One dict per `FLUIDS.register*` line of TinkerFluids, in registration order: its properties, flow family, block and bucket."""
+    rows = []
+    for line in FLUID_JAVA.read_text(encoding='utf-8').splitlines():
+        match = re.search(r'=\s*FLUIDS\.(register\w*)\("([a-z_]+)"(.*)$', line)
+        if not match:
+            continue
+        method, name, rest = match.groups()
+        values = fluid_properties(fluid_type_expression(name, rest))
+        texture = FLUID_TEXTURES / f'{name}.json'
+        info = json.loads(texture.read_text(encoding='utf-8')) if texture.exists() else {}
+        drop, slope, tick = FLUID_FAMILIES[method]
+        override = re.search(r'\.tickRate\((\d+)\)', rest)
+        base = re.search(r'\b(cool|powder|slime|hot)\(("[a-z_]*"\s*)?\)', fluid_type_expression(name, rest))
+        block = fluid_block(name, rest)
+        rows.append({'name': name, **values, 'color': int(info.get('color', 'FFFFFFFF'), 16), 'still': info.get('still'),
+                     'drop': drop, 'slope': slope, 'tick': int(override.group(1)) if override else tick,
+                     'hot': base.group(1) == 'hot', 'block': block,
+                     'bucket': block is not None or 'PotionBucketItem' in rest,
+                     'bucket_tagged': 'PotionBucketItem' in rest})
+    return rows
+
+
+def write_fluid_defs():
+    """fluid_defs.rs: the original's 72 fluids with temperature, luminance, density, viscosity and tint, in TinkerFluids order, and
+    how each is in the world.
+
+    Attributes are the FluidType.Properties of each registration (the `hot`/`slime`/`cool`/`powder` helper defaults, then the
+    setters), the tint is the colour of the generated mantle fluid_texture (white when it has none). The names are the
+    original's `fluid.tconstruct.<name>` translations, already in the lang files. The flow is the family's of
+    FluidDeferredRegisterExtension (level decrease, slope distance, tick rate), the block light and contact rule are those of
+    `createBurning` / `createEffect`, and a fluid with no block (`unplacable`) has no block here: powdered snow has
+    no bucket of its own either (its bucket is the vanilla item), while the potion has one, its own item, and the
+    bucket carries the fluid's tag (`bucket_tagged`: the registration's `PotionBucketItem` factory)."""
+    rows = fluid_registrations()
+    if len(rows) != 72 or len({row['name'] for row in rows}) != 72:
+        raise SystemExit(f"expected the original's 72 distinct fluids, found {len(rows)}")
+    lines = ["//! The original's 72 fluids (SlimeKnights TinkerFluids, MIT; see LICENSE): attributes, tint and world behaviour, in registration order.",
+             '//! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.', '',
+             '/// What an entity inside the fluid block suffers (BurningLiquidBlock, MobEffectLiquidBlock).',
+             '#[derive(Clone, Copy, Debug, PartialEq)]',
+             'pub(crate) enum Contact { None, Burning { seconds: i32, damage: f32 }, Effect { effect: &\'static str, amplifier: i32, duration: i32 } }', '',
+             '/// One fluid: id path (namespace tconstruct), kelvin, luminance, density, viscosity and tint (0xAARRGGBB); whether it has a block and a bucket,',
+             '/// and whether the bucket carries the fluid tag; its flow (tick delay, level drop per block, slope distance), the sounds of its',
+             '/// bucket (`hot`: the lava ones), the light of its block and its contact rule.',
+             "pub(crate) struct FluidSpec { pub name: &'static str, pub temperature: i32, pub luminance: u8, pub density: i32, pub viscosity: i32, pub color: u32,",
+             '    pub placeable: bool, pub bucket: bool, pub bucket_tagged: bool, pub tick_delay: u16, pub level_drop: u8, pub slope_distance: u8, pub hot: bool, pub block_light: u8, pub contact: Contact }',
+             '', 'pub(crate) const FLUIDS: &[FluidSpec] = &[']
+    for row in rows:
+        block = row['block']
+        contact = 'Contact::None'
+        if block and block['contact']:
+            kind = block['contact']
+            contact = f'Contact::Burning {{ seconds: {kind[1]}, damage: {kind[2]:.1f} }}' if kind[0] == 'burning' else f'Contact::Effect {{ effect: "{kind[1]}", amplifier: {kind[2]}, duration: {kind[3]} }}'
+        lines.append(f"    FluidSpec {{ name: \"{row['name']}\", temperature: {row['temperature']}, luminance: {row['light']}, density: {row['density']}, viscosity: {row['viscosity']}, "
+                     f"color: 0x{row['color']:08X}, placeable: {str(block is not None).lower()}, bucket: {str(row['bucket']).lower()}, bucket_tagged: {str(row['bucket_tagged']).lower()}, tick_delay: {row['tick']}, level_drop: {row['drop']}, "
+                     f"slope_distance: {row['slope']}, hot: {str(row['hot']).lower()}, block_light: {block['light'] if block else 0}, contact: {contact} }},")
+    lines.append('];')
+    FLUID_DEFS_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(rows), [row['name'] for row in rows]
+
+
+RENDER_MODEL = ROOT / '.local/tconstruct-source/src/generated/resources/assets/tconstruct/mantle/model'
+RENDER_MODEL_MAIN = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/mantle/model'
+RENDER_DATA_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/render_data.rs'
+RENDER_DIRECTIONS = ('down', 'up', 'north', 'south', 'west', 'east')
+
+
+def _render_float(value):
+    return repr(float(value))
+
+
+def _render_cuboid(data):
+    """One Mantle FluidCuboid as Rust: the box in sixteenths and the faces it draws (all of them when the data names none)."""
+    faces = data.get('faces')
+    if faces is None:
+        faces = {direction: {} for direction in RENDER_DIRECTIONS}
+    rendered = ', '.join(
+        f"Face {{ dir: \"{direction}\", flowing: {str(bool(face.get('flowing', False))).lower()}, rotation: {int(face.get('rotation', 0))} }}"
+        for direction, face in sorted(faces.items(), key=lambda item: RENDER_DIRECTIONS.index(item[0])))
+    return (f"Cuboid {{ from: [{', '.join(_render_float(v) for v in data['from'])}], "
+            f"to: [{', '.join(_render_float(v) for v in data['to'])}], faces: &[{rendered}] }}")
+
+
+def _render_item(data):
+    """One Mantle RenderItem as Rust: center and size in sixteenths, the display transform, the x/y rotation in degrees."""
+    return (f"RenderItem {{ center: [{', '.join(_render_float(v) for v in data['center'])}], size: {_render_float(data['size'])}, "
+            f"transform: \"{data['transform']}\", x: {_render_float(data.get('x', 0))}, y: {_render_float(data.get('y', 0))} }}")
+
+
+def _render_variants(kind, name, render_one):
+    """The variants of one block's entry in a mantle model folder (`block_fluids` or `item_lists`): a variant value is a
+    template name (read from the folder's templates), one entry, or a list of entries."""
+    data = json.loads((RENDER_MODEL / kind / f'{name}.json').read_text(encoding='utf-8'))
+    variants = []
+    for key, value in data['variants'].items():
+        if isinstance(value, str):
+            template = value.split('/')[-1]
+            value = json.loads((RENDER_MODEL / kind / 'templates' / f'{template}.json').read_text(encoding='utf-8'))
+        entries = value if isinstance(value, list) else [value]
+        when = ', '.join(f'("{prop}", "{wanted}")' for prop, wanted in (pair.split('=', 1) for pair in key.split(','))) if key else ''
+        variants.append(f"Variant {{ when: &[{when}], data: &[{', '.join(render_one(entry) for entry in entries)}] }}")
+    return variants
+
+
+def write_render_data():
+    """render_data.rs: what the block entity renderers draw, from Mantle's model data (the fluid cuboids of
+    `mantle/model/block_fluids`, the item placements of `mantle/model/item_lists`, the channel's cuboids of
+    `mantle/model/channel_fluids`) and each fluid's still and flowing textures (`mantle/fluid_texture`).
+
+    The generated block_fluids and item_lists are the data the original's datagen wrote for the resource reload; the
+    channel cuboids are hand-written resources, so they are read from the source resources instead. A cuboid with no
+    faces in the data draws every face; a variant key is the block state properties it asks for (empty: the default)."""
+    lines = ["//! The original's block entity render data (SlimeKnights, MIT; see LICENSE): the fluid cuboids and item placements",
+             '//! the block entity renderers draw, from Mantle\'s model data (`assets/tconstruct/mantle/model`), the channel\'s',
+             '//! cuboids, and each fluid\'s still and flowing textures (`assets/tconstruct/mantle/fluid_texture`).',
+             '//! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.', '',
+             '/// One face of a fluid cuboid: its direction, whether it uses the flowing texture, and the texture rotation in degrees.',
+             "pub(crate) struct Face { pub dir: &'static str, pub flowing: bool, pub rotation: u16 }", '',
+             '/// A fluid cuboid in sixteenths (Mantle\'s FluidCuboid): the box, and the faces it draws.',
+             "pub(crate) struct Cuboid { pub from: [f32; 3], pub to: [f32; 3], pub faces: &'static [Face] }", '',
+             '/// Where a block entity renderer places one item (Mantle\'s RenderItem): the center and size in sixteenths, the',
+             '/// display transform, and the x and y rotation in degrees.',
+             "pub(crate) struct RenderItem { pub center: [f32; 3], pub size: f32, pub transform: &'static str, pub x: f32, pub y: f32 }", '',
+             '/// The data of one block state variant: the state properties it asks for (empty: the default variant).',
+             "pub(crate) struct Variant<T: 'static> { pub when: &'static [(&'static str, &'static str)], pub data: &'static [T] }", '']
+    for kind, function, render_one, what, type_name in (
+            ('block_fluids', 'fluid_cuboids', _render_cuboid, 'fluid cuboids', 'Cuboid'),
+            ('item_lists', 'render_items', _render_item, 'item placements', 'RenderItem')):
+        names = sorted(path.stem for path in (RENDER_MODEL / kind).glob('*.json'))
+        lines.append(f"/// The {what} of a block (`mantle/model/{kind}`), by block id.")
+        lines.append(f"pub(crate) fn {function}(block: &str) -> Option<&'static [Variant<{type_name}>]> {{")
+        lines.append('    Some(match block {')
+        for name in names:
+            variants = _render_variants(kind, name, render_one)
+            lines.append(f"        \"tconstruct:{name}\" => &[")
+            lines += [f'            {variant},' for variant in variants]
+            lines.append('        ],')
+        lines += ['        _ => return None,', '    })', '}', '']
+    channel = json.loads((RENDER_MODEL_MAIN / 'channel_fluids/channel.json').read_text(encoding='utf-8'))
+    lines += ['/// The channel\'s fluid cuboids (Mantle\'s ChannelFluids, `mantle/model/channel_fluids/channel.json`): the center in',
+              '/// its still and flowing forms, the drop below the center, and one side (authored facing south) in its still, in,',
+              '/// out and edge forms.',
+              'pub(crate) struct ChannelFluids { pub center_still: Cuboid, pub center_flowing: Cuboid, pub down: Cuboid,',
+              '    pub side_still: Cuboid, pub side_in: Cuboid, pub side_out: Cuboid, pub side_edge: Cuboid }',
+              'pub(crate) const CHANNEL_FLUIDS: ChannelFluids = ChannelFluids {',
+              f"    center_still: {_render_cuboid(channel['center']['still'])}, center_flowing: {_render_cuboid(channel['center']['flowing'])},",
+              f"    down: {_render_cuboid(channel['down'])}, side_still: {_render_cuboid(channel['side']['still'])},",
+              f"    side_in: {_render_cuboid(channel['side']['in'])}, side_out: {_render_cuboid(channel['side']['out'])},",
+              f"    side_edge: {_render_cuboid(channel['side']['edge'])} }};", '']
+    lines += ['/// A fluid\'s still and flowing textures (Mantle\'s fluid texture data, `mantle/fluid_texture`).',
+              "pub(crate) struct FluidTexture { pub still: &'static str, pub flowing: &'static str }", '',
+              '/// The textures of a fluid, by fluid id.',
+              'pub(crate) fn fluid_texture(fluid: &str) -> Option<FluidTexture> {',
+              '    Some(match fluid {']
+    for path in sorted(FLUID_TEXTURES.glob('*.json')):
+        info = json.loads(path.read_text(encoding='utf-8'))
+        still = info.get('still')
+        if still is None:
+            continue
+        lines.append(f"        \"tconstruct:{path.stem}\" => FluidTexture {{ still: \"{still}\", flowing: \"{info.get('flowing', still)}\" }},")
+    lines += ['        _ => return None,', '    })', '}']
+    RENDER_DATA_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(lines)
+
+
+def write_fluid_world():
+    """The content of the fluids that are blocks and buckets: for each fluid with a block, the block declaration (the vanilla glass template, no
+    collision, a `level` state 0 to 8 and an outline only on the source, so an empty bucket can reach it), its block state and nine stepped
+    models over the still texture of the original's fluid texture, and the bucket item (a plain item stacking to 1) with its model. A
+    bucket without a block (the potion) gets its bucket item alone. The still textures come from the original's resources.
+    Runs after copy_client_assets, which clears the folders it writes into."""
+
+    def write_bucket(name, tinted, color):
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_bucket.json', {'template': 'minecraft:paper', 'max_stack_size': 1}, compact=True)
+        write_json(ASSET_TARGET / 'models/item' / f'{name}_bucket.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket'}})
+        item = {'type': 'minecraft:model', 'model': f'tconstruct:item/{name}_bucket'}
+        if tinted:
+            item['tints'] = [{'type': 'minecraft:constant', 'value': color & 0xFFFFFF}]
+        write_json(ASSET_TARGET / 'items' / f'{name}_bucket.json', {'model': item})
+
+    count = 0
+    for row in fluid_registrations():
+        block, name = row['block'], row['name']
+        if block is None:
+            if row['bucket']:
+                write_bucket(name, row['color'] != 0xFFFFFFFF, row['color'])
+            continue
+        still = row['still']
+        if still is None or not still.startswith('tconstruct:'):
+            raise SystemExit(f'fluid {name}: no still texture')
+        path = still.split(':', 1)[1]
+        source = asset_source(f'textures/{path}.png')
+        if not source.exists():
+            raise SystemExit(f'fluid texture missing: {still}')
+        destination = ASSET_TARGET / 'textures' / f'{path}.png'
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        meta = source.parent / f'{source.name}.mcmeta'
+        if meta.exists():
+            (destination.parent / meta.name).write_bytes(meta.read_bytes().replace(b'\r\n', b'\n'))
+        # levels 0 to 8: the source and the amounts 7 to 1 stand 8/9 to 1/9 of a block, the falling column fills it
+        shapes = {str(level): ([[0, 0, 0, 16, 128 / 9, 16]] if level == 0 else []) for level in range(9)}
+        properties = {'hardness': 100.0, 'explosion_resistance': 100.0, 'map_color': MAP_COLORS[block['color']], 'occludes': False}
+        if block['light']:
+            properties['light'] = block['light']
+        tinted = row['color'] != 0xFFFFFFFF
+        declaration = {'template': 'minecraft:glass', 'item': False, 'properties': properties,
+                       'state_properties': {'level': {'type': 'enum', 'values': [str(level) for level in range(9)]}},
+                       'default_state': {'level': '0'}, 'shapes': {'property': 'level', 'values': shapes}, 'collision_shapes': {'default': []}}
+        write_json(HORIZON_DECLARATIONS / 'block' / f'{name}_fluid.json', declaration, compact=True)
+        variants = {}
+        for level in range(9):
+            amount = 8 if level in (0, 8) else 8 - level
+            height = 16 if level == 8 else amount * 16 / 9
+            face = {'texture': '#fluid', **({'tintindex': 0} if tinted else {})}
+            model = {'ambientocclusion': False, 'textures': {'fluid': still, 'particle': still},
+                     'elements': [{'from': [0, 0, 0], 'to': [16, round(height, 4), 16], 'faces': {side: dict(face) for side in ('down', 'up', 'north', 'south', 'west', 'east')}}]}
+            write_json(ASSET_TARGET / 'models/block/fluid' / name / f'level_{level}.json', model)
+            variants[f'level={level}'] = {'model': f'tconstruct:block/fluid/{name}/level_{level}'}
+        write_json(ASSET_TARGET / 'blockstates' / f'{name}_fluid.json', {'variants': variants})
+        write_bucket(name, tinted, row['color'])
+        count += 1
+    return count
+
+
+def write_copper_can():
+    """The copper can's item model: the original's own fluid container loader is not available, so the can shows its base texture
+    (the fluid layer of the original's model is not drawn). Runs after copy_client_assets, which clears the folders it writes into."""
+    source = asset_source('textures/item/copper_can.png')
+    destination = ASSET_TARGET / 'textures/item/copper_can.png'
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, destination)
+    write_json(ASSET_TARGET / 'models/item/copper_can.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/copper_can'}})
+    write_json(ASSET_TARGET / 'items/copper_can.json', {'model': {'type': 'minecraft:model', 'model': 'tconstruct:item/copper_can'}})
+
+
+FLUID_TRANSFER_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/mantle/fluid_transfer'
+FLUID_TRANSFER_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/fluid_transfers.rs'
+FLUID_TAG_FOLDERS = [ROOT / '.local/tconstruct-source/src/generated/resources/data/forge/tags/fluids', ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tags/fluids']
+
+
+def fluid_tag_members(tag, seen=()):
+    """The source fluids of a fluid tag of the original: references followed, flowing variants dropped, other namespaces left out."""
+    namespace, path = tag.split(':', 1)
+    folder = {'forge': FLUID_TAG_FOLDERS[0], 'tconstruct': FLUID_TAG_FOLDERS[1]}[namespace]
+    found = []
+    for entry in json.loads((folder / f'{path}.json').read_text(encoding='utf-8'))['values']:
+        entry = entry if isinstance(entry, str) else entry['id']
+        if entry.startswith('#'):
+            if entry[1:] not in seen:
+                found += fluid_tag_members(entry[1:], seen + (tag,))
+        elif entry.startswith('tconstruct:') and not entry.startswith('tconstruct:flowing_'):
+            found.append(entry.split(':', 1)[1])
+    return found
+
+
+def write_fluid_transfers():
+    """fluid_transfers.rs: the original's `mantle:fill_item` and `mantle:empty_item` fluid transfers of Tinkers (a bowl or glass bottle fills
+    with 250 of a fluid, the meat soup and the bottles empty), fluid tags resolved to the source fluids they name. The two transfers that need
+    Twilight Forest items are left out (other-mod integration)."""
+    rows = []
+    for path in sorted(FLUID_TRANSFER_SOURCE.glob('*.json')):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if 'conditions' in data:
+            continue
+        kind = {'mantle:fill_item': 'Fill', 'mantle:empty_item': 'Empty'}[data['type']]
+        fluid = data['fluid']
+        names = [fluid['fluid'].split(':', 1)[1]] if 'fluid' in fluid else fluid_tag_members(fluid['tag'])
+        item = data['input']['item']
+        result = data['result']
+        rows.append((path.stem, kind, item, names, fluid['amount'], result))
+    lines = ["//! The original's Tinkers fluid container transfers (Mantle `fill_item` / `empty_item`, SlimeKnights; see LICENSE): a bowl or glass bottle fills with",
+             '//! an amount of a fluid and becomes the filled item, a filled item gives the amount back as the empty one. Generated from the pinned original',
+             '//! by tools/import_original_data.py; do not edit by hand.', '',
+             '#[derive(Clone, Copy, Debug, PartialEq, Eq)]', 'pub(crate) enum Kind { Fill, Empty }', '',
+             '/// One transfer: its name, direction, the held item, the fluids (ids in the tconstruct namespace) it takes or gives, the amount and the resulting item.',
+             'pub(crate) struct Transfer { pub name: &\'static str, pub kind: Kind, pub item: &\'static str, pub fluids: &\'static [&\'static str], pub amount: u32, pub result: &\'static str }', '',
+             'pub(crate) const TRANSFERS: &[Transfer] = &[']
+    for name, kind, item, names, amount, result in rows:
+        fluids = ', '.join(f'"{n}"' for n in names)
+        lines.append(f'    Transfer {{ name: "{name}", kind: Kind::{kind}, item: "{item}", fluids: &[{fluids}], amount: {amount}, result: "{result}" }},')
+    lines.append('];')
+    FLUID_TRANSFER_TARGET.write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(rows)
+
+
+def copy_fluid_host_tags(fluids):
+    """The Tinkers fluid tags in the host's tag folder (data/tconstruct/tags/fluid), which PlutoLib reads through
+    reload_registry("minecraft:fluid"). The fluids are registered now, so the host may read them. Compared with the
+    byte-exact copy in fluid_tags (kept for the recipes): the flowing variants are left out (the host has no flowing mod
+    fluids; they belong to the world blocks), and a reference to a forge or mantle tag is replaced by that tag's own entries,
+    since those namespaces do not exist in this host (the tag files themselves stay in fluid_tags for the recipes). A
+    reference to a tag the original does not ship (Forge's milk, the Fabric recipe-viewer tag) becomes an optional one. Any
+    other member must be a registered fluid or vanilla's lava."""
+    shutil.rmtree(FLUID_HOST_TAG_TARGET, ignore_errors=True)
+    source = FLUID_TAG_SOURCE / 'tconstruct/tags/fluids'
+    # The original's forge and mantle tags (forge:molten_iron = #tconstruct:molten_iron, mantle:soup...): their namespaces do not
+    # exist in the host, so a reference to one is replaced by that tag's own entries, and an unshipped one (forge:milk) is optional.
+    foreign = {}
+    for namespace in ('forge', 'mantle'):
+        for path in sorted((FLUID_TAG_SOURCE / namespace / 'tags/fluids').rglob('*.json')):
+            name = f'{namespace}:{path.relative_to(FLUID_TAG_SOURCE / namespace / "tags/fluids").with_suffix("").as_posix()}'
+            foreign[name] = json.loads(path.read_text(encoding='utf-8')).get('values', [])
+
+    def convert(entries, origin, seen):
+        values = []
+        for value in entries:
+            text = value if isinstance(value, str) else value['id']
+            required = isinstance(value, str) or value.get('required', True)
+            if text.startswith('tconstruct:flowing_'):
+                continue
+            if text.startswith('#tconstruct:'):
+                values.append(value)
+            elif text.startswith('#'):
+                name = text[1:]
+                if name in foreign and name not in seen:
+                    values.extend(convert(foreign[name], origin, seen | {name}))
+                elif name in foreign:
+                    raise SystemExit(f'{origin}: foreign tag {name} contains itself')
+                else:
+                    values.append({'id': text, 'required': False})
+                    if required and not name.startswith(('forge:', 'c:')):
+                        raise SystemExit(f'{origin}: unknown tag {name}')
+            elif not ((text.startswith('tconstruct:') and text.split(':')[1] in fluids) or text == 'minecraft:lava'):
+                raise SystemExit(f'{origin}: member {text} is neither a Tinkers fluid nor lava')
+            else:
+                values.append(value)
+        return values
+
+    count = 0
+    for path in sorted(source.rglob('*.json')):
+        values = convert(json.loads(path.read_text(encoding='utf-8')).get('values', []), path.name, set())
+        write_json(FLUID_HOST_TAG_TARGET / path.relative_to(source), {'values': values})
+        count += 1
     return count
 
 
 DAMAGE_TAG_SOURCE = TAG_SOURCE / 'damage_type'
 DAMAGE_TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering/tags/damage_types'
 VANILLA_DAMAGE_TAGS = ROOT / '.local/base-26.3/data/minecraft/tags/damage_type'
+
+
+VANILLA_TAGS = ROOT / '.local/base-26.3/data'
+
+
+def write_block_tag_ingredients():
+    """Item tags for the `tconstruct:block_tag` ingredients of the recipes (a casting cast "any block of this block tag", such as
+    `minecraft:convertable_to_mud`): the host snapshots item tags only, so the block tag becomes an item tag `block_tags/<ns>/<path>` of the
+    blocks' items (a block item has its block's id), flattened from the vanilla tag files, every entry optional. The original's 1.20 spelling
+    `convertable_to_mud` is vanilla's `convertible_to_mud` here. The Rust decoder reads the ingredient as that item tag."""
+    names = set()
+    for path in FLUID_RECIPE_SOURCE.rglob('*.json'):
+        for match in re.finditer(r'"type": "tconstruct:block_tag",\s*"tag": "([a-z_:/]+)"', path.read_text(encoding='utf-8')):
+            names.add(match.group(1))
+
+    def members(tag, seen=()):
+        namespace, name = tag.split(':', 1)
+        file = VANILLA_TAGS / namespace / 'tags/block' / f'{name}.json'
+        if not file.is_file() and 'convertable' in name:
+            file = VANILLA_TAGS / namespace / 'tags/block' / f'{name.replace("convertable", "convertible")}.json'
+        if not file.is_file() or tag in seen:
+            raise SystemExit(f'block tag {tag} is not in the vanilla data')
+        found = []
+        for entry in json.loads(file.read_text(encoding='utf-8')).get('values', []):
+            text = entry if isinstance(entry, str) else entry['id']
+            for member in (members(text[1:], seen + (tag,)) if text.startswith('#') else [text]):
+                if member not in found:
+                    found.append(member)
+        return found
+
+    for tag in sorted(names):
+        namespace, name = tag.split(':', 1)
+        write_json(TAG_TARGET / 'item/block_tags' / namespace / f'{name}.json', {'values': [{'id': member, 'required': False} for member in members(tag)]})
+    return len(names)
 
 
 def copy_damage_tags():
@@ -296,6 +964,145 @@ def write_damage_vanilla():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
+def write_instrument_tags():
+    """instrument_tags.rs: the pinned vanilla instrument registry and the instrument tags, flattened.
+
+    The host captures no instrument registry, so the `mantle:tag_combination_filled` conditions on the
+    instrument registry and the `tconstruct:instrument` ingredients read this table instead. The registry
+    is the vanilla data's instrument definitions; the tags are vanilla's (from the pinned vanilla data) and
+    the original's own (from its generated resources), with `#tag` references flattened."""
+    registry = sorted(f'minecraft:{path.stem}' for path in (ROOT / '.local/base-26.3/data/minecraft/instrument').glob('*.json'))
+    files = {}
+    for path in sorted((VANILLA_TAGS / 'minecraft/tags/instrument').glob('*.json')):
+        files[f'minecraft:{path.stem}'] = path
+    for path in sorted((TAG_SOURCE / 'instrument').glob('*.json')):
+        files[f'tconstruct:{path.stem}'] = path
+
+    def flatten(tag, seen=()):
+        if tag in seen or tag not in files:
+            raise SystemExit(f'instrument tag {tag} is not in the vanilla or original data')
+        members = []
+        for value in json.loads(files[tag].read_text(encoding='utf-8')).get('values', []):
+            text = value if isinstance(value, str) else value['id']
+            for member in (flatten(text[1:], seen + (tag,)) if text.startswith('#') else [text]):
+                if member not in members:
+                    members.append(member)
+        return members
+
+    lines = ['//! The pinned vanilla instrument registry and the instrument tags the shipped data names, flattened.',
+             '//! Generated from the pinned vanilla data and the original\'s generated resources by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const REGISTRY: &[&str] = &[' + ', '.join(f'"{name}"' for name in registry) + '];', '',
+             'pub(crate) const TAGS: &[(&str, &[&str])] = &[']
+    for tag in sorted(files):
+        lines.append(f'    ("{tag}", &[' + ', '.join(f'"{member}"' for member in flatten(tag)) + ']),')
+    lines.append('];')
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/instrument_tags.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+
+
+# Forge's own convention item tags (the original's recipes name them; nothing in this host defines them): the vanilla items each stands for,
+# as Forge defines them. The original's own contributions (generated `data/forge/tags/items`: glass, normal_stone, the Tinkers metals...) are
+# added, reduced to vanilla items and to the Tinkers items this port declares. The result is applied to the item registry snapshot by
+# convention_tags.rs, and replaces `#forge:` entries of the shipped item tags.
+def _vanilla(*names):
+    return [f'minecraft:{name}' for name in names]
+
+
+VANILLA_CONVENTION = {
+    'ingots/iron': _vanilla('iron_ingot'), 'ingots/gold': _vanilla('gold_ingot'), 'ingots/copper': _vanilla('copper_ingot'),
+    'ingots/netherite': _vanilla('netherite_ingot'), 'ingots/netherite_scrap': _vanilla('netherite_scrap'),
+    'nuggets/iron': _vanilla('iron_nugget'), 'nuggets/gold': _vanilla('gold_nugget'),
+    'storage_blocks/iron': _vanilla('iron_block'), 'storage_blocks/gold': _vanilla('gold_block'), 'storage_blocks/copper': _vanilla('copper_block'),
+    'storage_blocks/diamond': _vanilla('diamond_block'), 'storage_blocks/emerald': _vanilla('emerald_block'),
+    'storage_blocks/netherite': _vanilla('netherite_block'), 'storage_blocks/quartz': _vanilla('quartz_block'),
+    'storage_blocks/lapis': _vanilla('lapis_block'), 'storage_blocks/redstone': _vanilla('redstone_block'),
+    'storage_blocks/coal': _vanilla('coal_block'), 'storage_blocks/amethyst': _vanilla('amethyst_block'),
+    'storage_blocks/raw_iron': _vanilla('raw_iron_block'), 'storage_blocks/raw_gold': _vanilla('raw_gold_block'), 'storage_blocks/raw_copper': _vanilla('raw_copper_block'),
+    'gems/diamond': _vanilla('diamond'), 'gems/emerald': _vanilla('emerald'), 'gems/quartz': _vanilla('quartz'),
+    'gems/amethyst': _vanilla('amethyst_shard'), 'gems/lapis': _vanilla('lapis_lazuli'),
+    'raw_materials/iron': _vanilla('raw_iron'), 'raw_materials/gold': _vanilla('raw_gold'), 'raw_materials/copper': _vanilla('raw_copper'),
+    'ores/iron': _vanilla('iron_ore', 'deepslate_iron_ore'), 'ores/gold': _vanilla('gold_ore', 'deepslate_gold_ore', 'nether_gold_ore'),
+    'ores/copper': _vanilla('copper_ore', 'deepslate_copper_ore'), 'ores/diamond': _vanilla('diamond_ore', 'deepslate_diamond_ore'),
+    'ores/emerald': _vanilla('emerald_ore', 'deepslate_emerald_ore'), 'ores/lapis': _vanilla('lapis_ore', 'deepslate_lapis_ore'),
+    'ores/redstone': _vanilla('redstone_ore', 'deepslate_redstone_ore'), 'ores/coal': _vanilla('coal_ore', 'deepslate_coal_ore'),
+    'ores/quartz': _vanilla('nether_quartz_ore'), 'ores/netherite_scrap': _vanilla('ancient_debris'),
+    'dusts/redstone': _vanilla('redstone'), 'dusts/glowstone': _vanilla('glowstone_dust'),
+    'obsidian': _vanilla('obsidian'), 'cobblestone': _vanilla('cobblestone', 'mossy_cobblestone', 'cobbled_deepslate'),
+    'stone': _vanilla('stone'), 'netherrack': _vanilla('netherrack'), 'end_stones': _vanilla('end_stone'),
+    'ender_pearls': _vanilla('ender_pearl'), 'feathers': _vanilla('feather'), 'leather': _vanilla('leather'), 'gunpowder': _vanilla('gunpowder'),
+    'bones': _vanilla('bone'), 'slimeballs': _vanilla('slime_ball'), 'string': _vanilla('string'), 'rods/wooden': _vanilla('stick'),
+    'rods/blaze': _vanilla('blaze_rod'), 'sand': _vanilla('sand', 'red_sand'), 'sand/colorless': _vanilla('sand'), 'sand/red': _vanilla('red_sand'),
+    'crops/carrot': _vanilla('carrot'), 'bottles/empty': _vanilla('glass_bottle'),
+}
+_COLORS = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black']
+VANILLA_CONVENTION.update({
+    'glass/colorless': _vanilla('glass'), 'glass/tinted': _vanilla('tinted_glass'),
+    'glass/silica': _vanilla('glass', *[f'{color}_stained_glass' for color in _COLORS]),
+    'glass': _vanilla('glass', 'tinted_glass', *[f'{color}_stained_glass' for color in _COLORS]),
+    'glass_panes/colorless': _vanilla('glass_pane'), 'glass_panes/silica': _vanilla('glass_pane', *[f'{color}_stained_glass_pane' for color in _COLORS]),
+    'glass_panes': _vanilla('glass_pane', *[f'{color}_stained_glass_pane' for color in _COLORS]),
+    **{f'glass/{color}': _vanilla(f'{color}_stained_glass') for color in _COLORS},
+    **{f'glass_panes/{color}': _vanilla(f'{color}_stained_glass_pane') for color in _COLORS},
+})
+CONVENTION_ROLLUPS = {'rods': 'rods/', 'ingots': 'ingots/', 'nuggets': 'nuggets/', 'gems': 'gems/', 'ores': 'ores/', 'raw_materials': 'raw_materials/', 'storage_blocks': 'storage_blocks/'}
+CONVENTION_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/convention_tags.rs'
+
+
+def convention_tags():
+    """forge tag path -> sorted members (vanilla and declared Tinkers items), for every convention tag with at least one."""
+    declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
+    folder = GENERATED_DATA / 'forge/tags/items'
+    result = {tag: list(members) for tag, members in VANILLA_CONVENTION.items()}
+
+    def add(tag, members):
+        held = result.setdefault(tag, [])
+        held += [member for member in members if member not in held]
+
+    def flatten(tag, seen=()):
+        name = tag[len('forge:'):]
+        path = folder / f'{name}.json'
+        if tag in seen or not path.is_file():
+            return list(result.get(name, []))
+        out = []
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            text = entry if isinstance(entry, str) else entry['id']
+            if text.startswith('#'):
+                if text.startswith('#forge:'):
+                    out += flatten(text[1:], seen + (tag,))
+            elif text.startswith('minecraft:') or text in declared:
+                out.append(text)
+        return out
+
+    for path in sorted(folder.rglob('*.json')):
+        name = path.relative_to(folder).with_suffix('').as_posix()
+        add(name, flatten('forge:' + name))
+    for roll, prefix in CONVENTION_ROLLUPS.items():
+        for tag in sorted(result):
+            if tag.startswith(prefix):
+                add(roll, result[tag])
+    return {tag: sorted(members) for tag, members in sorted(result.items()) if members}
+
+
+_CONVENTION = {}
+
+
+def convention_tags_cached():
+    if not _CONVENTION:
+        _CONVENTION.update(convention_tags())
+    return _CONVENTION
+
+
+def write_convention_tags():
+    tags = convention_tags_cached()
+    lines = ['//! Forge convention item tags that the original data names and nothing in this host defines, with the vanilla and Tinkers items they stand for.',
+             '//! Generated from the original data by tools/import_original_data.py; do not edit by hand.', '',
+             'pub(crate) const TAGS: &[(&str, &[&str])] = &[']
+    for tag, members in tags.items():
+        lines.append(f'    ("forge:{tag}", &[' + ', '.join(f'"{member}"' for member in members) + ']),')
+    lines.append('];')
+    CONVENTION_TARGET.write_text(chr(10).join(lines) + chr(10), encoding='utf-8', newline=chr(10))
+    return len(tags)
+
+
 def copy_tags():
     """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
     required reference to a forge tag becomes an optional one (as the original already does for
@@ -309,6 +1116,11 @@ def copy_tags():
             values = []
             for value in data.get('values', []):
                 text = value if isinstance(value, str) else value.get('id', '')
+                if source_name == 'items' and text.startswith('#forge:') and convention_tags_cached().get(text[len('#forge:'):]):
+                    # a convention tag this host lacks: the items it stands for, in its place
+                    held = {(entry if isinstance(entry, str) else entry['id']) for entry in values}
+                    values += [{'id': member, 'required': False} for member in convention_tags_cached()[text[len('#forge:'):]] if member not in held]
+                    continue
                 if isinstance(value, str) and text.lstrip('#').startswith('forge:'):
                     value = {'id': text, 'required': False}
                 # This port registers no Tinkers entity types yet; a tag naming one would make the whole
@@ -328,8 +1140,17 @@ ASSET_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconst
 ASSET_TARGET = ROOT / 'tconstruct/content/assets/tconstruct'
 BASE_ASSETS = ROOT / '.local/base-26.3/assets/minecraft'
 HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
+# Smeltery blocks whose block states are the original's own (facing, active, in_structure), and the GUI textures their screens draw.
+SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller', 'scorched_alloyer'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
+SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct', 'alloyer']
 # Loaders that only retexture an otherwise ordinary model: dropped, the model keeps its shape.
-PLAIN_LOADERS = {'mantle:retextured'}
+# tconstruct:tank only adds the fluid drawn inside an ordinary element model: the shape stays, the fluid is a renderer's work.
+# tconstruct:fluid_texture (the heating controllers' window) draws the smeltery's fluid in a window element: the shape stays, the fluid is a renderer's work.
+# `mantle:item_layer` and `mantle:colored_block` carry nothing but a luminosity hint beyond the
+# textures, so they flatten like the rest; the hint is dropped.
+# tconstruct:material_block (the fake storage block) picks the cube's texture from the block's material: the shape stays
+# with its fallback texture, the material texture is a renderer's work.
+PLAIN_LOADERS = {'mantle:retextured', 'tconstruct:tank', 'tconstruct:fluid_texture', 'mantle:connected', 'mantle:item_layer', 'mantle:colored_block', 'tconstruct:material_block'}
 
 
 def qualify(reference):
@@ -343,6 +1164,30 @@ def asset_source(relative):
         if (base / relative).exists():
             return base / relative
     return ASSET_SOURCE / relative
+
+
+def gadget_items():
+    """The fancy item frames and armor stands of TinkerGadgets, as item declarations.
+
+    In the original these are items whose use places a hanging or standing entity (the item classes copy the
+    vanilla placement logic of ItemFrameItem/ArmorStandItem; the variant behaviour lives in the entity classes).
+    The declaration templates are therefore the vanilla items themselves: the frame items are registered with
+    plain item properties (stack 64, TinkerGadgets ITEM_PROPS) and the stand items with stacksTo(16). The
+    derived entity types the original registers for the variants (tconstruct:fancy_item_frame,
+    tconstruct:armor_stand) are registered from Rust (api/src/fancy_gadgets.rs); the host has no spawn reach or
+    simulation callbacks for derived types, so a placed item currently yields the vanilla entity. The frame
+    block models and stand item models and textures are pulled in by copy_client_assets like any other item."""
+    frames = {f'{name}_item_frame': {'template': 'minecraft:item_frame'} for name in
+              ('gold', 'reversed_gold', 'diamond', 'manyullyn', 'netherite', 'clear')}
+    stands = {f'{name}_armor_stand': {'template': 'minecraft:armor_stand', 'max_stack_size': 16} for name in
+              ('bamboo', 'bone', 'necrotic_bone', 'clear')}
+    return {**frames, **stands}
+
+
+def write_gadget_declarations():
+    for name, declaration in gadget_items().items():
+        (HORIZON_DECLARATIONS / 'item' / f'{name}.json').write_text(
+            json.dumps(declaration, indent=2) + '\n', encoding='utf-8')
 
 
 def copy_client_assets():
@@ -388,11 +1233,15 @@ def copy_client_assets():
             shutil.copyfile(source, destination)
             meta = source.parent / f'{source.name}.mcmeta'
             if meta.exists():
-                shutil.copyfile(meta, destination.parent / meta.name)
+                # only the line endings are normalized (the original checkout may be CRLF)
+                (destination.parent / meta.name).write_bytes(meta.read_bytes().replace(b'\r\n', b'\n'))
         return reference
 
     def import_model(reference):
         reference = qualify(reference)
+        # Forge's two item parents are the vanilla generated and handheld models under another
+        # name; the tool item definitions already map them so (FORGE_PARENTS, below).
+        reference = FORGE_PARENTS.get(reference, reference)
         namespace, path = reference.split(':', 1)
         if namespace == 'minecraft':
             if not (BASE_ASSETS / 'models' / f'{path}.json').exists():
@@ -406,7 +1255,7 @@ def copy_client_assets():
         converted = {}
         for key, value in read(asset_source(f'models/{path}.json')).items():
             # render_type: 26.x derives the render layer from the texture's alpha (its own slime block model has none).
-            if key in ('loader', 'retextured', '__comment', 'render_type'):
+            if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids', 'connection'):
                 continue
             if key == 'parent':
                 value = import_model(value)
@@ -427,7 +1276,30 @@ def copy_client_assets():
 
     shutil.copyfile(ROOT / 'tconstruct/LICENSE', ASSET_TARGET / 'license')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'block').glob('*.json')):
-        variants = read(asset_source(f'blockstates/{name}.json')).get('variants', {})
+        blockstate = read(asset_source(f'blockstates/{name}.json'))
+        variants = blockstate.get('variants', {})
+        if (name in SMELTERY_STATE_BLOCKS or name in WORLD_STATE_BLOCKS) and 'multipart' in blockstate:
+            # the channel's parts: each applies a model (or a list of them) when its states hold
+            parts = blockstate['multipart']
+            applies = [apply for part in parts for apply in (part['apply'] if isinstance(part['apply'], list) else [part['apply']])]
+            if any(needs_loader(apply['model']) for apply in applies):
+                skipped.append(name)
+                continue
+            converted = [{**part, 'apply': ([{**a, 'model': import_model(a['model'])} for a in part['apply']] if isinstance(part['apply'], list) else {**part['apply'], 'model': import_model(part['apply']['model'])})} for part in parts]
+            write(f'blockstates/{name}.json', {'multipart': converted})
+            write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
+            continue
+        if name in SMELTERY_STATE_BLOCKS or name in WORLD_STATE_BLOCKS:
+            # The controllers declare facing/active/in_structure themselves, so the original's variants apply as they are.
+            if any(needs_loader(variant['model']) for variant in variants.values()):
+                skipped.append(name)
+                continue
+            converted = {key: {**variant, 'model': import_model(variant['model'])} for key, variant in variants.items()}
+            write(f'blockstates/{name}.json', {'variants': converted})
+            first = converted[next(iter(converted))]
+            item_model = asset_source(f'models/item/{name}.json').exists()
+            write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else first['model']}})
+            continue
         if sorted(variants) == ['facing=east', 'facing=north', 'facing=south', 'facing=west']:
             variant = dict(variants['facing=north'])
         elif list(variants) == ['']:  # a block with no state of its own: its one model
@@ -441,8 +1313,25 @@ def copy_client_assets():
         write(f'blockstates/{name}.json', {'variants': {'': variant}})
         item_model = asset_source(f'models/item/{name}.json').exists()
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}') if item_model else variant['model']}})
+    for texture in SMELTERY_GUI_TEXTURES:
+        import_texture(f'tconstruct:gui/{texture}')
     for name in sorted(path.stem for path in (HORIZON_DECLARATIONS / 'item').glob('*.json')):
-        if not asset_source(f'models/item/{name}.json').exists() or needs_loader(f'tconstruct:item/{name}'):
+        if name.endswith('_spawn_egg'):
+            # The original's egg model is the vanilla tint template, which 26.3 dropped for per-egg textures the
+            # original does not ship; the slime eggs stay unmodelled (their declarations are write_slime_entities').
+            skipped.append(name)
+            continue
+        if not asset_source(f'models/item/{name}.json').exists():
+            skipped.append(name)
+            continue
+        if read(asset_source(f'models/item/{name}.json')).get('loader') == 'mantle:nbt_key':
+            # The crystalshot: its texture is chosen by the stack's `variant` data, which no item-model select
+            # here can read; the default texture stands in and the variant textures are left out.
+            model = read(asset_source(f'models/item/{name}.json'))
+            write(f'models/item/{name}.json', {'parent': 'minecraft:item/generated', 'textures': {'layer0': import_texture(model['textures']['default'])}})
+            write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': f'tconstruct:item/{name}'}})
+            continue
+        if needs_loader(f'tconstruct:item/{name}'):
             skipped.append(name)
             continue
         write(f'items/{name}.json', {'model': {'type': 'minecraft:model', 'model': import_model(f'tconstruct:item/{name}')}})
@@ -951,18 +1840,58 @@ def copy_armor_worn_assets():
 # Source: world/TinkerWorld.java (registrations), shared/block/SlimeType.java, world/block/DirtType.java and the
 # data-generated loot tables, features, biome modifiers and tags of the original.
 GENERATED_DATA = ROOT / '.local/tconstruct-source/src/generated/resources/data'
+MAIN_DATA = ROOT / '.local/tconstruct-source/src/main/resources/data'
 CONTENT_DATA = ROOT / 'tconstruct/content/data'
 # MapColor ids (0 to 61) as the host reads them; each one's colour was checked against the host's MAP_COLORS table.
-MAP_COLOR = {'GRASS': 1, 'COLOR_ORANGE': 15, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'DIAMOND': 31, 'NETHER': 35,
-             'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39, 'WARPED_STEM': 56}
+MAP_COLOR = {'NONE': 0, 'GRASS': 1, 'METAL': 6, 'PLANT': 7, 'SNOW': 8, 'STONE': 11, 'COLOR_ORANGE': 15, 'COLOR_MAGENTA': 16, 'COLOR_LIGHT_BLUE': 17, 'COLOR_YELLOW': 18, 'COLOR_LIGHT_GREEN': 19,
+             'COLOR_PINK': 20, 'COLOR_GRAY': 21, 'COLOR_LIGHT_GRAY': 22, 'COLOR_CYAN': 23, 'COLOR_PURPLE': 24, 'COLOR_BLUE': 25, 'COLOR_BROWN': 26, 'COLOR_GREEN': 27,
+             'COLOR_RED': 28, 'COLOR_BLACK': 29, 'GOLD': 30, 'DIAMOND': 31, 'NETHER': 35, 'TERRACOTTA_WHITE': 36, 'TERRACOTTA_ORANGE': 37, 'TERRACOTTA_LIGHT_BLUE': 39,
+             'TERRACOTTA_LIGHT_GRAY': 44, 'TERRACOTTA_CYAN': 45, 'TERRACOTTA_BLUE': 47, 'TERRACOTTA_BROWN': 48, 'TERRACOTTA_RED': 50, 'WARPED_NYLIUM': 55, 'WARPED_STEM': 56, 'WARPED_WART_BLOCK': 58}
 # SlimeType: map colour and light level. DirtType.TINKER: map colour.
 SLIME_TYPES = {'earth': ('GRASS', 0), 'sky': ('DIAMOND', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 0)}
 DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT_BLUE', 'ender': 'TERRACOTTA_ORANGE'}
 # Plain items: TinkerWorld's with Item.Properties (TooltipItem only adds the lang tooltip text) and TinkerCommons' tinker slime
 # balls (`new Item(ITEM_PROPS)` for SlimeType.TINKER), which the congealed slime blocks drop.
-WORLD_ITEMS = ['raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball']
-WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large']
-WORLD_BIOME_MODIFIERS = ['cobalt_ore']
+WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball',
+               'earth_slime_crystal', 'sky_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal',
+               'earth_slime_grass_seeds', 'sky_slime_grass_seeds', 'ichor_slime_grass_seeds', 'ender_slime_grass_seeds', 'blood_slime_grass_seeds']
+# The shipped metals of TinkerMaterials (`registerMetal` each: a storage block, an ingot and a nugget; soulsteel has
+# no compaction recipes and stays undeclared, as its fluid's bucket does). Their items are plain items.
+METALS = ['cobalt', 'steel', 'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron', 'cinderslime', 'queens_slime', 'manyullyn', 'hepatizon', 'knightmetal', 'knightslime']
+METAL_ITEMS = [f'{metal}_{part}' for metal in METALS for part in ('ingot', 'nugget')] + ['copper_nugget', 'netherite_nugget', 'debris_nugget']
+WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large', 'earth_geode', 'sky_geode', 'ichor_geode', 'ender_geode']
+# Configured features with no placed feature of their own: the slime trees and fungi are placed by saplings (the growth
+# unit) and by the island structures' tree markers, and the two ender trees are vanilla `minecraft:tree` features whose
+# Tinkers components (the leave-vines decorator and the extra-root-variants root placer) live in api/src/worldgen.rs.
+WORLD_CONFIGURED_FEATURES = ['earth_slime_tree', 'earth_slime_island_tree', 'sky_slime_tree', 'sky_slime_island_tree',
+                             'ender_slime_tree', 'ender_slime_tree_tall', 'blood_slime_fungus', 'blood_slime_island_fungus', 'ichor_slime_fungus']
+WORLD_STRUCTURES = ['earth_slime_island', 'sky_slime_island', 'ocean_skyslime_island', 'clay_island', 'blood_island', 'end_slime_island']
+WORLD_STRUCTURE_SETS = ['overworld_ocean_island', 'overworld_sky_island', 'nether_ocean_island', 'end_sky_island']
+WORLD_ISLAND_TAGS = ['blood', 'clay', 'earthslime', 'enderslime', 'skyslime']
+# The island template NBTs: the repalleter's output (world/data/StructureRepalleter.java) for the four slime materials
+# is generated data; the hand-authored dirt templates it repalettes from are main resources (the clay island places
+# the dirt templates unchanged).
+WORLD_ISLAND_TEMPLATES = {'blood': 'generated', 'earth': 'generated', 'ender': 'generated', 'sky': 'generated', 'dirt': 'main'}
+ISLAND_SIZES = ['0x1x0', '2x2x4', '4x1x6', '8x1x11', '11x1x11']
+# The sky and ender geode modifiers select biomes with Forge biome predicates (forge:and/or/not), which the neoforge
+# HolderSet form cannot express. The ender predicate (the end, minus the main island) expands exactly to these four
+# biomes; the sky predicate (the overworld, minus its oceans, beaches and rivers) has no exact HolderSet form, so the
+# overworld tag ships and sky geodes also generate under those water biomes.
+WORLD_BIOME_PREDICATES = {
+    'sky_geode': '#minecraft:is_overworld',
+    'ender_geode': ['minecraft:end_highlands', 'minecraft:end_midlands', 'minecraft:small_end_islands', 'minecraft:end_barrens'],
+}
+# Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
+# The bottles' and the bowl's models are plain; the copper can's own loader is replaced by write_copper_can below.
+FLUID_ITEMS = {'venom_bottle': 16, 'earth_slime_bottle': 16, 'sky_slime_bottle': 16, 'ender_slime_bottle': 16, 'ichor_slime_bottle': 16, 'magma_bottle': 16,
+               'meat_soup': 1, 'copper_can': 16}
+# TinkerSmeltery's casts: registerCast(name) makes <name>_cast (gold), <name>_sand_cast and <name>_red_sand_cast, all plain items
+# (PartCastItem only adds the part's tooltip); the arrow cast and the two blank casts are single plain items.
+CAST_NAMES = ['ingot', 'nugget', 'gem', 'rod', 'repair_kit', 'plate', 'gear', 'coin', 'wire', 'pick_head', 'small_axe_head', 'small_blade', 'adze_head',
+              'hammer_head', 'broad_axe_head', 'broad_blade', 'large_plate', 'tool_binding', 'tough_binding', 'tool_handle', 'tough_handle',
+              'bow_limb', 'bow_grip', 'helmet_plating', 'chestplate_plating', 'leggings_plating', 'boots_plating', 'maille']
+CAST_ITEMS = [f'{name}{kind}_cast' for name in CAST_NAMES for kind in ('', '_sand', '_red_sand')] + ['arrow_cast', 'blank_sand_cast', 'blank_red_sand_cast']
+WORLD_BIOME_MODIFIERS = ['cobalt_ore', 'earth_geode', 'sky_geode', 'ichor_geode', 'ender_geode']
 
 
 def world_blocks():
@@ -987,23 +1916,578 @@ def world_blocks():
     for slime, (color, light) in SLIME_TYPES.items():
         # congealed: builder(color, SLIME_BLOCK).strength(0.5F).friction(0.5F).lightLevel(type light)
         blocks[f'{slime}_congealed_slime'] = block('minecraft:dirt', color, 'minecraft:slime_block', 0.5, 0.5, False, light, friction=0.5)
+        blocks[f'{slime}_congealed_slime']['collision_shapes'] = {'default': [[1, 0, 1, 15, 15, 15]]}
         if slime != 'earth':  # the earth slime block is vanilla's
             # slimeProps: builder(color, SLIME_BLOCK).friction(0.8F).noOcclusion() (no strength: 0); ichor adds its light
             blocks[f'{slime}_slime'] = block('minecraft:slime_block', color, 'minecraft:slime_block', 0.0, 0.0, False, light, friction=0.8, occludes=False)
     for dirt, color in DIRT_TYPES.items():
         # builder(color, SLIME_BLOCK).strength(1.9f); harvest tiers are tags and need no tool (no requiresCorrectToolForDrops)
         blocks[f'{dirt}_slime_dirt'] = block('minecraft:dirt', color, 'minecraft:slime_block', 1.9, 1.9, False)
+    blocks.update(world_w1_blocks())
     return blocks
+
+
+W1_WOODS = {'greenheart': ('COLOR_LIGHT_GREEN', 'COLOR_GREEN'), 'skyroot': ('COLOR_CYAN', 'TERRACOTTA_CYAN'),
+            'bloodshroom': ('COLOR_RED', 'COLOR_ORANGE'), 'enderbark': ('COLOR_BLACK', 'COLOR_BLACK')}  # wood -> (planks, bark) MapColor of createSlimewood
+W1_FOLIAGE = ['earth', 'sky', 'ichor', 'ender', 'blood']  # FoliageType.values()
+W1_FOLIAGE_COLORS = {'earth': 'GRASS', 'sky': 'DIAMOND', 'ichor': 'COLOR_ORANGE', 'ender': 'COLOR_PURPLE', 'blood': 'COLOR_RED'}  # FoliageType.getMapColor
+W1_NETHER_FOLIAGE = ('ichor', 'blood')  # FoliageType.isNether: nylium grass, fungus saplings, wart-block leaves
+W1_DIRTS = ['vanilla', 'earth', 'sky', 'ichor', 'ender']  # the slime grass EnumObjects, in registration order
+
+
+def world_w1_blocks():
+    """name -> declaration of the slime wood sets, the slime grass, the slime flora, the slime vines and the enderbark roots of
+    TinkerWorld (the world tab's trees and foliage), each from its Java registration. Templates carry the vanilla behaviour of the
+    Java class: the wood pieces are the oak wood blocks (Mantle's WoodBlockObject builds the vanilla block classes, and
+    createSlimewood sets the BASS instrument the oak templates already have), the overworld grass is the grass block (SnowyDirtBlock),
+    the nylium and the nether leaves are plain blocks (the dirt template: the default instrument of Properties.of()), the leaves are
+    the oak leaves, the propagule is the mangrove propagule, the roots are the mangrove roots.
+
+    The wood property function (createSlimewood) sets no strength on any variant, so every wood block is 0/0 like the sticky slime
+    blocks above whose property function likewise sets none: the default variant takes the planks map colour and the SLIME_BLOCK
+    sound with no tool requirement, the log and wood variants take the bark colour, the WOOD sound and requiresCorrectToolForDrops.
+    A log's map colour in the original depends on its axis (the planks colour on the end faces); a declaration carries one colour,
+    so the bark colour is declared.
+
+    Behaviour the declarations cannot carry, and where it lives instead: the grass spreading and bonemeal growth
+    (SlimeGrassBlock/SlimeNyliumBlock), the saplings growing into trees and huge fungi, the propagule leaves placing a hanging
+    propagule when bonemealed and the vines growing through their stages are registered in the api crate's world_growth module;
+    the declarations here only carry their random_ticks flag, which the original's registrations set with randomTicks() on the
+    grass, the saplings, the propagule and the vines (the fungi get none, as in the original). SlimeLeavesBlock measures its decay distance against the tconstruct:slimy_logs tag rather than logs alone;
+    the leaves template's distance behaviour is the host's and the tag distinction is not expressible in a declaration. The signs
+    are declared as plain blocks: the original's sign block entities (editable text) have no content declaration, so the signs
+    drop and render as in the original but hold no text. Push reactions (the flora and the vines are DESTROY), the flora's render
+    offsets, the compost values of TinkerWorld.commonSetup and the fire spread/burn values are registrations the declaration
+    schema has no keys for; they are documented here rather than faked. The potted blocks and the wall signs have no item in the
+    original (the wall signs drop through the standing sign's loot table, which copy_world_loot reproduces)."""
+    def declare(template, color, sounds, hardness, resistance, requires_tool, item=True, light=0, **extra):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color],
+                      'requires_tool': requires_tool, **extra}
+        if light:
+            properties['light'] = light
+        return {'template': template, 'properties': properties, 'item': item}
+
+    blocks = {}
+    # createSlimewood: (suffix, template, variant); the stripped pieces are prefixed in the block name, not suffixed
+    wood_variants = [('planks', 'minecraft:oak_planks', 'default'), ('planks_slab', 'minecraft:oak_slab', 'default'),
+                     ('planks_stairs', 'minecraft:oak_stairs', 'default'), ('fence', 'minecraft:oak_fence', 'default'),
+                     ('fence_gate', 'minecraft:oak_fence_gate', 'default'), ('door', 'minecraft:oak_door', 'default'),
+                     ('trapdoor', 'minecraft:oak_trapdoor', 'default'), ('pressure_plate', 'minecraft:oak_pressure_plate', 'default'),
+                     ('button', 'minecraft:oak_button', 'default'), ('sign', 'minecraft:oak_sign', 'default'),
+                     ('wall_sign', 'minecraft:oak_wall_sign', 'default'), ('hanging_sign', 'minecraft:oak_hanging_sign', 'default'),
+                     ('wall_hanging_sign', 'minecraft:oak_wall_hanging_sign', 'default'),
+                     ('log', 'minecraft:oak_log', 'log'), ('stripped_log', 'minecraft:oak_log', 'log'),
+                     ('wood', 'minecraft:oak_log', 'wood'), ('stripped_wood', 'minecraft:oak_log', 'wood')]
+    for wood, (planks_color, bark_color) in W1_WOODS.items():
+        for suffix, template, variant in wood_variants:
+            name = f'stripped_{wood}_{suffix[9:]}' if suffix.startswith('stripped_') else f'{wood}_{suffix}'
+            if variant == 'default':  # mapColor(planks), SoundType.SLIME_BLOCK
+                blocks[name] = declare(template, planks_color, 'minecraft:slime_block', 0.0, 0.0, False, item=suffix not in ('wall_sign', 'wall_hanging_sign'))
+            else:  # mapColor(bark), SoundType.WOOD, requiresCorrectToolForDrops
+                blocks[name] = declare(template, bark_color, 'minecraft:oak_log', 0.0, 0.0, True)
+    for foliage in W1_FOLIAGE:
+        color = W1_FOLIAGE_COLORS[foliage]
+        nether = foliage in W1_NETHER_FOLIAGE
+        for dirt in W1_DIRTS:
+            # slimeGrassProps: builder(foliage colour, SLIME_BLOCK).strength(2.0).requiresCorrectToolForDrops().randomTicks()
+            if nether:  # SlimeNyliumBlock: a plain block
+                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:dirt', color, 'minecraft:slime_block', 2.0, 2.0, True, random_ticks=True)
+            else:  # SlimeGrassBlock extends SnowyDirtBlock
+                blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:grass_block', color, 'minecraft:slime_block', 2.0, 2.0, True, random_ticks=True)
+        # saplingProps: builder(foliage colour, FUNGUS in the nether else GRASS).instabreak().noCollission()
+        if foliage == 'ender':  # SlimePropaguleBlock: the mangrove propagule states come with the template
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:mangrove_propagule', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True)
+        elif nether:  # SlimeFungusBlock
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:crimson_fungus', color, 'minecraft:crimson_fungus', 0.0, 0.0, False)
+        else:  # SlimeSaplingBlock
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:oak_sapling', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True)
+        if nether:  # a plain block: builder(foliage colour, WART_BLOCK).strength(1.5)
+            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:dirt', color, 'minecraft:nether_wart_block', 1.5, 1.5, False)
+        else:  # SlimeLeavesBlock (the propagule leaves for ender): builder(colour, GRASS).strength(1.0).noOcclusion()
+            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:oak_leaves', color, 'minecraft:short_grass', 1.0, 1.0, False, occludes=False)
+        # fernProps/tallGrassProps: builder(foliage colour, ROOTS in the nether else GRASS).replaceable().instabreak().noCollission()
+        ground_sound = 'minecraft:crimson_roots' if nether else 'minecraft:short_grass'
+        blocks[f'{foliage}_slime_fern'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False)
+        blocks[f'{foliage}_slime_tall_grass'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False)
+        # FlowerPotBlock: no properties beyond the pot itself, and no item
+        blocks[f'potted_{foliage}_slime_fern'] = declare('minecraft:flower_pot', 'NONE', 'minecraft:flower_pot', 0.0, 0.0, False, item=False)
+        blocks[f'potted_{foliage}_slime_sapling'] = declare('minecraft:flower_pot', 'NONE', 'minecraft:flower_pot', 0.0, 0.0, False, item=False)
+    for slime in ('sky', 'ender'):
+        # SlimeVineBlock: builder(slime colour, GRASS).replaceable().strength(0.75).noCollission().randomTicks(); the growth stage is its own state
+        color, _light = SLIME_TYPES[slime]
+        blocks[f'{slime}_slime_vine'] = {**declare('minecraft:vine', color, 'minecraft:short_grass', 0.75, 0.75, False, random_ticks=True),
+                                         'state_properties': {'stage': {'type': 'enum', 'values': ['start', 'middle', 'end']}}}
+    # SlimeRootsBlock: builder(COLOR_BLACK, MANGROVE_ROOTS).instrument(BASS).strength(0.7).noOcclusion()
+    blocks['enderbark_roots'] = declare('minecraft:mangrove_roots', 'COLOR_BLACK', 'minecraft:mangrove_roots', 0.7, 0.7, False, occludes=False)
+    for slime, (color, light) in SLIME_TYPES.items():
+        # SlimeDirtBlock: builder(slime colour, MUDDY_MANGROVE_ROOTS).strength(0.7) with the slime light
+        blocks[f'{slime}_enderbark_roots'] = declare('minecraft:dirt', color, 'minecraft:muddy_mangrove_roots', 0.7, 0.7, False, light=light)
+    return blocks
+
+
+# The W1 blocks whose blockstates carry real variants or multipart parts (the rest are a single variant or the four facings the
+# generic client path already handles): the wood pieces with states, the snowy overworld grass, the propagule and the vines.
+WORLD_STATE_BLOCKS = (
+    [f'{wood}_{part}' for wood in W1_WOODS for part in ('planks_slab', 'planks_stairs', 'fence', 'fence_gate', 'door', 'trapdoor',
+                                                        'pressure_plate', 'button', 'hanging_sign', 'log', 'wood')]
+    + [f'stripped_{wood}_{part}' for wood in W1_WOODS for part in ('log', 'wood')]
+    + [f'{foliage}_{dirt}_slime_grass' for foliage in ('earth', 'sky', 'ender') for dirt in W1_DIRTS]
+    + ['ender_slime_sapling', 'sky_slime_vine', 'ender_slime_vine'])
+
+
+# TinkerWorld's geodes (registerGeode/GeodeItemObject): each slime crystal makes a crystal block, a budding block and
+# four CrystalClusterBlock buds; the metal clusters are CrystalClusterBlocks on clusterProps. A bud's light is the
+# type's base light plus the bud's extra, capped at 15; the sounds are the vanilla amethyst sets the original's Sounds
+# builds (its per-type pitches are not part of a declaration). The budding block declares random ticks; the growth
+# itself is a later unit, as is geode worldgen. The heads are TinkerHeadType's SkullBlocks: the standing head carries
+# the item, the wall head none (its loot comes from the standing head, below).
+GEODE_TYPES = {'earth': ('COLOR_LIGHT_GREEN', 3), 'sky': ('COLOR_BLUE', 0), 'ichor': ('COLOR_ORANGE', 10), 'ender': ('COLOR_PURPLE', 7)}
+GEODE_BUDS = [('{name}_cluster', 7, 5, 'minecraft:amethyst_cluster'), ('small_{name}_bud', 3, 1, 'minecraft:small_amethyst_bud'),
+              ('medium_{name}_bud', 4, 2, 'minecraft:medium_amethyst_bud'), ('large_{name}_bud', 5, 4, 'minecraft:large_amethyst_bud')]
+METAL_CLUSTERS = {'steel_cluster': ('STONE', 5, 'minecraft:iron_block'), 'cobalt_cluster': ('COLOR_BLUE', 8, 'minecraft:netherite_block'),
+                  'knightmetal_cluster': ('GRASS', 12, 'minecraft:netherite_block')}
+HEAD_TYPES = ['blaze', 'enderman', 'stray', 'husk', 'drowned', 'spider', 'cave_spider', 'piglin_brute', 'zombified_piglin']
+
+
+def cluster_boxes(height):
+    """AmethystClusterBlock's outline for this height at the buds' offset 3, one box per facing."""
+    o = 3
+    return {'down': [[o, 16 - height, o, 16 - o, 16, 16 - o]], 'up': [[o, 0, o, 16 - o, height, 16 - o]],
+            'north': [[o, o, 16 - height, 16 - o, 16 - o, 16]], 'south': [[o, o, 0, 16 - o, 16 - o, height]],
+            'west': [[16 - height, o, o, 16, 16 - o, 16 - o]], 'east': [[0, o, o, height, 16 - o, 16 - o]]}
+
+
+def cluster_declaration(color, sounds, hardness, light, height):
+    """A CrystalClusterBlock: directional, non-occluding, needs the correct tool; outline and collision are one shape."""
+    shapes = {'property': 'facing', 'values': cluster_boxes(height)}
+    properties = {'hardness': hardness, 'explosion_resistance': hardness, 'sounds': sounds, 'map_color': MAP_COLORS[color],
+                  'requires_tool': True, 'occludes': False}
+    if light:
+        properties['light'] = light
+    return {'template': 'minecraft:stone', 'properties': properties,
+            'state_properties': {'facing': {'type': 'enum', 'values': ['down', 'up', 'north', 'south', 'west', 'east']},
+                                 'waterlogged': {'type': 'boolean'}},
+            'shapes': shapes, 'collision_shapes': shapes, 'item': True}
+
+
+def world_geode_blocks():
+    blocks = {}
+    for kind, (color, base_light) in GEODE_TYPES.items():
+        name = f'{kind}_slime_crystal'
+        crystal = {'hardness': 1.5, 'explosion_resistance': 1.5, 'sounds': 'minecraft:amethyst_block', 'map_color': MAP_COLORS[color], 'requires_tool': True}
+        if base_light:
+            crystal['light'] = base_light
+        blocks[f'{name}_block'] = {'template': 'minecraft:stone', 'properties': dict(crystal), 'item': True}
+        budding = dict(crystal)
+        budding['random_ticks'] = True
+        blocks[f'budding_{name}'] = {'template': 'minecraft:stone', 'properties': budding, 'item': True}
+        for key, height, extra, sounds in GEODE_BUDS:
+            blocks[key.format(name=name)] = cluster_declaration(color, sounds, 1.5, min(base_light + extra, 15), height)
+    for name, (color, light, sounds) in METAL_CLUSTERS.items():
+        blocks[name] = cluster_declaration(color, sounds, 2.5, light, 7)
+    # SkullBlock/WallSkullBlock at strength 1.0 with no tool requirement; the skull's box is its outline and collision.
+    skull = {'template': 'minecraft:stone',
+             'properties': {'hardness': 1.0, 'explosion_resistance': 1.0, 'sounds': 'minecraft:stone', 'map_color': 0, 'occludes': False},
+             'shapes': {'default': [[4, 0, 4, 12, 8, 12]]}, 'collision_shapes': {'default': [[4, 0, 4, 12, 8, 12]]}}
+    wall_shapes = {'property': 'facing', 'values': {'north': [[4, 4, 8, 12, 12, 16]], 'south': [[4, 4, 0, 12, 12, 8]],
+                                                    'east': [[8, 4, 4, 16, 12, 12]], 'west': [[0, 4, 4, 8, 12, 12]]}}
+    for head in HEAD_TYPES:
+        blocks[f'{head}_head'] = {**skull, 'state_properties': {'rotation': {'type': 'enum', 'values': [str(i) for i in range(16)]},
+                                                                'powered': {'type': 'boolean'}}, 'item': True}
+        blocks[f'{head}_wall_head'] = {**skull, 'state_properties': {'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']},
+                                                                     'powered': {'type': 'boolean'}},
+                                       'shapes': wall_shapes, 'collision_shapes': wall_shapes, 'item': False}
+    return blocks
+
+
+def smeltery_blocks():
+    """name -> declaration of the melter, the heater, the two heating structure controllers, the alloyer and the plain structure blocks
+    (TinkerSmeltery: the `seared` and `scorched` controller properties, light 13 while active; the melter and the alloyer add noOcclusion;
+    `searedSolidProps`/`scorchedSolidProps` for the building blocks, which add the `in_structure` state of SearedBlock). The slab,
+    stair, wall and fence variants, the pillar blocks, glass, ladders and every block with a block entity of its own are other units."""
+    def controller(occludes, color, sounds, hardness, resistance):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if not occludes:
+            properties['occludes'] = False
+        return {'template': 'minecraft:stone', 'properties': properties,
+                'state_properties': {'active': {'type': 'boolean'}, 'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}, 'in_structure': {'type': 'boolean'}},
+                'state_light': {'property': 'active', 'values': {'false': 0, 'true': 13}}, 'item': True}
+
+    def structure_block(color, sounds, hardness, resistance, light=0):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if light:
+            properties['light'] = light
+        return {'template': 'minecraft:stone', 'properties': properties, 'state_properties': {'in_structure': {'type': 'boolean'}}, 'item': True}
+
+    blocks = {
+        'seared_melter': controller(False, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
+        'seared_heater': controller(True, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
+        'smeltery_controller': controller(True, 'COLOR_GRAY', 'minecraft:iron_block', 8.0, 28.0),
+        'foundry_controller': controller(True, 'TERRACOTTA_BROWN', 'minecraft:basalt', 9.0, 35.0),
+        'scorched_alloyer': controller(False, 'TERRACOTTA_BROWN', 'minecraft:basalt', 9.0, 35.0),
+    }
+    for name in ['seared_stone', 'seared_cobble', 'seared_paver', 'seared_bricks', 'seared_cracked_bricks', 'seared_fancy_bricks', 'seared_triangle_bricks']:
+        blocks[name] = structure_block('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0)
+    blocks['seared_lamp'] = structure_block('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0, 15)
+    for name in ['scorched_bricks', 'scorched_road', 'chiseled_scorched_bricks']:
+        blocks[name] = structure_block('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0)
+    blocks['scorched_lamp'] = structure_block('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0, 15)
+    # the pouring blocks: searedNonSolidProps(METAL) strength 3/9 and scorchedNonSolidProps(BASALT) 2.5/8, both noOcclusion and
+    # requiring the correct tool; their block states are the original's (TableBlock facing + has_item, FaucetBlock facing,
+    # ChannelBlock down/powered and one of none/in/out per side). Waterlogging is left out (no fluid logging here).
+    flow = {'type': 'enum', 'values': ['none', 'in', 'out']}
+    states = {'table': {'facing': {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}, 'has_item': {'type': 'boolean'}},
+              'faucet': {'facing': {'type': 'enum', 'values': ['down', 'north', 'south', 'east', 'west']}},
+              'channel': {'down': {'type': 'boolean'}, 'powered': {'type': 'boolean'}, 'north': flow, 'south': flow, 'west': flow, 'east': flow}}
+    states['basin'] = states['table']
+    for kind, (color, hardness, resistance, sound) in {'seared': ('COLOR_GRAY', 3.0, 9.0, 'minecraft:iron_block'), 'scorched': ('TERRACOTTA_BROWN', 2.5, 8.0, 'minecraft:basalt')}.items():
+        for block, properties in states.items():
+            name = f'{kind}_{block}'
+            blocks[name] = {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                            'state_properties': properties, 'item': True}
+    blocks.update(smeltery_unit6_blocks())
+    blocks.update(smeltery_u6b_blocks())
+    blocks.update(smeltery_u6c_blocks())
+    blocks.update(smeltery_u6d_blocks())
+    blocks.update(metal_blocks())
+    blocks.update(commons_blocks())
+    blocks.update(firewood_blocks())
+    return blocks
+
+
+def smeltery_unit6_blocks():
+    """The rest of the structure blocks and the smeltery's fluid interface (TinkerSmeltery; every one requires the correct tool and
+    uses structureProps, noOcclusion for the non-solid ones): grout, slabs, stairs, walls, fences, scorched pillars, glass, panes, ladders,
+    the drains, ducts and chutes (factor 2 seared, 3 scorched) and the four tank types of each kind. Templates are the vanilla block of the
+    same class (the host copies its states and shape); the slabs and stairs of the original are smeltery component block entities
+    without an `in_structure` state, the glass, pillars, ladders, drains, ducts and chutes carry it. Soul glass, fluid cannons, lanterns,
+    gauges, the casting tank and the proxy tank are other units."""
+    facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
+    in_structure = {'type': 'boolean'}
+    kinds = {'seared': ('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0), 'scorched': ('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0)}
+
+    def declare(template, color, sounds, hardness, resistance, states=None, occludes=True, light_states=False):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if not occludes:
+            properties['occludes'] = False
+        declaration = {'template': template, 'properties': properties}
+        if states:
+            declaration['state_properties'] = states
+        if light_states:
+            declaration['state_light'] = {'property': 'light', 'values': {str(level): level for level in range(16)}}
+        declaration['item'] = True
+        return declaration
+
+    blocks = {}
+    # grout: builder(color, sound).strength(3.0f).friction(0.8F), no tool needed
+    for name, color, sound in (('grout', 'COLOR_LIGHT_GRAY', 'minecraft:sand'), ('nether_grout', 'COLOR_BROWN', 'minecraft:soul_soil')):
+        blocks[name] = {'template': 'minecraft:dirt', 'properties': {'hardness': 3.0, 'explosion_resistance': 3.0, 'sounds': sound, 'map_color': MAP_COLOR[color], 'requires_tool': False, 'friction': 0.8}, 'item': True}
+    for kind, (color, sound, hardness, resistance) in kinds.items():
+        base = kind == 'seared'
+        # registerBuilding: slab and stairs of stone, paver, bricks (and cobble); registerWallBuilding adds a wall; registerFenceBuilding a fence
+        families = {'seared': {'stone': 'slab,stairs', 'cobble': 'slab,stairs,wall', 'paver': 'slab,stairs', 'bricks': 'slab,stairs,wall'},
+                    'scorched': {'bricks': 'slab,stairs,fence', 'road': 'slab,stairs'}}[kind]
+        for family, parts in families.items():
+            for part in parts.split(','):
+                template = {'slab': 'minecraft:stone_slab', 'stairs': 'minecraft:stone_stairs', 'wall': 'minecraft:cobblestone_wall', 'fence': 'minecraft:nether_brick_fence'}[part]
+                blocks[f'{kind}_{family}_{part}'] = declare(template, color, sound, hardness, resistance)
+        blocks[f'{kind}_glass'] = declare('minecraft:glass', color, 'minecraft:glass', hardness, resistance, {'in_structure': in_structure}, False)
+        blocks[f'{kind}_tinted_glass'] = declare('minecraft:tinted_glass', color, 'minecraft:glass', hardness, resistance, {'in_structure': in_structure}, False)
+        blocks[f'{kind}_glass_pane'] = declare('minecraft:glass_pane', color, 'minecraft:glass', hardness, resistance, None, False)
+        # the ladders' own sounds are METAL / BASALT
+        blocks[f'{kind}_ladder'] = declare('minecraft:ladder', color, sound, hardness, resistance, {'in_structure': in_structure, 'bottom': {'type': 'boolean'}}, False)
+        factor = 2 if base else 3
+        for part in ('drain', 'duct', 'chute'):
+            blocks[f'{kind}_{part}'] = declare('minecraft:stone', color, sound, hardness * factor, resistance * factor, {'in_structure': in_structure, 'facing': facing})
+        for tank in ('fuel_tank', 'fuel_gauge', 'ingot_tank', 'ingot_gauge'):
+            light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+            blocks[f'{kind}_{tank}'] = declare('minecraft:stone', color, sound, hardness, resistance, {'in_structure': in_structure, 'light': light}, False, True)
+    for name in ('scorched_stone', 'polished_scorched_stone'):
+        blocks[name] = declare('minecraft:basalt', 'TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0, {'in_structure': in_structure})
+    return blocks
+
+
+def smeltery_u6b_blocks():
+    """The fluid cannons and the gauges (TinkerSmeltery): a cannon is a tank block of its kind's properties (the end
+    cannon takes the seared ones), adding the six-way `facing` and the redstone `triggered` to the tank's `in_structure`
+    and `light`; a gauge is Mantle's GaugeBlock: map colour none, no collision, strength 0.5, no occlusion, the clicked
+    face as its only state. The outline shape is the template's; the gauge's thin panel is its model's."""
+    facing = {'type': 'enum', 'values': ['down', 'up', 'north', 'south', 'west', 'east']}
+    light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+
+    def cannon(color, sounds, hardness, resistance):
+        return {'template': 'minecraft:stone',
+                'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                'state_properties': {'facing': facing, 'triggered': {'type': 'boolean'}, 'in_structure': {'type': 'boolean'}, 'light': light},
+                'state_light': {'property': 'light', 'values': {str(level): level for level in range(16)}}, 'item': True}
+
+    def gauge():
+        return {'template': 'minecraft:stone',
+                'properties': {'hardness': 0.5, 'explosion_resistance': 0.5, 'sounds': 'minecraft:stone', 'map_color': MAP_COLOR['NONE'], 'requires_tool': True, 'occludes': False},
+                'state_properties': {'facing': facing}, 'collision_shapes': {'default': []}, 'item': True}
+
+    return {'seared_fluid_cannon': cannon('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0),
+            'scorched_fluid_cannon': cannon('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0),
+            'end_fluid_cannon': cannon('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0),
+            'copper_gauge': gauge(), 'obsidian_gauge': gauge()}
+def smeltery_u6c_blocks():
+    """Lanterns and soul glass (TinkerSmeltery; the two soul glass blocks of TinkerCommons that the smeltery soul glass
+    is crafted and cast from come with them). The lanterns are SearedLanternBlock: the vanilla lantern, its states and
+    shape from the template, plus the `light` state of SearedTankBlock (the block entity keeps it at the held fluid's
+    light) over searedNonSolidProps(SoundType.LANTERN); they are no SearedBlock, so they carry no `in_structure`.
+    Soul glass is the glass of its unit with noCollission and a speed factor (0.1 the smeltery pair, 0.2 the commons
+    pair, whose glassBuilder is strength 0.3, no tool): the host's block declarations have no speed factor key, so
+    that part is not declared; the missing collision is `collision_shapes` of no boxes, as the fluid blocks declare
+    theirs. The commons pane keeps its collision (only its speed factor differs)."""
+    light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+    in_structure = {'type': 'boolean'}
+    blocks = {}
+    for kind, (color, hardness, resistance) in {'seared': ('COLOR_GRAY', 3.0, 9.0), 'scorched': ('TERRACOTTA_BROWN', 2.5, 8.0)}.items():
+        blocks[f'{kind}_lantern'] = {'template': 'minecraft:lantern',
+                                     'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': 'minecraft:lantern', 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                                     'state_properties': {'light': light},
+                                     'state_light': {'property': 'light', 'values': {str(level): level for level in range(16)}},
+                                     'item': True}
+        glass = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False}
+        blocks[f'{kind}_soul_glass'] = {'template': 'minecraft:glass', 'properties': glass, 'state_properties': {'in_structure': in_structure}, 'item': True, 'collision_shapes': {'default': []}}
+        blocks[f'{kind}_soul_glass_pane'] = {'template': 'minecraft:glass_pane', 'properties': glass, 'item': True, 'collision_shapes': {'default': []}}
+    commons = {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR['COLOR_BROWN'], 'requires_tool': False, 'occludes': False}
+    blocks['soul_glass'] = {'template': 'minecraft:glass', 'properties': commons, 'item': True, 'collision_shapes': {'default': []}}
+    blocks['soul_glass_pane'] = {'template': 'minecraft:glass_pane', 'properties': commons, 'item': True}
+    return blocks
+
+
+# Their block states are the original's own (variants or multipart over the template's properties), so they are copied as they are.
+SMELTERY_STATE_BLOCKS += [name for name in smeltery_unit6_blocks() if name not in ('grout', 'nether_grout')]
+SMELTERY_STATE_BLOCKS += list(smeltery_u6b_blocks())
+SMELTERY_STATE_BLOCKS += list(smeltery_u6c_blocks())
+
+
+def smeltery_u6d_blocks():
+    """The casting tank and the proxy tank (TinkerSmeltery): the casting tank takes the seared non-solid properties
+    (metal sound, strength 3/9) with a horizontal facing and the tanks' `light` state, the proxy tank the scorched
+    ones (basalt, 2.5/8) with the facing only; both take the stone template, no occlusion, and require the correct
+    tool."""
+    facing = {'type': 'enum', 'values': ['north', 'south', 'east', 'west']}
+    light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
+
+    def declare(color, sounds, hardness, resistance, states=None, light_states=False):
+        properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False}
+        declaration = {'template': 'minecraft:stone', 'properties': properties}
+        if states:
+            declaration['state_properties'] = states
+        if light_states:
+            declaration['state_light'] = {'property': 'light', 'values': {str(level): level for level in range(16)}}
+        declaration['item'] = True
+        return declaration
+
+    return {
+        # CastingTankBlock: searedNonSolidProps(METAL).lightLevel(LIGHT_GETTER), FACING + LIGHT
+        'seared_casting_tank': declare('COLOR_GRAY', 'minecraft:iron_block', 3.0, 9.0, {'facing': facing, 'light': light}, True),
+        # ProxyTankBlock: scorchedNonSolidProps(BASALT), HORIZONTAL_FACING
+        'scorched_proxy_tank': declare('TERRACOTTA_BROWN', 'minecraft:basalt', 2.5, 8.0, {'facing': facing}),
+    }
+
+
+SMELTERY_STATE_BLOCKS += list(smeltery_u6d_blocks())
+# The geode buds and clusters key their blockstates by facing alone, so they take the same pass-through.
+SMELTERY_STATE_BLOCKS += [name for name in world_geode_blocks() if name.endswith(('_cluster', '_bud'))]
+
+def metal_blocks():
+    """The storage blocks of the shipped metals (TinkerMaterials `registerMetal`): `metalBuilder` (metal sound,
+    strength 5, the correct tool) with each metal's own map colour and sound; the ones registered with
+    `noOcclusion` say so. The block classes are not carried: SlimesteelBlock (slimesteel, cinderslime,
+    knightslime) is a slime block — it sticks to slime blocks, negates fall damage and bounces — riding on the
+    same documented host stubs as the world unit's slime blocks; the orientable pig iron block's facing is not
+    declared (the north variant is the block's one model, as for the world unit's facing blocks);
+    KnightMetalBlock's bite is the entity-inside gap of the fluid cannons. The ingots and nuggets are
+    METAL_ITEMS.
+
+    Three of the block models do not come across: slimesteel, cinderslime and knightslime are
+    `forge:composite` models (a solid metal core under a translucent slime shell), which the flat
+    model copy cannot express, so those blocks stand declared with no model, like the scorched proxy
+    tank. The queens slime block and the queens slime ingot and nugget carry luminosity-only Mantle
+    loaders and import flattened (see PLAIN_LOADERS)."""
+    def metal(color, sounds, occludes=True):
+        properties = {'hardness': 5.0, 'explosion_resistance': 5.0, 'sounds': sounds, 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if not occludes:
+            properties['occludes'] = False
+        return {'template': 'minecraft:stone', 'properties': properties, 'item': True}
+
+    metal_sound, netherite_sound = 'minecraft:iron_block', 'minecraft:netherite_block'
+    return {
+        'cobalt_block': metal('COLOR_BLUE', metal_sound),
+        'steel_block': metal('STONE', metal_sound),
+        'slimesteel_block': metal('WARPED_WART_BLOCK', metal_sound, False),
+        'amethyst_bronze_block': metal('COLOR_PURPLE', metal_sound),
+        'rose_gold_block': metal('TERRACOTTA_WHITE', metal_sound),
+        'pig_iron_block': metal('COLOR_PINK', metal_sound),
+        'cinderslime_block': metal('COLOR_ORANGE', netherite_sound, False),
+        'queens_slime_block': metal('COLOR_GREEN', netherite_sound),
+        'manyullyn_block': metal('COLOR_PURPLE', netherite_sound),
+        'hepatizon_block': metal('TERRACOTTA_BLUE', netherite_sound),
+        'knightmetal_block': metal('GRASS', netherite_sound, False),
+        'knightslime_block': metal('COLOR_BLACK', metal_sound, False),
+    }
+
+
+# The dye colours of the clear stained glass, in GlassColor (dye) order, each with its dye's map colour.
+GLASS_COLORS = [('white', 'SNOW'), ('orange', 'COLOR_ORANGE'), ('magenta', 'COLOR_MAGENTA'), ('light_blue', 'COLOR_LIGHT_BLUE'),
+                ('yellow', 'COLOR_YELLOW'), ('lime', 'COLOR_LIGHT_GREEN'), ('pink', 'COLOR_PINK'), ('gray', 'COLOR_GRAY'),
+                ('light_gray', 'COLOR_LIGHT_GRAY'), ('cyan', 'COLOR_CYAN'), ('purple', 'COLOR_PURPLE'), ('blue', 'COLOR_BLUE'),
+                ('brown', 'COLOR_BROWN'), ('green', 'COLOR_GREEN'), ('red', 'COLOR_RED'), ('black', 'COLOR_BLACK')]
+
+
+def commons_blocks():
+    """TinkerCommons blocks the plain crafting recipes name: the clear glass family, the obsidian pane and the
+    gold bars. Clear glass is the original's `glassBuilder` (strength 0.3, glass sound, no occlusion) on the
+    vanilla glass and glass pane templates; its connected textures ride on the models' `connection` data, which
+    the asset import drops, so the glass keeps its plain texture, as the retextured blocks keep theirs. The
+    obsidian pane is Mantle's BetterPaneBlock at obsidian strength (25/400, stone sound, the correct tool) and
+    the gold bars the vanilla IronBarsBlock (metal sound, strength 3/6, the correct tool). The platforms are the
+    PlatformBlocks (copper sound, the correct tool, no occlusion) with their six connection states; the shapes the
+    connections make and the waterlogging are not carried, as the pouring blocks leave waterlogging out, and the
+    copper ones' weathering and waxing are block class behaviour, which is not carried, as the metal blocks'
+    classes are not. The cheese block is the cheese pair's HalfTransparentBlock (honey sound, strength 1.5/3, no
+    occlusion); its speed and jump factors have no key in a block declaration, as the soul glass's speed factor has none."""
+    def glass(template, color):
+        return {'template': template, 'properties': {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': False, 'occludes': False}, 'item': True}
+
+    blocks = {'clear_glass': glass('minecraft:glass', 'NONE'), 'clear_glass_pane': glass('minecraft:glass_pane', 'NONE')}
+    for name, color in GLASS_COLORS:
+        blocks[f'{name}_clear_stained_glass'] = glass('minecraft:glass', color)
+        blocks[f'{name}_clear_stained_glass_pane'] = glass('minecraft:glass_pane', color)
+    blocks['obsidian_pane'] = {'template': 'minecraft:glass_pane',
+                               'properties': {'hardness': 25.0, 'explosion_resistance': 400.0, 'sounds': 'minecraft:stone', 'map_color': MAP_COLOR['COLOR_BLACK'], 'requires_tool': True, 'occludes': False},
+                               'item': True}
+    blocks['gold_bars'] = {'template': 'minecraft:iron_bars',
+                           'properties': {'hardness': 3.0, 'explosion_resistance': 6.0, 'sounds': 'minecraft:iron_block', 'map_color': MAP_COLOR['NONE'], 'requires_tool': True, 'occludes': False},
+                           'item': True}
+    connections = {side: {'type': 'boolean'} for side in ('up', 'down', 'north', 'east', 'south', 'west')}
+
+    def platform(color, hardness, resistance):
+        return {'template': 'minecraft:stone', 'properties': {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': 'minecraft:copper_block', 'map_color': MAP_COLOR[color], 'requires_tool': True, 'occludes': False},
+                'state_properties': connections, 'item': True}
+
+    for name, color, hardness, resistance in [('copper_platform', 'COLOR_ORANGE', 3.0, 6.0), ('exposed_copper_platform', 'TERRACOTTA_LIGHT_GRAY', 3.0, 6.0),
+                                              ('weathered_copper_platform', 'WARPED_STEM', 3.0, 6.0), ('oxidized_copper_platform', 'WARPED_NYLIUM', 3.0, 6.0),
+                                              ('waxed_copper_platform', 'COLOR_ORANGE', 3.0, 6.0), ('waxed_exposed_copper_platform', 'TERRACOTTA_LIGHT_GRAY', 3.0, 6.0),
+                                              ('waxed_weathered_copper_platform', 'WARPED_STEM', 3.0, 6.0), ('waxed_oxidized_copper_platform', 'WARPED_NYLIUM', 3.0, 6.0),
+                                              ('iron_platform', 'METAL', 5.0, 6.0), ('gold_platform', 'GOLD', 3.0, 6.0), ('cobalt_platform', 'COLOR_BLUE', 5.0, 5.0)]:
+        blocks[name] = platform(color, hardness, resistance)
+    blocks['cheese_block'] = {'template': 'minecraft:stone',
+                              'properties': {'hardness': 1.5, 'explosion_resistance': 3.0, 'sounds': 'minecraft:honey_block', 'map_color': MAP_COLOR['COLOR_YELLOW'], 'requires_tool': False, 'occludes': False},
+                              'item': True}
+    return blocks
+
+
+# The commons panes and the gold bars: their block states are multipart, copied as they are.
+SMELTERY_STATE_BLOCKS += [name for name in commons_blocks() if name.endswith('_pane') or name == 'gold_bars']
+# The platforms' block states are multipart over their connection states: copied as they are.
+SMELTERY_STATE_BLOCKS += [name for name in commons_blocks() if name.endswith('_platform')]
+# The one commons item that is not a block: the cheese ingot, declared a plain item (CheeseItem's food, nutrition 3
+# and saturation 0.4, and the random effect its bite cures are not carried by an item declaration).
+COMMONS_ITEMS = ['cheese_ingot']
+
+
+
+def firewood_blocks():
+    """The two firewood families of TinkerMaterials (the nahuatl and blazewood FenceBuildingBlockObjects): the block,
+    its fence, its slab and its stairs, at strength 25/300 with the correct tool and the wood sound; blazewood gives
+    light 7, and every block of its family carries the light, as the family shares its properties. Templates are the
+    vanilla block of the same class, as the smeltery building blocks take theirs."""
+    def declare(template, color, light=0):
+        properties = {'hardness': 25.0, 'explosion_resistance': 300.0, 'sounds': 'minecraft:oak_planks', 'map_color': MAP_COLOR[color], 'requires_tool': True}
+        if light:
+            properties['light'] = light
+        return {'template': template, 'properties': properties, 'item': True}
+
+    blocks = {}
+    for name, color, light in [('nahuatl', 'COLOR_PURPLE', 0), ('blazewood', 'TERRACOTTA_RED', 7)]:
+        blocks[name] = declare('minecraft:stone', color, light)
+        blocks[f'{name}_fence'] = declare('minecraft:nether_brick_fence', color, light)
+        blocks[f'{name}_slab'] = declare('minecraft:stone_slab', color, light)
+        blocks[f'{name}_stairs'] = declare('minecraft:stone_stairs', color, light)
+    return blocks
+
+
+# The firewood fences' block states are multipart and the slabs' and stairs' the original's variants: copied as they are.
+SMELTERY_STATE_BLOCKS += [f'{wood}_{part}' for wood in ('nahuatl', 'blazewood') for part in ('fence', 'slab', 'stairs')]
+
+
+def write_vanilla_fuels():
+    """Vanilla's burn times (ForgeHooks.getBurnTime falls back to the furnace fuel map for the melter's heater): the
+    `minecraft:cooking_fuel` item component of the pinned base export, its burn time provider evaluated for an ordinary
+    (not fast-cooking) block. The host exposes no burn time to mods, so the table is data of the pinned game version."""
+    base = ROOT / '.local/base-26.3'
+    providers = base / 'data/minecraft/context_int_provider'
+
+    def evaluate(reference):
+        name = reference.split(':', 1)[1]
+        node = json.loads((providers / f'{name}.json').read_text(encoding='utf-8'))
+        return value(node)
+
+    def value(node):
+        if isinstance(node, (int, float)):
+            return node
+        if isinstance(node, str):
+            return evaluate(node)
+        kind = node['type']
+        if kind == 'minecraft:div':
+            return int(value(node['left']) / value(node['right']))
+        if kind == 'minecraft:conditional':
+            return value(node['on_false'])  # block/fast_cooking is the only condition and does not hold
+        if kind == 'minecraft:constant':
+            return value(node['value'])
+        raise SystemExit(f'burn time provider {kind} is not known')
+
+    items = json.loads((base / 'items.json').read_text(encoding='utf-8'))
+    fuels = {name: value(item['minecraft:cooking_fuel']['burn_time']) for name, item in sorted(items.items()) if 'minecraft:cooking_fuel' in item}
+    lines = ['//! Vanilla furnace fuels of the pinned game version: item and burn time in ticks (the `minecraft:cooking_fuel` item',
+             '//! component, evaluated for an ordinary block). Generated from the pinned base export by tools/import_original_data.py.',
+             '', 'pub(crate) const FUELS: &[(&str, i32)] = &['] + [f'    ("{name}", {ticks}),' for name, ticks in fuels.items()] + ['];']
+    (ROOT / 'tconstruct/mixins/tconstruct/api/src/vanilla_fuels.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
+    return len(fuels)
+
+
+def gadget_blocks():
+    """name -> declaration of the gadgets whose behaviour needs no host service this port lacks (TinkerGadgets): the punji
+    sticks and the slime cakes. Punji: builder(MapColor.PLANT, SoundType.GRASS).strength(3.0F).noOcclusion(); its facing and
+    the four connection states are its own (waterlogging is left out, as with the pouring blocks), and the one collision box
+    is the floor shape, as the declaration holds a single default (the host reads per-facing shapes from no key here).
+    The cakes ride the vanilla cake block, whose template carries the bites state and the floor cakes' survival and shapes;
+    theirs is builder(SoundType.WOOL).strength(0.5F) with map colour NONE, and the hanging ichor cake overrides survival in
+    the api crate. The ichor cake's one collision box is its unbitten shape (bites narrow it in the original)."""
+    blocks = {
+        'punji': {'template': 'minecraft:stone',
+                  'properties': {'hardness': 3.0, 'explosion_resistance': 3.0, 'sounds': 'minecraft:grass_block', 'map_color': MAP_COLOR['PLANT'], 'requires_tool': False, 'occludes': False},
+                  'state_properties': {'facing': {'type': 'enum', 'values': ['down', 'up', 'north', 'south', 'west', 'east']},
+                                       'north': {'type': 'boolean'}, 'east': {'type': 'boolean'}, 'northeast': {'type': 'boolean'}, 'northwest': {'type': 'boolean'}},
+                  'default_state': {'facing': 'down', 'north': 'false', 'east': 'false', 'northeast': 'false', 'northwest': 'false'},
+                  'collision_shapes': {'default': [[3, 0, 3, 13, 6, 13]]}, 'item': True},
+    }
+    cake = {'template': 'minecraft:cake',
+            'properties': {'hardness': 0.5, 'explosion_resistance': 0.5, 'sounds': 'minecraft:white_wool', 'map_color': MAP_COLOR['NONE'], 'requires_tool': False},
+            'item': True}
+    for name in ('earth_cake', 'sky_cake', 'ender_cake', 'blood_cake', 'magma_cake'):
+        blocks[name] = cake
+    blocks['ichor_cake'] = {**cake, 'collision_shapes': {'default': [[1, 8, 1, 15, 16, 15]]}}
+    return blocks
+
+
+SMELTERY_STATE_BLOCKS += list(gadget_blocks())
 
 
 def write_world_declarations():
     """Block and item declarations of the world units, written beside the hand-written station ones."""
-    blocks = world_blocks()
+    blocks = {**world_blocks(), **world_geode_blocks(), **smeltery_blocks(), **gadget_blocks()}
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
-    for name in WORLD_ITEMS:
+    for name in WORLD_ITEMS + CAST_ITEMS + METAL_ITEMS + COMMONS_ITEMS:
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper'}, compact=True)
-    return len(blocks), len(WORLD_ITEMS)
+    for name, stack in FLUID_ITEMS.items():
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper', 'max_stack_size': stack}, compact=True)
+    return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS) + len(METAL_ITEMS) + len(COMMONS_ITEMS) + len(FLUID_ITEMS)
 
 
 def whole(value):
@@ -1031,7 +2515,11 @@ def upgrade_loot(node):
             terms = [upgrade_condition(term) for term in value]
             result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
         elif key == 'functions':
-            result['modifier'] = [upgrade_function(function) for function in value]
+            # The heating controllers' tables also copy the block entity's name and the retexture (mantle:fill_retextured_block);
+            # neither exists here (no named or retextured controllers), so those functions are dropped and the plain drop stays.
+            kept = [upgrade_function(function) for function in value if function['function'] not in ('minecraft:copy_name', 'mantle:fill_retextured_block')]
+            if kept:
+                result['modifier'] = kept
         elif key == 'bonus_rolls' and value == 0:
             continue  # the default
         elif key in ('type', 'name', 'random_sequence', 'rolls'):
@@ -1040,6 +2528,10 @@ def upgrade_loot(node):
             result[key] = upgrade_loot(value)
         else:
             raise SystemExit(f'loot table: unknown key {key!r}')
+    if 'random_sequence' in result and 'pools' not in result:
+        # A block that drops nothing (the budding crystals) gets no pools from datagen; the port's
+        # loot schema spells the empty list out.
+        result['pools'] = []
     return result
 
 
@@ -1050,6 +2542,28 @@ def upgrade_condition(condition):
     silk = {'enchantments': [{'enchantment': 'minecraft:silk_touch', 'levels': {'min': 1}}]}
     if kind == 'minecraft:match_tool' and condition['predicate'] == silk:
         return 'minecraft:tool/can_silk_touch'
+    if kind == 'minecraft:match_tool' and condition.get('predicate') == {'items': ['minecraft:shears']}:
+        return 'minecraft:tool/can_shear'
+    if kind == 'forge:can_tool_perform_action' and set(condition) == {'condition', 'action'} and condition['action'] == 'shears_dig':
+        # Forge's tool action is the host's tool condition string, as the base game's own fern and vine tables write it
+        return 'minecraft:tool/can_shear'
+    if kind == 'minecraft:table_bonus' and set(condition) == {'condition', 'enchantment', 'chances'}:
+        return {'type': kind, 'enchantment': condition['enchantment'], 'chances': condition['chances']}
+    if kind == 'minecraft:any_of' and set(condition) == {'condition', 'terms'}:
+        return {'type': kind, 'terms': [upgrade_condition(term) for term in condition['terms']]}
+    if kind == 'minecraft:inverted' and set(condition) == {'condition', 'term'}:
+        return {'type': kind, 'term': upgrade_condition(condition['term'])}
+    if kind == 'minecraft:block_state_property' and set(condition) == {'condition', 'block', 'properties'}:
+        return {'type': kind, 'block': condition['block'], 'properties': condition['properties']}
+    if kind == 'minecraft:match_tool' and set(condition) == {'condition', 'predicate'} and set(condition['predicate']) == {'tag'}:
+        # 26.3 names the tool tag in the predicate's `items`, as its own amethyst cluster table does.
+        return {'type': kind, 'predicate': {'items': f"#{condition['predicate']['tag']}"}}
+    if kind == 'minecraft:damage_source_properties' and set(condition) == {'condition', 'predicate'}:
+        # The entity loot tables: the killer predicate (a frog, in the original's slime tables) carries over as it stands.
+        return {'type': kind, 'predicate': condition['predicate']}
+    if kind == 'minecraft:entity_properties' and set(condition) == {'condition', 'entity', 'predicate'}:
+        # The entity loot tables: the slime size, the metal NBT flag and the on-fire flag predicates carry over as they stand.
+        return {'type': kind, 'entity': condition['entity'], 'predicate': condition['predicate']}
     raise SystemExit(f'loot table: unknown condition {condition}')
 
 
@@ -1060,8 +2574,24 @@ def upgrade_function(function):
         return {'type': kind}
     if kind == 'minecraft:apply_bonus' and rest == {'enchantment': 'minecraft:fortune', 'formula': 'minecraft:ore_drops'}:
         return {'type': kind, **rest}
-    if kind == 'minecraft:set_count' and rest.get('add') is False and set(rest) == {'add', 'count'}:
+    if kind == 'minecraft:set_count' and rest.get('add') is False and set(rest) <= {'add', 'count', 'conditions'}:
+        result = {'type': kind, 'count': rest['count']}
+        if 'conditions' in rest:
+            terms = [upgrade_condition(term) for term in rest['conditions']]
+            result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
+        return result
+    if kind == 'minecraft:looting_enchant' and set(rest) == {'count'}:
         return {'type': kind, 'count': rest['count']}
+    if kind == 'minecraft:furnace_smelt' and set(rest) <= {'conditions'}:
+        # The terracube table smelts its whole pool for a burning cube (the on-fire entity condition).
+        result = {'type': kind}
+        if 'conditions' in rest:
+            terms = [upgrade_condition(term) for term in rest['conditions']]
+            result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
+        return result
+    if kind == 'minecraft:copy_nbt' and rest.get('source') == 'block_entity' and set(rest) == {'source', 'ops'}:
+        # the tank items keep their fluid in the stack's custom data under `tank` (TankItem.getTank reads the stack's `tank` tag)
+        return {'type': 'minecraft:copy_custom_data', 'source': 'block_entity', 'ops': rest['ops']}
     raise SystemExit(f'loot table: unknown function {function}')
 
 
@@ -1070,21 +2600,39 @@ def copy_world_loot(names):
     target = CONTENT_DATA / 'tconstruct/loot_table'
     shutil.rmtree(target, ignore_errors=True)
     for name in names:
-        table = whole(upgrade_loot(json.loads((GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name}.json').read_text(encoding='utf-8'))))
+        source = GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name}.json'
+        if not source.exists() and name.endswith('_wall_head'):
+            # WallSkullBlock.lootFrom the standing head: datagen writes no table of its own, so the head's stands in.
+            source = GENERATED_DATA / f"tconstruct/loot_tables/blocks/{name.removesuffix('_wall_head')}_head.json"
+        if not source.exists():
+            # the wall signs have no table of their own: Mantle's wood object points them at the standing sign's table
+            source = GENERATED_DATA / f'tconstruct/loot_tables/blocks/{name.replace("_wall_", "_")}.json'
+        if not source.exists() and name.endswith('_wall_head'):
+            # WallSkullBlock.lootFrom the standing head: datagen writes no table of its own, so the head's stands in.
+            source = GENERATED_DATA / f"tconstruct/loot_tables/blocks/{name.removesuffix('_wall_head')}_head.json"
+        table = whole(upgrade_loot(json.loads(source.read_text(encoding='utf-8'))))
+        if 'pools' not in table:
+            table['pools'] = []  # the cakes' tables name no pool: eaten away, they drop nothing, and the shape here requires the list
         write_json(target / 'blocks' / f'{name}.json', table)
     return len(names)
 
 
 def upgrade_feature(feature):
     """A 1.20.1 configured feature in 26.3's `worldgen/feature` form: the config is the feature's own body and a plain
-    block state is its name."""
+    block state anywhere inside it (an ore target, a state provider's state, a fungus state) is its name; a state with
+    properties stays an object."""
     body = {'type': feature['type'], **feature['config']}
-    if body['type'] != 'minecraft:ore':
-        raise SystemExit(f'world feature: only minecraft:ore is imported, not {body["type"]}')
-    for target in body['targets']:
-        state = target['state']
-        target['state'] = state['Name'] if list(state) == ['Name'] else state
-    return body
+
+    def convert(node):
+        if isinstance(node, dict):
+            if 'Name' in node and set(node) <= {'Name', 'Properties'} and 'Properties' not in node:
+                return node['Name']
+            return {key: convert(value) for key, value in node.items()}
+        if isinstance(node, list):
+            return [convert(value) for value in node]
+        return node
+
+    return convert(body)
 
 
 def copy_world_features():
@@ -1095,7 +2643,7 @@ def copy_world_features():
     source = GENERATED_DATA / 'tconstruct'
     for name in WORLD_FEATURES:
         feature = upgrade_feature(json.loads((source / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8')))
-        for target in feature['targets']:
+        for target in feature.get('targets', []):
             block = target['state'] if isinstance(target['state'], str) else target['state']['Name']
             if block.startswith('tconstruct:') and not (HORIZON_DECLARATIONS / 'block' / f'{block[len("tconstruct:"):]}.json').exists():
                 raise SystemExit(f'feature {name} places the undeclared block {block}')
@@ -1104,13 +2652,422 @@ def copy_world_features():
         if placed['feature'] != f'tconstruct:{name}':
             raise SystemExit(f'placed feature {name} names {placed["feature"]}')
         write_json(CONTENT_DATA / f'tconstruct/worldgen/placed_feature/{name}.json', placed)
+    for name in WORLD_CONFIGURED_FEATURES:
+        feature = upgrade_feature(json.loads((source / f'worldgen/configured_feature/{name}.json').read_text(encoding='utf-8')))
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/feature/{name}.json', feature)
     for name in WORLD_BIOME_MODIFIERS:
         modifier = json.loads((source / f'forge/biome_modifier/{name}.json').read_text(encoding='utf-8'))
-        if not modifier['type'].startswith('forge:') or not set(modifier['features']) <= {f'tconstruct:{n}' for n in WORLD_FEATURES}:
+        features = [modifier['features']] if isinstance(modifier['features'], str) else modifier['features']
+        if not modifier['type'].startswith('forge:') or not set(features) <= {f'tconstruct:{n}' for n in WORLD_FEATURES + WORLD_CONFIGURED_FEATURES}:
             raise SystemExit(f'biome modifier {name} is not a forge modifier of the shipped features')
         modifier['type'] = 'neoforge:' + modifier['type'].removeprefix('forge:')
+        if isinstance(modifier['biomes'], dict):
+            modifier['biomes'] = WORLD_BIOME_PREDICATES[name]
         write_json(CONTENT_DATA / f'tconstruct/neoforge/biome_modifier/{name}.json', modifier)
-    return len(WORLD_FEATURES) * 2 + len(WORLD_BIOME_MODIFIERS)
+    return len(WORLD_FEATURES) * 2 + len(WORLD_CONFIGURED_FEATURES) + len(WORLD_BIOME_MODIFIERS) + copy_world_structures()
+
+
+def copy_world_structures():
+    """The slime islands: the six `tconstruct:island` structures and their four random-spread sets ship as the
+    original's data (the consumer codecs are api/src/worldgen.rs), with the five island biome tags and the 25 island
+    template NBTs. The structures' spawn overrides name the slime entity types of the later slime-mob unit; the data
+    ships as the original has it."""
+    source = GENERATED_DATA / 'tconstruct'
+    count = 0
+    for name in WORLD_STRUCTURES:
+        structure = json.loads((source / f'worldgen/structure/{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/structure/{name}.json', structure)
+        count += 1
+    for name in WORLD_STRUCTURE_SETS:
+        structure_set = json.loads((source / f'worldgen/structure_set/{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / f'tconstruct/worldgen/structure_set/{name}.json', structure_set)
+        count += 1
+    for name in WORLD_ISLAND_TAGS:
+        tag = json.loads((source / f'tags/worldgen/biome/islands/{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / f'tconstruct/tags/worldgen/biome/islands/{name}.json', tag)
+        count += 1
+    for material, origin in WORLD_ISLAND_TEMPLATES.items():
+        base = (GENERATED_DATA if origin == 'generated' else MAIN_DATA) / 'tconstruct/structures/islands' / material
+        for size in ISLAND_SIZES:
+            target = CONTENT_DATA / f'tconstruct/structures/islands/{material}/{size}.nbt'
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(base / f'{size}.nbt', target)
+            count += 1
+    return count
+
+
+SLIME_ENTITIES = ['sky_slime', 'ender_slime', 'terracube']
+SLIME_SPAWN_MODIFIERS = ['spawn_overworld_slime', 'spawn_terracube', 'spawn_end_slime']
+
+
+def write_slime_entities():
+    """The slime mobs' data: a spawn egg declaration per type (the vanilla slime egg carrying the type in its
+    `minecraft:entity_data`, the form the base game's own eggs take), the entity loot tables through the same
+    upgrade as the block tables, and the natural-spawn biome modifiers (`forge:add_spawns` becomes
+    `neoforge:add_spawns`). Runs after copy_world_loot and copy_world_features, whose directory wipes it must
+    follow. The terracube modifier's biome predicate (overworld and not `forge:no_default_monsters`) widens
+    to the overworld tag: no biome-predicate form exists to express the exclusion, the same reduction the
+    geode modifiers carry. The entity types themselves, their class behaviour and their (unregistered) spawn
+    placements live in the api module `slime_entities.rs`."""
+    for name in SLIME_ENTITIES:
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_spawn_egg.json',
+                   {'template': 'minecraft:slime_spawn_egg', 'components': {'minecraft:entity_data': {'id': f'tconstruct:{name}'}}}, compact=True)
+        table = json.loads((GENERATED_DATA / 'tconstruct/loot_tables/entities' / f'{name}.json').read_text(encoding='utf-8'))
+        write_json(CONTENT_DATA / 'tconstruct/loot_table/entities' / f'{name}.json', whole(upgrade_loot(table)))
+    for name in SLIME_SPAWN_MODIFIERS:
+        modifier = json.loads((GENERATED_DATA / 'tconstruct/forge/biome_modifier' / f'{name}.json').read_text(encoding='utf-8'))
+        if modifier.get('type') != 'forge:add_spawns' or set(modifier) != {'type', 'biomes', 'spawners'}:
+            raise SystemExit(f'biome modifier {name} is not a forge spawn modifier')
+        biomes = modifier['biomes']
+        if not isinstance(biomes, str):
+            biomes = '#minecraft:is_overworld'  # spawn_terracube's widened predicate, see above
+        rows = modifier['spawners'] if isinstance(modifier['spawners'], list) else [modifier['spawners']]
+        spawners = [{'type': spawner['type'], 'weight': spawner['weight'], 'minCount': spawner['minCount'], 'maxCount': spawner['maxCount']} for spawner in rows]
+        write_json(CONTENT_DATA / 'tconstruct/neoforge/biome_modifier' / f'{name}.json',
+                   {'type': 'neoforge:add_spawns', 'biomes': biomes, 'spawners': whole(spawners)})
+    return len(SLIME_ENTITIES) * 2 + len(SLIME_SPAWN_MODIFIERS)
+
+
+# Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
+
+
+# Forge's convention tags do not exist in the host: the items they stand for in the plain crafting recipes (the vanilla
+# items for the vanilla metals, sand and glass; this port's declared items for the Tinkers metals and the slime balls),
+# each read off the original's generated forge tags.
+GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
+    'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
+FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'], 'forge:gems/diamond': ['minecraft:diamond'],
+              'forge:gems/lapis': ['minecraft:lapis_lazuli'], 'forge:chests/wooden': ['minecraft:chest', 'minecraft:trapped_chest'],
+              'forge:workbenches': ['minecraft:crafting_table', 'tconstruct:crafting_station'],
+              'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
+              'forge:dusts/redstone': ['minecraft:redstone'], 'forge:dusts/glowstone': ['minecraft:glowstone_dust'], 'forge:glass_panes/colorless': ['minecraft:glass_pane'],
+              'forge:slimeball/earth': ['minecraft:slime_ball'], 'forge:slimeball/sky': ['tconstruct:sky_slime_ball'],
+              'forge:slimeball/ichor': ['tconstruct:ichor_slime_ball'], 'forge:slimeball/ender': ['tconstruct:ender_slime_ball'],
+              'forge:slimeballs': ['minecraft:slime_ball', 'tconstruct:sky_slime_ball', 'tconstruct:ichor_slime_ball', 'tconstruct:ender_slime_ball'],
+              'forge:raw_materials/cobalt': ['tconstruct:raw_cobalt'], 'forge:raw_nuggets/knightmetal': ['tconstruct:knightmetal_shard'],
+              'forge:nuggets/copper': ['tconstruct:copper_nugget'], 'forge:nuggets/netherite': ['tconstruct:netherite_nugget'],
+              'forge:nuggets/netherite_scrap': ['tconstruct:debris_nugget'],
+              'forge:string': ['minecraft:string'], 'forge:rods/wooden': ['minecraft:stick']}
+# The shipped metals' own convention tags: each stands for the one declared item of its metal.
+for _metal in METALS:
+    FORGE_TAGS[f'forge:ingots/{_metal}'] = [f'tconstruct:{_metal}_ingot']
+    FORGE_TAGS[f'forge:nuggets/{_metal}'] = [f'tconstruct:{_metal}_nugget']
+    FORGE_TAGS[f'forge:storage_blocks/{_metal}'] = [f'tconstruct:{_metal}_block']
+# Forge's dye convention: the tag for a colour stands for that colour's dye, which here is the
+# vanilla dye. The clear stained glass dyeing recipes name nothing else undeclared. The anvil
+# metal tag also nests the vanilla netherite storage block through Forge.
+for _color in ('white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray',
+               'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'):
+    FORGE_TAGS[f'forge:dyes/{_color}'] = [f'minecraft:{_color}_dye']
+FORGE_TAGS['forge:storage_blocks/netherite'] = ['minecraft:netherite_block']
+# The platform recipes name the vanilla nugget tags and the wood recipes the wooden rod tag: what they stand for here.
+FORGE_TAGS['forge:nuggets/gold'] = ['minecraft:gold_nugget']
+FORGE_TAGS['forge:nuggets/iron'] = ['minecraft:iron_nugget']
+FORGE_TAGS['forge:rods/wooden'] = ['minecraft:stick']
+CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:blasting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
+# Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
+TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks', 'minecraft:logs'}
+# Tags of the gadget recipes that stay tag ingredients: the port ships the tag and its members are vanilla items
+# (tconstruct:bones is just minecraft:bone), which the expansion to declared items only would silently drop.
+GADGET_TAGS = {'tconstruct:bones'}
+CRAFTING_TARGET = CONTENT_DATA / 'tconstruct/recipe'
+
+
+# The six books of TinkerCommons (UNSTACKABLE_PROPS items whose use opens the book of the same name, TinkerBookItem).
+BOOK_ITEMS = ('materials_and_you', 'puny_smelting', 'mighty_smelting', 'tinkers_gadgetry', 'fantastic_foundry', 'encyclopedia')
+BOOK_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/book'
+
+
+def write_book_declarations():
+    """The book items: unstackable plain items; opening the book is books.rs' work, the data is copy_book_assets'."""
+    for name in BOOK_ITEMS:
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper', 'max_stack_size': 1}, compact=True)
+    return len(BOOK_ITEMS)
+
+
+def repair_lenient_json(text):
+    """The original's book files are read by the game through Gson's lenient parser and use spellings strict JSON
+    forbids: hexadecimal numbers (`"slotColor": 0xFDF500` in every appearance file), trailing commas and missing
+    commas between values (a few localized pages), a missing closing brace (one page), and one bare unquoted token
+    (a stray hash in one page's text list). The repair works on the token stream, so string contents are never
+    touched: a hex literal becomes its decimal value, a bare token that is no number or literal becomes a quoted
+    string (what Gson makes of it), a comma is inserted where a value ends and the next begins, a trailing comma is
+    dropped, and a closing bracket first closes the scopes left open inside it. The values are unchanged."""
+    tokens, i = [], 0
+    while i < len(text):
+        ch = text[i]
+        if ch in ' \t\r\n':
+            j = i
+            while j < len(text) and text[j] in ' \t\r\n':
+                j += 1
+            tokens.append(('space', text[i:j]))
+            i = j
+        elif ch in '{}[]:,':
+            tokens.append((ch, ch))
+            i += 1
+        elif ch == '"':
+            j = i + 1
+            while j < len(text):
+                if text[j] == '\\':
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    j += 1
+                    break
+                j += 1
+            tokens.append(('string', text[i:j]))
+            i = j
+        else:
+            j = i
+            while j < len(text) and text[j] not in ' \t\r\n{}[]:,"':
+                j += 1
+            tokens.append(('atom', text[i:j]))
+            i = j
+    number = re.compile(r'-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$')
+    out, stack, prev = [], [], None
+    for index, (kind, raw) in enumerate(tokens):
+        if kind == 'space':
+            out.append(raw)
+            continue
+        if kind == 'atom':
+            if re.fullmatch(r'-?0[xX][0-9a-fA-F]+', raw):
+                raw = str(int(raw, 16))
+            elif number.match(raw) or raw in ('true', 'false', 'null'):
+                pass
+            else:
+                raw = json.dumps(raw, ensure_ascii=False)
+                kind = 'string'
+        if kind == ',':
+            following = next((k for k, _ in tokens[index + 1:] if k != 'space'), None)
+            if following in ('}', ']', None):
+                continue
+        if kind in ('{', '[', 'string', 'atom') and prev == 'value':
+            out.append(',')
+        if kind in ('{', '['):
+            stack.append(kind)
+        elif kind in ('}', ']'):
+            while stack and (stack[-1] == '{') != (kind == '}'):
+                out.append('}' if stack.pop() == '{' else ']')
+            if stack:
+                stack.pop()
+        out.append(raw)
+        prev = 'value' if kind in ('string', 'atom', '}', ']') else kind
+    while stack:
+        out.append('}' if stack.pop() == '{' else ']')
+    return ''.join(out)
+
+
+def copy_book_assets():
+    """The books' Mantle data (each book's index, appearance, section files, per-language pages and language tables, and the
+    shared images), copied whole: books.rs walks the tree through the client resources in the original's layout, so nothing
+    is selected or reshaped. The JSON files are normalized on the way (a leading BOM and the line endings, as in copy_lang,
+    and the Gson leniencies repair_lenient_json names — the values are unchanged, and each file must parse as strict JSON
+    afterwards or the import fails); the images and the two structure templates are binary."""
+    target = ASSET_TARGET / 'book'
+    shutil.rmtree(target, ignore_errors=True)
+    count = 0
+    for path in sorted(BOOK_SOURCE.rglob('*')):
+        if not path.is_file():
+            continue
+        destination = target / path.relative_to(BOOK_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == '.json':
+            text = repair_lenient_json(path.read_bytes().removeprefix(b'\xef\xbb\xbf').decode('utf-8').replace('\r\n', '\n'))
+            json.loads(text)
+            destination.write_bytes(text.encode('utf-8'))
+        elif path.suffix == '.lang':
+            destination.write_bytes(path.read_bytes().removeprefix(b'\xef\xbb\xbf').replace(b'\r\n', b'\n'))
+        else:
+            shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+def copy_crafting_recipes():
+    """The plain crafting, smelting, blasting and stonecutting recipes of the original's `smeltery/`, `tables/`, `common/`,
+    `world/`, `gadgets/` and `compat/` recipe folders (the smeltery's structure blocks and periphery, the stations and
+    their tables, the commons: the metals' compaction, the clear glass, the slime balls and their blocks, the platforms,
+    the cheese and the firewood; the wood families under `world/wood`; the gadgets whose recipes name nothing undeclared
+    -- punji, the ichor and magma cakes, and the fancy frames and armor stands) in the game's recipe format, under the
+    original's relative path as the recipe id: ingredients and results are plain ids (`#` for a tag), forge's convention
+    tags become the items they stand for, vanilla's own tags stay tags, a `forge:difference` ingredient is expanded over
+    the original's tag, and the melter's `tconstruct:no_container` gauge match becomes the two gauges. A recipe naming
+    an item this port does not declare is left out and returned. The four shapeless book recipes of the commons ride along,
+    now that the books are declared (the other two books are casting recipes, copied with the fluid recipes). The `compat/` folder
+    holds no plain recipes at all: its melting and casting recipes are gated on other mods (`forge:mod_loaded`), which this
+    port does not carry. The `tconstruct:crafting_shaped_materials` type (the material anvils and forges, the travelers
+    armor, the fake ingot conversion) is not converted either: it resolves its material ingredient against the material
+    registry at craft time, which no plain recipe consumer here does, so its recipes wait with the stations."""
+    shutil.rmtree(CRAFTING_TARGET, ignore_errors=True)
+    declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
+    tag_files = GENERATED_DATA / 'tconstruct/tags/items'
+
+    def known(item):
+        return item in declared or item.startswith('minecraft:')
+
+    def forge_members(tag, seen=()):
+        """The items a Forge convention tag names in the original's own tag providers (its metal storage blocks are
+        Tinkers blocks), or the vanilla items of the convention table when Forge itself generated the tag (the vanilla
+        metals). Anything else is unknown and stops the recipe, as an undeclared item does."""
+        path = tag.split(':', 1)[1]
+        file = GENERATED_DATA / 'forge/tags/items' / f'{path}.json'
+        if tag in seen:
+            raise KeyError(tag)
+        if file.is_file():
+            entries = json.loads(file.read_text(encoding='utf-8'))['values']
+        elif path in VANILLA_CONVENTION:
+            entries = VANILLA_CONVENTION[path]
+        else:
+            raise KeyError(tag)
+        result = []
+        for entry in entries:
+            entry = entry if isinstance(entry, str) else entry['id']
+            if entry.startswith('#forge:'):
+                result += forge_members(entry[1:], seen + (tag,))
+            elif entry.startswith('#'):
+                result += members(entry[1:], seen + (tag,))
+            elif entry in declared or entry.startswith('minecraft:'):
+                result.append(entry)
+        return result
+
+    def members(tag, seen=()):
+        namespace, path = tag.split(':', 1)
+        if namespace != 'tconstruct' or tag in seen:
+            raise KeyError(tag)
+        result = []
+        for entry in json.loads((tag_files / f'{path}.json').read_text(encoding='utf-8'))['values']:
+            entry = entry if isinstance(entry, str) else entry['id']
+            if entry.startswith('#') and entry[1:].startswith('forge:'):
+                # A tag nested through a Forge tag: what the Forge tag stands for here, no more.
+                # One the port does not carry stands for nothing (the original marks those entries
+                # optional: they are other mods' metals).
+                result += [item for item in FORGE_TAGS.get(entry[1:], []) if known(item)]
+            elif entry.startswith('#'):
+                result += members(entry[1:], seen + (tag,))
+            elif entry in declared:
+                result.append(entry)
+        return result
+
+    tables = False
+
+    def convert(node):
+        """An ingredient as a string or a list of strings; KeyError when it names something this port has not."""
+        if isinstance(node, list):
+            out = []
+            for part in node:
+                part = convert(part)
+                out += part if isinstance(part, list) else [part]
+            return out
+        kind = node.get('type')
+        if kind == 'forge:difference':
+            base, taken = convert(node['base']), convert(node['subtracted'])
+            base = base if isinstance(base, list) else [base]
+            taken = taken if isinstance(taken, list) else [taken]
+            if any(entry.startswith('#') for entry in base + taken):
+                raise KeyError('difference of tags')
+            return [entry for entry in base if entry not in taken]
+        if kind == 'tconstruct:no_container':
+            return convert(node['match'])
+        if kind is not None:
+            raise KeyError(kind)
+        if 'tag' in node:
+            tag = node['tag']
+            if (tables and tag in TABLE_TAGS) or (gadgets and tag in GADGET_TAGS):
+                return '#' + tag
+            if tables and tag == 'forge:rods/wooden':
+                return 'minecraft:stick'
+            if tag in FORGE_TAGS:
+                return list(FORGE_TAGS[tag])
+            if tag.startswith('minecraft:'):
+                return '#' + tag
+            if tag.startswith('tconstruct:'):
+                return members(tag)
+            raise KeyError(tag)
+        if not known(node['item']):
+            raise KeyError(node['item'])
+        return node['item']
+
+    def one(ingredient):
+        ingredient = convert(ingredient)
+        return ingredient
+
+    written, left_out = 0, []
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'common').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'world').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'gadgets').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'compat').rglob('*.json')):
+        tables = path.is_relative_to(FLUID_RECIPE_SOURCE / 'tables')
+        gadgets = path.is_relative_to(FLUID_RECIPE_SOURCE / 'gadgets')
+        data = json.loads(path.read_text(encoding='utf-8'))
+        # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
+        if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured' and not tables):
+            continue
+        stem = path.relative_to(FLUID_RECIPE_SOURCE).with_suffix('').as_posix()
+        result = data['result']
+        item = result['item'] if isinstance(result, dict) else result
+        count = result.get('count', 1) if isinstance(result, dict) else data.get('count', 1)
+        try:
+            if data['type'] in ('minecraft:crafting_shaped', 'mantle:crafting_shaped_retextured'):
+                out = {'type': 'minecraft:crafting_shaped', 'key': {key: one(value) for key, value in data['key'].items()}, 'pattern': data['pattern']}
+            elif data['type'] == 'minecraft:crafting_shapeless':
+                out = {'type': data['type'], 'ingredients': [one(value) for value in data['ingredients']]}
+            elif data['type'] in ('minecraft:smelting', 'minecraft:blasting'):
+                out = {'type': data['type'], 'cookingtime': data['cookingtime'], 'experience': data['experience'], 'ingredient': one(data['ingredient'])}
+            else:
+                out = {'type': data['type'], 'ingredient': one(data['ingredient'])}
+        except KeyError as missing:
+            left_out.append((stem, str(missing)))
+            continue
+        if any(value == [] for value in out.get('key', {}).values()) or out.get('ingredient') == [] or any(value == [] for value in out.get('ingredients', [])):
+            left_out.append((stem, 'empty ingredient'))
+            continue
+        if 'group' in data:
+            out['group'] = data['group']
+        out['result'] = {'id': item} if count == 1 else {'id': item, 'count': count}
+        if not known(item):
+            left_out.append((stem, item))
+            continue
+        write_json(CRAFTING_TARGET / f'{stem}.json', out)
+        written += 1
+    # The shaped-materials recipes (the material anvils and forges in `tables/`, the travellers armor in
+    # `tools/`, the fake ingot's storage block): the type resolves its material ingredients against the
+    # material registry at craft time, which no plain conversion can express, so the key's material
+    # ingredients ship verbatim for the port's consumer (api/src/shaped_materials.rs) while the rest of
+    # the recipe converts like any shaped recipe. `parts` and `extra_materials` ship verbatim too: the
+    # game's shaped parser ignores them and the consumer reads them.
+    for path in sorted(FLUID_RECIPE_SOURCE.rglob('*.json')):
+        data = json.loads(path.read_text(encoding='utf-8'))
+        if data.get('type') != 'tconstruct:crafting_shaped_materials':
+            continue
+        tables = path.is_relative_to(FLUID_RECIPE_SOURCE / 'tables')
+        gadgets = False
+        stem = path.relative_to(FLUID_RECIPE_SOURCE).with_suffix('').as_posix()
+        result = data['result']
+        item = result['item'] if isinstance(result, dict) else result
+        count = result.get('count', 1) if isinstance(result, dict) else data.get('count', 1)
+        def material_or_converted(value):
+            if isinstance(value, list):
+                return [material_or_converted(part) for part in value]
+            if isinstance(value, dict) and value.get('type') in ('tconstruct:material', 'tconstruct:material_value'):
+                named = value.get('item')
+                if named is not None and not known(named):
+                    raise KeyError(named)
+                return value
+            return one(value)
+        try:
+            key = {symbol: material_or_converted(value) for symbol, value in data['key'].items()}
+        except KeyError as missing:
+            left_out.append((stem, str(missing)))
+            continue
+        out = {'type': 'minecraft:crafting_shaped', 'key': key, 'pattern': data['pattern'], 'parts': data['parts']}
+        if 'extra_materials' in data:
+            out['extra_materials'] = data['extra_materials']
+        if 'group' in data:
+            out['group'] = data['group']
+        out['result'] = {'id': item} if count == 1 else {'id': item, 'count': count}
+        if not known(item):
+            left_out.append((stem, item))
+            continue
+        write_json(CRAFTING_TARGET / f'{stem}.json', out)
+        written += 1
+    return written, left_out
 
 
 def copy_vanilla_tags():
@@ -1143,25 +3100,137 @@ def copy_vanilla_tags():
         if values:
             write_json(target / path.relative_to(folder), {'values': values})
             count += 1
-    return count
+    # SlimeDirtBlock sustains PLAINS. VegetationBlock checks this ground tag in 26.3.
+    write_json(target / 'supports_vegetation.json', {'values': [f'tconstruct:{dirt}_slime_dirt' for dirt in DIRT_TYPES]})
+    return count + 1
+
+
+def copy_cobalt_tags():
+    """Project just U1's members and nested tag references from Forge's generated tags into c:."""
+    for kind in ('item', 'block'):
+        paths = ['ores', 'ores/cobalt', 'storage_blocks', 'storage_blocks/raw_cobalt',
+                 'ore_rates/singular', 'ores_in_ground/netherrack']
+        if kind == 'item':
+            paths += ['raw_materials', 'raw_materials/cobalt']
+        for path in paths:
+            src = GENERATED_DATA / f'forge/tags/{kind}s/{path}.json'
+            entries = json.loads(src.read_text(encoding='utf-8'))['values']
+            kept = [entry.replace('#forge:', '#c:') for entry in entries
+                    if entry in ('tconstruct:cobalt_ore', 'tconstruct:raw_cobalt', 'tconstruct:raw_cobalt_block')
+                    or entry.removeprefix('#forge:') in paths]
+            if not kept:
+                raise ValueError(f'{src}: missing cobalt membership')
+            write_json(CONTENT_DATA / f'c/tags/{kind}/{path}.json', {'values': kept})
 
 
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
-LANGUAGES = ['en_us', 'ja_jp']
+LANGUAGES = ['de_de', 'en_us', 'es_ar', 'es_cl', 'es_es', 'es_mx', 'fr_fr', 'id_id', 'it_it', 'ja_jp', 'ko_kr', 'lzh', 'pl_pl', 'pt_br', 'ru_ru', 'sv_se', 'tr_tr', 'uk_ua', 'zh_cn', 'zh_tw']
 
 
 def copy_lang():
     """The original's translations for the languages this port ships (modifier, block, item,
-    material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n."""
+    material and gui names): the content mod's own lang files, read by the game and by PlutoLib's I18n. Line endings are normalised to LF and a leading UTF-8 BOM is dropped (the original's lzh file has one; language files are parsed as strict UTF-8 JSON)."""
     if LANG_TARGET.exists():
         shutil.rmtree(LANG_TARGET)
     LANG_TARGET.mkdir(parents=True)
     for language in LANGUAGES:
-        # Only the line endings are normalized (the original checkout may be CRLF); the text is the original's.
-        data = (LANG_SOURCE / f'{language}.json').read_bytes().replace(b'\r\n', b'\n')
+        # Only the line endings are normalized (the original checkout may be CRLF) and a leading BOM dropped; the text is the original's.
+        data = (LANG_SOURCE / f'{language}.json').read_bytes().removeprefix(b'\xef\xbb\xbf').replace(b'\r\n', b'\n')
         (LANG_TARGET / f'{language}.json').write_bytes(data)
     return len(LANGUAGES)
+
+
+
+# --- Advancements: the 50 gameplay advancements and their grant functions -------------------
+ADVANCEMENT_GROUPS = ['foundry', 'internal', 'smeltery', 'tools', 'world']
+ADVANCEMENT_KEYS = {'parent', 'display', 'criteria', 'requirements', 'rewards', 'sends_telemetry_event'}
+ADVANCEMENT_DISPLAY_KEYS = {'icon', 'title', 'description', 'frame', 'background', 'show_toast', 'announce_to_chat', 'hidden'}
+
+
+def upgrade_advancement(data, name):
+    """A 1.20.1 advancement in the host's form: the display icon names its item under `id`
+    (the host reads no other icon field, so the icon's NBT is dropped); criteria, requirements
+    and rewards are already the shapes the host's parser reads. Unreviewed keys stop the import."""
+    if not isinstance(data, dict) or set(data) - ADVANCEMENT_KEYS:
+        raise SystemExit(f'advancement {name}: unreviewed keys')
+    result = dict(data)
+    display = result.get('display')
+    if display is not None:
+        if not isinstance(display, dict) or set(display) - ADVANCEMENT_DISPLAY_KEYS:
+            raise SystemExit(f'advancement {name}: unreviewed display keys')
+        display = dict(display)
+        icon = display.get('icon')
+        if icon is not None:
+            if not isinstance(icon, dict) or set(icon) - {'item', 'nbt'} or 'item' not in icon:
+                raise SystemExit(f'advancement {name}: unreviewed icon {icon!r}')
+            display['icon'] = {'id': icon['item']}
+        result['display'] = display
+    return result
+
+
+def copy_advancements():
+    """The gameplay advancements (data/<ns>/advancement, the host's folder name), converted by
+    upgrade_advancement. The recipe unlock advancements beside them are host-format artifacts
+    and stay out. internal/starting_book is a Forge conditional wrapper in the original: the
+    wrapped advancement ships unwrapped, as Forge's loader presents it when the condition
+    holds. The condition is the spawn_with_book config (default true), which the host's
+    advancement loading cannot express, so the config no longer gates the starting book."""
+    source_root = GENERATED_DATA / 'tconstruct/advancements'
+    target_root = CONTENT_DATA / 'tconstruct/advancement'
+    shutil.rmtree(target_root, ignore_errors=True)
+    count = 0
+    for group in ADVANCEMENT_GROUPS:
+        for entry in sorted((source_root / group).glob('*.json')):
+            data = json.loads(entry.read_text(encoding='utf-8'))
+            if 'advancements' in data:
+                entries = data['advancements']
+                if len(entries) != 1 or entries[0].get('conditions') != [{'type': 'tconstruct:config', 'prop': 'spawn_with_book'}]:
+                    raise SystemExit(f'advancement {entry.name}: unreviewed conditional wrapper')
+                data = entries[0]['advancement']
+            write_json(target_root / group / entry.name, upgrade_advancement(data, entry.name))
+            count += 1
+    return count
+
+
+def copy_advancement_functions():
+    """The grant_advancement functions the internal advancements reward, byte for byte
+    (data/<ns>/function, the host's folder name). Each grants one vanilla advancement."""
+    source_root = GENERATED_DATA / 'tconstruct/functions/grant_advancement'
+    target_root = CONTENT_DATA / 'tconstruct/function/grant_advancement'
+    shutil.rmtree(target_root, ignore_errors=True)
+    count = 0
+    for entry in sorted(source_root.glob('*.mcfunction')):
+        destination = target_root / entry.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(entry, destination)
+        count += 1
+    return count
+
+
+def copy_gameplay_loot():
+    """The starting book's reward table: an advancement_reward table giving the book item."""
+    source = GENERATED_DATA / 'tconstruct/loot_tables/gameplay/starting_book.json'
+    table = whole(upgrade_loot(json.loads(source.read_text(encoding='utf-8'))))
+    write_json(CONTENT_DATA / 'tconstruct/loot_table/gameplay/starting_book.json', table)
+    return 1
+
+
+def fix_stale_item_ids():
+    """The original's generated data names the slime chestplate `slimy_chestplate` in a handful of tags,
+    recipes and lang keys, but the item is registered as `slime_chestplate` (MODEL_ALIASES covers its
+    model), so those references name nothing. Project them onto the registered id wherever the copies
+    landed: the quoted item id in data files, the dotted key form in language files."""
+    fixed = 0
+    for path in (ROOT / 'tconstruct/content').rglob('*.json'):
+        text = path.read_text(encoding='utf-8')
+        updated = text.replace('"tconstruct:slimy_chestplate"', '"tconstruct:slime_chestplate"')
+        if 'lang' in path.parts:
+            updated = updated.replace('tconstruct.slimy_chestplate', 'tconstruct.slime_chestplate')
+        if updated != text:
+            path.write_text(updated, encoding='utf-8')
+            fixed += 1
+    return fixed
 
 
 def main():
@@ -1171,10 +3240,10 @@ def main():
     expected = pins.get('tconstruct_revision') or pins.get('java_revision') or head
     if head != expected:
         raise SystemExit(f'original checkout {head} differs from the pinned {expected}')
+    # No material is excluded: a definition's condition is data the loader evaluates,
+    # not an import-time filter, so the sixteen integration materials ship byte for byte
+    # with the other eighty-eight and simply never select in a vanilla-only world.
     skipped_materials = set()
-    for path in sorted((SOURCE / 'materials/definition').glob('*.json')):
-        if 'condition' in json.loads(path.read_text(encoding='utf-8')) and external(json.loads(path.read_text(encoding='utf-8'))['condition']):
-            skipped_materials.add(path.stem)
     if TARGET.exists():
         shutil.rmtree(TARGET)
     copied = 0
@@ -1200,21 +3269,43 @@ def main():
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/modifier_module_types.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
     write_creative_parts(skipped_materials)
     write_creative_tools()
-    tags = copy_tags() + copy_damage_tags()
+    write_convention_tags()
+    fluid_count, fluid_names = write_fluid_defs()
+    write_render_data()
+    tags = copy_tags() + copy_damage_tags() + copy_fluid_host_tags(fluid_names)
+    copy_enchantment_data()
+    write_creative_fluids(fluid_names)
+    tags += write_block_tag_ingredients()
     write_damage_vanilla()
+    write_instrument_tags()
     languages = copy_lang()
+    fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
+    write_gadget_declarations()
+    write_book_declarations()
+    book_files = copy_book_assets()
+    crafting_written, crafting_left = copy_crafting_recipes()
     models, textures, unrendered = copy_client_assets()
-    world_loot = copy_world_loot(sorted(world_blocks()))
+    fluid_blocks = write_fluid_world()
+    write_copper_can()
+    transfers = write_fluid_transfers()
+    world_loot = copy_world_loot(sorted({*world_blocks(), *world_geode_blocks(), *smeltery_blocks(), *gadget_blocks()} | {'cast_chest', 'crafting_station', 'fake_storage_block', 'part_chest', 'scorched_anvil', 'tinkers_anvil', 'tinkers_chest'}))
     world_worldgen = copy_world_features()
+    write_slime_entities()
     world_tags = copy_vanilla_tags()
+    copy_cobalt_tags()
     part_names, part_models, part_textures = copy_part_assets()
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
     worn_textures, worn_rows = copy_armor_worn_assets()
+    advancements = copy_advancements()
+    advancement_functions = copy_advancement_functions()
+    gameplay_loot = copy_gameplay_loot()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
-    unrendered = [name for name in unrendered if name not in part_names + tool_names]
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_fluid_recipes() + copy_fluid_tags()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; excluded materials: {sorted(skipped_materials)}')
+    unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes()
+    layouts = copy_station_layouts()
+    stale_fixed = fix_stale_item_ids()
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {stale_fixed} files had the stale slime chestplate id projected; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
 
 
 if __name__ == '__main__':

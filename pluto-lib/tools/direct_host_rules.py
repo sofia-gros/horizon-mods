@@ -262,6 +262,15 @@ RULES = [
             let layers = pluto_layers.as_ref().unwrap_or(layers);
             let Some(part) = assets.layers.get(&(layer, a.small)) else {''')],
     },
+    {
+        'id': 'pluto-block-entity-container-reach',
+        'file': 'crates/horizon-client/src/game/machines/native_items.rs',
+        'sha256': 'bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d',
+        'target': "horizon_client::game::machines::native_items::Game<'_>::native_container_slots",
+        'kind': 'HEAD', 'helper': 'pluto-container-reach.rs',
+        # Appends one wrapper that returns the crate-private slot type as plain values; no existing line changes.
+        'edits': [],
+    },
 ]
 
 

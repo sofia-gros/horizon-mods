@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:smelting",
+  "cookingtime": 50,
+  "experience": 0.2,
+  "ingredient": [
+    "tconstruct:knightmetal_shard"
+  ],
+  "result": {
+    "id": "tconstruct:knightmetal_nugget"
+  }
+}

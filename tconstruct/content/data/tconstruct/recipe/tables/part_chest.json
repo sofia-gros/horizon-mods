@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": [
+      "minecraft:chest",
+      "minecraft:trapped_chest"
+    ],
+    "p": "tconstruct:pattern",
+    "s": "minecraft:stick",
+    "w": "#minecraft:planks"
+  },
+  "pattern": [
+    " p ",
+    "sCs",
+    "sws"
+  ],
+  "result": {
+    "id": "tconstruct:part_chest"
+  }
+}

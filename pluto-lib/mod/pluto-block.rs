@@ -30,6 +30,14 @@ pub use crate::block_access_tests::set_survival_dispatcher;
 
 #[cfg(not(test))]
 pub use horizon_world::level::pluto_item_behavior_access::set_mask_dispatcher;
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_item_behavior_access::set_max_stack_dispatcher;
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_item_behavior_access::set_enchantability_dispatcher;
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_item_behavior_access::set_tool_action_dispatcher;
+#[cfg(not(test))]
+pub use horizon_world::level::pluto_block_access::{set_schedule_drain, drain_schedules};
 
 // Pure tests compile the same shared source, not a copied contract.
 #[cfg(test)]
@@ -63,7 +71,7 @@ pub enum PlacementAnswer {
     State(StateInfo),
 }
 
-pub use feature_transport::{FallOn, AfterFall, AfterFallHandler, InsideMotion, InsideMotionHandler};
+pub use feature_transport::{FallOn, AfterFall, AfterFallHandler, InsideMotion, InsideMotionHandler, EntityInside};
 
 /// The functions the API crate gives the game.
 #[derive(Clone, Copy)]
@@ -73,6 +81,8 @@ pub struct Sink {
     pub fall_on: fn(&mut FallOn),
     pub after_fall: fn(&StateInfo) -> Option<AfterFallHandler>,
     pub inside_motion: fn(&StateInfo) -> Option<InsideMotionHandler>,
+    /// An entity is inside the block's space (the read-only `entity_inside` notification).
+    pub entity_inside: fn(&EntityInside),
     pub survives: fn(&dyn LevelView, &StateInfo, [i32; 3]) -> Option<bool>,
     pub placement: fn(&dyn LevelView, &Placement) -> PlacementAnswer,
     pub update_shape: fn(&dyn LevelView, &ShapeUpdate) -> Option<StateInfo>,
@@ -159,6 +169,7 @@ static SINK: Mutex<Option<Sink>> = Mutex::new(None);
 pub fn set_sink(sink: Sink) {
     feature_transport::set_landing_sink(feature_transport::LandingSink {
         has: sink.has, fall_on: sink.fall_on, after_fall: sink.after_fall, inside_motion: sink.inside_motion,
+        entity_inside: sink.entity_inside,
     });
     if let Ok(mut slot) = SINK.lock() {
         *slot = Some(sink);

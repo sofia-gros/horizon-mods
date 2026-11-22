@@ -1,7 +1,15 @@
 {
   "values": [
     {
-      "id": "#forge:ores/gold",
+      "id": "minecraft:deepslate_gold_ore",
+      "required": false
+    },
+    {
+      "id": "minecraft:gold_ore",
+      "required": false
+    },
+    {
+      "id": "minecraft:nether_gold_ore",
       "required": false
     },
     "minecraft:gilded_blackstone"

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:netherite_ingot"
+  ],
+  "group": "tconstruct:netherite_nugget",
+  "result": {
+    "id": "tconstruct:netherite_nugget",
+    "count": 9
+  }
+}

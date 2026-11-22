@@ -1,0 +1,1 @@
+{"template":"minecraft:grass_block","properties":{"hardness":2.0,"explosion_resistance":2.0,"sounds":"minecraft:slime_block","map_color":1,"requires_tool":true,"random_ticks":true},"item":true}

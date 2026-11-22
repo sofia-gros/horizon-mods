@@ -1,9 +1,14 @@
 //! ConditionalMiningSpeedModule and its block, holder and variable inputs, from SlimeKnights
 //! (MIT; see LICENSE). A module changes the dig speed of a block as PlutoLib's break-speed event
-//! reports it. Only the inputs the shipped modifiers use over data this port holds are decoded:
-//! a module that names a block property, a world variable (light, blast resistance, biome) or an
-//! entity condition outside the player's ground and water state stays unbound instead of being
-//! half-installed.
+//! reports it: the block and its tags, the holder's ground and water state, and the facts of the
+//! dig itself — the light at the block and the temperature of its biome — which the block light
+//! and biome temperature variables read. Inputs over data this port does not hold stay unbound
+//! instead of being half-installed: a block property variable (`tconstruct:block` over blast
+//! resistance or hardness — PlutoLib reports no block properties), the `mantle:requires_tool`
+//! block predicate (the same missing block property: whether the block needs the correct tool
+//! for drops), and a variable or condition over the holder as an entity beyond ground and water
+//! (the break-speed event reports no holder state to read one from, and `mantle:has_enchantment`
+//! — the shipped hydraulic's other branch — has no surface anywhere in the port yet).
 use crate::{formula::Formula, modifier_entries::{nbt_int, Entry}, tool_stats::Stat};
 use pluto_lib::{Identifier, Nbt, NbtCompound};
 use serde_json::{Map, Value};
@@ -31,6 +36,13 @@ pub(crate) enum Variable {
     ModData { key: String, persistent: bool },
     /// EntityMeleeVariable and its relatives: a fact of the attacker (the holder) or the target of the hit, `fallback` when it was not reported.
     Entity { fact: crate::entity_facts::EntityFact, whose: crate::entity_facts::Whose, fallback: f32 },
+    /// BlockLightVariable: the light at the block being dug, in one layer or both (the larger), the sky's with the time of
+    /// day and the weather taken off, as `EntityLightVariable.getLightLevel` works it out; `fallback` when the game did not
+    /// report it. The original reads the light at the block on the side that was hit; the break-speed event names no side,
+    /// so this port reads the dug block's own light.
+    BlockLight { layer: Option<crate::entity_facts::LightLayer>, fallback: f32 },
+    /// BlockTemperatureVariable: the temperature of the biome at the block being dug; `fallback` when it was not reported.
+    BlockTemperature { fallback: f32 },
 }
 
 /// Which modules read entity variables, and so where `tconstruct:entity` variables are decoded.
@@ -100,6 +112,17 @@ impl StatFormula {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct MiningSpeed { blocks: BlockCondition, holder: HolderCondition, require_effective: bool, formula: StatFormula }
 
+/// What the world reports about the block being dug: the light at it and the temperature of its biome, as the
+/// break-speed event carries them. A fact the game did not report is None, and a variable over it takes its fallback.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub(crate) struct BlockFacts {
+    pub block_light: Option<u8>,
+    pub sky_light: Option<u8>,
+    /// How much of the sky light the time of day and the weather take off (`Level.getSkyDarken`).
+    pub sky_darken: u8,
+    pub biome_temperature: Option<f32>,
+}
+
 /// What the dig is, for one evaluation.
 pub(crate) struct Context<'a> {
     pub block: &'a Identifier,
@@ -112,15 +135,17 @@ pub(crate) struct Context<'a> {
     pub effective: bool,
     pub on_ground: Option<bool>,
     pub eyes_in_water: Option<bool>,
+    /// The facts of the dig itself, for the formula's block variables.
+    pub facts: BlockFacts,
 }
 
 /// Tool state a variable reads.
-pub(crate) struct ToolView<'a> { pub nbt: &'a NbtCompound, pub entities: crate::entity_facts::Entities<'a> }
+pub(crate) struct ToolView<'a> { pub nbt: &'a NbtCompound, pub entities: crate::entity_facts::Entities<'a>, pub facts: BlockFacts }
 impl<'a> ToolView<'a> {
     /// A view of a tool with no entities known.
-    pub fn of(nbt: &'a NbtCompound) -> Self { Self { nbt, entities: crate::entity_facts::Entities::default() } }
+    pub fn of(nbt: &'a NbtCompound) -> Self { Self { nbt, entities: crate::entity_facts::Entities::default(), facts: BlockFacts::default() } }
     /// A view of a tool in the hands of `entities.attacker`, over `entities.target`.
-    pub fn with(nbt: &'a NbtCompound, entities: crate::entity_facts::Entities<'a>) -> Self { Self { nbt, entities } }
+    pub fn with(nbt: &'a NbtCompound, entities: crate::entity_facts::Entities<'a>) -> Self { Self { nbt, entities, facts: BlockFacts::default() } }
 }
 impl ToolView<'_> {
     /// IToolStackView.getMultiplier.
@@ -137,7 +162,7 @@ fn float(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
 fn identifier(value: &Value) -> Result<Identifier, String> { Identifier::parse(value.as_str().ok_or("expected an ID string")?).map_err(|e| e.to_string()) }
 
 impl BlockCondition {
-    fn decode(value: &Value) -> Result<Option<Self>, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Option<Self>, String> {
         if let Value::String(tag) = value { return Ok(Some(Self::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?))); }
         let object = value.as_object().ok_or("block predicate must be an object or a tag")?;
         let kind = object.get("type").and_then(Value::as_str).ok_or("block predicate type missing")?;
@@ -164,7 +189,7 @@ impl BlockCondition {
             _ => return Ok(None),
         }))
     }
-    fn matches(&self, block: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
+    pub(crate) fn matches(&self, block: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => in_tag(tag),
@@ -242,6 +267,22 @@ impl Variable {
                 let persistent = match object.get("source").and_then(Value::as_str) { Some("persistent") => true, Some("volatile") => false, _ => return Ok(None) };
                 Self::ModData { key, persistent }
             }
+            "tconstruct:block_light" => {
+                let object = object.ok_or("block light variable needs fields")?;
+                let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
+                let layer = match object.get("light_layer").filter(|value| !value.is_null()).map(Value::as_str) {
+                    None => None,
+                    Some(Some("sky")) => Some(crate::entity_facts::LightLayer::Sky),
+                    Some(Some("block")) => Some(crate::entity_facts::LightLayer::Block),
+                    Some(_) => return Ok(None),
+                };
+                Self::BlockLight { layer, fallback }
+            }
+            "tconstruct:biome_temperature" => {
+                let object = object.ok_or("biome temperature variable needs fields")?;
+                let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
+                Self::BlockTemperature { fallback }
+            }
             "tconstruct:entity" if scope != EntityScope::None => {
                 use crate::entity_facts::{EntityFact, Whose};
                 let object = object.ok_or("entity variable needs fields")?;
@@ -275,6 +316,12 @@ impl Variable {
                 None => 1.0,
             },
             Self::Entity { fact, whose, fallback } => fact.value(&tool.entities, *whose).unwrap_or(*fallback),
+            Self::BlockLight { layer, fallback } => {
+                let sky = tool.facts.sky_light.map(|light| (i32::from(light) - i32::from(tool.facts.sky_darken)).max(0));
+                let block = tool.facts.block_light.map(i32::from);
+                match layer { Some(crate::entity_facts::LightLayer::Sky) => sky, Some(crate::entity_facts::LightLayer::Block) => block, None => sky.zip(block).map(|(sky, block)| sky.max(block)) }.map(|light| light as f32).unwrap_or(*fallback)
+            }
+            Self::BlockTemperature { fallback } => tool.facts.biome_temperature.unwrap_or(*fallback),
             Self::ModData { key, persistent } => {
                 let tag = if *persistent { crate::tool_stack::TAG_PERSISTENT } else { crate::tool_stack::TAG_VOLATILE };
                 match compound(tag).and_then(|data| data.get(key).cloned()) {
@@ -309,6 +356,70 @@ impl MiningSpeed {
         if (self.require_effective && !context.effective) || !condition || !self.blocks.matches(context.block, context.block_in_tag) || !self.holder.matches(context) { return speed; }
         let tool_multiplier = Variable::StatMultiplier(Stat::MiningSpeed).value(tool);
         let multiplier = context.multiplier * tool_multiplier;
+        // The formula's block variables read the facts of this dig, over the tool's own state.
+        let tool = &ToolView { nbt: tool.nbt, entities: tool.entities, facts: context.facts };
         self.formula.eval(entry, tool, speed, multiplier, context.original)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn fields(value: Value) -> Map<String, Value> { value.as_object().unwrap().clone() }
+
+    #[test]
+    fn block_variables_read_the_facts_of_the_dig() {
+        let nbt = NbtCompound::new();
+        let mut view = ToolView::of(&nbt);
+        view.facts = BlockFacts { block_light: Some(9), sky_light: Some(15), sky_darken: 11, biome_temperature: Some(0.8) };
+        let read = |value: &Value| Variable::decode_in(value, EntityScope::None).unwrap().unwrap().value(&view);
+        assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"})), 9.0);
+        assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "sky"})), 4.0, "15 less the 11 the night takes");
+        assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0})), 9.0, "no layer: the brighter of the two");
+        assert_eq!(read(&json!({"type": "tconstruct:biome_temperature", "fallback": -0.5})), 0.8);
+        // Nothing reported: the fallbacks stand in, as the original's do without an event.
+        let unreported = ToolView::of(&nbt);
+        let read = |value: &Value| Variable::decode_in(value, EntityScope::None).unwrap().unwrap().value(&unreported);
+        assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"})), 15.0);
+        assert_eq!(read(&json!({"type": "tconstruct:biome_temperature", "fallback": -0.5})), -0.5);
+    }
+
+    #[test]
+    fn the_shipped_temperate_and_lightspeed_modules_decode_and_the_block_property_forms_do_not() {
+        // temperate: |temperature - 0.75| * level * 6 * multiplier over the speed.
+        let temperate = MiningSpeed::decode(&fields(json!({
+            "formula": ["$temperature", 0.75, "!-", "non-negative", "$level", "*", 6.0, "*", "$multiplier", "*", "$speed", "+"],
+            "percent": false, "require_effective": true,
+            "variables": {"temperature": {"type": "tconstruct:biome_temperature", "fallback": -0.5}},
+        }))).unwrap().unwrap();
+        let block = Identifier::parse("minecraft:stone").unwrap();
+        let no_tags = |_: &Identifier| false;
+        let nbt = NbtCompound::new();
+        let view = ToolView::of(&nbt);
+        let entry = Entry::new(Identifier::parse("tconstruct:temperate").unwrap(), 1);
+        let dig = |temperature: Option<f32>| Context { block: &block, block_in_tag: &no_tags, original: 2.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: BlockFacts { biome_temperature: temperature, ..BlockFacts::default() } };
+        // A cold biome (0.0): |0 - 0.75| * 1 * 6 * 1 = 4.5 over the speed of 2.
+        assert_eq!(temperate.apply(&entry, true, &view, &dig(Some(0.0)), 2.0), 6.5);
+        // Unreported: the fallback -0.5 gives |-0.5 - 0.75| * 6 = 7.5 over the speed.
+        assert_eq!(temperate.apply(&entry, true, &view, &dig(None), 2.0), 9.5);
+        // lightspeed's formula over the block light decodes too (its other module is another lane's kind).
+        assert!(MiningSpeed::decode(&fields(json!({
+            "formula": [3.0, "$light", 5.0, "-", 5.0, "/", "^", "$level", "*", "$multiplier", "*", "$speed", "+"],
+            "percent": false, "require_effective": true,
+            "variables": {"light": {"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"}},
+        }))).unwrap().is_some());
+        // blasting reads the block's blast resistance, a block property this port does not hold.
+        assert!(MiningSpeed::decode(&fields(json!({
+            "formula": ["$resistance", "$level", "*", "$multiplier", "*", "$speed", "+"],
+            "percent": false, "require_effective": true,
+            "variables": {"resistance": {"type": "tconstruct:block", "block_type": "tconstruct:blast_resistance", "fallback": 3.0}},
+        }))).unwrap().is_none());
+        // crumbling asks whether the block requires the correct tool for drops: the same missing property.
+        assert!(MiningSpeed::decode(&fields(json!({
+            "blocks": {"type": "mantle:inverted", "inverted_type": "mantle:requires_tool"},
+            "each_level": 1.0, "percent": false, "require_effective": false,
+        }))).unwrap().is_none());
     }
 }

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:skyroot_planks",
+    "X": [
+      "minecraft:stick"
+    ]
+  },
+  "pattern": [
+    "###",
+    "###",
+    " X "
+  ],
+  "group": "sign",
+  "result": {
+    "id": "tconstruct:skyroot_sign",
+    "count": 3
+  }
+}

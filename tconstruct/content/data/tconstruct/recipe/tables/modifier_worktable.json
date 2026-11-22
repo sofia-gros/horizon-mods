@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "r": "#tconstruct:workstation_rock",
+    "s": "#tconstruct:seared_blocks"
+  },
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "result": {
+    "id": "tconstruct:modifier_worktable"
+  }
+}

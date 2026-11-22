@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "": {
+      "model": "tconstruct:block/table/scorched_anvil",
+      "y": 90
+    }
+  }
+}

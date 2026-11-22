@@ -5,6 +5,13 @@
     "index": 0,
     "cases": [
       {
+        "when": "aluminum",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_aluminum"
+        }
+      },
+      {
         "when": "amethyst_bronze",
         "model": {
           "type": "minecraft:model",
@@ -16,6 +23,13 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/maille/parts/maille_tconstruct_ancient_hide"
+        }
+      },
+      {
+        "when": "bronze",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_bronze"
         }
       },
       {
@@ -40,6 +54,13 @@
         }
       },
       {
+        "when": "constantan",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_constantan"
+        }
+      },
+      {
         "when": "copper",
         "model": {
           "type": "minecraft:model",
@@ -54,10 +75,24 @@
         }
       },
       {
+        "when": "electrum",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_electrum"
+        }
+      },
+      {
         "when": "enderslimeskin",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/maille/parts/maille_tconstruct_enderslimeskin"
+        }
+      },
+      {
+        "when": "fiery",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_fiery"
         }
       },
       {
@@ -82,10 +117,24 @@
         }
       },
       {
+        "when": "invar",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_invar"
+        }
+      },
+      {
         "when": "iron",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/maille/parts/maille_tconstruct_iron"
+        }
+      },
+      {
+        "when": "ironwood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_ironwood"
         }
       },
       {
@@ -124,6 +173,13 @@
         }
       },
       {
+        "when": "lead",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_lead"
+        }
+      },
+      {
         "when": "leather",
         "model": {
           "type": "minecraft:model",
@@ -145,6 +201,20 @@
         }
       },
       {
+        "when": "necronium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_metal"
+        }
+      },
+      {
+        "when": "nicrosil",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_nicrosil"
+        }
+      },
+      {
         "when": "obsidian",
         "model": {
           "type": "minecraft:model",
@@ -152,10 +222,31 @@
         }
       },
       {
+        "when": "osmium",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_osmium"
+        }
+      },
+      {
+        "when": "pewter",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_pewter"
+        }
+      },
+      {
         "when": "pig_iron",
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/maille/parts/maille_tconstruct_pig_iron"
+        }
+      },
+      {
+        "when": "plated_slimewood",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_metal"
         }
       },
       {
@@ -194,6 +285,13 @@
         }
       },
       {
+        "when": "silver",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_silver"
+        }
+      },
+      {
         "when": "skyslimeskin",
         "model": {
           "type": "minecraft:model",
@@ -219,6 +317,13 @@
         "model": {
           "type": "minecraft:model",
           "model": "tconstruct:item/part/maille/parts/maille_tconstruct_steel"
+        }
+      },
+      {
+        "when": "steeleaf",
+        "model": {
+          "type": "minecraft:model",
+          "model": "tconstruct:item/part/maille/parts/maille_tconstruct_steeleaf"
         }
       },
       {

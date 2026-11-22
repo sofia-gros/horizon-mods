@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/beetroot_soup_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 8656397
+      }
+    ]
+  }
+}

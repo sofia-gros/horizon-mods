@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/molten_debris_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 4267541
+      }
+    ]
+  }
+}

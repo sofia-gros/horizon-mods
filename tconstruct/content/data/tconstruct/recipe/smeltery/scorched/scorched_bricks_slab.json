@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "tconstruct:scorched_bricks"
+  },
+  "pattern": [
+    "BBB"
+  ],
+  "group": "tconstruct:scorched_bricks_slab",
+  "result": {
+    "id": "tconstruct:scorched_bricks_slab",
+    "count": 6
+  }
+}

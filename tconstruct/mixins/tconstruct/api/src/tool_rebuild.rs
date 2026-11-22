@@ -63,7 +63,12 @@ pub(crate) fn rebuild(
         // Stats come last so they can read the volatile data: definition, then each modifier in order.
         let mut builder = definition.build_stats(materials, material_registry);
         for (entry, modifier) in &resolved { modifier.apply_stats(entry, facts, &mut builder); }
-        Ok(Some(Rebuilt { modifiers: resolved.clone(), volatile, stats: builder.build(), multipliers: builder.build_multipliers(), tier: builder.touched_tier() }))
+        // MiningTierToolHook: a MaxTierModule caps the tier the stats produced (HarvestTiers.min).
+        let tier = match (builder.touched_tier(), definition.max_tier()) {
+            (Some(tier), Some(cap)) => Some(crate::tool_stats::tier_min(&tier, cap)),
+            (tier, _) => tier,
+        };
+        Ok(Some(Rebuilt { modifiers: resolved.clone(), volatile, stats: builder.build(), multipliers: builder.build_multipliers(), tier }))
     })
 }
 
@@ -145,5 +150,25 @@ mod tests {
         // Required but unknown trait: error, never a silently missing trait.
         let missing = Data::decode(&json!({"modules":[{"type":"tconstruct:traits","traits":[{"name":"test:absent","level":1}]}]})).unwrap();
         assert!(rebuild(ready(), &missing, &MaterialList::default(), &List::default(), &Materials::default(), &registry, &no_tool()).is_err());
+    }
+    #[test]
+    fn max_tier_caps_the_rebuilt_tier() {
+        let mut registry = Registry::default();
+        registry.reload(&[], &Always);
+        let data = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:base_stats","stats":{"tconstruct:harvest_tier":"minecraft:diamond"}},
+            {"type":"tconstruct:max_tier","tier":"minecraft:gold"}
+        ]})).unwrap();
+        let rebuilt = rebuild(ready(), &data, &MaterialList::default(), &List::default(), &Materials::default(), &registry, &no_tool())
+            .unwrap().unwrap();
+        assert_eq!(rebuilt.tier.map(|tier| tier.to_string()), Some("minecraft:gold".into()), "gold caps diamond");
+        // A cap above the produced tier changes nothing.
+        let high = Data::decode(&json!({"modules":[
+            {"type":"tconstruct:base_stats","stats":{"tconstruct:harvest_tier":"minecraft:iron"}},
+            {"type":"tconstruct:max_tier","tier":"minecraft:netherite"}
+        ]})).unwrap();
+        let rebuilt = rebuild(ready(), &high, &MaterialList::default(), &List::default(), &Materials::default(), &registry, &no_tool())
+            .unwrap().unwrap();
+        assert_eq!(rebuilt.tier.map(|tier| tier.to_string()), Some("minecraft:iron".into()));
     }
 }

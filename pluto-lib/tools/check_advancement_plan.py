@@ -4,6 +4,15 @@
 Use the complete installed official plan and pristine selected host workspace.
 Predicate callbacks with Unsupported/native fallback are a separate API contract;
 this guard applies only to the two conditional full-body replacements.
+
+Owner decision, 2026-11-22: the pluto_lib bundle is now the composition, so
+the preservation branch below also admits the advancement event drain and
+the two replacements when they match the reviewed bundle_attachments in
+advancement-replacements.json exactly (pinned identity, phase, priority,
+bindings, function fingerprint, packaged helper bytes and pristine file
+digest). The bundle's forwarders already install into these hooks; without
+them queued events and component-aware inventory triggers have nothing to
+feed. Everything else at this file and these targets remains unattached.
 """
 import hashlib
 import json
@@ -20,6 +29,28 @@ def digest(value):
 
 def entries():
     return json.loads((ROOT / "tools/advancement-replacements.json").read_text())["boundaries"]
+
+
+BUNDLE_MOD_ID = "pluto_lib"
+
+
+def bundle_entries():
+    data = json.loads((ROOT / "tools/advancement-replacements.json").read_text())
+    return data.get("bundle_attachments", [])
+
+
+def _bundle_match(entry, meta, helpers):
+    """Exact reviewed bundle attachment: pinned identity and phase fields,
+    and the plan-carried helper bytes bound to the packaged bundle file."""
+    if entry.get("mod_id") != BUNDLE_MOD_ID:
+        return False
+    for key in ("injection_id", "target", "file", "kind", "cancellable",
+                "priority", "bindings", "function_fingerprint"):
+        if entry.get(key) != meta[key]:
+            return False
+    packaged = (Path(helpers) / meta["helper"]).read_bytes()
+    return (digest(packaged) == meta["helper_sha256"]
+            and entry.get("helper_source", "").encode() == packaged)
 
 
 def check_order(plan, metadata):
@@ -77,19 +108,31 @@ def check(plan, workspace):
     metadata = entries()
     if any(entry.get('mod_id') == 'pluto_lib'
            for section in ('injections', 'modules', 'states') for entry in plan.get(section, [])):
-        # No copied advancement bodies are installed by the active trait bundle.
-        # Preserve the pinned native index/trigger, including native event order.
-        # This does NOT implement the historical component-aware trigger extension.
+        # The active trait bundle composes exactly the reviewed advancement
+        # attachments pinned in bundle_attachments (owner decision,
+        # 2026-11-22): the event drain, the two conditional replacements
+        # and the tag predicate of the tag-index overlay,
+        # admitted by exact identity below. The pinned native index/trigger
+        # sources and native event order are otherwise preserved, and any
+        # other attachment at this file or these targets still fails closed.
         if plan.get('schema') != 6:
             raise ValueError('unreviewed official plan schema for native advancements')
-        targets = {entry['target'] for entry in metadata}
+        reviewed = bundle_entries()
+        targets = {entry['target'] for entry in metadata} | {entry['target'] for entry in reviewed}
+        matched = {}
         for section in ('injections', 'modules', 'states'):
             for entry in plan.get(section, []):
                 if any(c.get('file') == NATIVE_FILE for c in entry.get('constructors', [])):
                     raise ValueError('state constructor changes a preserved native advancement source')
                 if (entry.get('file') == NATIVE_FILE or entry.get('target') in targets
                         or entry.get('mod_id') == MOD_ID):
-                    raise ValueError('native advancement caller must remain unattached; no mixed legacy replacement')
+                    hit = None
+                    if section == 'injections':
+                        hit = next((meta for meta in reviewed
+                                    if _bundle_match(entry, meta, ROOT / 'mod')), None)
+                    if hit is None:
+                        raise ValueError('native advancement caller must remain unattached; no mixed legacy replacement')
+                    matched[hit['injection_id']] = matched.get(hit['injection_id'], 0) + 1
         source = Path(workspace) / NATIVE_FILE
         if source.is_symlink() or not source.is_file():
             raise ValueError('native advancement source must be a regular file')
@@ -98,6 +141,13 @@ def check(plan, workspace):
             raise ValueError('native advancement plan source differs')
         if digest(source.read_bytes()) != NATIVE_SHA256:
             raise ValueError('native advancement workspace source differs')
+        # Once the native inventory gates are composed (pluto-inventory
+        # module present), every reviewed attachment is required exactly
+        # once, so the grant paths cannot silently lose their hooks.
+        if any(entry.get('module_id') == 'pluto-inventory' for entry in plan.get('modules', [])):
+            for meta in reviewed:
+                if matched.get(meta['injection_id'], 0) != 1:
+                    raise ValueError(f"reviewed advancement attachment missing or duplicated: {meta['injection_id']}")
         return
     check_order(plan, metadata)
     verify_source(plan, workspace, metadata)
@@ -112,7 +162,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, StopIteration, TypeError) as error:
         print(f"advancement composition rejected: {error}", file=sys.stderr)
         return 1
-    print("Advancement boundary verified; native preservation does not supply custom component predicates.")
+    print("Advancement boundary verified; only the reviewed bundle attachments extend the native caller.")
     return 0
 
 

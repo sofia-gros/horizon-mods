@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:bloodshroom_planks"
+  },
+  "pattern": [
+    "##"
+  ],
+  "group": "wooden_pressure_plate",
+  "result": {
+    "id": "tconstruct:bloodshroom_pressure_plate"
+  }
+}

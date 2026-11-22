@@ -1,8 +1,9 @@
 //! Connects the protection modules to PlutoLib's damage event: the damage a player takes while wearing Tinkers armor is
 //! reduced (or raised) by the armor's protection modifiers, as ToolEvents.livingHurt does in the original.
 //! The event fires after vanilla's armor and enchantment protection. The enchantment points counted are those of the enchantments the
-//! armor's own modifiers give (the stack carries them, so the game applied them); enchantments a player added are taken as 0 points,
-//! so armor that also carries those is protected by them twice. Modifiers that ignore the enchantment's protection take its points off again.
+//! armor carries in full — the ones its modifiers give (the stack carries them, so the game applied them) plus the ones a player added,
+//! which the last slot sync recorded in the tool's data (tool_slot): the damage event reports no components, so a piece enchanted since
+//! its last sync is counted without the new enchantments until it is next synced. Modifiers that ignore the enchantment's protection take its points off again.
 use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
 use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
@@ -33,22 +34,55 @@ pub(crate) fn register_tags() -> Result<(), String> {
 /// Registers the callback. Called once from the product's hooks.
 pub(crate) fn register() {
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| protect(hit, source)); });
+    // Recurrent protection is a modify hurt module: it runs on the damage the protection left, before damage to capacity.
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| recurrent(hit, source)); });
     // Damage to capacity runs after the protection (ModifierHooks.MODIFY_DAMAGE follows MODIFY_HURT): each piece's bars take what they can of
     // the damage left, and the fills reach the pieces on the wearer's next tick.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| fill_capacity(hit, source)); });
     // Restore lost health is the last of the modify damage modules (priority 10): it works on the damage that is left.
-    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source)); });
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source, false)); });
+    // The same module bound to the modify hurt hook runs as the damage arrives, before armor: a share of the damage as it
+    // came in comes back as regeneration. (ModifierHooks.MODIFY_HURT follows ALLOW_DAMAGE and precedes MODIFY_DAMAGE.)
+    ServerLivingEntityEvents::MODIFY_HURT.register(|hit| { with_source(hit, |source| restore_health(hit, source, true)); });
+}
+
+/// RecurrentProtectionModule: the momentum the wearer already has comes off the damage, and a share of what is left
+/// becomes their new momentum, granted as the momentum (armor) effect. The level is the total over the worn pieces,
+/// as SlotInChargeModule totals them; the module's numbers are the first piece's, as a single slot is in charge.
+/// The effect is the original's own, which the game does not know until a mod effect registration exists; the host
+/// skips an effect it does not know, as it does the other Tinkers effects the bound modules name. The wearer's
+/// momentum is read from the state of their last tick, as the rest of this hook reads them.
+fn recurrent(hit: &DamageModification, source: &DamageSource) {
+    if source.tags.contains_vanilla("bypasses_invulnerability", source.damage_type) { return; }
+    let mut total = 0;
+    let mut module = None;
+    for (_, piece) in &hit.armor {
+        let Ok(found) = with_held_tool(piece, |env, stack| tool_stack::recurrent_protection(&stack.custom_data, env)) else { continue };
+        for (level, candidate) in found {
+            total += level;
+            if module.is_none() { module = Some(candidate); }
+        }
+    }
+    let Some(module) = module else { return };
+    let momentum = hit.target_state.as_ref().map_or(0, |state| state.effect_level(crate::wearer_modules::RecurrentProtection::EFFECT));
+    let amount = hit.amount.get();
+    let (after, grant) = module.apply(total, momentum, amount);
+    if let Some((amplifier, duration)) = grant {
+        hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: crate::wearer_modules::RecurrentProtection::EFFECT.to_owned(), amplifier, duration });
+    }
+    // The original lets the damage go below zero; the event takes none then.
+    if after != amount && after.is_finite() { hit.amount.set(after.max(0.0)); }
 }
 
 /// RestoreLostHealthModule: a share of the damage the wearer takes comes back as Regeneration, at a chance, and wears the piece. The effect and the
 /// edits of the piece reach the wearer on their next tick; several pieces give the effect as the game adds them (the longer one stays).
-fn restore_health(hit: &DamageModification, source: &DamageSource) {
+fn restore_health(hit: &DamageModification, source: &DamageSource, hurt: bool) {
     let amount = hit.amount.get();
     if !(amount > 0.0) { return; }
     let mut actions = Vec::new();
     for (slot, piece) in &hit.armor {
         let Some(stack_slot) = armor_stack_slot(slot) else { continue };
-        let Ok(restores) = with_held_tool(piece, |env, stack| tool_stack::restores(&stack.custom_data, env, source, amount, &mut crate::tool_damage_hook::random)) else { continue };
+        let Ok(restores) = with_held_tool(piece, |env, stack| tool_stack::restores(&stack.custom_data, env, source, amount, hurt, &mut crate::tool_damage_hook::random)) else { continue };
         for (modifier, restore) in restores {
             actions.push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:regeneration".into(), amplifier: 0, duration: restore.duration });
             if restore.wear <= 0 { continue; }
@@ -101,8 +135,8 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
         hit.amount.set(0.0);
         return;
     }
-    // The points the game's enchantment protection already took off for the enchantments the pieces' modifiers give.
-    let levels: Vec<_> = hit.armor.iter().filter_map(|(_, piece)| with_held_tool(piece, |env, stack| tool_stack::enchantments(&stack.custom_data, env)).ok()).collect();
+    // The points the game's enchantment protection already took off for the enchantments the pieces carry, given and player-added alike.
+    let levels: Vec<_> = hit.armor.iter().filter_map(|(_, piece)| with_held_tool(piece, |env, stack| tool_stack::carried_enchantments(&stack.custom_data, env)).ok()).collect();
     let vanilla = crate::protection::host_enchantment_points(&levels, source);
     // Each piece's modifiers see the protection so far, feet to head, starting from the enchantment points.
     let mut total = vanilla;

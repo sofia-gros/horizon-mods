@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:greenheart_planks"
+  },
+  "pattern": [
+    "##",
+    "##",
+    "##"
+  ],
+  "group": "wooden_door",
+  "result": {
+    "id": "tconstruct:greenheart_door",
+    "count": 3
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "s": [
+      "minecraft:stick",
+      {
+        "type": "tconstruct:material_value",
+        "material": {
+          "type": "tconstruct:stat_type",
+          "stat_type": "tconstruct:binding"
+        },
+        "value": 0.5
+      }
+    ]
+  },
+  "pattern": [
+    "ss"
+  ],
+  "parts": "s",
+  "result": {
+    "id": "tconstruct:tool_binding"
+  }
+}

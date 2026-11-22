@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/molten_bendalloy_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 14078657
+      }
+    ]
+  }
+}

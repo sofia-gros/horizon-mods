@@ -47,6 +47,15 @@ pub(crate) fn registry() -> BTreeMap<Identifier, ToolPart> {
     }).collect()
 }
 
+/// Every material item, which is what the part builder and the casting blocks make parts of (IMaterialItem): the tool parts, and the repair kit
+/// (RepairKitItem has its own stat type but is not a ToolPart, so it is not in `registry`, which the tool station reads for the parts of a tool).
+pub(crate) fn material_items() -> BTreeMap<Identifier, ToolPart> {
+    let mut items = registry();
+    let kit = Identifier::new("tconstruct", "repair_kit").expect("valid item");
+    items.insert(kit.clone(), ToolPart { item: kit, stat: Identifier::new("tconstruct", "repair_kit").expect("valid stat type") });
+    items
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -61,7 +70,8 @@ mod tests {
     fn every_part_uses_a_known_stat_type_and_items_are_unique() {
         let registry = registry();
         assert_eq!(registry.len(), PARTS.len(), "duplicate part item");
-        for part in registry.values() {
+        assert_eq!(material_items().len(), PARTS.len() + 1, "the repair kit is a material item but not a tool part");
+        for part in material_items().values() {
             assert!(crate::material_stats::is_registered(&part.stat), "unknown stat type {}", part.stat);
         }
     }

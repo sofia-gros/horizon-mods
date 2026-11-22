@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/molten_chromium_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 12890496
+      }
+    ]
+  }
+}

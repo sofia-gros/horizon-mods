@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "tconstruct:enderbark_planks"
+  },
+  "pattern": [
+    "##",
+    "##",
+    "##"
+  ],
+  "group": "wooden_door",
+  "result": {
+    "id": "tconstruct:enderbark_door",
+    "count": 3
+  }
+}

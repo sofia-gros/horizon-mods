@@ -17,25 +17,53 @@ BUNDLE = Path('tconstruct/mixins/tconstruct')
 CONTENT = Path('tconstruct/content')
 # Content-mod inputs are discovered on disk but each must match one reviewed shape.
 CONTENT_PATHS = (
-    re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:en_us|ja_jp)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu)/[a-z0-9_]+\.json'),
+    re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:de_de|en_us|es_ar|es_cl|es_es|es_mx|fr_fr|id_id|it_it|ja_jp|ko_kr|lzh|pl_pl|pt_br|ru_ru|sv_se|tr_tr|uk_ua|zh_cn|zh_tw)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu|entity_type|mob_effect)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
-    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/enchantments_to_modifiers\.json'),
+    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
-    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The books' Mantle data (tools/import_original_data.py): index, appearance, section files, per-language pages and images,
+    # walked by books.rs through the client resources; the two .nbt files are the structure templates of the book images folder.
+    re.compile(r'assets/tconstruct/book(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|lang|png|nbt)'),
+    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The part builder's damageable recycling recipes of the tables tree (the tools tree's are under recycling above).
+    re.compile(r'data/tconstruct/recipes/tables/recycling(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The smeltery domain's melting, alloy, fuel, casting and molding recipes and the fluid tags they name (tools/import_original_data.py),
-    # kept in the mod's own folders: the Tinkers fluids are not registered yet, so the host must not read these as tags.
+    # kept in the mod's own folders (the host's own copy of the tconstruct tags is data/tconstruct/tags/fluid, matched below).
     re.compile(r'data/tconstruct/recipes/fluids(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/fluid_tags/(?:tconstruct|forge|mantle)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    # The damage type armor modules hurt their wearer with (data pack damage_type definition), and its entries in the two vanilla tags it joins.
-    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:bypasses_armor|bypasses_effects)\.json'),
+    # The fluid effects the engine of fluid_effects.rs decodes (tools/import_original_data.py), in the mod's own folder.
+    re.compile(r'data/tconstruct/tinkering/fluid_effects/[a-z0-9_]+\.json'),
+    # Damage types used by armor modules and the smeltery, and their additions to vanilla tags.
+    re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:avoids_guardian_thorns|bypasses_armor|bypasses_cooldown|bypasses_effects|bypasses_enchantments|is_explosion|is_fire|is_freezing|is_projectile|witch_resistant_to)\.json'),
+    # Trim materials, imported as data only: the entries exist in the trim material registry, but no trim
+    # rendering consumer exists yet (the trim modifier's rendering side is a separate modifier-side gap).
+    re.compile(r'data/tconstruct/trim_material/[a-z0-9_]+\.json'),
     # World content imported from the original (tools/import_original_data.py): block loot tables, ore features with their biome modifier,
     # and the content's own entries in vanilla's block tags (mineable, needs_*_tool, ...).
-    re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/loot_table/entities/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
+    # Global loot modifiers and the list that orders them (the list keeps its Forge-era folder).
+    re.compile(r'data/tconstruct/loot_modifiers/(?:lustrous/)?[a-z0-9_]+\.json'), re.compile(r'data/forge/loot_modifiers/global_loot_modifiers\.json'),
+    # Slime islands (tools/import_original_data.py): the island structures and their sets, the island biome tags the
+    # structures name, and the binary NBT templates the repalleter produced (payloads are not JSON; shape only).
+    re.compile(r'data/tconstruct/worldgen/(?:structure|structure_set)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/structures/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
+    re.compile(r'data/tconstruct/tags/worldgen/biome(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
+    re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
+    # Gameplay advancements and the functions their internal advancements reward, converted by the importer
+    # (display icons in the host's form); the starting book's advancement reward table rides with them.
+    re.compile(r'data/tconstruct/advancement/(?:foundry|internal|smeltery|tools|world)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/function/grant_advancement/[a-z0-9_]+\.mcfunction'),
+    re.compile(r'data/tconstruct/loot_table/gameplay/[a-z0-9_]+\.json'),
+    # Crafting, smelting, blasting and stonecutting recipes of the smeltery blocks and the commons, converted to the game's own recipe format by the importer.
+    re.compile(r'data/tconstruct/recipe(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
 )
+CRAFTING_RECIPE_TYPES = {'minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:blasting', 'minecraft:stonecutting'}
 FLUID_RECIPE_TYPES = {
     'tconstruct:melting', 'tconstruct:ore_melting', 'tconstruct:damagable_melting', 'tconstruct:material_melting', 'tconstruct:melting_fuel',
     'tconstruct:entity_melting', 'tconstruct:alloy', 'tconstruct:material_fluid', 'tconstruct:molding_table', 'tconstruct:item_part_builder',
@@ -45,24 +73,30 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:basin_tool_casting', 'tconstruct:table_tool_casting', 'tconstruct:basin_casting_part_swapping', 'tconstruct:table_casting_part_swapping',
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
-LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of'}
-LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count'}
+LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus', 'minecraft:match_tool', 'minecraft:damage_source_properties', 'minecraft:entity_properties'}
+LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data', 'minecraft:looting_enchant', 'minecraft:furnace_smelt'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
-FEATURE_TYPES = {'minecraft:ore'}
+FEATURE_TYPES = {'minecraft:ore', 'minecraft:geode', 'minecraft:tree', 'tconstruct:slime_tree', 'tconstruct:slime_fungus'}
+ISLAND_STRUCTURE_KEYS = {'type', 'biomes', 'step', 'spawn_overrides', 'terrain_adaptation', 'dimension_padding', 'placement', 'templates', 'trees', 'vines', 'grasses'}
 BIOME_MODIFIER_KEYS = {'type', 'biomes', 'features', 'step'}
 DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_message_type'}
+TRIM_MATERIAL_KEYS = {'asset_name', 'description', 'ingredient', 'item_model_index'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
-BLOCK_KEYS = {'template', 'properties', 'item', 'components'}
+BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light', 'default_state', 'shapes', 'collision_shapes'}
 MENU_KEYS = {'slots', 'data_slots', 'results'}
+ENTITY_TYPE_KEYS = {'template', 'item', 'damage'}
+MOB_EFFECT_KEYS = {'category', 'color'}
 
 
 def check_loot(item, name):
-    """Block loot tables use only reviewed condition, function and entry kinds (the shapes the importer converts)."""
+    """Block and entity loot tables use only reviewed condition, function and entry kinds (the shapes the importer converts)."""
     def condition(node):
-        if node != 'minecraft:tool/can_silk_touch' and not (isinstance(node, dict) and node.get('type') in LOOT_CONDITIONS):
+        if node not in ('minecraft:tool/can_silk_touch', 'minecraft:tool/can_shear') and not (isinstance(node, dict) and node.get('type') in LOOT_CONDITIONS):
             raise ValueError(f'unreviewed loot condition in {name}')
         for term in node.get('terms', []) if isinstance(node, dict) else []:
             condition(term)
+        if isinstance(node, dict) and isinstance(node.get('term'), (str, dict)):
+            condition(node['term'])
 
     def walk(node):
         if 'condition' in node:
@@ -75,9 +109,211 @@ def check_loot(item, name):
         for key in ('pools', 'entries', 'children'):
             for child in node.get(key, []):
                 walk(child)
-    if not isinstance(item, dict) or item.get('type') != 'minecraft:block' or not isinstance(item.get('pools'), list) or not isinstance(item.get('random_sequence'), str):
-        raise ValueError(f'a block loot table needs the block type, pools and a random sequence: {name}')
+    if not isinstance(item, dict) or item.get('type') not in ('minecraft:block', 'minecraft:entity') or not isinstance(item.get('pools'), list) or not isinstance(item.get('random_sequence'), str):
+        raise ValueError(f'a loot table needs the block or entity type, pools and a random sequence: {name}')
     walk(item)
+
+
+LOOT_MODIFIER_TYPES = {'mantle:add_entry', 'mantle:replace_item', 'tconstruct:modifier_hook'}
+LOOT_MODIFIER_CONDITIONS = {'mantle:block_tag', 'mantle:tag_filled', 'tconstruct:has_modifier', 'tconstruct:has_chrysophilite', 'tconstruct:has_context_set', 'tconstruct:block_or_entity', 'forge:loot_table_id', 'tconstruct:config', 'minecraft:entity_properties'}
+LOOT_MODIFIER_POST_CONDITIONS = {'mantle:inverted', 'mantle:contains_item'}
+LOOT_MODIFIER_FUNCTIONS = {'minecraft:set_count', 'minecraft:looting_enchant', 'minecraft:explosion_decay', 'tconstruct:modifier_bonus', 'tconstruct:chrysophilite_bonus'}
+LOOT_MODIFIER_ENTRIES = {'minecraft:item', 'mantle:tag_preference'}
+
+
+def check_loot_modifier(item, name):
+    """Global loot modifiers use only the reviewed condition, function and entry kinds the port's engine decodes."""
+    if name.endswith('global_loot_modifiers.json'):
+        if not isinstance(item, dict) or set(item) != {'entries', 'replace'} or item['replace'] is not False \
+                or not isinstance(item['entries'], list) or not all(isinstance(entry, str) for entry in item['entries']):
+            raise ValueError(f'a global loot modifier list needs entries and replace false: {name}')
+        return
+    if not isinstance(item, dict) or item.get('type') not in LOOT_MODIFIER_TYPES:
+        raise ValueError(f'unreviewed loot modifier type in {name}')
+
+    def conditions(node, allowed, key):
+        if not isinstance(node, list):
+            raise ValueError(f'loot modifier conditions must be a list in {name}')
+        for entry in node:
+            kind = entry.get(key) if isinstance(entry, dict) else None
+            if kind not in allowed:
+                raise ValueError(f'unreviewed loot modifier condition in {name}')
+            if kind == 'mantle:inverted':
+                conditions([entry.get('condition')], LOOT_MODIFIER_POST_CONDITIONS, 'type')
+
+    conditions(item.get('conditions', []), LOOT_MODIFIER_CONDITIONS, 'condition')
+    if item['type'] == 'mantle:add_entry':
+        conditions(item.get('post_conditions', []), LOOT_MODIFIER_POST_CONDITIONS, 'type')
+        if item.get('entry', {}).get('type') not in LOOT_MODIFIER_ENTRIES:
+            raise ValueError(f'unreviewed loot modifier entry in {name}')
+    for function in item.get('functions', []):
+        if function.get('function') not in LOOT_MODIFIER_FUNCTIONS:
+            raise ValueError(f'unreviewed loot modifier function in {name}')
+ADVANCEMENT_TRIGGERS = {'minecraft:inventory_changed', 'minecraft:placed_block', 'minecraft:location', 'minecraft:tick', 'minecraft:player_interacted_with_entity', 'tconstruct:block_container_opened'}
+ADVANCEMENT_KEYS = {'parent', 'display', 'criteria', 'requirements', 'rewards', 'sends_telemetry_event'}
+TOOL_PREDICATE_TYPES = {'tconstruct:has_modifier', 'tconstruct:has_material', 'tconstruct:has_volatile_key', 'tconstruct:tool_action', 'tconstruct:stat_in_range', 'tconstruct:stat_in_set', 'mantle:and', 'mantle:or', 'mantle:set', 'mantle:tag', 'mantle:inverted'}
+
+
+def check_tool_predicate(node, name):
+    """Tool predicates use only the forms the advancement consumer decodes (the original's
+    advancement data forms; anything else is rejected there too, never treated as true)."""
+    if isinstance(node, str):
+        if node != 'tconstruct:has_upgrades':
+            raise ValueError(f'unreviewed tool predicate singleton in {name}')
+        return
+    if not isinstance(node, dict) or node.get('type') not in TOOL_PREDICATE_TYPES:
+        raise ValueError(f'unreviewed tool predicate in {name}')
+    kind = node['type']
+    if kind in ('mantle:and', 'mantle:or'):
+        predicates = node.get('predicates')
+        if not isinstance(predicates, list) or not predicates:
+            raise ValueError(f'a composite tool predicate needs predicates in {name}')
+        for sub in predicates:
+            check_tool_predicate(sub, name)
+    elif kind == 'mantle:inverted':
+        inner = dict(node)
+        inner['type'] = node.get('inverted_type')
+        check_tool_predicate(inner, name)
+    elif kind == 'mantle:set':
+        if not isinstance(node.get('items'), list) or not all(isinstance(entry, str) for entry in node['items']):
+            raise ValueError(f'a set tool predicate needs item IDs in {name}')
+    elif kind == 'mantle:tag':
+        if not isinstance(node.get('tag'), str):
+            raise ValueError(f'a tag tool predicate needs a tag ID in {name}')
+    elif kind == 'tconstruct:has_modifier':
+        modifier = node.get('modifier')
+        if not isinstance(modifier, dict) or modifier.get('type') != 'tconstruct:single' or not isinstance(modifier.get('modifier'), str):
+            raise ValueError(f'only single-modifier matches are reviewed in {name}')
+        if node.get('check') not in ('upgrades', 'all'):
+            raise ValueError(f'a modifier match needs its check in {name}')
+        level = node.get('level')
+        if level is not None and not isinstance(level, (int, float)) and not (isinstance(level, dict) and set(level) <= {'min', 'max'}):
+            raise ValueError(f'a modifier level must be a number or a range in {name}')
+    elif kind == 'tconstruct:has_material':
+        if not isinstance(node.get('material'), str) or ('index' in node and not isinstance(node['index'], int)):
+            raise ValueError(f'a material match needs a variant string and an integer index in {name}')
+    elif kind == 'tconstruct:has_volatile_key':
+        if not isinstance(node.get('key'), str):
+            raise ValueError(f'a volatile key match needs a key in {name}')
+    elif kind == 'tconstruct:tool_action':
+        if not isinstance(node.get('action'), str):
+            raise ValueError(f'a tool action match needs an action in {name}')
+    elif kind == 'tconstruct:stat_in_range':
+        if not isinstance(node.get('stat'), str) or any(key in node and not isinstance(node[key], (int, float)) for key in ('min', 'max')):
+            raise ValueError(f'a stat range needs a stat and numeric bounds in {name}')
+    elif kind == 'tconstruct:stat_in_set':
+        if not isinstance(node.get('stat'), str) or not isinstance(node.get('values'), list):
+            raise ValueError(f'a stat set needs a stat and values in {name}')
+
+
+def check_item_predicate(node, name):
+    if not isinstance(node, dict) or set(node) - {'item', 'items', 'tag', 'count', 'durability', 'enchantments', 'nbt', 'potion', 'type', 'predicate'}:
+        raise ValueError(f'unreviewed item predicate in {name}')
+    if 'type' in node:
+        if node['type'] != 'tconstruct:tool_stack' or 'predicate' not in node:
+            raise ValueError(f'only the tool_stack item predicate is reviewed in {name}')
+        check_tool_predicate(node['predicate'], name)
+    for key in ('item', 'tag', 'potion'):
+        if key in node and not isinstance(node[key], str):
+            raise ValueError(f'an item predicate field must be a string in {name}')
+    if 'items' in node and not (isinstance(node['items'], list) and all(isinstance(entry, str) for entry in node['items'])):
+        raise ValueError(f'an item predicate items field must be item IDs in {name}')
+
+
+def check_entity_predicates(node, name):
+    """Entity predicate condition lists, as location and interaction criteria carry them."""
+    if not isinstance(node, list):
+        raise ValueError(f'entity conditions must be a list in {name}')
+    for entry in node:
+        if not isinstance(entry, dict) or set(entry) - {'condition', 'entity', 'predicate'} or entry.get('condition') != 'minecraft:entity_properties':
+            raise ValueError(f'only entity_properties conditions are reviewed in {name}')
+        predicate = entry.get('predicate') or {}
+        if not isinstance(predicate, dict) or set(predicate) - {'type', 'location', 'equipment', 'stepping_on'}:
+            raise ValueError(f'unreviewed entity predicate in {name}')
+        if 'type' in predicate and not isinstance(predicate['type'], str):
+            raise ValueError(f'an entity type predicate must be a string in {name}')
+        location = predicate.get('location')
+        if location is not None and (not isinstance(location, dict) or set(location) - {'structure', 'biome', 'dimension', 'position', 'smokey', 'light', 'block', 'fluid'}):
+            raise ValueError(f'unreviewed location predicate in {name}')
+        equipment = predicate.get('equipment')
+        if equipment is not None:
+            if not isinstance(equipment, dict):
+                raise ValueError(f'equipment predicates must be an object in {name}')
+            for slot_predicate in equipment.values():
+                check_item_predicate(slot_predicate, name)
+
+
+def check_advancement(item, name):
+    """Gameplay advancements use only the reviewed triggers, condition shapes and predicate
+    forms: the ones the host's engine and the port's advancement consumers evaluate."""
+    if not isinstance(item, dict) or set(item) - ADVANCEMENT_KEYS:
+        raise ValueError(f'unreviewed advancement keys in {name}')
+    criteria = item.get('criteria')
+    if not isinstance(criteria, dict) or not criteria:
+        raise ValueError(f'an advancement needs criteria: {name}')
+    display = item.get('display')
+    if display is not None:
+        if not isinstance(display, dict) or set(display) - {'icon', 'title', 'description', 'frame', 'background', 'show_toast', 'announce_to_chat', 'hidden'}:
+            raise ValueError(f'unreviewed display keys in {name}')
+        icon = display.get('icon')
+        if not isinstance(icon, dict) or set(icon) != {'id'} or not isinstance(icon['id'], str):
+            raise ValueError(f'a display icon must be a single item ID in {name}')
+    rewards = item.get('rewards')
+    if rewards is not None and (not isinstance(rewards, dict) or set(rewards) - {'recipes', 'loot', 'experience', 'function'}):
+        raise ValueError(f'unreviewed rewards in {name}')
+    requirements = item.get('requirements')
+    if requirements is not None and not (isinstance(requirements, list) and all(
+            isinstance(group, list) and all(isinstance(criterion, str) and criterion in criteria for criterion in group)
+            for group in requirements)):
+        raise ValueError(f'requirements must name criteria in {name}')
+    for criterion in criteria.values():
+        if not isinstance(criterion, dict) or set(criterion) - {'trigger', 'conditions'}:
+            raise ValueError(f'unreviewed criterion keys in {name}')
+        trigger = criterion.get('trigger')
+        if trigger not in ADVANCEMENT_TRIGGERS:
+            raise ValueError(f'unreviewed advancement trigger in {name}')
+        conditions = criterion.get('conditions') or {}
+        if not isinstance(conditions, dict):
+            raise ValueError(f'criterion conditions must be an object in {name}')
+        if trigger == 'minecraft:inventory_changed':
+            if set(conditions) - {'items'}:
+                raise ValueError(f'unreviewed inventory_changed conditions in {name}')
+            for entry in conditions.get('items', []):
+                check_item_predicate(entry, name)
+        elif trigger == 'tconstruct:block_container_opened':
+            if set(conditions) != {'type'} or conditions['type'] not in ('tconstruct:smeltery', 'tconstruct:foundry'):
+                raise ValueError(f'a container opened criterion names the smeltery or the foundry in {name}')
+        elif trigger == 'minecraft:placed_block':
+            if set(conditions) - {'item', 'location', 'player'}:
+                raise ValueError(f'unreviewed placed_block conditions in {name}')
+            location = conditions.get('location')
+            if not isinstance(location, list) or not all(isinstance(entry, dict) and set(entry) <= {'block', 'condition', 'properties'} for entry in location):
+                raise ValueError(f'a placed_block location must be block predicates in {name}')
+            if 'item' in conditions:
+                check_item_predicate(conditions['item'], name)
+        elif trigger == 'minecraft:location':
+            if set(conditions) - {'player', 'stepping_on'}:
+                raise ValueError(f'unreviewed location conditions in {name}')
+            check_entity_predicates(conditions.get('player'), name)
+        elif trigger == 'minecraft:player_interacted_with_entity':
+            if set(conditions) - {'entity', 'item', 'player'}:
+                raise ValueError(f'unreviewed interaction conditions in {name}')
+            check_entity_predicates(conditions.get('entity'), name)
+            if 'item' in conditions:
+                check_item_predicate(conditions['item'], name)
+        elif trigger == 'minecraft:tick':
+            if conditions:
+                raise ValueError(f'a tick criterion carries no conditions here in {name}')
+
+
+def check_reward_loot(item, name):
+    """Advancement reward tables (gameplay) give plain items and nothing else."""
+    if not isinstance(item, dict) or item.get('type') != 'minecraft:advancement_reward' or not isinstance(item.get('pools'), list):
+        raise ValueError(f'a gameplay loot table must be an advancement reward table with pools: {name}')
+    for pool in item['pools']:
+        for entry in pool.get('entries', []):
+            if entry.get('type') != 'minecraft:item' or not isinstance(entry.get('name'), str):
+                raise ValueError(f'only plain item entries are reviewed in a gameplay loot table: {name}')
 
 
 def plan(root):
@@ -216,12 +452,17 @@ def checked_content(root, version):
     if 'horizon-mod.toml' not in files:
         raise ValueError('content manifest missing')
     expected = {'id': 'tconstruct', 'name': "Tinkers' Construct content", 'version': version,
-                'api': '0.2', 'side': 'both', 'capabilities': ['registries']}
+                'api': '0.2', 'side': 'both', 'capabilities': ['registries'], 'namespaces': ['forge']}
     if tomllib.loads(files['horizon-mod.toml'].decode()) != expected:
         raise ValueError('content manifest differs from the reviewed one (version must match the native product)')
     for name, payload in files.items():
         if name.endswith('.json'):
             item = json.loads(payload.decode())
+            if name == 'data/tconstruct/tinkering/enchantments_to_modifiers.json':
+                # The enchantment-to-modifier map: enchantment (or #tag) IDs to modifier IDs.
+                if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
+                    raise ValueError(f'the enchantment map must map ID strings to ID strings: {name}')
+                continue
             if '/tinkering/' in name:
                 if not isinstance(item, dict):
                     raise ValueError(f'tinkering data must be a JSON object: {name}')
@@ -234,15 +475,24 @@ def checked_content(root, version):
                 continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
-                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier')
+                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
                 elif '/recipes/tools/parts/builder/' in name:
                     reviewed = ('tconstruct:part_builder',)
+                elif '/recipes/tools/severing/' in name:
+                    reviewed = ('tconstruct:severing',)
                 elif '/recipes/tools/recycling/' in name:
-                    reviewed = ('tconstruct:part_builder_tool_recycling',)
+                    reviewed = ('tconstruct:part_builder_tool_recycling', 'tconstruct:part_builder_recycling')
+                elif '/recipes/tables/recycling/' in name:
+                    reviewed = ('tconstruct:part_builder_recycling',)
                 else:
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
                     raise ValueError(f'only {" or ".join(reviewed)} recipes are reviewed here: {name}')
+                continue
+            if name.startswith('assets/tconstruct/book/'):
+                # Mantle book data: a book's index and its section files are page lists, its pages and appearance objects.
+                if not isinstance(item, (dict, list)):
+                    raise ValueError(f'book data must be a JSON object or a page list: {name}')
                 continue
             if name.startswith('assets/tconstruct/') and not name.startswith('assets/tconstruct/lang/'):
                 if not isinstance(item, dict):
@@ -253,18 +503,55 @@ def checked_content(root, version):
                 if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
                     raise ValueError(f'a language file must map keys to strings: {name}')
                 continue
+            if '/advancement/' in name:
+                check_advancement(item, name)
+                continue
             if '/loot_table/' in name:
-                check_loot(item, name)
+                if '/gameplay/' in name:
+                    check_reward_loot(item, name)
+                else:
+                    check_loot(item, name)
+                continue
+            if '/loot_modifiers/' in name:
+                check_loot_modifier(item, name)
+                continue
+            if name.startswith('data/tconstruct/recipe/'):
+                if not isinstance(item, dict) or item.get('type') not in CRAFTING_RECIPE_TYPES or not isinstance(item.get('result'), dict) or not str(item['result'].get('id', '')).count(':') == 1:
+                    raise ValueError(f'only reviewed crafting, smelting, blasting and stonecutting recipes are allowed here: {name}')
                 continue
             if '/worldgen/' in name:
                 if not isinstance(item, dict):
                     raise ValueError(f'worldgen data must be a JSON object: {name}')
+                if '/tags/' in name:
+                    if set(item) - {'values', 'replace', 'remove'} or not isinstance(item.get('values'), list):
+                        raise ValueError(f'a worldgen biome tag must be an object with a values list: {name}')
+                    continue
                 if '/worldgen/feature/' in name and item.get('type') not in FEATURE_TYPES:
                     raise ValueError(f'only {sorted(FEATURE_TYPES)} features are reviewed here: {name}')
                 if '/worldgen/placed_feature/' in name and not (isinstance(item.get('feature'), str) and isinstance(item.get('placement'), list)):
                     raise ValueError(f'a placed feature needs a feature and a placement list: {name}')
+                if '/worldgen/structure_set/' in name:
+                    placement = item.get('placement')
+                    if not isinstance(item.get('structures'), list) or not isinstance(placement, dict) or placement.get('type') != 'minecraft:random_spread':
+                        raise ValueError(f'only random-spread structure sets are reviewed here: {name}')
+                if '/worldgen/structure/' in name:
+                    weighted = ('templates', 'trees', 'grasses')
+                    entries_ok = all(isinstance(entry, dict) and isinstance(entry.get('data'), str) and isinstance(entry.get('weight'), int) and entry['weight'] > 0
+                                       for key in weighted for entry in item.get(key, []))
+                    if item.get('type') != 'tconstruct:island' or set(item) - ISLAND_STRUCTURE_KEYS or not entries_ok or not all(isinstance(item.get(key), list) for key in weighted):
+                        raise ValueError(f'only the reviewed island structures are allowed here: {name}')
                 continue
             if '/biome_modifier/' in name:
+                if isinstance(item, dict) and item.get('type') == 'neoforge:add_spawns':
+                    spawners = item.get('spawners')
+                    if set(item) != {'type', 'biomes', 'spawners'} or not isinstance(item.get('biomes'), str) or not isinstance(spawners, list) or not spawners or any(
+                            not isinstance(spawner, dict) or set(spawner) != {'type', 'weight', 'minCount', 'maxCount'}
+                            or not isinstance(spawner['type'], str) or spawner['type'].count(':') != 1
+                            or not isinstance(spawner['weight'], int) or spawner['weight'] < 1
+                            or not isinstance(spawner['minCount'], int) or spawner['minCount'] < 0
+                            or not isinstance(spawner['maxCount'], int) or spawner['maxCount'] < spawner['minCount'] for spawner in spawners):
+                        raise ValueError(f'an add_spawns biome modifier names a biome set and reviewed spawner rows: {name}')
+                    continue
                 if not isinstance(item, dict) or set(item) != BIOME_MODIFIER_KEYS or item['type'] != 'neoforge:add_features' or not isinstance(item['step'], str):
                     raise ValueError(f'only neoforge:add_features biome modifiers are reviewed here: {name}')
                 continue
@@ -281,11 +568,23 @@ def checked_content(root, version):
                 if not isinstance(item, dict) or set(item) - DAMAGE_TYPE_KEYS or not isinstance(item.get('message_id'), str) or item.get('scaling') not in ('never', 'always', 'when_caused_by_living_non_player') or not isinstance(item.get('exhaustion'), (int, float)):
                     raise ValueError(f'damage type needs a message id, a scaling and an exhaustion, and only reviewed keys: {name}')
                 continue
+            if name.startswith('data/tconstruct/trim_material/'):
+                if not isinstance(item, dict) or set(item) != TRIM_MATERIAL_KEYS or not isinstance(item.get('asset_name'), str) or not isinstance(item.get('description'), dict) or not isinstance(item.get('ingredient'), str) or not isinstance(item.get('item_model_index'), (int, float)):
+                    raise ValueError(f'trim material needs an asset name, a description, an ingredient and an item model index, and only reviewed keys: {name}')
+                continue
             if '/menu/' in name:
                 if not isinstance(item, dict) or set(item) - MENU_KEYS or not isinstance(item.get('slots'), int) or not 1 <= item['slots'] <= 256:
                     raise ValueError(f'menu declaration needs a slot count and only reviewed keys: {name}')
                 if not all(isinstance(slot, int) and 0 <= slot < item['slots'] for slot in item.get('results', [])):
                     raise ValueError(f'menu result slots must exist: {name}')
+                continue
+            if '/entity_type/' in name:
+                if not isinstance(item, dict) or set(item) - ENTITY_TYPE_KEYS or not str(item.get('template', '')).startswith('minecraft:') or not isinstance(item.get('item'), str) or not isinstance(item.get('damage'), (int, float)):
+                    raise ValueError(f'entity type declaration must copy a vanilla template with an item and a damage, and only reviewed keys: {name}')
+                continue
+            if '/mob_effect/' in name:
+                if not isinstance(item, dict) or set(item) - MOB_EFFECT_KEYS or item.get('category') not in ('beneficial', 'harmful', 'neutral') or not isinstance(item.get('color'), int):
+                    raise ValueError(f'mob effect declaration needs a category and a color, and only reviewed keys: {name}')
                 continue
             keys = BLOCK_KEYS if '/block/' in name else ITEM_KEYS
             if not isinstance(item, dict) or set(item) - keys or not str(item.get('template', '')).startswith('minecraft:'):
@@ -294,6 +593,13 @@ def checked_content(root, version):
                 raise ValueError(f'invalid components in {name}')
             if '/block/' in name and not isinstance(item.get('properties', {}), dict):
                 raise ValueError(f'block properties must be an object: {name}')
+            if '/block/' in name:
+                declared = item.get('state_properties', {})
+                if not isinstance(declared, dict) or any(not isinstance(spec, dict) or spec.get('type') not in ('boolean', 'enum') for spec in declared.values()):
+                    raise ValueError(f'block state properties must be booleans or enums: {name}')
+                light = item.get('state_light')
+                if light is not None and (not isinstance(light, dict) or light.get('property') not in declared or not isinstance(light.get('values'), dict)):
+                    raise ValueError(f'state_light must select by a declared property: {name}')
     digest = hashlib.sha256()
     for name, payload in sorted(files.items()):
         digest.update(name.encode() + b'\x00' + payload + b'\x00')

@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": [
+      "tconstruct:cobalt_ingot"
+    ],
+    "R": [
+      "minecraft:redstone"
+    ],
+    "T": [
+      "tconstruct:scorched_ingot_gauge",
+      "tconstruct:scorched_fuel_gauge"
+    ]
+  },
+  "pattern": [
+    " R ",
+    "CTC",
+    "CCC"
+  ],
+  "result": {
+    "id": "tconstruct:scorched_fluid_cannon"
+  }
+}

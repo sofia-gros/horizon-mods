@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //! The armor modules that act on their wearer, ported from SlimeKnights (MIT; see LICENSE): DepthProtectionModule, OvershieldModule,
-//! RestoreLostHealthModule, DamageOnUnequipModule and ReduceEffectOnUnequipModule. The wearer is the `target` of the hit as PlutoLib reported
+//! RestoreLostHealthModule, KineticModule, DamageOnUnequipModule and ReduceEffectOnUnequipModule. The wearer is the `target` of the hit as PlutoLib reported
 //! them as of their last tick; what the modules do to the wearer (an effect, a hurt, an effect's time, the armor's own data) goes back as
 //! `EntityAction`s. The wearer's stack is the one their armor listing carries, so an edit lands on the piece the module sits on.
 use crate::{
@@ -18,13 +18,13 @@ pub(crate) struct Leveling { flat: f32, each: f32 }
 
 impl Leveling {
     /// A `{flat, each_level}` object (either part may be missing); the whole value may also be absent when `required` is false.
-    fn decode(value: Option<&Value>, name: &str) -> Result<Self, String> {
+    pub(crate) fn decode(value: Option<&Value>, name: &str) -> Result<Self, String> {
         let object = value.and_then(Value::as_object).ok_or_else(|| format!("{name} must be a leveling value"))?;
         Ok(Self { flat: number(object, "flat")?, each: number(object, "each_level")? })
     }
     /// The same fields read straight from a module's own object (LevelingValue.directField).
     fn direct(fields: &Map<String, Value>) -> Result<Self, String> { Ok(Self { flat: number(fields, "flat")?, each: number(fields, "each_level")? }) }
-    fn compute(self, level: f32) -> f32 { self.flat + self.each * level }
+    pub(crate) fn compute(self, level: f32) -> f32 { self.flat + self.each * level }
     /// LevelingInt.compute: the float value cut to an int.
     fn int(self, level: f32) -> i32 { self.compute(level) as i32 }
 }
@@ -137,6 +137,64 @@ impl RestoreLostHealth {
     }
 }
 
+/// RecurrentProtectionModule: armor that builds momentum as its wearer takes damage. The momentum the
+/// wearer already has comes straight off the damage; a share of what is left becomes the new momentum
+/// level, granted as the momentum (armor) effect for the module's duration. Only the slot in charge
+/// applies it (SlotInChargeModule), and its level is the total over the equipped pieces, so the grant is
+/// worked out over the pieces a hit reports, as armor levels are. Damage that bypasses invulnerability
+/// neither loses momentum nor builds it; the caller checks that, as the module does.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct RecurrentProtection { percent: Leveling, duration: Leveling }
+
+impl RecurrentProtection {
+    /// The momentum effect for armor (TinkerModifiers.momentumEffect for ToolType.ARMOR).
+    pub(crate) const EFFECT: &str = "tconstruct:momentum_armor";
+
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        // The duration is a LevelingInt: a plain number is the ticks for each level.
+        let duration = match fields.get("duration").filter(|value| !value.is_null()) {
+            Some(Value::Number(number)) => Leveling { flat: 0.0, each: number.as_f64().ok_or("duration must be a number")? as f32 },
+            value => Leveling::decode(value, "duration")?,
+        };
+        Ok(Self { percent: Leveling::decode(fields.get("percent"), "percent")?, duration })
+    }
+
+    /// modifyDamageTaken for the total `level` of the worn pieces and the wearer's current momentum
+    /// level: the damage after the module, and the momentum it grants (amplifier and ticks) when the
+    /// share of the damage is a whole point. The returned damage may go below zero, as the original's
+    /// does; the event takes none then.
+    pub(crate) fn apply(&self, level: i32, momentum: i32, amount: f32) -> (f32, Option<(i32, i32)>) {
+        if level <= 0 { return (amount, None); }
+        let amount = amount - momentum as f32;
+        let reduction = (self.percent.compute(level as f32) * amount) as i32;
+        if reduction <= 0 { return (amount, None); }
+        (amount, Some((reduction - 1, self.duration.int(level as f32))))
+    }
+}
+
+/// KineticModule: armor that feeds on being hit. Each hit an entity lands on the wearer raises the
+/// insatiable (armor) effect a level, up to the total kinetic level of the worn pieces; the effect
+/// itself carries a point of attack damage per level. Only the slot in charge applies it
+/// (SlotInChargeModule), and its level is the total over the equipped pieces, so the grant is worked
+/// out over the pieces a hit reports, as armor levels are.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Kinetic;
+
+impl Kinetic {
+    /// The effect's duration: 10 seconds, as the module applies it.
+    pub(crate) const DURATION: i32 = 10 * 20;
+
+    /// OnAttackedModifierHook through InsatiableModifier.applyEffect: the grant for one entity-caused
+    /// hit, or None when the total kinetic level of the worn pieces is nothing. The new amplifier is
+    /// one above the wearer's current one (`current`, -1 when they lack the effect), capped at one
+    /// below the total level.
+    pub(crate) fn grant(total_level: i32, current: i32) -> Option<crate::weapon_effect::Grant> {
+        if total_level <= 0 { return None; }
+        let amplifier = (total_level - 1).min(current + 1);
+        Some(crate::weapon_effect::Grant { effect: Identifier::new("tconstruct", "insatiable_armor").expect("valid effect id"), amplifier, duration: Self::DURATION })
+    }
+}
+
 /// DamageOnUnequipModule: armor that hurts its wearer when it comes off.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct DamageOnUnequip { damage: f32, damage_type: Identifier }
@@ -155,6 +213,41 @@ impl DamageOnUnequip {
     pub(crate) fn hurt(&self, entry: &Entry) -> Option<(String, f32)> {
         let amount = self.damage * entry.effective_level();
         (amount > 0.0).then(|| (self.damage_type.to_string(), amount))
+    }
+}
+
+/// UpdateHealthModule: armor that refreshes its wearer's health when it goes on or comes off, by the bonus the
+/// piece grants (the revitalizing attribute raises the maximum by the same amount, so going on heals and coming
+/// off hurts by that much). Only armor slots are ported: the tick that reports equipment changes reports no
+/// held tools, so a module naming a hand slot stays unbound.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct UpdateHealth { bonus: Leveling, slots: Vec<String> }
+
+impl UpdateHealth {
+    /// `None` for a module naming a hand slot, whose changes no event reports. An unknown slot name rejects.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        // LevelingValue.ZERO when the bonus field is absent.
+        let bonus = match fields.get("bonus").filter(|value| !value.is_null()) {
+            None => Leveling { flat: 0.0, each: 0.0 },
+            Some(value) => Leveling::decode(Some(value), "bonus")?,
+        };
+        let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+            .map(|slot| match slot.as_str() {
+                Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()),
+                _ => Err("unknown equipment slot".to_owned()),
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if slots.iter().any(|slot| matches!(slot.as_str(), "mainhand" | "offhand")) { return Ok(None); }
+        Ok(Some(Self { bonus, slots }))
+    }
+
+    /// updateHealth for a change in `slot`: the bonus going on, its negation coming off, and nothing for a slot
+    /// the module does not name. A positive result heals (the game cuts a heal to the maximum, as the original
+    /// caps the raised health); a negative one is dealt as damage of the `tconstruct:update_health` type.
+    pub(crate) fn delta(&self, entry: &Entry, slot: &str, equipped: bool) -> f32 {
+        if !self.slots.iter().any(|named| named == slot) { return 0.0; }
+        let bonus = self.bonus.compute(entry.effective_level());
+        if equipped { bonus } else { -bonus }
     }
 }
 
@@ -315,6 +408,48 @@ mod tests {
         assert_eq!(shortened(1, 0.9), Some(1), "never below one tick");
         assert_eq!((shortened(-1, 0.4), shortened(0, 0.4)), (None, None), "an endless effect is left alone");
         assert!(ReduceEffectOnUnequip::decode(&fields(json!({"category":"good","percent":{}}))).is_err());
+    }
+
+    #[test]
+    fn update_health_heals_by_the_bonus_going_on_and_hurts_by_it_coming_off() {
+        // The shipped revitalizing: no bonus for the armor slots (the attribute alone raises the maximum there),
+        // 2 per level for the hands.
+        let armor = UpdateHealth::decode(&fields(json!({"slots":["feet","legs","chest","head"]}))).unwrap().unwrap();
+        assert_eq!((armor.delta(&entry(3), "chest", true), armor.delta(&entry(3), "chest", false)), (0.0, 0.0), "no bonus, no change");
+        let hands = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["mainhand","offhand"]}))).unwrap();
+        assert!(hands.is_none(), "held tools are not reported, so a hand module stays unbound");
+        let mixed = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["feet","legs","chest","head"]}))).unwrap().unwrap();
+        assert_eq!(mixed.delta(&entry(2), "feet", true), 4.0);
+        assert_eq!(mixed.delta(&entry(2), "feet", false), -4.0);
+        assert_eq!(mixed.delta(&entry(2), "mainhand", true), 0.0, "a slot the module does not name");
+        assert!(UpdateHealth::decode(&fields(json!({"slots":["pocket"]}))).is_err());
+        assert!(UpdateHealth::decode(&fields(json!({"bonus":2.0,"slots":["feet"]}))).is_err(), "the bonus is a leveling object");
+    }
+
+    #[test]
+    fn recurrent_protection_turns_a_share_of_the_damage_into_momentum_and_spends_the_momentum_it_has() {
+        // The shipped recurrent protection: half the damage becomes momentum, 100 ticks per level.
+        let module = RecurrentProtection::decode(&fields(json!({"duration":{"each_level":100},"percent":{"flat":0.5}}))).unwrap();
+        assert_eq!(module.apply(2, 0, 10.0), (10.0, Some((4, 200))), "half of 10 is 5 points of momentum for 200 ticks");
+        assert_eq!(module.apply(2, 3, 10.0), (7.0, Some((2, 200))), "the 3 momentum come off first, half of the 7 left is 3 points");
+        assert_eq!(module.apply(1, 0, 1.0), (1.0, None), "half of 1 is not a whole point");
+        assert_eq!(module.apply(2, 5, 4.0), (-1.0, None), "more momentum than damage: nothing is granted and the damage goes below zero");
+        assert_eq!(module.apply(0, 0, 10.0), (10.0, None), "no level, no change");
+        let plain = RecurrentProtection::decode(&fields(json!({"duration":40,"percent":{"each_level":0.25}}))).unwrap();
+        assert_eq!(plain.apply(2, 0, 8.0), (8.0, Some((3, 80))), "a plain duration number is the ticks per level");
+        assert!(RecurrentProtection::decode(&fields(json!({"percent":{"flat":0.5}}))).is_err(), "the duration is required");
+    }
+
+    #[test]
+    fn kinetic_raises_insatiable_one_level_per_hit_up_to_the_total() {
+        // The shipped kinetic: insatiable (armor) for 10 seconds.
+        let grant = |total: i32, current: i32| Kinetic::grant(total, current).map(|grant| (grant.effect.to_string(), grant.amplifier, grant.duration));
+        assert_eq!(grant(2, -1), Some(("tconstruct:insatiable_armor".to_owned(), 0, 200)), "a first hit grants level I");
+        assert_eq!(grant(2, 0), Some(("tconstruct:insatiable_armor".to_owned(), 1, 200)), "the next hit raises it, capped at the total");
+        assert_eq!(grant(2, 1), Some(("tconstruct:insatiable_armor".to_owned(), 1, 200)), "and stays there");
+        assert_eq!(grant(3, 1), Some(("tconstruct:insatiable_armor".to_owned(), 2, 200)), "a higher total raises the cap");
+        assert_eq!(grant(1, 4), Some(("tconstruct:insatiable_armor".to_owned(), 0, 200)), "a weaker total pulls the cap below the current level");
+        assert_eq!(grant(0, -1), None, "no kinetic pieces, no grant");
     }
 
     #[test]

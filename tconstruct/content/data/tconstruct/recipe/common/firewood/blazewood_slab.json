@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "tconstruct:blazewood"
+  },
+  "pattern": [
+    "BBB"
+  ],
+  "group": "tconstruct:blazewood_slab",
+  "result": {
+    "id": "tconstruct:blazewood_slab",
+    "count": 6
+  }
+}

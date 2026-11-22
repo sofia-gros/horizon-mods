@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "p": "tconstruct:pattern",
+    "w": "#tconstruct:planklike"
+  },
+  "pattern": [
+    "pp",
+    "ww"
+  ],
+  "result": {
+    "id": "tconstruct:part_builder"
+  }
+}

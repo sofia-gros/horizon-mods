@@ -62,7 +62,7 @@ pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
         api: "resource_loader_v0::ResourceManagerHelper::reload_registry",
         support: Support::Stub,
-        behaviour: "owned membership/tag lookups and nested/unwind cleanup are pure-tested; a source-declared native reload wrapper scopes full entity-type IDs/effective world-pack tags and active item membership/tags with native fallback; invalid contents isolate that registry; outside callbacks/unsupported registries return None; native plan/type/build/game validation is pending",
+        behaviour: "owned membership/tag lookups and nested/unwind cleanup are pure-tested; a source-declared native reload wrapper scopes full entity-type IDs/effective world-pack tags and active item membership/tags with native fallback, plus native fluid IDs joined with PlutoLib-defined fluids and the host-loaded fluid tags (unknown members dropped, failed tag read leaves tags unavailable); invalid contents isolate that registry; outside callbacks/unsupported registries return None; native plan/type/build/game validation is pending",
         unblocked_by: "native attachment source/site review and consolidated native reload tests, full entity registry rather than render catalogs, effective versus fallback pack tags, absent versus empty tags, nested callbacks and scope teardown; other registries need their own validated sources",
     },
     SupportEntry {
@@ -82,6 +82,12 @@ pub const MATRIX: &[SupportEntry] = &[
         support: Support::Stub,
         behaviour: "registered true/false/delegation and actual adapter branch/math are pure-tested; native Enderman HEAD/transport are source-declared only; AI snapshots have item ID/UUID/observer but no full stack",
         unblocked_by: "native attachment source/site/owner review, consolidated plan/build/game validation including native pumpkin fallback, explicit false, gaze cone/occlusion and LAN; stack-dependent queries also need full native stack transport",
+    },
+    SupportEntry {
+        api: "item_api_v1::ItemBehavior::max_stack_size",
+        support: Support::Stub,
+        behaviour: "registration and dispatch are pure-tested (an answer by the stack's custom data; none and zero delegate to the item's own maximum); the item behaviour transport carries the query and the menu adapter honours it when stacking in a menu, both source-wired and native-unvalidated; the game's own stacking (inventory merging, pickup) has no PlutoLib seam yet, so it still uses the item default everywhere else",
+        unblocked_by: "a PlutoLib seam at the game's stack-limit query that calls the installed transport dispatcher, followed by native attachment review and consolidated build/game validation",
     },
     SupportEntry {
         api: "data_attachment_api_v1::AttachmentRegistry::create_synced / EntityInfo attachment methods",
@@ -186,10 +192,10 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "PlutoLib-owned adapters inside the corresponding feature execution contexts, retaining their RNG and world semantics",
     },
     SupportEntry {
-        api: "fluid_api_v1::FluidDef::with_world_blocks / with_bucket",
+        api: "fluid_world_api_v1::FluidWorld (the first tick of a placed source, entity contact)",
         support: Support::Stub,
-        behaviour: "the request is kept; no source or flowing blocks and no bucket of a mod's fluid exist",
-        unblocked_by: "Horizon offering world blocks and buckets for a mod's fluid (it has only tanks for them today)",
+        behaviour: "the flow, the buckets and the fluid's block behaviour are pure-tested and run through existing block hooks; a source a bucket places asks for its first tick through World::schedule_tick: the HostWorld adapter queues the request (the mod-facing host has no scheduling call) and the level's random/scheduled tick seams apply it in that dimension, so the source starts flowing without waiting for a neighbour change; entity contact is notified through BlockBehavior::entity_inside (see its row), but applying contact effects (burning, effects, swimming, buoyancy, fog) needs a consumer that acts on the entity, which the read-only notification does not provide",
+        unblocked_by: "native build and game validation of the queue drain at the level tick seams; a consumer-side entity action path for contact effects (the notification itself is delivered)",
     },
     SupportEntry {
         api: "living_entity_drops::LivingEntityDropsCallback / LivingEntityDrops",
@@ -236,8 +242,14 @@ pub const MATRIX: &[SupportEntry] = &[
     SupportEntry {
         api: "block_api_v1::BlockBehavior::entity_inside",
         support: Support::Stub,
-        behaviour: "callbacks are accepted and never invoked",
-        unblocked_by: "a PlutoLib injection that reads the block state in Horizon's block_entity_inside (the hook gives the state id only)",
+        behaviour: "callbacks are invoked by PlutoLib's player, mob and item movement seams (the seams that dispatch entity_inside_motion), with the level's dimension, the block's full state and the entity's id and kind, on the server side; source-wired, not native or game validated. The native block_entity_inside trait hook is deliberately not the carrier: its generated method receives no host and only a state id, which cannot be resolved to a block state there",
+        unblocked_by: "consolidated native build and game validation of the three movement seams; entity families whose movement PlutoLib does not seam (projectiles) are not notified",
+    },
+    SupportEntry {
+        api: "recipe_api_v1::register_ingredient_kind / register_assembly",
+        support: Support::Stub,
+        behaviour: "both registries are pure-tested; the game's ingredient dispatch (load-time item lists and craft-time stack tests for mod-defined kinds) and the crafting gate's assembly substitution (a provider's compound replacing the result template's custom data, denial vetoing the match) are source-wired through the native inventory registry and the established crafting-match boundary; native compilation and game validation are pending",
+        unblocked_by: "consolidated native build and game validation of the ingredient hooks and the assembly arm of the crafting-match boundary",
     },
 ];
 

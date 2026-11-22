@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tconstruct:item/mushroom_stew_bucket",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 13470831
+      }
+    ]
+  }
+}

@@ -70,6 +70,15 @@ impl Condition {
             Self::TagFilled(id) => Ok(items()?.get_tag(id).is_some_and(|members| !members.is_empty())),
             Self::TagEmpty(id) => Ok(items()?.get_tag(id).is_none_or(|members| members.is_empty())),
             Self::TagCombination { registry, matches, ignore } => {
+                // The host captures no instrument registry; the generated table from the pinned data answers for it.
+                if registry.to_string() == "minecraft:instrument" {
+                    let members = |id: &Identifier| crate::instrument_tags::TAGS.iter()
+                        .find(|(name, _)| *name == id.to_string()).map(|(_, members)| members.iter().copied().collect::<Vec<_>>()).unwrap_or_default();
+                    let tags: Vec<Vec<&str>> = matches.iter().map(members).collect();
+                    let ignored = ignore.as_ref().map_or_else(Vec::new, members);
+                    if tags.iter().any(|members| members.is_empty()) { return Ok(false); }
+                    return Ok(tags[0].iter().any(|entry| !ignored.contains(entry) && tags[1..].iter().all(|members| members.contains(entry))));
+                }
                 // Only the item registry is captured; another registry is not guessed at.
                 if registry.to_string() != "minecraft:item" { return Err(format!("registry {registry} unavailable during reload")); }
                 let items = items()?;
@@ -124,9 +133,17 @@ mod tests {
             json!({"type":"mantle:tag_combination_filled","match":3})] {
             assert!(Condition::decode(&bad).is_err(), "{bad}");
         }
+        // The instrument registry is answered by the generated table: every goat horn is a variant horn, so
+        // that combination is unfilled, but the screaming horns sit outside the regular tag, so that one is.
+        let unfilled = Condition::decode(&json!({"type":"mantle:tag_combination_filled","registry":"minecraft:instrument","match":"minecraft:goat_horns","ignore":"tconstruct:variant_horns"})).unwrap();
+        assert!(!unfilled.evaluate(&context).unwrap());
+        let filled = Condition::decode(&json!({"type":"mantle:tag_combination_filled","registry":"minecraft:instrument","match":"minecraft:goat_horns","ignore":"minecraft:regular_goat_horns"})).unwrap();
+        assert!(filled.evaluate(&context).unwrap());
+        let unknown = Condition::decode(&json!({"type":"mantle:tag_combination_filled","registry":"minecraft:instrument","match":"x:y"})).unwrap();
+        assert!(!unknown.evaluate(&context).unwrap(), "an unknown instrument tag is empty, not an error");
         // Another registry is never guessed at.
-        let instrument = Condition::decode(&json!({"type":"mantle:tag_combination_filled","registry":"minecraft:instrument","match":"x:y"})).unwrap();
-        assert!(instrument.evaluate(&context).is_err());
+        let other = Condition::decode(&json!({"type":"mantle:tag_combination_filled","registry":"minecraft:painting_variant","match":"x:y"})).unwrap();
+        assert!(other.evaluate(&context).is_err());
         let uppercase = Condition::decode(&json!({"type":"tconstruct:config","prop":"SPAWN_WITH_BOOK"})).unwrap();
         assert!(uppercase.evaluate(&context).unwrap());
     }

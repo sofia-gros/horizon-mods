@@ -598,6 +598,47 @@ bindings = [
  { name = "w", ty = "&MobWorld<'_>", value = "w" }
 ]
 
+# The enchanting table asks the stack for its enchantability: `enchantable_of` is the
+# one lookup the table's offers, costs and selection all read, and a registered
+# per-stack answer replaces its component/default lookup, as NeoForge's
+# stack-sensitive `getEnchantmentValue(ItemStack)` replaces the default.
+[[injection]]
+id = "pluto-item-enchantability"
+target = "horizon_items::enchant::Enchantments::enchantable_of"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-enchantability-head.rs"
+bindings = [
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+# Shearing a snow golem or bogged asks the stack for SHEARS_HARVEST where vanilla
+# names the shears item; a granted stack runs the original body under the vanilla name.
+[[injection]]
+id = "pluto-item-shear-mob"
+target = "horizon_client::game::creatures::Game<'_>::interact_shear_mob"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-shear-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "index", ty = "usize", value = "index" },
+ { name = "item", ty = "&str", value = "item" }
+]
+
+# Shearing a saddle or equipment off a mob asks the stack the same question.
+[[injection]]
+id = "pluto-item-shear-saddle"
+target = "horizon_client::game::mounts::Game<'_>::shear_saddle"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-shear-saddle-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "index", ty = "usize", value = "index" },
+ { name = "item", ty = "&str", value = "item" }
+]
+
 # Symbolic binding rewrite before native loading; bindings get a distinct root
 # identity so cached content/behaviour tables cannot restore an older declaration.
 # Native plan fingerprints remain unset under the native attachment guard.
@@ -1280,6 +1321,35 @@ cancellable = true
 helper = "pluto-entity-kind.rs"
 bindings = [{ name = "mob", ty = "&horizon_client::mobs::Mob", value = "mob" }]
 
+# Passenger (riding) transport for the entity reach: a snapshot of who rides
+# whom plus a queue of mount/dismount requests, applied by the game's own
+# rider synchronisation. The seat helper answers for the local player as a
+# vehicle, which the game's own seat table does not cover.
+[[module]]
+id = "pluto-entity-ride-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_entity_ride_access"
+source = "pluto-entity-ride-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-entity-ride-drain"
+target = "horizon_client::game::passengers::Game<'_>::sync_riders"
+kind = "HEAD"
+helper = "pluto-entity-ride-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+[[injection]]
+id = "pluto-entity-seat-player"
+target = "horizon_client::game::seats::Game<'_>::seat"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-seat-player-head.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "self" },
+ { name = "id", ty = "u32", value = "id" }
+]
+
 # Preserve inherited cube splash RNG, replacing only its registered particle ID.
 [[module]]
 id = "pluto-entity-particles"
@@ -1378,6 +1448,17 @@ bindings = [
     { name = "game", ty = "&Game<'_>", value = "self" },
 ]
 
+# A container's slots through a side as plain values for `Host`: the generated `Host` cannot name the crate-private `NativeContainerSlot`, so a
+# wrapper is appended to its file (direct host attachment) and listed by a helper fragment beside the upstream ones.
+[[injection]]
+id = "pluto-block-entity-container-reach"
+target = "horizon_client::game::machines::native_items::Game<'_>::native_container_slots"
+kind = "HEAD"
+helper = "pluto-container-reach.rs"
+bindings = [
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+]
+
 [[injection]]
 id = "pluto-item-color-layers"
 target = "horizon_client_lib::item_render::ItemRenderer::resolve_with_rule"
@@ -1468,6 +1549,14 @@ name = "pluto_mob_effect_access"
 source = "pluto-mob-effect-access.rs"
 visibility = "pub"
 
+# What a mod's entity-inside callback does to the entity inside its block, carried to where the game may change it.
+[[module]]
+id = "pluto-contact-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_contact_access"
+source = "pluto-contact-access.rs"
+visibility = "pub"
+
 [[injection]]
 id = "pluto-mob-effect-apply"
 target = "horizon_client::game::native_hooks::Game<'_>::native_living_incoming_damage_v2"
@@ -1512,3 +1601,184 @@ target = "horizon_client::game::lan_attributes::Game<'_>::update_player_attribut
 kind = "HEAD"
 helper = "pluto-mob-effect-apply-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The explosions a mod orders (the game has no mod call that sets one off; its own native_explode lives inside the game).
+[[module]]
+id = "pluto-explosion-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_explosion_access"
+source = "pluto-explosion-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-explosion-flush"
+file = "crates/horizon-client/src/game/native_explosions.rs"
+name = "pluto_explosion_flush"
+source = "pluto-explosion-flush.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-explosion-flush-head"
+target = "horizon_client::game::creatures::Game<'_>::handle_mob_events_reusable"
+kind = "HEAD"
+helper = "pluto-explosion-flush-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Native inventory gates for the pure advancement/recipe forwarders in the
+# API package (hooks.rs, behind the `native-inventory-glue` feature). This is
+# the transport subset migrated from the retired pluto_native_creative
+# package: the shared inventory API crate, its client-library export, the
+# component/stack views the item-predicate boundary uses, and the
+# advancement event source/sink in the game module. The legacy package's
+# remaining boundaries stayed native-preserved under the retained guards at
+# that step. Owner decision, 2026-11-22: the crafting-match pair and the
+# advancement drain/trigger/index attachments are composed at the end of
+# this manifest under the reviewed bundle branches of the retained guards
+# (bundle_attachments in crafting-match-boundaries.json and
+# advancement-replacements.json). The station ingredient parser and recipe
+# placement stay native-preserved.
+# Rename record: the stack-storage module below is named `pluto_stack_store`
+# in this bundle, not the legacy `pluto_stack_storage` — that name is
+# reserved by the wire-snapshot guard for the native-preserved module, and
+# the copied component view references the module under its new name.
+
+[[crate]]
+id = "pluto-inventory-api"
+path = "inventory-api"
+dependent = "horizon-client-lib"
+
+[[module]]
+id = "pluto-inventory"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_inventory"
+source = "pluto-inventory-export.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-component-view"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_component_view"
+source = "pluto-component-view.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-stack-storage"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_store"
+source = "pluto-stack-storage.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-advancement-events"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_events"
+source = "pluto-advancement-events.rs"
+
+[[module]]
+id = "pluto-advancement-event-source"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_event_source"
+source = "pluto-advancement-event-source.rs"
+visibility = "pub"
+
+# The only host-shaped item predicate boundary. Consumers see PlutoLib facts.
+[[injection]]
+id = "pluto-item-predicate"
+target = "horizon_client_lib::advancements::item"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-predicate-head.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }, { name = "w", ty = "&dyn World", value = "w" }]
+
+# Reviewed boundary attachments (owner decision, 2026-11-22). The bundle is
+# now the composition, so the retained guards admit exactly these attachments
+# under their reviewed bundle branches: pinned helper bytes, function
+# fingerprints and pristine file digests in crafting-match-boundaries.json
+# and advancement-replacements.json (bundle_attachments). Priority is the
+# bundle default 0, like every other pluto_lib injection: each target has
+# exactly one reviewed hook, so HEAD ordering against other hooks on these
+# targets cannot arise inside this composition. (The retired package planned
+# at priority 100 to order itself against third-party mods.)
+
+# Provider admission/assembly evaluation for the crafting-match veto below.
+[[module]]
+id = "pluto-crafting-match"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_matching"
+source = "pluto-crafting-match.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-crafting-match-veto"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-crafting-match-veto-head.rs"
+bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+
+# Queued custom advancement events drain into the native sink each tick.
+[[injection]]
+id = "pluto-advancement-event-drain"
+target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
+kind = "HEAD"
+helper = "pluto-advancement-event-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Component-aware inventory events, backed by the shared inventory API facade.
+[[injection]]
+id = "pluto-inventory-advancement-components"
+target = "horizon_client::game::advancements::Game<'_>::check_inventory_trigger"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-inventory-advancements.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Custom item-tag overlays for advancement matching: per-world state on the
+# chunk map, its game-side sink, and the read paths (candidate index and the
+# World::in_tag predicate) the components replacement above consults.
+[[module]]
+id = "pluto-advancement-tag-state"
+file = "crates/horizon-client-render/src/chunk_map.rs"
+name = "pluto_advancement_tag_state"
+source = "pluto-advancement-tag-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "pluto-advancement-tags"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_advancement_tag_state::TagState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "pluto-advancement-tags-sink"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_tags"
+source = "pluto-advancement-tags.rs"
+
+[[injection]]
+id = "pluto-advancement-tags-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "pluto-advancement-tags-clear-head.rs"
+bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-advancement-tag-predicate"
+target = "horizon_client::game::advancements::<View<'_,'_> as adv::World>::in_tag"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-tag-predicate-head.rs"
+bindings = [{ name = "view", ty = "&View<'_, '_>", value = "&*self" }, { name = "registry", ty = "&str", value = "registry" }, { name = "tag", ty = "&str", value = "tag" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "pluto-advancement-tag-index"
+target = "horizon_client::game::advancements::Game<'_>::inventory_index"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-tag-index-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]

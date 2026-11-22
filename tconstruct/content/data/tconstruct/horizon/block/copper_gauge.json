@@ -1,0 +1,1 @@
+{"template":"minecraft:stone","properties":{"hardness":0.5,"explosion_resistance":0.5,"sounds":"minecraft:stone","map_color":0,"requires_tool":true,"occludes":false},"state_properties":{"facing":{"type":"enum","values":["down","up","north","south","west","east"]}},"collision_shapes":{"default":[]},"item":true}

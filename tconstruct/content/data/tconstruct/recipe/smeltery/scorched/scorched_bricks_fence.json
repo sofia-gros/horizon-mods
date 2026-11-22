@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "tconstruct:scorched_bricks",
+    "b": "tconstruct:scorched_brick"
+  },
+  "pattern": [
+    "BbB",
+    "BbB"
+  ],
+  "result": {
+    "id": "tconstruct:scorched_bricks_fence",
+    "count": 6
+  }
+}

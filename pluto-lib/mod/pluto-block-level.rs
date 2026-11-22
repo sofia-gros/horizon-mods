@@ -380,6 +380,14 @@ fn tick_with(
     handled: &mut bool,
     pick: fn(pluto_block::Sink) -> fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]) -> bool,
 ) {
+    // Apply the block ticks host-side callbacks queued for this level first: the mod-facing
+    // host cannot schedule a tick, so a bucket-placed fluid's first tick (and every other
+    // World::schedule_tick request) waits in the queue for a seam that holds the tick queue.
+    {
+        let dimension = level.dimension.key().id();
+        let mut edit = Edit { level: &mut *level, ticks: Some(&mut *ticks), feature_depth: 0 };
+        pluto_block::drain_schedules(dimension, &mut edit);
+    }
     let Some(sink) = pluto_block::sink() else { return };
     let Some(current) = info(level, state) else { return };
     if !(sink.has)(&current.block) {

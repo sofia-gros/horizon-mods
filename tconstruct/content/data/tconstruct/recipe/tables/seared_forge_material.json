@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "m": {
+      "type": "tconstruct:material",
+      "item": "tconstruct:fake_storage_block",
+      "material": {
+        "type": "mantle:tag",
+        "tag": "tconstruct:compatibility_metals/alloys"
+      }
+    },
+    "s": "#tconstruct:seared_blocks",
+    "t": "tconstruct:tinker_station"
+  },
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "parts": "m",
+  "result": {
+    "id": "tconstruct:tinkers_anvil"
+  }
+}

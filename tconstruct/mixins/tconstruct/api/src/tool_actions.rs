@@ -16,6 +16,11 @@ impl ToolAction {
         })
     }
 
+    /// The name a module names this action by (the inverse of `parse`).
+    pub fn name(self) -> &'static str {
+        match self { Self::AxeStrip => "axe_strip", Self::AxeScrape => "axe_scrape", Self::AxeWaxOff => "axe_wax_off", Self::ShovelFlatten => "shovel_flatten", Self::Till => "till" }
+    }
+
     /// The state the clicked block becomes, None when the action does nothing to it. Properties carry over (a log keeps its axis).
     pub fn transform(self, state: &BlockState) -> Option<BlockState> {
         if state.block.namespace() != "minecraft" { return None; }

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": [
+      "minecraft:slime_ball"
+    ]
+  },
+  "pattern": [
+    "##",
+    "##"
+  ],
+  "group": "tconstruct:congealed_slime",
+  "result": {
+    "id": "tconstruct:earth_congealed_slime"
+  }
+}

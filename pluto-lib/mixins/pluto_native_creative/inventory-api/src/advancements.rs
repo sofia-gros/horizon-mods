@@ -39,6 +39,16 @@ pub fn inventory_component_events_requested() -> bool {
     INVENTORY_COMPONENT_EVENTS.requested()
 }
 
+/// Mirror a pure-registry consumer's request into the one shared request
+/// above: the pluto_lib pure advancement registry keeps its own flag, and
+/// its native adapter forwards it here so the shared inventory evaluation
+/// honours a request from either registry. Idempotent; the adapter calls
+/// this from its per-tick advancement hand-off, before any inventory
+/// evaluation of that tick.
+pub fn request_pure_inventory_component_events() {
+    INVENTORY_COMPONENT_EVENTS.request();
+}
+
 struct Context {
     key_type: TypeId,
     address: usize,
