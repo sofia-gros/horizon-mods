@@ -1,7 +1,7 @@
 // Entity push transport for the entity reach: consumers queue a knockback, a
 // push or a leave-ground lift by entity id, and the game's own knockback and
 // motion paths apply the queued requests at the head of its rider
-// synchronisation (pluto-entity-push-drain-head.rs), in the level's own tick
+// synchronisation (pluto-entity-drain-head.rs), in the level's own tick
 // context. The queue carries only the numeric id and the dimension: at
 // application time the game's own entity lookup resolves the id, so no
 // consumer bookkeeping can go stale.
