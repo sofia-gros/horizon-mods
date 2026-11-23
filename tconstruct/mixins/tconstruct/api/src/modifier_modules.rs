@@ -81,6 +81,9 @@ pub(crate) enum WalkModule {
     Glow { radius: f32, min_light: i32, damage: i32 },
     /// CoverGroundWalkerModule: cover an empty cell with the named block where it can survive.
     Cover { block: Identifier, radius: f32 },
+    /// ReplaceBlockWalkerModule: replace the block below an empty cell with another block,
+    /// the replacements already filtered to the entry's level.
+    Replace { radius: f32, replacements: Vec<crate::replace_fluid::Replacement> },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -259,6 +262,8 @@ pub(crate) enum Module {
     GlowWalker { radius: crate::wearer_modules::Leveling, min_light: i32, damage: i32 },
     /// CoverGroundWalkerModule: walking covers an empty cell with a block where it can survive.
     CoverGround { block: Identifier, radius: crate::wearer_modules::Leveling, condition: Condition },
+    /// ReplaceBlockWalkerModule: walking replaces the block below an empty cell with another block.
+    ReplaceFluid { module: Box<crate::replace_fluid::ReplaceFluid> },
     /// PlaceGlowModule: a right click on a block places a glow block on the clicked face, wearing the tool.
     PlaceGlow { damage: i32 },
     /// BlockItemProviderModule: the tool provides this block item through the block item provider
@@ -1054,6 +1059,12 @@ impl Module {
             "tconstruct:cover_ground" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
                 Self::CoverGround { block: identifier(fields, "block")?, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
             }
+            // ReplaceBlockWalkerModule (BOOT_WALK): the walk form in walk_hook, over the block
+            // predicate in replace_fluid (the port's first block-state predicate).
+            "tconstruct:replace_fluid" if only("tconstruct:boot_walk") => {
+                let Some(module) = crate::replace_fluid::ReplaceFluid::decode(fields, Condition::decode(fields)?)? else { return Ok(None); };
+                Self::ReplaceFluid { module: Box::new(module) }
+            }
             // PlaceGlowModule (BLOCK_INTERACT, REMOVE_BLOCK): a right click places a glow block on the
             // clicked face, and the remove half keeps a left-click tool from breaking its own glow.
             "tconstruct:place_glow" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:remove_block")) => {
@@ -1474,7 +1485,7 @@ impl Module {
                 }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -2179,6 +2190,7 @@ impl Module {
             Self::FireWalker { radius } => Some(WalkModule::Fire { radius: radius.compute(entry.effective_level()) }),
             Self::GlowWalker { radius, min_light, damage } => Some(WalkModule::Glow { radius: radius.compute(entry.effective_level()), min_light: *min_light, damage: *damage }),
             Self::CoverGround { block, radius, condition } if condition.matches(entry, facts) => Some(WalkModule::Cover { block: block.clone(), radius: radius.compute(entry.effective_level()) }),
+            Self::ReplaceFluid { module } if module.condition.matches(entry, facts) => Some(WalkModule::Replace { radius: module.radius.compute(entry.effective_level()), replacements: module.at_level(entry.level) }),
             _ => None,
         }
     }
@@ -2924,5 +2936,37 @@ mod tests {
         // The other operations bridge the same way, as each one's per-level increment on the Forge
         // attribute (base 1) is the stated amount itself.
         assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.1,"operation":"multiply_base","slots":["feet"]})).is_some());
+    }
+
+    #[test]
+    fn replace_fluid_binds_and_distills_to_its_walk() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // frost_walker's shipped module, verbatim.
+        let shipped = json!({"type": "tconstruct:replace_fluid", "radius": {"each_level": 1.0, "flat": 2.0}, "replace": [{"block": "minecraft:frosted_ice", "target": {"type": "mantle:block_properties", "block": "minecraft:water", "properties": {"level": "0"}}}]});
+        let module = decode(shipped).unwrap();
+        // The radius is flat 2 plus 1 per effective level; the replacement rides along whole,
+        // and its target is what the walk consumer tests the block below an empty cell against.
+        let entry = Entry::new(id("tconstruct:frost_walker"), 1);
+        let Some(WalkModule::Replace { radius, replacements }) = module.walk_module(&entry, &f) else { panic!("frost walker distills to a replace walk") };
+        assert_eq!(radius, 3.0);
+        assert_eq!(replacements.len(), 1);
+        assert_eq!(replacements[0].state.to_string(), "minecraft:frosted_ice");
+        assert!(replacements[0].target.matches(&pluto_lib::BlockState::parse("minecraft:water[level=0]").unwrap()));
+        assert!(!replacements[0].target.matches(&pluto_lib::BlockState::parse("minecraft:water[level=1]").unwrap()), "nothing is placed over flowing water");
+        // A higher level widens the radius by each_level.
+        let entry = Entry::new(id("tconstruct:frost_walker"), 3);
+        let Some(WalkModule::Replace { radius, .. }) = module.walk_module(&entry, &f) else { panic!("still a replace walk") };
+        assert_eq!(radius, 5.0);
+        // A replacement gated above the entry's level is filtered out at the distill.
+        let gated = decode(json!({"type": "tconstruct:replace_fluid", "radius": {"flat": 2.0}, "replace": [{"block": "minecraft:ice", "modifier_level": {"min": 2}}]})).unwrap();
+        let Some(WalkModule::Replace { replacements, .. }) = gated.walk_module(&Entry::new(id("tconstruct:frost_walker"), 1), &f) else { panic!("still a replace walk") };
+        assert!(replacements.is_empty());
+        let Some(WalkModule::Replace { replacements, .. }) = gated.walk_module(&Entry::new(id("tconstruct:frost_walker"), 2), &f) else { panic!("still a replace walk") };
+        assert_eq!(replacements.len(), 1);
+        // A hook binding this port does not run leaves the module unbound, as does a target
+        // predicate form it cannot honor.
+        assert!(decode(json!({"type": "tconstruct:replace_fluid", "radius": {"flat": 2.0}, "replace": [{"block": "minecraft:ice"}], "hooks": ["tconstruct:tooltip"]})).is_none());
+        assert!(decode(json!({"type": "tconstruct:replace_fluid", "radius": {"flat": 2.0}, "replace": [{"block": "minecraft:ice", "target": {"type": "mantle:tag", "tag": "minecraft:base_stone_overworld"}}]})).is_none());
     }
 }

@@ -18,6 +18,16 @@
 //! be replaced is answered by the port's replaceable table, the same one the click transform's ground check
 //! uses, which names air and the common plants but not fluids.
 //!
+//! ReplaceBlockWalkerModule rides the same tick as the fire, glow and cover forms: its target
+//! predicate is tested against the block below an empty cell through the same world read, which
+//! carries the state's properties, so still water (level 0) freezes and flowing water does not.
+//! Reductions against the original: the replacement state's canSurvive and isUnobstructed checks
+//! and the Forge onBlockPlace event are not modelled (placement follows the target match alone),
+//! and the module's own scheduleTick for the melt is not repeated — the host's frosted ice
+//! schedules the same 60–120 tick itself when a state is placed, as the vanilla block's onPlace
+//! does, so the ice still melts on schedule. The original charges the boots no wear for a
+//! replacement, and neither does this form.
+//!
 //! LightspeedAttributeModule rides the same tick: the boots' attribute is granted while the light at the
 //! wearer (which the tick reports) is above the module's minimum, and the boots take wear by the module's
 //! chance as the wearer walks into a new block, as the original's onWalk does both. The original grants the
@@ -86,8 +96,9 @@ pub(crate) fn register() {
             tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
         }
     });
-    // FireWalkerModule, GlowWalkerModule and CoverGroundWalkerModule: the radius walk over the
-    // sturdy-face fact and the world light read (see the file's head note for the reductions).
+    // FireWalkerModule, GlowWalkerModule, CoverGroundWalkerModule and ReplaceBlockWalkerModule:
+    // the radius walk over the sturdy-face fact and the world light read (see the file's head
+    // note for the reductions).
     ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
         let Some((_, feet)) = tick.armor.iter().find(|(slot, _)| slot == "feet") else { return };
         let block_pos = [tick.position[0].floor() as i32, tick.position[1].floor() as i32, tick.position[2].floor() as i32];
@@ -101,7 +112,7 @@ pub(crate) fn register() {
             let before = slot.custom_data.clone();
             let center = [tick.position[0].floor() as i32, (tick.position[1] + 0.5).floor() as i32, tick.position[2].floor() as i32];
             'modules: for (cause, walk) in &walkers {
-                let radius = match walk { WalkModule::Fire { radius } | WalkModule::Glow { radius, .. } | WalkModule::Cover { radius, .. } => *radius };
+                let radius = match walk { WalkModule::Fire { radius } | WalkModule::Glow { radius, .. } | WalkModule::Cover { radius, .. } | WalkModule::Replace { radius, .. } => *radius };
                 let true_radius = radius.min(16.0);
                 let reach = true_radius.floor() as i32;
                 'cells: for x in center[0] - reach..=center[0] + reach {
@@ -145,6 +156,19 @@ pub(crate) fn register() {
                                 let Some(ground) = world.get_block_state(below) else { continue };
                                 if pluto_lib::world_api_v1::face_sturdy(&ground.block.to_string(), 1) != Some(true) { continue; }
                                 world.set_block_state(target, &BlockState::new(block.clone()));
+                            }
+                            WalkModule::Replace { replacements, .. } => {
+                                let Some(cell) = world.get_block_state(target) else { continue };
+                                if !matches!(cell.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") { continue; }
+                                let Some(ground) = world.get_block_state(below) else { continue };
+                                // ReplaceBlockWalkerModule.walkOn: the first replacement whose target
+                                // matches the block below the empty cell takes that block's place.
+                                for replacement in replacements {
+                                    if replacement.target.matches(&ground) {
+                                        world.set_block_state(below, &replacement.state);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
