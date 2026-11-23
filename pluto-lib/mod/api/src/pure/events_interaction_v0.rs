@@ -564,7 +564,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         BreakSpeedCallback::EVENT.register(move |c| if c.pos == [9, 9, 9] { log.lock().unwrap().push((c.block_light, c.sky_light, c.sky_darken, c.biome_temperature)); });
-        let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8), blast_resistance: Some(6.0), requires_tool: Some(true) };
+        let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8), blast_resistance: Some(6.0), requires_tool: Some(true), build_height: None };
         break_speed([9, 9, 9], block, 2.0, 2.0, None, None, facts);
         assert_eq!(*seen.lock().unwrap(), vec![(Some(3), Some(15), 4, Some(0.8))]);
     }
