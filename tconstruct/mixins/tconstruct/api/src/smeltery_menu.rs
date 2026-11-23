@@ -2,8 +2,13 @@
 //! HeatingStructureBlockEntity, HeatingStructureContainerMenu, HeatingStructureScreen, HeatingStructureSideInventoryScreen and
 //! the GuiSmelteryTank, GuiFuelModule and GuiMeltingModule it draws; MIT, see LICENSE). The window shows the tank as the
 //! fluids' still textures tiled in stacked bands over flat fills of their colours (click a fluid to move it to the
-//! bottom), the fuel gauge filled the same way, and the melting slots with
-//! their heat bars in a side panel of up to 4 columns of 7. The bucket slots and the fill and empty clicks wait for fluid items.
+//! bottom, or to fill the container in hand from it; right-click the tank to empty the container in hand into it), the
+//! fuel gauge filled the same way, and the melting slots with their heat bars in a side panel of up to 4 columns of 7.
+//! The two bucket slots right of the tank trade the staged container with the tank in the chosen direction, the trade
+//! the original runs in its menu session; here the slots are the block entity's own last two, so the staged container
+//! survives the window closing. What still waits: the fuel gauge's own fill and empty clicks (buttons 1 and 2) — the
+//! fuel tank is a structure member block, and a menu button reaches only its own block entity, so there is no path
+//! from the press to that tank.
 use crate::{
     common,
     melter::{fluid_order, melt_stack, LiquidFuel, Melt},
@@ -15,8 +20,8 @@ use crate::{
     smeltery_tank::SmelteryTank,
 };
 use pluto_lib::{
-    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockState, Direction, EntityReach, FluidRegistry, I18n, Identifier, ItemSlot, Nbt, NbtCompound,
-    NbtCompoundExt, Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, World,
+    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockState, Direction, EntityReach, FluidItems, FluidRegistry, FluidStack, FluidTarget, I18n, Identifier, ItemSlot, MenuButton, Nbt, NbtCompound,
+    NbtCompoundExt, Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, TransferDirection, World,
 };
 
 pub(crate) const SMELTERY: &str = "smeltery_controller";
@@ -34,8 +39,21 @@ const D_SLOTS: usize = 10;
 const D_CAPACITY: usize = 11;
 const D_FLUID_COUNT: usize = 13;
 const D_FLUIDS: usize = 14;
-const MAX_FLUIDS: usize = 16;
-const D_HEAT: usize = 64;
+/// The original's tank module shows every fluid of the tank; 36 bands of 3 data slots end at 122.
+const MAX_FLUIDS: usize = 36;
+const D_HEAT: usize = 124;
+/// The bucket trade's direction, as the menu data carries it (the block entity's `bucket_direction`).
+const D_BUCKET: usize = 236;
+/// The block entity data key of the bucket trade's direction: 0 auto, 1 empty the item into the
+/// tank, 2 fill the item from the tank (`FluidTransferDirection`).
+const BUCKET_KEY: &str = "bucket_direction";
+/// The bucket slots are the block entity's last two item slots, past the melting inventory.
+const BUCKET_IN: usize = MAX_SLOTS;
+const BUCKET_OUT: usize = MAX_SLOTS + 1;
+const BUCKET_IN_AT: [f32; 2] = [125.0, 46.0];
+const BUCKET_OUT_AT: [f32; 2] = [125.0, 104.0];
+/// The direction button between the bucket slots, and its icon inside it.
+const BUCKET_BUTTON_AT: [f32; 4] = [124.0, 69.0, 18.0, 18.0];
 /// HeatingStructureContainerMenu.calcColumns: 7 slots to a column, 4 columns at most.
 const VISIBLE: usize = 28;
 const WIDTH: f32 = 176.0 + 4.0 * 18.0 + 14.0;
@@ -241,8 +259,44 @@ fn tick_controller(kind: Kind, tick: &mut BlockEntityTick<'_>) {
     };
     let mut controller = Controller::load(kind, tick.pos, facing, tick.data, tick.items);
     controller.step(tick.items, &mut env);
+    bucket_transfer(&mut controller, tick.data, tick.items);
     controller.save(tick.data);
     publish(&controller, tick, &mut env);
+}
+
+/// The tank as a trade partner for `FluidItems::interact`: fills take any fluid, drains take the
+/// bottom fluid, or one named fluid when the trade names one.
+struct MainTankTarget<'a> { tank: &'a mut SmelteryTank, only: Option<Identifier> }
+
+impl FluidTarget for MainTankTarget<'_> {
+    fn fill(&mut self, fluid: &FluidStack, execute: bool) -> u32 {
+        if self.only.as_ref().is_some_and(|only| only != &fluid.fluid) { return 0; }
+        self.tank.fill(&fluid.fluid, fluid.amount as i32, execute).max(0) as u32
+    }
+    fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
+        let out = match wanted.or(self.only.as_ref()) {
+            Some(wanted) => self.tank.drain_fluid(wanted, amount as i32, execute),
+            None => self.tank.drain(amount as i32, execute),
+        }?;
+        Some(FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
+    }
+}
+
+/// The bucket slots' trade, run on the tick: the staged container trades with the tank in the
+/// saved direction, its result to the output slot and the rest back to the input, as the casting
+/// tank's cycle places them.
+fn bucket_transfer(controller: &mut Controller, data: &NbtCompound, items: &mut [Option<ItemSlot>]) {
+    if items.len() <= BUCKET_OUT || items[BUCKET_OUT].is_some() { return; }
+    let Some(input) = items[BUCKET_IN].clone() else { return };
+    let direction = match data.get_int(BUCKET_KEY, 0) { 1 => TransferDirection::ToTank, 2 => TransferDirection::FromTank, _ => TransferDirection::Auto };
+    let mut target = MainTankTarget { tank: &mut controller.tank, only: None };
+    let Some(done) = FluidItems::interact(Some(&input), &mut target, direction) else { return };
+    let (result, rest) = match done.give.into_iter().next() {
+        Some(result) => (Some(result), done.held),
+        None => (done.held, None),
+    };
+    items[BUCKET_OUT] = result;
+    items[BUCKET_IN] = rest;
 }
 
 /// Everything the window draws, in menu data.
@@ -268,6 +322,7 @@ fn publish(controller: &Controller, tick: &mut BlockEntityTick<'_>, env: &mut Li
         set(tick, base + 2, slot.required_temp);
         set(tick, base + 3, i32::from(slot.occupied));
     }
+    set(tick, D_BUCKET, tick.data.get_int(BUCKET_KEY, 0) as i32);
 }
 
 // --- the window
@@ -304,16 +359,25 @@ pub(crate) fn tank_bands(data: &[i32]) -> Vec<(usize, f32, f32)> {
     bands
 }
 
-pub(crate) fn draw_window(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32]) {
+pub(crate) fn draw_window(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32], mouse: [f32; 2]) {
     let get = |index: usize| data.get(index).copied().unwrap_or(0);
     let [x, y] = origin;
     canvas.sprite(BACKGROUND, [0.0, 0.0, 176.0, 220.0], [x, y, 176.0, 220.0]);
-    // the side panel behind the melting slots
+    // the side panel behind the melting slots: its width follows the columns the slots fill, and
+    // an occupied slot draws the filled frame, an empty one the empty frame
     let slots = get(D_SLOTS).max(0) as usize;
-    canvas.fill([x + SIDE_X, y + SIDE_Y - 4.0, WIDTH - SIDE_X, 18.0 * 7.0 + 8.0], 0xFF_C6_C6_C6);
+    canvas.fill([x + SIDE_X, y + SIDE_Y - 4.0, columns(slots) as f32 * 18.0 + 8.0, 18.0 * 7.0 + 8.0], 0xFF_C6_C6_C6);
     for index in 0..slots.min(VISIBLE) {
-        if let Some([sx, sy]) = slot_position(index, slots) { canvas.sprite(BACKGROUND, [0.0, 238.0, 22.0, 18.0], [x + sx - 4.0, y + sy, 22.0, 18.0]); }
+        if let Some([sx, sy]) = slot_position(index, slots) {
+            let occupied = get(D_HEAT + 4 * index + 3) != 0;
+            canvas.sprite(BACKGROUND, [if occupied { 0.0 } else { 22.0 }, 238.0, 22.0, 18.0], [x + sx - 4.0, y + sy, 22.0, 18.0]);
+        }
     }
+    // the bucket slots and the direction button between them, its face lit under the cursor
+    for at in [BUCKET_IN_AT, BUCKET_OUT_AT] { canvas.sprite(BACKGROUND, [0.0, 238.0, 18.0, 18.0], [x + at[0], y + at[1], 18.0, 18.0]); }
+    if inside(mouse, BUCKET_BUTTON_AT) { canvas.sprite(BACKGROUND, [176.0, 202.0, 18.0, 18.0], [x + BUCKET_BUTTON_AT[0], y + BUCKET_BUTTON_AT[1], 18.0, 18.0]); }
+    let mode = get(D_BUCKET).clamp(0, 2) as f32;
+    canvas.sprite(BACKGROUND, [176.0, 186.0 + 16.0 * mode, 16.0, 16.0], [x + BUCKET_BUTTON_AT[0] + 1.0, y + BUCKET_BUTTON_AT[1] + 1.0, 16.0, 16.0]);
     // fuel: flame and gauge
     let (fuel, quality) = (get(0), get(1));
     if fuel > 0 && quality > 0 {
@@ -340,6 +404,20 @@ pub(crate) fn draw_window(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data:
         }
     }
     canvas.sprite(BACKGROUND, [176.0, 0.0, 80.0, 106.0], [x + TANK[0], y + TANK[1], 80.0, 106.0]);
+    // the hovered part of the tank lights up: the fluid band under the cursor, or the empty part
+    // above the fluids (the whole tank when it holds nothing)
+    if inside(mouse, TANK) {
+        let bands = tank_bands(data);
+        let hovered = bands.iter().find(|(_, top, height)| mouse[1] >= *top && mouse[1] < top + height);
+        let rect = match hovered {
+            Some((_, top, height)) => [x + TANK[0], y + top, TANK[2], *height],
+            None => {
+                let surface = bands.iter().map(|(_, top, _)| *top).fold(TANK[1] + TANK[3], f32::min);
+                [x + TANK[0], y + TANK[1], TANK[2], surface - TANK[1]]
+            }
+        };
+        if rect[3] > 0.0 { canvas.fill(rect, 0x59_FF_FF_FF); }
+    }
     // heat bars
     let temperature = get(2);
     for index in 0..slots.min(VISIBLE) {
@@ -364,13 +442,46 @@ pub(crate) fn fluid_clicked(at: [f32; 2], data: &[i32]) -> Option<usize> {
     tank_bands(data).into_iter().find(|(_, top, height)| *height > 0.0 && at[1] >= *top && at[1] < top + height).map(|(index, _, _)| index)
 }
 
+/// What a click in the window sends (`HeatingStructureScreen.mouseClicked` and the tank module's
+/// own): the direction button is 0, the fuel gauge 1 (left) and 2 (right), a right-click in the
+/// tank or a click on its empty part 3, and a fluid band its index plus 4.
+pub(crate) fn click_button(at: [f32; 2], data: &[i32], right: bool) -> Option<i32> {
+    if inside(at, BUCKET_BUTTON_AT) { return Some(0); }
+    if inside(at, [FUEL[0] - 1.0, FUEL[1] - 1.0, FUEL[2] + 2.0, FUEL[3] + 2.0]) { return Some(if right { 2 } else { 1 }); }
+    if inside(at, TANK) {
+        if right { return Some(3); }
+        return fluid_clicked(at, data).map(|index| index as i32 + FLUID_BUTTON);
+    }
+    None
+}
+
 pub(crate) fn tooltip(at: [f32; 2], data: &[i32], lines: &mut Vec<String>) {
     let get = |index: usize| data.get(index).copied().unwrap_or(0);
-    if let Some(index) = fluid_clicked(at, data) {
+    if inside(at, BUCKET_BUTTON_AT) {
+        let key = match get(D_BUCKET) { 1 => "empty_item", 2 => "fill_item", _ => "auto" };
+        lines.push(I18n::translate(&format!("gui.tconstruct.tank.bucket.{key}.title")));
+        lines.push(I18n::translate(&format!("gui.tconstruct.tank.bucket.{key}.description")));
+        lines.push(format!("§7{}", I18n::translate("gui.tconstruct.tank.bucket.clickable")));
+    } else if let Some(index) = fluid_clicked(at, data) {
         if let Some(fluid) = fluid_at(data, index) {
             lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
         }
         lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&join(data, D_FLUIDS + 3 * index + 1).to_string()]));
+    } else if inside(at, TANK) {
+        // the tank's empty part: how much it holds, how much room is left, how much is in it
+        let capacity = join(data, D_CAPACITY);
+        let count = get(D_FLUID_COUNT).clamp(0, MAX_FLUIDS as i32) as usize;
+        let contained: i32 = (0..count).map(|index| join(data, D_FLUIDS + 3 * index + 1)).sum();
+        lines.push(I18n::translate("gui.tconstruct.melting.capacity"));
+        lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&capacity.to_string()]));
+        if capacity - contained > 0 {
+            lines.push(I18n::translate("gui.tconstruct.melting.capacity.available"));
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&(capacity - contained).to_string()]));
+        }
+        if contained > 0 {
+            lines.push(I18n::translate("gui.tconstruct.melting.capacity.used"));
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&contained.to_string()]));
+        }
     } else if inside(at, [FUEL[0] - 1.0, FUEL[1] - 1.0, FUEL[2] + 2.0, FUEL[3] + 2.0]) {
         let amount = join(data, D_FUEL_AMOUNT);
         if amount > 0 {
@@ -378,9 +489,15 @@ pub(crate) fn tooltip(at: [f32; 2], data: &[i32], lines: &mut Vec<String>) {
                 lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
             }
             lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&amount.to_string()]));
-            lines.push(format!("§7§o{}", I18n::translate_args("gui.tconstruct.melting.fuel.temperature", &[&get(2).to_string()])));
-        } else {
+            if get(2) == 0 {
+                lines.push(format!("§c{}", I18n::translate("gui.tconstruct.melting.fuel.invalid")));
+            } else {
+                lines.push(format!("§7§o{}", I18n::translate_args("gui.tconstruct.melting.fuel.temperature", &[&get(2).to_string()])));
+            }
+        } else if join(data, D_FUEL_CAPACITY) > 0 {
             lines.push(I18n::translate("gui.tconstruct.melting.fuel.empty"));
+        } else {
+            lines.push(I18n::translate("gui.tconstruct.melting.fuel.no_tank"));
         }
     } else {
         let slots = get(D_SLOTS).max(0) as usize;
@@ -401,17 +518,53 @@ pub(crate) fn tooltip(at: [f32; 2], data: &[i32], lines: &mut Vec<String>) {
     }
 }
 
-/// A click on a fluid sends its index plus 4 (ids 0 to 3 are the bucket button and the fuel and tank clicks, which need fluid items).
+/// A click on a fluid sends its index plus 4 (ids 0 to 3 are the bucket button and the fuel and tank clicks).
 const FLUID_BUTTON: i32 = 4;
 
-/// `clickMenuButton` for id 4 and up with nothing held: move that fluid to the bottom of the tank.
-pub(crate) fn press(id: i32, data: &mut NbtCompound) {
-    if id < FLUID_BUTTON { return; }
-    let Some(tag) = data.get(Controller::TAG_TANK).and_then(Nbt::as_compound).cloned() else { return };
+fn tank_of(data: &NbtCompound) -> Option<SmelteryTank> {
+    let tag = data.get(Controller::TAG_TANK).and_then(Nbt::as_compound)?;
     let mut tank = SmelteryTank::default();
-    tank.read(&tag);
-    tank.move_fluid_to_bottom((id - FLUID_BUTTON) as usize);
-    data.insert(Controller::TAG_TANK.to_owned(), Nbt::Compound(tank.write()));
+    tank.read(tag);
+    Some(tank)
+}
+
+/// Trades the held container with the block entity's tank (one named fluid, or any). A trade
+/// whose result would not fit back in the hand does not happen: a menu button has no second
+/// place to put the rest, where the bucket slots (the trade's home) do.
+fn trade_held(button: &mut MenuButton<'_>, only: Option<Identifier>) {
+    let Some(held) = button.carried.clone() else { return };
+    let Some(mut tank) = tank_of(button.data) else { return };
+    let mut target = MainTankTarget { tank: &mut tank, only };
+    let Some(done) = FluidItems::interact(Some(&held), &mut target, TransferDirection::Auto) else { return };
+    if !done.give.is_empty() { return; }
+    *button.carried = done.held;
+    button.data.insert(Controller::TAG_TANK.to_owned(), Nbt::Compound(tank.write()));
+}
+
+/// `clickMenuButton`: 0 cycles the bucket trade's direction; 3 trades the held container with
+/// the tank (what a right-click in the tank sends); a fluid's button fills the held container
+/// from that fluid, or, with no container in hand, moves the fluid to the bottom. 1 and 2 (the
+/// fuel gauge) do nothing: the fuel tank is a structure member block, out of a menu button's
+/// reach (see the module header).
+pub(crate) fn press(button: &mut MenuButton<'_>) {
+    match button.id {
+        0 => {
+            let next = (button.data.get_int(BUCKET_KEY, 0) + 1).rem_euclid(3);
+            button.data.insert(BUCKET_KEY.to_owned(), Nbt::Int(next as i32));
+        }
+        3 => trade_held(button, None),
+        id if id >= FLUID_BUTTON => {
+            let index = (id - FLUID_BUTTON) as usize;
+            if button.carried.as_ref().is_some_and(|held| FluidItems::is_container(held)) {
+                let fluid = tank_of(button.data).and_then(|tank| tank.fluids().get(index).map(|fluid| fluid.fluid.clone()));
+                if let Some(fluid) = fluid { trade_held(button, Some(fluid)); }
+            } else if let Some(mut tank) = tank_of(button.data) {
+                tank.move_fluid_to_bottom(index);
+                button.data.insert(Controller::TAG_TANK.to_owned(), Nbt::Compound(tank.write()));
+            }
+        }
+        _ => {}
+    }
 }
 
 pub(crate) fn register() {
@@ -419,20 +572,24 @@ pub(crate) fn register() {
         let id = Identifier::new("tconstruct", name).expect("valid controller id");
         let mut layout = ScreenLayout::new(WIDTH, 220.0).inventory_at(8.0, 138.0).with_own_background();
         for index in 0..MAX_SLOTS { layout = match slot_position(index, VISIBLE) { Some([x, y]) => layout.slot(x, y), None => layout.hidden_slot() }; }
+        layout = layout.slot(BUCKET_IN_AT[0], BUCKET_IN_AT[1]).slot(BUCKET_OUT_AT[0], BUCKET_OUT_AT[1]);
         let window = ScreenHandlerType::new(id.clone(), layout)
-            .on_slot_rule(|rule| { rule.max_stack = 1; })
+            .on_slot_rule(|rule| {
+                rule.max_stack = 1;
+                if rule.slot == BUCKET_OUT { rule.may_place = false; }
+            })
             .on_dynamic_slots(|state| {
                 let slots = state.data.get(D_SLOTS).copied().unwrap_or(0).max(0) as usize;
-                Some((0..MAX_SLOTS).map(|index| slot_position(index, slots)).collect())
+                Some((0..MAX_SLOTS).map(|index| slot_position(index, slots)).chain([Some(BUCKET_IN_AT), Some(BUCKET_OUT_AT)]).collect())
             })
-            .on_draw(|draw| draw_window(draw.canvas, draw.origin, draw.data))
-            .on_click(|press| fluid_clicked(press.at, press.data).map(|index| index as i32 + FLUID_BUTTON))
+            .on_draw(|draw| draw_window(draw.canvas, draw.origin, draw.data, draw.mouse))
+            .on_click(|press| click_button(press.at, press.data, press.right))
             .on_tooltip(|tip| tooltip(tip.at, tip.data, tip.lines))
-            .on_button(|button| press(button.id, button.data));
+            .on_button(|button| press(button));
         let _ = title;
         ScreenHandlerRegistry::register(window);
         BlockEntityTypeRegistry::register(
-            BlockEntityType::new(id).item_slots(MAX_SLOTS as u32).menu(&format!("tconstruct:{name}")).sync_data().ticker(move |tick| tick_controller(kind, tick))
+            BlockEntityType::new(id).item_slots((MAX_SLOTS + 2) as u32).menu(&format!("tconstruct:{name}")).sync_data().ticker(move |tick| tick_controller(kind, tick))
                 .on_use(move |_| { crate::advancements::container_opened(title); pluto_lib::ActionResult::Pass })
                 // the tank answers drains, faucets and pipes (ISmelteryTankHandler.getFluidCapability): see smeltery_io
                 .fluid_reader(crate::smeltery_io::read_controller).fluid_filler(crate::smeltery_io::fill_controller).fluid_drainer(crate::smeltery_io::drain_controller),
@@ -506,11 +663,48 @@ mod tests {
         tank.fill(&id("a:gold"), 50, true);
         let mut data = NbtCompound::new();
         data.insert("tank".to_owned(), Nbt::Compound(tank.write()));
-        press(1, &mut data);
-        press(5, &mut data);
+        let mut items = Vec::new();
+        let mut carried = None;
+        press(&mut MenuButton { pos: [0, 0, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried });
+        press(&mut MenuButton { pos: [0, 0, 0], id: 5, data: &mut data, items: &mut items, carried: &mut carried });
         let mut read = SmelteryTank::default();
         read.read(data.get("tank").and_then(Nbt::as_compound).unwrap());
         assert_eq!(read.fluids().iter().map(|fluid| fluid.fluid.to_string()).collect::<Vec<_>>(), ["a:gold", "a:iron"]);
+    }
+
+    #[test]
+    fn the_bucket_button_cycles_the_direction_and_clicks_route_like_the_original() {
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut carried = None;
+        for expected in [1, 2, 0] {
+            press(&mut MenuButton { pos: [0, 0, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried });
+            assert_eq!(data.get_int(BUCKET_KEY, 0), expected);
+        }
+        let empty = data_with(&[]);
+        assert_eq!(click_button([130.0, 75.0], &empty, false), Some(0), "the direction button");
+        assert_eq!(click_button([155.0, 60.0], &empty, false), Some(1), "the fuel gauge, left");
+        assert_eq!(click_button([155.0, 60.0], &empty, true), Some(2), "the fuel gauge, right");
+        assert_eq!(click_button([20.0, 60.0], &empty, true), Some(3), "a right-click in the tank");
+        assert_eq!(click_button([20.0, 60.0], &empty, false), None, "a left-click on the tank's empty part sends nothing");
+    }
+
+    #[test]
+    fn the_tanks_empty_part_reports_its_capacity_and_the_fuel_its_state() {
+        let (cap_high, cap_low) = split(1000);
+        let (high, low) = split(250);
+        let data = data_with(&[(D_CAPACITY, cap_high), (D_CAPACITY + 1, cap_low), (D_FLUID_COUNT, 1), (D_FLUIDS + 1, high), (D_FLUIDS + 2, low)]);
+        let mut lines = Vec::new();
+        tooltip([20.0, 20.0], &data, &mut lines);
+        assert_eq!(lines.len(), 6, "capacity, its amount, the free line and its amount, the used line and its amount: {lines:?}");
+        // no fuel tank at all: the no-tank line; a tank with no fuel: the empty line
+        let mut lines = Vec::new();
+        tooltip([155.0, 60.0], &data_with(&[]), &mut lines);
+        assert_eq!(lines, vec![I18n::translate("gui.tconstruct.melting.fuel.no_tank")]);
+        let (fcap_high, fcap_low) = split(2000);
+        let mut lines = Vec::new();
+        tooltip([155.0, 60.0], &data_with(&[(D_FUEL_CAPACITY, fcap_high), (D_FUEL_CAPACITY + 1, fcap_low)]), &mut lines);
+        assert_eq!(lines, vec![I18n::translate("gui.tconstruct.melting.fuel.empty")]);
     }
 
     #[test]
@@ -520,11 +714,11 @@ mod tests {
         let (high, low) = split(500);
         let data = data_with(&[(0, 200), (1, 400), (2, 800), (D_SLOTS, 3), (D_CAPACITY, cap_high), (D_CAPACITY + 1, cap_low), (D_FLUID_COUNT, 1), (D_FLUIDS + 1, high), (D_FLUIDS + 2, low),
             (D_HEAT, 300), (D_HEAT + 1, 600), (D_HEAT + 2, 800), (D_HEAT + 3, 1)]);
-        draw_window(&mut canvas, [10.0, 20.0], &data);
+        draw_window(&mut canvas, [10.0, 20.0], &data, [-1.0, -1.0]);
         assert!(canvas.fills.contains(&([18.0, 89.0, 106.0, 53.0], 0xFFFF_FFFF)), "half of the tank, white for a fluid no mod defined: {:?}", canvas.fills);
         let flame = canvas.sprites.iter().find(|s| s.1[0] == 176.0 && s.1[2] == 14.0).expect("flame");
         assert_eq!(flame.1[3], 7.0);
-        let bars: Vec<_> = canvas.sprites.iter().filter(|s| s.1[0] >= 176.0 && s.1[1] >= 150.0).collect();
+        let bars: Vec<_> = canvas.sprites.iter().filter(|s| s.1[0] >= 176.0 && s.1[1] >= 150.0 && s.1[2] == 3.0).collect();
         assert_eq!(bars.len(), 1);
         assert_eq!(bars[0].1, [176.0, 158.0, 3.0, 8.0], "halfway through 600");
     }
@@ -555,8 +749,8 @@ mod tests {
         for name in ["tconstruct:smeltery_controller", "tconstruct:foundry_controller"] {
             assert!(BlockEntityTypeRegistry::get(name).is_some());
             let window = ScreenHandlerRegistry::get(name).expect("window");
-            assert_eq!(window.layout.slots.len(), MAX_SLOTS);
-            assert_eq!(window.layout.slots.iter().flatten().count(), VISIBLE);
+            assert_eq!(window.layout.slots.len(), MAX_SLOTS + 2);
+            assert_eq!(window.layout.slots.iter().flatten().count(), VISIBLE + 2);
             assert_eq!(window.layout.inventory_y, 138.0);
         }
     }
