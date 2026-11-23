@@ -150,9 +150,10 @@ pub struct ScreenDraw<'a> {
     pub canvas: &'a mut dyn ScreenCanvas,
 }
 
-/// What the scroll callback receives: the mouse wheel turned over the window. Scroll state is the
-/// window's own (client-side) business — no scroll reaches the server — so a window whose list
-/// scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
+/// What the scroll callback receives: the mouse wheel turned over the window. Its `at` is where
+/// the cursor is, its `delta` the wheel's movement, and its `data` the menu's data slots. Scroll
+/// state is the window's own (client-side) business — no scroll reaches the server — so a window
+/// whose list scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
 pub struct ScreenScroll<'a> {
     /// Where the cursor is, in GUI pixels from the window's top left.
     pub at: [f32; 2],

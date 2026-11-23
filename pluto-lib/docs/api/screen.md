@@ -379,9 +379,52 @@ impl ScreenCanvas for Null {
 draw_bar(&mut ScreenDraw { origin: [100.0, 50.0], data: &[10], mouse: [0.0, 0.0], items: &[], canvas: &mut Null });
 ```
 
-### `ScreenScroll`, text input
+### `ScreenScroll`
 
-`ScreenHandlerType::on_scroll` hears the mouse wheel over the window: a `ScreenScroll` whose `at` is the cursor from the window's top left, `delta` the roll (`delta[1]` positive is wheel up, the host's own sign) and `data` the menu's data slots; returning true consumes the roll. `on_char` hears each character typed while the window is open and `on_key` each key press (a lower-cased game key name: `backspace`, `delete`, `enter`, `escape`, ...); returning true consumes it. All three are client-side: a scroll offset or a text field's content is the window's own state to keep (a static of the mod's), because a menu button is the only road back to the server.
+What the scroll callback receives: the mouse wheel turned over the window. `at` is the cursor in GUI pixels from the window's top left, `delta` the roll (`delta[1]` positive is wheel up, the host's own sign) and `data` the menu's data slots. Scroll state is the window's own (client-side) business — no scroll reaches the server — so a window whose list scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
+
+```rust
+use pluto_lib::ScreenScroll;
+
+let roll = ScreenScroll { at: [10.0, 20.0], delta: [0.0, 1.0], data: &[3] };
+assert!(roll.delta[1] > 0.0 && roll.data[0] == 3 && roll.at[1] == 20.0);
+```
+
+### `ScreenHandlerType::on_scroll`
+
+`fn on_scroll(self, scroll: impl Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync + 'static)`. Hears the mouse wheel over the window; returning true consumes the roll, so the game does not also scroll the hotbar.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let id = Identifier::new("example", "wheel_list").unwrap();
+let window = ScreenHandlerType::new(id, ScreenLayout::new(176.0, 166.0))
+    .on_scroll(|roll| roll.delta[1] != 0.0);
+```
+
+### `ScreenHandlerType::on_char`
+
+`fn on_char(self, typed: impl Fn(char) -> bool + Send + Sync + 'static)`. Hears each character typed while the window is open — the hearing of a text field, whose content is the window's own state to keep (a static of the mod's), because a menu button is the only road back to the server. Returning true consumes the character.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let id = Identifier::new("example", "rename_field").unwrap();
+let window = ScreenHandlerType::new(id, ScreenLayout::new(176.0, 166.0))
+    .on_char(|c| c.is_alphanumeric());
+```
+
+### `ScreenHandlerType::on_key`
+
+`fn on_key(self, pressed: impl Fn(&str) -> bool + Send + Sync + 'static)`. Hears each key press while the window is open, by its lower-cased game key name (`backspace`, `delete`, `enter`, `escape`, ...); returning true consumes it. The companion of `on_char` for the keys that are not characters.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let id = Identifier::new("example", "rename_keys").unwrap();
+let window = ScreenHandlerType::new(id, ScreenLayout::new(176.0, 166.0))
+    .on_key(|key| key == "backspace" || key == "enter");
+```
 
 ### `ScreenClick`
 
@@ -426,6 +469,35 @@ let mut items = Vec::new();
 let mut carried = None;
 toggle(&mut MenuButton { pos: [0, 64, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried });
 assert!(data.contains_key("lit"));
+```
+
+### `MenuButton::fluid`
+
+`fn fluid(&self, index: usize) -> Option<FluidStack>`. Reads the block entity's own fluid tank of that index (the tanks live in its saved data, so no other reach is needed). A tank of another block — a melter's heater below, say — is out of this callback's reach.
+
+```rust
+use pluto_lib::{MenuButton, NbtCompound};
+
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut carried = None;
+let button = MenuButton { pos: [0, 64, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried };
+assert!(button.fluid(0).is_none(), "an untouched tank reads empty");
+```
+
+### `MenuButton::set_fluid`
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Writes the block entity's own fluid tank of that index; `None` empties it. Together with `fluid`, the pair a tank click trades through: read the tank, trade the carried container against it, write it back.
+
+```rust
+use pluto_lib::{FluidStack, Identifier, MenuButton, NbtCompound};
+
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut carried = None;
+let mut button = MenuButton { pos: [0, 64, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried };
+button.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 500, tag: None }));
+assert_eq!(button.fluid(0).map(|stack| stack.amount), Some(500));
 ```
 
 ### `MenuButton::set_data`

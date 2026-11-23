@@ -32,10 +32,49 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 `HudRegistry::register(draw)` gives the HUD a draw callback, called each frame the HUD shows. Registering again adds another callback; each runs in registration order.
 
+```rust
+use pluto_lib::{HudDraw, HudRegistry};
+
+HudRegistry::register(|draw: &mut HudDraw<'_>| {
+    let _ = draw.size;
+});
+```
+
+### `HudRegistry::register`
+
+`fn register(draw: impl Fn(&mut HudDraw<'_>) + Send + Sync + 'static)`. Registers one HUD draw callback. Registration is the whole setup: there is no unregister, and a callback that has nothing to draw (no player, a spectator, the wrong equipment) simply returns.
+
+```rust
+use pluto_lib::{HudDraw, HudRegistry};
+
+HudRegistry::register(|draw: &mut HudDraw<'_>| {
+    if draw.spectator {
+        return;
+    }
+    let _ = &draw.equipment;
+});
+```
+
 ### `HudDraw`
 
 What a HUD draw callback receives: `canvas` (a [`ScreenCanvas`](screen.md), in GUI pixels from the window's top left), `size`, `inventory`, `equipment` and `spectator`, as described above.
 
+```rust
+use pluto_lib::{HudDraw, HudRegistry};
+
+HudRegistry::register(|draw: &mut HudDraw<'_>| {
+    let (width, height) = (draw.size[0], draw.size[1]);
+    let _ = (width, height, draw.inventory.len(), draw.spectator);
+});
+```
+
 ### `HudEquipment`
 
 The local player's worn and held stacks, one `Option<ItemSlot>` per slot (`head`, `chest`, `legs`, `feet`, `offhand`, `main_hand`), plus `right_handed: bool`.
+
+```rust
+use pluto_lib::HudEquipment;
+
+let equipment = HudEquipment { right_handed: true, ..HudEquipment::default() };
+assert!(equipment.right_handed && equipment.legs.is_none() && equipment.main_hand.is_none());
+```
