@@ -3349,7 +3349,8 @@ def copy_sounds():
     for path in sorted((ASSET_SOURCE / 'sounds').glob('*.ogg')):
         shutil.copyfile(path, target / path.name)
         count += 1
-    shutil.copyfile(ASSET_SOURCE / 'sounds.json', ASSET_TARGET / 'sounds.json')
+    # sounds.json ships with LF endings like every other JSON here (the original's file is CRLF).
+    (ASSET_TARGET / 'sounds.json').write_bytes((ASSET_SOURCE / 'sounds.json').read_bytes().replace(b'\r\n', b'\n'))
     return count + 1
 
 
