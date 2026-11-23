@@ -657,6 +657,47 @@ assert_eq!(book.page(0).map(|p| p.title()), Some(Some("First")));
 assert!(book.page(1).is_none());
 ```
 
+### `BookSpread`
+
+One two-page spread of a book: `left` and `right` are the flat page indices on its halves. A half is `None` when the spread ends the book or a padding marker leaves it blank; a half naming a [`BookPage::Padding`](#bookpage) page draws blank (a `mantle:blank` page that took the half).
+
+```rust
+use pluto_lib::book_api_v1::BookSpread;
+
+let spread = BookSpread { left: Some(0), right: Some(1) };
+assert_eq!((spread.left, spread.right), (Some(0), Some(1)));
+```
+
+### `BookSpread::contains`
+
+Whether this spread is the one a reader of flat page `page` is looking at, with `fn contains(&self, page: usize) -> bool`.
+
+```rust
+use pluto_lib::book_api_v1::BookSpread;
+
+let spread = BookSpread { left: Some(2), right: None };
+assert!(spread.contains(2));
+assert!(!spread.contains(3));
+```
+
+### `spreads`
+
+Pairs a book's flat pages into the two-page spreads a reader turns through, with `fn spreads(book: &Book) -> Vec<BookSpread>`, consuming its padding markers as Mantle's book layout does: pages fill a spread's left half, then its right; a `mantle:blank` page takes whichever half comes next (and draws blank there); a `mantle:right_padding` page must take a right half, so with no left half pending it is dropped (the next page starts a fresh spread's left, which is all the marker exists to arrange). Spreads that would show nothing at all — padding alone — are left out.
+
+```rust
+use pluto_lib::{Book, BookPage, BookSection, BookText, Identifier};
+use pluto_lib::book_api_v1::{spreads, BookSpread};
+
+let text = |title: &str| BookPage::Text { title: Some(title.into()), text: vec![BookText::plain(title)] };
+let book = Book::new(Identifier::parse("example:spread").unwrap(), vec![
+    BookSection { name: "One".into(), icon: None, pages: vec![text("a"), text("b"), text("c")] },
+]);
+assert_eq!(spreads(&book), vec![
+    BookSpread { left: Some(0), right: Some(1) },
+    BookSpread { left: Some(2), right: None },
+]);
+```
+
 ### `BookRegistry::register`
 
 Registers a book with `fn register(book: Book) -> Result<(), String>`; it fails, keeping the earlier registration, for a duplicate id, a book with no sections, a section with no name or a section with no pages.

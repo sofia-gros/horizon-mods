@@ -234,7 +234,7 @@ Shipping the same file under the mod's own namespace (`assets/tconstruct/atlases
 
 ### `ScreenLayout`
 
-Where things are in the window, in GUI pixels from its top left. `width` and `height` are the window's size (vanilla container windows are 176 wide), `slots` where each container slot is (`None` hides the slot, and it is not in the menu either, so shift-clicks skip it), `dynamic` which slots the dynamic-slot callback positions instead (parallel to `slots`, one entry per slot; such a slot is in the menu though the static layout has no position for it), `inventory_x` and `inventory_y` the player's inventory (vanilla's are 8 and 84; the hotbar is 58 below), `own_labels` whether the screen draws the title and the "Inventory" label itself, `own_background` whether it draws its own background.
+Where things are in the window, in GUI pixels from its top left. `width` and `height` are the window's size (vanilla container windows are 176 wide), `slots` where each container slot is (`None` hides the slot, and it is not in the menu either, so shift-clicks skip it), `dynamic` which slots the dynamic-slot callback positions instead (parallel to `slots`, one entry per slot; such a slot is in the menu though the static layout has no position for it), `inventory_x` and `inventory_y` the player's inventory (vanilla's are 8 and 84; the hotbar is 58 below), `own_labels` whether the screen draws the title and the "Inventory" label itself, `own_background` whether it draws its own background. `sources` says what backs each container slot (parallel to `slots`, one entry per slot) — see [`SlotSource`](#slotsource).
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -243,6 +243,7 @@ let layout = ScreenLayout::new(176.0, 166.0);
 assert_eq!((layout.width, layout.height), (176.0, 166.0));
 assert!(layout.slots.is_empty());
 assert!(layout.dynamic.is_empty());
+assert!(layout.sources.is_empty());
 assert_eq!((layout.inventory_x, layout.inventory_y), (8.0, 84.0));
 assert!(!layout.own_labels && !layout.own_background);
 ```
@@ -292,6 +293,54 @@ assert_eq!(layout.slots, vec![Some([8.0, 8.0]), None, None]);
 assert_eq!(layout.dynamic, vec![false, true, false]);
 ```
 
+### `ScreenLayout::equipment_slot`
+
+`fn equipment_slot(self, x: f32, y: f32, kind: EquipmentSlotKind) -> ScreenLayout`. One more slot at `(x, y)` showing a piece of the opening player's own equipment (the original station windows' armor and offhand slots). The slot is drawn from the player's live equipment; it is not one of the block entity's slots, so the menu's item sync and clicks do not reach it (see [`SlotSource::PlayerEquipment`](#slotsource)).
+
+```rust
+use pluto_lib::{EquipmentSlotKind, ScreenLayout, SlotSource};
+
+let layout = ScreenLayout::new(176.0, 166.0).equipment_slot(8.0, 8.0, EquipmentSlotKind::Head);
+assert_eq!(layout.source(0), SlotSource::PlayerEquipment(EquipmentSlotKind::Head));
+```
+
+### `ScreenLayout::neighbour_slot`
+
+`fn neighbour_slot(self, x: f32, y: f32, offset: [i32; 3]) -> ScreenLayout`. One more slot at `(x, y)` backed by the block entity at `offset` from the opened block (a melter's fuel slot, which is the heater below's own slot). The window's menu type must declare `links` over its neighbour slots in the order they are declared here; the slot then is a real slot of the menu, filled from the neighbour's container (see [`SlotSource::NeighbourBlockEntity`](#slotsource)).
+
+```rust
+use pluto_lib::{ScreenLayout, SlotSource};
+
+let layout = ScreenLayout::new(176.0, 166.0).neighbour_slot(8.0, 8.0, [0, -1, 0]);
+assert_eq!(layout.source(0), SlotSource::NeighbourBlockEntity([0, -1, 0]));
+```
+
+### `ScreenLayout::linked_slot`
+
+`fn linked_slot(self) -> ScreenLayout`. One more slot of the window's linked range: a slot the dynamic-slot callback positions, backed by the containers the window's menu-links callback names (see [`SlotSource::LinkedContainer`](#slotsource)). The window's menu type must declare `links` over the linked slots in the order they are declared here; a linked slot the callback positions nowhere (it answers `None` for it) is hidden, which is how a window shows only as many of them as the named containers hold.
+
+```rust
+use pluto_lib::{ScreenLayout, SlotSource};
+
+let layout = ScreenLayout::new(176.0, 166.0).linked_slot();
+assert_eq!(layout.slots, vec![None]);
+assert_eq!(layout.dynamic, vec![true]);
+assert_eq!(layout.source(0), SlotSource::LinkedContainer);
+```
+
+### `ScreenLayout::source`
+
+`fn source(&self, slot: usize) -> SlotSource`. What backs container slot `slot`; the block entity's own slots back any slot the layout does not declare a source for.
+
+```rust
+use pluto_lib::{EquipmentSlotKind, ScreenLayout, SlotSource};
+
+let layout = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).equipment_slot(26.0, 8.0, EquipmentSlotKind::OffHand);
+assert_eq!(layout.source(0), SlotSource::BlockEntity);
+assert_eq!(layout.source(1), SlotSource::PlayerEquipment(EquipmentSlotKind::OffHand));
+assert_eq!(layout.source(9), SlotSource::BlockEntity, "undeclared slots are the block entity's own");
+```
+
 ### `ScreenLayout::inventory_at`
 
 `fn inventory_at(self, x: f32, y: f32) -> ScreenLayout`. The player's inventory at `(x, y)`, its first row and left column.
@@ -321,6 +370,42 @@ assert!(ScreenLayout::new(176.0, 166.0).with_own_labels().own_labels);
 use pluto_lib::ScreenLayout;
 
 assert!(ScreenLayout::new(176.0, 166.0).with_own_background().own_background);
+```
+
+### `EquipmentSlotKind`
+
+A piece of the opening player's own equipment, as a slot of a window can show it: `Head`, `Chest`, `Legs`, `Feet` or `OffHand`. The station windows of the original carry the player's armor and offhand slots beside the block's own slots (`TinkerStationContainerMenu`: "add armor and offhand slots, for convenience").
+
+```rust
+use pluto_lib::EquipmentSlotKind;
+
+assert_eq!(EquipmentSlotKind::Head.host_slot(), 103);
+assert_ne!(EquipmentSlotKind::Feet, EquipmentSlotKind::OffHand);
+```
+
+### `EquipmentSlotKind::host_slot`
+
+`fn host_slot(self) -> i32`. The host's equipment index of this piece (the entity equipment numbering the host's own equipment access reads and writes: feet 100, legs 101, chest 102, head 103, offhand -106).
+
+```rust
+use pluto_lib::EquipmentSlotKind;
+
+assert_eq!(EquipmentSlotKind::Feet.host_slot(), 100);
+assert_eq!(EquipmentSlotKind::Legs.host_slot(), 101);
+assert_eq!(EquipmentSlotKind::Chest.host_slot(), 102);
+assert_eq!(EquipmentSlotKind::OffHand.host_slot(), -106);
+```
+
+### `SlotSource`
+
+What a container slot of a window is backed by. `BlockEntity` is the opened block entity's own item slot of the same index. `PlayerEquipment(kind)` is a piece of the opening player's equipment, drawn from their live equipment; the host's menu model binds container slots to the opened block entity or to linked block containers only, so an equipment slot takes no clicks yet. `NeighbourBlockEntity(offset)` is a slot of the block entity at that offset from the opened block's position, in slot order among the layout's neighbour slots. `LinkedContainer` is a slot of the window's linked range, showing the containers the window's menu-links callback (`ScreenHandlerType::on_menu_links`) names, in order. Neighbour and linked slots ride the host's linked slots: the menu type declares `links` over them in order, and PlutoLib answers the host's menu-links question with the containers' positions, so what a player takes out of one leaves that container in the same step.
+
+```rust
+use pluto_lib::{EquipmentSlotKind, SlotSource};
+
+assert_eq!(SlotSource::default(), SlotSource::BlockEntity);
+assert_eq!(SlotSource::PlayerEquipment(EquipmentSlotKind::Chest), SlotSource::PlayerEquipment(EquipmentSlotKind::Chest));
+assert_ne!(SlotSource::NeighbourBlockEntity([0, -1, 0]), SlotSource::LinkedContainer);
 ```
 
 ### `ScreenCanvas`
@@ -398,6 +483,31 @@ use pluto_lib::SceneView;
 
 let view = SceneView::default();
 assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45.0, 30.0, 16.0));
+```
+
+### `LivingPreview`
+
+A living entity drawn as a screen preview (the station windows' armor stand, wearing the piece being made), drawn through `ScreenCanvas::living`. `kind` is the entity type drawn, such as `minecraft:armor_stand`; `item` the one item the figure wears or holds, if any; `yaw` the figure's turn, in degrees; `arms` whether an armor stand figure shows its arms; `base_plate` whether it shows its base plate. The host places the item by the item's own equipment slot, exactly as its smithing screen's preview does — a worn piece on its part of the figure, anything else in the left hand. Today the host has a renderer for the armor stand only; another `kind` draws nothing.
+
+```rust
+use pluto_lib::{Identifier, LivingPreview};
+
+let preview = LivingPreview { kind: Identifier::parse("minecraft:armor_stand").unwrap(), item: None, yaw: 210.0, arms: true, base_plate: false };
+assert_eq!(preview.yaw, 210.0);
+assert!(preview.arms && !preview.base_plate && preview.item.is_none());
+```
+
+### `LivingPreview::armor_stand`
+
+`fn armor_stand(item: ItemSlot) -> LivingPreview`. An armor stand preview holding or wearing `item`, standing as the smithing screen's preview stand stands: turned to 210 degrees, arms shown, no base plate.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, LivingPreview};
+
+let preview = LivingPreview::armor_stand(ItemSlot::new(Identifier::new("minecraft", "iron_chestplate").unwrap(), 1));
+assert_eq!(preview.kind.to_string(), "minecraft:armor_stand");
+assert_eq!((preview.yaw, preview.arms, preview.base_plate), (210.0, true, false));
+assert!(preview.item.is_some());
 ```
 
 ### `ScreenLayoutContext`
@@ -510,7 +620,7 @@ assert_eq!(lines, ["Heat: 42"]);
 
 ### `MenuButton`
 
-What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data, `items` its item slots and `carried` the stack on the pressing player's cursor, which the callback may change. `fluid(index)` reads the block entity's own fluid tank of that index and `set_fluid(index, stack)` writes it (tanks live in the saved data, so no other reach is needed); a tank of another block — a melter's heater below, say — is out of this callback's reach.
+What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data, `items` its item slots and `carried` the stack on the pressing player's cursor, which the callback may change. `switch` is the menu switch the callback asked for with [`MenuButton::open_menu`](#menubuttonopen_menu), if any, read back by the transport once the callback returns. `fluid(index)` reads the block entity's own fluid tank of that index and `set_fluid(index, stack)` writes it (tanks live in the saved data, so no other reach is needed); a tank of another block — a melter's heater below, say — is out of this callback's reach.
 
 ```rust
 use pluto_lib::{MenuButton, Nbt, NbtCompound};
@@ -523,7 +633,7 @@ fn toggle(button: &mut MenuButton<'_>) {
 let mut data = NbtCompound::new();
 let mut items = Vec::new();
 let mut carried = None;
-toggle(&mut MenuButton { pos: [0, 64, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried });
+toggle(&mut MenuButton { pos: [0, 64, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried, switch: None });
 assert!(data.contains_key("lit"));
 ```
 
@@ -537,7 +647,7 @@ use pluto_lib::{MenuButton, NbtCompound};
 let mut data = NbtCompound::new();
 let mut items = Vec::new();
 let mut carried = None;
-let button = MenuButton { pos: [0, 64, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried };
+let button = MenuButton { pos: [0, 64, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried, switch: None };
 assert!(button.fluid(0).is_none(), "an untouched tank reads empty");
 ```
 
@@ -551,7 +661,7 @@ use pluto_lib::{FluidStack, Identifier, MenuButton, NbtCompound};
 let mut data = NbtCompound::new();
 let mut items = Vec::new();
 let mut carried = None;
-let mut button = MenuButton { pos: [0, 64, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried };
+let mut button = MenuButton { pos: [0, 64, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried, switch: None };
 button.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "lava").unwrap(), amount: 500, tag: None }));
 assert_eq!(button.fluid(0).map(|stack| stack.amount), Some(500));
 ```
@@ -565,8 +675,23 @@ use pluto_lib::{MenuButton, NbtCompound};
 let mut data = NbtCompound::new();
 let mut items = Vec::new();
 let mut carried = None;
-let mut button = MenuButton { pos: [0, 64, 0], id: 2, data: &mut data, items: &mut items, carried: &mut carried };
+let mut button = MenuButton { pos: [0, 64, 0], id: 2, data: &mut data, items: &mut items, carried: &mut carried, switch: None };
 button.set_data(0, button.id);
+```
+
+### `MenuButton::open_menu`
+
+`fn open_menu(&mut self, pos: BlockPos)`. Asks for the pressing player's menu to be switched to the menu of the block at `pos`: this menu closes and that block's opens in its place, keeping what the player carries (the original's `StationTabPacket`, which a tabbed table's tab sends). The switch is carried out after the callback returns; asking twice keeps the last position.
+
+```rust
+use pluto_lib::{MenuButton, NbtCompound};
+
+let mut data = NbtCompound::new();
+let mut items = Vec::new();
+let mut carried = None;
+let mut button = MenuButton { pos: [0, 64, 0], id: 100, data: &mut data, items: &mut items, carried: &mut carried, switch: None };
+button.open_menu([0, 64, 2]);
+assert_eq!(button.switch, Some([0, 64, 2]));
 ```
 
 ### `SlotRule`
@@ -611,6 +736,17 @@ use pluto_lib::{ContainerAccept, Direction};
 let put = ContainerAccept { pos: [0, 64, 0], slot: 0, item: "minecraft:dirt", count: 1, face: Some(Direction::Up) };
 assert_eq!((put.pos, put.slot, put.item, put.count), ([0, 64, 0], 0, "minecraft:dirt", 1));
 assert_eq!(put.face, Some(Direction::Up));
+```
+
+### `MenuLinkContext`
+
+What the menu-links callback receives: `pos` is the opened block entity's position. The containers around it are read through `Neighbours` (see [neighbours](neighbours.md)), whose scope the host holds open for the call, exactly as for a ticking block entity.
+
+```rust
+use pluto_lib::screen_handler_api_v1::MenuLinkContext;
+
+let context = MenuLinkContext { pos: [3, 64, -2] };
+assert_eq!(context.pos, [3, 64, -2]);
 ```
 
 ### `ScreenHandlerType::on_slot_rule`
@@ -681,6 +817,18 @@ use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
 
 let window = ScreenHandlerType::new(Identifier::new("example", "bench").unwrap(), ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0))
     .on_dynamic_slots(|state| Some(vec![Some([8.0, 8.0 + state.items.len() as f32])]));
+let _ = window;
+```
+
+### `ScreenHandlerType::on_menu_links`
+
+`fn on_menu_links(self, links: impl Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync + 'static) -> ScreenHandlerType`. `links` names the containers its linked slots show: the positions of the block entities whose slots fill the menu type's linked range, in fill order. The host asks while the menu is open (each tick), with the neighbours' reach open, and passes by anything that is not a container, so a named position with nothing behind it simply holds nothing. A window with a links callback answers the host's question with the callback's positions alone; its declared neighbour slots (if any) are not also answered. Use it for a linked inventory the window has to look for (a station's neighbouring chest); a fixed neighbour (a melter's heater) is a neighbour slot instead.
+
+```rust
+use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
+
+let window = ScreenHandlerType::new(Identifier::new("example", "table").unwrap(), ScreenLayout::new(176.0, 166.0).linked_slot())
+    .on_menu_links(|ctx| vec![ctx.pos]);
 let _ = window;
 ```
 
