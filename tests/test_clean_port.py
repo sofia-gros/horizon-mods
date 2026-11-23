@@ -155,6 +155,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/proxy_tank.rs',
                 'mixins/tconstruct_native/api/src/punch.rs',
                 'mixins/tconstruct_native/api/src/quiver_hook.rs',
+                'mixins/tconstruct_native/api/src/recipe_conditions.rs',
                 'mixins/tconstruct_native/api/src/render_data.rs',
                 'mixins/tconstruct_native/api/src/rendering.rs',
                 'mixins/tconstruct_native/api/src/severing.rs',

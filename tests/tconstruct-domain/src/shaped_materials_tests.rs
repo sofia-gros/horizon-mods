@@ -194,7 +194,7 @@ fn find_materials_agrees_disagrees_and_discards_variants_like_the_original() {
         "same material, differing variants: the variant is discarded",
     );
     // And a grid that does not fit the pattern is not this recipe's grid.
-    let facts = RecipeFacts { form: RecipeForm::Shaped { width: 2, height: 1 }, result_item: Some("tconstruct:fake_storage_block"), result_count: 1 };
+    let facts = RecipeFacts { form: RecipeForm::Shaped { width: 2, height: 1 }, result_item: Some("tconstruct:fake_storage_block"), result_count: 1, id: None };
     let request = AssemblyRequest {
         recipe: &facts,
         grid: GridFacts { width: 2, height: 1, left: 0, top: 0, cells: &cells },

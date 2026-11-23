@@ -41,10 +41,29 @@ register_assembly(AssemblyRegistration {
     },
 }).unwrap();
 
-let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1, id: None };
 assert!(prepare_assembly(&facts).is_some());
 let other = RecipeFacts { result_item: Some("minecraft:apple"), ..facts };
 assert!(prepare_assembly(&other).is_none());
+```
+
+## Admission policies
+
+Before a recipe is matched or assembled, each interested admission policy decides: pass (the native result stands) or deny (the recipe does not match this grid after all). A policy never assembles and never sees or mutates the inventory; interest is decided on the same cheap recipe facts, which name the recipe's loaded `id`, so a policy can admit by identity — the shape a config-gated recipe needs, since the game's data conditions cannot name a mod's config values. Any denial wins, and the first denying policy in registration order is the one reported.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionDecision, AdmissionRegistration, RecipeFacts, RecipeForm, prepare_admission, register_admission};
+
+register_admission(AdmissionRegistration {
+    id: "example:config_gate",
+    interest: |recipe| recipe.id == Some("example:gated"),
+    callback: |request| if request.recipe.id == Some("example:gated") { AdmissionDecision::Deny } else { AdmissionDecision::Pass },
+}).unwrap();
+
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:gated") };
+assert!(prepare_admission(&facts).is_some());
+let other = RecipeFacts { id: Some("example:other"), ..facts };
+assert!(prepare_admission(&other).is_none());
 ```
 
 ## Reference
@@ -54,6 +73,8 @@ assert!(prepare_assembly(&other).is_none());
 - `recipe_api_v1::StackView` — the borrowed stack facts a handler sees: item id, count, damage, and the stack's `minecraft:custom_data` compound when the adapter could supply it.
 - `recipe_api_v1::register_assembly` / `prepare_assembly` / `has_assembly_providers` — the assembly registry and its interest check.
 - `recipe_api_v1::AssemblyRegistration` / `AssemblyRequest` / `AssemblyDecision` / `AssemblyOutcome` — one provider, the grid request it answers, and its three answers.
+- `recipe_api_v1::register_admission` / `prepare_admission` / `has_admission_providers` — the admission registry and its interest check.
+- `recipe_api_v1::AdmissionRegistration` / `AdmissionRequest` / `AdmissionDecision` / `AdmissionOutcome` — one policy, the grid request it answers, and its two answers.
 - `recipe_api_v1::RecipeFacts` / `RecipeForm` / `GridFacts` — the recipe and cropped-grid facts interest and callbacks read.
 
 The native half is source-wired (the game's ingredient dispatch and the crafting gate's assembly substitution), pure-tested at both registries, and not yet native-validated; see the support matrix in [base](base.md).
@@ -190,15 +211,16 @@ assert_ne!(RecipeForm::Special, RecipeForm::Shapeless);
 
 ### `RecipeFacts`
 
-Cheap borrowed facts about one recipe, for assembly interest checks: `form` is its `RecipeForm`, `result_item` the fixed result template's item (none for special recipes), and `result_count` how many the template produces.
+Cheap borrowed facts about one recipe, for assembly interest checks: `form` is its `RecipeForm`, `result_item` the fixed result template's item (none for special recipes), `result_count` how many the template produces, and `id` the recipe's loaded id (`<namespace>:<path>` for a content mod's recipe, the bare name for one of vanilla's) when the adapter could name it, or none when it could not.
 
 ```rust
 use pluto_lib::recipe_api_v1::{RecipeFacts, RecipeForm};
 
-let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1, id: Some("minecraft:golden_apple") };
 assert_eq!(facts.form, RecipeForm::Shaped { width: 1, height: 1 });
 assert_eq!(facts.result_item, Some("minecraft:golden_apple"));
 assert_eq!(facts.result_count, 1);
+assert_eq!(facts.id, Some("minecraft:golden_apple"));
 ```
 
 ### `GridFacts`
@@ -224,7 +246,7 @@ What an assembly callback answers: `recipe` is the recipe's `RecipeFacts`, `grid
 ```rust
 use pluto_lib::recipe_api_v1::{AssemblyRequest, GridFacts, RecipeFacts, RecipeForm};
 
-let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: None };
 let request = AssemblyRequest {
     recipe: &facts,
     grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] },
@@ -260,7 +282,7 @@ use pluto_lib::recipe_api_v1::{AssemblyInterest, RecipeFacts, RecipeForm};
 
 fn interested(recipe: &RecipeFacts<'_>) -> bool { recipe.result_item == Some("minecraft:golden_apple") }
 let interest: AssemblyInterest = interested;
-let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:golden_apple"), result_count: 1, id: None };
 assert!(interest(&facts));
 ```
 
@@ -273,7 +295,7 @@ use pluto_lib::recipe_api_v1::{AssemblyCallback, AssemblyDecision, AssemblyReque
 
 fn pass(_: &AssemblyRequest<'_>) -> AssemblyDecision { AssemblyDecision::Pass }
 let callback: AssemblyCallback = pass;
-let facts = RecipeFacts { form: RecipeForm::Special, result_item: None, result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Special, result_item: None, result_count: 1, id: None };
 let request = AssemblyRequest { recipe: &facts, grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None };
 assert_eq!(callback(&request), AssemblyDecision::Pass);
 ```
@@ -291,7 +313,7 @@ let registration = AssemblyRegistration {
     callback: |_| pluto_lib::recipe_api_v1::AssemblyDecision::Pass,
 };
 assert_eq!(registration.id, "example:blessed");
-let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:golden_apple"), result_count: 1, id: None };
 assert!((registration.interest)(&facts));
 ```
 
@@ -324,7 +346,7 @@ register_assembly(AssemblyRegistration {
     callback: |_| pluto_lib::recipe_api_v1::AssemblyDecision::Pass,
 }).unwrap();
 
-let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: None };
 let evaluation = prepare_assembly(&facts).unwrap();
 let request = AssemblyRequest { recipe: &facts, grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None };
 assert_eq!(evaluation.evaluate(&request), AssemblyOutcome::Native);
@@ -348,7 +370,7 @@ register_assembly(AssemblyRegistration {
     },
 }).unwrap();
 
-let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1, id: None };
 let evaluation = prepare_assembly(&facts).unwrap();
 let request = AssemblyRequest { recipe: &facts, grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None };
 let AssemblyOutcome::Assembled { owner, custom_data } = evaluation.evaluate(&request) else { panic!("expected an assembly") };
@@ -369,7 +391,7 @@ register_assembly(AssemblyRegistration {
     callback: |_| pluto_lib::recipe_api_v1::AssemblyDecision::Pass,
 }).unwrap();
 
-let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1, id: None };
 assert!(prepare_assembly(&facts).is_some());
 ```
 
@@ -407,10 +429,185 @@ register_assembly(AssemblyRegistration {
     },
 }).unwrap();
 
-let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1 };
+let facts = RecipeFacts { form: RecipeForm::Shaped { width: 1, height: 1 }, result_item: Some("minecraft:golden_apple"), result_count: 1, id: None };
 assert!(prepare_assembly(&facts).is_some());
 let other = RecipeFacts { result_item: Some("minecraft:apple"), ..facts };
 assert!(prepare_assembly(&other).is_none());
+```
+
+### `AdmissionRequest`
+
+What an admission callback answers: `recipe` is the recipe's `RecipeFacts`, `grid` the cropped grid's `GridFacts`, and `result` the result template's native created stack, if any (not a proposed output).
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionRequest, GridFacts, RecipeFacts, RecipeForm};
+
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("minecraft:apple") };
+let request = AdmissionRequest {
+    recipe: &facts,
+    grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] },
+    result: None,
+};
+assert_eq!(request.recipe.id, Some("minecraft:apple"));
+assert_eq!(request.grid.width, 0);
+assert!(request.result.is_none());
+```
+
+### `AdmissionDecision`
+
+What one admission policy decides for one grid: `Pass` (the native result stands) or `Deny` (the recipe does not match this grid after all).
+
+```rust
+use pluto_lib::recipe_api_v1::AdmissionDecision;
+
+assert_eq!(AdmissionDecision::Pass, AdmissionDecision::Pass);
+assert_ne!(AdmissionDecision::Deny, AdmissionDecision::Pass);
+```
+
+### `AdmissionInterest`
+
+`type AdmissionInterest = for<'a> fn(&RecipeFacts<'a>) -> bool`. The cheap interest check of an admission policy, decided on recipe facts before any grid or stack is captured.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionInterest, RecipeFacts, RecipeForm};
+
+fn interested(recipe: &RecipeFacts<'_>) -> bool { recipe.id == Some("example:gated") }
+let interest: AdmissionInterest = interested;
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:gated") };
+assert!(interest(&facts));
+```
+
+### `AdmissionCallback`
+
+`type AdmissionCallback = for<'a> fn(&AdmissionRequest<'a>) -> AdmissionDecision`. The callback an interested admission policy runs for one grid request.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionCallback, AdmissionDecision, AdmissionRequest, GridFacts, RecipeFacts, RecipeForm};
+
+fn pass(_: &AdmissionRequest<'_>) -> AdmissionDecision { AdmissionDecision::Pass }
+let callback: AdmissionCallback = pass;
+let facts = RecipeFacts { form: RecipeForm::Special, result_item: None, result_count: 1, id: None };
+let request = AdmissionRequest { recipe: &facts, grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None };
+assert_eq!(callback(&request), AdmissionDecision::Pass);
+```
+
+### `AdmissionRegistration`
+
+One admission policy to register: `id` is its registration id, `interest` its `AdmissionInterest` check, and `callback` its `AdmissionCallback`.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionRegistration, RecipeFacts, RecipeForm};
+
+let registration = AdmissionRegistration {
+    id: "example:config_gate",
+    interest: |recipe| recipe.id == Some("example:gated"),
+    callback: |_| pluto_lib::recipe_api_v1::AdmissionDecision::Pass,
+};
+assert_eq!(registration.id, "example:config_gate");
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:gated") };
+assert!((registration.interest)(&facts));
+```
+
+### `AdmissionOutcome`
+
+The result of evaluating the interested policies for one request: `Native` (no policy denied) or `Denied` naming the `first` denying policy.
+
+```rust
+use pluto_lib::recipe_api_v1::AdmissionOutcome;
+
+assert_eq!(AdmissionOutcome::Native, AdmissionOutcome::Native);
+assert_eq!(AdmissionOutcome::Denied { first: "example:veto" }, AdmissionOutcome::Denied { first: "example:veto" });
+assert_ne!(AdmissionOutcome::Native, AdmissionOutcome::Denied { first: "example:veto" });
+```
+
+### `AdmissionEvaluation`
+
+An ephemeral snapshot of the interested policies' callbacks, returned by `prepare_admission`; the adapter evaluates it synchronously with the same recipe facts. It is not a recipe or world identity or authority token.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionOutcome, AdmissionRegistration, AdmissionRequest, GridFacts, RecipeFacts, RecipeForm, prepare_admission, register_admission};
+
+register_admission(AdmissionRegistration {
+    id: "example:watcher",
+    interest: |recipe| recipe.id == Some("example:watched"),
+    callback: |_| pluto_lib::recipe_api_v1::AdmissionDecision::Pass,
+}).unwrap();
+
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:watched") };
+let evaluation = prepare_admission(&facts).unwrap();
+let request = AdmissionRequest { recipe: &facts, grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None };
+assert_eq!(evaluation.evaluate(&request), AdmissionOutcome::Native);
+```
+
+### `AdmissionEvaluation::evaluate`
+
+`fn evaluate(&self, request: &AdmissionRequest<'_>) -> AdmissionOutcome`. Runs every snapshotted callback: any denial wins, pass cannot grant matching or provide an output, and the first denying policy in lexical registration order is the one reported.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionDecision, AdmissionOutcome, AdmissionRegistration, AdmissionRequest, GridFacts, RecipeFacts, RecipeForm, prepare_admission, register_admission};
+
+register_admission(AdmissionRegistration {
+    id: "example:gate",
+    interest: |recipe| recipe.id == Some("example:gated"),
+    callback: |_| AdmissionDecision::Deny,
+}).unwrap();
+
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:gated") };
+let evaluation = prepare_admission(&facts).unwrap();
+let request = AdmissionRequest { recipe: &facts, grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] }, result: None };
+assert_eq!(evaluation.evaluate(&request), AdmissionOutcome::Denied { first: "example:gate" });
+```
+
+### `register_admission`
+
+`fn register_admission(entry: AdmissionRegistration) -> Result<(), RegistrationError>`. Registers one admission policy once during startup; both of its functions must be read-only and deterministic for their arguments, and there is no unregister path.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionRegistration, RecipeFacts, RecipeForm, prepare_admission, register_admission};
+
+register_admission(AdmissionRegistration {
+    id: "example:registered_policy",
+    interest: |recipe| recipe.id == Some("example:gated"),
+    callback: |_| pluto_lib::recipe_api_v1::AdmissionDecision::Pass,
+}).unwrap();
+
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:gated") };
+assert!(prepare_admission(&facts).is_some());
+```
+
+### `has_admission_providers`
+
+`fn has_admission_providers() -> bool`. Whether any admission policy has been registered.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionRegistration, has_admission_providers, register_admission};
+
+assert!(!has_admission_providers());
+register_admission(AdmissionRegistration {
+    id: "example:counted_policy",
+    interest: |_| true,
+    callback: |_| pluto_lib::recipe_api_v1::AdmissionDecision::Pass,
+}).unwrap();
+assert!(has_admission_providers());
+```
+
+### `prepare_admission`
+
+`fn prepare_admission(recipe: &RecipeFacts<'_>) -> Option<AdmissionEvaluation>`. Interest runs on cheap borrowed recipe facts; `None` — when no policy is interested — avoids all grid and result capture in the adapter, even with unrelated registrations.
+
+```rust
+use pluto_lib::recipe_api_v1::{AdmissionRegistration, RecipeFacts, RecipeForm, prepare_admission, register_admission};
+
+register_admission(AdmissionRegistration {
+    id: "example:gate",
+    interest: |recipe| recipe.id == Some("example:gated"),
+    callback: |_| pluto_lib::recipe_api_v1::AdmissionDecision::Deny,
+}).unwrap();
+
+let facts = RecipeFacts { form: RecipeForm::Shapeless, result_item: Some("minecraft:apple"), result_count: 1, id: Some("example:gated") };
+assert!(prepare_admission(&facts).is_some());
+let other = RecipeFacts { id: Some("example:other"), ..facts };
+assert!(prepare_admission(&other).is_none());
 ```
 
 ## Special recipes

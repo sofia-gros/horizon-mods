@@ -155,6 +155,7 @@ mod throwables;
 mod glow_block;
 mod piggyback;
 mod config;
+mod recipe_conditions;
 mod common;
 mod fancy_gadgets;
 mod advancements;
@@ -246,6 +247,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     shaped_materials::register();
     material_render::register();
     crafting_repair::register();
+    recipe_conditions::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()
