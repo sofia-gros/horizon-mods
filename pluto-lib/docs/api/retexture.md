@@ -1,8 +1,8 @@
 # Retextured blocks: a block entity's texture on its model
 
-A retextured block is made from a material — a crafting station from oak logs, a smeltery drain from seared bricks — and the original draws the block with that material's texture on the model's retextured slots, while the rest of the model keeps its fixed textures. The block entity carries the material under `texture` (see the consumer's `retextured.rs`: recipe to stack, stack to block entity on placement, block entity to the drop). This page covers the mesh side: which baked faces belong to a retextured slot, and how the mesher swaps their sprite layer. It first walks through the pure face test, then lists every public item in the [Reference](#reference).
+A retextured block is made from a material — a crafting station from oak logs, a smeltery drain from seared bricks — and the original draws the block with that material's texture on the model's retextured slots, while the rest of the model keeps its fixed textures. The block entity carries the material under `texture` (see the consumer's `retextured.rs`: recipe to stack, stack to block entity on placement, block entity to the drop). This page covers the render side: which baked faces belong to a retextured slot, how the mesher swaps their sprite layer for placed blocks, and how the item resolution seam swaps theirs for stacks. It first walks through the pure face test, then lists every public item in the [Reference](#reference).
 
-> **Use with Caution.** The world-block path is source-wired and pure-tested; the native weave plan and the in-game look remain unverified. Item models (a retextured drain held in the hand or sitting in a chest) keep their default texture: the host bakes item models once per item, with no per-stack model data to swap on, so the item side is a documented remainder, not a claim.
+> **Use with Caution.** Both paths — placed blocks and items — are source-wired and pure-tested; the native weave plan and the in-game look remain unverified.
 
 ## Basic Example
 
@@ -34,6 +34,19 @@ The host bakes each block model once, so a retextured block and a plain one shar
 The texture reaches the mesher through a position cache: the client block-entity tick pass copies each loaded block entity's `texture` record into it once a tick, and a level replacement clears it. The seam re-checks the current block against the pure table on every face, so a stale cache entry for a position whose block changed cannot swap a face it should not.
 
 The replacement sprite is the texture item's block's particle sprite, read through the host model catalog. Mantle's sources are not in this tree, so the exact `getTexture` resolution is unverified from source; the smoke check — a retextured drain in seared bricks against one in seared stone — decides whether the particle sprite matches the original's look.
+
+## Items: the same texture on the resolved layers
+
+A stack in a hand or a chest has no position and no block entity, but it carries the same `texture` record in its custom data, and the host resolves its model per stack: `ItemRenderer::resolve_with_rule` fills a render state of baked layers from the stack, its components included. The host bakes each item model once per item, so the swap runs on that resolution, on the one return seam the layer tints already use: after the tint pass, each quad layer whose baked model has a face the pure table names as a retextured slot of the stack's item is rebuilt with the texture item's particle sprite on those faces, UVs unchanged — a slot samples the same rectangle of its replacement sprite. The layer's particle follows the swap. The texture item's sprite is read off a fresh resolution of the texture item itself (its custom data removed, so the lookup never re-enters the seam) and cached by item; the rebuilt models are not cached, they are rebuilt per resolution like the render state they land in.
+
+```rust
+use pluto_lib::{Nbt, NbtCompound, texture_of};
+
+let mut data = NbtCompound::new();
+assert_eq!(texture_of(&data), None);
+data.insert("texture".to_owned(), Nbt::String("minecraft:oak_log".to_owned()));
+assert_eq!(texture_of(&data), Some("minecraft:oak_log".to_owned()));
+```
 
 ## Reference
 
@@ -87,4 +100,16 @@ use pluto_lib::is_retextured_face;
 let whole = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
 assert!(is_retextured_face("tconstruct:seared_drain", "tconstruct:block/smeltery/seared/bricks", whole));
 assert!(!is_retextured_face("tconstruct:seared_drain", "tconstruct:block/smeltery/io/back", whole));
+```
+
+### `texture_of`
+
+The texture a stack's custom data names, if it names one: the item id of the material a retextured recipe made the stack from. The block side reads the same record out of the block entity; this reads it out of the stack, for the item seam above.
+
+```rust
+use pluto_lib::{Nbt, NbtCompound, texture_of};
+
+let mut data = NbtCompound::new();
+data.insert("texture".to_owned(), Nbt::String("tconstruct:seared_bricks".to_owned()));
+assert_eq!(texture_of(&data), Some("tconstruct:seared_bricks".to_owned()));
 ```
