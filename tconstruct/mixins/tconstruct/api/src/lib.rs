@@ -186,6 +186,7 @@ mod particles;
 mod aoe;
 mod armor_interact_hook;
 mod quiver_hook;
+mod sleeves_hook;
 mod tool_behavior_hook;
 
 pub fn hooks() -> pluto_lib::ModHooks {

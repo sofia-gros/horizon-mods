@@ -1399,6 +1399,20 @@ pub(crate) fn armor_interact_plan(nbt: &NbtCompound, env: &Environment) -> Vec<I
     })
 }
 
+/// SleevesModule's reach into a piece: the inventory of the modifier entry carrying a sleeves
+/// module, as the module reads its own entry's inventory capability (the sibling inventory module
+/// of the same modifier supplies the slots). None when no entry carries one.
+pub(crate) fn sleeves_inventory(nbt: &NbtCompound, env: &Environment) -> Option<crate::tool_inventory::ToolInventory> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            if modifier.modules().iter().any(|module| matches!(module, crate::modifier_modules::Module::Sleeves)) {
+                return Some(crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts)));
+            }
+        }
+        None
+    })
+}
+
 pub(crate) fn inventory_slots(nbt: &NbtCompound) -> i32 {
     match nbt.get(TAG_VOLATILE) { Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get(crate::tool_inventory::TOTAL_SLOTS)), _ => 0 }
 }
