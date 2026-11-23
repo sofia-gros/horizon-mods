@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (55, 29), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (45, 22), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -173,10 +173,10 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("channeling").is_empty(), "channeling is fully bound");
     assert!(unbound_of("restore").is_empty(), "restore runs on the modify hurt hook, before armor");
     // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
-    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
-    // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
-    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
-    // stay unbound; the form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
+    // lightspeed the block light. The forms over a block property bind too: the break-speed event carries the block's
+    // blast resistance and its correct-tool requirement, so blasting's formula variable and crumbling's inverted
+    // requires-tool predicate read the dig report (an unreported fact leaves the variable on its fallback and the
+    // predicate's leaf unmatched). The form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
     // digging player: their effects, the rain on them and the enchantments on the tool they dig with, which is what
     // hydraulic's aqua affinity branch and its raining branch read. Lightspeed's attribute binds over the light the player
     // tick reports at the wearer, and gold guard's golden attribute over the tick's count of the wearer's golden pieces;
@@ -186,27 +186,43 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("lightspeed_armor").is_empty(), "lightspeed_armor is fully bound");
     assert!(unbound_of("gold_guard").is_empty(), "gold_guard is fully bound");
     assert_eq!(unbound_of("chrysophilite"), ["tconstruct:golden_attribute"], "chrysophilite's attribute is Tinkers' own");
-    for name in ["blasting", "crumbling"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
+    for name in ["blasting", "crumbling"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the dig report's block facts"); }
+    assert!(!kinds.contains("tconstruct:conditional_mining_speed"), "conditional_mining_speed should be bound");
     assert!(unbound_of("hydraulic").is_empty(), "hydraulic reads the reported digging player and binds");
     for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     assert!(unbound_of("revitalizing").is_empty(), "revitalizing is fully bound: the tick reports held tools as it does armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
     // Armor looting is bound: a worn piece's modules add into the looting total the severing flow captures from the killer's hit
-    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments stay unbound: no break
-    // flow reports the breaker's worn equipment or lets a module change the enchantments a block's drops roll with, so the merge
-    // the original performs on the breaking stack before the roll has no consumer here.
+    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments bind with it: the break
+    // context reports the breaker's worn equipment, and the break flow merges the lent enchantments into the breaking stack
+    // before the drops roll and restores them after (block_break_hook), so luck, fortune and silky are fully bound.
     assert!(!kinds.contains("tconstruct:armor_looting"), "armor_looting should be bound");
-    assert!(kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment is still unbound");
+    assert!(!kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment should be bound");
     assert!(unbound_of("fortunate").is_empty(), "fortunate is fully bound");
     assert!(unbound_of("looting").is_empty(), "looting is fully bound");
     assert_eq!(unbound_of("looter"), ["tconstruct:attribute"], "only looter's experience multiplier attribute stays unbound");
-    assert_eq!(unbound_of("luck"), ["tconstruct:armor_harvest_enchantment"], "luck keeps only its armor harvest enchantment unbound");
-    assert_eq!(unbound_of("fortune"), ["tconstruct:armor_harvest_enchantment"]);
-    assert_eq!(unbound_of("silky"), ["tconstruct:armor_harvest_enchantment"]);
+    assert!(unbound_of("luck").is_empty(), "luck is fully bound");
+    assert!(unbound_of("fortune").is_empty(), "fortune is fully bound");
+    assert!(unbound_of("silky").is_empty(), "silky is fully bound");
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
-    // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
-    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects). Autosmelt and smelting
+    // bind over the cooking recipes PlutoLib now publishes from the game's recipe book: autosmelt converts drops on process loot,
+    // and the smelting module cooks its input inventory into its output on the tool's hits, harvests and shots.
+    assert!(!kinds.contains("tconstruct:autosmelt"), "autosmelt should be bound");
+    assert!(!kinds.contains("tconstruct:smelting"), "smelting should be bound");
+    assert!(unbound_of("autosmelt").is_empty(), "autosmelt is fully bound");
+    assert!(unbound_of("smelting").is_empty(), "smelting is fully bound");
+    // The boot walk forms bind over the sturdy-face fact PlutoLib publishes from the game's block
+    // table and the world light read: fire walker, glow walker and cover ground.
+    assert!(!kinds.contains("tconstruct:fire_walker"), "fire walker should be bound");
+    assert!(!kinds.contains("tconstruct:glow_walker"), "glow walker should be bound");
+    assert!(!kinds.contains("tconstruct:cover_ground"), "cover ground should be bound");
+    assert!(unbound_of("flamewake").is_empty(), "flamewake is fully bound");
+    assert!(unbound_of("snowdrift").is_empty(), "snowdrift is fully bound");
+    // The edible family is bound in full: the representative item binds over the use tick PlutoLib
+    // reports (its eating sounds while the use runs; its item particles and the Diet integration
+    // are the parts the port does not carry, as edible.rs's head note records).
+    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect", "edible_representative_item"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The special melee consumers are bound: punch and reverse punch over the projectile hooks, the melee instrument, the
     // overgrowth inventory tick and kinetic's insatiable feed. The tool tank family binds over the tool tank (tool_tank):
     // smashing and overburn themselves, the interaction modules (bucket, tank interaction, melting, slurping, spilling,
@@ -217,10 +233,11 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     for name in ["tank", "bucketing", "melting", "slurping", "spilling", "spitting", "splashing", "overburn", "smashing"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the tool tank"); }
     // The inventory consumers are bound: the quivers draw through the ammo event, the strap and belt
     // kinds decode with their interact plan, share durability runs on the wear event, and shears and
-    // fishing answer the tool-action query. Harvest stays unbound (no destroy-with-drops or block-use
-    // re-dispatch reaches a use callback), as does the armor harvest enchantment above.
+    // fishing answer the tool-action query. Harvest binds over the block actions PlutoLib queues for
+    // a use callback (destroy-with-drops and the block-use re-dispatch, applied at the level's tick
+    // seam); the armor harvest enchantment above stays unbound.
     for bound in ["bulk_quiver", "trick_quiver", "shield_strap", "tool_belt", "share_durability", "shears", "fishing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    assert!(kinds.contains("tconstruct:harvest"), "harvest is still unbound");
+    assert!(!kinds.contains("tconstruct:harvest"), "harvest should be bound");
     for name in ["bulk_quiver", "trick_quiver", "sliver", "deciduous", "fishing", "shears", "silky_shears", "silky_aoe_shears", "shield_strap", "tool_belt"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
 }
 
@@ -2209,13 +2226,13 @@ fn edible_pickaxe<R>(upgrades: &[(&str, i32)], charge_tagged: bool, run: impl Fn
 }
 
 #[test]
-fn the_shipped_edible_family_binds_all_but_the_representative_item() {
+fn the_shipped_edible_family_binds_in_full() {
     let mut registry = Registry::default();
     registry.reload(&files("modifiers"), &conditions());
     let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:edible").is_empty(), "the edible module and its tooltip trait are bound");
     for name in ["tasty", "savory", "scrumptious"] {
-        assert_eq!(unbound(&format!("tconstruct:{name}")), vec!["tconstruct:edible_representative_item"], "{name} keeps only the particles-and-Diet module unbound");
+        assert!(unbound(&format!("tconstruct:{name}")).is_empty(), "{name} is fully bound, its representative item over the use tick");
     }
 }
 
@@ -2231,7 +2248,7 @@ fn an_eaten_tool_feeds_the_rounded_stats_and_runs_each_modifiers_edible_effects_
         assert_eq!((eaten.nutrition, eaten.effects), (2, vec![Effect::ConsumeDurability(15)]));
         assert!((eaten.saturation - 0.6).abs() < 1e-6);
     });
-    // savory I: wears 4 + 4, then cures one effect; the representative item is unbound and adds nothing.
+    // savory I: wears 4 + 4, then cures one effect; the representative item adds no edible effect (it presents the meal).
     edible_pickaxe(&[("tconstruct:savory", 1)], true, |env, tool| {
         assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::CureRandomEffect]));
         assert!((stat(&tool.custom_data, Stat::Saturation) - 0.4).abs() < 1e-6);

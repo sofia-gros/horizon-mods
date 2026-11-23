@@ -309,6 +309,12 @@ pub trait LevelEdit: LevelView {
     /// Native destruction including fluid replacement and optional loot.
     /// None is unavailable; false is a supported call without a block change.
     fn break_block(&mut self, _pos: [i32; 3], _drop: bool) -> Option<bool> { None }
+    /// Re-dispatches a use of the block at `pos` (Minecraft: `BlockState.useItemOn` then
+    /// `useWithoutItem`) as a survival player holding `item` (None for an empty hand), clicked on
+    /// `face` (a direction index: 0 down, 1 up, 2 north, 3 south, 4 west, 5 east) at the absolute
+    /// hit point `hit`. Some(true) when the use consumed the action, Some(false) when it passed;
+    /// None is unavailable. This is what a right-click harvest (a berry bush) runs on.
+    fn use_block(&mut self, _pos: [i32; 3], _face: u8, _hit: [f64; 3], _item: Option<&str>) -> Option<bool> { None }
     /// All draws use the supplied placement stream, never a global/fresh RNG.
     fn random_int(&mut self, bound: i32) -> i32;
     fn random_float(&mut self) -> f32;

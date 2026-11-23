@@ -1894,6 +1894,58 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:display_name");
             out.insert("tconstruct:tooltip");
         }
+        Module::EdibleRepresentative { .. } => {
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:edible_effect");
+        }
+        Module::FireWalker { .. } | Module::GlowWalker { .. } | Module::CoverGround { .. } => {
+            out.insert("tconstruct:boot_walk");
+        }
+        Module::PlaceGlow { .. } => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:remove_block");
+        }
+        Module::BlockItemProvider { .. } => {
+            out.insert("tconstruct:block_item_provider");
+        }
+        Module::ArmorHarvestEnchantment { .. } => {
+            out.insert("tconstruct:harvest_enchantments");
+        }
+        Module::Autosmelt { .. } => {
+            out.insert("tconstruct:process_loot");
+        }
+        Module::Smelting { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:launcher_hit");
+            out.insert("tconstruct:block_harvest");
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:on_attacked");
+            out.insert("tconstruct:plant_harvest");
+            out.insert("tconstruct:shear_entity");
+            out.insert("tconstruct:sling_launch");
+        }
+        Module::Dwarven => {
+            out.insert("tconstruct:break_speed");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Enderporting => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:block_harvest");
+            out.insert("tconstruct:plant_harvest");
+            out.insert("tconstruct:projectile_hit");
+        }
+        Module::Harvest => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
+        Module::SelfDestructive => {
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::StrongBones => {
+            out.insert("tconstruct:equipment_change");
+        }
     }
 }
 

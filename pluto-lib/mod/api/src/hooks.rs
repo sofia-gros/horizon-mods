@@ -369,6 +369,19 @@ pub fn hooks() -> Box<dyn Hooks> {
         world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
         // The extra blocks a break's callbacks asked for go through the game's own destroy path, drops and all.
         events_interaction_v0::apply_pending_extra_breaks(dimension, |pos| edit.break_block(pos, true) == Some(true));
+        // The block actions a use callback queued (a harvest's breaks, re-dispatched uses and the
+        // writes that must land after them), in the order they were asked for.
+        world_api_v1::apply_pending_block_actions(dimension, |action| match action {
+            world_api_v1::PendingBlockAction::Break { pos, drop } => edit.break_block(*pos, *drop) == Some(true),
+            world_api_v1::PendingBlockAction::Use { pos, face, hit, item } => {
+                let face = match *face { [0, -1, 0] => 0, [0, 0, -1] => 2, [0, 0, 1] => 3, [-1, 0, 0] => 4, [1, 0, 0] => 5, _ => 1 };
+                edit.use_block(*pos, face, *hit, item.as_deref()).is_some()
+            }
+            world_api_v1::PendingBlockAction::SetState { pos, state } => match BlockState::parse(state) {
+                Ok(parsed) => edit.set_state(*pos, &to_info(&parsed), 3),
+                Err(_) => false,
+            },
+        });
     });
     horizon_client::entry::pluto_entity_spawn_access::set_provider(
         horizon_client::entry::pluto_entity_spawn_access::Provider {
@@ -457,6 +470,12 @@ pub fn hooks() -> Box<dyn Hooks> {
             }
         }
     });
+    recipe_api_v1::set_cooking_lookup(|kind, item| {
+        horizon_client::entry::pluto_cooking_recipes::cook(kind, item).map(|facts| recipe_api_v1::CookingRecipe {
+            result: facts.result, result_count: facts.result_count, experience: facts.experience, time: facts.time,
+        })
+    });
+    world_api_v1::set_sturdy_lookup(|block, direction| horizon_client::entry::pluto_block_facts::face_sturdy(block, direction));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -1511,6 +1530,13 @@ impl WorldOps for HostWorld {
         host.level_block_state(level, pos)
     }
 
+    fn light(&mut self, _dimension: &str, pos: [i32; 3]) -> Option<(u8, u8)> {
+        // The host's light read names no dimension (it reads the level the current callback
+        // runs in, as the player tick's own light does); world reads are made from inside
+        // such a callback, for that level.
+        Some(self.0.get().light(pos))
+    }
+
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
         // source 4 is the block category
         self.0.get().play_sound(sound, at, 4, volume, pitch)
@@ -1540,6 +1566,21 @@ impl WorldOps for HostWorld {
         // The mod-facing host has no scheduling call, so the request is queued and the level's
         // own tick seams apply it in that dimension (see world_api_v1::queue_block_tick).
         world_api_v1::queue_block_tick(dimension, pos, block, delay)
+    }
+
+    fn break_block(&mut self, dimension: &str, pos: [i32; 3], drop: bool) -> bool {
+        // The mod-facing host has no destroy call from a use callback either, so the break is
+        // queued the same way and the level's tick seams run it through the game's own destroy
+        // path, drops and all (see world_api_v1::queue_block_action).
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::Break { pos, drop })
+    }
+
+    fn use_block(&mut self, dimension: &str, pos: [i32; 3], face: [i32; 3], hit: [f64; 3], item: Option<&str>) -> bool {
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::Use { pos, face, hit, item: item.map(str::to_owned) })
+    }
+
+    fn set_block_state_queued(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::SetState { pos, state: state.to_owned() })
     }
 
     fn block_entity_data(&mut self, dimension: &str, pos: [i32; 3]) -> Option<NbtCompound> {
@@ -2009,10 +2050,17 @@ impl EntityOps for HostEntities {
         let Ok(id) = u32::try_from(id) else { return false };
         let host = self.host.get();
         // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
-        // another entity is moved keeping the way it faces. A player is reached by neither call — the
-        // host has no call that moves a player — so a player's teleport answers false here.
+        // another entity is moved keeping the way it faces. A player is reached by neither of those
+        // calls, but the host's own player teleport (the `/tp` path) moves one, keeping the way they face.
         if host.teleport_mob(&self.dimension, id, pos) {
             return true;
+        }
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        if let Some(player) = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)) {
+            if host.teleport_player(player.uuid, &self.dimension, pos, player.yaw, player.pitch) {
+                return true;
+            }
         }
         let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
         host.move_entity(&self.dimension, id, pos, rotation[0], rotation[1])
@@ -2372,7 +2420,7 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
 }
 
 /// What the break hook read before the block went, kept for the end of the same break.
-struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32 }
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, equipment: Vec<(String, player_api::StackData)>, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32 }
 static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
 
 /// The face each player last started digging, by uuid: the break hook itself is not told the face, but the dig's start is
@@ -2391,10 +2439,11 @@ fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::B
     let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack));
     let face = acting.as_ref().and_then(|player| LAST_DIG_FACE.lock().ok().and_then(|last| last.get(&player.uuid).copied()));
     let (yaw, pitch) = acting.as_ref().map(|player| (player.yaw, player.pitch)).unwrap_or_default();
+    let equipment = acting.as_ref().map(|player| entity_events_v1::equipment_of(player.uuid)).unwrap_or_default();
     events_interaction_v0::BlockBreakContext {
         pos, dimension, state,
         player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
-        held, actions: std::cell::RefCell::new(Vec::new()),
+        held, equipment, actions: std::cell::RefCell::new(Vec::new()),
         face, yaw, pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
     }
 }
@@ -2413,7 +2462,7 @@ fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
         if now.is_none() || now == entry.state { continue; }
         let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
         let context = events_interaction_v0::BlockBreakContext {
-            pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, actions: std::cell::RefCell::new(Vec::new()),
+            pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, equipment: entry.equipment, actions: std::cell::RefCell::new(Vec::new()),
             face: entry.face, yaw: entry.yaw, pitch: entry.pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
         };
         scoped(host, || events_interaction_v0::after_block_break(&context));
@@ -2606,9 +2655,15 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             EntityAction::Teleport { target, position } => {
                 // A mob is teleported by the game's own call (its navigation stops, its fall distance
                 // resets); another entity is moved keeping the way it faces. A player is reached by
-                // neither — the host has no call that moves a player — so a player's teleport is skipped.
+                // neither of those calls, but the host's own player teleport (the `/tp` path) moves
+                // one, keeping the way they face.
                 let Ok(id) = u32::try_from(id_of(target)) else { continue };
                 if host.teleport_mob(dimension, id, position) { continue; }
+                let wanted = i32::try_from(id).unwrap_or(-1);
+                if let Some(player) = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)) {
+                    if host.teleport_player(player.uuid, dimension, position, player.yaw, player.pitch) { continue; }
+                }
                 let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
                 host.move_entity(dimension, id, position, rotation[0], rotation[1]);
             }
@@ -3589,6 +3644,28 @@ impl Hooks for PlutoHooks {
         if !edits.is_empty() { apply_carried_edits(host, player.uuid, edits); }
     }
 
+    /// One tick of a player's use of an item (API 131): heard only for the using player and only
+    /// when a callback listens, as the release is. The use's end is the game's; the tick moves nothing.
+    fn living_entity_use_item_tick(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingEntityUseItemTickEvent<'_>) -> Flow {
+        if event.entity.is_some() || !item_api_v1::use_tick_heard() { return Flow::Continue; }
+        let Some(player) = host.acting_player() else { return Flow::Continue; };
+        let stack = read_stack(event.stack);
+        let total = item_api_v1::stack_use_duration(&stack)
+            .or_else(|| item_api_v1::ItemUseRegistry::get(&stack.item).map(|used| used.use_time))
+            .unwrap_or(0);
+        let tick = item_api_v1::UseTick {
+            stack,
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            dimension: player.dimension.to_string(),
+            position: player.position,
+            creative: player.game_mode == 1,
+            ticks_used: (total - event.duration).max(0) as u32,
+            duration: total as u32,
+        };
+        scoped(host, || item_api_v1::using_tick(&tick));
+        Flow::Continue
+    }
+
     fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
         use item_api_v1::UseAction;
         let action = if item_api_v1::has_stack_use(&event.stack.item) {
@@ -4465,6 +4542,7 @@ impl Hooks for PlutoHooks {
         let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
         entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+        entity_events_v1::remember_offhand(player.uuid, player.entity_id, hands.iter().find(|(name, _)| name == "offhand").map(|(_, stack)| stack.clone()));
         if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty())) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
             // The light where the player stands, sampled half a block up, the point the original's walk modules read.
@@ -4654,10 +4732,19 @@ impl Hooks for PlutoHooks {
         // The event names no face, so the light is the dug block's own, not the block on the side that was hit.
         let (block_light, sky_light) = host.light(event.pos);
         let (rain, thunder) = host.weather();
+        // The block's explosion resistance and correct-tool requirement, from the per-state gameplay
+        // facts the game published when its resource tables loaded (pluto_block_facts). Before that
+        // first load both stay unreported and the variables over them take their fallbacks (the same
+        // answer an unreported biome temperature gives).
+        let dig_facts = horizon_client::entry::pluto_block_facts::for_block(&block.block.to_string());
         let facts = events_interaction_v0::DiggingFacts {
             block_light: Some(block_light), sky_light: Some(sky_light),
             sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()),
             biome_temperature: host.biome(event.pos).as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, event.pos[1])),
+            blast_resistance: dig_facts.map(|dig| dig.explosion_resistance),
+            requires_tool: dig_facts.map(|dig| dig.requires_tool),
+            // The build range of the dig's level, published at the head of this very call.
+            build_height: horizon_client::entry::pluto_block_facts::dig_height(),
         };
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);
@@ -4716,7 +4803,7 @@ impl Hooks for PlutoHooks {
         }
         // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
         let pending = match (allowed, context.player) {
-            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, face: context.face, yaw: context.yaw, pitch: context.pitch }),
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, equipment: context.equipment.clone(), face: context.face, yaw: context.yaw, pitch: context.pitch }),
             _ => None,
         };
         if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
@@ -4933,10 +5020,15 @@ impl Hooks for PlutoHooks {
         // Where the mob stands, for the callbacks that act on the place of the hit (a teleport of the
         // mob itself, a lightning strike where it stands).
         let target_position = u32::try_from(event.entity).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity));
+        // Where the attacking player stands, named as the player state above names them: their entity
+        // handle where the game has one, the server's player list otherwise.
+        let attacker_position = u32::try_from(event.causing).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity))
+            .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+                .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.position));
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
-            attacker_state, target_state, target_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
+            attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {

@@ -7,6 +7,7 @@ use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
+use std::sync::RwLock;
 
 use super::base::{Identifier, IdentifierError, Nbt, NbtCompound};
 use super::block_entity_api_v1::BlockPos;
@@ -87,6 +88,12 @@ pub enum ExplosionInteraction {
 pub trait WorldOps {
     /// The block state at `pos` as text, or None if the chunk is not loaded.
     fn block_state(&mut self, dimension: &str, pos: BlockPos) -> Option<String>;
+    /// The light at `pos` in the dimension: (block light, sky light), each 0..=15 (Minecraft:
+    /// `Level.getBrightness` for the block and sky layers). None if the chunk is not loaded or
+    /// the host cannot read light. The default host cannot read light.
+    fn light(&mut self, _dimension: &str, _pos: BlockPos) -> Option<(u8, u8)> {
+        None
+    }
     /// Sets the block at `pos` to the state given as text; false if it could not be set.
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool;
     /// Plays the sound event `sound` for the players near `at` in the dimension; false if the sound is unknown or could not be played.
@@ -104,6 +111,27 @@ pub trait WorldOps {
     /// this callback, which is the default. The host adapter accepts the request into [`queue_block_tick`]'s queue, which the level's own
     /// tick seams apply (see [`apply_pending_block_ticks`]), so a true answer means the tick is scheduled by the next seam in that dimension.
     fn schedule_block_tick(&mut self, _dimension: &str, _pos: BlockPos, _block: &str, _delay: i32) -> bool {
+        false
+    }
+    /// Breaks the block at `pos` through the game's own destroy path (Minecraft: `Level.destroyBlock`), with its drops when `drop`
+    /// is set; the drops are the level's own, rolled without a tool. The host adapter queues the request into [`queue_block_action`]'s
+    /// queue, which the level's own tick seams apply in request order (see [`apply_pending_block_actions`]), so a true answer means
+    /// the break is accepted, a tick late at most, not that it has happened when the call returns. The default host cannot break.
+    fn break_block(&mut self, _dimension: &str, _pos: BlockPos, _drop: bool) -> bool {
+        false
+    }
+    /// Re-dispatches a use of the block at `pos` (Minecraft: `BlockState.useItemOn` then `useWithoutItem`) as a survival player
+    /// holding the item `item` (None for an empty hand), clicked on the face `face` (a unit offset) at the absolute hit point `hit`:
+    /// what a right-click harvest of a berry bush runs on. Queued and answered like [`WorldOps::break_block`]: a true answer means
+    /// the use will be dispatched at the level's next seam, not that it consumed the action. The default host cannot re-dispatch.
+    fn use_block(&mut self, _dimension: &str, _pos: BlockPos, _face: BlockPos, _hit: [f64; 3], _item: Option<&str>) -> bool {
+        false
+    }
+    /// Sets the block at `pos` to the state given as text at the level's next tick seam, in request order among the queued block
+    /// actions (see [`queue_block_action`]): for a write that must land after a queued break of the same block, where the immediate
+    /// [`WorldOps::set_block_state`] would be undone by the break. A true answer means the write is accepted. The default host
+    /// cannot queue one.
+    fn set_block_state_queued(&mut self, _dimension: &str, _pos: BlockPos, _state: &str) -> bool {
         false
     }
     /// The saved data of the block entity at `pos` (without its position and id); None where there is none or it is not loaded.
@@ -138,6 +166,30 @@ pub trait WorldOps {
     fn send_particles(&mut self, _dimension: &str, _particle: &str, _data: &ParticleData, _at: [f64; 3], _spread: [f64; 3], _speed: f64, _count: i32) -> bool {
         false
     }
+}
+
+/// A face-sturdiness lookup the host installs: whether the named block's face in a direction
+/// (Minecraft's Direction ordinal: 0 down, 1 up, 2 north, 3 south, 4 west, 5 east) is sturdy
+/// for the full support type (`BlockState.isFaceSturdy(.., SupportType.FULL)`), as the game's
+/// own block table reports it. The table answers by block name, so a block whose states
+/// differ answers with its first state.
+pub type SturdyLookup = fn(&str, u8) -> Option<bool>;
+
+static STURDY_LOOKUP: RwLock<Option<SturdyLookup>> = RwLock::new(None);
+
+/// Installs the face-sturdiness lookup. Called by the host adapter at startup.
+pub fn set_sturdy_lookup(lookup: SturdyLookup) {
+    if let Ok(mut slot) = STURDY_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// Whether the named block's face in `direction` (a Direction ordinal) is sturdy for the
+/// full support type, when the game's table answers for the block.
+pub fn face_sturdy(block: &str, direction: u8) -> Option<bool> {
+    let guard = STURDY_LOOKUP.read().ok()?;
+    let lookup = (*guard)?;
+    lookup(block, direction)
 }
 
 thread_local! {
@@ -220,6 +272,13 @@ impl World {
         BlockState::parse(&text).ok()
     }
 
+    /// Minecraft: `getBrightness` for the block and sky layers at `pos`: (block light, sky
+    /// light), each 0..=15. None if the chunk is not loaded or the call is made outside a
+    /// callback that carries a world.
+    pub fn light(&self, pos: BlockPos) -> Option<(u8, u8)> {
+        with_current(None, |ops| ops.light(&self.dimension, pos))
+    }
+
     /// The world of the block entity being ticked (`BlockEntity.getLevel`); `None` outside a ticker the host opened the scope for.
     pub fn ticking() -> Option<World> {
         TICKING.with(|slot| slot.borrow().as_ref().map(|dimension| World::new(dimension)))
@@ -265,6 +324,30 @@ impl World {
     /// neighbour updates.
     pub fn schedule_tick(&self, pos: BlockPos, block: &str, delay: i32) -> bool {
         delay > 0 && with_current(false, |ops| ops.schedule_block_tick(&self.dimension, pos, block, delay))
+    }
+
+    /// Minecraft: `Level.destroyBlock`. Breaks the block at `pos` through the game's own destroy path, with its drops when `drop`
+    /// is set (the drops are the level's own, rolled without a tool). The request is queued and the level's own tick seams apply it
+    /// in request order, a tick late at most, so true means the break is accepted, not that it has happened when the call returns.
+    /// False outside a callback that carries a world, or when the host cannot break blocks.
+    pub fn break_block(&self, pos: BlockPos, drop: bool) -> bool {
+        with_current(false, |ops| ops.break_block(&self.dimension, pos, drop))
+    }
+
+    /// Minecraft: `BlockState.useItemOn` then `useWithoutItem`, re-dispatched: a use of the block at `pos` as a survival player
+    /// holding the item `item` (None for an empty hand), clicked on the face `face` (a unit offset) at the absolute hit point `hit`.
+    /// Queued and answered like [`World::break_block`]: true means the use will be dispatched at the level's next seam, not that it
+    /// consumed the action — a caller that must know (a harvest that wears the tool only when it lands) reads the block before and
+    /// after its own way, or accepts the use as landed. False outside a callback or when the host cannot re-dispatch.
+    pub fn use_block(&self, pos: BlockPos, face: BlockPos, hit: [f64; 3], item: Option<&str>) -> bool {
+        with_current(false, |ops| ops.use_block(&self.dimension, pos, face, hit, item))
+    }
+
+    /// Minecraft: `setBlockState`, at the level's next tick seam: the write joins the queued block actions (see
+    /// [`World::break_block`]) and lands in request order among them, for a write that must follow a queued break of the same
+    /// block. False outside a callback or when the host cannot queue one.
+    pub fn set_block_state_queued(&self, pos: BlockPos, state: &BlockState) -> bool {
+        with_current(false, |ops| ops.set_block_state_queued(&self.dimension, pos, &state.to_string()))
     }
 
     /// The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); None where there is none, the chunk is not loaded
@@ -382,6 +465,69 @@ pub(crate) fn apply_pending_block_ticks(dimension: &str, mut apply: impl FnMut(B
     let mut applied = 0;
     for tick in mine {
         if apply(tick.pos, &tick.block, tick.delay) {
+            applied += 1;
+        }
+    }
+    applied
+}
+
+/// One block change a host-side callback asked for that only a level seam can do: a break through
+/// the game's own destroy path, a re-dispatched block use, or a state write that must land after
+/// a queued break of the same block. The mod-facing host has no call for any of them from a use
+/// callback (the native helpers exist only inside the game), so the host adapter queues the
+/// requests here and the level's own tick seams — the callbacks that run with the level's editor
+/// in hand — apply the queued actions for their dimension in request order (see
+/// [`apply_pending_block_actions`]). A request is therefore honoured a tick late at most.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum PendingBlockAction {
+    /// `Level.destroyBlock`: break the block, with its drops when `drop` is set.
+    Break { pos: BlockPos, drop: bool },
+    /// `BlockState.useItemOn` then `useWithoutItem`, as a survival player holding `item`.
+    Use { pos: BlockPos, face: BlockPos, hit: [f64; 3], item: Option<String> },
+    /// `setBlockState` with the state as text, landing after the actions queued before it.
+    SetState { pos: BlockPos, state: String },
+}
+
+struct PendingBlockActionFor {
+    dimension: String,
+    action: PendingBlockAction,
+}
+
+static PENDING_BLOCK_ACTIONS: std::sync::Mutex<Vec<PendingBlockActionFor>> = std::sync::Mutex::new(Vec::new());
+
+/// The most actions held at once; past it new requests are refused (and say so).
+const MAX_PENDING_BLOCK_ACTIONS: usize = 4096;
+
+/// Queues a block action for the level seams to apply, in request order among the actions of its
+/// dimension. True when the action was taken.
+pub(crate) fn queue_block_action(dimension: &str, action: PendingBlockAction) -> bool {
+    let Ok(mut pending) = PENDING_BLOCK_ACTIONS.lock() else { return false };
+    if pending.len() >= MAX_PENDING_BLOCK_ACTIONS {
+        return false;
+    }
+    pending.push(PendingBlockActionFor { dimension: dimension.to_owned(), action });
+    true
+}
+
+/// Applies every queued action for `dimension` through `apply`, in request order, and returns how
+/// many the seam accepted. Requests the seam refuses are dropped, not kept. Other dimensions'
+/// requests stay queued.
+pub(crate) fn apply_pending_block_actions(dimension: &str, mut apply: impl FnMut(&PendingBlockAction) -> bool) -> usize {
+    let Ok(mut pending) = PENDING_BLOCK_ACTIONS.lock() else { return 0 };
+    let mut rest = Vec::new();
+    let mut mine = Vec::new();
+    for entry in std::mem::take(&mut *pending) {
+        if entry.dimension == dimension {
+            mine.push(entry.action);
+        } else {
+            rest.push(entry);
+        }
+    }
+    *pending = rest;
+    drop(pending);
+    let mut applied = 0;
+    for action in &mine {
+        if apply(action) {
             applied += 1;
         }
     }

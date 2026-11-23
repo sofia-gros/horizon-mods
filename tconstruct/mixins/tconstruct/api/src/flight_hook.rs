@@ -25,9 +25,9 @@
 //! does not pierce; the ammunition's own pierce does. A thrown tool's block hit sticks where it landed
 //! instead of breaking a soft block it could harvest. The glow module's wear on the launching tool is
 //! not applied (the launch pass knows the tool only as a stack in a hand it cannot edit here).
-use crate::{break_speed_hook::with_held_tool, projectile_modules::clamp_to, tool_stack};
+use crate::{break_speed_hook::with_held_tool, projectile_modules::clamp_to, slime_entities, tool_stack};
 use pluto_lib::{
-    ActionTarget, EntityAction, ExplosionInteraction, FlightAction, ItemSlot, KnockbackDirection,
+    ActionTarget, EntityAction, EntityReach, ExplosionInteraction, FlightAction, ItemSlot, KnockbackDirection,
     ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData,
 };
 use std::collections::HashMap;
@@ -125,6 +125,7 @@ fn merge(ammo: tool_stack::FlightProfile, weapon: tool_stack::FlightProfile) -> 
         loyalty: weapon.loyalty.max(ammo.loyalty),
         magnet: weapon.magnet.max(ammo.magnet),
         efln: ammo.efln || weapon.efln,
+        enderporting: ammo.enderporting || weapon.enderporting,
     }
 }
 
@@ -299,6 +300,31 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
             thrown.dealt = true;
             put_flight(&hit.dimension, hit.projectile, state);
             return false;
+        }
+    }
+    // EnderportingModifier's projectile hit: the thrower trades places with what the shot met —
+    // each move through the landing test the ender slime's teleport states — and a block hit puts
+    // the thrower on the block beyond the face. The hit itself still lands. A projectile that is
+    // not an arrow or a trident is spent by the move, as the original discards it; the secondary
+    // arrow mark that would spare a multishot's extras is not set here (the launch telling does
+    // not tell the extras apart), so every shot of an enderporting launcher swaps.
+    if profile.enderporting && hit.owner >= 0 {
+        let owner = hit.owner as u64;
+        let world = hit.world();
+        if let Some(victim) = hit.entity {
+            let positions = (EntityReach::position_of(owner), EntityReach::position_of(u64::from(victim)));
+            if let (Some(owner_pos), Some(victim_pos)) = positions {
+                if slime_entities::teleport_lands(&world, victim_pos) && slime_entities::teleport_lands(&world, owner_pos) {
+                    EntityReach::teleport(owner, victim_pos);
+                    EntityReach::teleport(u64::from(victim), owner_pos);
+                }
+            }
+        } else {
+            let dest = [f64::from(hit.block[0] + hit.face[0]) + 0.5, f64::from(hit.block[1] + hit.face[1]), f64::from(hit.block[2] + hit.face[2]) + 0.5];
+            if slime_entities::teleport_lands(&world, dest) && EntityReach::teleport(owner, dest)
+                && !matches!(hit.kind.as_str(), "minecraft:arrow" | "minecraft:spectral_arrow" | "minecraft:trident") {
+                hit.discard.set(true);
+            }
         }
     }
     // ProjectileExplosionModule (priority 25, before the rest): the projectile ends in a blast.

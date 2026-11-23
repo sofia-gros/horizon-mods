@@ -1039,6 +1039,47 @@ file = "crates/horizon-client/src/game.rs"
 name = "pluto_block_level"
 source = "pluto-block-level.rs"
 
+# The game's per-state gameplay facts (hardness, correct-tool requirement, explosion resistance),
+# published when the resource tables load so the dig report can read them by block name.
+[[module]]
+id = "pluto-block-facts"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_block_facts"
+source = "pluto-block-facts.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-block-facts-return"
+target = "horizon_client::game::resource_load::gameplay_tables"
+kind = "RETURN"
+helper = "pluto-block-facts-return.rs"
+bindings = [{ name = "value", ty = "std::result::Result<GameplayTables, String>", value = "$value" }]
+
+# The game's cooking recipes (the furnace family), published when the recipe book loads so the
+# recipe API's cooking lookup can answer what a furnace does to an item.
+[[module]]
+id = "pluto-cooking-recipes"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_cooking_recipes"
+source = "pluto-cooking-recipes.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-cooking-recipes-return"
+target = "horizon_client_lib::crafting::Recipes::load"
+kind = "RETURN"
+helper = "pluto-cooking-recipes-return.rs"
+bindings = [{ name = "value", ty = "Result<Recipes>", value = "$value" }]
+
+# A dig is worked out: the level's build range is published for the dig report the mods are
+# about to be asked for (dwarven reads the level's max build height).
+[[injection]]
+id = "pluto-block-facts-head"
+target = "horizon_client::game::native_hooks::Game<'_>::native_break_speed"
+kind = "HEAD"
+helper = "pluto-block-facts-head.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
 [[injection]]
 id = "pluto-block-survive"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"

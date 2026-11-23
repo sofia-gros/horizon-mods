@@ -140,7 +140,7 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`.
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand, `equipment` the pieces the breaker wears or holds in the off hand (as (slot, stack): `feet`, `legs`, `chest`, `head`, then `offhand`, as of their last tick; only the pieces carrying custom data) and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`.
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
@@ -364,13 +364,13 @@ assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
 
 ### `BreakSpeedContext`
 
-How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`. The dig's own facts ride along too: `block_light` and `sky_light` at the block (each 0 to 15, None when the game did not report them), `sky_darken` (how much of the sky light the time of day and the weather take off) and `biome_temperature`, the temperature of the biome at the block (None for a biome PlutoLib has no temperature for).
+How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`. The dig's own facts ride along too: `block_light` and `sky_light` at the block (each 0 to 15, None when the game did not report them), `sky_darken` (how much of the sky light the time of day and the weather take off) and `biome_temperature`, the temperature of the biome at the block (None for a biome PlutoLib has no temperature for). Three more facts ride along for the modules that read block properties: `blast_resistance`, the block's explosion resistance (None when the game did not report it, and a variable over it takes its fallback), `requires_tool`, whether the block needs the correct tool for drops (None when the game did not report it), and `build_height`, the build range of the level the dig is in as [min, max) (None when the game did not report it).
 
 ```rust
 use pluto_lib::{BlockState, BreakSpeedContext};
 use std::cell::Cell;
 
-let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5), held: None, player: None, block_light: Some(0), sky_light: Some(15), sky_darken: 0, biome_temperature: Some(0.8) };
+let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5), held: None, player: None, block_light: Some(0), sky_light: Some(15), sky_darken: 0, biome_temperature: Some(0.8), blast_resistance: Some(6.0), requires_tool: Some(true), build_height: Some([-64, 320]) };
 dig.speed.set(dig.speed.get() * 2.0);
 assert_eq!((dig.original, dig.speed.get()), (1.5, 3.0));
 assert_eq!(dig.pos, [0, 64, 0]);
@@ -407,7 +407,7 @@ use pluto_lib::{BlockState, BreakSpeedCallback, BreakSpeedContext};
 use std::cell::Cell;
 
 BreakSpeedCallback::EVENT.register(|dig| if dig.block.block.path() == "slow_stone" { dig.speed.set(0.0) });
-let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0), held: None, player: None, block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None };
+let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0), held: None, player: None, block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None, blast_resistance: None, requires_tool: None, build_height: None };
 BreakSpeedCallback::EVENT.invoke(&dig);
 assert_eq!(dig.speed.get(), 0.0);
 ```
@@ -480,15 +480,15 @@ PlayerBlockBreakEvents::CANCELED.register(|_| {});
 
 ### `DiggingFacts`
 
-What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature).
+What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature). It also carries `blast_resistance`, the block's explosion resistance, `requires_tool`, whether the block needs the correct tool for drops, and `build_height`, the build range of the level as [min, max); each of the three is `None` when the game did not report it.
 
 ```rust
 use pluto_lib::events_interaction_v0::DiggingFacts;
 
-let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8) };
+let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8), blast_resistance: None, requires_tool: None, build_height: None };
 assert_eq!((facts.block_light, facts.sky_light, facts.sky_darken), (Some(3), Some(15), 4));
 assert_eq!(facts.biome_temperature, Some(0.8));
-assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None });
+assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None, blast_resistance: None, requires_tool: None, build_height: None });
 ```
 
 ### `UseItemOnEntityContext`

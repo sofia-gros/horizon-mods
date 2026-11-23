@@ -45,7 +45,7 @@ fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static 
         let context = Context {
             block: &dig.block.block, block_in_tag: &block_in_tag, original: dig.original, multiplier, effective,
             on_ground: dig.player.as_ref().map(|player| player.on_ground), eyes_in_water: dig.player.as_ref().map(|player| player.eyes_in_water),
-            facts: crate::mining_speed::BlockFacts { block_light: dig.block_light, sky_light: dig.sky_light, sky_darken: dig.sky_darken, biome_temperature: dig.biome_temperature },
+            facts: crate::mining_speed::BlockFacts { block_light: dig.block_light, sky_light: dig.sky_light, sky_darken: dig.sky_darken, biome_temperature: dig.biome_temperature, blast_resistance: dig.blast_resistance, requires_tool: dig.requires_tool, pos_y: dig.pos[1], build_height: dig.build_height },
             holder,
         };
         let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, env.modifiers).len();

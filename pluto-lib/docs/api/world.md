@@ -459,6 +459,47 @@ let stone = BlockState::new(Identifier::new("minecraft", "stone").unwrap());
 assert!(!World::new("minecraft:overworld").set_block_state([0, 64, 0], &stone), "outside a callback nothing is set");
 ```
 
+### `World::light`
+
+`fn light(&self, pos: BlockPos) -> Option<(u8, u8)>`. Minecraft: `getBrightness` for the block and sky layers at `pos`: (block light, sky light), each 0..=15. `None` when the chunk is not loaded or the call is made outside a callback that carries a world.
+
+```rust
+use pluto_lib::World;
+
+assert_eq!(World::new("minecraft:overworld").light([0, 64, 0]), None);
+```
+
+### `World::break_block`
+
+`fn break_block(&self, pos: BlockPos, drop: bool) -> bool`. Minecraft: `Level.destroyBlock`. Breaks the block at `pos` through the game's own destroy path, with its drops when `drop` is set (the drops are the level's own, rolled without a tool). The request is queued and the level's tick seams apply it in request order, a tick late at most, so true means the break is accepted, not that it has happened when the call returns. False outside a callback that carries a world, or when the host cannot break blocks.
+
+```rust
+use pluto_lib::World;
+
+assert!(!World::new("minecraft:overworld").break_block([0, 64, 0], true), "outside a callback nothing is broken");
+```
+
+### `World::use_block`
+
+`fn use_block(&self, pos: BlockPos, face: BlockPos, hit: [f64; 3], item: Option<&str>) -> bool`. Minecraft: `BlockState.useItemOn` then `useWithoutItem`, re-dispatched: a use of the block at `pos` as a survival player holding the item `item` (None for an empty hand), clicked on the face `face` (a unit offset) at the absolute hit point `hit`. Queued and answered like `World::break_block`: true means the use will be dispatched at the level's next seam, not that it consumed the action. False outside a callback or when the host cannot re-dispatch.
+
+```rust
+use pluto_lib::World;
+
+assert!(!World::new("minecraft:overworld").use_block([0, 64, 0], [0, 1, 0], [0.5, 65.0, 0.5], None));
+```
+
+### `World::set_block_state_queued`
+
+`fn set_block_state_queued(&self, pos: BlockPos, state: &BlockState) -> bool`. Minecraft: `setBlockState`, at the level's next tick seam: the write joins the queued block actions (see `World::break_block`) and lands in request order among them, for a write that must follow a queued break of the same block. False outside a callback or when the host cannot queue one.
+
+```rust
+use pluto_lib::{BlockState, Identifier, World};
+
+let stone = BlockState::new(Identifier::new("minecraft", "stone").unwrap());
+assert!(!World::new("minecraft:overworld").set_block_state_queued([0, 64, 0], &stone), "outside a callback nothing is queued");
+```
+
 ### `World::block_entity_data`
 
 `fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound>`. The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); `None` where there is none, the chunk is not loaded or the call is made outside a callback.
@@ -585,4 +626,40 @@ assert_eq!(record.center, [8.5, 64.0, -2.5]);
 assert_eq!(record.radius, 4.0);
 assert!(record.fire);
 assert_eq!(record.interaction, ExplosionInteraction::Tnt);
+```
+
+### `SturdyLookup`
+
+`type SturdyLookup = fn(&str, u8) -> Option<bool>`. A face-sturdiness lookup the host installs: whether the named block's face in a direction (Minecraft's Direction ordinal: 0 down, 1 up, 2 north, 3 south, 4 west, 5 east) is sturdy for the full support type (`BlockState.isFaceSturdy(.., SupportType.FULL)`), as the game's own block table reports it. The table answers by block name, so a block whose states differ answers with its first state.
+
+```rust
+use pluto_lib::world_api_v1::SturdyLookup;
+
+let lookup: SturdyLookup = |block, _direction| if block == "minecraft:stone" { Some(true) } else { None };
+assert_eq!(lookup("minecraft:stone", 1), Some(true));
+assert_eq!(lookup("minecraft:glass", 1), None);
+```
+
+### `set_sturdy_lookup`
+
+`fn set_sturdy_lookup(lookup: SturdyLookup)`. Installs the face-sturdiness lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::world_api_v1::{face_sturdy, set_sturdy_lookup};
+
+set_sturdy_lookup(|block, _direction| if block == "minecraft:stone" { Some(true) } else { None });
+assert_eq!(face_sturdy("minecraft:stone", 1), Some(true));
+```
+
+### `face_sturdy`
+
+`fn face_sturdy(block: &str, direction: u8) -> Option<bool>`. Whether the named block's face in `direction` (a Direction ordinal) is sturdy for the full support type, when the game's table answers for the block. `None` when no lookup is installed or the table has no answer for the block.
+
+```rust
+use pluto_lib::world_api_v1::{face_sturdy, set_sturdy_lookup};
+
+assert_eq!(face_sturdy("minecraft:stone", 1), None, "no lookup installed yet");
+set_sturdy_lookup(|block, _direction| if block == "minecraft:stone" { Some(true) } else { None });
+assert_eq!(face_sturdy("minecraft:stone", 1), Some(true));
+assert_eq!(face_sturdy("minecraft:glass", 1), None);
 ```

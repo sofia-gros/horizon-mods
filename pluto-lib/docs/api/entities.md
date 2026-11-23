@@ -750,6 +750,16 @@ use pluto_lib::armor_stack_slot;
 assert!(armor_stack_slot("chest").is_some() && armor_stack_slot("body").is_none());
 ```
 
+### `equipment_of`
+
+The equipment of the player `uuid`, as (slot, stack) pairs: the armor the game's ticks reported for them, in `feet`, `legs`, `chest`, `head` order, then the off hand under the name `offhand`. Only pieces carrying custom data are ever recorded, so a piece without any is absent. Empty when the player is not known.
+
+```rust
+use pluto_lib::entity_events_v1::equipment_of;
+
+assert!(equipment_of(0).is_empty());
+```
+
 ### `StackDataEdit`
 
 One change to a stack's custom data for `EntityAction::EditStackData`: `value` is put at `path` (compound keys from the root of the custom data, the compounds on the way made when missing, a value in the way replaced by a compound) or, when `value` is None, the entry at `path` is removed. Edits are applied in order and an empty path is skipped. Edits state the value they want, not a change: a bar that two hits fill in one tick is set by the second from what the first had not yet written.
@@ -814,13 +824,13 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 
 ### `WeaponHit`
 
-A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known; the local player of a single-player world counts only while they are the one wearer), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands.
+A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known; the local player of a single-player world counts only while they are the one wearer), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands.
 
 ```rust
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, target_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty());
 ```
 

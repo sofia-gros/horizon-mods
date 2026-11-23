@@ -459,6 +459,42 @@ pub fn evaluate_special_recipe(
 pub fn has_assembly_providers() -> bool {
     ASSEMBLERS.has_providers()
 }
+
+/* Cooking lookups */
+
+/// One cooking recipe of the game's own book (the furnace family), as a lookup answers it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CookingRecipe {
+    /// The result's item id.
+    pub result: String,
+    /// The result's count for one input item.
+    pub result_count: u32,
+    /// The experience the recipe grants per item cooked.
+    pub experience: f32,
+    /// The cooking time in ticks.
+    pub time: u32,
+}
+
+/// The adapter's cooking lookup: the first recipe of a kind (a recipe type id such as
+/// `minecraft:smelting`) that takes an item, or None when the book has none.
+pub type CookingLookup = fn(&str, &str) -> Option<CookingRecipe>;
+
+static COOKING_LOOKUP: RwLock<Option<CookingLookup>> = RwLock::new(None);
+
+/// Install the adapter's cooking lookup, once during startup. There is no uninstall.
+pub fn set_cooking_lookup(lookup: CookingLookup) {
+    if let Ok(mut slot) = COOKING_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// The first cooking recipe of `kind` that takes `item`, as the game's recipe book answers it
+/// (its ingredient naming the item; a stack-sensitive ingredient test is the engine's and is not
+/// replayed). None when the book has none, or when no adapter is installed.
+pub fn cooking_recipe(kind: &str, item: &str) -> Option<CookingRecipe> {
+    let lookup = COOKING_LOOKUP.read().unwrap_or_else(|e| e.into_inner());
+    (*lookup)?(kind, item)
+}
 /// Interest runs on cheap borrowed recipe facts. None avoids all grid and
 /// result capture in the adapter, even with unrelated registrations.
 pub fn prepare_assembly(recipe: &RecipeFacts<'_>) -> Option<AssemblyEvaluation> {

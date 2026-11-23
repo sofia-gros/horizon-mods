@@ -71,6 +71,18 @@ pub(crate) enum Display {
     Embellished,
 }
 
+/// What a boot walk module does at each cell it walks over (ArmorWalkRadiusModule.walkOn),
+/// at the entry's effective level.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum WalkModule {
+    /// FireWalkerModule: place fire where fire can be placed.
+    Fire { radius: f32 },
+    /// GlowWalkerModule: place a glow block in a dark empty cell, once per walk.
+    Glow { radius: f32, min_light: i32, damage: i32 },
+    /// CoverGroundWalkerModule: cover an empty cell with the named block where it can survive.
+    Cover { block: Identifier, radius: f32 },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Module {
     Flag { id: Identifier, condition: Condition },
@@ -204,6 +216,9 @@ pub(crate) enum Module {
     EdibleCure { condition: Condition },
     /// EdibleRemoveEffectModule: eating the tool removes one effect from the eater.
     EdibleRemove { effect: Identifier, condition: Condition },
+    /// EdibleRepresentativeItemModule: the item an edible tool presents as eaten — its eating
+    /// sounds while the use runs, and what an integration would be told was eaten.
+    EdibleRepresentative { item: Identifier, condition: Condition },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// FieryAttackModule and FreezingAttackModule: a melee hit that sets the target on fire or freezes it.
@@ -227,10 +242,32 @@ pub(crate) enum Module {
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ToolActionWalkerTransformModule: walking turns the ground under a replaceable cell into its transformed state.
     WalkTransform { action: crate::tool_actions::ToolAction, sound: String, radius: crate::wearer_modules::Leveling, condition: Condition },
+    /// FireWalkerModule: walking places fire in the cells fire can be placed at.
+    FireWalker { radius: crate::wearer_modules::Leveling },
+    /// GlowWalkerModule: walking places a glow block in a dark empty cell, wearing the boots.
+    GlowWalker { radius: crate::wearer_modules::Leveling, min_light: i32, damage: i32 },
+    /// CoverGroundWalkerModule: walking covers an empty cell with a block where it can survive.
+    CoverGround { block: Identifier, radius: crate::wearer_modules::Leveling, condition: Condition },
+    /// PlaceGlowModule: a right click on a block places a glow block on the clicked face, wearing the tool.
+    PlaceGlow { damage: i32 },
+    /// BlockItemProviderModule: the tool provides this block item through the block item provider
+    /// capability, at this wear per block consumed, while its condition holds.
+    BlockItemProvider { item: Identifier, damage: i32, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
     /// LootingModule.Armor: a worn piece adds this looting to its wearer's kills while it sits in one of the listed slots.
     ArmorLooting { flat: f32, each: f32, slots: Vec<String>, condition: Condition },
+    /// EnchantmentModule.ArmorHarvest: a worn piece lends this enchantment to the stack its wearer
+    /// breaks a block with, while it sits in one of the listed slots (the merge runs in the
+    /// block-break flow, block_break_hook).
+    ArmorHarvestEnchantment { name: String, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
+    /// AutosmeltModule: a drop a cooking recipe of one of the listed types takes becomes its
+    /// cooked result (the conversion runs in the block-break loot flow, block_break_hook).
+    Autosmelt { recipe_types: Vec<String>, extra_drop_chance: f32 },
+    /// SmeltingModule: the tool cooks what its input inventory holds into its output inventory,
+    /// powered by the tool's use (the cooking runs in tool_stack::cook_smelting; the output's key
+    /// is the JSON's `output_key` or, at use, the modifier's ID with an `_output` suffix).
+    Smelting { recipe_type: String, multiplier: f32, input: Box<crate::tool_inventory::Inventory>, output: Box<crate::tool_inventory::Inventory>, condition: Condition },
     /// ClearEffectOnUnequipModule: taking the armor off takes the effect off its wearer.
     ClearEffectOnUnequip { effect: Identifier, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
@@ -303,6 +340,29 @@ pub(crate) enum Module {
     /// shooter's current effect) wait for facts neither transport reports; see the module header of
     /// mining_speed for the dig facts that do arrive.
     Momentum,
+    /// DwarvenModifier (a code modifier): dig speed and projectile velocity grow the deeper the
+    /// holder is under the level's top and fade near it (mining_speed::dwarven_boost over the dig
+    /// report's block facts: the dug block's y and the level's build height).
+    Dwarven,
+    /// EnderportingModifier (a code modifier): the holder trades places with what the tool touches —
+    /// a melee hit swaps the attacker and the mob, a harvested block pulls the holder onto it, and a
+    /// projectile carries the swap to where it lands. Its behaviours run in the hit, break and impact
+    /// callbacks (enderporting_hook and flight_hook), which read this module off the tool.
+    Enderporting,
+    /// HarvestModule: right-clicking a harvestable block harvests it in place (and the tool's area
+    /// with it). Its behaviour runs in the use-on-block callback (harvest_hook), which reads this
+    /// module off the tool.
+    Harvest,
+    /// SelfDestructiveModifier (a code modifier): holding shift with the helmet key primes the
+    /// wearer with the self-destructing effect, whose last tick explodes. Its behaviour runs in
+    /// the armor interact receiver and the player tick (armor_interact_hook), which read this
+    /// module off the tool. The effect's own movement-speed payload is an effect attribute,
+    /// which the effect-attribute reach owns; it is not applied here.
+    SelfDestructive,
+    /// StrongBonesModifier (a code modifier): drinking milk with the helmet grants damage
+    /// resistance (and the calcified effect for calcifiable armor), cured when the helmet
+    /// comes off. Its behaviour runs in strong_bones_hook, which reads this module off the tool.
+    StrongBones,
     /// EnderclearanceModule: a hit may teleport the mob it landed on (and a hit on the wearer may
     /// teleport the attacker) to a random place within a diameter. The original tries up to its
     /// teleport chances for a spot the mob fits; the port's teleport names one destination, so a
@@ -839,6 +899,19 @@ impl Module {
                 if crate::edible::has_holder(fields) { return Ok(None); }
                 Self::EdibleRemove { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
+            // EdibleRepresentativeItemModule: its hooks are the using tick (the eating sounds) and
+            // the edible effect (the list an integration is told); a holder condition needs the
+            // eater's state, which neither carries.
+            "tconstruct:edible_representative_item" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_using" | "tconstruct:edible_effect")) => {
+                if crate::edible::has_holder(fields) { return Ok(None); }
+                // ItemStackLoadable.REQUIRED_ITEM_NBT: a bare item id, or an object naming one in `id`.
+                let item = match fields.get("representative_item") {
+                    Some(Value::String(id)) => Identifier::parse(id).map_err(|e| e.to_string())?,
+                    Some(Value::Object(object)) => identifier(object, "id")?,
+                    _ => return Err("representative_item must name an item".into()),
+                };
+                Self::EdibleRepresentative { item, condition: Condition::decode(fields)? }
+            }
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
                     Some(module) => Self::Thorns { module: Box::new(module), condition: Condition::decode(fields)? },
@@ -902,6 +975,37 @@ impl Module {
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
                 Self::WalkTransform { action, sound, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
             }
+            // FireWalkerModule, GlowWalkerModule, CoverGroundWalkerModule (BOOT_WALK): the walk
+            // forms in walk_hook, over the sturdy-face fact PlutoLib publishes from the game's
+            // block table and the world light read.
+            "tconstruct:fire_walker" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                Self::FireWalker { radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")? }
+            }
+            "tconstruct:glow_walker" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                let min_light = fields.get("min_light").and_then(Value::as_i64).ok_or("min_light must be an integer")?;
+                let damage = fields.get("tool_damage").and_then(Value::as_i64).ok_or("tool_damage must be an integer")?;
+                Self::GlowWalker { radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, min_light: min_light as i32, damage: damage as i32 }
+            }
+            "tconstruct:cover_ground" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                Self::CoverGround { block: identifier(fields, "block")?, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
+            }
+            // PlaceGlowModule (BLOCK_INTERACT, REMOVE_BLOCK): a right click places a glow block on the
+            // clicked face, and the remove half keeps a left-click tool from breaking its own glow.
+            "tconstruct:place_glow" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:remove_block")) => {
+                let damage = fields.get("tool_damage").and_then(Value::as_i64).ok_or("tool_damage must be an integer")?;
+                if damage < 0 { return Err("tool_damage must be at least 0".into()); }
+                Self::PlaceGlow { damage: damage as i32 }
+            }
+            // BlockItemProviderModule (BLOCK_ITEM_PROVIDER): the tool offers its block item to whoever
+            // places blocks from a hand, and is worn when one is consumed.
+            "tconstruct:block_item_provider" if only("tconstruct:block_item_provider") => {
+                let damage = match fields.get("tool_damage").filter(|value| !value.is_null()) {
+                    None => 1,
+                    Some(value) => value.as_i64().ok_or("tool_damage must be an integer")?,
+                };
+                if damage < 0 { return Err("tool_damage must be at least 0".into()); }
+                Self::BlockItemProvider { item: identifier(fields, "item")?, damage: damage as i32, condition: Condition::decode(fields)? }
+            }
             // Presentation-only modules: one block, bound as recorded no-ops (Java: display name, durability display and tooltip hooks only).
             "tconstruct:show_interaction_source" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::InteractionSource),
             "tconstruct:variant_color" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::VariantColor),
@@ -950,6 +1054,47 @@ impl Module {
                     .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
                     .collect::<Result<Vec<_>, _>>()?;
                 Self::ArmorLooting { flat, each, slots, condition: Condition::decode(fields)? }
+            }
+            // EnchantmentModule.ArmorHarvest: a worn piece lends its enchantment to the breaking stack for the loot roll.
+            // Its block and holder predicates have no facts in the break flow, so only the ANY forms bind (as for looting).
+            "tconstruct:armor_harvest_enchantment" if only("tconstruct:harvest_enchantments") => {
+                if !["block", "holder"].iter().all(|key| is_any_predicate(fields, key)) { return Ok(None); }
+                let name = identifier(fields, "name")?.to_string();
+                let (flat, each) = leveling_int(fields)?;
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                    .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::ArmorHarvestEnchantment { name, flat, each, slots, condition: Condition::decode(fields)? }
+            }
+            // AutosmeltModule: drops a cooking recipe takes become their cooked result.
+            "tconstruct:autosmelt" if only("tconstruct:process_loot") => {
+                let recipe_types = match fields.get("recipe_types") {
+                    Some(Value::String(one)) => vec![one.clone()],
+                    Some(Value::Array(many)) => many.iter().map(|kind| kind.as_str().map(str::to_owned).ok_or("recipe_types must name recipe types")).collect::<Result<Vec<_>, _>>()?,
+                    _ => return Err("recipe_types must be a recipe type or a list of them".into()),
+                };
+                Self::Autosmelt { recipe_types, extra_drop_chance: float(fields, "extra_drop_chance")? }
+            }
+            // SmeltingModule: the module's own fields are its input inventory's (InventoryModule.LOADER
+            // is a direct field); the output inventory is built on it, keyed by `output_key` or the
+            // modifier's ID with an `_output` suffix, patterned by `output_pattern`.
+            "tconstruct:smelting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit" | "tconstruct:block_harvest" | "tconstruct:projectile_launch" | "tconstruct:on_attacked" | "tconstruct:plant_harvest" | "tconstruct:shear_entity" | "tconstruct:sling_launch")) => {
+                let Some(input) = crate::tool_inventory::Inventory::decode(fields)? else { return Ok(None) };
+                let optional_id = |key: &str| match fields.get(key).filter(|value| !value.is_null()) {
+                    None => Ok(None),
+                    Some(value) => Identifier::parse(value.as_str().ok_or_else(|| format!("{key} must be an ID string"))?).map(Some).map_err(|e| e.to_string()),
+                };
+                let output_pattern = match optional_id("output_pattern")? {
+                    Some(pattern) => pattern,
+                    None => Identifier::parse("tconstruct:result").expect("valid id"),
+                };
+                Self::Smelting {
+                    recipe_type: identifier(fields, "recipe_type")?.to_string(),
+                    multiplier: float(fields, "multiplier")?,
+                    output: Box::new(input.as_output(optional_id("output_key")?, Some(output_pattern))),
+                    input: Box::new(input),
+                    condition: Condition::decode(fields)?,
+                }
             }
             "tconstruct:severing" if only("tconstruct:process_loot") => Self::Severing,
             "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
@@ -1074,6 +1219,11 @@ impl Module {
             "tconstruct:insatiable" => Self::Insatiable,
             "tconstruct:lacerating" => Self::Lacerating,
             "tconstruct:momentum" => Self::Momentum,
+            "tconstruct:self_destructive" => Self::SelfDestructive,
+            "tconstruct:strong_bones" => Self::StrongBones,
+            "tconstruct:enderporting" => Self::Enderporting,
+            "tconstruct:harvest" => Self::Harvest,
+            "tconstruct:dwarven" => Self::Dwarven,
             "tconstruct:enderclearance" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:on_attacked" | "tconstruct:tooltip")) => {
                 Self::Enderclearance { chance: leveling_keyed(fields, "chance")?, diameter: leveling_keyed(fields, "diameter")? }
             }
@@ -1199,8 +1349,15 @@ impl Module {
                 // ToolInventoryCapability.addSlots, when the module's condition holds.
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
+            Self::Smelting { input, output, condition, .. } => {
+                // The smelting module adds both of its inventories (addModules registers each).
+                if condition.matches(entry, facts) {
+                    crate::tool_inventory::add_slots(data, input.volatile_slots(entry));
+                    crate::tool_inventory::add_slots(data, output.volatile_slots(entry));
+                }
+            }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::Fov { .. } | Self::Zoom { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1265,6 +1422,12 @@ impl Module {
             Self::Display(Display::Trim) => { persistent.remove(&format!("{modifier}_pattern")); persistent.remove(&format!("{modifier}_material")); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
             Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
+            // SmeltingModule: both of its inventories go the same way (the output under its resolved key).
+            Self::Smelting { input, output, .. } => {
+                let _ = crate::tool_inventory::on_removed(input, modifier, persistent);
+                let output = match output.named_key() { Some(_) => (**output).clone(), None => output.with_key(Identifier::parse(&format!("{modifier}_output")).expect("valid id")) };
+                let _ = crate::tool_inventory::on_removed(&output, modifier, persistent);
+            }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -1273,6 +1436,16 @@ impl Module {
     /// BreakSpeedModifierHook for a conditional mining speed module: the speed after it, with its priority
     /// (percent modules run after the additive ones, at 75).
     pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
+        // DwarvenModifier.modifyBreakSpeed: on an effective dig, the speed grows with depth under
+        // the level's top and fades near it; the bonus is the dig's own multiplier (haste, fatigue,
+        // water, air) times the tool's mining speed multiplier times the mining bonus of 6. A dig
+        // that reported no build height leaves the speed alone.
+        if let Self::Dwarven = self {
+            if !context.effective { return speed; }
+            let Some(build) = context.facts.build_height else { return speed; };
+            let bonus = context.multiplier * tool.multiplier(Stat::MiningSpeed) * 6.0;
+            return crate::mining_speed::dwarven_boost(build[1], context.facts.pos_y as f32, entry.effective_level(), speed, bonus);
+        }
         // MomentumModifier.modifyBreakSpeed: on an effective dig, the speed grows by the harvest
         // momentum the holder carries (a quarter more a modifier level at the effect's tenth level).
         if let Self::Momentum = self {
@@ -1292,6 +1465,14 @@ impl Module {
             Self::Insatiable if stat == Stat::ProjectileDamage => return value + crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:insatiable_ranged") * entry.effective_level() / 4.0 * multiplier,
             // MomentumModifier.modifyStat: draw speed grows with the ranged momentum effect.
             Self::Momentum if stat == Stat::DrawSpeed => return value * (1.0 + entry.effective_level() * crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:momentum_ranged") / 40.0),
+            // DwarvenModifier.modifyStat: projectile velocity follows the same depth curve, its
+            // per-level bonus the velocity bonus of 0.05 times the stat's own multiplier. The
+            // holder's height and the level's build height must both be reported (the dig report
+            // carries them; a stat read that has neither leaves the stat standing).
+            Self::Dwarven if stat == Stat::Velocity => {
+                let (Some(y), Some(build)) = (tool.entities.attacker.and_then(|holder| holder.y), tool.facts.build_height) else { return value; };
+                return crate::mining_speed::dwarven_boost(build[1], y as f32, entry.effective_level(), value, multiplier * 0.05);
+            }
             _ => {}
         }
         let Self::ConditionalStat { module, condition } = self else { return value; };
@@ -1302,7 +1483,7 @@ impl Module {
         match self {
             Self::ConditionalStat { module, .. } => Some(module.percent()),
             // The code modifiers below are not percent modules; they run at their modifier's priority.
-            Self::Conducting | Self::Insatiable | Self::Momentum => Some(false),
+            Self::Conducting | Self::Insatiable | Self::Momentum | Self::Dwarven => Some(false),
             _ => None,
         }
     }
@@ -1425,6 +1606,35 @@ impl Module {
             _ => None,
         }
     }
+    /// Every inventory this module adds to a tool: a smelting module adds its input and its output
+    /// (addModules registers both), in that order; any other module adds its one part or none.
+    pub fn inventory_parts(&self, entry: &Entry, facts: &Facts) -> Vec<crate::tool_inventory::Part> {
+        match self {
+            Self::Smelting { .. } => match self.smelting_parts(entry, facts) { Some((input, output, _, _)) => vec![input, output], None => Vec::new() },
+            _ => self.inventory_part(entry, facts).into_iter().collect(),
+        }
+    }
+    /// AutosmeltModule's terms: the recipe types to try, in order, and the chance of an extra item
+    /// per level past the first; None for another module (the module carries no condition).
+    pub fn autosmelt(&self) -> Option<(&[String], f32)> {
+        let Self::Autosmelt { recipe_types, extra_drop_chance } = self else { return None; };
+        Some((recipe_types, *extra_drop_chance))
+    }
+    /// SmeltingModule's inventories as parts of this tool: the input part, the output part (its key
+    /// resolved: the JSON's `output_key`, else the modifier's ID with an `_output` suffix), the
+    /// recipe type and the multiplier; None for another module.
+    pub fn smelting_parts(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_inventory::Part, crate::tool_inventory::Part, &str, f32)> {
+        let Self::Smelting { recipe_type, multiplier, input, output, condition } = self else { return None; };
+        let active = condition.matches(entry, facts);
+        let tool_matches = condition.tool_matches(facts);
+        let input_part = crate::tool_inventory::Part::new((**input).clone(), entry.clone(), active, tool_matches);
+        let output_inventory = match output.named_key() {
+            Some(_) => (**output).clone(),
+            None => output.with_key(Identifier::parse(&format!("{}_output", entry.id)).ok()?),
+        };
+        let output_part = crate::tool_inventory::Part::new(output_inventory, entry.clone(), active, tool_matches);
+        Some((input_part, output_part, recipe_type, *multiplier))
+    }
     /// CraftCountModule.modifyCraftCount: the running count multiplied by the module's value, when its
     /// condition holds (the caller stops the chain at zero, as the composed hook does).
     pub fn craft_count(&self, entry: &Entry, facts: &Facts, count: f32) -> f32 {
@@ -1518,6 +1728,11 @@ impl Module {
     }
     /// Whether this is the edible module itself.
     pub fn is_edible(&self) -> bool { matches!(self, Self::Edible) }
+    /// EdibleRepresentativeItemModule: the item this module presents as eaten, when its condition holds.
+    pub fn representative_item(&self, entry: &Entry, facts: &Facts) -> Option<&Identifier> {
+        let Self::EdibleRepresentative { item, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(item)
+    }
     /// What eating the tool does for this edible effect module, when its conditions hold.
     pub fn edible_effect(&self, entry: &Entry, facts: &Facts) -> Option<crate::edible::Effect> {
         match self {
@@ -1701,6 +1916,10 @@ impl Module {
     }
     /// Whether this is the throwing module.
     pub fn is_throwing(&self) -> bool { matches!(self, Self::Throwing) }
+    /// Whether this is the enderporting module (EnderportingModifier's swap behaviours).
+    pub fn is_enderporting(&self) -> bool { matches!(self, Self::Enderporting) }
+    /// Whether this is the harvest module (HarvestModule's right-click harvest).
+    pub fn is_harvest(&self) -> bool { matches!(self, Self::Harvest) }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.
@@ -1776,6 +1995,15 @@ impl Module {
         let level = (flat + each * entry.effective_level()) as i32;
         if level > 0 { level } else { 0 }
     }
+    /// HarvestEnchantmentsModifierHook for one worn piece: the enchantment this module lends the
+    /// breaking stack while the piece sits in `slot`, and its level (EnchantmentModule.ArmorHarvest:
+    /// the slot must be listed and the condition must match; the level may be 0 or negative, which
+    /// the merge reads as taking levels away).
+    pub fn armor_harvest_enchantment(&self, entry: &Entry, facts: &Facts, slot: &str) -> Option<(String, i32)> {
+        let Self::ArmorHarvestEnchantment { name, flat, each, slots, condition } = self else { return None; };
+        if !slots.iter().any(|listed| listed.as_str() == slot) || !condition.matches(entry, facts) { return None; }
+        Some((name.clone(), (flat + each * entry.effective_level()) as i32))
+    }
     /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
     pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
         let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
@@ -1787,6 +2015,16 @@ impl Module {
     pub fn walk_transform(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, f32)> {
         let Self::WalkTransform { action, sound, radius, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), radius.compute(entry.effective_level())))
+    }
+    /// The boot walk this module performs, at the entry's effective level (ArmorWalkRadiusModule,
+    /// the radius as in walk_transform above).
+    pub fn walk_module(&self, entry: &Entry, facts: &Facts) -> Option<WalkModule> {
+        match self {
+            Self::FireWalker { radius } => Some(WalkModule::Fire { radius: radius.compute(entry.effective_level()) }),
+            Self::GlowWalker { radius, min_light, damage } => Some(WalkModule::Glow { radius: radius.compute(entry.effective_level()), min_light: *min_light, damage: *damage }),
+            Self::CoverGround { block, radius, condition } if condition.matches(entry, facts) => Some(WalkModule::Cover { block: block.clone(), radius: radius.compute(entry.effective_level()) }),
+            _ => None,
+        }
     }
     /// ToolActionModifierHook.canPerformAction: a tool actions module answers for its named actions, a shears
     /// module for the four shear actions and a fishing module for the cast, each while its condition holds
@@ -1810,6 +2048,19 @@ impl Module {
     pub fn extinguishes_campfires(&self, entry: &Entry, facts: &Facts) -> bool {
         let Self::CampfireExtinguish { condition } = self else { return false; };
         condition.matches(entry, facts)
+    }
+    /// PlaceGlowModule: the wear a glow this module places costs its tool. The module carries no
+    /// condition; a broken tool answers nothing, which the consumers check, as Java's hooks do.
+    pub fn place_glow(&self) -> Option<i32> {
+        let Self::PlaceGlow { damage } = self else { return None; };
+        Some(*damage)
+    }
+    /// BlockItemProviderModule.getBlockItemStack: the block item this module provides and the wear
+    /// consuming one costs, while its condition holds (a broken tool provides nothing; the capability
+    /// query in tool_stack checks that, as Java's module does in its own answer).
+    pub fn block_item_provider(&self, entry: &Entry, facts: &Facts) -> Option<(Identifier, i32)> {
+        let Self::BlockItemProvider { item, damage, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (item.clone(), *damage))
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
@@ -1841,7 +2092,8 @@ impl Module {
         match self {
             Self::MiningSpeed { module, .. } => Some(module.percent()),
             // MomentumModifier is not a percent module; it runs at its modifier's priority (75).
-            Self::Momentum => Some(false),
+            // Neither is DwarvenModifier; it runs at its own priority (85).
+            Self::Momentum | Self::Dwarven => Some(false),
             _ => None,
         }
     }

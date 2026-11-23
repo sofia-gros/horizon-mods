@@ -479,7 +479,7 @@ fn is_liquid(block: &Identifier) -> bool {
 /// body would occupy (feet and head) must hold no liquid and nothing solid — air, or a block
 /// the game calls replaceable. An unloaded destination refuses, as a collision there cannot
 /// be ruled out (the original's `randomTeleport` fails the same way).
-fn teleport_lands(world: &World, dest: [f64; 3]) -> bool {
+pub(crate) fn teleport_lands(world: &World, dest: [f64; 3]) -> bool {
     let x = dest[0].floor() as i32;
     let y = dest[1].floor() as i32;
     let z = dest[2].floor() as i32;

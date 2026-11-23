@@ -79,6 +79,16 @@ pub struct BreakSpeedContext {
     /// The temperature of the biome at the block being dug, as `Biome.getTemperature` reports it there; None for a biome
     /// PlutoLib has no temperature for.
     pub biome_temperature: Option<f32>,
+    /// The block's explosion resistance (`BlockState.getExplosionResistance`), for the block property
+    /// variables that read it; None when the game did not report it, and a variable over it takes its fallback.
+    pub blast_resistance: Option<f32>,
+    /// Whether the block needs the correct tool for drops (`BlockState.requiresCorrectToolForDrops`), for the
+    /// `mantle:requires_tool` block predicate; None when the game did not report it.
+    pub requires_tool: Option<bool>,
+    /// The build range of the level the dig is in, [min, max) as `Level.getMinBuildHeight` and
+    /// `Level.getMaxBuildHeight` bound it, for the modules that scale with depth under the level's
+    /// top (dwarven); None when the game did not report it.
+    pub build_height: Option<[i32; 2]>,
 }
 
 /// What the world reports about a dig besides the block itself: its light and the temperature of its biome.
@@ -88,6 +98,9 @@ pub struct DiggingFacts {
     pub sky_light: Option<u8>,
     pub sky_darken: u8,
     pub biome_temperature: Option<f32>,
+    pub blast_resistance: Option<f32>,
+    pub requires_tool: Option<bool>,
+    pub build_height: Option<[i32; 2]>,
 }
 
 /// What a break-speed callback may read about the player who digs.
@@ -224,6 +237,10 @@ pub struct BlockBreakContext {
     /// The stack in the player's main hand: before the break for `BEFORE` and `CANCELED`, at the tick that reports it (with the wear the break caused) for `AFTER`.
     /// None for an empty hand.
     pub held: Option<StackData>,
+    /// The equipment the breaker wears or holds in the off hand, as (slot, stack): `feet`, `legs`, `chest`, `head`, then
+    /// `offhand`, as of their last tick, only the pieces carrying custom data. Empty when the game names no player or the
+    /// player is not known. A module that lends the breaking stack its enchantments (a harvest enchantment on armor) reads it.
+    pub equipment: Vec<(String, StackData)>,
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to. The game does it right after the callbacks ran: for
     /// `BEFORE` even when a callback vetoes the break, for `AFTER` once the break is done. `EditStackData` acts on the main hand as it is then.
     pub actions: RefCell<Vec<EntityAction>>,
@@ -242,7 +259,7 @@ pub struct BlockBreakContext {
 impl BlockBreakContext {
     /// A context with only a position, for a game that reports nothing else (and for callbacks that only read `pos`).
     pub fn at(pos: [i32; 3]) -> Self {
-        Self { pos, dimension: String::new(), state: None, player: None, held: None, actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()) }
+        Self { pos, dimension: String::new(), state: None, player: None, held: None, equipment: Vec::new(), actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()) }
     }
 
     /// Takes the block at `pos` with this break (see `extra_breaks`): the block itself, a duplicate and anything past 64 extra
@@ -376,7 +393,7 @@ pub(crate) fn use_item_finish(context: &UseItemFinishContext) -> Option<ItemSlot
 
 /// The dig speed after every callback has had its say.
 pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32, held: Option<super::player_api::StackData>, player: Option<DiggingPlayer>, facts: DiggingFacts) -> f32 {
-    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held, player, block_light: facts.block_light, sky_light: facts.sky_light, sky_darken: facts.sky_darken, biome_temperature: facts.biome_temperature };
+    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held, player, block_light: facts.block_light, sky_light: facts.sky_light, sky_darken: facts.sky_darken, biome_temperature: facts.biome_temperature, blast_resistance: facts.blast_resistance, requires_tool: facts.requires_tool, build_height: facts.build_height };
     BREAK_SPEED.invoke(&context);
     context.speed.get()
 }
@@ -547,7 +564,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         BreakSpeedCallback::EVENT.register(move |c| if c.pos == [9, 9, 9] { log.lock().unwrap().push((c.block_light, c.sky_light, c.sky_darken, c.biome_temperature)); });
-        let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8) };
+        let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8), blast_resistance: Some(6.0), requires_tool: Some(true), build_height: None };
         break_speed([9, 9, 9], block, 2.0, 2.0, None, None, facts);
         assert_eq!(*seen.lock().unwrap(), vec![(Some(3), Some(15), 4, Some(0.8))]);
     }
@@ -584,6 +601,7 @@ mod tests {
             state: Some(BlockState { block: super::super::base::Identifier::parse("test:rock").unwrap(), properties: Default::default() }),
             player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }),
             held: Some(StackData { item: "test:pick".into(), count: 1, damage: 4, ..Default::default() }),
+            equipment: Vec::new(),
             actions: RefCell::new(Vec::new()),
             face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()),
         };

@@ -550,7 +550,7 @@ impl Data {
     /// before modifier break-speed modules, as in the original hook order.
     pub fn modify_mining_speed(&self, context: &crate::mining_speed::Context, speed: f32) -> f32 {
         self.speed.iter().fold(speed, |speed, (condition, modifier)| {
-            if condition.matches(context.block, context.block_in_tag) { speed * modifier } else { speed }
+            if condition.matches(context.block, context.block_in_tag, &context.facts) { speed * modifier } else { speed }
         })
     }
     /// MissingMaterialsToolHook: the filled material list when the tool holds fewer materials
