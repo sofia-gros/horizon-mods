@@ -2194,6 +2194,11 @@ impl EntityOps for HostEntities {
         let Some(id) = self.push_target(id) else { return false };
         horizon_client::game::pluto_entity_push_access::request_leave_ground(&self.dimension, id)
     }
+
+    fn ignite_creeper(&mut self, id: u64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_ignite_access::request_ignite_creeper(&self.dimension, id)
+    }
 }
 
 /// Runs `f` with the player scope and the world scope both open over the host.
@@ -4593,15 +4598,18 @@ impl Hooks for PlutoHooks {
             return Flow::Continue;
         }
         let player = host.acting_player();
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let creative = player.as_ref().map_or(false, |player| player.game_mode == 1);
         let context = events_interaction_v0::UseItemOnEntityContext {
             entity: event.entity,
             kind: event.kind.to_owned(),
             hand: match event.hand { Hand::Off => events_interaction_v0::Hand::Off, _ => events_interaction_v0::Hand::Main },
             held: event.stack.map(read_stack),
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            dimension: dimension.clone(),
+            creative,
             actions: std::cell::RefCell::new(Vec::new()),
         };
-        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
         let handle = HostHandle::new(host);
         let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::use_item_on_entity(&context)));
         let actions = context.actions.take();

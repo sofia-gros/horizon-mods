@@ -493,7 +493,7 @@ assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light:
 
 ### `UseItemOnEntityContext`
 
-A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none) and `actions` the `EntityAction`s a callback queues for the player.
+A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none), `dimension` the dimension the player is in and `creative` whether the player is in creative mode, and `actions` the `EntityAction`s a callback queues for the player.
 
 ```rust
 use std::cell::RefCell;
@@ -502,13 +502,35 @@ use pluto_lib::{Hand, ServerPlayer, StackData, UseItemOnEntityContext};
 let click = UseItemOnEntityContext {
     entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
-    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
+    actions: RefCell::new(Vec::new()),
 };
 assert_eq!((click.entity, click.hand), (5, Hand::Main));
 assert_eq!(click.kind, "minecraft:sheep");
 assert_eq!(click.held.as_ref().map(|held| held.item.as_str()), Some("test:kama"));
 assert_eq!(click.player.as_ref().map(|player| player.uuid), Some(9));
+assert_eq!(click.dimension, "minecraft:overworld");
+assert!(!click.creative);
 assert!(click.actions.borrow().is_empty());
+```
+
+### `EntityReach::ignite_creeper`
+
+`fn ignite_creeper(id: u64) -> bool`. Ignites the creeper `id`, as flint and steel does: the creeper's own ignited flag is set, so its fuse starts and it explodes at max swell. Only a creeper is ignited. A host may apply an accepted ignite at its next rider synchronisation rather than instantly, as for a knockback; a refusal there (the entity is gone, or not a creeper) is final. False outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:creeper").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || assert!(EntityReach::ignite_creeper(2)));
+assert_eq!(ops.ignited_creepers, vec![2]);
+assert!(!EntityReach::ignite_creeper(2), "outside a scope");
 ```
 
 ### `InteractEntityContext`
@@ -601,7 +623,8 @@ UseEntityCallback::EVENT.register(|click| {
 let click = UseItemOnEntityContext {
     entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
-    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
+    actions: RefCell::new(Vec::new()),
 };
 assert_eq!(UseEntityCallback::EVENT.invoke(&click), ActionResult::Success);
 ```

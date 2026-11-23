@@ -1207,7 +1207,7 @@ An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed pos
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
 
 let mut ops = MemoryEntityOps::default();
-for (id, kind) in [(2, "minecraft:zombie"), (3, "minecraft:cow")] {
+for (id, kind) in [(2, "minecraft:zombie"), (3, "minecraft:cow"), (4, "minecraft:creeper")] {
     ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
         id,
         kind: Identifier::parse(kind).unwrap(),
@@ -1220,11 +1220,13 @@ with_entities(&mut ops, || {
     assert!(EntityReach::knockback(2, 1.5, -0.5, 0.25));
     assert!(EntityReach::push(3, [0.1, 0.4, -0.2]));
     assert!(EntityReach::leave_ground(2));
+    assert!(EntityReach::ignite_creeper(4));
 });
 assert_eq!(ops.mounts, vec![(2, 3)]);
 assert_eq!(ops.knocked, vec![(2, 1.5, -0.5, 0.25)]);
 assert_eq!(ops.pushed, vec![(3, [0.1, 0.4, -0.2])]);
 assert_eq!(ops.lifted, vec![2]);
+assert_eq!(ops.ignited_creepers, vec![4]);
 ```
 
 ### `with_entities`

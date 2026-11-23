@@ -175,6 +175,10 @@ pub struct UseItemOnEntityContext {
     pub held: Option<StackData>,
     /// The player; None when the game names none.
     pub player: Option<ServerPlayer>,
+    /// The dimension the player is in, such as `minecraft:overworld`; empty when the game does not name it.
+    pub dimension: String,
+    /// Whether the player is in creative mode (nothing is used up).
+    pub creative: bool,
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to; the game does it right after the callbacks ran.
     pub actions: RefCell<Vec<EntityAction>>,
 }
@@ -621,12 +625,30 @@ mod tests {
         let click = |kind: &str, item: &str| UseItemOnEntityContext {
             entity: 5, kind: kind.into(), hand: Hand::Main,
             held: Some(StackData { item: item.into(), count: 1, ..Default::default() }),
-            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
+            actions: RefCell::new(Vec::new()),
         };
         assert!(use_item_on_entity_heard());
         assert!(use_item_on_entity(&click("minecraft:sheep", "test:kama")), "the kama takes the click on the sheep");
         assert!(!use_item_on_entity(&click("minecraft:sheep", "minecraft:shears")), "another tool leaves the click to the game");
         assert!(!use_item_on_entity(&click("minecraft:cow", "test:kama")));
+    }
+
+    #[test]
+    fn an_entity_click_names_the_dimension_and_whether_the_player_is_creative() {
+        UseEntityCallback::EVENT.register(|click| {
+            if click.kind == "minecraft:creeper" {
+                assert_eq!(click.dimension, "minecraft:overworld");
+                assert!(click.creative, "the click names a creative player");
+            }
+            ActionResult::Pass
+        });
+        let click = UseItemOnEntityContext {
+            entity: 5, kind: "minecraft:creeper".into(), hand: Hand::Main,
+            held: None, player: None, dimension: "minecraft:overworld".into(), creative: true,
+            actions: RefCell::new(Vec::new()),
+        };
+        assert!(!use_item_on_entity(&click));
     }
 
     #[test]
