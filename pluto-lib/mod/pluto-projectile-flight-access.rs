@@ -45,6 +45,7 @@ pub enum FlightAction {
     Particle { name: String, position: [f64; 3], count: u32, spread: [f64; 3], speed: f64 },
     PushEntity { entity: u32, delta: [f64; 3] },
     PullItems { center: [f64; 3], radius: f64, strength: f64 },
+    PullEntities { center: [f64; 3], radius: f64, strength: f64 },
     DropStack { stack: crate::items::ItemStack, position: [f64; 3] },
     GiveStack { stack: crate::items::ItemStack },
 }

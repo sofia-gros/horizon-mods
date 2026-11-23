@@ -534,7 +534,7 @@ assert_eq!(flight.actions.borrow().len(), 1);
 
 ### `FlightAction`
 
-One thing a flight callback asks the game to do around a flying projectile, in plain data, done as the tick settles in the order queued: `Explode` sets off a blast, `Particle` spawns a particle, `PushEntity` adds a motion to an entity, `PullItems` pulls the item entities near a point toward it, `DropStack` drops a stack as an item entity, and `GiveStack` hands a stack to the projectile's owner (into a player owner's inventory, or dropped at their feet when it does not fit or the owner is no player).
+One thing a flight callback asks the game to do around a flying projectile, in plain data, done as the tick settles in the order queued: `Explode` sets off a blast, `Particle` spawns a particle, `PushEntity` adds a motion to an entity, `PullItems` pulls the item entities near a point toward it, `PullEntities` pulls the mobs near a point toward it, `DropStack` drops a stack as an item entity, and `GiveStack` hands a stack to the projectile's owner (into a player owner's inventory, or dropped at their feet when it does not fit or the owner is no player).
 
 ```rust
 use pluto_lib::{FlightAction, StackData, ExplosionInteraction};

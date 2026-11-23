@@ -483,6 +483,12 @@ pub struct ReleaseUsing {
     pub player: super::player_api::ServerPlayer,
     /// The dimension the player is in, such as `minecraft:overworld`; also available as [`ReleaseUsing::world`].
     pub dimension: String,
+    /// Where the player stands (their feet).
+    pub position: [f64; 3],
+    /// Where the player's eyes are: where a thrown or shot projectile leaves from.
+    pub eye: [f64; 3],
+    /// The direction the player looks, as a unit vector: how a release aims what it throws or shoots.
+    pub look: [f64; 3],
     /// How many ticks the use was held before the release: the charge. A use that ran its whole time out is finished,
     /// not released, and is not heard here.
     pub ticks_used: u32,
@@ -632,6 +638,9 @@ mod tests {
             stack: tool.clone(),
             player: super::super::player_api::ServerPlayer { uuid: 7, name: "thrower".into() },
             dimension: "minecraft:overworld".into(),
+            position: [0.5, 64.0, 0.5],
+            eye: [0.5, 65.62, 0.5],
+            look: [0.0, 0.0, 1.0],
             ticks_used,
             main_hand: Some(tool.clone()),
             off_hand: None,
