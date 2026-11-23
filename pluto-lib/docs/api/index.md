@@ -73,6 +73,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 | [recipe](recipe.md) | mod-defined crafting ingredient kinds (load-time item lists and craft-time stack tests) and crafting assembly providers that deny a match or replace the result's custom data (both registries pure-tested; native ingredient dispatch and the crafting gate's assembly arm source-wired, native-unvalidated) |
 | [creative](creative.md) | creative inventory tabs, data-carrying stacks, entries for existing tabs; eleven-tab paging/cursor preservation/named-stack extraction fixture verified on the fixed host; separate vanilla-stack extraction/full quit-reopen verified (named/paged persistence, search and LAN unverified) |
 | [player](player.md) | messages, stack data, effects, reading hunger and feeding players with `add_food`, testing with `MemoryPlayerOps` |
+| [potions](potions.md) | the effects a potion carries (effect, duration, amplifier, instantaneous), read from the game's own potion registry; potion contents as a stack carries them (the potion's effects followed by its custom effects) |
 | [attachments](attachments.md) | typed player/entity data; explicit sync policy and native entity forwarding (source-wired; entity save/LAN unverified) |
 | [config](config.md) | config files |
 | [commands](commands.md) | commands |
