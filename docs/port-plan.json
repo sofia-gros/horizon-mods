@@ -180,6 +180,12 @@
     "api/src/shaped_materials.rs",
     "api/src/swapping_recipes.rs",
     "api/src/material_render.rs",
+    "api/src/crafting_modifier_repair.rs",
+    "api/src/crafting_overslime.rs",
+    "api/src/damaging.rs",
+    "api/src/dyeing.rs",
+    "api/src/modifier_repair.rs",
+    "api/src/table_recipes.rs",
     "LICENSE"
   ],
   "cargo_dependencies": ["serde_json", "toml"],
