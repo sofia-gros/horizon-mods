@@ -14,10 +14,7 @@ use crate::{
     tool_slot,
     tool_stack::{rebuild_stats, try_validate, Environment, TAG_MODIFIERS, TAG_PERSISTENT, TAG_UPGRADES},
 };
-use pluto_lib::{
-    nbt::{Nbt, NbtCompound},
-    Identifier, ItemSlot, ResourceManagerHelper, ResourceType, ServerLifecycleEvents,
-};
+use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound, ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
 use serde_json::Value;
 use std::sync::{Arc, RwLock};
 
