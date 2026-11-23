@@ -396,7 +396,7 @@ mod tests {
         let copper = view("minecraft:copper_ingot");
         let brick = view("tconstruct:seared_bricks");
         let cells = [Some(copper), Some(brick), Some(copper)];
-        let facts = RecipeFacts { form: RecipeForm::Shaped { width: 3, height: 1 }, result_item: Some("tconstruct:seared_drain"), result_count: 1 };
+        let facts = RecipeFacts { id: None, form: RecipeForm::Shaped { width: 3, height: 1 }, result_item: Some("tconstruct:seared_drain"), result_count: 1 };
         let request = AssemblyRequest { recipe: &facts, grid: GridFacts { width: 3, height: 1, left: 0, top: 0, cells: &cells }, result: None };
         assert_eq!(grid_texture(&recipe, &request), Some(Ok("tconstruct:seared_bricks".to_owned())));
         // a stack outside the key is not this recipe's grid
@@ -418,7 +418,7 @@ mod tests {
         let pattern = view("tconstruct:pattern");
         let oak = view("minecraft:oak_planks");
         let birch = view("minecraft:birch_planks");
-        let facts = RecipeFacts { form: RecipeForm::Shaped { width: 2, height: 2 }, result_item: Some("tconstruct:part_builder"), result_count: 1 };
+        let facts = RecipeFacts { id: None, form: RecipeForm::Shaped { width: 2, height: 2 }, result_item: Some("tconstruct:part_builder"), result_count: 1 };
         let mixed = [Some(pattern), Some(pattern), Some(oak), Some(birch)];
         let request = AssemblyRequest { recipe: &facts, grid: GridFacts { width: 2, height: 2, left: 0, top: 0, cells: &mixed }, result: None };
         assert_eq!(grid_texture(&recipe, &request), Some(Err(())), "two woods under match_all do not match");
