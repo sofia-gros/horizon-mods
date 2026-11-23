@@ -326,6 +326,10 @@ impl Modifier {
     pub fn edible_effects(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::edible::Effect> {
         self.modules.iter().filter_map(|module| module.edible_effect(entry, facts)).collect()
     }
+    /// The representative items this modifier presents as eaten (EdibleRepresentativeItemModule), in module order.
+    pub fn representative_items(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<Identifier> {
+        self.modules.iter().filter_map(|module| module.representative_item(entry, facts)).cloned().collect()
+    }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_thorns())

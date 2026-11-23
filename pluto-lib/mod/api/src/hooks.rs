@@ -3503,6 +3503,28 @@ impl Hooks for PlutoHooks {
         if !edits.is_empty() { apply_carried_edits(host, player.uuid, edits); }
     }
 
+    /// One tick of a player's use of an item (API 131): heard only for the using player and only
+    /// when a callback listens, as the release is. The use's end is the game's; the tick moves nothing.
+    fn living_entity_use_item_tick(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingEntityUseItemTickEvent<'_>) -> Flow {
+        if event.entity.is_some() || !item_api_v1::use_tick_heard() { return Flow::Continue; }
+        let Some(player) = host.acting_player() else { return Flow::Continue; };
+        let stack = read_stack(event.stack);
+        let total = item_api_v1::stack_use_duration(&stack)
+            .or_else(|| item_api_v1::ItemUseRegistry::get(&stack.item).map(|used| used.use_time))
+            .unwrap_or(0);
+        let tick = item_api_v1::UseTick {
+            stack,
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            dimension: player.dimension.to_string(),
+            position: player.position,
+            creative: player.game_mode == 1,
+            ticks_used: (total - event.duration).max(0) as u32,
+            duration: total as u32,
+        };
+        scoped(host, || item_api_v1::using_tick(&tick));
+        Flow::Continue
+    }
+
     fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
         use item_api_v1::UseAction;
         let action = if item_api_v1::has_stack_use(&event.stack.item) {

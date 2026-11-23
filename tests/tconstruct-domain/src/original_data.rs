@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (51, 26), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (48, 25), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -209,8 +209,10 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(!kinds.contains("tconstruct:smelting"), "smelting should be bound");
     assert!(unbound_of("autosmelt").is_empty(), "autosmelt is fully bound");
     assert!(unbound_of("smelting").is_empty(), "smelting is fully bound");
-    // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
-    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The edible family is bound in full: the representative item binds over the use tick PlutoLib
+    // reports (its eating sounds while the use runs; its item particles and the Diet integration
+    // are the parts the port does not carry, as edible.rs's head note records).
+    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect", "edible_representative_item"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The special melee consumers are bound: punch and reverse punch over the projectile hooks, the melee instrument, the
     // overgrowth inventory tick and kinetic's insatiable feed. The tool tank family binds over the tool tank (tool_tank):
     // smashing and overburn themselves, the interaction modules (bucket, tank interaction, melting, slurping, spilling,
@@ -2214,13 +2216,13 @@ fn edible_pickaxe<R>(upgrades: &[(&str, i32)], charge_tagged: bool, run: impl Fn
 }
 
 #[test]
-fn the_shipped_edible_family_binds_all_but_the_representative_item() {
+fn the_shipped_edible_family_binds_in_full() {
     let mut registry = Registry::default();
     registry.reload(&files("modifiers"), &conditions());
     let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:edible").is_empty(), "the edible module and its tooltip trait are bound");
     for name in ["tasty", "savory", "scrumptious"] {
-        assert_eq!(unbound(&format!("tconstruct:{name}")), vec!["tconstruct:edible_representative_item"], "{name} keeps only the particles-and-Diet module unbound");
+        assert!(unbound(&format!("tconstruct:{name}")).is_empty(), "{name} is fully bound, its representative item over the use tick");
     }
 }
 
@@ -2236,7 +2238,7 @@ fn an_eaten_tool_feeds_the_rounded_stats_and_runs_each_modifiers_edible_effects_
         assert_eq!((eaten.nutrition, eaten.effects), (2, vec![Effect::ConsumeDurability(15)]));
         assert!((eaten.saturation - 0.6).abs() < 1e-6);
     });
-    // savory I: wears 4 + 4, then cures one effect; the representative item is unbound and adds nothing.
+    // savory I: wears 4 + 4, then cures one effect; the representative item adds no edible effect (it presents the meal).
     edible_pickaxe(&[("tconstruct:savory", 1)], true, |env, tool| {
         assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::CureRandomEffect]));
         assert!((stat(&tool.custom_data, Stat::Saturation) - 0.4).abs() < 1e-6);

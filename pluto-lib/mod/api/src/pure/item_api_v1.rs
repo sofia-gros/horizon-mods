@@ -469,6 +469,40 @@ pub(crate) fn has_stacked_on_other() -> bool {
 pub(crate) fn stacked_on_other(item: &str) -> Option<StackedOnOtherCallback> {
     StackedOnOtherRegistry::get(item)
 }
+/// One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`, the
+/// game's `native_living_entity_use_item_tick`, API 131): the stack in use, how many ticks the use
+/// has run and its full time. Heard every tick of the use, for the using player only, and only
+/// when a callback listens. The tick itself changes nothing: a callback acts through the player
+/// and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's
+/// drain). A use that ran its time out is finished, not ticked past its end.
+#[derive(Clone, Debug)]
+pub struct UseTick {
+    /// The stack being used.
+    pub stack: super::player_api::StackData,
+    /// The player using it.
+    pub player: super::player_api::ServerPlayer,
+    /// The dimension the player is in, such as `minecraft:overworld`; also available as [`UseTick::world`].
+    pub dimension: String,
+    /// Where the player stands (their feet).
+    pub position: [f64; 3],
+    /// Whether the player is in creative mode.
+    pub creative: bool,
+    /// How many ticks the use has run: the use's full time less the ticks left, so the first
+    /// ticks of a use read near 0 and the last near `duration`.
+    pub ticks_used: u32,
+    /// The use's full time in ticks, as the stack's use gives it.
+    pub duration: u32,
+}
+
+impl UseTick {
+    /// The world the player is in.
+    pub fn world(&self) -> super::world_api_v1::World {
+        super::world_api_v1::World::new(&self.dimension)
+    }
+}
+
+static USE_TICK: Event<UseTick, ()> = Event::void();
+
 /// A player let go of an item they were using, before its use time ran out (vanilla's `Item.releaseUsing`, NeoForge's
 /// `LivingEntityUseItemEvent` release half, the game's `native_release_using`, API 131): the charge-and-release half of a
 /// use. A bow-like item shoots by the charge it gathered; a thrown tool leaves the hand. The stacks in both hands are
@@ -525,6 +559,18 @@ pub struct ItemEvents;
 impl ItemEvents {
     /// A player released an item they were using (see [`ReleaseUsing`]). Server only.
     pub const RELEASE_USING: &'static Event<ReleaseUsing, ()> = &RELEASE_USING;
+    /// One tick of a player using an item over time (see [`UseTick`]). Server only.
+    pub const USE_TICK: &'static Event<UseTick, ()> = &USE_TICK;
+}
+
+/// Whether anyone listens to use ticks, so the host hook answers without building the payload.
+pub(crate) fn use_tick_heard() -> bool {
+    !USE_TICK.is_empty()
+}
+
+/// Reports one tick of a use to the callbacks.
+pub(crate) fn using_tick(tick: &UseTick) {
+    USE_TICK.invoke(tick);
 }
 
 /// Whether anyone listens to releases, so the host hook answers without building the payload.

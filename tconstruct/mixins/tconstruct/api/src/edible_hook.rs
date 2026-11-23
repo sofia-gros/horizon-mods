@@ -3,7 +3,7 @@
 //! (`EdibleModule.onToolUse`); other tools, and a tool the use refuses, keep the game's own use. When the use is done the player is fed, the
 //! eating sounds play and each modifier's edible effects run, wearing the tool in the hand (`EdibleModule.eat`).
 use crate::{break_speed_hook::with_held_tool, edible, tool_damage_hook, tool_slot, tool_stack, tool_stats::Stat};
-use pluto_lib::{Identifier, ItemUseRegistry, StackData, StackUse, UseAction, UseItemFinishCallback, UseItemFinishContext, World};
+use pluto_lib::{Identifier, ItemEvents, ItemUseRegistry, StackData, StackUse, UseAction, UseItemFinishCallback, UseItemFinishContext, World};
 
 /// The tool items `EdibleModule.onToolUse` can start eating with: those tagged `tconstruct:modifiable/interactable/charge` (a tool that charges
 /// its right click: the swasher, the right-click and dual tools, the shields and the bows). Armor is never eaten with a right click, which
@@ -82,4 +82,23 @@ pub(crate) fn register() {
             .requires_hunger());
     }
     UseItemFinishCallback::EVENT.register(finished);
+    // EdibleRepresentativeItemModule.onUsingTick: while an edible tool is being eaten, every
+    // fourth tick of the use plays the eating sound of its representative item (the item
+    // particles of the same call are not spawned: the port's particle spawn carries no
+    // per-spawn item). The completion burst of the original rides the finish above, whose own
+    // sounds play; the release half (beforeReleaseUsing) names the same burst at a full use,
+    // which the finish already covers.
+    ItemEvents::USE_TICK.register(|tick| {
+        if tick.ticks_used >= tick.duration || tick.ticks_used % 4 != 0 { return; }
+        let Some(status) = tick.player.food() else { return; };
+        if !edible::can_eat(tick.creative, status.level) { return; }
+        let Ok(presented) = with_held_tool(&tick.stack, |env, tool| {
+            if tool_stack::is_broken(&tool.custom_data) || tool_stack::stat(&tool.custom_data, Stat::Hunger) as i32 <= 0 { return Vec::new(); }
+            tool_stack::representative_items(&tool.custom_data, env)
+        }) else { return; };
+        if presented.is_empty() { return; }
+        let world = World::new(&tick.dimension);
+        let (sound, volume, pitch) = edible::eat_sound(&mut tool_damage_hook::random);
+        world.play_sound(sound, tick.position, volume, pitch);
+    });
 }

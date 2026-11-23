@@ -505,6 +505,13 @@ pub(crate) fn edible(nbt: &NbtCompound, env: &Environment) -> Option<Vec<crate::
         Some(saved.iter().flat_map(|(entry, modifier)| modifier.edible_effects(entry, facts)).collect())
     })
 }
+
+/// The items the tool's modifiers present as eaten (EdibleRepresentativeItemModule.onToolEaten's
+/// list, in modifier order): what the eating presentation sounds like, and what an integration
+/// would be told was eaten.
+pub(crate) fn representative_items(nbt: &NbtCompound, env: &Environment) -> Vec<Identifier> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.representative_items(entry, facts)).collect())
+}
 /// The mob types a worn armor piece makes its wearer pass for, each with the count the piece adds (its modifier's level), in modifier order.
 pub(crate) fn mob_disguises(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
     let mut disguises = Vec::new();
