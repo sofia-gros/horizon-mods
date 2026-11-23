@@ -271,6 +271,26 @@ impl BlockBreakContext {
     }
 }
 
+/// The experience a player's block break is about to drop (the experience half of NeoForge's
+/// `BlockEvent.BreakEvent`): heard as the game samples the drop on the player's own break path,
+/// before the game's silk-touch rule is applied to the sampled amount. Only the local player's
+/// breaks are heard; a break the level works out for a guest names no breaker to credit.
+#[derive(Clone, Debug)]
+pub struct BlockExperienceContext {
+    /// The block's position.
+    pub pos: [i32; 3],
+    /// The dimension it is in, such as `minecraft:overworld`; empty when the game does not name it.
+    pub dimension: String,
+    /// The player who breaks it; None when the game names none.
+    pub player: Option<ServerPlayer>,
+    /// The breaking player's entity id, for the reads keyed by it; 0 when the game names none.
+    pub player_entity: i32,
+    /// The stack in the player's main hand as the drop is sampled; None for an empty hand.
+    pub held: Option<StackData>,
+    /// The experience now, which callbacks may change with `set`; each callback sees the last one's.
+    pub experience: Cell<u32>,
+}
+
 static USE_ITEM: Event<UseItemContext, ActionResult> = Event::first_not_pass();
 static USE_BLOCK: Event<UseBlockContext, ActionResult> = Event::first_not_pass();
 static USE_ITEM_ON_BLOCK: Event<UseItemOnBlockContext, ActionResult> = Event::first_not_pass();
@@ -283,6 +303,7 @@ static FISHING: Event<FishingContext, ()> = Event::void();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
 static AFTER_BLOCK_BREAK: Event<BlockBreakContext, ()> = Event::void();
 static BLOCK_BREAK_CANCELED: Event<BlockBreakContext, ()> = Event::void();
+static BLOCK_EXPERIENCE: Event<BlockExperienceContext, ()> = Event::void();
 
 /// Fabric: `UseItemCallback.EVENT`.
 pub struct UseItemCallback;
@@ -366,6 +387,9 @@ impl PlayerBlockBreakEvents {
     pub const AFTER: &'static Event<BlockBreakContext, ()> = &AFTER_BLOCK_BREAK;
     /// Fabric: `CANCELED`. Called once when `BEFORE` vetoes a break; the block is kept.
     pub const CANCELED: &'static Event<BlockBreakContext, ()> = &BLOCK_BREAK_CANCELED;
+    /// NeoForge: `BlockEvent.BreakEvent` (its experience). The experience the break is about to drop, heard as the game
+    /// samples it: change it with `experience.set`. Only the local player's breaks are heard.
+    pub const EXPERIENCE: &'static Event<BlockExperienceContext, ()> = &BLOCK_EXPERIENCE;
 }
 
 /// True when the callbacks' result means the game must not handle the action itself.
@@ -454,6 +478,17 @@ pub(crate) fn block_break_heard() -> bool {
 /// Whether anyone listens to `AFTER`.
 pub(crate) fn after_block_break_heard() -> bool {
     !AFTER_BLOCK_BREAK.is_empty()
+}
+
+/// Whether anyone listens to break experience, so the game only reads the breaker when someone does.
+pub(crate) fn block_experience_heard() -> bool {
+    !BLOCK_EXPERIENCE.is_empty()
+}
+
+/// The break's experience after every callback has had its say.
+pub(crate) fn block_experience(context: &BlockExperienceContext) -> u32 {
+    BLOCK_EXPERIENCE.invoke(context);
+    context.experience.get()
 }
 
 /// An extra break a `BEFORE` callback asked for, waiting for a level seam that can break blocks: the host adapter's break

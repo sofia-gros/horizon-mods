@@ -87,6 +87,7 @@ mod update_health_hook;
 mod max_armor;
 mod max_armor_hook;
 mod custom_attributes;
+mod experience_hook;
 mod wearer_modules;
 mod mob_disguise;
 mod mob_disguise_hook;
@@ -257,6 +258,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     update_health_hook::register();
     max_armor_hook::register();
     custom_attributes::register();
+    experience_hook::register();
     mob_disguise_hook::register();
     tool_behavior_hook::register();
     quiver_hook::register();

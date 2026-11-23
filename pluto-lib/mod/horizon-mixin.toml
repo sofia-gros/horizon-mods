@@ -1516,6 +1516,31 @@ name = "pluto_entity_ride_access"
 source = "pluto-entity-ride-access.rs"
 visibility = "pub"
 
+# Block experience reach: on the player's own break path the sampled
+# experience is asked of the block experience callbacks while it can still
+# change (the game's silk-touch rule applies to the answer). The level's
+# removal path names no breaker, so guest breaks travel it unheard.
+[[module]]
+id = "pluto-block-exp-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_block_exp_access"
+source = "pluto-block-exp-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-block-exp"
+target = "horizon_client::game::Game<'_>::break_block_as_player"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "self.block_experience(&facts.name)"
+ordinal = 0
+require = 1
+helper = "pluto-block-exp.rs"
+bindings = [
+    { name = "value", ty = "u32", value = "$value" },
+    { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+    { name = "pos", ty = "[i32; 3]", value = "pos" }
+]
+
 # Entity push transport for the entity reach: a queue of knockbacks, pushes
 # and leave-ground lifts, applied by the game's own knockback and motion
 # paths at the head of its rider synchronisation (the passenger transport's
