@@ -425,7 +425,7 @@ pub(crate) fn register() {
     }
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:part_builder").ticker(|tick| {
+        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:part_builder").on_place(crate::retextured::keep_texture).ticker(|tick| {
             // Keep the staged stacks' model data in step with their material data, as in the
             // station windows (a stack written outside the stations renders untextured otherwise).
             for slot in tick.items.iter_mut().flatten() {

@@ -17,6 +17,8 @@
   "pattern": [
     "C#C"
   ],
+  "texture": "#",
+  "match_all": false,
   "result": {
     "id": "tconstruct:seared_drain"
   }

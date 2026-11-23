@@ -8,6 +8,11 @@
       "entries": [
         {
           "type": "minecraft:item",
+          "modifier": [
+            {
+              "type": "mantle:fill_retextured_block"
+            }
+          ],
           "name": "tconstruct:scorched_chute"
         }
       ],

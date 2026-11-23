@@ -4,8 +4,9 @@
 //! tab is fixed when the mod starts, before materials load, so the part, tool and crystal lists are the shipped data baked into
 //! creative_parts.rs, creative_tools.rs and creative_fluids.rs; a datapack's extra materials are not listed. A tool stack carries only
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
-//! Only items this port declares are listed. Not here: the Deco tab (it holds only retextured variants of tables, controllers and
-//! drains, and anvils, none of which exist yet), food (the cakes and the cheese, which are here), glass (but the clear, stained and soul glass, which are here; the clear tinted glass is in the smeltery tab), platforms, the books and
+//! Only items this port declares are listed. The Deco tab is here with its retextured variants (their stacks carry the
+//! texture record, so one taken from the tab places with its texture kept; the variant pictures wait on the same
+//! model-data surface as every retexture). Not here: food (the cakes and the cheese, which are here), glass (but the clear, stained and soul glass, which are here; the clear tinted glass is in the smeltery tab), platforms, the books and
 //! the gadgets of the general tab (the piggyback and the fancy frames and armor stands are here; the throwables are in no tab, as in the original),
 //! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
@@ -223,9 +224,22 @@ pub(crate) fn fluids_group() -> ItemGroup {
     group("fluids", "Tinkers' Tanks", filled_tank("seared_fuel_gauge", "tconstruct:molten_cobalt", capacity("fuel_gauge"))).entries(entries)
 }
 
-/// Every tab, in the original's order. The Deco tab (`tables`) is not among them: it lists only retextured variants.
+/// The Deco tab (`tables`): only retextured variants (TinkerTables.addTableVariants, then
+/// TinkerSmeltery.addTableVariants), each block once per item its texture comes from, in the
+/// original's order; the anvils come first with the metal blocks of their recipes. A variant's
+/// stack carries the texture record under its custom data, as a crafted one does.
+pub(crate) fn tables_group() -> ItemGroup {
+    let entries = crate::retextured::DECO_VARIANTS.iter().flat_map(|(block, textures)| {
+        textures.iter().map(move |texture| {
+            item(block).with_components(&format!("{{\"minecraft:custom_data\":{{texture:\"{texture}\"}}}}"))
+        })
+    });
+    group("tables", "Tinkers' Deco", item("tinkers_anvil")).entries(entries)
+}
+
+/// Every tab, in the original's order.
 pub(crate) fn groups() -> Vec<ItemGroup> {
-    vec![general_group(), tools_group(), tool_parts_group(), smeltery_group(), world_group(), fluids_group()]
+    vec![general_group(), tools_group(), tool_parts_group(), smeltery_group(), world_group(), tables_group(), fluids_group()]
 }
 
 pub(crate) fn register() {
@@ -289,9 +303,13 @@ mod tests {
     fn the_tabs_come_in_the_original_order_with_its_titles_and_the_tank_tab_fills_every_fluid() {
         let all = groups();
         let ids: Vec<String> = all.iter().map(|group| group.id.path().to_owned()).collect();
-        assert_eq!(ids, ["general", "tools", "tool_parts", "smeltery", "world", "fluids"]);
+        assert_eq!(ids, ["general", "tools", "tool_parts", "smeltery", "world", "tables", "fluids"]);
         let titles: Vec<&str> = all.iter().map(|group| group.display_name.as_str()).collect();
-        assert_eq!(titles, ["Tinkers' General", "Tinkers' Tools", "Tinkers' Parts", "Tinkers' Smeltery", "Tinkers' World", "Tinkers' Tanks"]);
+        assert_eq!(titles, ["Tinkers' General", "Tinkers' Tools", "Tinkers' Parts", "Tinkers' Smeltery", "Tinkers' World", "Tinkers' Deco", "Tinkers' Tanks"]);
+        let deco = tables_group();
+        let variants: usize = crate::retextured::DECO_VARIANTS.iter().map(|(_, textures)| textures.len()).sum();
+        assert_eq!(deco.entries.len(), variants);
+        assert_eq!(deco.entries[0].to_snbt(), "{count:1,id:\"tconstruct:tinkers_anvil\",components:{\"minecraft:custom_data\":{texture:\"tconstruct:slimesteel_block\"}}}");
         let fluids = fluids_group();
         // water, lava and the 71 fluids that are not hidden (the potion): four tanks each
         assert_eq!(fluids.entries.len(), 4 * (2 + creative_fluids::FLUIDS.len()));

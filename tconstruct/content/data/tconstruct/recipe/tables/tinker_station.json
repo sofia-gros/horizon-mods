@@ -9,6 +9,8 @@
     "w w",
     "w w"
   ],
+  "texture": "w",
+  "match_all": true,
   "result": {
     "id": "tconstruct:tinker_station"
   }

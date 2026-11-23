@@ -545,7 +545,7 @@ pub(crate) fn register() {
     }
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:modifier_worktable").ticker(|tick| {
+        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:modifier_worktable").on_place(crate::retextured::keep_texture).ticker(|tick| {
             // The tabbed words publish even when nothing can be applied (see `tabbed_tables`).
             crate::tabbed_tables::publish(tick, DATA_SLOTS, true);
             if tick.items.len() < SLOT_COUNT { return; }

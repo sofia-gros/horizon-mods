@@ -19,6 +19,8 @@
     "#",
     "C"
   ],
+  "texture": "#",
+  "match_all": false,
   "result": {
     "id": "tconstruct:seared_chute"
   }

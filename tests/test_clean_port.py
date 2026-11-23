@@ -167,6 +167,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/recipe_conditions.rs',
                 'mixins/tconstruct_native/api/src/render_data.rs',
                 'mixins/tconstruct_native/api/src/rendering.rs',
+                'mixins/tconstruct_native/api/src/retextured.rs',
                 'mixins/tconstruct_native/api/src/severing.rs',
                 'mixins/tconstruct_native/api/src/severing_hook.rs',
                 'mixins/tconstruct_native/api/src/shaped_materials.rs',

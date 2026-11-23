@@ -64,7 +64,7 @@ pub(crate) fn register() {
         .on_button(|press| { tabbed_tables::press_tab(press); });
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:crafting_station")
+        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:crafting_station").on_place(crate::retextured::keep_texture)
             .ticker(|tick| tabbed_tables::publish(tick, 0, true)),
     );
 }
