@@ -2,23 +2,29 @@
 //! SlimeKnights (MIT; see LICENSE) defines the recipes and PartBuilderBlockEntity's behavior.
 //! Slot 0 holds the material, slot 1 the pattern and slot 2 the result. Pattern buttons are published
 //! to the window as menu data: slot 0 the selected button (-1 for none), slot 1 the button count,
-//! slot 2 the scroll offset, slot 3 which of the material and pattern slots hold an item, and
+//! slot 2 unused, slot 3 which of the material and pattern slots hold an item, and
 //! slots 4.. one entry per button (the part's index plus one), so the client needs no recipes.
 //! The window is drawn as the original's screen draws it: the `part_builder.png` background, the
-//! pattern buttons in a four-by-four grid with the original's faces and pattern sprites, the
-//! scrollbar, and the empty-slot icons. The list pages by clicking above or below the scrollbar
-//! handle (the screen surface offers menu windows no mouse wheel and no drag), and the
-//! material-value readout and the side material panel are not ported.
+//! pattern buttons in a four-by-four grid with the original's faces (the hovered button gets the
+//! hover face) and pattern sprites, the scrollbar, and the empty-slot icons. The list scrolls with
+//! the mouse wheel and by clicking above or below the scrollbar handle; the offset is the window's
+//! own client-side state, as a menu button is the only road back to the server. The side panel
+//! (PartInfoPanelScreen) is drawn from the window's synced stacks and the client's material
+//! registry: the staged material's name, its stat blocks and its traits; the material value and
+//! pattern cost lines are not drawn, as they are computed from the material recipes, which only
+//! the server holds.
+use std::sync::{Arc, Mutex};
+
 use crate::{
-    common, material_recipes::{LeftoverSource, Recipes as MaterialRecipes},
+    commands, common, material_recipes::{LeftoverSource, Recipes as MaterialRecipes},
     materials::Definitions,
     part_builder_recipes::{Context, Inventory, Recipes},
-    station_menu::take_with,
+    station_menu::{draw_info_panel_sized, item_display_name, material_display_name, modifier_display_name, take_with},
     tables::input_consumption::consume_input,
     tool_parts,
 };
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemSlot, MenuAccess, NbtCompound, NbtCompoundExt, Nbt,
+    BlockEntityType, BlockEntityTypeRegistry, I18n, Identifier, ItemSlot, MenuAccess, NbtCompound, NbtCompoundExt, Nbt,
     ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction,
 };
 
@@ -26,18 +32,16 @@ pub(crate) const MATERIAL_SLOT: usize = 0;
 pub(crate) const PATTERN_SLOT: usize = 1;
 pub(crate) const RESULT_SLOT: usize = 2;
 const SLOT_COUNT: usize = 3;
-/// Menu data: selected button, button count, scroll offset, filled slots, then one entry per button.
-const DATA_SCROLL: usize = 2;
+/// Menu data: selected button, button count, unused, filled slots, then one entry per button.
 const DATA_FILLED: usize = 3;
 const HEADER: usize = 4;
-pub(crate) const MAX_BUTTONS: usize = 30;
+pub(crate) const MAX_BUTTONS: usize = 60;
 pub(crate) const DATA_SLOTS: usize = HEADER + MAX_BUTTONS;
 const NAME: &str = "part_builder";
 /// The selected pattern, saved in the block entity's data.
 const SELECTED: &str = "pattern";
-/// The button list's scroll offset (a button index), saved in the block entity's data.
-const SCROLL: &str = "scroll";
-/// Button ids paging the list one window up or down (the pattern buttons are 1.. by position).
+/// Paging directions the scrollbar track's click geometry answers (handled on the client, where
+/// the scroll offset lives; never sent as menu buttons).
 const SCROLL_UP: i32 = 1000;
 const SCROLL_DOWN: i32 = 1001;
 /// The window's textures: its own sheet and the shared icon sheet.
@@ -52,6 +56,11 @@ const VISIBLE: usize = 16;
 /// The largest scroll offset for a button count: whole rows past the visible four, in buttons.
 fn max_offset(count: usize) -> usize {
     count.div_ceil(COLUMNS).saturating_sub(VISIBLE / COLUMNS) * COLUMNS
+}
+
+/// The window's current scroll offset, clamped to what a button count allows.
+fn scroll_offset(state: &Mutex<usize>, count: usize) -> usize {
+    state.lock().map(|held| (*held).min(max_offset(count))).unwrap_or(0)
 }
 
 /// The button at a window point, as its absolute index in the button list.
@@ -239,24 +248,63 @@ fn craft_once(menu: &mut dyn MenuAccess, selected: Option<&str>) -> Option<ItemS
     Some(crafted.result)
 }
 
-fn publish(tick: &mut pluto_lib::BlockEntityTick<'_>, computation: &Computation, filled: i32, scroll: i64) {
+fn publish(tick: &mut pluto_lib::BlockEntityTick<'_>, computation: &Computation, filled: i32) {
     let order = pattern_order();
     tick.set_menu_data(0, computation.selected.map_or(-1, |index| index as i32));
     let shown = computation.buttons.len().min(MAX_BUTTONS);
     tick.set_menu_data(1, shown as i32);
-    tick.set_menu_data(DATA_SCROLL, (scroll.max(0) as usize).min(max_offset(shown)) as i32);
     tick.set_menu_data(DATA_FILLED, filled);
     for (index, pattern) in computation.buttons.iter().take(shown).enumerate() {
         tick.set_menu_data(HEADER + index, order.iter().position(|known| known == pattern).map_or(0, |position| position as i32 + 1));
     }
 }
 
-/// A readable name for a pattern button's tooltip.
+/// A pattern button's tooltip name: the part item's localized name (the original's
+/// `pattern.getDisplayName()`), with the path as words when it has no translation.
 fn display_name(pattern: &Identifier) -> String {
-    pattern.path().split('_').map(|word| {
-        let mut chars = word.chars();
-        chars.next().map_or(String::new(), |first| first.to_uppercase().chain(chars).collect())
-    }).collect::<Vec<_>>().join(" ")
+    item_display_name(pattern)
+}
+
+/// The material the staged stack is, when the client can tell: a part stack names its material in
+/// its own data, a tool stack in its material list. A raw material item's material comes from the
+/// material recipes, which only the server holds, so it does not resolve here.
+fn staged_material(items: &[Option<ItemSlot>]) -> Option<Identifier> {
+    let stack = items.get(MATERIAL_SLOT).cloned().flatten()?;
+    if let Some(Nbt::String(text)) = stack.custom_data.get("Material") {
+        return crate::tool_materials::MaterialVariant::parse(text).and_then(|variant| variant.material_id());
+    }
+    if stack.custom_data.contains_key(crate::tool_stack::TAG_MATERIALS) {
+        return crate::tool_stack::materials(&stack.custom_data, true).as_slice().first().and_then(|variant| variant.material_id());
+    }
+    None
+}
+
+/// What the side panel shows: the staged material's name with its stat blocks and traits from the
+/// client's material registry (the selected part's name first when one is selected), or the
+/// window's title and the builder's info text while no material resolves.
+fn panel_content(items: &[Option<ItemSlot>], selected: Option<&Identifier>) -> (String, Vec<String>) {
+    let Some(material) = staged_material(items) else {
+        let info = I18n::translate("gui.tconstruct.part_builder.info");
+        let lines = if info == "gui.tconstruct.part_builder.info" { Vec::new() } else { vec![info] };
+        return (I18n::translate("block.tconstruct.part_builder"), lines);
+    };
+    let mut lines = Vec::new();
+    if let Some(pattern) = selected {
+        lines.push(item_display_name(pattern));
+    }
+    common::with_client_materials(|definitions| {
+        let Some(definitions) = definitions else { return };
+        for stat in ["head", "handle", "extra"] {
+            let stat_id = Identifier::new("tconstruct", stat).expect("valid stat id");
+            let Some(stats) = definitions.get_stats(&material, &stat_id) else { continue };
+            lines.push(commands::stat_type_name(&stat_id));
+            lines.extend(commands::localized_info(stats, &stat_id, 1.0));
+            for entry in definitions.get_traits(&material, &stat_id).iter().flatten() {
+                lines.push(modifier_display_name(&entry.id));
+            }
+        }
+    });
+    (material_display_name(&material), lines)
 }
 
 /// Registers the block entity type and the window. Called once from the product's hooks.
@@ -264,6 +312,13 @@ pub(crate) fn register() {
     let id = Identifier::new("tconstruct", NAME).expect("valid part builder id");
     let layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background()
         .slot(29.0, 43.0).slot(8.0, 43.0).slot(148.0, 42.0);
+    // The button list's scroll offset: the window's own client-side state, shared by its draw,
+    // click, tooltip and wheel callbacks (a menu button cannot carry it back from the server).
+    let scroll: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+    let draw_scroll = scroll.clone();
+    let click_scroll = scroll.clone();
+    let tip_scroll = scroll.clone();
+    let wheel_scroll = scroll.clone();
     let mut window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(|rule| { if rule.slot == RESULT_SLOT { rule.may_place = false; } })
         .exclude_from_pick_all(RESULT_SLOT)
@@ -272,7 +327,7 @@ pub(crate) fn register() {
             let (ox, oy) = (draw.origin[0], draw.origin[1]);
             let selected = draw.data.first().copied().unwrap_or(-1);
             let count = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            let offset = draw.data.get(DATA_SCROLL).copied().unwrap_or(0).max(0) as usize;
+            let offset = scroll_offset(&draw_scroll, count);
             canvas.sprite(BACKGROUND, [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
             // The scrollbar handle: the enabled face while buttons are hidden, the disabled one else.
             let scrollable = count > VISIBLE;
@@ -283,28 +338,51 @@ pub(crate) fn register() {
             if filled & 1 == 0 { canvas.sprite(ICONS, [54.0, 234.0, 18.0, 18.0], [ox + 28.0, oy + 42.0, 18.0, 18.0]); }
             if filled & 2 == 0 { canvas.sprite(ICONS, [0.0, 216.0, 18.0, 18.0], [ox + 7.0, oy + 42.0, 18.0, 18.0]); }
             let order = pattern_order();
+            let hovered = button_at(draw.mouse, offset, count);
             for cell in 0..VISIBLE {
                 let index = offset + cell;
                 if index >= count { break; }
                 let (x, y) = (ox + GRID.0 + (cell % COLUMNS) as f32 * GRID.2, oy + GRID.1 + (cell / COLUMNS) as f32 * GRID.2);
-                canvas.sprite(BACKGROUND, [176.0, if selected == index as i32 { 33.0 } else { 15.0 }, 18.0, 18.0], [x, y, 18.0, 18.0]);
+                let face = if selected == index as i32 { 33.0 } else if hovered == Some(index) { 51.0 } else { 15.0 };
+                canvas.sprite(BACKGROUND, [176.0, face, 18.0, 18.0], [x, y, 18.0, 18.0]);
                 if let Some(sprite) = draw.data.get(HEADER + index).copied().filter(|value| *value > 0)
                     .and_then(|value| order.get(value as usize - 1))
                     .and_then(|pattern| crate::station_layouts::pattern_sprite_of(pattern)) {
                     canvas.atlas_sprite(sprite, [x + 1.0, y + 1.0, 16.0, 16.0], 0xFFFF_FFFF);
                 }
             }
+            // The side panel, right of the window at its full height.
+            let selected_pattern = if selected >= 0 {
+                draw.data.get(HEADER + selected as usize).copied().filter(|value| *value > 0).and_then(|value| order.get(value as usize - 1))
+            } else { None };
+            let (caption, lines) = panel_content(draw.items, selected_pattern);
+            draw_info_panel_sized(canvas, [ox + 178.0, oy], (126.0, 184.0), &caption, &lines);
         })
         .on_click(move |press| {
             if press.right { return None; }
             let count = press.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            let offset = press.data.get(DATA_SCROLL).copied().unwrap_or(0).max(0) as usize;
-            if let Some(scroll) = scroll_at(press.at, offset, count) { return Some(scroll); }
+            let offset = scroll_offset(&click_scroll, count);
+            if let Some(scroll) = scroll_at(press.at, offset, count) {
+                // A track click pages the list here on the client; nothing is sent.
+                if let Ok(mut held) = click_scroll.lock() {
+                    *held = if scroll == SCROLL_UP { offset.saturating_sub(VISIBLE) } else { (offset + VISIBLE).min(max_offset(count)) };
+                }
+                return None;
+            }
             button_at(press.at, offset, count).map(|index| index as i32 + 1)
+        })
+        .on_scroll(move |roll| {
+            let count = roll.data.get(1).copied().unwrap_or(0).max(0) as usize;
+            if count <= VISIBLE { return false; }
+            if let Ok(mut held) = wheel_scroll.lock() {
+                let current = (*held).min(max_offset(count));
+                *held = if roll.delta[1] > 0.0 { current.saturating_sub(COLUMNS) } else if roll.delta[1] < 0.0 { (current + COLUMNS).min(max_offset(count)) } else { current };
+            }
+            true
         })
         .on_tooltip(move |tip| {
             let count = tip.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            let offset = tip.data.get(DATA_SCROLL).copied().unwrap_or(0).max(0) as usize;
+            let offset = scroll_offset(&tip_scroll, count);
             if let Some(index) = button_at(tip.at, offset, count) {
                 let order = pattern_order();
                 if let Some(pattern) = tip.data.get(HEADER + index).copied().filter(|value| *value > 0).and_then(|value| order.get(value as usize - 1)) {
@@ -313,15 +391,6 @@ pub(crate) fn register() {
             }
         })
         .on_button(|press| {
-            if press.id == SCROLL_UP || press.id == SCROLL_DOWN {
-                let selected = selected_of(press.data);
-                let Some(computation) = compute(press.items, selected.as_deref()) else { return; };
-                let count = computation.buttons.len().min(MAX_BUTTONS);
-                let current = press.data.get_int(SCROLL, 0).max(0) as usize;
-                let next = if press.id == SCROLL_UP { current.saturating_sub(VISIBLE) } else { (current + VISIBLE).min(max_offset(count)) };
-                press.data.insert(SCROLL.to_owned(), Nbt::Int(next as i32));
-                return;
-            }
             // The press names a button by its position in the sorted list; resolve it against the current slots.
             let Some(index) = usize::try_from(press.id - 1).ok() else { return; };
             let selected = selected_of(press.data);
@@ -350,8 +419,7 @@ pub(crate) fn register() {
             if let Some(computation) = computation {
                 let filled = tick.items.iter().take(2).enumerate()
                     .fold(0i32, |bits, (slot, item)| if item.is_some() { bits | (1 << slot) } else { bits });
-                let scroll = tick.data.get_int(SCROLL, 0);
-                publish(tick, &computation, filled, scroll);
+                publish(tick, &computation, filled);
             }
         }),
     );
