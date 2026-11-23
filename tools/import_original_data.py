@@ -29,7 +29,8 @@ EXCLUDED_TOOLS = set()
 # The original's Forge-era tag folders, renamed to the singular names the pinned host reads.
 TAG_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tags'
 TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tags'
-TAG_FOLDER_NAMES = {'items': 'item', 'blocks': 'block', 'entity_types': 'entity_type'}
+TAG_FOLDER_NAMES = {'items': 'item', 'blocks': 'block', 'entity_types': 'entity_type',
+                    'block_entity_type': 'block_entity_type', 'potion': 'potion', 'menu': 'menu'}
 
 
 REPAIRABLE = ['head', 'limb', 'plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'skull', 'slime']
@@ -1153,10 +1154,18 @@ def write_convention_tags():
     return len(tags)
 
 
+def registered_entity_types():
+    """The Tinkers entity types that exist in this port: the slime mobs and the gadget entities registered
+    from Rust (slime_entities.rs, fancy_gadgets.rs) and the projectile types the content declares."""
+    declared = {path.stem for path in (HORIZON_DECLARATIONS / 'entity_type').glob('*.json')}
+    return {*SLIME_ENTITIES, 'fancy_item_frame', 'armor_stand', *declared}
+
+
 def copy_tags():
-    """Item, block and entity-type tags. Forge's tag namespace does not exist in this host, so a
-    required reference to a forge tag becomes an optional one (as the original already does for
-    other mods' entries); everything else is kept in order, unchanged."""
+    """Item, block, entity-type, block-entity-type, potion and menu tags. Forge's and Mantle's tag
+    namespaces do not exist in this host, so a required reference to one of their tags becomes an
+    optional one (as the original already does for other mods' entries); everything else is kept in
+    order, unchanged."""
     if TAG_TARGET.exists():
         shutil.rmtree(TAG_TARGET)
     count = 0
@@ -1171,11 +1180,12 @@ def copy_tags():
                     held = {(entry if isinstance(entry, str) else entry['id']) for entry in values}
                     values += [{'id': member, 'required': False} for member in convention_tags_cached()[text[len('#forge:'):]] if member not in held]
                     continue
-                if isinstance(value, str) and text.lstrip('#').startswith('forge:'):
+                if isinstance(value, str) and text.lstrip('#').split(':')[0] in ('forge', 'mantle'):
                     value = {'id': text, 'required': False}
-                # This port registers no Tinkers entity types yet; a tag naming one would make the whole
-                # entity-type tag capture unusable for PlutoLib (an unknown member), so it waits for its entity.
-                if source_name == 'entity_types' and isinstance(value, str) and text.startswith('tconstruct:'):
+                # An entity-type tag naming a Tinkers entity type this port has not registered would make the
+                # whole tag capture unusable for PlutoLib (an unknown member), so it waits for its entity; the
+                # registered ones ship (registered_entity_types).
+                if source_name == 'entity_types' and isinstance(value, str) and text.startswith('tconstruct:') and text[len('tconstruct:'):] not in registered_entity_types():
                     continue
                 values.append(value)
             data['values'] = values
@@ -3217,6 +3227,41 @@ def copy_lang():
     return len(LANGUAGES)
 
 
+def copy_sounds():
+    """The original's sound definitions and files (assets/tconstruct/sounds.json and sounds/*.ogg), byte for
+    byte: the sound events the port's code plays by name (the bonk, the sling, the little saw) resolve through
+    this table, and the .ogg files are the recordings themselves."""
+    target = ASSET_TARGET / 'sounds'
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+    count = 0
+    for path in sorted((ASSET_SOURCE / 'sounds').glob('*.ogg')):
+        shutil.copyfile(path, target / path.name)
+        count += 1
+    shutil.copyfile(ASSET_SOURCE / 'sounds.json', ASSET_TARGET / 'sounds.json')
+    return count + 1
+
+
+MOB_EQUIPMENT_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tinkering/mob_equipment'
+MOB_EQUIPMENT_TARGET = TARGET / 'mob_equipment'
+
+
+def copy_mob_equipment():
+    """The mob equipment sets (which mobs spawn holding Tinkers gear), byte for byte, load conditions and all:
+    conditions are data the loader evaluates, as with the integration materials. The consumer that equips
+    spawning mobs reads this folder."""
+    if MOB_EQUIPMENT_TARGET.exists():
+        shutil.rmtree(MOB_EQUIPMENT_TARGET)
+    count = 0
+    for path in sorted(MOB_EQUIPMENT_SOURCE.rglob('*.json')):
+        destination = MOB_EQUIPMENT_TARGET / path.relative_to(MOB_EQUIPMENT_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 
 # --- Advancements: the 50 gameplay advancements and their grant functions -------------------
 ADVANCEMENT_GROUPS = ['foundry', 'internal', 'smeltery', 'tools', 'world']
@@ -3338,6 +3383,8 @@ def main():
     write_damage_vanilla()
     write_instrument_tags()
     languages = copy_lang()
+    sounds = copy_sounds()
+    mob_equipment = copy_mob_equipment()
     fuels = write_vanilla_fuels()
     world_blocks_written, world_items_written = write_world_declarations()
     write_gadget_declarations()
@@ -3365,7 +3412,7 @@ def main():
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes()
     layouts = copy_station_layouts()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table; {sounds} sound files, {mob_equipment} mob equipment files')
 
 
 if __name__ == '__main__':

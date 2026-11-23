@@ -19,12 +19,14 @@ CONTENT = Path('tconstruct/content')
 CONTENT_PATHS = (
     re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:de_de|en_us|es_ar|es_cl|es_es|es_mx|fr_fr|id_id|it_it|ja_jp|ko_kr|lzh|pl_pl|pt_br|ru_ru|sv_se|tr_tr|uk_ua|zh_cn|zh_tw)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu|entity_type|mob_effect)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
-    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|mob_equipment|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/enchantments_to_modifiers\.json'),
-    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment|block_entity_type|potion|menu)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
+    # The original's sound definitions and recordings (tools/import_original_data.py copy_sounds).
+    re.compile(r'assets/tconstruct/sounds\.json'), re.compile(r'assets/tconstruct/sounds/[a-z0-9_]+\.ogg'),
     # The fluid atlas sources (tools/import_original_data.py): the game's unified atlas (screen draws and
     # native block-entity draws) packs the walked texture folders and the base game's atlas definitions,
     # which name only block/ and entity/conduit/; textures/fluid/ is in neither, so no fluid sprite would
