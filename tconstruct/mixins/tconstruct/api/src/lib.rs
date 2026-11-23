@@ -153,6 +153,7 @@ mod fancy_gadgets;
 mod advancements;
 mod shaped_materials;
 mod swapping_recipes;
+mod material_render;
 mod commands;
 mod particles;
 mod aoe;
@@ -228,6 +229,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     fancy_gadgets::register();
     advancements::register();
     shaped_materials::register();
+    material_render::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()
