@@ -651,13 +651,29 @@ mod tests {
         // A predicate this port lacks, or another hook binding, is recorded as unbound, never installed.
         for gated in [
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","tool":{"type":"tconstruct:has_hook","hook":"a:b"}}]}),
-            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:projectile_launch"]}]}),
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:melee_hit"]}]}),
         ] {
             let modifier = Modifier::decode(name("test:gated"), &gated).unwrap();
             assert_eq!(modifier.unbound.iter().map(Identifier::to_string).collect::<Vec<_>>(), vec!["tconstruct:volatile_flag"]);
             let mut data = NbtCompound::new();
             modifier.apply_volatile(&Entry::new(name("test:gated"), 1), &mut data);
             assert!(data.is_empty(), "an unbound flag writes nothing");
+        }
+    }
+    #[test]
+    fn projectile_bound_flags_install_with_nothing_unbound() {
+        // The shipped fins and enderference flag modules: bound to the projectile hooks, they
+        // install fully (the launch half marks the projectile), and write no volatile data.
+        for shipped in [
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]}),
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]}]}),
+        ] {
+            let modifier = Modifier::decode(name("test:shipped"), &shipped).unwrap();
+            assert!(modifier.unbound.is_empty(), "nothing stays unbound: {:?}", modifier.unbound);
+            assert_eq!(modifier.modules().len(), 1);
+            let mut data = NbtCompound::new();
+            modifier.apply_volatile(&Entry::new(name("test:shipped"), 1), &mut data);
+            assert!(data.is_empty(), "a projectile-bound flag writes no volatile data");
         }
     }
     #[test]

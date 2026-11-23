@@ -1481,7 +1481,13 @@ fn table(headers: &[&str], rows: &[Vec<String>]) -> String {
 /// where the port's data spelling is `tool_stats`.
 fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
     match module {
-        Module::Flag { .. } | Module::Int { .. } | Module::Slot { .. } | Module::Rarity { .. } | Module::Sweep { .. } => {
+        Module::Flag { .. } => {
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_thrown");
+        }
+        Module::Int { .. } | Module::Slot { .. } | Module::Rarity { .. } | Module::Sweep { .. } => {
             out.insert("tconstruct:volatile_data");
         }
         Module::CreativeSlots { .. } => {
@@ -2205,6 +2211,14 @@ mod tests {
     use super::*;
     use pluto_lib::{MemoryPlayerOps, Translations, with_ops};
     use serde_json::json;
+
+    #[test]
+    fn flag_modules_report_the_volatile_and_projectile_hooks() {
+        // The flag's hook set is its decode guard's set: the volatile data hook plus the three
+        // projectile hooks the launch half binds (fins, enderference).
+        let modifier = Modifier::decode(Identifier::parse("tconstruct:fins").unwrap(), &json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]})).unwrap();
+        assert_eq!(modifier_hooks(&modifier), BTreeSet::from(["tconstruct:volatile_data", "tconstruct:projectile_launch", "tconstruct:projectile_shot", "tconstruct:projectile_thrown"]));
+    }
 
     #[test]
     fn java_float_rendering_matches_float_to_string() {
