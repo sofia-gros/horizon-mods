@@ -3192,8 +3192,9 @@ def copy_crafting_recipes():
             if len(fallback) != 1:
                 continue
             data = fallback[0]
-        # the retextured table and smeltery recipes lose the texture the result would take (retexturing is
-        # not ported): plain shaped recipes
+        # the retextured table and smeltery recipes ship as plain shaped recipes, but they keep their
+        # `texture` and `match_all`: the game's shaped parser ignores them and the port's consumer
+        # (api/src/retextured.rs) reads them to put the texture on the result
         if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured'
                                                       and not (tables or path.is_relative_to(FLUID_RECIPE_SOURCE / 'smeltery'))):
             continue
@@ -3204,6 +3205,9 @@ def copy_crafting_recipes():
         try:
             if data['type'] in ('minecraft:crafting_shaped', 'mantle:crafting_shaped_retextured'):
                 out = {'type': 'minecraft:crafting_shaped', 'key': {key: one(value) for key, value in data['key'].items()}, 'pattern': data['pattern']}
+                if data['type'] == 'mantle:crafting_shaped_retextured':
+                    out['texture'] = data['texture']
+                    out['match_all'] = data['match_all']
             elif data['type'] == 'minecraft:crafting_shapeless':
                 out = {'type': data['type'], 'ingredients': [one(value) for value in data['ingredients']]}
             elif data['type'] in ('minecraft:smelting', 'minecraft:blasting'):

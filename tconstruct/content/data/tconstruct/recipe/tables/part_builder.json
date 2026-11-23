@@ -8,6 +8,8 @@
     "pp",
     "ww"
   ],
+  "texture": "w",
+  "match_all": true,
   "result": {
     "id": "tconstruct:part_builder"
   }

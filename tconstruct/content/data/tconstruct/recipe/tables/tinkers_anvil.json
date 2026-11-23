@@ -21,6 +21,8 @@
     " s ",
     "sss"
   ],
+  "texture": "m",
+  "match_all": true,
   "result": {
     "id": "tconstruct:tinkers_anvil"
   }
