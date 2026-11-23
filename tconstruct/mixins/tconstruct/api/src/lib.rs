@@ -155,6 +155,7 @@ mod throwables;
 mod glow_block;
 mod piggyback;
 mod config;
+mod recipe_conditions;
 mod common;
 mod fancy_gadgets;
 mod advancements;
