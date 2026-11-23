@@ -4525,6 +4525,12 @@ impl Hooks for PlutoHooks {
             block_light: Some(block_light), sky_light: Some(sky_light),
             sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()),
             biome_temperature: host.biome(event.pos).as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, event.pos[1])),
+            // The host call surface names no block property accessor: the block's explosion resistance and
+            // correct-tool requirement live in the game's per-state gameplay facts, which no pluto module
+            // publishes yet, so the dig leaves both unreported and the variables over them take their
+            // fallbacks (the same answer an unreported biome temperature gives).
+            blast_resistance: None,
+            requires_tool: None,
         };
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);

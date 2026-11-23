@@ -4,18 +4,18 @@
 //! dig itself — the light at the block and the temperature of its biome — which the block light
 //! and biome temperature variables read, and the digging player as an entity (their effects, the
 //! rain on them and the enchantments on the tool they dig with), which the entity variables and
-//! `mantle:has_enchantment` read. Inputs over data this port does not hold stay unbound
-//! instead of being half-installed: a block property variable (`tconstruct:block` over blast
-//! resistance or hardness — PlutoLib reports no block properties) and the `mantle:requires_tool`
-//! block predicate (the same missing block property: whether the block needs the correct tool
-//! for drops).
+//! `mantle:has_enchantment` read. The block property variable (`tconstruct:block` over blast
+//! resistance) and the `mantle:requires_tool` block predicate read the same dig report: a fact
+//! the game did not report is None, the variable takes its fallback and the predicate's leaf
+//! does not match, exactly as an unreported light or temperature behaves. A block property this
+//! port does not hold (hardness) stays unbound instead of being half-installed.
 use crate::{formula::Formula, modifier_entries::{nbt_int, Entry}, tool_stats::Stat};
 use pluto_lib::{Identifier, Nbt, NbtCompound};
 use serde_json::{Map, Value};
 
 /// IJsonPredicate over the block being dug.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum BlockCondition { Any, Tag(Identifier), Set(Vec<Identifier>), Not(Box<BlockCondition>), And(Vec<BlockCondition>), Or(Vec<BlockCondition>) }
+pub(crate) enum BlockCondition { Any, Tag(Identifier), Set(Vec<Identifier>), RequiresTool, Not(Box<BlockCondition>), And(Vec<BlockCondition>), Or(Vec<BlockCondition>) }
 
 /// IJsonPredicate over the player who digs: only ground and water state is known.
 #[derive(Clone, Debug, PartialEq)]
@@ -43,6 +43,10 @@ pub(crate) enum Variable {
     BlockLight { layer: Option<crate::entity_facts::LightLayer>, fallback: f32 },
     /// BlockTemperatureVariable: the temperature of the biome at the block being dug; `fallback` when it was not reported.
     BlockTemperature { fallback: f32 },
+    /// BlockPropertyVariable over blast resistance (`tconstruct:block` with block type
+    /// `tconstruct:blast_resistance`): the explosion resistance of the block being dug;
+    /// `fallback` when the game did not report it.
+    BlastResistance { fallback: f32 },
 }
 
 /// Which modules read entity variables, and so where `tconstruct:entity` variables are decoded.
@@ -121,6 +125,10 @@ pub(crate) struct BlockFacts {
     /// How much of the sky light the time of day and the weather take off (`Level.getSkyDarken`).
     pub sky_darken: u8,
     pub biome_temperature: Option<f32>,
+    /// The block's explosion resistance, as the break-speed event carries it; None when unreported.
+    pub blast_resistance: Option<f32>,
+    /// Whether the block needs the correct tool for drops, as the break-speed event carries it; None when unreported.
+    pub requires_tool: Option<bool>,
 }
 
 /// What the dig is, for one evaluation.
@@ -185,6 +193,7 @@ impl BlockCondition {
                 let blocks = object.get("blocks").and_then(Value::as_array).ok_or("blocks must be an array")?;
                 Self::Set(blocks.iter().map(identifier).collect::<Result<_, _>>()?)
             }
+            "mantle:requires_tool" => Self::RequiresTool,
             "mantle:inverted" => {
                 let inner = Self::decode(&Value::Object(retyped(object, "inverted_type")?))?;
                 match inner { Some(inner) => Self::Not(Box::new(inner)), None => return Ok(None) }
@@ -194,14 +203,17 @@ impl BlockCondition {
             _ => return Ok(None),
         }))
     }
-    pub(crate) fn matches(&self, block: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool) -> bool {
+    pub(crate) fn matches(&self, block: &Identifier, in_tag: &dyn Fn(&Identifier) -> bool, facts: &BlockFacts) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => in_tag(tag),
             Self::Set(blocks) => blocks.contains(block),
-            Self::Not(inner) => !inner.matches(block, in_tag),
-            Self::And(children) => children.iter().all(|child| child.matches(block, in_tag)),
-            Self::Or(children) => children.iter().any(|child| child.matches(block, in_tag)),
+            // An unreported requirement does not match the leaf it would decide, as an unknown
+            // ground or water state does not match the holder condition it would decide.
+            Self::RequiresTool => facts.requires_tool == Some(true),
+            Self::Not(inner) => !inner.matches(block, in_tag, facts),
+            Self::And(children) => children.iter().all(|child| child.matches(block, in_tag, facts)),
+            Self::Or(children) => children.iter().any(|child| child.matches(block, in_tag, facts)),
         }
     }
 }
@@ -288,6 +300,17 @@ impl Variable {
                 let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
                 Self::BlockTemperature { fallback }
             }
+            "tconstruct:block" => {
+                let object = object.ok_or("block variable needs fields")?;
+                let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
+                // BlockPropertyVariable: the block type names the property read off the block being
+                // dug. Blast resistance is the one the dig report carries; another property (the
+                // block's hardness) is not reported and stays unbound.
+                match object.get("block_type").and_then(Value::as_str) {
+                    Some("tconstruct:blast_resistance") => Self::BlastResistance { fallback },
+                    _ => return Ok(None),
+                }
+            }
             "tconstruct:entity" if scope != EntityScope::None => {
                 use crate::entity_facts::{EntityFact, Whose};
                 let object = object.ok_or("entity variable needs fields")?;
@@ -330,6 +353,7 @@ impl Variable {
                 match layer { Some(crate::entity_facts::LightLayer::Sky) => sky, Some(crate::entity_facts::LightLayer::Block) => block, None => sky.zip(block).map(|(sky, block)| sky.max(block)) }.map(|light| light as f32).unwrap_or(*fallback)
             }
             Self::BlockTemperature { fallback } => tool.facts.biome_temperature.unwrap_or(*fallback),
+            Self::BlastResistance { fallback } => tool.facts.blast_resistance.unwrap_or(*fallback),
             Self::ModData { key, persistent } => {
                 let tag = if *persistent { crate::tool_stack::TAG_PERSISTENT } else { crate::tool_stack::TAG_VOLATILE };
                 match compound(tag).and_then(|data| data.get(key).cloned()) {
@@ -363,7 +387,7 @@ impl MiningSpeed {
 
     /// BreakSpeedModifierHook.modifyBreakSpeed. `condition` is the module's ModifierCondition result.
     pub fn apply(&self, entry: &Entry, condition: bool, tool: &ToolView, context: &Context, speed: f32) -> f32 {
-        if (self.require_effective && !context.effective) || !condition || !self.blocks.matches(context.block, context.block_in_tag) || !self.holder.matches(context) { return speed; }
+        if (self.require_effective && !context.effective) || !condition || !self.blocks.matches(context.block, context.block_in_tag, &context.facts) || !self.holder.matches(context) { return speed; }
         let tool_multiplier = Variable::StatMultiplier(Stat::MiningSpeed).value(tool);
         let multiplier = context.multiplier * tool_multiplier;
         // The formula's block variables read the facts of this dig, over the tool's own state.
@@ -397,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn the_shipped_temperate_and_lightspeed_modules_decode_and_the_block_property_forms_do_not() {
+    fn the_shipped_temperate_lightspeed_and_block_property_modules_decode() {
         // hydraulic: the bonus is a conditional over the digging player (eyes in water, then the
         // aqua affinity on their tool, else the rain on them); it decodes over the reported holder.
         let bonus = json!({"type": "tconstruct:entity", "condition_type": "mantle:eyes_in_water", "entity_type": "tconstruct:conditional", "fallback": 8.0,
@@ -433,16 +457,36 @@ mod tests {
             "percent": false, "require_effective": true,
             "variables": {"light": {"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"}},
         }))).unwrap().is_some());
-        // blasting reads the block's blast resistance, a block property this port does not hold.
-        assert!(MiningSpeed::decode(&fields(json!({
-            "formula": ["$resistance", "$level", "*", "$multiplier", "*", "$speed", "+"],
+        // blasting reads the block's blast resistance off the dig report, its fallback standing in
+        // when the game did not report the block's resistance.
+        let blasting = MiningSpeed::decode(&fields(json!({
+            "formula": [3.0, 6.0, "$resistance", "-", 1.5, "/", "^", 10.0, "min", "$level", "*", "$multiplier", "*", "$speed", "+"],
             "percent": false, "require_effective": true,
             "variables": {"resistance": {"type": "tconstruct:block", "block_type": "tconstruct:blast_resistance", "fallback": 3.0}},
-        }))).unwrap().is_none());
-        // crumbling asks whether the block requires the correct tool for drops: the same missing property.
+        }))).unwrap().expect("blasting decodes over the reported blast resistance");
+        let blasting_entry = Entry::new(Identifier::parse("tconstruct:blasting").unwrap(), 1);
+        let dig_at = |resistance: Option<f32>| Context { block: &block, block_in_tag: &no_tags, original: 2.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: BlockFacts { blast_resistance: resistance, ..BlockFacts::default() }, holder: None };
+        // The formula is 3 ^ ((6 - resistance) / 1.5), capped at 10, times level and multiplier over
+        // the speed: a reported resistance of 6 gives 3 ^ 0 = 1 over the speed of 2.
+        assert_eq!(blasting.apply(&blasting_entry, true, &view, &dig_at(Some(6.0)), 2.0), 3.0);
+        // Unreported: the fallback 3.0 gives 3 ^ ((6 - 3) / 1.5) = 9 over the speed of 2.
+        assert_eq!(blasting.apply(&blasting_entry, true, &view, &dig_at(None), 2.0), 11.0);
+        // A block property the dig report does not carry (hardness) still stays unbound.
         assert!(MiningSpeed::decode(&fields(json!({
+            "formula": ["$hardness", "$level", "*", "$multiplier", "*", "$speed", "+"],
+            "percent": false, "require_effective": true,
+            "variables": {"hardness": {"type": "tconstruct:block", "block_type": "tconstruct:hardness", "fallback": 0.0}},
+        }))).unwrap().is_none());
+        // crumbling asks whether the block requires the correct tool for drops, inverted: it boosts
+        // the speed on blocks that do not, by its level, with no effective-tool requirement.
+        let crumbling = MiningSpeed::decode(&fields(json!({
             "blocks": {"type": "mantle:inverted", "inverted_type": "mantle:requires_tool"},
             "each_level": 1.0, "percent": false, "require_effective": false,
-        }))).unwrap().is_none());
+        }))).unwrap().expect("crumbling decodes over the reported tool requirement");
+        let crumbling_entry = Entry::new(Identifier::parse("tconstruct:crumbling").unwrap(), 2);
+        let dig_requiring = |requires: Option<bool>| Context { block: &block, block_in_tag: &no_tags, original: 2.0, multiplier: 1.0, effective: false, on_ground: None, eyes_in_water: None, facts: BlockFacts { requires_tool: requires, ..BlockFacts::default() }, holder: None };
+        assert_eq!(crumbling.apply(&crumbling_entry, true, &view, &dig_requiring(Some(false)), 2.0), 4.0, "level 2 adds 2 to a block that needs no tool");
+        assert_eq!(crumbling.apply(&crumbling_entry, true, &view, &dig_requiring(Some(true)), 2.0), 2.0, "a block that requires the tool gets nothing");
+        assert_eq!(crumbling.apply(&crumbling_entry, true, &view, &dig_requiring(None), 2.0), 4.0, "unreported reads as the leaf not matching, so the inversion applies");
     }
 }

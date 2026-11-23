@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (59, 31), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (57, 30), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -170,10 +170,10 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("channeling").is_empty(), "channeling is fully bound");
     assert!(unbound_of("restore").is_empty(), "restore runs on the modify hurt hook, before armor");
     // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
-    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
-    // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
-    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
-    // stay unbound; the form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
+    // lightspeed the block light. The forms over a block property bind too: the break-speed event carries the block's
+    // blast resistance and its correct-tool requirement, so blasting's formula variable and crumbling's inverted
+    // requires-tool predicate read the dig report (an unreported fact leaves the variable on its fallback and the
+    // predicate's leaf unmatched). The form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
     // digging player: their effects, the rain on them and the enchantments on the tool they dig with, which is what
     // hydraulic's aqua affinity branch and its raining branch read. Lightspeed's attribute binds over the light the player
     // tick reports at the wearer, and gold guard's golden attribute over the tick's count of the wearer's golden pieces;
@@ -183,7 +183,8 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("lightspeed_armor").is_empty(), "lightspeed_armor is fully bound");
     assert!(unbound_of("gold_guard").is_empty(), "gold_guard is fully bound");
     assert_eq!(unbound_of("chrysophilite"), ["tconstruct:golden_attribute"], "chrysophilite's attribute is Tinkers' own");
-    for name in ["blasting", "crumbling"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
+    for name in ["blasting", "crumbling"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the dig report's block facts"); }
+    assert!(!kinds.contains("tconstruct:conditional_mining_speed"), "conditional_mining_speed should be bound");
     assert!(unbound_of("hydraulic").is_empty(), "hydraulic reads the reported digging player and binds");
     for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     assert!(unbound_of("revitalizing").is_empty(), "revitalizing is fully bound: the tick reports held tools as it does armor");
