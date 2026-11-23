@@ -7,11 +7,20 @@ fn pluto_hanging_stand_dispense(
     pos: (i32, i32, i32),
     facing: Direction,
     stack: &ItemStack,
-) -> std::ops::ControlFlow<Option<Result<(Option<ItemStack>, i32)>>> {
+) -> std::ops::ControlFlow<Result<Option<ItemStack>>> {
     let Some(facts) = horizon_client::entry::pluto_hanging_access::stand_for_item(&stack.item) else {
         return std::ops::ControlFlow::Continue(());
     };
-    std::ops::ControlFlow::Break(Some(crate::game::pluto_hanging_game::dispense_fancy_stand(
-        game, pos, facing, stack, &facts,
-    )))
+    match crate::game::pluto_hanging_game::dispense_fancy_stand(game, pos, facing, stack, &facts) {
+        Ok((left, event)) => {
+            // The host body answers a mod dispense the same way: playSound,
+            // then playAnimation; a NOOP behaviour (event 0) plays neither.
+            if event != 0 {
+                game.dispenser_event(event, pos, 0);
+                game.dispenser_event(2000, pos, data_value(facing));
+            }
+            std::ops::ControlFlow::Break(Ok(left))
+        }
+        Err(error) => std::ops::ControlFlow::Break(Err(error)),
+    }
 }

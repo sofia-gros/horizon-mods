@@ -4,7 +4,7 @@
 // overrides setRotation, and the load goes through it). The body below is
 // the host's own loader with that one line changed; tags without a known
 // variant run the body untouched.
-fn pluto_hanging_frame_from_nbt(tag: &Tag, id: u32) -> std::ops::ControlFlow<Option<Option<ItemFrame>>> {
+fn pluto_hanging_frame_from_nbt(tag: &Tag, id: u32) -> std::ops::ControlFlow<Option<ItemFrame>> {
     let variant = match tag.get("Variant") {
         Some(Tag::Int(value)) => *value,
         Some(Tag::Byte(value)) => i32::from(*value),
@@ -14,7 +14,7 @@ fn pluto_hanging_frame_from_nbt(tag: &Tag, id: u32) -> std::ops::ControlFlow<Opt
         return std::ops::ControlFlow::Continue(());
     };
     let Some(pos) = attached_block_pos(tag) else {
-        return std::ops::ControlFlow::Break(Some(None));
+        return std::ops::ControlFlow::Break(None);
     };
     let saved = tag.get("ItemRotation").and_then(int_value).unwrap_or(0);
     let frame = ItemFrame {
@@ -34,5 +34,5 @@ fn pluto_hanging_frame_from_nbt(tag: &Tag, id: u32) -> std::ops::ControlFlow<Opt
         custom_name: tag.get("CustomName").cloned(),
         random: crate::random_source::entity(),
     };
-    std::ops::ControlFlow::Break(Some(Some(frame)))
+    std::ops::ControlFlow::Break(Some(frame))
 }

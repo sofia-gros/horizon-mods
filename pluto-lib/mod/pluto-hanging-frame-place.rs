@@ -5,9 +5,9 @@ fn pluto_hanging_frame_place(
     game: &mut Game<'_>,
     hit: &Hit,
     stack: &ItemStack,
-) -> std::ops::ControlFlow<Option<bool>> {
+) -> std::ops::ControlFlow<bool> {
     let Some(facts) = horizon_client::entry::pluto_hanging_access::frame_for_item(&stack.item) else {
         return std::ops::ControlFlow::Continue(());
     };
-    std::ops::ControlFlow::Break(Some(crate::game::pluto_hanging_game::place_fancy_frame(game, hit, stack, &facts)))
+    std::ops::ControlFlow::Break(crate::game::pluto_hanging_game::place_fancy_frame(game, hit, stack, &facts))
 }
