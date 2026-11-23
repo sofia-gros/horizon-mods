@@ -1136,7 +1136,7 @@ id = "pluto-block-fire-odds"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_fire_odds"
 kind = "HEAD"
 helper = "pluto-block-fire-odds.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "_dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
 
 [[injection]]
 id = "pluto-block-may-place-on"
