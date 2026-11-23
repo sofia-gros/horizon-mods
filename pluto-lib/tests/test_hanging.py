@@ -62,13 +62,19 @@ class HangingTests(unittest.TestCase):
         self.assertEqual(tick['target'], "horizon_client::game::frames::Game<'_>::tick_item_frames")
         self.assertEqual(tick['kind'], 'RETURN')
         analog = self.injection('pluto-hanging-frame-analog')
-        self.assertEqual(analog['target'], "horizon_client::game::GameLevel<'_>::item_frame_analog_output")
+        self.assertEqual(analog['target'], "horizon_client::game::<GameLevel<'_> as LevelAccess>::item_frame_analog_output")  # a LevelAccess trait impl, not an inherent method (E_TARGET_NOT_FOUND, weave plan 2026-11-23)
         self.assertEqual(analog['kind'], 'HEAD')
         self.assertTrue(analog['cancellable'])
-        for kind in ('head', 'return'):
-            blast = self.injection(f'pluto-hanging-frame-explosion-{kind}')
-            self.assertEqual(blast['target'], "horizon_client::game::frames::Game<'_>::explosion_breaks_frames")
-            self.assertEqual(blast['kind'], kind.upper())
+        blast_head = self.injection('pluto-hanging-frame-explosion-head')
+        self.assertEqual(blast_head['target'], "horizon_client::game::frames::Game<'_>::explosion_breaks_frames")
+        self.assertEqual(blast_head['kind'], 'HEAD')
+        # The restore rides the head of explosion_breaks_decorations, the
+        # call explosion_hurt_entities makes right after the frames pass:
+        # a RETURN on explosion_breaks_frames is E_UNSUPPORTED_CONTROL_FLOW
+        # and the caller body is E_UNSUPPORTED_MACRO (weave plan 2026-11-23).
+        blast_return = self.injection('pluto-hanging-frame-explosion-return')
+        self.assertEqual(blast_return['target'], "horizon_client::game::explosion::Game<'_>::explosion_breaks_decorations")
+        self.assertEqual(blast_return['kind'], 'HEAD')
         drops = self.injection('pluto-hanging-frame-drops')
         self.assertEqual(drops['target'], "horizon_client::game::frames::Game<'_>::drop_frame_items")
         self.assertTrue(drops['cancellable'])
