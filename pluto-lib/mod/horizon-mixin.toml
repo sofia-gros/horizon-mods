@@ -2018,7 +2018,6 @@ bindings = [
 id = "pluto-hanging-frame-explosion-head"
 target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
 kind = "HEAD"
-require = 1
 helper = "pluto-hanging-frame-explosion.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
@@ -2070,7 +2069,6 @@ bindings = [
 id = "pluto-hanging-frame-set-item"
 target = "horizon_client::game::frames::Game<'_>::set_frame_item"
 kind = "HEAD"
-require = 1
 helper = "pluto-hanging-frame-hit.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
