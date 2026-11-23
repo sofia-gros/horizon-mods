@@ -68,6 +68,10 @@ pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_r
 static ITEMS: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
 /// The captured entity type registry and tags, for melee target conditions (mob types and entity tags).
 static ENTITY_TYPES: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+/// The captured block registry and tags, for telling a block item from any other item: an item provides
+/// itself for placing only when its id names a block. None until a reload captured it.
+static BLOCKS: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
+pub(crate) fn block_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { BLOCKS.read().expect("block snapshot lock poisoned").clone() }
 /// The captured fluid registry (native and Tinkers fluids) with the fluid tags, for the smeltery's tag reads; None until a reload
 /// captured it, and never an empty stand-in. The melter and casting units read it.
 static FLUID_SNAPSHOT: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::new(None);
@@ -100,6 +104,8 @@ fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     }
     // A reload without a fluid capture drops the previous generation's snapshot rather than keeping stale tags.
     *FLUID_SNAPSHOT.write().expect("fluid snapshot lock poisoned") = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "fluid").unwrap()).map(Arc::new);
+    // The same for the block capture: a generation that did not capture it keeps no stale blocks.
+    *BLOCKS.write().expect("block snapshot lock poisoned") = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "block").unwrap()).map(Arc::new);
     items
 }
 pub(crate) fn server_modifiers() -> Option<&'static Arc<RwLock<crate::modifiers::Registry>>> { MODIFIERS.get() }
@@ -298,6 +304,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = None;
             *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;
             *FLUID_SNAPSHOT.write().expect("fluid snapshot lock poisoned") = None;
+            *BLOCKS.write().expect("block snapshot lock poisoned") = None;
             let mut state = stopped.write().expect("material registry lock poisoned");
             let generation = state.generation.wrapping_add(1);
             *state = Definitions { generation, ..Definitions::default() };

@@ -2514,7 +2514,7 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
 }
 
 /// What the break hook read before the block went, kept for the end of the same break.
-struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, equipment: Vec<(String, player_api::StackData)>, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32 }
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, equipment: Vec<(String, player_api::StackData)>, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32, creative: bool, may_build: bool, offhand_place_on: Vec<String> }
 static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
 
 /// The face each player last started digging, by uuid: the break hook itself is not told the face, but the dig's start is
@@ -2534,11 +2534,64 @@ fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::B
     let face = acting.as_ref().and_then(|player| LAST_DIG_FACE.lock().ok().and_then(|last| last.get(&player.uuid).copied()));
     let (yaw, pitch) = acting.as_ref().map(|player| (player.yaw, player.pitch)).unwrap_or_default();
     let equipment = acting.as_ref().map(|player| entity_events_v1::equipment_of(player.uuid)).unwrap_or_default();
+    // The game type as the break starts: creative is mode 1, and mayBuild is the vanilla ability of the type
+    // (survival and creative). An unnamed breaker reads as a survival one.
+    let (creative, may_build) = acting.as_ref().map(|player| (player.game_mode == 1, matches!(player.game_mode, 0 | 1))).unwrap_or((false, true));
+    let offhand_place_on = if acting.is_some() { host.carried_stack(-106).map(|stack| adventure_place_entries(stack)).unwrap_or_default() } else { Vec::new() };
     events_interaction_v0::BlockBreakContext {
         pos, dimension, state,
         player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
         held, equipment, actions: std::cell::RefCell::new(Vec::new()),
-        face, yaw, pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
+        face, yaw, pitch, creative, may_build, offhand_place_on, extra_breaks: std::cell::RefCell::new(Vec::new()),
+    }
+}
+
+/// The adventure-mode place tag (`minecraft:can_place_on`) of a stack, flattened to the text entries the break
+/// context reports: one per block predicate, a block id, a `#tag`, or an id with a `[key=value,...]` state suffix —
+/// the form the original's own tag strings take. A predicate carrying a block entity NBT test is dropped: the break
+/// reads the block without its block entity, so the test could not be answered honestly.
+fn adventure_place_entries(stack: &ItemStack) -> Vec<String> {
+    let Some(tag) = stack.data().and_then(|data| data.other("minecraft:can_place_on")) else { return Vec::new() };
+    let Some(nbt) = nbt_from_tag(tag) else { return Vec::new() };
+    let mut entries = Vec::new();
+    match &nbt {
+        Nbt::Compound(component) => {
+            if let Some(Nbt::List(predicates)) = component.get("blocks") {
+                for predicate in predicates { adventure_place_entry(predicate, &mut entries); }
+            }
+        }
+        Nbt::List(predicates) => { for predicate in predicates { adventure_place_entry(predicate, &mut entries); } }
+        Nbt::String(spec) => entries.push(spec.clone()),
+        _ => {}
+    }
+    entries
+}
+
+/// One block predicate of a place tag, as its text entries (see `adventure_place_entries`): a compound names its
+/// blocks (one id or a list) and may narrow them with a state test, whose entries ride as the suffix.
+fn adventure_place_entry(predicate: &Nbt, entries: &mut Vec<String>) {
+    match predicate {
+        Nbt::String(spec) => entries.push(spec.clone()),
+        Nbt::Compound(predicate) => {
+            if predicate.get("nbt").is_some() { return; }
+            let suffix = match predicate.get("state") {
+                Some(Nbt::Compound(state)) if !state.is_empty() => {
+                    let mut pairs = Vec::new();
+                    for (key, value) in state.iter() {
+                        let Nbt::String(value) = value else { return };
+                        pairs.push(format!("{key}={value}"));
+                    }
+                    format!("[{}]", pairs.join(","))
+                }
+                _ => String::new(),
+            };
+            match predicate.get("blocks") {
+                Some(Nbt::String(spec)) => entries.push(format!("{spec}{suffix}")),
+                Some(Nbt::List(specs)) => { for spec in specs { if let Nbt::String(spec) = spec { entries.push(format!("{spec}{suffix}")); } } }
+                _ => {}
+            }
+        }
+        _ => {}
     }
 }
 
@@ -2557,7 +2610,7 @@ fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
         let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
         let context = events_interaction_v0::BlockBreakContext {
             pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, equipment: entry.equipment, actions: std::cell::RefCell::new(Vec::new()),
-            face: entry.face, yaw: entry.yaw, pitch: entry.pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
+            face: entry.face, yaw: entry.yaw, pitch: entry.pitch, creative: entry.creative, may_build: entry.may_build, offhand_place_on: entry.offhand_place_on, extra_breaks: std::cell::RefCell::new(Vec::new()),
         };
         scoped(host, || events_interaction_v0::after_block_break(&context));
         let actions = context.actions.take();
@@ -5087,7 +5140,7 @@ impl Hooks for PlutoHooks {
         }
         // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
         let pending = match (allowed, context.player) {
-            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, equipment: context.equipment.clone(), face: context.face, yaw: context.yaw, pitch: context.pitch }),
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, equipment: context.equipment.clone(), face: context.face, yaw: context.yaw, pitch: context.pitch, creative: context.creative, may_build: context.may_build, offhand_place_on: context.offhand_place_on.clone() }),
             _ => None,
         };
         if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
