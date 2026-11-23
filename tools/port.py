@@ -105,7 +105,7 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
 LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus', 'minecraft:match_tool', 'minecraft:damage_source_properties', 'minecraft:entity_properties'}
-LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data', 'minecraft:looting_enchant', 'minecraft:furnace_smelt'}
+LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data', 'minecraft:looting_enchant', 'minecraft:furnace_smelt', 'mantle:fill_retextured_block'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore', 'minecraft:geode', 'minecraft:tree', 'tconstruct:slime_tree', 'tconstruct:slime_fungus'}
 ISLAND_STRUCTURE_KEYS = {'type', 'biomes', 'step', 'spawn_overrides', 'terrain_adaptation', 'dimension_padding', 'placement', 'templates', 'trees', 'vines', 'grasses'}
