@@ -3001,6 +3001,16 @@ impl ScreenCanvas for HostCanvas<'_> {
             base_plate: preview.base_plate,
         });
     }
+
+    fn map(&mut self, rect: [f32; 4], stack: &ItemSlot) {
+        // As with the living preview, the batch has no map reach of its own: the request is
+        // queued with the host module, whose flush at the end of the HUD's draw renders the
+        // map's face from its texture while the game is at hand. The stack is rebuilt whole,
+        // so the map id it carries in its data reaches the flush with it.
+        let mut native = ItemStack::new(&stack.item.to_string(), stack.count);
+        write_slot(&mut native, stack);
+        horizon_client::game::pluto_map_face::queue(horizon_client::game::pluto_map_face::QueuedMapFace { rect, stack: native });
+    }
 }
 
 fn model_config(file: &NativeConfigFile) -> ModConfig {

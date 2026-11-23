@@ -1,12 +1,20 @@
 //! The modifier HUD elements (SlimeKnights ModifierClientEvents' hotbar overlay, MIT; see
 //! LICENSE), drawn through PlutoLib's HUD registry from the worn tools' own data: the shield
-//! strap's stored item above the offhand slot, the sleeves' selected item beside it, and the
-//! item frame's stored items in their anchored grid. Each is gated by its client config switch,
-//! as the original's are, and none draws for a spectator.
+//! strap's stored item above the offhand slot, the sleeves' selected item beside it, the item
+//! frame's stored items in their anchored grid, and the minimap's map at its configured
+//! corner. Each is gated by its client config switch, as the original's are, and none draws
+//! for a spectator.
 //!
-//! The minimap is not among them: the port has no MinimapModule — no module in the ported
-//! modifier set produces the map stack the original reads from the player's data — so there is
-//! nothing to render. The config's minimap section parses and waits with the module.
+//! The minimap reads the worn helmet's own minimap inventory, as the other elements read
+//! theirs: the original keeps the current map in the player's data, filled from the helmet's
+//! inventory on equip, but the helmet's selected stored map is the same stack, so the HUD
+//! derives it directly and no player-data key is kept. What does not carry over: the map is
+//! not ticked while it is stored (the original swaps it into the offhand each tick so it
+//! updates and its data reaches the player; PlutoLib has no map-tick verb), the top-right
+//! corner's shift for the player's active effects is not applied (the HUD draw is given no
+//! effects), the map's decorations are not drawn (they ride the game's 3D map pipeline, not
+//! the HUD batch), and the background is a plain paper panel where the original blits its
+//! background texture (a checkerboard when the map has no data yet).
 
 use crate::{config::{self, Orientation2D}, tool_stack};
 use pluto_lib::{HudDraw, HudRegistry, ItemSlot, Nbt, NbtCompound, NbtCompoundExt};
@@ -62,9 +70,30 @@ fn grid_origin(location: Orientation2D, size: [f32; 2], grid: [f32; 2], offsets:
     [x + offsets.0 as f32, y + offsets.1 as f32]
 }
 
+/// The minimap: the worn helmet's selected stored map, drawn at its configured corner at the
+/// configured scale (ModifierClientEvents' map rendering: a 142-square panel, the map's face
+/// inset by seven). Returns where it sits and how far its footprint reaches, for the item
+/// frame's shift when the two share a location; `None` when it does not draw.
+fn minimap(draw: &mut HudDraw<'_>, client: &config::Client) -> Option<(Orientation2D, f32)> {
+    if client.map_scale <= 0.0 { return None; }
+    let head = draw.equipment.head.as_ref()?;
+    if !has_modifier(head, "tconstruct:minimap") { return None; }
+    let selected = persistent(head).map_or(0, |data| data.get_int("tconstruct:minimap_selected", 0));
+    let stack = stored_slot(head, "tconstruct:minimap", selected)?;
+    if stack.item.to_string() != "minecraft:filled_map" { return None; }
+    let scale = client.map_scale as f32;
+    let size = 142.0 * scale;
+    let origin = grid_origin(client.map_location, draw.size, [size, size], (client.map_x_offset, client.map_y_offset));
+    draw.canvas.fill([origin[0], origin[1], size, size], 0xFFE8_D8B0);
+    draw.canvas.map([origin[0] + 7.0 * scale, origin[1] + 7.0 * scale, 128.0 * scale, 128.0 * scale], &stack);
+    Some((client.map_location, size))
+}
+
 fn draw(draw: &mut HudDraw<'_>) {
     if draw.spectator { return; }
     let Ok(client) = config::client() else { return };
+    // The minimap draws first: the item frame shifts out of its way when they share a location.
+    let map = minimap(draw, &client);
     let center = draw.size[0] / 2.0;
     let right_handed = draw.equipment.right_handed;
     let empty_offhand = draw.equipment.offhand.is_none();
@@ -100,8 +129,19 @@ fn draw(draw: &mut HudDraw<'_>) {
                 if !items.is_empty() {
                     let columns = (client.items_per_row as usize).min(items.len());
                     let rows = items.len().div_ceil(columns);
-                    let origin = grid_origin(client.item_frame_location, draw.size, [FRAME * columns as f32, FRAME * rows as f32],
+                    let mut origin = grid_origin(client.item_frame_location, draw.size, [FRAME * columns as f32, FRAME * rows as f32],
                         (client.item_frame_x_offset, client.item_frame_y_offset));
+                    // A minimap at the same location pushes the frame down (or up, at the
+                    // bottom) by its footprint, as the original's rendering shifts it.
+                    if let Some((location, footprint)) = map {
+                        if location == client.item_frame_location {
+                            origin[1] += match location {
+                                Orientation2D::TopLeft | Orientation2D::Top | Orientation2D::TopRight => footprint,
+                                Orientation2D::Left | Orientation2D::Right => (footprint + FRAME * rows as f32) / 2.0,
+                                _ => -footprint,
+                            };
+                        }
+                    }
                     for (index, item) in items.iter().enumerate() {
                         let at = [origin[0] + (index % columns) as f32 * FRAME, origin[1] + (index / columns) as f32 * FRAME];
                         framed(draw, 167.0, at, item);

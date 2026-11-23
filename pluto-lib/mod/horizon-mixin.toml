@@ -1670,6 +1670,30 @@ kind = "RETURN"
 helper = "pluto-menu-switch-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" }]
 
+# Map faces a mod's HUD drawing asked for (a minimap's map): the draw queues them through
+# the mod API's canvas, and the flush at the end of the HUD's draw renders each from its map
+# texture with the game at hand.
+[[module]]
+id = "pluto-map-face-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_map_face"
+source = "pluto-map-face-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-map-face"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_map_face"
+source = "pluto-map-face.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-map-face-flush"
+target = "horizon_client::game::native_hooks::Game<'_>::native_hud"
+kind = "RETURN"
+helper = "pluto-map-face-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "batch" }]
+
 # Pinned Persistent::worker installs saved structure starts in every dimension.
 # Keep make_streaming native; the former dimension replacement is not attached.
 

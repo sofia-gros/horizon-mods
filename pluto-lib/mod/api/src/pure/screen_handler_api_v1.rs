@@ -57,6 +57,14 @@ pub trait ScreenCanvas {
     fn living(&mut self, rect: [f32; 4], preview: &LivingPreview) {
         let _ = (rect, preview);
     }
+    /// Draws the face of the filled map `stack` carries into `rect` (`[x, y, width, height]`,
+    /// as [`ScreenCanvas::fill`] takes): the map's own colours at the rect's size, as a HUD
+    /// minimap shows them. The map's decorations (player markers, banners) are not drawn.
+    /// The default draws nothing: a canvas with no map reach (a test's recording canvas, a
+    /// server) simply skips it.
+    fn map(&mut self, rect: [f32; 4], stack: &ItemSlot) {
+        let _ = (rect, stack);
+    }
 }
 
 /// A living entity drawn as a screen preview (the station windows' armor stand, wearing the
