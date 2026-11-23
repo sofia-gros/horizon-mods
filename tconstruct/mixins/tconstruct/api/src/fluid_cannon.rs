@@ -14,10 +14,11 @@
 //! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite is ported (the
 //! entity_inside callback below), and so is the plain knightmetal block's identical bite — KnightMetalBlock.entityInside
 //! is the body KnightMetalFluidCannonBlock's is copied from: an entity inside takes KnightMetalBlock.BLOCK_DAMAGE of
-//! tconstruct:knightmetal damage, queued as a hurt action and landed by the game's own hurt call where the contact
-//! actions drain. The host's hurt call reaches living entities only, where the original calls hurt on any entity: a
-//! non-living one takes nothing from the original's call in practice either, but here the refusal is the host's, not
-//! the damage type's. Both blocks' path type is ported. What a broken cannon drops of its slot follows the host's
+//! tconstruct:knightmetal damage, queued as a hurt action and landed where the contact actions drain by the
+//! generalized hurt reach: living entities through the game's own hurt call, the rest — dropped items, vehicles,
+//! end crystals, armor stands, the dragon — through the game's damage hurt, as the original calls hurt on any
+//! entity that takes damage; a dropped stack a mod marks indestructible takes nothing, as the original's
+//! indestructible entity is invulnerable to the bite. Both blocks' path type is ported. What a broken cannon drops of its slot follows the host's
 //! slot storage, as the melter's inventory does.
 use crate::fluid_effects::{self, WorldAccess};
 use crate::fluid_ingredient::FluidTags;

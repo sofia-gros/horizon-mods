@@ -175,6 +175,13 @@ name = "pluto_spawn_placement_game"
 source = "pluto-spawn-placement-game.rs"
 visibility = "pub(crate)"
 
+[[module]]
+id = "pluto-entity-hurt-game"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_entity_hurt_game"
+source = "pluto-entity-hurt-game.rs"
+visibility = "pub(crate)"
+
 [[injection]]
 id = "pluto-mob-split-head"
 target = "horizon_client::game::native_hooks::Game<'_>::native_mob_split"

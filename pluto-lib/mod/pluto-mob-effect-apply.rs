@@ -7,9 +7,10 @@ fn pluto_mob_effect_apply(value:(),game:&mut crate::game::Game<'_>) {
         if let Some(mob)=game.mobs.iter_mut().find(|mob| mob.id==entity) {mob.add_effect(effect,ticks,amplifier);}
     }
     // What entity-inside callbacks did to entities lands here too: a mob's queued effect and fire are
-    // applied to the mob they name, and a hurt goes through the game's own hurt call, which reaches
-    // a mob of this level or the player in place by id, with the game's armour, invulnerability
-    // time, death and damage hooks (a hurt that reaches nothing is traced, PLUTO_TRACE_INSIDE).
+    // applied to the mob they name, and a hurt goes through the generalized hurt reach
+    // (pluto_entity_hurt_game::hurt_any): living entities through the game's own hurt call, with the
+    // game's armour, invulnerability time, death and damage hooks, the rest through the game's damage
+    // hurt (a hurt that reaches nothing is traced, PLUTO_TRACE_INSIDE).
     for (entity,action) in crate::entry::pluto_contact_access::take() {
         match action {
             crate::entry::pluto_contact_access::Contact::Effect(effect,ticks,amplifier) => {
@@ -24,8 +25,8 @@ fn pluto_mob_effect_apply(value:(),game:&mut crate::game::Game<'_>) {
                 }
             }
             crate::entry::pluto_contact_access::Contact::Hurt(damage_type,amount) => {
-                if !game.native_hurt_entity(game.dim.id(),entity,amount,&damage_type,None)
-                    && std::env::var_os("PLUTO_TRACE_INSIDE").is_some() {eprintln!("pluto_lib: contact hurt {amount} ({damage_type}) for entity {entity} did not land: not a living entity of this level");}
+                if !crate::game::pluto_entity_hurt_game::hurt_any(game,entity,amount,&damage_type)
+                    && std::env::var_os("PLUTO_TRACE_INSIDE").is_some() {eprintln!("pluto_lib: contact hurt {amount} ({damage_type}) for entity {entity} did not land: not an entity of this level that takes damage");}
             }
         }
     }
