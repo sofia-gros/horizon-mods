@@ -1,0 +1,16 @@
+[package]
+name = "pipes-domain-tests"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# The real host-independent PlutoLib implementation and public types, not mocks.
+# This checks the pipes mod's transport rules, not launcher integration or native behavior.
+[dependencies]
+serde_json = "=1.0.154"
+pluto_lib = { package = "pluto-lib-pure-tests", path = "../../pluto-lib/tests/pure" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
