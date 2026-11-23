@@ -83,6 +83,7 @@ pub(crate) enum WalkModule {
     Cover { block: Identifier, radius: f32 },
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Module {
     Flag { id: Identifier, condition: Condition },
     Rarity(i32),
