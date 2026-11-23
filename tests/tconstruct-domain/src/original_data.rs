@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (68, 41), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (59, 31), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -205,13 +205,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The special melee consumers are bound: punch and reverse punch over the projectile hooks, the melee instrument, the
-    // overgrowth inventory tick and kinetic's insatiable feed. Smashing runs on the fluid effects engine, which is not
-    // ported, and overburn still carries its tank stat boost (and its own module needs a tool fluid tank).
+    // overgrowth inventory tick and kinetic's insatiable feed. The tool tank family binds over the tool tank (tool_tank):
+    // smashing and overburn themselves, the interaction modules (bucket, tank interaction, melting, slurping, spilling,
+    // spitting, splashing), and the tank capacity form of stat_boost, the tank stat being this domain's own now.
     for bound in ["punch", "reverse_punch", "melee_instrument", "overgrowth", "kinetic"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for name in ["punch", "drawback", "kinetic", "overgrowth", "ram_attack"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    for unbound in ["smashing", "overburn"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
-    assert!(!unbound_of("overburn").is_empty(), "overburn still carries unported modules");
-    assert!(!unbound_of("smashing").is_empty(), "smashing still carries its unported module");
+    for bound in ["smashing", "overburn", "bucket", "tank_interaction", "melting", "slurping", "spilling", "spitting", "splashing", "stat_boost"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["tank", "bucketing", "melting", "slurping", "spilling", "spitting", "splashing", "overburn", "smashing"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the tool tank"); }
     // The inventory consumers are bound: the quivers draw through the ammo event, the strap and belt
     // kinds decode with their interact plan, share durability runs on the wear event, and shears and
     // fishing answer the tool-action query. Harvest stays unbound (no destroy-with-drops or block-use
@@ -2042,11 +2042,10 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
     assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
     // The modules that need host data this port does not receive stay unbound. Gold guard's golden attribute and
-    // lightspeed's attribute bind now: the player tick reports the wearer's equipment whole and the light at them.
-    for (modifier, kind) in [("tconstruct:tank", "stat_boost")] {
-        assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
-    }
+    // lightspeed's attribute bind now: the player tick reports the wearer's equipment whole and the light at them,
+    // and the tank's capacity boost binds with the tool tank.
     assert!(unbound("tconstruct:gold_guard").is_empty() && unbound("tconstruct:lightspeed").is_empty());
+    assert!(unbound("tconstruct:tank").is_empty(), "the tank's capacity boost binds with the tool tank");
     // Experienced's volatile float is bound now; only its experience multiplier attribute has no counterpart.
     assert_eq!(unbound("tconstruct:experienced"), vec!["tconstruct:attribute"]);
     assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());

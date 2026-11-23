@@ -113,6 +113,7 @@
     "api/src/model_flags.rs",
     "api/src/tool_materials.rs",
     "api/src/tool_stats.rs",
+    "api/src/tool_tank.rs",
     "api/src/tool_definitions.rs",
     "api/src/advancements.rs",
     "api/src/common.rs",

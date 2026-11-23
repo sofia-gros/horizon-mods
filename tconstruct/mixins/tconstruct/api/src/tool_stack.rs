@@ -61,6 +61,8 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
     apply_raw_data(nbt, env);
+    // TankModule.validateFluid: a tank that shrank under its content clamps to the new capacity.
+    crate::tool_tank::validate_clamp(nbt);
     Ok(true)
 }
 
@@ -577,6 +579,88 @@ pub(crate) fn launch_capacity_edits(nbt: &NbtCompound, env: &Environment) -> Vec
         }
         crate::capacity::persistent_edits(nbt, &work)
     })
+}
+
+/// MeltingModule.processLoot for block loot: drops the tool can melt become its tank's fluid, under
+/// the module's temperature and its own ore rates (tool_tank::Melting). `force` is the caller-computed
+/// force-melting state (the volatile flag is set and the tool is effective on the block); `melt`
+/// resolves one dropped stack to (fluid, temperature) for a module and entry level, or None when the
+/// stack has no melting recipe. The original skips a full tank entirely; unforced melting takes only
+/// the copies that fit, forced melting takes them all and deletes what cannot melt. Returns the
+/// tool's persistent-data edits.
+pub(crate) fn melting_loot(
+    nbt: &mut NbtCompound,
+    env: &Environment,
+    loot: &mut Vec<pluto_lib::ItemSlot>,
+    force: bool,
+    melt: &dyn Fn(&pluto_lib::ItemSlot, &crate::tool_tank::Melting, f32) -> Option<(pluto_lib::FluidStack, i32)>,
+) -> Vec<pluto_lib::StackDataEdit> {
+    let mut work = nbt.clone();
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                let Some(module) = module.melting(entry, facts) else { continue; };
+                if crate::tool_tank::capacity(&work) <= 0 { continue; }
+                let mut index = 0;
+                while index < loot.len() {
+                    // The original checks the tank after every drop: a full tank ends the pass.
+                    let current = crate::tool_tank::fluid(&work);
+                    if current.as_ref().is_some_and(|stored| stored.amount as i32 >= crate::tool_tank::capacity(&work)) { break; }
+                    let Some((fluid, temperature)) = melt(&loot[index], module, entry.effective_level()) else {
+                        if force { loot.remove(index); } else { index += 1; }
+                        continue;
+                    };
+                    if temperature > module.temperature(entry.effective_level()) || fluid.amount == 0 {
+                        if force { loot.remove(index); } else { index += 1; }
+                        continue;
+                    }
+                    if current.as_ref().is_some_and(|stored| !stored.same_fluid(&fluid)) {
+                        index += 1;
+                        continue;
+                    }
+                    let per_copy = fluid.amount as i32;
+                    let room = crate::tool_tank::capacity(&work) - current.as_ref().map_or(0, |stored| stored.amount as i32);
+                    let fitting = if force { loot[index].count as i32 } else { (room / per_copy).min(loot[index].count as i32) };
+                    if fitting > 0 {
+                        let mut fill_stack = fluid.clone();
+                        fill_stack.amount = (per_copy * fitting) as u32;
+                        crate::tool_tank::fill(&mut work, &fill_stack, true);
+                        if fitting >= loot[index].count as i32 { loot.remove(index); continue; }
+                        loot[index].count -= fitting as u32;
+                    }
+                    index += 1;
+                }
+            }
+        }
+    });
+    let edits = crate::capacity::persistent_edits(nbt, &work);
+    *nbt = work;
+    edits
+}
+
+/// InventoryTickModifierHook for every overburn module of the tool: burns the tank's fluid as
+/// melting fuel to regrow overslime (tool_tank::overburn_tick). `fuel` resolves a fluid to its
+/// melting fuel facts; `game_time` is the world clock the burn's expiration is measured on. Whether
+/// the tool changed.
+pub(crate) fn overburn_tick(
+    nbt: &mut NbtCompound,
+    env: &Environment,
+    holder_tick: i32,
+    game_time: i64,
+    using_this: bool,
+    fuel: &dyn Fn(&Identifier) -> Option<crate::tool_tank::Fuel>,
+    rolls: &mut dyn FnMut() -> f32,
+) -> bool {
+    let snapshot = nbt.clone();
+    let mut changed = false;
+    with_tool_facts(&snapshot, env, |saved, _facts| {
+        for (entry, modifier) in saved {
+            if modifier.modules().iter().any(|module| module.is_overburn()) {
+                changed |= crate::tool_tank::overburn_tick(nbt, env, entry, holder_tick, game_time, using_this, fuel, rolls);
+            }
+        }
+    });
+    changed
 }
 
 /// The health a critical melee hit with this tool that dealt `damage` gives its wielder through the tool's lifesteal modules (added up, in

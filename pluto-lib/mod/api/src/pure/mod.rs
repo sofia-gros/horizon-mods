@@ -28,6 +28,7 @@ pub mod events_interaction_v0;
 pub mod fluid_api_v1;
 pub mod fluid_item_api_v1;
 pub mod fluid_world_api_v1;
+pub mod tool_tank_api_v1;
 pub mod i18n_api;
 pub mod item_api_v1;
 pub(crate) mod item_behavior;

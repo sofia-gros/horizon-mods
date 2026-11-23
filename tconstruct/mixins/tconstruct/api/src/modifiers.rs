@@ -7,7 +7,7 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
 /// Module types only code-defined modifiers use; the original ships no data for them.
-const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum"];
+const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum", "tconstruct:tank"];
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
@@ -756,6 +756,8 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
     let mut registry = Registry::default();
     for modifier in crate::overslime::code_modifiers()? { registry.register_static(modifier)?; }
     for modifier in ported_code_modifiers()? { registry.register_static(modifier)?; }
+    // The tank handler (TinkerModifiers: the tank trait's own code modifier, priority 300).
+    for modifier in crate::tool_tank::code_modifiers()? { registry.register_static(modifier)?; }
     for modifier in unported_code_modifiers()? { registry.register_static(modifier)?; }
     let state = Arc::new(RwLock::new(registry));
     let output = state.clone();

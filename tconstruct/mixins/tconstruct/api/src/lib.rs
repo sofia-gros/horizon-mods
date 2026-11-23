@@ -35,6 +35,7 @@ mod tool_stats;
 mod tool_definitions;
 mod tool_rebuild;
 mod tool_stack;
+mod tool_tank;
 mod tool_damage;
 mod tool_repair;
 mod tool_swap;

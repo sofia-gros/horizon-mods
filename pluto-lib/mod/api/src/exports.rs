@@ -38,6 +38,7 @@ pub use crate::pure::lifecycle_events_v1::{
 pub use crate::pure::fluid_api_v1::{self, FluidAttributes, FluidDef, FluidFlow, FluidRegistry, FluidRegistrySnapshot};
 pub use crate::pure::fluid_item_api_v1::{self, Drained, Filled, FluidItemDef, FluidItems, FluidTarget, Interaction, TransferDirection};
 pub use crate::pure::fluid_world_api_v1::{self, FluidWorld};
+pub use crate::pure::tool_tank_api_v1::{self};
 pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, LanguageEvents, Translations};
 pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext, ItemEvents, ReleaseUsing};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};

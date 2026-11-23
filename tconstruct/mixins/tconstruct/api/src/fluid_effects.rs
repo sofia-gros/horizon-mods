@@ -92,7 +92,7 @@ impl LevelingValue {
     pub(crate) fn compute_for_scale(self, level: f32) -> f32 {
         if level < 1.0 { (self.flat + self.each_level) * level } else { self.compute(level) }
     }
-    fn decode(value: &Value) -> Result<Self, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Self, String> {
         match value {
             Value::Number(number) => Ok(Self::flat(number.as_f64().ok_or("leveling value must be a number")? as f32)),
             Value::Object(fields) => {
@@ -122,7 +122,7 @@ impl LevelingInt {
     pub(crate) fn is_flat(self) -> bool { self.each_level == 0 }
     /// `flat + each_level * level`, truncated to a whole number.
     pub(crate) fn compute(self, level: f32) -> i32 { (self.flat as f32 + self.each_level as f32 * level) as i32 }
-    fn decode(value: &Value) -> Result<Self, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Self, String> {
         match value {
             Value::Number(_) => Ok(Self { flat: 0, each_level: int_of(value, "leveling int")? }),
             Value::Object(fields) => {

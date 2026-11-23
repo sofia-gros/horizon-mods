@@ -313,6 +313,27 @@ pub(crate) enum Module {
     /// half there is the launcher's, which is the projectile side's; the melee half below runs for
     /// data that allows it.
     Channeling { allow_melee: bool, chance_clear: f32, chance_rain: f32, chance_thunder: f32 },
+    /// TankModule: the tool's fluid tank itself, carried by the code-defined tank handler
+    /// (see tool_tank). Its volatile hook feeds the fluid capability, not volatile data keys.
+    Tank,
+    /// BucketModule: the tool places and picks up a bucket of its tank's fluid.
+    Bucket { module: crate::tool_tank::Bucket },
+    /// TankInteractionModule: a use on a block with a fluid handler trades with the tank.
+    TankInteraction { module: crate::tool_tank::TankInteraction },
+    /// MeltingModule: melts dropped items and hit entities into the tank.
+    Melting { module: Box<crate::tool_tank::Melting>, condition: Condition },
+    /// SlurpingModule: drinking the tank's fluid applies its effects to the holder.
+    Slurping { module: Box<crate::tool_tank::Slurping> },
+    /// SpillingModule: a hit applies the tank fluid's effects to the target.
+    Spilling { module: crate::tool_tank::Spilling, condition: Condition },
+    /// SpittingModule: charging and releasing fires the tank's fluid as projectiles.
+    Spitting { module: Box<crate::tool_tank::Spitting> },
+    /// SplashingModule: a use applies the tank fluid's effects over an area.
+    Splashing { module: Box<crate::tool_tank::Splashing> },
+    /// OverburnModule: burns the tank's fluid as melting fuel to regrow overslime.
+    Overburn,
+    /// SmashingModule: an ammo tank whose amount is the fluid effect ingredient's amount.
+    Smashing,
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -597,11 +618,9 @@ impl Module {
             }
             "tconstruct:stat_boost" if only("tconstruct:tool_stats") => {
                 let stat_id = identifier(fields, "stat")?;
-                // A stat of another domain (tanks, food) is not representable here. `tconstruct:tank_capacity` in
-                // particular is the capacity stat of the tool's fluid tank (ToolTankHelper, fed by the tank trait's
-                // module): this port has no tool tank at all — no tank module, no fluid stored on a tool — so the stat
-                // would measure a tank that does not exist, and the boost stays unbound until the tank itself is ported
-                // (the same missing piece as the overburn and smashing modules' own tank forms).
+                // A stat of another domain is not representable here and stays unbound. The tank
+                // capacity stat is this domain's own since the tool tank was ported (tool_tank):
+                // Stat::from_id knows tconstruct:tank_capacity, so the tank family's boosts bind.
                 let Some(stat) = Stat::from_id(&stat_id) else { return Ok(None); };
                 let operation = match fields.get("operation").and_then(Value::as_str) {
                     Some("add") => Operation::Add, Some("percent") => Operation::Percent,
@@ -994,6 +1013,30 @@ impl Module {
             }
             // OvergrowthModule: overslime regrows while the tool sits in an inventory.
             "tconstruct:overgrowth" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:inventory_tick") => Self::Overgrowth { module: Box::new(crate::overgrowth::Overgrowth::decode(fields)?), condition: Condition::decode(fields)? },
+            // The tool tank family (tool_tank). The tank module is code-only in the original —
+            // TankModule has no data serializer — so this arm binds the code modifier's JSON.
+            "tconstruct:tank" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:slot_stack" | "tconstruct:display_name")) => Self::Tank,
+            "tconstruct:bucket" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:general_interact")) => {
+                let Some(module) = crate::tool_tank::Bucket::decode(fields)? else { return Ok(None); };
+                Self::Bucket { module }
+            }
+            "tconstruct:tank_interaction" if only("tconstruct:block_interact") => {
+                let Some(module) = crate::tool_tank::TankInteraction::decode(fields)? else { return Ok(None); };
+                Self::TankInteraction { module }
+            }
+            "tconstruct:melting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit" | "tconstruct:process_loot")) => Self::Melting {
+                module: Box::new(crate::tool_tank::Melting::decode(fields)?),
+                condition: Condition::decode(fields)?,
+            },
+            "tconstruct:slurping" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact" | "tconstruct:inventory_tick" | "tconstruct:equipment_change")) => Self::Slurping { module: Box::new(crate::tool_tank::Slurping::decode(fields)?) },
+            "tconstruct:spilling" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit")) => Self::Spilling {
+                module: crate::tool_tank::Spilling::decode(fields)?,
+                condition: Condition::decode(fields)?,
+            },
+            "tconstruct:spitting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:armor_interact" | "tconstruct:inventory_tick")) => Self::Spitting { module: Box::new(crate::tool_tank::Spitting::decode(fields)?) },
+            "tconstruct:splashing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:block_interact" | "tconstruct:aoe_highlight")) => Self::Splashing { module: Box::new(crate::tool_tank::Splashing::decode(fields)?) },
+            "tconstruct:overburn" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:inventory_tick" | "tconstruct:remove")) => Self::Overburn,
+            "tconstruct:smashing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_hit" | "tconstruct:projectile_fuse" | "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:display_name" | "tconstruct:tooltip")) => Self::Smashing,
             // KineticModule: being hit feeds the wearer's insatiable effect.
             "tconstruct:kinetic" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked" | "tconstruct:tooltip")) => Self::Kinetic,
             // The code modifiers' module kinds: they occur only in the definitions modifiers.rs
@@ -1115,7 +1158,7 @@ impl Module {
                     if is_known_slot(&name) { add_slots(data, &name, count as i32); }
                 }
             }
-            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::DamageRange { .. } | Self::StatCopy { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
+            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::DamageRange { .. } | Self::StatCopy { .. } | Self::Repair { .. } | Self::Requirements { .. } | Self::Tank | Self::Bucket { .. } | Self::TankInteraction { .. } | Self::Melting { .. } | Self::Slurping { .. } | Self::Spilling { .. } | Self::Spitting { .. } | Self::Splashing { .. } | Self::Overburn | Self::Smashing => {}
         }
     }
 
@@ -1150,6 +1193,12 @@ impl Module {
     pub fn on_removed(&self, modifier: &Identifier, persistent: &mut NbtCompound) {
         match self {
             Self::SwappableSlot { key, .. } => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
+            // TankModule.onRemoved: the tank's content leaves with the handler.
+            Self::Tank => { persistent.remove(crate::tool_tank::FLUID_KEY); }
+            // OverburnModule.onRemoved: forget the burn in progress.
+            Self::Overburn => { persistent.remove(&modifier.to_string()); }
+            // SmashingModule.onRemoved: clear the stored fluid and its validation level.
+            Self::Smashing => { crate::tool_tank::smashing_clear(persistent); }
             // Only a module that matches a stored value owns it.
             Self::SwappableTraits { key, matching, .. } if !matching.is_empty() => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
@@ -1495,6 +1544,30 @@ impl Module {
     }
     /// Whether this is an overgrowth module.
     pub fn is_overgrowth(&self) -> bool { matches!(self, Self::Overgrowth { .. }) }
+    /// Whether this is the tank handler's tank module.
+    pub fn is_tank(&self) -> bool { matches!(self, Self::Tank) }
+    /// Whether this is an overburn module (its tick is tool_stack::overburn_tick).
+    pub fn is_overburn(&self) -> bool { matches!(self, Self::Overburn) }
+    /// Whether this is a smashing module.
+    pub fn is_smashing(&self) -> bool { matches!(self, Self::Smashing) }
+    /// The melting module, when its condition holds for the entry.
+    pub fn melting(&self, entry: &Entry, facts: &Facts) -> Option<&crate::tool_tank::Melting> {
+        match self { Self::Melting { module, condition } if condition.matches(entry, facts) => Some(module), _ => None }
+    }
+    /// The slurping module.
+    pub fn slurping(&self) -> Option<&crate::tool_tank::Slurping> { match self { Self::Slurping { module } => Some(module), _ => None } }
+    /// The spilling effect level for the entry, when its condition holds for it.
+    pub fn spilling_level(&self, entry: &Entry, facts: &Facts) -> Option<f32> {
+        match self { Self::Spilling { module, condition } if condition.matches(entry, facts) => Some(module.level(entry)), _ => None }
+    }
+    /// The spitting module.
+    pub fn spitting(&self) -> Option<&crate::tool_tank::Spitting> { match self { Self::Spitting { module } => Some(module), _ => None } }
+    /// The splashing module.
+    pub fn splashing(&self) -> Option<&crate::tool_tank::Splashing> { match self { Self::Splashing { module } => Some(module), _ => None } }
+    /// The bucket module.
+    pub fn bucket(&self) -> Option<&crate::tool_tank::Bucket> { match self { Self::Bucket { module } => Some(module), _ => None } }
+    /// The tank interaction module.
+    pub fn tank_interaction(&self) -> Option<&crate::tool_tank::TankInteraction> { match self { Self::TankInteraction { module } => Some(module), _ => None } }
     /// Whether an overgrowth module grows the tool's overslime on this tick, when its conditions hold.
     pub fn overgrowth(&self, entry: &Entry, facts: &Facts, nbt: &mut NbtCompound, env: &crate::tool_stack::Environment, roll: f32) -> bool {
         let Self::Overgrowth { module, condition } = self else { return false; };
@@ -2185,6 +2258,23 @@ mod tests {
         assert!(Module::decode("tconstruct:sweeping_edge", json!({"each_level":"high"}).as_object().unwrap(), &[]).is_err());
     }
     #[test]
+    fn tank_modules_decode_from_their_shipped_shapes() {
+        // The shipped definitions (tinkering/modifiers), fields exactly as the files carry them.
+        assert!(decode(json!({"type":"tconstruct:tank","hooks":["tconstruct:volatile_data","tconstruct:validate","tconstruct:remove","tconstruct:slot_stack","tconstruct:display_name"]})).is_some_and(|module| module.is_tank()));
+        assert!(decode(json!({"type":"tconstruct:bucket"})).is_some());
+        assert!(decode(json!({"type":"tconstruct:tank_interaction","interaction_source":"armor"})).is_some());
+        assert!(decode(json!({"type":"tconstruct:melting","temperature":{"flat":500,"each_level":500},"nuggets_per_metal":{"flat":9,"each_level":3},"shards_per_gem":{"flat":6,"each_level":2}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:slurping","strength":{"each_level":1.0},"duration":{"flat":21}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:spilling","each_level":1.0})).is_some());
+        assert!(decode(json!({"type":"tconstruct:spitting","shots":{"each_level":1}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:splashing","strength":{"each_level":1.0}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:overburn"})).is_some_and(|module| module.is_overburn()));
+        assert!(decode(json!({"type":"tconstruct:smashing"})).is_some_and(|module| module.is_smashing()));
+        // Malformed tank modules reject; foreign hook bindings stay unbound.
+        assert!(Module::decode("tconstruct:melting", json!({"temperature":{"flat":500}}).as_object().unwrap(), &[]).is_err());
+        assert!(decode(json!({"type":"tconstruct:bucket","hooks":["tconstruct:tooltip"]})).is_none());
+    }
+    #[test]
     fn show_offhand_counts_a_flat_one_on_the_chest_only() {
         let key = id("tconstruct:show_empty_offhand");
         let entry = Entry::new(id("tconstruct:stripping"), 3);
@@ -2204,7 +2294,7 @@ mod tests {
     }
     #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {
-        assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
+        assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_some(), "the tank capacity stat binds since the tool tank was ported (tool_tank)");
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_some(), "an attacker state condition is bound");

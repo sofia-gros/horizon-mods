@@ -10,6 +10,8 @@ pub(crate) enum Stat {
     ProjectileDamage, WaterInertia, SeaLuck, Lure, Overslime,
     /// EdibleModule.HUNGER, SATURATION, EAT_DURATION and COUNTER_CHANCE.
     Hunger, Saturation, EatDuration, EdibleCounterChance,
+    /// ToolTankHelper.CAPACITY_STAT: the capacity of the tool's fluid tank, in millibuckets.
+    TankCapacity,
 }
 impl Stat {
     pub fn from_id(id: &Identifier) -> Option<Self> {
@@ -25,6 +27,7 @@ impl Stat {
             "sea_luck" => Self::SeaLuck, "lure" => Self::Lure, "overslime" => Self::Overslime,
             "hunger" => Self::Hunger, "saturation" => Self::Saturation, "eat_duration" => Self::EatDuration,
             "edible_counter_chance" => Self::EdibleCounterChance,
+            "tank_capacity" => Self::TankCapacity,
             _ => return None,
         })
     }
@@ -41,6 +44,7 @@ impl Stat {
             Self::SeaLuck => "sea_luck", Self::Lure => "lure", Self::Overslime => "overslime",
             Self::Hunger => "hunger", Self::Saturation => "saturation", Self::EatDuration => "eat_duration",
             Self::EdibleCounterChance => "edible_counter_chance",
+            Self::TankCapacity => "tank_capacity",
         }
     }
     /// The registered default value of the stat (its limits' first entry).
@@ -68,6 +72,8 @@ impl Stat {
             Self::Hunger | Self::Saturation => (0.0, 0.0, 200.0),
             Self::EatDuration => (16.0, 0.0, 100.0),
             Self::EdibleCounterChance => (0.0, 0.0, 1.0),
+            // CapacityStat is an int stat: nothing by default, never negative, no practical cap.
+            Self::TankCapacity => (0.0, 0.0, i32::MAX as f32),
         }
     }
 }
@@ -300,6 +306,18 @@ mod tests {
             json!({"type":"tconstruct:multiply_stats", "multipliers":{"tconstruct:harvest_tier":2}}),
             json!({"type":"tconstruct:tool_actions", "tool_actions":[]}),
         ] { assert!(StatModule::decode(&invalid, &parts).is_err(), "{invalid}"); }
+    }
+    #[test]
+    fn tank_capacity_is_a_stat_of_this_domain() {
+        // ToolTankHelper.CAPACITY_STAT (tconstruct:tank_capacity): an int stat, 0 by default.
+        let id = Identifier::parse("tconstruct:tank_capacity").unwrap();
+        assert_eq!(Stat::from_id(&id), Some(Stat::TankCapacity));
+        assert_eq!(Stat::TankCapacity.path(), "tank_capacity");
+        assert_eq!(Stat::TankCapacity.default_value(), 0.0);
+        let mut b = Builder::default();
+        b.add(Stat::TankCapacity, 1000.0);
+        b.add(Stat::TankCapacity, 1000.0);
+        assert_eq!(b.build()[&Stat::TankCapacity], 2000.0, "the tank modifier's per-level 1000 adds up");
     }
     #[test]
     fn updates_additions_percentages_and_global_multipliers_keep_java_order() {
