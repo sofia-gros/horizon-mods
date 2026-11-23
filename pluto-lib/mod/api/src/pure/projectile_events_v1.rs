@@ -206,6 +206,9 @@ pub enum FlightAction {
     /// Pull the item entities within `radius` of `center` toward it, each by up to `strength` blocks a tick (a stuck
     /// tool's magnet). The game does the pulling; how far each item moves is its own physics.
     PullItems { center: [f64; 3], radius: f64, strength: f64 },
+    /// Pull the mobs within `radius` of `center` toward it (an attraction where a projectile lands or its fuse ends):
+    /// the game pulls each mob by `strength`, weakened by the square root of its distance, and pulls at most 25.
+    PullEntities { center: [f64; 3], radius: f64, strength: f64 },
     /// Drop a stack as an item entity where the projectile is (the tool a throw leaves behind when it cannot be picked up).
     DropStack { stack: StackData, position: [f64; 3] },
     /// Hand a stack to the projectile's owner: into a player owner's inventory, or dropped at their feet when it does not

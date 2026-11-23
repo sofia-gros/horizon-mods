@@ -186,6 +186,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                     projectile_events_v1::FlightAction::Particle { name, position, count, spread, speed } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::Particle { name, position, count, spread, speed },
                     projectile_events_v1::FlightAction::PushEntity { entity, delta } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PushEntity { entity, delta },
                     projectile_events_v1::FlightAction::PullItems { center, radius, strength } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PullItems { center, radius, strength },
+                    projectile_events_v1::FlightAction::PullEntities { center, radius, strength } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PullEntities { center, radius, strength },
                     projectile_events_v1::FlightAction::DropStack { stack, position } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::DropStack { stack: { let mut item = ItemStack::new(&stack.item, stack.count); write_stack(&mut item, &stack); item }, position },
                     projectile_events_v1::FlightAction::GiveStack { stack } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::GiveStack { stack: { let mut item = ItemStack::new(&stack.item, stack.count); write_stack(&mut item, &stack); item } },
                 }).collect(),
@@ -3185,6 +3186,13 @@ impl Hooks for PlutoHooks {
             stack,
             player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
             dimension: player.dimension.to_string(),
+            position: player.position,
+            eye: [player.position[0], player.position[1] + f64::from(player.eye_height), player.position[2]],
+            look: {
+                let yaw = f64::from(player.yaw).to_radians();
+                let pitch = f64::from(player.pitch).to_radians();
+                [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
+            },
             ticks_used: (total - event.time_left as i32).max(0) as u32,
             main_hand: host.held_stack(player.uuid).map(|stack| read_stack(&stack)),
             off_hand: host.player_equipment(player.uuid, horizon_client::mod_api::EquipmentSlot::OffHand).map(|stack| read_stack(&stack)),

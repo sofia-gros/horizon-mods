@@ -179,6 +179,21 @@ pub(crate) fn after_tick(game: &mut crate::game::Game<'_>) {
                         }
                     }
                 }
+                access::FlightAction::PullEntities { center, radius, strength } => {
+                    let mut pulled = 0;
+                    for mob in game.mobs.iter_mut() {
+                        if pulled >= 25 {
+                            break;
+                        }
+                        let delta = [center[0] - mob.position.x, center[1] - mob.position.y, center[2] - mob.position.z];
+                        let dist = (delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2]).sqrt();
+                        if dist > 0.5 && dist < radius {
+                            let scale = strength / dist.sqrt() / dist;
+                            mob.velocity = mob.velocity.add_vector(Vec3::new(delta[0] * scale, delta[1] * scale, delta[2] * scale));
+                            pulled += 1;
+                        }
+                    }
+                }
                 access::FlightAction::DropStack { stack, position } => {
                     game.spawn_item_own(stack, position, 10);
                 }
