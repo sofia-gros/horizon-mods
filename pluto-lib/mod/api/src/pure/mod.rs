@@ -11,6 +11,7 @@ pub mod color_provider_api_v1;
 pub mod armor_renderer_api_v1;
 pub mod particle_factory_registry;
 pub mod particle_api_v1;
+pub mod sky_api_v1;
 pub mod skull_model_registry;
 pub mod command_api_v2;
 pub mod config_api;
