@@ -66,6 +66,8 @@
     "api/src/punch.rs",
     "api/src/projectile_modules.rs",
     "api/src/shoot_hook.rs",
+    "api/src/flight_hook.rs",
+    "api/src/throwing_hook.rs",
     "api/src/melee_instrument.rs",
     "api/src/overgrowth.rs",
     "api/src/kinetic_hook.rs",

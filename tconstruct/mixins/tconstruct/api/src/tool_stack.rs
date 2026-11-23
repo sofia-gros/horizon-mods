@@ -724,6 +724,80 @@ pub(crate) fn infinity(nbt: &NbtCompound, env: &Environment, standard_present: b
     })
 }
 
+/// What a tool's in-flight modules do to a projectile fired from it or as it, with every leveling value
+/// already computed at the entry levels the tool carries (the profile is built per projectile, from the
+/// stack that was fired). Read by `flight_hook` on the spawn, flight and impact tellings.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct FlightProfile {
+    /// ArrowPierceModule: the pierce level to set on spawn.
+    pub pierce: Option<u8>,
+    /// ProjectileBounceModule instances, in modifier order: the modifier's id and its bounce limit.
+    pub bounces: Vec<(String, i32)>,
+    /// ProjectileGravityModule: ticks of flight without gravity (the last module's scheduled task wins,
+    /// as the original's tasks share one id).
+    pub gravity_delay: Option<u32>,
+    /// ProjectileFuseModule: the particle to shed and the tick the fuse ends (the last module's task wins).
+    pub fuse: Option<(String, u32)>,
+    /// ProjectileExplosionModule instances: (radius at level, place fire, destroy blocks, efln bonus).
+    pub explosions: Vec<(f32, bool, bool, f32)>,
+    /// ProjectileAttractMobsModule instances: (radius, strength).
+    pub attracts: Vec<(f32, f32)>,
+    /// ProjectilePlaceGlowModule instances: (places on blocks, places on entities, launcher wear).
+    pub glows: Vec<(bool, bool, i32)>,
+    /// RestrictAngleModule: the fan size the shot's direction is clamped to.
+    pub angle_directions: Option<u32>,
+    /// The tool's loyalty level (the `tconstruct:loyalty` modifier), for a thrown tool's return.
+    pub loyalty: i32,
+    /// The tool's magnetic level (the `tconstruct:magnetic` modifier), for a thrown tool's item pull.
+    pub magnet: i32,
+    /// Whether the fired stack's persistent data carries the fins EFLN mark.
+    pub efln: bool,
+}
+
+impl FlightProfile {
+    /// Whether nothing in the profile changes a flight (no spawn, flight or impact work to do).
+    pub(crate) fn is_empty(&self) -> bool {
+        self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
+            && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
+    }
+}
+
+/// The flight profile of the tool in `nbt`, from its saved modifiers.
+pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProfile {
+    let mut profile = with_tool_facts(nbt, env, |saved, _facts| {
+        let mut profile = FlightProfile::default();
+        for (entry, modifier) in saved {
+            match entry.id.to_string().as_str() {
+                "tconstruct:loyalty" => profile.loyalty = entry.effective_level() as i32,
+                "tconstruct:magnetic" => profile.magnet = entry.effective_level() as i32,
+                _ => {}
+            }
+            for module in modifier.modules() {
+                if let Some(module) = module.arrow_pierce() { profile.pierce = Some(module.pierce(entry)); }
+                if let Some(module) = module.projectile_bounce() { profile.bounces.push((entry.id.to_string(), module.limit(entry))); }
+                if let Some(module) = module.projectile_gravity() { profile.gravity_delay = Some(module.delay(entry)); }
+                if let Some(module) = module.projectile_fuse() { profile.fuse = Some((module.particle().to_owned(), module.ticks(entry))); }
+                if let Some(module) = module.projectile_explosion() {
+                    profile.explosions.push((module.radius(entry, false), module.place_fire(), module.destroy(), module.radius(entry, true) - module.radius(entry, false)));
+                }
+                if let Some(module) = module.projectile_attract() { profile.attracts.push((module.radius(entry), module.strength(entry))); }
+                if let Some(module) = module.projectile_glow() { profile.glows.push((module.blocks(), module.entities(), module.tool_damage())); }
+                if let Some(module) = module.restrict_angle() { profile.angle_directions = Some(module.directions(entry)); }
+            }
+        }
+        profile
+    });
+    if let Some(Nbt::Compound(persistent)) = nbt.get(TAG_PERSISTENT) {
+        profile.efln = matches!(persistent.get("tconstruct:efln"), Some(Nbt::Byte(1)) | Some(Nbt::Int(1)));
+    }
+    profile
+}
+
+/// Whether the tool is thrown on release of a charged use (ThrowingModule) and is not broken.
+pub(crate) fn throwing(nbt: &NbtCompound, env: &Environment) -> bool {
+    !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_throwing())))
+}
+
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one
 /// before left), and the edits of the persistent data that fill their bars. `in_tag(item, tag)` answers item tag membership.
 pub(crate) fn loot_capacity(nbt: &NbtCompound, env: &Environment, loot: &mut Vec<pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::StackDataEdit> {

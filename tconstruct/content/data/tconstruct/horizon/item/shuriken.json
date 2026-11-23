@@ -1,1 +1,1 @@
-{"template":"minecraft:snowball","max_stack_size":16}
+{"components":{"minecraft:use_cooldown":{"seconds":0.5}},"template":"minecraft:snowball","max_stack_size":16}

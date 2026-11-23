@@ -52,6 +52,8 @@ mod knockback;
 mod punch;
 mod projectile_modules;
 mod shoot_hook;
+mod flight_hook;
+mod throwing_hook;
 mod blocking_hook;
 mod walk_hook;
 mod weapon_effect;
@@ -231,6 +233,10 @@ pub fn hooks() -> pluto_lib::ModHooks {
     hud::register();
     // After the edible hook: the shield items' per-stack use is the combined blocking/eating one.
     blocking_hook::register();
+    // After blocking: the usable tools' per-stack use is the composed eat/block/throw one, and the
+    // in-flight modules and thrown tools bind on the projectile tellings.
+    flight_hook::register();
+    throwing_hook::register();
     armor_worn::register();
     fancy_gadgets::register();
     advancements::register();

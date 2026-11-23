@@ -264,6 +264,24 @@ pub(crate) enum Module {
     /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
     /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
     Infinity { module: crate::projectile_modules::Infinity },
+    /// ArrowPierceModule: a shot's pierce level, set when the projectile spawns.
+    ArrowPierce { module: crate::projectile_modules::ArrowPierce },
+    /// ProjectileBounceModule: a block hit bounces the projectile while bounces remain.
+    ProjectileBounce { module: crate::projectile_modules::ProjectileBounce },
+    /// ProjectileGravityModule: the shot flies without gravity until its delay passes.
+    ProjectileGravity { module: crate::projectile_modules::ProjectileGravity },
+    /// ProjectileFuseModule: the shot's fuse ends after its time in ticks.
+    ProjectileFuse { module: crate::projectile_modules::ProjectileFuse },
+    /// ProjectileExplosionModule: a hit or a fuse's end explodes the projectile.
+    ProjectileExplosion { module: crate::projectile_modules::ProjectileExplosion },
+    /// ProjectileAttractMobsModule: a hit or a fuse's end pulls nearby living entities in.
+    ProjectileAttractMobs { module: crate::projectile_modules::ProjectileAttractMobs },
+    /// ProjectilePlaceGlowModule: a hit places a glow block where the projectile landed.
+    ProjectilePlaceGlow { module: crate::projectile_modules::ProjectilePlaceGlow },
+    /// RestrictAngleModule: a shot's direction is clamped to a fan of fixed angles.
+    RestrictAngle { module: crate::projectile_modules::RestrictAngle },
+    /// ThrowingModule: the tool is thrown on release of a charged use, as a ThrownTool.
+    Throwing,
     MeleeInstrument { module: Box<crate::melee_instrument::MeleeInstrument>, condition: Condition },
     Overgrowth { module: Box<crate::overgrowth::Overgrowth>, condition: Condition },
     Kinetic,
@@ -985,6 +1003,33 @@ impl Module {
                 let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
                 Self::Infinity { module }
             }
+            // The in-flight modules: bound in flight_hook on the spawn, flight and impact tellings.
+            "tconstruct:arrow_pierce" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot")) => {
+                Self::ArrowPierce { module: crate::projectile_modules::ArrowPierce::decode(fields)? }
+            }
+            "tconstruct:projectile_bounce" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit")) => {
+                Self::ProjectileBounce { module: crate::projectile_modules::ProjectileBounce::decode(fields)? }
+            }
+            "tconstruct:projectile_gravity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot" | "tconstruct:schedule_projectile_task")) => {
+                Self::ProjectileGravity { module: crate::projectile_modules::ProjectileGravity::decode(fields)? }
+            }
+            "tconstruct:projectile_fuse" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot" | "tconstruct:schedule_projectile_task")) => {
+                Self::ProjectileFuse { module: crate::projectile_modules::ProjectileFuse::decode(fields)? }
+            }
+            "tconstruct:projectile_explosion" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_fuse")) => {
+                Self::ProjectileExplosion { module: crate::projectile_modules::ProjectileExplosion::decode(fields)? }
+            }
+            "tconstruct:projectile_attract_mobs" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_fuse")) => {
+                Self::ProjectileAttractMobs { module: crate::projectile_modules::ProjectileAttractMobs::decode(fields)? }
+            }
+            "tconstruct:projectile_place_glow" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_launch")) => {
+                Self::ProjectilePlaceGlow { module: crate::projectile_modules::ProjectilePlaceGlow::decode(fields)? }
+            }
+            "tconstruct:restrict_projectile_angle" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot" | "tconstruct:sling_launch")) => {
+                Self::RestrictAngle { module: crate::projectile_modules::RestrictAngle::decode(fields)? }
+            }
+            // ThrowingModule: the shipped record declares no hooks (the interaction hooks are the class's own).
+            "tconstruct:throwing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interaction")) => Self::Throwing,
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
             _ => return Ok(None),
@@ -1047,7 +1092,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1460,6 +1505,40 @@ impl Module {
     pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
         match self { Self::Infinity { module } => Some(module), _ => None }
     }
+    /// The arrow pierce module, if this is one.
+    pub fn arrow_pierce(&self) -> Option<&crate::projectile_modules::ArrowPierce> {
+        match self { Self::ArrowPierce { module } => Some(module), _ => None }
+    }
+    /// The projectile bounce module, if this is one.
+    pub fn projectile_bounce(&self) -> Option<&crate::projectile_modules::ProjectileBounce> {
+        match self { Self::ProjectileBounce { module } => Some(module), _ => None }
+    }
+    /// The projectile gravity module, if this is one.
+    pub fn projectile_gravity(&self) -> Option<&crate::projectile_modules::ProjectileGravity> {
+        match self { Self::ProjectileGravity { module } => Some(module), _ => None }
+    }
+    /// The projectile fuse module, if this is one.
+    pub fn projectile_fuse(&self) -> Option<&crate::projectile_modules::ProjectileFuse> {
+        match self { Self::ProjectileFuse { module } => Some(module), _ => None }
+    }
+    /// The projectile explosion module, if this is one.
+    pub fn projectile_explosion(&self) -> Option<&crate::projectile_modules::ProjectileExplosion> {
+        match self { Self::ProjectileExplosion { module } => Some(module), _ => None }
+    }
+    /// The projectile attract mobs module, if this is one.
+    pub fn projectile_attract(&self) -> Option<&crate::projectile_modules::ProjectileAttractMobs> {
+        match self { Self::ProjectileAttractMobs { module } => Some(module), _ => None }
+    }
+    /// The projectile place glow module, if this is one.
+    pub fn projectile_glow(&self) -> Option<&crate::projectile_modules::ProjectilePlaceGlow> {
+        match self { Self::ProjectilePlaceGlow { module } => Some(module), _ => None }
+    }
+    /// The restrict angle module, if this is one.
+    pub fn restrict_angle(&self) -> Option<&crate::projectile_modules::RestrictAngle> {
+        match self { Self::RestrictAngle { module } => Some(module), _ => None }
+    }
+    /// Whether this is the throwing module.
+    pub fn is_throwing(&self) -> bool { matches!(self, Self::Throwing) }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.
