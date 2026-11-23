@@ -455,8 +455,11 @@ class ContentAssets(unittest.TestCase):
             used |= {f'particle/{split(t)[1]}' for t in load(path).get('textures', []) if split(t)[0] == 'tconstruct'}
         # Worn equipment textures are picked by the layer table and skull textures by the skull rendering
         # code, not by models: the original references both by convention, so neither is model-used.
+        # Modifier icons are the same kind: the icon manager names them from the modifier id by
+        # convention (gui/modifiers/<category>/<modifier>), with tinkering/modifier_icons.json holding
+        # the per-modifier overrides, so the shipped icon tree is not model-used either.
         present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
-                   if not p.relative_to(ASSETS / 'textures').as_posix().startswith(('entity/equipment/', 'entity/skull/'))}
+                   if not p.relative_to(ASSETS / 'textures').as_posix().startswith(('entity/equipment/', 'entity/skull/', 'gui/modifiers/'))}
         self.assertEqual(present, used)
 
     def test_worn_armor_textures_are_exactly_the_ones_the_layer_table_can_pick(self):

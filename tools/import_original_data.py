@@ -807,6 +807,28 @@ def copy_fluid_textures():
     return written
 
 
+def copy_modifier_icons():
+    """The modifier icon set, byte for byte: assets/tconstruct/tinkering/modifier_icons.json (the icon
+    manager's per-modifier overrides: icon sprite and book cover per modifier) and the whole
+    textures/gui/modifiers tree the manager names by convention (gui/modifiers/<category>/<modifier>,
+    with the top-level sprites as the shared covers and fallbacks). Nothing reaches these through
+    models - the worktable and book screens draw them by modifier id - so, like the fluid textures,
+    they are copied as a whole tree rather than by reachability. The JSON's line endings are
+    normalised, as elsewhere for data text. Runs after copy_client_assets."""
+    source = asset_source('tinkering/modifier_icons.json')
+    destination = ASSET_TARGET / 'tinkering/modifier_icons.json'
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(source.read_bytes().replace(b'\r\n', b'\n'))
+    source_root = asset_source('textures/gui/modifiers')
+    target_root = ASSET_TARGET / 'textures/gui/modifiers'
+    for source in sorted(source_root.rglob('*')):
+        if not source.is_file():
+            continue
+        destination = target_root / source.relative_to(source_root)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+
+
 def write_fluid_atlas():
     """The fluid directory's atlas sources (assets/minecraft/atlases/blocks.json): the game's unified atlas
     (screen draws and native block-entity draws) packs the walked texture folders and the base game's atlas
@@ -3578,6 +3600,7 @@ def main():
     models, textures, unrendered = copy_client_assets()
     fluid_blocks = write_fluid_world()
     fluid_textures = copy_fluid_textures()
+    copy_modifier_icons()
     write_fluid_atlas()
     write_copper_can()
     transfers = write_fluid_transfers()
