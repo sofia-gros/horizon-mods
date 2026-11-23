@@ -1,13 +1,15 @@
 //! Projectiles hitting things (Forge: `ProjectileImpactEvent`). A callback sees what flew, who threw it and what it met, can act on the
 //! world with [`World`] and can cancel the hit.
 //!
-//! What no event here can do is follow a projectile in flight: the game's entity-tick telling covers mobs, item entities, minecarts
-//! and boats, not projectiles (pinned `native_entity_tick_pre`, API 146), so a callback hears a projectile when it enters
-//! ([`ProjectileEvents::LAUNCH`]) and when it lands ([`ProjectileEvents::IMPACT`]) and nowhere between. Flight behaviours — a
-//! projectile that falls faster, a burning fuse, one that pulls mobs toward it or lights its path — stay unimplementable until the
-//! game tells projectile ticks. What acts at the two ends is all here: the impact reports the motion and the saved data the
-//! projectile arrived with and lets a callback discard it or send it flying on with a new motion, which is what pierce, bounce
-//! and an explosion where it lands are made of.
+//! A callback also hears a projectile when it is spawned ([`ProjectileEvents::SPAWN`], before its first tick of flight, with the
+//! spawn-time facts a shot is made of — an arrow's pierce, a flight without gravity, a clamped direction) and on every tick it
+//! flies ([`ProjectileEvents::FLIGHT`], at the end of the tick, with the motion it will fly the next tick with). The game's own
+//! entity-tick telling covers mobs, item entities, minecarts and boats, not projectiles (pinned `native_entity_tick_pre`,
+//! API 146), so PlutoLib reaches into the game's projectile tick itself to tell these two; flight behaviours — a fuse that
+//! burns down, gravity that returns after a hover, a stuck tool that pulls items toward it and flies back to its owner — are
+//! built from them, on top of what acts at the two ends: the impact reports the motion and the saved data the projectile
+//! arrived with and lets a callback discard it or send it flying on with a new motion, which is what pierce, bounce and an
+//! explosion where it lands are made of.
 
 use std::cell::{Cell, RefCell};
 
@@ -15,7 +17,7 @@ use super::base::{Event, NbtCompound};
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
 use super::entity_events_v1::{CarriedEdit, CarriedStack, EntityAction};
 use super::player_api::StackData;
-use super::world_api_v1::World;
+use super::world_api_v1::{ExplosionInteraction, World};
 
 /// A projectile that has found what it meets.
 #[derive(Clone, Debug)]
@@ -137,10 +139,129 @@ pub struct AmmoRequest {
     pub edits: RefCell<Vec<CarriedEdit>>,
 }
 
+/// What a flying projectile's arrow half keeps, when it has one: the facts a shot is set up with and a stuck arrow rests with.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ArrowFacts {
+    /// How many entities the arrow passes through (`AbstractArrow.getPierceLevel`).
+    pub pierce: u8,
+    /// Whether the arrow is stuck in a block (`AbstractArrow.inGround`).
+    pub in_ground: bool,
+    /// How many ticks the arrow has been stuck (`AbstractArrow.inGroundTime`).
+    pub in_ground_time: u32,
+    /// Whether it has dealt its damage (`AbstractArrow.dealtDamage` on a trident body): it hits no more, and a loyal
+    /// flight comes home.
+    pub dealt_damage: bool,
+}
+
+/// A projectile at the moment it joins the flying list, before its first tick: a callback may still set the shot up —
+/// give an arrow its pierce level, lift gravity off a flight, clamp the direction it leaves in, or name the stack a stuck
+/// arrow hands back when picked up. Heard for every projectile the game adds on a server: a bow's arrow, a thrown tool a
+/// callback itself summoned a moment earlier, a mob's shot. The game's own launch telling ([`ProjectileEvents::LAUNCH`])
+/// follows read-only; this one is the set-up pass before it.
+#[derive(Clone, Debug)]
+pub struct ProjectileSpawned {
+    /// The dimension, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The projectile's entity id: 0 at this pass when the game has not numbered it yet (it is numbered as it joins the
+    /// list, after the pass). Bind per-projectile state at [`ProjectileEvents::LAUNCH`] or on the first
+    /// [`ProjectileEvents::FLIGHT`], which carry the number.
+    pub projectile: u32,
+    /// The projectile's type, such as `minecraft:arrow` or a mod's thrown type.
+    pub kind: String,
+    /// The entity that threw or shot it (negative if none, such as a dispenser).
+    pub owner: i64,
+    /// Where it enters.
+    pub position: [f64; 3],
+    /// How fast it is moving as it enters, in blocks a tick.
+    pub motion: [f64; 3],
+    /// The arrow facts, when the projectile is an arrow.
+    pub arrow: Option<ArrowFacts>,
+    /// The projectile's own stack as data (an arrow's pickup stack, a thrown type's item): how a callback knows what was
+    /// fired. None when the projectile carries no stack the game reports.
+    pub stack: Option<StackData>,
+    /// The projectile's saved data, as in [`ProjectileImpact::data`].
+    pub data: NbtCompound,
+    /// The motion it flies its first tick with, which a callback may replace (a direction clamped to fixed angles, a
+    /// speed set by the stack that fired it).
+    pub motion_after: RefCell<Option<[f64; 3]>>,
+    /// The pierce level to give an arrow, when a callback sets one.
+    pub pierce: Cell<Option<u8>>,
+    /// Whether the flight is without gravity, when a callback sets it (a hover that a later flight tick ends).
+    pub no_gravity: Cell<Option<bool>>,
+    /// The stack a stuck arrow hands back when a player picks it up, when a callback sets it (the tool a throw carries).
+    pub pickup_stack: RefCell<Option<StackData>>,
+}
+
+/// One thing a flight callback asks the game to do around a flying projectile, in plain data: the flight telling runs
+/// outside the game's own hook scope, so world and entity work is queued here and done by the game as the tick settles,
+/// in the order queued.
+#[derive(Clone, Debug, PartialEq)]
+pub enum FlightAction {
+    /// Set off an explosion where the projectile is (the game's own blast, as [`World::explode`] asks for).
+    Explode { center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction },
+    /// Spawn a particle (a fuse's sparks, a trail).
+    Particle { name: String, position: [f64; 3], count: u32, spread: [f64; 3], speed: f64 },
+    /// Add a motion to an entity (a pull toward the projectile, a push away from it).
+    PushEntity { entity: u32, delta: [f64; 3] },
+    /// Pull the item entities within `radius` of `center` toward it, each by up to `strength` blocks a tick (a stuck
+    /// tool's magnet). The game does the pulling; how far each item moves is its own physics.
+    PullItems { center: [f64; 3], radius: f64, strength: f64 },
+    /// Drop a stack as an item entity where the projectile is (the tool a throw leaves behind when it cannot be picked up).
+    DropStack { stack: StackData, position: [f64; 3] },
+    /// Hand a stack to the projectile's owner: into a player owner's inventory, or dropped at their feet when it does not
+    /// fit or the owner is no player (a returning tool's loyalty, when the flight itself brought it home).
+    GiveStack { stack: StackData },
+}
+
+/// A projectile at the end of a tick it flew (or rested stuck) in: a callback may steer the next tick — set the motion it
+/// flies on with, lift or restore its gravity, free a stuck arrow so it can fly home, discard it — and queue
+/// [`FlightAction`]s around it. A fuse is a callback counting `age`; gravity that returns is a callback answering the age
+/// it was set for; a magnet is a callback queueing [`FlightAction::PullItems`] while its tool rests stuck.
+#[derive(Clone, Debug)]
+pub struct ProjectileFlight {
+    /// The dimension, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The projectile's entity id.
+    pub projectile: u32,
+    /// The projectile's type, such as `minecraft:arrow` or a mod's thrown type.
+    pub kind: String,
+    /// The entity that threw or shot it (negative if none).
+    pub owner: i64,
+    /// Where the owner stands, when the game could reach it: how a callback steers a flight home.
+    pub owner_position: Option<[f64; 3]>,
+    /// How many ticks the projectile has flown (`Entity.tickCount` on the projectile, its own age).
+    pub age: u32,
+    /// Where it ended the tick.
+    pub position: [f64; 3],
+    /// How fast it is moving, in blocks a tick: the motion it will fly the next tick with, before drag and gravity.
+    pub motion: [f64; 3],
+    /// Whether it rests stuck in a block (an arrow in the ground, a thrown item that landed).
+    pub in_ground: bool,
+    /// Whether its flight is without gravity.
+    pub no_gravity: bool,
+    /// The arrow facts, when the projectile is an arrow.
+    pub arrow: Option<ArrowFacts>,
+    /// The projectile's saved data, as in [`ProjectileImpact::data`].
+    pub data: NbtCompound,
+    /// The motion it flies the next tick with, which a callback may replace (steering home, a pull, a push).
+    pub motion_after: RefCell<Option<[f64; 3]>>,
+    /// Set to true to discard the projectile as the tick settles (a fuse that went off, a tool that arrived home).
+    pub discard: Cell<bool>,
+    /// Whether its flight is without gravity from the next tick, when a callback sets it (gravity returning to a hover).
+    pub no_gravity_after: Cell<Option<bool>>,
+    /// Set to true to free a stuck arrow so the motion it is given can fly it (a loyal tool leaving the ground).
+    /// Only an arrow can be freed; on any other projectile it does nothing.
+    pub release_from_ground: Cell<bool>,
+    /// The [`FlightAction`]s to do around the projectile as the tick settles, which callbacks add to.
+    pub actions: RefCell<Vec<FlightAction>>,
+}
+
 static LAUNCH: Event<ProjectileLaunch, ()> = Event::void();
 static SHOOT_BOW: Event<BowShot, ()> = Event::void();
 static IMPACT: Event<ProjectileImpact, bool> = Event::allow_all();
 static AMMO: Event<AmmoRequest, ()> = Event::void();
+static SPAWN: Event<ProjectileSpawned, ()> = Event::void();
+static FLIGHT: Event<ProjectileFlight, ()> = Event::void();
 
 /// Events about projectiles.
 pub struct ProjectileEvents;
@@ -159,6 +280,11 @@ impl ProjectileEvents {
     /// A living entity is about to shoot and the game asks what projectile it fires (see [`AmmoRequest`]): the surface a quiver
     /// modifier answers from. Server only.
     pub const AMMO: &'static Event<AmmoRequest, ()> = &AMMO;
+    /// A projectile joined the flying list, before its first tick: the set-up pass (see [`ProjectileSpawned`]). Server only.
+    pub const SPAWN: &'static Event<ProjectileSpawned, ()> = &SPAWN;
+    /// A projectile ended a tick of flight: the steering pass (see [`ProjectileFlight`]). Heard once a tick for every
+    /// projectile the game flies on a server, stuck arrows included, for as long as it stays in the flying list. Server only.
+    pub const FLIGHT: &'static Event<ProjectileFlight, ()> = &FLIGHT;
 }
 
 /// Whether anyone asks for ammunition, so the host builds the carried stacks only when someone does.
@@ -200,6 +326,23 @@ pub(crate) fn launched(launch: &ProjectileLaunch) {
 pub(crate) fn shot(shot: &BowShot) -> Vec<EntityAction> {
     SHOOT_BOW.invoke(shot);
     shot.actions.borrow_mut().drain(..).collect()
+}
+
+/// Whether anyone listens to spawns or flights, so the game-side reach only builds their payloads when someone does.
+pub(crate) fn spawn_heard() -> bool {
+    !SPAWN.is_empty()
+}
+
+pub(crate) fn flight_heard() -> bool {
+    !FLIGHT.is_empty()
+}
+
+pub(crate) fn spawned(spawn: &ProjectileSpawned) {
+    SPAWN.invoke(spawn);
+}
+
+pub(crate) fn flight(flight: &ProjectileFlight) {
+    FLIGHT.invoke(flight);
 }
 
 #[cfg(test)]
@@ -332,6 +475,72 @@ mod tests {
         assert!(impact(&burst), "the burst's hit itself lands");
         assert!(burst.discard.get(), "and the projectile is discarded after the callbacks");
         assert_eq!(*burst.motion_after.borrow(), None);
+    }
+
+    #[test]
+    fn a_spawn_callback_sets_the_shot_up_and_a_flight_callback_steers_it_home() {
+        assert!(!spawn_heard());
+        assert!(!flight_heard());
+        ProjectileEvents::SPAWN.register(|spawn| {
+            if spawn.projectile != 9090 { return; }
+            // A clamped direction and a pierce level, set before the first tick.
+            spawn.motion_after.borrow_mut().replace([0.0, 0.2, -2.0]);
+            spawn.pierce.set(Some(3));
+            spawn.no_gravity.set(Some(true));
+        });
+        ProjectileEvents::FLIGHT.register(|flight| {
+            if flight.projectile != 9090 { return; }
+            match flight.age {
+                // The hover ends: gravity comes back.
+                20 => flight.no_gravity_after.set(Some(false)),
+                // Stuck long enough with loyalty: free it and steer it home.
+                25 => {
+                    flight.release_from_ground.set(true);
+                    flight.motion_after.borrow_mut().replace([0.0, 0.5, 0.0]);
+                    flight.actions.borrow_mut().push(FlightAction::PullItems { center: flight.position, radius: 3.0, strength: 0.05 });
+                }
+                // Home: hand the tool back and end the flight.
+                30 => {
+                    flight.actions.borrow_mut().push(FlightAction::GiveStack { stack: StackData { item: "example:thrown_tool".into(), count: 1, ..StackData::default() } });
+                    flight.discard.set(true);
+                }
+                _ => {}
+            }
+        });
+        assert!(spawn_heard());
+        assert!(flight_heard());
+        let spawn = ProjectileSpawned {
+            dimension: "minecraft:overworld".into(), projectile: 9090, kind: "minecraft:arrow".into(), owner: 4,
+            position: [0.5, 64.0, 0.5], motion: [0.1, 0.2, -2.0],
+            arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
+            stack: None, data: NbtCompound::new(),
+            motion_after: RefCell::new(None), pierce: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
+        };
+        spawned(&spawn);
+        assert_eq!(*spawn.motion_after.borrow(), Some([0.0, 0.2, -2.0]));
+        assert_eq!(spawn.pierce.get(), Some(3));
+        assert_eq!(spawn.no_gravity.get(), Some(true));
+        let flight_at = |age: u32| ProjectileFlight {
+            dimension: "minecraft:overworld".into(), projectile: 9090, kind: "minecraft:arrow".into(), owner: 4,
+            owner_position: Some([0.5, 64.0, 3.5]), age, position: [0.5, 64.0, 0.5], motion: [0.0; 3],
+            in_ground: age >= 25, no_gravity: age < 20,
+            arrow: Some(ArrowFacts { pierce: 3, in_ground: age >= 25, in_ground_time: 5, dealt_damage: false }),
+            data: NbtCompound::new(),
+            motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None),
+            release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
+        };
+        let hover_end = flight_at(20);
+        flight(&hover_end);
+        assert_eq!(hover_end.no_gravity_after.get(), Some(false));
+        let stuck = flight_at(25);
+        flight(&stuck);
+        assert!(stuck.release_from_ground.get());
+        assert_eq!(*stuck.motion_after.borrow(), Some([0.0, 0.5, 0.0]));
+        assert_eq!(stuck.actions.borrow().as_slice(), [FlightAction::PullItems { center: [0.5, 64.0, 0.5], radius: 3.0, strength: 0.05 }]);
+        let home = flight_at(30);
+        flight(&home);
+        assert!(home.discard.get());
+        assert_eq!(home.actions.borrow().len(), 1);
     }
 
     #[test]

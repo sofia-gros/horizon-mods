@@ -144,6 +144,55 @@ pub fn hooks() -> Box<dyn Hooks> {
         },
     ).expect("PlutoLib living drop provider installs once");
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
+    horizon_client::entry::pluto_projectile_flight_access::set_sink(horizon_client::entry::pluto_projectile_flight_access::Sink {
+        has_spawn: projectile_events_v1::spawn_heard,
+        has_flight: projectile_events_v1::flight_heard,
+        spawn: |facts| {
+            let spawn = projectile_events_v1::ProjectileSpawned {
+                dimension: facts.dimension.clone(), projectile: facts.projectile, kind: facts.kind.clone(), owner: facts.owner,
+                position: facts.position, motion: facts.motion,
+                arrow: facts.arrow.map(|a| projectile_events_v1::ArrowFacts { pierce: a.pierce, in_ground: a.in_ground, in_ground_time: a.in_ground_time, dealt_damage: a.dealt_damage }),
+                stack: facts.stack.as_ref().map(read_stack),
+                data: facts.stack.as_ref().map(|stack| read_stack(stack).custom_data).unwrap_or_default(),
+                motion_after: std::cell::RefCell::new(None), pierce: std::cell::Cell::new(None), no_gravity: std::cell::Cell::new(None), pickup_stack: std::cell::RefCell::new(None),
+            };
+            projectile_events_v1::spawned(&spawn);
+            horizon_client::entry::pluto_projectile_flight_access::SpawnOutcome {
+                motion: spawn.motion_after.borrow_mut().take(),
+                pierce: spawn.pierce.get(),
+                no_gravity: spawn.no_gravity.get(),
+                pickup_stack: spawn.pickup_stack.borrow_mut().take().map(|data| { let mut stack = ItemStack::new(&data.item, data.count); write_stack(&mut stack, &data); stack }),
+            }
+        },
+        flight: |facts| {
+            let flight = projectile_events_v1::ProjectileFlight {
+                dimension: facts.dimension.clone(), projectile: facts.projectile, kind: facts.kind.clone(), owner: facts.owner,
+                owner_position: facts.owner_position, age: facts.age, position: facts.position, motion: facts.motion,
+                in_ground: facts.in_ground, no_gravity: facts.no_gravity,
+                arrow: facts.arrow.map(|a| projectile_events_v1::ArrowFacts { pierce: a.pierce, in_ground: a.in_ground, in_ground_time: a.in_ground_time, dealt_damage: a.dealt_damage }),
+                data: facts.stack.as_ref().map(|stack| read_stack(stack).custom_data).unwrap_or_default(),
+                motion_after: std::cell::RefCell::new(None), discard: std::cell::Cell::new(false), no_gravity_after: std::cell::Cell::new(None),
+                release_from_ground: std::cell::Cell::new(false), actions: std::cell::RefCell::new(Vec::new()),
+            };
+            projectile_events_v1::flight(&flight);
+            horizon_client::entry::pluto_projectile_flight_access::FlightOutcome {
+                motion: flight.motion_after.borrow_mut().take(),
+                discard: flight.discard.get(),
+                no_gravity: flight.no_gravity_after.get(),
+                release_from_ground: flight.release_from_ground.get(),
+                actions: flight.actions.borrow_mut().drain(..).map(|action| match action {
+                    projectile_events_v1::FlightAction::Explode { center, radius, fire, interaction } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::Explode {
+                        center, radius, fire, blast: match interaction { world_api_v1::ExplosionInteraction::Keep => 0, world_api_v1::ExplosionInteraction::Block => 1, world_api_v1::ExplosionInteraction::Tnt => 2 },
+                    },
+                    projectile_events_v1::FlightAction::Particle { name, position, count, spread, speed } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::Particle { name, position, count, spread, speed },
+                    projectile_events_v1::FlightAction::PushEntity { entity, delta } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PushEntity { entity, delta },
+                    projectile_events_v1::FlightAction::PullItems { center, radius, strength } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PullItems { center, radius, strength },
+                    projectile_events_v1::FlightAction::DropStack { stack, position } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::DropStack { stack: { let mut item = ItemStack::new(&stack.item, stack.count); write_stack(&mut item, &stack); item }, position },
+                    projectile_events_v1::FlightAction::GiveStack { stack } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::GiveStack { stack: { let mut item = ItemStack::new(&stack.item, stack.count); write_stack(&mut item, &stack); item } },
+                }).collect(),
+            }
+        },
+    }).expect("PlutoLib projectile flight sink installs once");
     horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
         .expect("PlutoLib block entity predicate installs once before native initialization");
     horizon_client::entry::pluto_block_entity_access::set_cache_generation_provider(crate::pure::render_cache::generation)
@@ -3258,6 +3307,31 @@ impl Hooks for PlutoHooks {
             None => (true, false),
         };
         if item_api_v1::stack_use_may_start(&stack, hungry, creative) { Flow::Continue } else { Flow::Cancel }
+    }
+
+    /// A player let go of an item they were using (API 131): the charge a callback throws or shoots by is the use's
+    /// full time less the ticks left, and what it spends from the player's hands is written back as carried edits, as
+    /// an ammunition callback spends its source. Only a player's release is heard, and only when a callback listens.
+    fn release_using(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ReleaseUsingEvent<'_>) {
+        if event.entity.is_some() || !item_api_v1::release_heard() { return; }
+        let Some(player) = host.acting_player() else { return };
+        let stack = read_stack(event.stack);
+        let total = item_api_v1::stack_use_duration(&stack)
+            .or_else(|| item_api_v1::ItemUseRegistry::get(&stack.item).map(|used| used.use_time))
+            .unwrap_or(0);
+        let release = item_api_v1::ReleaseUsing {
+            stack,
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            dimension: player.dimension.to_string(),
+            ticks_used: (total - event.time_left as i32).max(0) as u32,
+            main_hand: host.held_stack(player.uuid).map(|stack| read_stack(&stack)),
+            off_hand: host.player_equipment(player.uuid, horizon_client::mod_api::EquipmentSlot::OffHand).map(|stack| read_stack(&stack)),
+            used: std::cell::Cell::new(false),
+            edits: std::cell::RefCell::new(Vec::new()),
+        };
+        let (used, edits) = scoped(host, || item_api_v1::released(&release));
+        if used { event.used = true; }
+        if !edits.is_empty() { apply_carried_edits(host, player.uuid, edits); }
     }
 
     fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
