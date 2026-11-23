@@ -1702,7 +1702,6 @@ bindings = [{ name = "hurting", ty = "&horizon_client::health::Hurting<'_>", val
 id = "pluto-damage-dragon"
 target = "horizon_client::game::dragon::Dragon::hurt_health"
 kind = "HEAD"
-require = 1
 helper = "pluto-damage-dragon.rs"
 bindings = [{ name = "dragon", ty = "&Dragon", value = "&*self" }]
 
