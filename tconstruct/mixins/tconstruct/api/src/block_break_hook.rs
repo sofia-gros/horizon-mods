@@ -101,7 +101,7 @@ fn merge_harvest_enchantments(broken: &BlockBreakContext) {
     stack.enchantments = merged;
     if player.update_stack(slot, &stack) {
         if let Ok(mut noted) = HARVEST_MERGED.lock() {
-            *noted = Some((player.uuid, broken.pos, held.item.clone(), held.custom_data.clone(), held.enchantments.clone()));
+            *noted = Some((player.uuid, broken.pos, held.item.clone(), Nbt::Compound(held.custom_data.clone()), held.enchantments.clone()));
         }
     }
 }
@@ -117,8 +117,8 @@ fn restore_harvest_enchantments(broken: &BlockBreakContext) {
     });
     let Some((_, _, item, custom_data, original)) = taken else { return; };
     let Some(held) = broken.held.as_ref() else { return; };
-    if held.item != item || held.custom_data != custom_data { return; }
-    let slot = (0..36).find(|slot| player.stack(*slot).is_some_and(|stack| stack.item == item && stack.custom_data == custom_data));
+    if held.item != item || Nbt::Compound(held.custom_data.clone()) != custom_data { return; }
+    let slot = (0..36).find(|slot| player.stack(*slot).is_some_and(|stack| stack.item == item && Nbt::Compound(stack.custom_data.clone()) == custom_data));
     let Some(slot) = slot else { return; };
     let mut stack = held.clone();
     stack.enchantments = original;
