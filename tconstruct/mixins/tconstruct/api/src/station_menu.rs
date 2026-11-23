@@ -554,7 +554,7 @@ fn register_station(name: &'static str, input_count: usize) {
     }
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(slot_count as u32).menu(&format!("tconstruct:{name}")).ticker(move |tick| {
+        BlockEntityType::new(id).item_slots(slot_count as u32).menu(&format!("tconstruct:{name}")).on_place(crate::retextured::keep_texture).ticker(move |tick| {
             // A stack can reach a slot with its material data but without the model data the item
             // definitions select on (a `/give` naming only `custom_data`, another mod's stack, an
             // older save): it then renders as the untextured base sprite. Keep the staged stacks

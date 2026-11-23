@@ -159,6 +159,7 @@ mod common;
 mod fancy_gadgets;
 mod advancements;
 mod shaped_materials;
+mod retextured;
 mod swapping_recipes;
 mod material_render;
 mod crafting_repair;
@@ -244,6 +245,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     fancy_gadgets::register();
     advancements::register();
     shaped_materials::register();
+    retextured::register();
     material_render::register();
     crafting_repair::register();
     commands::register();

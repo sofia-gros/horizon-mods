@@ -30,7 +30,7 @@ pub(crate) fn register() {
         .exclude_from_pick_all(RESULT_SLOT);
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:crafting_station"),
+        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:crafting_station").on_place(crate::retextured::keep_texture),
     );
 }
 

@@ -402,7 +402,7 @@ pub(crate) fn register() {
     }
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:modifier_worktable").ticker(|tick| {
+        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:modifier_worktable").on_place(crate::retextured::keep_texture).ticker(|tick| {
             if tick.items.len() < SLOT_COUNT { return; }
             let selected = selected_of(tick.data);
             let Some(computation) = compute(tick.items, selected.as_deref()) else { return; };
