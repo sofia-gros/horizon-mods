@@ -1194,8 +1194,8 @@ impl Module {
                 // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier) bind as
                 // custom attribute modules below, now that PlutoLib can register an attribute the game does not have
                 // (attribute_api_v1): their amounts are not published on the stack but worked out by the port where the
-                // original reads the attribute. The protection cap is the port's own protection math, and a Forge attribute
-                // nobody declared (swim speed) stays unbound.
+                // original reads the attribute. The protection cap is the port's own protection math. A Forge attribute
+                // nobody declared stays unbound, except swim speed, which binds through the bridge below.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
                 if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
                     let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
@@ -1203,9 +1203,12 @@ impl Module {
                 }
                 // Forge's gravity, reach and step height attributes are the vanilla ones under the game's own names, with the same
                 // base and operations; the Tinkers safe fall distance is a distance added to the vanilla safe fall distance.
+                // Swim speed names the water movement efficiency instead; see the operation conversion below.
+                let swim_speed = name == "forge:swim_speed";
                 let name = match name {
                     "forge:entity_gravity" => "minecraft:gravity", "forge:block_reach" => "minecraft:block_interaction_range",
                     "forge:entity_reach" => "minecraft:entity_interaction_range", "forge:step_height_addition" => "minecraft:step_height",
+                    "forge:swim_speed" => "minecraft:water_movement_efficiency",
                     "tconstruct:generic.safe_fall_distance" => "minecraft:safe_fall_distance", other => other,
                 };
                 // An attribute a mod declared with PlutoLib (the twelve of TinkerAttributes, declared in
@@ -1224,6 +1227,14 @@ impl Module {
                     Some("addition") => "add_value", Some("multiply_base") => "add_multiplied_base", Some("multiply_total") => "add_multiplied_total",
                     _ => return Ok(None),
                 };
+                // The swim speed bridge: Forge's swim speed (base 1) has no host attribute; the host's swim physics
+                // reads the water movement efficiency instead, an attribute of base 0 that reduces water drag. On the
+                // Forge attribute every operation's per-level increment is the stated amount itself, so the bridge
+                // reads the operation as the addition of that amount onto the efficiency: swimming gets faster by
+                // the stated amount per level, as the original grants, but through the drag curve rather than a
+                // speed multiplier, so the curve is not formula-identical. Keeping a multiplied form would multiply
+                // the efficiency's base of 0 and grant nothing at all.
+                let operation = if swim_speed { "add_value" } else { operation };
                 // The original's formula has only `level` by default; a variable naming an input this port lacks leaves it unbound.
                 let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
                 let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
@@ -2817,12 +2828,32 @@ mod tests {
         // attribute binds now that it is declared with PlutoLib.
         assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"minecraft:generic.max_health","each_level":4.0,"flat":4.0,"operation":"addition"})).is_some());
         assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"tconstruct:generic.chrysophilite","each_level":1.0,"flat":1.0,"operation":"addition"})).is_some());
-        // The shipped double jump attribute module binds the same way; a Forge attribute nobody
-        // declared (turtles' grace's swim speed) stays unbound.
+        // The shipped double jump attribute module binds the same way; turtles' grace's swim speed
+        // binds through the bridge to the water movement efficiency (see the dedicated test below).
         assert!(decode(json!({"type":"tconstruct:attribute","attribute":"tconstruct:player.jump_count","each_level":1.0,"operation":"addition","slots":["feet","legs","chest","head"]})).is_some());
-        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.25,"operation":"addition","slots":["feet","legs","chest","head"]})).is_none());
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.25,"operation":"addition","slots":["feet","legs","chest","head"]})).is_some());
         // The shipped lightspeed attribute binds; a foreign hook binding stays unbound.
         assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4})).is_some());
         assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4,"hooks":["tconstruct:melee_hit"]})).is_none());
+    }
+
+    #[test]
+    fn turtles_grace_swim_speed_bridges_to_the_water_movement_efficiency_as_an_addition() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped turtles' grace attribute module, verbatim: Forge swim speed, a tenth a level,
+        // multiplied total, over every slot. It binds as the water movement efficiency, added.
+        let grace = decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.1,"operation":"multiply_total","slots":["mainhand","offhand","feet","legs","chest","head"]})).unwrap();
+        let entries = grace.attribute_entries(&Entry::new(id("tconstruct:turtles_grace"), 3), &f, &NbtCompound::new(), &["feet", "chest", "mainhand"]);
+        assert_eq!(entries.len(), 3, "one entry per wanted slot the module lists");
+        for entry in &entries {
+            assert_eq!(entry["type"].as_str(), Some("minecraft:water_movement_efficiency"));
+            assert_eq!(entry["operation"].as_str(), Some("add_value"), "a multiplied form would multiply the efficiency's base of 0 and grant nothing");
+            let amount = entry["amount"].as_f64().unwrap();
+            assert!((amount - 0.3).abs() < 1e-6, "a tenth a level at level 3: {amount}");
+        }
+        // The other operations bridge the same way, as each one's per-level increment on the Forge
+        // attribute (base 1) is the stated amount itself.
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.1,"operation":"multiply_base","slots":["feet"]})).is_some());
     }
 }
