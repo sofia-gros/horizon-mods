@@ -130,7 +130,8 @@ pub(crate) fn register() {
             // The mob effects the tool puts on its target; the ones applying before the hit and after it
             // both land here, as on the player's weapon-hit path.
             for (_, grant) in tool_stack::weapon_effects(&tool.custom_data, env, &target_tag, &mut tool_damage_hook::random) {
-                if grant.effect.namespace() != "minecraft" { continue; }
+                // The original puts every granted effect on the target, whatever namespace it is in;
+                // an effect the game does not know is skipped by the host, as on the player's path.
                 actions.push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
             }
             // Lifesteal: the wielder is healed by a share of the damage dealt (the monster half of the

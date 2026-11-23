@@ -227,7 +227,7 @@ fn add_slot_count(persistent: &mut NbtCompound, name: &str, count: i32) {
 
 /// RandomMaterial.ancient: any tier, hidden allowed, never a material in `tconstruct:exclude_from_loot`,
 /// with stats for the requested type; a uniform pick, falling back to the first material with the stat.
-fn ancient_material(materials: &crate::materials::Definitions, stat: &Identifier, view: &mut dyn MobSpawnPreparation) -> Option<Identifier> {
+pub(crate) fn ancient_material(materials: &crate::materials::Definitions, stat: &Identifier, view: &mut dyn MobSpawnPreparation) -> Option<Identifier> {
     let excluded = materials.tags.get(&Identifier::parse("tconstruct:exclude_from_loot").expect("tag id"));
     let choices: Vec<&Identifier> = materials.materials.keys()
         .filter(|id| !excluded.is_some_and(|list| list.contains(id)) && materials.get_stats(id, stat).is_some())
@@ -523,8 +523,12 @@ pub(crate) fn tag_placement(context: &SpawnPlacementContext, blocks: &[&str]) ->
 pub(crate) fn terracube_placement(context: &SpawnPlacementContext) -> bool {
     if context.peaceful { return false; }
     if context.reason == "spawner" { return true; }
+    // TerracubeEntity.canSpawnHere tests both fluids against FluidTags.WATER, whose members are the
+    // still and the flowing water fluids; the context reports the fluid's own id, so both are named.
     let water = Identifier::parse("minecraft:water").expect("fluid id");
-    if context.fluid_at == water && context.fluid_below == water { return true; }
+    let flowing = Identifier::parse("minecraft:flowing_water").expect("fluid id");
+    let in_water = |fluid: &Identifier| fluid == &water || fluid == &flowing;
+    if in_water(&context.fluid_at) && in_water(&context.fluid_below) { return true; }
     context.block_below_valid_spawn && context.dark_enough
 }
 

@@ -2218,6 +2218,7 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
                 let (x, z) = match direction {
                     KnockbackDirection::AgainstFacing => match host.entity_rotation(entity) { Some([yaw, _]) => entity_events_v1::facing_direction(yaw), None => continue },
+                    KnockbackDirection::Vector { x, z } => (*x, *z),
                     KnockbackDirection::AwayFromOther => {
                         let other = if target == ActionTarget::Attacker { victim } else { attacker };
                         let (Some(from), Some(here)) = (position_of(host, other), host.entity_position(entity)) else { continue };
@@ -4316,6 +4317,7 @@ impl Hooks for PlutoHooks {
                 state.max_health = saved.max_health;
                 state.armor_coverage = saved.armor_coverage;
                 state.equipment = saved.equipment;
+                state.armor_stacks = saved.armor_stacks;
             }
             let eyes = host.entity_eye_position(entity);
             if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }

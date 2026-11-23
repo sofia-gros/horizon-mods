@@ -24,17 +24,18 @@
 //!   `crate::glow_block`.
 //! - Shurikens: `ShurikenEntityBase.onHitBlock` drops the thrown item (`spawnAtLocation(
 //!   getDefaultItem())`); the game bursts and discards the projectile without dropping, so the
-//!   drop is summoned here. On an entity hit the game already deals the type's damage and
-//!   pushes the target with the projectile's motion; Java's exact knockback strength
-//!   (flint 0.6, quartz 0.4, `LivingEntity.knockback`) has no velocity surface to set it
-//!   through, so the game's push stands — a documented reduction.
-//! - EFLN: `EFLNEntity.onHit` detonates an `EFLNExplosion` (size 4, damage 8, knockback 1,
-//!   sphere falloff, block interaction DESTROY). No surface in this PlutoLib base can cause an
-//!   explosion: the host API only hears explosions (`explosion_detonate`/`explosion_knockback`
-//!   hooks) and PlutoLib dispatches neither, and there is no explode helper on the world or
-//!   entity reach. The ball therefore flies and hits as a 0-damage thrown type and does not
-//!   explode — a documented wall, with the Java numbers kept in [`THROWABLES`]' notes and in
-//!   this header for the lane that builds an explosion surface.
+//!   drop is summoned here. On an entity hit the game deals the type's damage and pushes the
+//!   target as its own hit knockback; Java then knocks the target again with the type's exact
+//!   strength (flint 0.6, quartz 0.4) along the flight, which is queued here as a
+//!   [`pluto_lib::EntityAction::Knockback`] with the vector direction (the negated motion, as
+//!   `LivingEntity.knockback` reads its arguments). The action's push shapes the vertical part
+//!   as the game's own knockback does rather than Java's half-motion blend — the one residue.
+//! - EFLN: `EFLNEntity.onHit` detonates where the ball lands and the ball is spent, through
+//!   PlutoLib's [`World::explode`] at the original's size 4 with the DESTROY block interaction
+//!   (the port's `ExplosionInteraction::Tnt`). What does not carry is `EFLNExplosion` itself:
+//!   the detonation is the game's own explosion, so its damage and push follow the game's
+//!   falloff rather than the custom sphere's flat damage 8 and knockback 1 — the same
+//!   documented deviation the fluid explosion effect carries.
 //! - Sounds: Java plays `tconstruct:throw.throwball` / `tconstruct:throw.shuriken` (Sounds.java,
 //!   NEUTRAL, 0.5 volume, pitch `0.4F / (random * 0.4F + 0.8F)`); the game picks the throw sound
 //!   by projectile kind and plays the vanilla snowball throw for thrown types, so the custom
@@ -47,7 +48,7 @@
 //!
 //! There are no recipes for the four in the original (`gadgets/data/GadgetRecipeProvider.java`
 //! has none; the items are deprecated), so none are converted.
-use pluto_lib::{BlockState, Direction, Identifier, ItemTooltipCallback, Nbt, NbtCompound, ProjectileEvents, ProjectileImpact, ThrownType, ThrownTypeRegistry, TooltipLine, World};
+use pluto_lib::{ActionTarget, BlockState, Direction, EntityAction, ExplosionInteraction, Identifier, ItemTooltipCallback, KnockbackDirection, Nbt, NbtCompound, ProjectileEvents, ProjectileImpact, ThrownType, ThrownTypeRegistry, TooltipLine, World};
 
 /// One throwable of TinkerGadgets, with its entity's numbers from the entity classes:
 /// `damage`/`knockback` are ShurikenEntityBase's `getDamage()`/`getKnockback()` (flint 3.0/0.6,
@@ -91,6 +92,9 @@ pub(crate) fn register() {
     });
 }
 
+/// The radius of EFLNEntity's detonation (`EFLNExplosion`'s size 4).
+pub(crate) const EFLN_RADIUS: f32 = 4.0;
+
 /// The impact half of the throwables. Always `true`: the game's own hit (the type's damage,
 /// the break burst, the discard) is Java's `super.onHit` and must still run.
 fn on_impact(hit: &ProjectileImpact) -> bool {
@@ -99,10 +103,25 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
             let (pos, facing) = glow_target(hit);
             place_glow(&hit.world(), pos, facing);
         }
+        "tconstruct:efln_ball" => {
+            // EFLNEntity.onHit: the ball detonates where it lands and is spent (the module header
+            // records how the game's explosion stands in for EFLNExplosion).
+            hit.world().explode(hit.at, EFLN_RADIUS, false, ExplosionInteraction::Tnt);
+            hit.discard.set(true);
+        }
         "tconstruct:flint_shuriken" | "tconstruct:quartz_shuriken" => {
-            // Java drops the item only on a block hit (onHitBlock); an entity hit keeps it flying into the hit.
             if hit.entity.is_none() {
+                // Java drops the item only on a block hit (onHitBlock); an entity hit keeps it flying into the hit.
                 drop_thrown_item(&hit.world(), hit.at, &hit.kind);
+            } else if let Some(thrown) = THROWABLES.iter().find(|thrown| hit.kind == format!("tconstruct:{}", thrown.name)) {
+                // ShurikenEntityBase.onHitEntity: after the hurt, the target is knocked with the
+                // type's strength along the flight — `living.knockback(strength, -motion.x,
+                // -motion.z)` with the motion normalized, which the vector direction reproduces.
+                hit.actions.borrow_mut().push(EntityAction::Knockback {
+                    target: ActionTarget::Victim,
+                    strength: f64::from(thrown.knockback),
+                    direction: KnockbackDirection::Vector { x: -hit.motion[0], z: -hit.motion[2] },
+                });
             }
         }
         _ => {}
@@ -187,8 +206,8 @@ mod tests {
             let _ = ThrownTypeRegistry::register(made);
             assert_eq!(ThrownTypeRegistry::get(&id(thrown.name)).map(|t| t.damage), Some(thrown.damage), "{}", thrown.name);
         }
-        assert_eq!(THROWABLES[2].knockback, 0.6, "flint knockback (documented, not settable)");
-        assert_eq!(THROWABLES[3].knockback, 0.4, "quartz knockback (documented, not settable)");
+        assert_eq!(THROWABLES[2].knockback, 0.6, "flint knockback");
+        assert_eq!(THROWABLES[3].knockback, 0.4, "quartz knockback");
     }
 
     #[test]
@@ -239,5 +258,49 @@ mod tests {
         let entity_hit = hit("tconstruct:quartz_shuriken", Some(3), [1, 64, 1], [0, 1, 0]);
         with_world(&mut ops, || assert!(on_impact(&entity_hit)));
         assert!(ops.summons.is_empty(), "an entity hit drops nothing");
+    }
+
+    #[test]
+    fn a_shuriken_entity_hit_knocks_the_target_along_its_flight_with_the_types_strength() {
+        let mut flying = hit("tconstruct:flint_shuriken", Some(3), [1, 64, 1], [0, 1, 0]);
+        flying.motion = [0.6, -0.2, -0.8];
+        assert!(on_impact(&flying));
+        assert_eq!(
+            flying.actions.borrow().as_slice(),
+            [EntityAction::Knockback { target: ActionTarget::Victim, strength: f64::from(0.6f32), direction: KnockbackDirection::Vector { x: -0.6, z: 0.8 } }],
+            "flint: strength 0.6 along the negated motion, as LivingEntity.knockback reads it"
+        );
+        let mut flying = hit("tconstruct:quartz_shuriken", Some(3), [1, 64, 1], [0, 1, 0]);
+        flying.motion = [0.0, 0.0, 1.5];
+        assert!(on_impact(&flying));
+        assert_eq!(
+            flying.actions.borrow().as_slice(),
+            [EntityAction::Knockback { target: ActionTarget::Victim, strength: f64::from(0.4f32), direction: KnockbackDirection::Vector { x: 0.0, z: -1.5 } }],
+            "quartz: strength 0.4"
+        );
+        // A block hit queues no knockback (and drops the item instead, covered above).
+        let block_hit = hit("tconstruct:flint_shuriken", None, [1, 64, 1], [0, 1, 0]);
+        let mut ops = MemoryWorldOps::default();
+        with_world(&mut ops, || assert!(on_impact(&block_hit)));
+        assert!(block_hit.actions.borrow().is_empty());
+    }
+
+    #[test]
+    fn an_efln_ball_detonates_where_it_lands_and_is_spent() {
+        let mut ops = MemoryWorldOps::default();
+        let landed = hit("tconstruct:efln_ball", None, [2, 64, 2], [0, 1, 0]);
+        with_world(&mut ops, || assert!(on_impact(&landed)));
+        assert!(landed.discard.get(), "the ball is spent by its detonation");
+        assert_eq!(ops.explosions.len(), 1);
+        let explosion = &ops.explosions[0];
+        assert_eq!(explosion.center, [2.5, 64.5, 2.5], "at the hit position");
+        assert_eq!(explosion.radius, EFLN_RADIUS, "EFLNExplosion's size 4");
+        assert!(!explosion.fire, "EFLNExplosion sets no fire");
+        assert_eq!(explosion.interaction, ExplosionInteraction::Tnt, "NeoForge's DESTROY block interaction");
+        // An entity hit detonates too (EFLNEntity.onHit covers both).
+        let mut ops = MemoryWorldOps::default();
+        let struck = hit("tconstruct:efln_ball", Some(5), [2, 64, 2], [0, 1, 0]);
+        with_world(&mut ops, || assert!(on_impact(&struck)));
+        assert_eq!(ops.explosions.len(), 1);
     }
 }

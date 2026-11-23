@@ -23,6 +23,7 @@ mod part_builder_recipes;
 mod tool_predicate;
 mod modifier_modules;
 mod modifiers;
+mod mob_equipment;
 mod enchantment_map;
 mod enchantment_converting;
 mod material_stats;
@@ -203,6 +204,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     kinetic_hook::register();
     lifesteal_hook::register();
     monster_melee::register();
+    mob_equipment::register();
     dragon_scales::register();
     tool_action_hook::register();
     protection_hook::register();

@@ -132,6 +132,7 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
         SEVERING.set(crate::severing::register().expect("Tinkers severing recipe listener registration failed")).expect("Tinkers severing recipes already initialized");
         LOOT_MODIFIERS.set(crate::loot_modifiers::register().expect("Tinkers loot modifier listener registration failed")).expect("Tinkers loot modifiers already initialized");
         crate::protection_hook::register_tags().expect("Tinkers damage tag listener registration failed");
+        crate::mob_equipment::register_data().expect("Tinkers mob equipment listener registration failed");
         let salvage_config = config.clone();
         let salvages = crate::modifier_removal::register(move || {
             let config = salvage_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

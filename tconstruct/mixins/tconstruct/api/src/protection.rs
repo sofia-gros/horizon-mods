@@ -138,6 +138,10 @@ pub(crate) const PROTECTION_CAP: f32 = 20.0;
 /// never above 95% of the 25.
 pub(crate) fn protection_cap(added: f32) -> f32 { ((0.8 + added) * 25.0).min(25.0 * 0.95) }
 
+/// ToolEvents.getProtectionModifier: a victim in `forge:small_armor` counts its protection fourfold — the
+/// enchantment points and the modifiers' together, as they were accumulated into the one total.
+pub(crate) fn small_armor_total(total: f32) -> f32 { total * 4.0 }
+
 /// ArmorUtil.getDamageForEvent without the armor inverse: the event here fires after vanilla armor and enchantment
 /// protection took their share, so the damage is returned to what the vanilla protection alone left (`vanilla` points of
 /// the 25), then reduced by the modifiers' `total` (which includes the vanilla points) capped at `cap`.

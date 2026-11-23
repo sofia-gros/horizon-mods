@@ -110,6 +110,10 @@ pub struct EntityState {
     /// The names of the equipment slots that hold an item (`mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`), as
     /// `LivingEntity.getItemBySlot` finds them filled; None when the game did not report its equipment.
     pub equipment: Option<Vec<String>>,
+    /// The armor pieces it wears that carry custom data, as (slot, stack) in `feet`, `legs`, `chest`, `head` order, read from
+    /// its saved data with its state; empty when the game did not report them or it wears none. This is how a mob's worn mod
+    /// armor reaches the damage events: a player's pieces are remembered from their own tick instead.
+    pub armor_stacks: Vec<(String, StackData)>,
     /// Whether it crouches: a player holding sneak. A mob never does.
     pub crouching: bool,
     /// Its height, the y of its feet; None when the game did not report it.
@@ -235,12 +239,17 @@ pub enum ActionTarget {
 }
 
 /// How a [`EntityAction::Knockback`] picks the way the target is pushed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum KnockbackDirection {
     /// Away from the other party of the hit, as the game's own damage knockback pushes.
     AwayFromOther,
     /// Against the way the target faces, as `Entity.knockback(strength, -sin(yaw), cos(yaw))` pushes.
     AgainstFacing,
+    /// Along a caller-given horizontal vector, read as `Entity.knockback(strength, x, z)` reads its own
+    /// arguments: the target is pushed along the negated, normalized vector (and up by the strength,
+    /// capped as the game's own knockback caps it, when it stands on the ground). A projectile's hit
+    /// passes its negated motion, so the target is pushed the way the projectile flew.
+    Vector { x: f64, z: f64 },
 }
 
 /// Something for a callback to do to one party of a hit, which the game does after the callbacks ran (a weapon hit's before its damage
@@ -438,7 +447,9 @@ pub struct DamageModification {
     /// When a player's attack caused it: the stack the player attacked with (damage, max damage, custom data); None otherwise.
     pub attacker_stack: Option<StackData>,
     /// The armor the damaged entity wore as of its last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the
-    /// pieces carrying custom data (a mod's own armor keeps its state there). Empty for an entity that is not a player.
+    /// pieces carrying custom data (a mod's own armor keeps its state there). A player's pieces are remembered from
+    /// their tick; another living entity's are the ones the hit's own report read from its saved data, when that
+    /// report ran, so a hit no report covered (a mob's hit on a mob, the environment) names none.
     pub armor: Vec<(String, StackData)>,
     /// When a player's weapon hit a mob: what the player and the mob were doing as the hit landed; None otherwise.
     /// A mob's synchronous attack (a melee swing the game names the attacker of before the hit lands) also reports
@@ -879,7 +890,10 @@ pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Opt
         if let Some((old_entity, old_attacker, old_target, at)) = &*pending {
             if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME {
                 let keep_equipment = |new: &mut Option<EntityState>, old: &Option<EntityState>| {
-                    if let (Some(new), Some(old)) = (new, old) { if new.equipment.is_none() { new.equipment = old.equipment.clone(); } }
+                    if let (Some(new), Some(old)) = (new, old) {
+                        if new.equipment.is_none() { new.equipment = old.equipment.clone(); }
+                        if new.armor_stacks.is_empty() { new.armor_stacks = old.armor_stacks.clone(); }
+                    }
                 };
                 let (mut attacker, mut target) = (attacker, target);
                 keep_equipment(&mut attacker, old_attacker);
@@ -954,7 +968,7 @@ pub(crate) fn holds_water(id: &str, waterlogged: bool) -> bool {
 /// What an entity's saved data (`Entity.saveWithoutId`) says: its health, its maximum health, the share of its armor slots filled
 /// and the names of the equipment slots that hold an item.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32>, pub equipment: Option<Vec<String>> }
+pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32>, pub equipment: Option<Vec<String>>, pub armor_stacks: Vec<(String, StackData)> }
 
 fn number(value: &super::base::Nbt) -> Option<f64> {
     use super::base::Nbt;
@@ -990,14 +1004,35 @@ pub(crate) fn saved_facts(data: &super::base::NbtCompound) -> SavedFacts {
     let filled = |equipment: &super::base::NbtCompound, slot: &str| {
         matches!(equipment.get(slot), Some(Nbt::Compound(stack)) if !matches!(stack.get("id"), Some(Nbt::String(id)) if id == "minecraft:air"))
     };
-    let (armor_coverage, equipment) = match data.get("equipment") {
+    let (armor_coverage, equipment, armor_stacks) = match data.get("equipment") {
         Some(Nbt::Compound(equipment)) => (
             Some(armor_coverage(["head", "chest", "legs", "feet"].iter().filter(|slot| filled(equipment, slot)).count())),
             Some(["mainhand", "offhand", "head", "chest", "legs", "feet"].iter().filter(|slot| filled(equipment, slot)).map(|slot| slot.to_string()).collect()),
+            ["feet", "legs", "chest", "head"].iter().filter_map(|slot| saved_armor_stack(equipment, slot)).collect(),
         ),
-        _ => (None, None),
+        _ => (None, None, Vec::new()),
     };
-    SavedFacts { health, max_health, armor_coverage, equipment }
+    SavedFacts { health, max_health, armor_coverage, equipment, armor_stacks }
+}
+
+/// One armor piece from an entity's saved `equipment` compound, in the game's saved stack layout (`id`, `count`,
+/// `components`): the stack as a mod sees it, with its `minecraft:custom_data`. None for an empty slot or a piece
+/// carrying no custom data — the armor the damage events report is the pieces a mod keeps state on, as the pieces
+/// a player's tick reports are.
+fn saved_armor_stack(equipment: &super::base::NbtCompound, slot: &str) -> Option<(String, StackData)> {
+    use super::base::Nbt;
+    let Nbt::Compound(stack) = equipment.get(slot)? else { return None };
+    let Some(Nbt::String(id)) = stack.get("id") else { return None };
+    if id == "minecraft:air" { return None; }
+    let custom_data = match stack.get("components") {
+        Some(Nbt::Compound(components)) => match components.get("minecraft:custom_data") {
+            Some(Nbt::Compound(data)) => data.clone(),
+            _ => return None,
+        },
+        _ => return None,
+    };
+    let count = stack.get("count").and_then(number).map(|count| count as u32).unwrap_or(1);
+    Some((slot.to_owned(), StackData { item: id.clone(), count, custom_data, ..StackData::default() }))
 }
 
 /// `LivingEntity.getArmorCoverPercentage` for `filled` of the four armor slots.
@@ -1084,6 +1119,9 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     });
     // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
+    // A mob's worn pieces come with the hit's own report of it, when that report ran (a player's weapon hit reads the
+    // mob's saved data); a player's pieces are the remembered ones above.
+    let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
     let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_DAMAGE.invoke(&modification);
@@ -1103,6 +1141,9 @@ pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
     });
     // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
+    // A mob's worn pieces come with the hit's own report of it, when that report ran (a player's weapon hit reads the
+    // mob's saved data); a player's pieces are the remembered ones above.
+    let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
     let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_HURT.invoke(&modification);
@@ -1672,9 +1713,39 @@ mod tests {
             ("equipment", Nbt::Compound(compound(vec![("head", stack("minecraft:iron_helmet")), ("feet", stack("minecraft:air")), ("mainhand", stack("minecraft:stick"))]))),
         ]);
         // (20 + 4) * (1 + 0.5) * (1 + 1).
-        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25), equipment: Some(vec!["mainhand".into(), "head".into()]) });
+        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25), equipment: Some(vec!["mainhand".into(), "head".into()]), armor_stacks: Vec::new() });
         assert_eq!(saved_facts(&NbtCompound::new()), SavedFacts::default(), "data that says nothing reports nothing");
         assert_eq!(armor_coverage(9), 1.0);
+    }
+
+    #[test]
+    fn saved_data_gives_the_worn_armor_pieces_that_carry_custom_data() {
+        use super::super::base::{Nbt, NbtCompound};
+        let compound = |entries: Vec<(&str, Nbt)>| -> NbtCompound { entries.into_iter().map(|(key, value)| (key.to_owned(), value)).collect() };
+        let tool_helmet = Nbt::Compound(compound(vec![
+            ("id", Nbt::String("tconstruct:travelers_helmet".into())), ("count", Nbt::Int(1)),
+            ("components", Nbt::Compound(compound(vec![("minecraft:custom_data", Nbt::Compound(compound(vec![("tconstruct:materials", Nbt::String("x".into()))])))]))),
+        ]));
+        let plain_plate = Nbt::Compound(compound(vec![("id", Nbt::String("minecraft:iron_chestplate".into())), ("count", Nbt::Int(1))]));
+        let data = compound(vec![("equipment", Nbt::Compound(compound(vec![("head", tool_helmet), ("chest", plain_plate)])))]);
+        let facts = saved_facts(&data);
+        assert_eq!(facts.armor_stacks.len(), 1, "only the piece carrying custom data is reported: {:?}", facts.armor_stacks);
+        assert_eq!(facts.armor_stacks[0].0, "head");
+        assert_eq!(facts.armor_stacks[0].1.item, "tconstruct:travelers_helmet");
+        assert!(facts.armor_stacks[0].1.custom_data.contains_key("tconstruct:materials"), "the piece's own data rides along");
+    }
+
+    #[test]
+    fn modify_damage_carries_a_mobs_worn_armor_from_the_hits_own_report() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 7171 { log.lock().unwrap().push(hit.armor.iter().map(|(slot, stack)| format!("{slot}:{}", stack.item)).collect::<Vec<_>>()); });
+        let helmet = StackData { item: "tconstruct:travelers_helmet".into(), count: 1, ..StackData::default() };
+        let state = EntityState { kind: "tconstruct:sky_slime".into(), armor_stacks: vec![("head".into(), helmet)], ..EntityState::default() };
+        hit_states(7171, None, Some(state));
+        let hurt = LivingDamage { entity: 7171, kind: "tconstruct:sky_slime".into(), damage_type: "minecraft:player_attack".into(), attacker: 3, direct: 3, amount: 5.0 };
+        modify_damage(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![vec!["head:tconstruct:travelers_helmet".to_string()]]);
     }
 
     #[test]

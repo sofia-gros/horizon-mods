@@ -127,6 +127,17 @@ fn fill_capacity(hit: &DamageModification, source: &DamageSource) {
     hit.actions.borrow_mut().extend(edits);
 }
 
+/// Whether the damaged entity is one of the original's small armor victims: `forge:small_armor`, whose only
+/// member is `#forge:slimes` — the two vanilla slimes and the three Tinkers ones, named outright because the
+/// tag reaches the snapshot only when the game captured it. The tag is consulted too, for a data pack that
+/// adds a member of its own.
+fn small_armor_victim(kind: &str) -> bool {
+    if matches!(kind, "minecraft:slime" | "minecraft:magma_cube" | "tconstruct:sky_slime" | "tconstruct:ender_slime" | "tconstruct:terracube") { return true; }
+    let Ok(kind) = Identifier::parse(kind) else { return false };
+    let Ok(tag) = Identifier::parse("forge:small_armor") else { return false };
+    crate::melee_hook::target_in_tag(common::entity_type_snapshot().as_deref(), Some(&kind), &tag)
+}
+
 /// Protection: the damage after the armor's protection modules (and the damage a piece blocks altogether).
 fn protect(hit: &DamageModification, source: &DamageSource) {
     static LOGGED: AtomicUsize = AtomicUsize::new(0);
@@ -154,6 +165,8 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
         }
     }
     hit.actions.borrow_mut().extend(spent);
+    // ToolEvents.getProtectionModifier: a small armor victim's accumulated protection counts fourfold.
+    let total = if small_armor_victim(&hit.damage.kind) { crate::protection::small_armor_total(total) } else { total };
     let amount = hit.amount.get();
     let mut after = if total == 0.0 && vanilla == 0.0 { amount } else { damage_after_protection(amount, vanilla, total, protection_cap(cap_added)) };
     // The modules that adjust the damage the wearer takes run after the protection, each piece seeing what the last left; the wearer is
@@ -168,4 +181,30 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
         eprintln!("Tinkers: {} damage to {} with {} armor pieces: protection {total}, {amount} -> {after}", hit.damage.damage_type, hit.damage.kind, hit.armor.len());
     }
     if after.is_finite() && after >= 0.0 && after != amount { hit.amount.set(after); }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_small_armor_victims_are_the_slimes() {
+        for kind in ["minecraft:slime", "minecraft:magma_cube", "tconstruct:sky_slime", "tconstruct:ender_slime", "tconstruct:terracube"] {
+            assert!(small_armor_victim(kind), "{kind}");
+        }
+        assert!(!small_armor_victim("minecraft:zombie"));
+        assert!(!small_armor_victim("minecraft:player"));
+        assert!(!small_armor_victim("not an id"));
+    }
+
+    #[test]
+    fn a_small_armor_victims_protection_counts_fourfold_in_the_damage() {
+        // 10 damage with 2 enchantment points the game already took and 5 accumulated: a normal victim's
+        // damage runs through the 5; a small armor victim's 5 counts as 20, the protection cap.
+        let normal = damage_after_protection(10.0, 2.0, 5.0, protection_cap(0.0));
+        let small = damage_after_protection(10.0, 2.0, crate::protection::small_armor_total(5.0), protection_cap(0.0));
+        assert!((normal - 10.0 / (1.0 - 2.0 / 25.0) * (1.0 - 5.0 / 25.0)).abs() < 1e-4, "{normal}");
+        assert!((small - 10.0 / (1.0 - 2.0 / 25.0) * (1.0 - 20.0 / 25.0)).abs() < 1e-4, "{small}");
+        assert!(small < normal);
+    }
 }
