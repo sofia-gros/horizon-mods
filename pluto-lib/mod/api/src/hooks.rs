@@ -13,6 +13,7 @@ use horizon_client::mod_api::{
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
+    ComputeFovModifierEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -28,6 +29,7 @@ use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, Neighbour
 use crate::pure::entity_api_v1::{self, EntityOps};
 use crate::pure::dispense_api_v1::{self, DispenseBehavior};
 use crate::pure::fishing_api_v1::{self, Fishing, Grapple};
+use crate::pure::fov_api_v1::{self, FovSlot, FovStack};
 use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::item_storage_api_v1::ItemStorage;
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
@@ -3390,6 +3392,25 @@ impl Hooks for PlutoHooks {
     }
     fn client_disconnecting(&self, _host: &dyn Host, _event: &mut horizon_client::mod_api::ClientDisconnectingEvent) {
         networking_api_v1::client_disconnecting();
+    }
+    fn compute_fov_modifier(&self, host: &dyn Host, event: &mut ComputeFovModifierEvent<'_>) {
+        // The FOV callbacks read the local player's own equipment: on a client the
+        // host's `equipment` answers for the player themselves, as a worn overlay
+        // reads it. A slot that holds no stack, or a stack PlutoLib cannot name,
+        // is absent from the facts.
+        let mut held: Vec<(FovSlot, ItemSlot)> = Vec::new();
+        for (slot, fov_slot) in [(EquipmentSlot::Feet, FovSlot::Feet), (EquipmentSlot::Legs, FovSlot::Legs),
+            (EquipmentSlot::Chest, FovSlot::Chest), (EquipmentSlot::Head, FovSlot::Head),
+            (EquipmentSlot::MainHand, FovSlot::MainHand), (EquipmentSlot::OffHand, FovSlot::OffHand)] {
+            if let Some(view) = host.equipment(slot).and_then(|stack| slot_of(&stack)) { held.push((fov_slot, view)); }
+        }
+        let stacks: Vec<FovStack<'_>> = held.iter().map(|(slot, stack)| FovStack { slot: *slot, stack }).collect();
+        let facts = fov_api_v1::FovFacts {
+            base: event.base, flying: event.player.flying, walking_speed: event.player.walking_speed,
+            movement_speed: event.player.movement_speed, stacks: &stacks,
+            using_ticks: event.player.using.map(|(_, ticks)| ticks),
+        };
+        if let Some(factor) = fov_api_v1::fov_multiplier(&facts) { event.modifier *= factor; }
     }
     fn net_from_client(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::NetFromClientEvent<'_>) {
         scoped(host, || networking_api_v1::from_client(event.player, event.channel, event.data));

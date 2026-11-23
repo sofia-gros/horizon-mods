@@ -334,6 +334,13 @@ pub(crate) enum Module {
     Overburn,
     /// SmashingModule: an ammo tank whose amount is the fluid effect ingredient's amount.
     Smashing,
+    /// FovModule: multiplies the field of view by a leveling amount, in the
+    /// direction its action names (increase widens, decrease narrows).
+    Fov { flat: f32, each: f32, action: FovAction },
+    /// ZoomModule: narrows the field of view while the tool is used, as a
+    /// spyglass (a fixed factor at once) or a scope (a factor that grows
+    /// with the draw time).
+    Zoom { style: ZoomStyle },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -346,6 +353,28 @@ pub(crate) enum QuiverDraw {
     Bulk { check_standard_arrows: bool },
     /// TrickQuiverModule: the stack in the selected slot, whatever it is.
     Trick,
+}
+
+/// FovModule's action: how the leveling amount turns into a multiplier.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum FovAction {
+    Increase,
+    Decrease,
+}
+
+impl FovAction {
+    /// FovModule's multiplier for an amount: increase multiplies the view
+    /// by 1 + amount, decrease by 1 / (1 + amount).
+    pub(crate) fn factor(&self, amount: f32) -> f32 {
+        match self { Self::Increase => 1.0 + amount, Self::Decrease => 1.0 / (1.0 + amount) }
+    }
+}
+
+/// ZoomModule's style: how a used tool narrows the field of view.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum ZoomStyle {
+    Spyglass,
+    Scope,
 }
 
 /// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
@@ -1091,6 +1120,26 @@ impl Module {
             "tconstruct:throwing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interaction")) => Self::Throwing,
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
+            // FovModule: a leveling value (flat and each_level inlined) and a required action; it binds on its
+            // equipment change hook, which the shipped records leave to the module's default.
+            "tconstruct:fov" if only("tconstruct:equipment_change") => {
+                let action = match fields.get("action").and_then(Value::as_str) {
+                    Some("increase") => FovAction::Increase,
+                    Some("decrease") => FovAction::Decrease,
+                    _ => return Err("fov action must be increase or decrease".into()),
+                };
+                Self::Fov { flat: float(fields, "flat")?, each: float(fields, "each_level")?, action }
+            }
+            // ZoomModule: a required style; it binds on the interaction and equipment hooks of either style
+            // (the spyglass adds the armor interact hook, the scope does not).
+            "tconstruct:zoom" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:equipment_change" | "tconstruct:armor_interact")) => {
+                let style = match fields.get("style").and_then(Value::as_str) {
+                    Some("spyglass") => ZoomStyle::Spyglass,
+                    Some("scope") => ZoomStyle::Scope,
+                    _ => return Err("zoom style must be spyglass or scope".into()),
+                };
+                Self::Zoom { style }
+            }
             _ => return Ok(None),
         }))
     }
@@ -1576,6 +1625,16 @@ impl Module {
     /// The level a kinetic module contributes to its modifier's total, None for any other module. The original counts the
     /// plain level here (SlotInChargeModule reads the entry level), not the effective one.
     pub fn kinetic_level(&self, entry: &Entry) -> Option<i32> { matches!(self, Self::Kinetic).then(|| entry.level) }
+    /// The field-of-view factor a FovModule contributes at this entry's effective level, None for any other module.
+    pub fn fov_factor(&self, entry: &Entry) -> Option<f32> {
+        let Self::Fov { flat, each, action } = self else { return None; };
+        Some(action.factor(flat + each * entry.effective_level()))
+    }
+    /// The style a ZoomModule zooms with, None for any other module.
+    pub fn zoom_style(&self) -> Option<ZoomStyle> {
+        let Self::Zoom { style } = self else { return None; };
+        Some(*style)
+    }
     /// Whether this is the insatiable code module.
     pub fn is_insatiable(&self) -> bool { matches!(self, Self::Insatiable) }
     /// The enderclearance module's (chance, diameter) at an entry's effective level, None for any

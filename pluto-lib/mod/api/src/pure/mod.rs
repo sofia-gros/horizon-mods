@@ -19,6 +19,7 @@ pub mod data_attachment_api_v1;
 pub mod dispense_api_v1;
 pub mod entity_events_v1;
 pub mod fishing_api_v1;
+pub mod fov_api_v1;
 pub mod living_entity_drops;
 pub mod living_entity_behavior;
 pub mod mob_split_api;
