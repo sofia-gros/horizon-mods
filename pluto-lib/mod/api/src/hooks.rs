@@ -1107,6 +1107,14 @@ fn read_custom_model_data(stack: &ItemStack) -> Option<player_api::CustomModelDa
     }
 }
 
+/// The stack's own `minecraft:profile` component (a player head's owner), None when it has none.
+fn read_profile(stack: &ItemStack) -> Option<NbtCompound> {
+    match stack.data().and_then(|d| d.other("minecraft:profile")) {
+        Some(Tag::Compound(compound)) => Some(compound_from_tag(compound)),
+        _ => None,
+    }
+}
+
 /// The component value for `data`: None (remove the component) when there is none or it is empty.
 fn custom_model_data_tag(data: &Option<player_api::CustomModelData>) -> Option<Tag> {
     data.as_ref().filter(|data| !data.is_empty()).map(|data| Tag::Compound(compound_to_tag(&data.to_nbt())))
@@ -2850,6 +2858,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.attribute_modifiers = read_attribute_modifiers(stack);
     slot.enchantments = read_enchantments(stack);
     slot.custom_model_data = data.custom_model_data;
+    slot.profile = read_profile(stack);
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -2907,6 +2916,24 @@ fn write_loot_slot(stack: &mut horizon_client::mod_api::LootStack, slot: &ItemSl
     }
 }
 
+/// The dropping entity's own state for the loot callbacks: a mob's age, wool and kind read from its saved data, as the
+/// damage events read it; a player's name and id from the server's player list (the list names a player by entity id, 0
+/// for the owner of a single-player world, who is the acting player). None when the entity is not to be found, and the
+/// drops that depend on the state (a baby's, a sheared sheep's) then do not happen.
+fn loot_entity_facts(host: &mut dyn Host, id: u32, kind: &str) -> Option<loot_api_v2::LootEntityFacts> {
+    if kind == "minecraft:player" {
+        let player = host.server_players().into_iter().find(|player| player.entity_id == id as i32)
+            .or_else(|| host.acting_player().filter(|acting| acting.entity_id == id as i32 || acting.entity_id == 0))?;
+        return Some(loot_api_v2::LootEntityFacts {
+            player: Some(loot_api_v2::PlayerProfile { name: player.name.clone(), uuid: player.uuid }),
+            ..loot_api_v2::LootEntityFacts::default()
+        });
+    }
+    let entity = host.entity(id)?;
+    let data = host.entity_nbt(entity)?;
+    Some(loot_api_v2::facts_from_saved(&compound_from_tag(&data), kind))
+}
+
 /// Restore the source stack, not the destination's components, then apply public edits.
 fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     let item = slot.item.to_string();
@@ -2941,6 +2968,10 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     // The stack's own model selection: the item definition's `select`/`range_dispatch`/`condition` read it from here.
     if slot.custom_model_data != read_custom_model_data(stack) {
         stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&slot.custom_model_data));
+    }
+    // The stack's own profile: a player head's owner, whose skin the head shows.
+    if slot.profile != read_profile(stack) {
+        stack.data_mut().set_other("minecraft:profile", slot.profile.as_ref().map(|profile| Tag::Compound(compound_to_tag(profile))));
     }
     stack.tidy();
 }
@@ -4652,10 +4683,12 @@ impl Hooks for PlutoHooks {
         let Some(slots) = event.drops.iter().map(slot_of).collect::<Option<Vec<ItemSlot>>>() else { return };
         let before = slots.clone();
         let context = &*event.context;
+        let entity_facts = context.entity.as_ref().and_then(|(id, kind)| loot_entity_facts(host, *id, kind));
         let drops = loot_api_v2::LootDrops {
             table: context.table.to_owned(), dimension: context.dimension.to_owned(), origin: context.origin,
             block: context.block.as_ref().map(|(pos, _)| *pos),
             entity: context.entity.as_ref().map(|(id, kind)| (*id, (*kind).to_owned())),
+            entity_facts,
             player: context.player, tool: context.tool.map(|stack| read_stack(stack)), explosion: context.explosion, used: context.used,
             drops: std::cell::RefCell::new(slots), actions: std::cell::RefCell::new(Vec::new()),
         };

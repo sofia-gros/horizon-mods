@@ -113,6 +113,7 @@ pub(crate) fn register() {
                 rare,
                 level,
                 hit.looting as f32,
+                drops.entity_facts.as_ref(),
                 &mut loot,
                 &mut tool_damage_hook::random,
             );
