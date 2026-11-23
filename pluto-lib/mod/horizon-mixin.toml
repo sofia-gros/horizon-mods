@@ -248,8 +248,8 @@ target = "horizon_client::game::natural_spawning::Game<'_>::spawn_natural"
 kind = "RETURN"
 helper = "pluto-spawn-placement-permit-head.rs"
 bindings = [
- { name = "value", ty = "()", value = "$value" },
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "value", ty = "()", value = "$value" }
 ]
 
 [[injection]]
@@ -1085,11 +1085,11 @@ source = "pluto-block-facts.rs"
 visibility = "pub"
 
 [[injection]]
-id = "pluto-block-facts-return"
-target = "horizon_client::game::resource_load::gameplay_tables"
-kind = "RETURN"
-helper = "pluto-block-facts-return.rs"
-bindings = [{ name = "value", ty = "std::result::Result<GameplayTables, String>", value = "$value" }]
+id = "pluto-block-facts-publish"
+target = "horizon_client::game::load_world_rest"
+kind = "HEAD"
+helper = "pluto-block-facts-publish-head.rs"
+bindings = [{ name = "resources", ty = "&Resources", value = "resources" }]
 
 # The game's cooking recipes (the furnace family), published when the recipe book loads so the
 # recipe API's cooking lookup can answer what a furnace does to an item.
