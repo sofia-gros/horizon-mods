@@ -126,7 +126,7 @@ fn golden_total(pieces: &[(String, StackData)]) -> Option<i32> {
 pub(crate) fn collect(pieces: &[(String, StackData)], hands: &[(String, StackData)], effects: &[(String, i32)], total_gold: Option<i32>) -> BTreeMap<String, Vec<AttributeContribution>> {
     declare();
     let mut contributions: BTreeMap<String, Vec<AttributeContribution>> = BTreeMap::new();
-    let mut add = |contributions: &mut BTreeMap<String, Vec<AttributeContribution>>, attribute: String, operation: AttributeOperation, amount: f64| {
+    let add = |contributions: &mut BTreeMap<String, Vec<AttributeContribution>>, attribute: String, operation: AttributeOperation, amount: f64| {
         contributions.entry(attribute).or_default().push(AttributeContribution { operation, amount });
     };
     for (slot, piece) in pieces.iter().chain(hands.iter()) {
