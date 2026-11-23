@@ -1965,7 +1965,7 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-frame-from-nbt"
-target = "horizon_client::entity_nbt::item_frame_from_nbt"
+target = "horizon_client::entity_nbt::hanging::item_frame_from_nbt"
 kind = "HEAD"
 cancellable = true
 helper = "pluto-hanging-frame-from-nbt.rs"
