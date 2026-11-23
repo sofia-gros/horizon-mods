@@ -272,13 +272,13 @@ impl Sling {
         }))
     }
 
-    /// SlingLeapModule's record: every field is required in the original's loader (its
-    /// field names are `force` and `drawtime`, not the knockback module's longer ones).
+    /// SlingLeapModule's record: every field is required in the original's loader, under
+    /// the shared SlingModule field names (`force_multiplier`, `drawtime_multiplier`).
     pub(crate) fn decode_leap(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let Some(target) = LivingPredicate::decode(fields.get("target"))? else { return Ok(None) };
         Ok(Some(Self::Leap {
-            force: required_leveling(fields, "force")?,
-            drawtime_multiplier: required_number(fields, "drawtime")?,
+            force: required_leveling(fields, "force_multiplier")?,
+            drawtime_multiplier: required_number(fields, "drawtime_multiplier")?,
             leave_ground: required_boolean(fields, "leave_ground")?,
             height_reduction: required_number(fields, "height_reduction")?,
             bias_upwards: required_boolean(fields, "bias_upwards")?,
@@ -286,13 +286,13 @@ impl Sling {
         }))
     }
 
-    /// SlingTeleportModule's record: force and drawtime, both required (named as the
-    /// leap module names them).
+    /// SlingTeleportModule's record: force multiplier and drawtime multiplier, both
+    /// required, under the same shared SlingModule field names as the leap module.
     pub(crate) fn decode_teleport(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let Some(target) = LivingPredicate::decode(fields.get("target"))? else { return Ok(None) };
         Ok(Some(Self::Teleport {
-            force: required_leveling(fields, "force")?,
-            drawtime_multiplier: required_number(fields, "drawtime")?,
+            force: required_leveling(fields, "force_multiplier")?,
+            drawtime_multiplier: required_number(fields, "drawtime_multiplier")?,
             target,
         }))
     }
@@ -356,18 +356,38 @@ mod tests {
             "force_multiplier": {"flat": 1.0, "each_level": 2.0}
         }))).unwrap().unwrap();
         assert_eq!(bonking.drawtime_multiplier(), 1.5);
-        // flinging: the leap module's shorter field names, a negative force.
+        // flinging: the leap module's shipped data (the shared SlingModule field names),
+        // a negative force.
         let flinging = Sling::decode_leap(&fields(json!({
-            "bias_upwards": false, "drawtime": 1.5, "force": {"flat": -2.0, "each_level": -2.0},
+            "bias_upwards": false, "drawtime_multiplier": 1.5,
+            "force_multiplier": {"each_level": -2.0, "flat": -2.0},
             "height_reduction": 3.0, "leave_ground": false,
             "target": {"type": "mantle:and", "predicates": ["mantle:on_ground", "tconstruct:targeting_block"]}
         }))).unwrap().unwrap();
-        assert_eq!(flinging.drawtime_multiplier(), 1.5);
-        // warping: the teleport module.
-        let warping = Sling::decode_teleport(&fields(json!({
-            "drawtime": 1.5, "force": {"flat": 2.0, "each_level": 4.0}
+        assert_eq!(flinging, Sling::Leap {
+            force: (-2.0, -2.0), drawtime_multiplier: 1.5, leave_ground: false,
+            height_reduction: 3.0, bias_upwards: false,
+            target: LivingPredicate::And(vec![LivingPredicate::OnGround, LivingPredicate::TargetingBlock]),
+        });
+        // springing: the other shipped leap data, force carried by each_level alone.
+        let springing = Sling::decode_leap(&fields(json!({
+            "bias_upwards": true, "drawtime_multiplier": 1.0,
+            "force_multiplier": {"each_level": 1.05},
+            "height_reduction": 2.0, "leave_ground": true,
+            "target": {"type": "mantle:inverted", "inverted_type": "mantle:elytra_flying"}
         }))).unwrap().unwrap();
-        assert_eq!(warping.drawtime_multiplier(), 1.5);
+        assert_eq!(springing, Sling::Leap {
+            force: (0.0, 1.05), drawtime_multiplier: 1.0, leave_ground: true,
+            height_reduction: 2.0, bias_upwards: true,
+            target: LivingPredicate::Inverted(Box::new(LivingPredicate::ElytraFlying)),
+        });
+        // warping: the teleport module's shipped data.
+        let warping = Sling::decode_teleport(&fields(json!({
+            "drawtime_multiplier": 1.5, "force_multiplier": {"each_level": 4.0, "flat": 2.0}
+        }))).unwrap().unwrap();
+        assert_eq!(warping, Sling::Teleport {
+            force: (2.0, 4.0), drawtime_multiplier: 1.5, target: LivingPredicate::Any,
+        });
         // A missing required field is a data error, as the original's loader fails.
         assert!(Sling::decode_knockback(&fields(json!({"damage_multiplier": 1.5}))).is_err());
     }
