@@ -369,7 +369,10 @@ def copy_loot_modifiers():
 def copy_part_builder_recipes():
     """The part builder recipes, byte for byte: the material part recipes and the fixed-material
     item recipes (the plating dummies). The sand and red sand cast recipes belong to the smeltery
-    and come with it."""
+    and come with it. The tools/building folder's one item_part_builder recipe (elytra_copying:
+    dragon scales onto an elytra) joins them here, the folder part_builder_recipes.rs reads; the
+    folder's tool_building recipes have no reader, as tools are built from their definitions, so
+    they stay out."""
     if PART_RECIPE_TARGET.exists():
         shutil.rmtree(PART_RECIPE_TARGET)
     count = 0
@@ -378,6 +381,13 @@ def copy_part_builder_recipes():
             continue
         destination = PART_RECIPE_TARGET / path.relative_to(PART_RECIPE_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    building = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tools/building'
+    for path in sorted(building.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:item_part_builder':
+            continue
+        destination = PART_RECIPE_TARGET / path.name
         shutil.copyfile(path, destination)
         count += 1
     return count

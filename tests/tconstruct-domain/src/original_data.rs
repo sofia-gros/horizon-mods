@@ -619,10 +619,10 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     use crate::part_builder_recipes::{Context, Inventory, Recipes};
     let world = world();
     let part_files = recursive_files("tools/parts/builder", "tools/parts/builder");
-    assert_eq!(part_files.len(), 28);
+    assert_eq!(part_files.len(), 29);
     let recipes = Recipes::load(&part_files, &conditions());
     assert!(recipes.problems.is_empty(), "{:#?}", recipes.problems);
-    assert_eq!(recipes.len(), 28);
+    assert_eq!(recipes.len(), 29);
     let materials = crate::material_recipes::Recipes::load(&recursive_files("tools/materials", "tools/materials"), &conditions());
     let parts = crate::tool_parts::registry();
     let in_tag = |item: &Identifier, tag: &Identifier| match tag.path() {
@@ -637,7 +637,8 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     assert_eq!(wood.material.to_string(), "tconstruct:wood");
     let inv = |count: u32| Inventory { pattern_item: Some(&pattern), stack: Some((&planks, count)), material: Some(wood) };
 
-    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 28.
+    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 28
+    // patterns (the twenty-ninth recipe, elytra copying, shares the maille pattern and wants an elytra placed).
     let offered = recipes.patterns(&inv(8), &ctx);
     assert!(offered.iter().any(|p| p.path() == "pick_head") && offered.iter().any(|p| p.path() == "tool_handle"), "{offered:?}");
     assert_eq!(recipes.patterns(&Inventory { pattern_item: Some(&pattern), stack: None, material: None }, &ctx).len(), 28);
