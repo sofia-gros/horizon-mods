@@ -48,6 +48,12 @@ static DAMAGING_RECIPES: OnceLock<Arc<RwLock<crate::damaging::Recipes>>> = OnceL
 pub(crate) fn damaging_recipes() -> Option<&'static Arc<RwLock<crate::damaging::Recipes>>> { DAMAGING_RECIPES.get() }
 static DYEING_RECIPES: OnceLock<Arc<RwLock<crate::dyeing::Recipes>>> = OnceLock::new();
 pub(crate) fn dyeing_recipes() -> Option<&'static Arc<RwLock<crate::dyeing::Recipes>>> { DYEING_RECIPES.get() }
+static REPAIR_GATE: OnceLock<Arc<RwLock<crate::table_recipes::RepairGate>>> = OnceLock::new();
+pub(crate) fn repair_gate() -> Option<&'static Arc<RwLock<crate::table_recipes::RepairGate>>> { REPAIR_GATE.get() }
+static PART_SWAPPING: OnceLock<Arc<RwLock<crate::table_recipes::PartSwapping>>> = OnceLock::new();
+pub(crate) fn part_swapping() -> Option<&'static Arc<RwLock<crate::table_recipes::PartSwapping>>> { PART_SWAPPING.get() }
+static BUILDING_RECIPES: OnceLock<Arc<RwLock<crate::table_recipes::Building>>> = OnceLock::new();
+pub(crate) fn building_recipes() -> Option<&'static Arc<RwLock<crate::table_recipes::Building>>> { BUILDING_RECIPES.get() }
 static SWAPPING_RECIPES: OnceLock<Arc<RwLock<crate::swapping_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn swapping_recipes() -> Option<&'static Arc<RwLock<crate::swapping_recipes::Recipes>>> { SWAPPING_RECIPES.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
@@ -225,6 +231,24 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers dyeing recipe listener registration failed");
         DYEING_RECIPES.set(dyeing).expect("Tinkers dyeing recipes already initialized");
+        let repair_gate_config = config.clone();
+        let repair_gate = crate::table_recipes::register_repair_gate(move || {
+            let config = repair_gate_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers repair gate listener registration failed");
+        REPAIR_GATE.set(repair_gate).expect("Tinkers repair gate already initialized");
+        let part_swapping_config = config.clone();
+        let part_swapping = crate::table_recipes::register_part_swapping(move || {
+            let config = part_swapping_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers part swapping listener registration failed");
+        PART_SWAPPING.set(part_swapping).expect("Tinkers part swapping already initialized");
+        let building_config = config.clone();
+        let building = crate::table_recipes::register_building(move || {
+            let config = building_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers building recipe listener registration failed");
+        BUILDING_RECIPES.set(building).expect("Tinkers building recipes already initialized");
         let swapping_config = config.clone();
         let swapping = crate::swapping_recipes::register(move || {
             let config = swapping_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

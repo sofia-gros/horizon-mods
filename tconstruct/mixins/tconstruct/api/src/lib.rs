@@ -17,6 +17,7 @@ mod material_recipes;
 mod modifier_recipes;
 mod modifier_repair;
 mod modifier_removal;
+mod table_recipes;
 mod overslime;
 mod overgrowth;
 mod worktable_recipes;
