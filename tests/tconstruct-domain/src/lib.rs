@@ -356,6 +356,8 @@ mod swapping_recipes;
 mod material_render;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_repair.rs"]
 mod crafting_repair;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/custom_attributes.rs"]
+mod custom_attributes;
 #[cfg(test)]
 mod shaped_materials_tests;
 #[cfg(test)]
