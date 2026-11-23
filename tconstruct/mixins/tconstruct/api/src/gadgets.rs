@@ -13,7 +13,8 @@
 //! (after a hit, or on the player's tick) rather than inside the movement call itself, so it can
 //! land a tick after the crossing; and "living" is read from the notice's kind — the seams carry
 //! players, mobs and item entities, and of those only the items are not living. Not ported, each named:
-//! - the 0.4 speed factor: the host's block properties have no speed-factor key.
+//! - the 0.4 speed factor: ported through the inside-motion seam (punji_speed below), since the
+//!   host's block properties have no speed-factor key a declaration can carry.
 //! - waterlogging: the declaration carries the property and placement sets it from the water at the
 //!   clicked position, as PunjiBlock.getStateForPlacement does; the fluid tick the original schedules
 //!   on a neighbour change is the host's own business for a waterlogged block, not scheduled here.
@@ -35,8 +36,9 @@
 //! given to a player they are skipped by the game until those land, the same as the slime bottles' effects.
 use pluto_lib::{
     ActionResult, ActionTarget, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, EffectInstance,
-    EntityAction, EntityInsideContext, Identifier, ItemTooltipCallback, PathNodeType, PistonBehavior, Placement,
-    PlacementContext, ShapeUpdateContext, TooltipLine, UseItemOnBlockCallback, UseItemOnBlockContext, World,
+    EntityAction, EntityInsideContext, EntityInsideMotionContext, Identifier, ItemTooltipCallback, PathNodeType,
+    PistonBehavior, Placement, PlacementContext, ShapeUpdateContext, TooltipLine, UseItemOnBlockCallback,
+    UseItemOnBlockContext, World,
 };
 
 fn id(name: &str) -> Identifier {
@@ -96,6 +98,7 @@ pub(crate) fn register() {
             .state_for_placement(punji_placement)
             .update_shape(punji_update)
             .entity_inside(punji_inside)
+            .entity_inside_motion(punji_speed)
             .path_node_type(|_| Some(PathNodeType::Damaging))
             .piston_behavior(PistonBehavior::Destroy),
     );
@@ -236,6 +239,20 @@ pub(crate) fn punji_inside(context: &EntityInsideContext) {
     if let Some(amount) = punji_damage(facing_of(&context.state), context.pos, context.bounds, context.fall_distance) {
         context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: "minecraft:cactus".to_owned() });
     }
+}
+
+/// PunjiBlock's speed factor (0.4 in its registration properties): the game multiplies an
+/// entity's horizontal motion by the factor of the block it stands on at the end of its move.
+/// The host's block properties have no speed-factor key a declaration can carry (its movement
+/// table clones the template's row and overrides friction only), so the factor rides the
+/// inside-motion seam instead: while an entity is inside the sticks' cell — standing on them,
+/// in the case that matters — its horizontal velocity is scaled by 0.4 once per tick, the same
+/// cadence as the game's end-of-move application and for every entity kind, as there.
+pub(crate) fn punji_speed(context: &mut EntityInsideMotionContext) {
+    if context.velocity[0] == 0.0 && context.velocity[2] == 0.0 { return; }
+    context.velocity[0] *= 0.4;
+    context.velocity[2] *= 0.4;
+    context.sync_velocity = true;
 }
 
 // --- The hanging ichor cake (InvertedCakeBlock) ---
