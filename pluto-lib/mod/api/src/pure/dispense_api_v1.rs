@@ -106,7 +106,7 @@ mod tests {
         close(origin, [11.2, 64.5, -2.5]);
         // the motion is (1, 0.1, 0) normalised, scaled by the power: its length is the power
         let length = (motion[0] * motion[0] + motion[1] * motion[1] + motion[2] * motion[2]).sqrt();
-        assert!((length - 1.1).abs() < 1e-9, "the shot flies at its power: {length}");
+        assert!((length - f64::from(1.1f32)).abs() < 1e-9, "the shot flies at its power: {length}");
         assert!(motion[0] > 0.0 && motion[1] > 0.0 && motion[2] == 0.0, "east and a touch up: {motion:?}");
         assert!((motion[1] / motion[0] - 0.1).abs() < 1e-9, "the 0.1 rise is kept: {motion:?}");
     }
