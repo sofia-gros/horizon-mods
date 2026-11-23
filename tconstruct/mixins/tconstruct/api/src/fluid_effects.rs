@@ -2451,6 +2451,52 @@ mod tests {
     }
 
     #[test]
+    fn potion_effect_applies_the_potions_effects() {
+        // PotionFluidEffect: the potion the fluid's tag names, scaled; an instant effect applies
+        // at the full value, a lasting one for its scaled duration. The world's potion list
+        // stands in for the registry read the live world does.
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:potion", "amount": 250},
+            "entity_effects": [{"type": "tconstruct:potion", "scale": 1.0}],
+        })).expect("decode");
+        let mut world = TestWorld::default();
+        world.potions = vec![
+            PotionEffect { effect: id("minecraft:poison"), duration: 200, amplifier: 0, instant: false },
+            PotionEffect { effect: id("minecraft:instant_health"), duration: 1, amplifier: 0, instant: true },
+        ];
+        let mut target = TestTarget::living();
+        let consumed = effects.apply_to_entity(&stack("tconstruct:potion", 250), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
+        assert_eq!(consumed, 250, "one level spent on the potion");
+        assert_eq!(target.added.len(), 2);
+        assert_eq!(target.effects.get(&id("minecraft:poison")), Some(&ActiveEffect { amplifier: 0, duration: 200 }));
+        assert_eq!(target.effects.get(&id("minecraft:instant_health")), Some(&ActiveEffect { amplifier: 0, duration: 1 }));
+    }
+
+    #[test]
+    fn potion_cloud_spawns_a_cloud_with_the_potions_effects() {
+        // PotionCloudFluidEffect: the potion the fluid's tag names, as a lingering cloud; an
+        // instant effect scales its amplifier, a lasting one its duration.
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:potion", "amount": 50},
+            "block_effects": [{"type": "tconstruct:potion_cloud", "scale": 1.0}],
+        })).expect("decode");
+        let mut world = TestWorld::default();
+        world.potions = vec![
+            PotionEffect { effect: id("minecraft:poison"), duration: 200, amplifier: 0, instant: false },
+            PotionEffect { effect: id("minecraft:instant_damage"), duration: 1, amplifier: 1, instant: true },
+        ];
+        world.replaceable.push([0, 2, 0]);
+        let consumed = effects.apply_to_block(&stack("tconstruct:potion", 50), 1.0, &mut block_context(&mut world, [0, 1, 0]), &no_tag);
+        assert_eq!(consumed, 50, "one level spent on the cloud");
+        assert_eq!(world.clouds.len(), 1);
+        let cloud = &world.clouds[0].effects;
+        assert_eq!(cloud.len(), 2);
+        assert_eq!(cloud[0], NewEffect { effect: id("minecraft:poison"), duration: 200, amplifier: 0, curative_items: None });
+        // (1 + 1) * 1.0 * 1.0 * 2 - 1 = 3
+        assert_eq!(cloud[1], NewEffect { effect: id("minecraft:instant_damage"), duration: 1, amplifier: 3, curative_items: None });
+    }
+
+    #[test]
     fn tag_predicate_matches_a_subset() {
         let predicate = TagPredicate::decode(&json!({"Bottle": "REGULAR"})).expect("decode");
         let mut tag = NbtCompound::new();
