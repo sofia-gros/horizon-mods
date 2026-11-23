@@ -13,6 +13,7 @@ mod modifier_module_types;
 mod formula;
 mod material_recipes;
 mod modifier_recipes;
+mod modifier_repair;
 mod modifier_removal;
 mod overslime;
 mod overgrowth;

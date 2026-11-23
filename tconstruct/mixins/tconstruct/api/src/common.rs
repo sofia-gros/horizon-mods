@@ -34,6 +34,8 @@ static STATION_LAYOUTS: OnceLock<Arc<RwLock<crate::station_layouts::Layouts>>> =
 pub(crate) fn station_layouts() -> Option<&'static Arc<RwLock<crate::station_layouts::Layouts>>> { STATION_LAYOUTS.get() }
 static OVERSLIME_RECIPES: OnceLock<Arc<RwLock<crate::overslime::Recipes>>> = OnceLock::new();
 pub(crate) fn overslime_recipes() -> Option<&'static Arc<RwLock<crate::overslime::Recipes>>> { OVERSLIME_RECIPES.get() }
+static MODIFIER_REPAIR_RECIPES: OnceLock<Arc<RwLock<crate::modifier_repair::Recipes>>> = OnceLock::new();
+pub(crate) fn modifier_repair_recipes() -> Option<&'static Arc<RwLock<crate::modifier_repair::Recipes>>> { MODIFIER_REPAIR_RECIPES.get() }
 static SWAPPING_RECIPES: OnceLock<Arc<RwLock<crate::swapping_recipes::Recipes>>> = OnceLock::new();
 pub(crate) fn swapping_recipes() -> Option<&'static Arc<RwLock<crate::swapping_recipes::Recipes>>> { SWAPPING_RECIPES.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
@@ -169,6 +171,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers overslime recipe listener registration failed");
         OVERSLIME_RECIPES.set(overslime).expect("Tinkers overslime recipes already initialized");
+        let modifier_repair_config = config.clone();
+        let modifier_repair = crate::modifier_repair::register(move || {
+            let config = modifier_repair_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers modifier repair recipe listener registration failed");
+        MODIFIER_REPAIR_RECIPES.set(modifier_repair).expect("Tinkers modifier repair recipes already initialized");
         let swapping_config = config.clone();
         let swapping = crate::swapping_recipes::register(move || {
             let config = swapping_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

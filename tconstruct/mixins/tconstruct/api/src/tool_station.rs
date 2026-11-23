@@ -90,6 +90,7 @@ pub(crate) struct SwapData<'a> {
 pub(crate) struct ModifierRecipes<'a> {
     pub recipes: &'a crate::modifier_recipes::Recipes,
     pub overslime: Option<&'a crate::overslime::Recipes>,
+    pub modifier_repairs: Option<&'a crate::modifier_repair::Recipes>,
     /// Each input slot's item and count (None when empty), independent of how it resolved.
     pub raw: &'a [Option<(Identifier, u32)>],
     /// The slot and modifier of a modifier crystal when it is the only thing on the table.
@@ -126,6 +127,21 @@ pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Opti
 fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> Result<Outcome, String> {
     let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
     let env = ctx.environment(&tool.item, definition);
+    // A modifier repair recipe (tasty and its kin) is tried before adding: its ingredient
+    // feeds the tool's repair, it is never a modifier recipe's input.
+    if let Some(recipes) = modifiers.modifier_repairs {
+        if let Some(attempt) = recipes.attempt(tool, &env, modifiers.raw, modifiers.in_tag) {
+            return Ok(match attempt {
+                Err(message) => Outcome::Failure(message),
+                Ok((result, consumed)) => Outcome::Crafted(Crafted {
+                    result,
+                    consumed: consumed.into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect(),
+                    tool_shrink: 1,
+                    leftover: Vec::new(),
+                }),
+            });
+        }
+    }
     // A modifier crystal alone on the table applies its modifier through the ordinary single-step recipe (ModifierRecipe.matchesCrystal).
     if let Some((slot, modifier)) = &modifiers.crystal {
         if let Some(recipe) = modifiers.recipes.find_crystal(&tool.item, modifier, modifiers.in_tag) {

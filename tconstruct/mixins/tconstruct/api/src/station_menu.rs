@@ -131,9 +131,11 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, &Resolver) -> R) -> Op
     let in_tag = |item: &Identifier, tag: &Identifier| crate::tool_station::item_in_tag(item_tags.as_deref(), &tools, item, tag);
     let modifier_recipes = common::modifier_recipes().and_then(|recipes| recipes.read().ok());
     let overslime_recipes = common::overslime_recipes().and_then(|recipes| recipes.read().ok());
+    let modifier_repair_recipes = common::modifier_repair_recipes().and_then(|recipes| recipes.read().ok());
     let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded),
         modifier_recipes: modifier_recipes.as_deref().filter(|recipes| recipes.loaded),
-        overslime_recipes: overslime_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
+        overslime_recipes: overslime_recipes.as_deref().filter(|recipes| recipes.loaded),
+        modifier_repair_recipes: modifier_repair_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
     Some(read(&ctx, &resolver))
 }
 
