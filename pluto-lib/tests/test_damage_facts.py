@@ -63,7 +63,7 @@ class DamageFactsTests(unittest.TestCase):
         dragon = self.injection('pluto-damage-dragon')
         self.assertEqual(dragon['target'], 'horizon_client::game::dragon::Dragon::hurt_health')
         self.assertEqual(dragon['kind'], 'HEAD')
-        self.assertEqual(dragon['require'], 1)
+        self.assertNotIn('require', dragon)  # Dragon::hurt_health is not a site injection: the weave accepts require only on site injections (E_SELECTOR, build-sp weave plan 2026-11-23)
         self.assertEqual(dragon['helper'], 'pluto-damage-dragon.rs')
         self.assertIn('dragon.health', self.source('pluto-damage-dragon.rs'))
 
