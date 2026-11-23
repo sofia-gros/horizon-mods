@@ -248,7 +248,7 @@ fn nbt_string_list(list: Vec<String>) -> Nbt { Nbt::List(list.into_iter().map(Nb
 
 /// One worktable recipe family's load over the shared folder, shaped like the removals'.
 macro_rules! worktable_family {
-    ($family:ident, $recipe:ident, $kind:literal, $listener:literal, $label:literal) => {
+    ($family:ident, $recipe:ident, $kind:literal, $listener:ident, $label:literal) => {
         #[derive(Clone, Debug, Default)]
         pub(crate) struct $family { recipes: Vec<$recipe>, pub problems: Vec<String>, pub loaded: bool }
         impl $family {
