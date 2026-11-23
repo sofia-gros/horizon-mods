@@ -1129,7 +1129,7 @@ ItemEvents::RELEASE_USING.register(|release| {
 
 ### `ReleaseUsing`
 
-A player releasing an item they were using. `stack` is the stack that was being used, `player` who let go and `dimension` the dimension they are in. `position` is where the player stands, `eye` where their eyes are (where a thrown projectile leaves from) and `look` the direction they look, as a unit vector. `ticks_used` is how many ticks the use was held — the charge. `main_hand` and `off_hand` are the stacks in the player's hands as the use ends (the used stack is one of them). Set `used` (with `set_used`) to count the release as a use of the item, which starts its cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the player carries, written after the callbacks ran; a count of 0 empties the place, as an ammunition callback spends its source.
+A player releasing an item they were using. `stack` is the stack that was being used, `player` who let go and `dimension` the dimension they are in. `position` is where the player stands, `eye` where their eyes are (where a thrown projectile leaves from) and `look` the direction they look, as a unit vector. `creative` says whether the player is in creative mode. `ticks_used` is how many ticks the use was held — the charge. `main_hand` and `off_hand` are the stacks in the player's hands as the use ends (the used stack is one of them). Set `used` (with `set_used`) to count the release as a use of the item, which starts its cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the player carries, written after the callbacks ran; a count of 0 empties the place, as an ammunition callback spends its source.
 
 ```rust
 use pluto_lib::{CarriedEdit, CarriedSlot, ItemSlot, Identifier, ReleaseUsing, ServerPlayer, StackData, StackSlot};
@@ -1139,9 +1139,9 @@ let release = ReleaseUsing {
     stack: StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() },
     player: ServerPlayer { uuid: 7, name: "thrower".into() },
     dimension: "minecraft:overworld".into(),
-    position: [0.5, 64.0, 0.5], eye: [0.5, 65.62, 0.5], look: [0.0, 0.0, 1.0],
+    position: [0.5, 64.0, 0.5], eye: [0.5, 65.62, 0.5], look: [0.0, 0.0, 1.0], creative: false,
     ticks_used: 20,
-    main_hand: Some(StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() }),
+    main_hand: Some(ItemSlot::new(Identifier::parse("example:thrown_tool").unwrap(), 1)),
     off_hand: None,
     used: Cell::new(false),
     edits: RefCell::new(Vec::new()),
@@ -1168,7 +1168,7 @@ use std::cell::{Cell, RefCell};
 
 let release = ReleaseUsing {
     stack: StackData::default(), player: ServerPlayer { uuid: 1, name: "a".into() }, dimension: "minecraft:overworld".into(),
-    position: [0.0; 3], eye: [0.0; 3], look: [0.0, 0.0, 1.0],
+    position: [0.0; 3], eye: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false,
     ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
 };
 release.set_used();
@@ -1185,7 +1185,7 @@ use std::cell::{Cell, RefCell};
 
 let release = ReleaseUsing {
     stack: StackData::default(), player: ServerPlayer { uuid: 1, name: "a".into() }, dimension: "minecraft:the_nether".into(),
-    position: [0.0; 3], eye: [0.0; 3], look: [0.0, 0.0, 1.0],
+    position: [0.0; 3], eye: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false,
     ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
 };
 assert_eq!(release.world().dimension, "minecraft:the_nether");
