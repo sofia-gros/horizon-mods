@@ -1681,7 +1681,7 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::Protection { .. } | Module::DepthProtection { .. } | Module::Overshield { .. } | Module::ProtectionCap { .. } | Module::FlameBarrier { .. } => {
             out.insert("tconstruct:protection");
         }
-        Module::AdjustDamage { .. } | Module::RestoreLostHealth { .. } => {
+        Module::AdjustDamage { .. } | Module::RestoreLostHealth { .. } | Module::TeleportDodge { .. } => {
             out.insert("tconstruct:modify_damage");
         }
         Module::Attribute { .. } => {

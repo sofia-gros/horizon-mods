@@ -5,7 +5,7 @@
 //! which the last slot sync recorded in the tool's data (tool_slot): the damage event reports no components, so a piece enchanted since
 //! its last sync is counted without the new enchantments until it is next synced. Modifiers that ignore the enchantment's protection take its points off again.
 use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
-use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
+use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerEntityEvents, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
 
 static TAGS: RwLock<Option<Arc<DamageTags>>> = RwLock::new(None);
@@ -39,6 +39,12 @@ pub(crate) fn register() {
     // Damage to capacity runs after the protection (ModifierHooks.MODIFY_DAMAGE follows MODIFY_HURT): each piece's bars take what they can of
     // the damage left, and the fills reach the pieces on the wearer's next tick.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| fill_capacity(hit, source)); });
+    // Teleport dodge is a modify hurt module heard here: a landed dodge prevents the damage outright, so it runs
+    // before restore lost health, which works on the damage that is left. Its teleport lands on the wearer's next
+    // tick, when the entity and world reaches are open (teleport_dodge owns the queue).
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| dodge(hit, source)); });
+    ServerEntityEvents::ENTITY_TICK_POST.register(|info| crate::teleport_dodge::tick_entity(info));
+    ServerLivingEntityEvents::PLAYER_TICK.register(|tick| crate::teleport_dodge::tick_player(tick));
     // Restore lost health is the last of the modify damage modules (priority 10): it works on the damage that is left.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source, false)); });
     // The same module bound to the modify hurt hook runs as the damage arrives, before armor: a share of the damage as it
@@ -91,6 +97,33 @@ fn restore_health(hit: &DamageModification, source: &DamageSource, hurt: bool) {
         }
     }
     hit.actions.borrow_mut().extend(actions);
+}
+
+/// TeleportDodgeModule: the first piece whose dodge lands teleports its wearer away from the hit and prevents the
+/// damage. The enderference grant and the piece's wear are actions of this event, reaching the wearer on their next
+/// tick; the teleport itself is queued for that tick (teleport_dodge), as this event runs with neither the entity
+/// nor the world reach open. The wearer's enderference is read from the state of their last tick, as the rest of
+/// this hook reads them.
+fn dodge(hit: &DamageModification, source: &DamageSource) {
+    let amount = hit.amount.get();
+    if !(amount > 0.0) { return; }
+    let enderference = hit.target_state.as_ref().map_or(0, |state| state.effect_level(crate::teleport_dodge::ENDERFERENCE)) > 0;
+    for (slot, piece) in &hit.armor {
+        let Some(stack_slot) = armor_stack_slot(slot) else { continue };
+        let Ok(dodges) = with_held_tool(piece, |env, stack| tool_stack::dodges(&stack.custom_data, env, source, enderference, amount, &mut crate::tool_damage_hook::random)) else { continue };
+        for (modifier, dodge) in dodges {
+            if dodge.cooldown > 0 {
+                hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: crate::teleport_dodge::ENDERFERENCE.to_owned(), amplifier: 0, duration: dodge.cooldown });
+            }
+            if dodge.wear > 0 {
+                let edits = with_held_tool(piece, |env, stack| crate::wearer_modules::wear_edits(&stack.custom_data, env, &modifier, dodge.wear, &mut crate::tool_damage_hook::random)).unwrap_or_default();
+                if !edits.is_empty() { hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits }); }
+            }
+            if hit.damage.entity > 0 { crate::teleport_dodge::queue(hit.damage.entity); }
+            hit.amount.set(0.0);
+            return;
+        }
+    }
 }
 
 /// Runs `run` on the damage a player's armor is asked about; nothing for an entity that wears no armor with custom data or a damage type that

@@ -193,6 +193,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tables/station.rs',
                 'mixins/tconstruct_native/api/src/table_recipes.rs',
                 'mixins/tconstruct_native/api/src/tank.rs',
+                'mixins/tconstruct_native/api/src/teleport_dodge.rs',
                 'mixins/tconstruct_native/api/src/thorns.rs',
                 'mixins/tconstruct_native/api/src/throwables.rs',
                 'mixins/tconstruct_native/api/src/throwing_hook.rs',

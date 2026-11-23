@@ -8,6 +8,7 @@ mod damaging;
 mod dyeing;
 mod protection;
 mod protection_hook;
+mod teleport_dodge;
 mod tool_damage_hook;
 mod material_traits;
 mod modifier_entries;
