@@ -58,6 +58,7 @@ mod throwing_hook;
 mod sling_modules;
 mod sling_hook;
 mod fireball_hook;
+mod potion_contents;
 mod blocking_hook;
 mod walk_hook;
 mod weapon_effect;

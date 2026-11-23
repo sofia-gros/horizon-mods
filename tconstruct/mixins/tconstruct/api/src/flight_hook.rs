@@ -125,6 +125,7 @@ fn merge(ammo: tool_stack::FlightProfile, weapon: tool_stack::FlightProfile) -> 
         loyalty: weapon.loyalty.max(ammo.loyalty),
         magnet: weapon.magnet.max(ammo.magnet),
         efln: ammo.efln || weapon.efln,
+        tipped: weapon.tipped.or(ammo.tipped),
     }
 }
 
@@ -299,6 +300,25 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
             thrown.dealt = true;
             put_flight(&hit.dimension, hit.projectile, state);
             return false;
+        }
+    }
+    // TippedModule.onProjectileHitEntity: the potion the fired stack was tipped with,
+    // applied to the target at the divisor the entry's level sets. The original zeroes
+    // the target's invulnerable time around the application; the impact actions land
+    // after the callbacks, in order, which is the closest the telling allows.
+    if hit.entity.is_some() {
+        if let Some((potion, level)) = &profile.tipped {
+            if let Ok(potion_id) = pluto_lib::Identifier::parse(potion) {
+                for effect in crate::potion_contents::effects(&potion_id) {
+                    // An instant effect: applyInstantenousEffect scales its amount by
+                    // 1 / (divisor * 0.75), which an effect action cannot carry, so it
+                    // goes on at its own amplifier for a tick (the game applies an
+                    // instant effect as it is added) and the amount's scaling is the
+                    // remainder. A lasting effect scales its duration exactly.
+                    let duration = if effect.instant { 1 } else { crate::potion_contents::scaled_duration(effect.duration, *level) };
+                    hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: effect.effect.to_string(), amplifier: effect.amplifier, duration });
+                }
+            }
         }
     }
     // ProjectileExplosionModule (priority 25, before the rest): the projectile ends in a blast.

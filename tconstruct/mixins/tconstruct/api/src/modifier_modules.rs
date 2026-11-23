@@ -268,6 +268,9 @@ pub(crate) enum Module {
     /// FireballModule: using the tool shoots a fireball carrying a matched ammo
     /// (projectile_modules, fireball_hook).
     Fireball { module: crate::projectile_modules::Fireball, condition: Condition },
+    /// TippedModule: a projectile fired from the tool carries the potion stored on the
+    /// tool to the entity it hits (potion_contents, flight_hook).
+    Tipped,
     /// ExtinguishCampfireModule: a right click that puts out lit campfires.
     CampfireExtinguish { condition: Condition },
     /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
@@ -1091,6 +1094,9 @@ impl Module {
                 let Some(module) = crate::projectile_modules::Fireball::decode(fields)? else { return Ok(None); };
                 Self::Fireball { module, condition: Condition::decode(fields)? }
             }
+            // TippedModule: no fields and no condition; the potion rides the tool's
+            // persistent data under the modifier's own ID.
+            "tconstruct:tipped" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:projectile_hit" | "tconstruct:display_name" | "tconstruct:tooltip" | "tconstruct:remove")) => Self::Tipped,
             // InfinityModule: the bow ammo half binds on the ammo event; the removal half is run by the remove paths.
             "tconstruct:infinity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:remove")) => {
                 let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
@@ -1185,7 +1191,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1231,6 +1237,8 @@ impl Module {
             Self::Tank => { persistent.remove(crate::tool_tank::FLUID_KEY); }
             // OverburnModule.onRemoved: forget the burn in progress.
             Self::Overburn => { persistent.remove(&modifier.to_string()); }
+            // TippedModule.onRemoved: the stored potion leaves with the modifier.
+            Self::Tipped => { persistent.remove(&modifier.to_string()); }
             // SmashingModule.onRemoved: clear the stored fluid and its validation level.
             Self::Smashing => { crate::tool_tank::smashing_clear(persistent); }
             // Only a module that matches a stored value owns it.
@@ -1655,6 +1663,8 @@ impl Module {
         let Self::Fireball { module, condition } = self else { return None; };
         condition.matches(entry, facts).then_some(module)
     }
+    /// Whether this is the tipped module (TippedModule).
+    pub fn is_tipped(&self) -> bool { matches!(self, Self::Tipped) }
     /// The infinity module, if this is one.
     pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
         match self { Self::Infinity { module } => Some(module), _ => None }

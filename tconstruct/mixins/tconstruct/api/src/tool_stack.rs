@@ -919,6 +919,10 @@ pub(crate) struct FlightProfile {
     pub magnet: i32,
     /// Whether the fired stack's persistent data carries the fins EFLN mark.
     pub efln: bool,
+    /// TippedModule: the potion the fired stack was tipped with (its persistent string
+    /// under the modifier's ID, copied at the shot as onProjectileShoot copies it) and
+    /// the entry's int effective level, which sets the hit's divisor.
+    pub tipped: Option<(String, i32)>,
 }
 
 impl FlightProfile {
@@ -926,6 +930,7 @@ impl FlightProfile {
     pub(crate) fn is_empty(&self) -> bool {
         self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
             && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
+            && self.tipped.is_none()
     }
 }
 
@@ -950,12 +955,23 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
                 if let Some(module) = module.projectile_attract() { profile.attracts.push((module.radius(entry), module.strength(entry))); }
                 if let Some(module) = module.projectile_glow() { profile.glows.push((module.blocks(), module.entities(), module.tool_damage())); }
                 if let Some(module) = module.restrict_angle() { profile.angle_directions = Some(module.directions(entry)); }
+                // TippedModule: the potion is read from the persistent data below; the
+                // modifier's ID stands in as the key until then.
+                if module.is_tipped() { profile.tipped = Some((entry.id.to_string(), entry.int_effective_level())); }
             }
         }
         profile
     });
     if let Some(Nbt::Compound(persistent)) = nbt.get(TAG_PERSISTENT) {
         profile.efln = matches!(persistent.get("tconstruct:efln"), Some(Nbt::Byte(1)) | Some(Nbt::Int(1)));
+        // The tipped potion: the persistent string under the modifier's own ID, as the
+        // tipping casting recipes leave it; no string, no tip.
+        if let Some((key, level)) = profile.tipped.take() {
+            profile.tipped = match persistent.get(&key) {
+                Some(Nbt::String(potion)) if !potion.is_empty() => Some((potion.clone(), level)),
+                _ => None,
+            };
+        }
     }
     profile
 }
