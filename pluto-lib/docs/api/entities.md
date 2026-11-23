@@ -750,6 +750,16 @@ use pluto_lib::armor_stack_slot;
 assert!(armor_stack_slot("chest").is_some() && armor_stack_slot("body").is_none());
 ```
 
+### `equipment_of`
+
+The equipment of the player `uuid`, as (slot, stack) pairs: the armor the game's ticks reported for them, in `feet`, `legs`, `chest`, `head` order, then the off hand under the name `offhand`. Only pieces carrying custom data are ever recorded, so a piece without any is absent. Empty when the player is not known.
+
+```rust
+use pluto_lib::entity_events_v1::equipment_of;
+
+assert!(equipment_of(0).is_empty());
+```
+
 ### `StackDataEdit`
 
 One change to a stack's custom data for `EntityAction::EditStackData`: `value` is put at `path` (compound keys from the root of the custom data, the compounds on the way made when missing, a value in the way replaced by a compound) or, when `value` is None, the entry at `path` is removed. Edits are applied in order and an empty path is skipped. Edits state the value they want, not a change: a bar that two hits fill in one tick is set by the second from what the first had not yet written.

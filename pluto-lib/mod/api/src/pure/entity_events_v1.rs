@@ -1096,7 +1096,7 @@ pub(crate) fn remember_offhand(uuid: u128, entity: i32, stack: Option<StackData>
 /// The equipment of the player `uuid`, as (slot, stack): the armor the armor memory kept for them
 /// (in `feet`, `legs`, `chest`, `head` order), then the off hand it kept, under the name `offhand`.
 /// Only pieces carrying custom data are ever recorded. Empty when the player is not known.
-pub(crate) fn equipment_of(uuid: u128) -> Vec<(String, StackData)> {
+pub fn equipment_of(uuid: u128) -> Vec<(String, StackData)> {
     let mut out = Vec::new();
     if let Ok(worn) = ARMOR.lock() {
         for (owner, pieces) in worn.values() {
