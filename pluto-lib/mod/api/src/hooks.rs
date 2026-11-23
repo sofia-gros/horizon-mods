@@ -207,6 +207,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         },
         victim: |facts| entity_events_v1::note_victim_facts(facts.entity, entity_events_v1::VictimFacts { health: facts.health, attack_damage: facts.attack_damage }),
     }).expect("PlutoLib damage facts sink installs once");
+    horizon_client::entry::pluto_sky_access::set_sink(horizon_client::entry::pluto_sky_access::Sink {
+        frame: sky_frame,
+    }).expect("PlutoLib sky sink installs once");
     horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
         factor: entity_events_v1::modify_visibility,
     }).expect("PlutoLib player visibility sink installs once");
@@ -790,6 +793,19 @@ impl crate::pure::living_entity_drops::LivingEntityDrops for ApiLivingDrops<'_> 
 /// A stack as PlutoLib's `StackData`: its damage, max damage and the `minecraft:custom_data` the stack carries.
 fn stack_data_of(_host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
     read_stack(stack)
+}
+
+fn sky_frame(star_angle: f32, star_brightness: f32, out: &mut Vec<horizon_client::entry::pluto_sky_access::SkyQuad>) -> bool {
+    use crate::pure::sky_api_v1::{SkyRegistry, VanillaStars};
+    // The celestial reach runs only on the overworld sky path, so it serves the overworld's layer.
+    let Some(layer) = SkyRegistry::layer(0) else { return false };
+    static EPOCH: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    let seconds = EPOCH.get_or_init(std::time::Instant::now).elapsed().as_secs_f32();
+    let frame = crate::pure::sky_api_v1::SkyFrame { star_angle_deg: star_angle, star_brightness, seconds };
+    for quad in crate::pure::sky_api_v1::frame_quads(&layer, &frame) {
+        out.push(horizon_client::entry::pluto_sky_access::SkyQuad { corners: quad.corners, rgba: quad.rgba });
+    }
+    layer.vanilla_stars == VanillaStars::Hide
 }
 
 fn read_stack(stack: &ItemStack) -> player_api::StackData {
