@@ -4,8 +4,8 @@
 //! and repair kits are not read here). Data-driven extra ingredients, modifier recipes and
 //! the recipe cache are not modeled, so recipes needing them never match.
 use crate::{
-    materials::Definitions as Materials, modifiers::Registry, tool_build, tool_definitions::Data,
-    tool_materials::MaterialVariant, tool_repair, tool_slot, tool_stack::{damage, is_broken, materials as tool_materials, Environment},
+    materials::Definitions as Materials, modifiers::Registry, tool_build, tool_damage, tool_definitions::Data,
+    tool_materials::MaterialVariant, tool_repair, tool_slot, tool_stack::{damage, durability, is_broken, materials as tool_materials, Environment},
     tool_swap,
 };
 use pluto_lib::{Identifier, ItemSlot};
@@ -17,14 +17,21 @@ pub(crate) enum Input {
     Part { item: Identifier, material: MaterialVariant },
     /// A repair kit: the material and the kit's repair amount in ingots.
     Kit { material: Identifier, kit_amount: f32, count: i32 },
-    /// An item a material recipe maps to a material (`value` of `needed` per ingot).
-    Material { item: Identifier, material: Identifier, value: i32, needed: i32, count: i32 },
+    /// An item a material recipe maps to a material; the recipe itself rides along because
+    /// the swapping recipes price and refund from it, not just from its value and needed.
+    Material { item: Identifier, material: Identifier, recipe: crate::material_recipes::Recipe, count: i32 },
+    /// A tinkerable tool stack in an input slot (the sacrifice of tool material swapping).
+    Tool { stack: Box<ItemSlot> },
     /// Anything else.
     Other { item: Identifier },
 }
 impl Input {
     fn item(&self) -> Option<&Identifier> {
-        match self { Self::Part { item, .. } | Self::Material { item, .. } | Self::Other { item } => Some(item), Self::Kit { .. } => None }
+        match self {
+            Self::Part { item, .. } | Self::Material { item, .. } | Self::Other { item } => Some(item),
+            Self::Tool { stack } => Some(&stack.item),
+            Self::Kit { .. } => None,
+        }
     }
 }
 
@@ -65,7 +72,18 @@ impl<'a> Context<'a> {
 /// Dispatches one station state. `tool` is the tinkerable slot, `inputs[i]` the i-th input slot
 /// (None when empty). Building needs an empty tool slot; repair and swapping need a tool.
 pub(crate) fn lookup(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Option<Input>]) -> Result<Outcome, String> {
-    lookup_with(ctx, tool, inputs, None)
+    lookup_with(ctx, tool, inputs, None, None)
+}
+
+/// What the material swapping recipes (and the part swap's repair) read beyond the resolved
+/// inputs: the casting cost of a part item and the loaded swapping recipes.
+pub(crate) struct SwapData<'a> {
+    /// MaterialCastingLookup.getItemCost: a part item's casting cost (0 when unregistered).
+    pub part_cost: &'a dyn Fn(&Identifier) -> i32,
+    pub recipes: Option<&'a crate::swapping_recipes::Recipes>,
+    /// Each input slot's item and count (None when empty), for extra requirements.
+    pub raw: &'a [Option<(Identifier, u32)>],
+    pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
 }
 
 /// The tinker-station modifier recipes and what they need to match raw stacks.
@@ -80,8 +98,8 @@ pub(crate) struct ModifierRecipes<'a> {
 }
 
 /// `lookup` plus the modifier recipes: with a tool, repair is tried first, then adding a modifier,
-/// then part swapping; each answers NoMatch when it does not apply.
-pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Option<Input>], modifiers: Option<&ModifierRecipes>) -> Result<Outcome, String> {
+/// then part swapping, then the material swapping recipes; each answers NoMatch when it does not apply.
+pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Option<Input>], modifiers: Option<&ModifierRecipes>, swap_data: Option<&SwapData>) -> Result<Outcome, String> {
     match tool {
         None => build(ctx, inputs),
         Some(tool) => {
@@ -91,7 +109,16 @@ pub(crate) fn lookup_with(ctx: &Context, tool: Option<&ItemSlot>, inputs: &[Opti
                 let added = add_modifier(ctx, tool, modifiers)?;
                 if !matches!(added, Outcome::NoMatch) { return Ok(added); }
             }
-            swap(ctx, tool, inputs)
+            let part_cost: &dyn Fn(&Identifier) -> i32 = match swap_data {
+                Some(data) => data.part_cost,
+                None => &|_| 0,
+            };
+            let swapped = swap(ctx, tool, inputs, part_cost)?;
+            if !matches!(swapped, Outcome::NoMatch) { return Ok(swapped); }
+            match swap_data {
+                Some(data) => swap_recipes(ctx, tool, inputs, data),
+                None => Ok(Outcome::NoMatch),
+            }
         }
     }
 }
@@ -180,7 +207,7 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
     for (_, input) in &present {
         slots.push(match input {
             Input::Kit { material, kit_amount, count } => tool_repair::Slot { material: Some(material.clone()), source: tool_repair::Source::Kit { kit_amount: *kit_amount }, count: *count },
-            Input::Material { material, value, needed, count, .. } => tool_repair::Slot { material: Some(material.clone()), source: tool_repair::Source::Recipe { value: *value, needed: *needed }, count: *count },
+            Input::Material { material, recipe, count, .. } => tool_repair::Slot { material: Some(material.clone()), source: tool_repair::Source::Recipe { value: recipe.value, needed: recipe.needed }, count: *count },
             // An unresolvable input makes the whole recipe fail to match, as an UNKNOWN material does.
             _ => tool_repair::Slot { material: None, source: tool_repair::Source::Kit { kit_amount: 0.0 }, count: 1 },
         });
@@ -205,7 +232,7 @@ fn repair(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Ou
     Ok(Outcome::Crafted(Crafted { result, consumed, tool_shrink: 1, leftover: Vec::new() }))
 }
 
-fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outcome, String> {
+fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>], part_cost: &dyn Fn(&Identifier) -> i32) -> Result<Outcome, String> {
     let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
     let parts = definition.tool_parts();
     if parts.is_empty() { return Ok(Outcome::NoMatch); }
@@ -219,11 +246,11 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
     // The slot only matters when a tool uses a part twice: otherwise the first copy of that part.
     let index = if slot < parts.len() && &parts[slot] == item { slot } else { parts.iter().position(|part| part == item).unwrap_or(0) };
     let env = ctx.environment(&tool.item, definition);
-    // MaterialCastingLookup.getItemCost needs casting recipes, which are not loaded: no part cost,
-    // so a swap repairs only when the caller forces it (never here).
+    // TinkerStationPartSwapping passes MaterialCastingLookup.getItemCost(part): the part's
+    // casting cost, which swap_material turns into repair against the new material.
     let item_max = (ctx.item_max)(&tool.item);
     let max_stack = item_max.min(16);
-    Ok(match tool_swap::swap_material(&tool.custom_data, i32::try_from(tool.count).unwrap_or(1), &env, material, index, 0, false, max_stack, item_max)? {
+    Ok(match tool_swap::swap_material(&tool.custom_data, i32::try_from(tool.count).unwrap_or(1), &env, material, index, part_cost(item), false, max_stack, item_max)? {
         tool_swap::Outcome::Pass => Outcome::NoMatch,
         tool_swap::Outcome::Failure(key) => Outcome::Failure(key),
         tool_swap::Outcome::Success { tool: data, size, shrink } => {
@@ -236,6 +263,166 @@ fn swap(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>]) -> Result<Outc
             Outcome::Crafted(Crafted { result, consumed, tool_shrink: shrink, leftover: Vec::new() })
         }
     })
+}
+
+const TOO_MANY_PARTS: &str = "recipe.tconstruct.part_swapping.too_many_parts";
+const INVALID_MATERIAL: &str = "recipe.tconstruct.part_swapping.invalid_material";
+const NO_MODIFIERS: &str = "recipe.tconstruct.part_swapping.no_modifiers";
+
+/// MaterialRegistry.canRepair: the stat type's default stats implement IRepairableMaterialStats —
+/// HeadMaterialStats, LimbMaterialStats, the five PlatingMaterialStats types, SkullStats,
+/// SlimeStats, and RepairStats' ribcage, shell and laces.
+fn can_repair_stat_type(stat_type: &Identifier) -> bool {
+    matches!(stat_type.to_string().as_str(),
+        "tconstruct:head" | "tconstruct:limb" | "tconstruct:plating_helmet" | "tconstruct:plating_chestplate"
+        | "tconstruct:plating_leggings" | "tconstruct:plating_boots" | "tconstruct:plating_shield"
+        | "tconstruct:skull" | "tconstruct:slime" | "tconstruct:ribcage" | "tconstruct:shell" | "tconstruct:laces")
+}
+
+/// ModifierRecipe.checkMatch over a swapping recipe's extra requirements, with the part slot
+/// already used: each requirement takes a distinct remaining slot (item match, count covering
+/// the amount), and no other non-empty input may be left over. Answers the takes per slot.
+fn match_extra(
+    extra: &[crate::swapping_recipes::SizedIngredient], inputs: &[Option<Input>], raw: &[Option<(Identifier, u32)>],
+    in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, part_slot: usize,
+) -> Option<Vec<(usize, i32)>> {
+    let mut used = vec![false; inputs.len()];
+    used[part_slot] = true;
+    let mut takes = Vec::new();
+    for requirement in extra {
+        let slot = (0..inputs.len()).find(|&i| {
+            !used[i] && inputs[i].as_ref().and_then(|input| input.item()).is_some_and(|item| requirement.ingredient.matches(item, in_tag))
+                && raw.get(i).and_then(|slot| slot.as_ref()).is_some_and(|(_, count)| *count >= u32::try_from(requirement.amount).unwrap_or(u32::MAX))
+        })?;
+        used[slot] = true;
+        takes.push((slot, requirement.amount));
+    }
+    if inputs.iter().enumerate().any(|(i, input)| !used[i] && input.is_some()) { return None; }
+    Some(takes)
+}
+
+/// Runs the loaded material swapping recipes: a recipe whose matches() half fails answers
+/// NoMatch; once matched, the getValidatedResult half answers the failure or the crafted swap.
+fn swap_recipes(ctx: &Context, tool: &ItemSlot, inputs: &[Option<Input>], data: &SwapData) -> Result<Outcome, String> {
+    use crate::swapping_recipes::Recipe;
+    let Some(recipes) = data.recipes else { return Ok(Outcome::NoMatch); };
+    let Some(definition) = definition_for(ctx, tool) else { return Ok(Outcome::NoMatch); };
+    let stat_types = definition.material_stat_types().unwrap_or(&[]);
+    let env = ctx.environment(&tool.item, definition);
+    let item_max = (ctx.item_max)(&tool.item);
+    let tool_count = i32::try_from(tool.count).unwrap_or(1);
+    // The swap tail shared by all three recipe kinds.
+    let finish = |swapped: tool_swap::Outcome, consumed: Vec<i32>, leftover: Vec<(Identifier, u32)>| -> Result<Outcome, String> {
+        Ok(match swapped {
+            tool_swap::Outcome::Pass => Outcome::NoMatch,
+            tool_swap::Outcome::Failure(key) => Outcome::Failure(key),
+            tool_swap::Outcome::Success { tool: data, size, shrink } => {
+                let mut result = tool.clone();
+                result.custom_data = data;
+                result.count = u32::try_from(size).unwrap_or(1);
+                tool_slot::sync_visuals(&mut result, &env)?;
+                Outcome::Crafted(Crafted { result, consumed, tool_shrink: shrink, leftover })
+            }
+        })
+    };
+    let raw_count = |slot: usize| data.raw.get(slot).and_then(|entry| entry.as_ref()).map_or(0, |(_, count)| *count);
+    // The predicate snapshot for material value swapping: the station's own definitions,
+    // with the global recipe/casting/item snapshots where they have loaded.
+    let loaded = crate::shaped_materials::Data {
+        definitions: ctx.materials.clone(),
+        material_recipes: crate::common::material_recipes().and_then(|recipes| recipes.read().ok().map(|recipes| recipes.clone())).unwrap_or_default(),
+        casting: crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.recipes.material_casting.clone())).unwrap_or_default(),
+        items: crate::common::item_snapshot(),
+    };
+    for recipe in recipes.recipes() {
+        if !recipe.tools().matches(&tool.item, data.in_tag) { continue; }
+        let outcome = match recipe {
+            Recipe::Fixed { ingredient, material, indices, repair_value, .. } => {
+                if indices[0] < 0 || indices[0] as usize >= stat_types.len() { continue; }
+                let Some(slot) = inputs.iter().position(|input| {
+                    input.as_ref().and_then(|input| input.item()).is_some_and(|item| ingredient.ingredient.matches(item, data.in_tag))
+                }) else { continue; };
+                if raw_count(slot) < u32::try_from(ingredient.amount).unwrap_or(u32::MAX) { continue; }
+                let Some(extra_takes) = match_extra(recipe.extra(), inputs, data.raw, data.in_tag, slot) else { continue; };
+                if stat_types.len() > inputs.len() { return Ok(Outcome::Failure(TOO_MANY_PARTS.to_owned())); }
+                let index = if indices[1..].contains(&(slot as i32)) { slot } else { indices[0] as usize };
+                if index < stat_types.len() {
+                    let valid = material.material_id().is_some_and(|id| ctx.materials.get_stats(&id, &stat_types[index].0).is_some());
+                    if !valid { return Ok(Outcome::Failure(INVALID_MATERIAL.to_owned())); }
+                }
+                let mut consumed = vec![0; inputs.len()];
+                consumed[slot] = ingredient.amount;
+                for (extra_slot, amount) in extra_takes { consumed[extra_slot] = amount; }
+                let swapped = tool_swap::swap_material(&tool.custom_data, tool_count, &env, material, index, *repair_value, false, recipe.max_stack_size(), item_max)?;
+                finish(swapped, consumed, Vec::new())?
+            }
+            Recipe::Value { predicate, cost, indices, .. } => {
+                if indices[0] < 0 || indices[0] as usize >= stat_types.len() { continue; }
+                // MaterialValueSwappingRecipe.isMaterial: a material recipe whose variant
+                // satisfies the predicate, with enough items to pay the cost.
+                let Some((slot, material_recipe)) = inputs.iter().enumerate().find_map(|(i, input)| match input {
+                    Some(Input::Material { recipe, count, .. })
+                        if *count >= recipe.items_used(*cost) && crate::shaped_materials::predicate_matches(predicate, &recipe.material, &loaded) => Some((i, recipe)),
+                    _ => None,
+                }) else { continue; };
+                let material_recipe = material_recipe.clone();
+                let Some(extra_takes) = match_extra(recipe.extra(), inputs, data.raw, data.in_tag, slot) else { continue; };
+                if stat_types.len() > inputs.len() { return Ok(Outcome::Failure(TOO_MANY_PARTS.to_owned())); }
+                let variant = material_recipe.material.clone();
+                // MaterialIndexSwappingRecipe: an UNKNOWN variant passes the recipe by.
+                if variant == MaterialVariant::unknown() { continue; }
+                let index = if slot < stat_types.len() && indices[1..].contains(&(slot as i32)) { slot } else { indices[0] as usize };
+                if index < stat_types.len() {
+                    let valid = variant.material_id().is_some_and(|id| ctx.materials.get_stats(&id, &stat_types[index].0).is_some());
+                    if !valid { return Ok(Outcome::Failure(INVALID_MATERIAL.to_owned())); }
+                }
+                let mut consumed = vec![0; inputs.len()];
+                consumed[slot] = material_recipe.items_used(*cost);
+                for (extra_slot, amount) in extra_takes { consumed[extra_slot] = amount; }
+                let leftover = match material_recipe.leftover_for(*cost) {
+                    Some((crate::material_recipes::LeftoverSource::Item(item), count)) => vec![(item.clone(), count)],
+                    Some((crate::material_recipes::LeftoverSource::Tag(tag), count)) => loaded.items.as_ref()
+                        .and_then(|items| items.get_tag(tag)).and_then(|members| members.iter().next().cloned())
+                        .map(|item| vec![(item, count)]).unwrap_or_default(),
+                    None => Vec::new(),
+                };
+                let swapped = tool_swap::swap_material(&tool.custom_data, tool_count, &env, &variant, index, *cost, false, recipe.max_stack_size(), item_max)?;
+                finish(swapped, consumed, leftover)?
+            }
+            Recipe::Tool { .. } => {
+                if stat_types.is_empty() { continue; }
+                let Some((slot, sacrifice)) = inputs.iter().enumerate().find_map(|(i, input)| match input {
+                    Some(Input::Tool { stack }) if stack.item == tool.item => Some((i, stack)),
+                    _ => None,
+                }) else { continue; };
+                let sacrifice = (**sacrifice).clone();
+                let Some(extra_takes) = match_extra(recipe.extra(), inputs, data.raw, data.in_tag, slot) else { continue; };
+                if stat_types.len() > inputs.len() { return Ok(Outcome::Failure(TOO_MANY_PARTS.to_owned())); }
+                if !crate::tool_stack::upgrades(&sacrifice.custom_data).entries().is_empty() {
+                    return Ok(Outcome::Failure(NO_MODIFIERS.to_owned()));
+                }
+                let index = if slot >= stat_types.len() { 0 } else { slot };
+                let may_repair = can_repair_stat_type(&stat_types[index].0);
+                let material = tool_materials(&sacrifice.custom_data, env.has_materials).get(index as i32);
+                let swapped = tool_swap::swap_material(&tool.custom_data, tool_count, &env, &material, index, 0, may_repair, recipe.max_stack_size(), item_max)?;
+                // A repairable swap also repairs by the sacrifice's remaining durability, plus 5%.
+                let swapped = match swapped {
+                    tool_swap::Outcome::Success { tool: mut data, size, shrink } if may_repair && damage(&data) > 0 => {
+                        let extra = durability(&sacrifice.custom_data) - damage(&sacrifice.custom_data) + durability(&data) / 20;
+                        tool_damage::repair(&mut data, extra);
+                        tool_swap::Outcome::Success { tool: data, size, shrink }
+                    }
+                    other => other,
+                };
+                let mut consumed = vec![0; inputs.len()];
+                consumed[slot] = 1;
+                for (extra_slot, amount) in extra_takes { consumed[extra_slot] = amount; }
+                finish(swapped, consumed, Vec::new())?
+            }
+        };
+        if !matches!(outcome, Outcome::NoMatch) { return Ok(outcome); }
+    }
+    Ok(Outcome::NoMatch)
 }
 
 #[cfg(test)]
@@ -317,5 +504,130 @@ mod tests {
         // A tool the dispatcher has no definition for is left to other recipes.
         let alien = ItemSlot::new(id("minecraft:stick"), 1);
         assert!(matches!(lookup(&ctx, Some(&alien), &[kit("test:wood")]).unwrap(), Outcome::NoMatch));
+    }
+    fn build(ctx: &Context, head: &str, handle: &str) -> ItemSlot {
+        let inputs = [part("tconstruct:pick_head", head), part("tconstruct:tool_handle", handle), None];
+        let Outcome::Crafted(built) = lookup(ctx, None, &inputs).unwrap() else { panic!("expected a built tool") };
+        built.result
+    }
+    fn hurt(ctx: &Context, world: &World, tool: &mut ItemSlot, amount: i32) {
+        tool_slot::damage_slot(tool, &ctx.environment(&id("tconstruct:pickaxe"), &world.pickaxe), amount, true, true, None, &mut || 1.0).unwrap();
+    }
+    #[test]
+    fn part_swap_repairs_by_the_parts_casting_cost() {
+        let world = world();
+        let tools = [(id("tconstruct:pickaxe"), &world.pickaxe)];
+        let item_max = |_: &Identifier| 1;
+        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+        let mut tool = build(&ctx, "test:wood", "test:wood");
+        hurt(&ctx, &world, &mut tool, 5);
+        let inputs = [part("tconstruct:pick_head", "test:wood"), None, None];
+        // No casting cost known (the plain lookup): a same-material swap on a damaged tool passes by.
+        assert!(matches!(lookup(&ctx, Some(&tool), &inputs).unwrap(), Outcome::NoMatch));
+        // Cost 3 against the head's 40 durability repairs 3 * 40 / 3 = 40, covering the damage.
+        let cost = |_: &Identifier| 3;
+        let raw: Vec<Option<(Identifier, u32)>> = vec![Some((id("tconstruct:pick_head"), 1)), None, None];
+        let no_tag = |_: &Identifier, _: &Identifier| false;
+        let data = SwapData { part_cost: &cost, recipes: None, raw: &raw, in_tag: &no_tag };
+        let Outcome::Crafted(swapped) = lookup_with(&ctx, Some(&tool), &inputs, None, Some(&data)).unwrap() else { panic!("expected a repairing swap") };
+        assert_eq!(swapped.result.damage, 0, "the casting cost repaired the tool");
+        assert_eq!(swapped.consumed, vec![1, 0, 0]);
+        assert_eq!(crate::tool_stack::materials(&swapped.result.custom_data, true).get(0).to_string(), "test:wood", "the material did not change");
+    }
+    #[test]
+    fn fixed_swapping_sets_the_material_and_repairs_by_its_value() {
+        let world = world();
+        let tools = [(id("tconstruct:pickaxe"), &world.pickaxe)];
+        let item_max = |_: &Identifier| 1;
+        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+        let files = vec![(id("tconstruct:tools/armor/slime_skull/swapping/stone"), json!({"type":"tconstruct:fixed_material_swapping","index":0,"ingredient":{"item":"minecraft:skeleton_skull"},"material":"test:stone","max_stack_size":16,"repair_value":6,"tools":{"tag":"test:swappable"}}))];
+        let recipes = crate::swapping_recipes::Recipes::load(&files, &Always);
+        assert_eq!(recipes.len(), 1, "{:?}", recipes.problems);
+        let in_tag = |item: &Identifier, tag: &Identifier| *item == id("tconstruct:pickaxe") && *tag == id("test:swappable");
+        let zero = |_: &Identifier| 0;
+        let mut tool = build(&ctx, "test:wood", "test:wood");
+        hurt(&ctx, &world, &mut tool, 5);
+        let inputs = [Some(Input::Other { item: id("minecraft:skeleton_skull") }), None, None];
+        let raw: Vec<Option<(Identifier, u32)>> = vec![Some((id("minecraft:skeleton_skull"), 1)), None, None];
+        let data = SwapData { part_cost: &zero, recipes: Some(&recipes), raw: &raw, in_tag: &in_tag };
+        let Outcome::Crafted(swapped) = lookup_with(&ctx, Some(&tool), &inputs, None, Some(&data)).unwrap() else { panic!("expected a fixed swap") };
+        assert_eq!(crate::tool_stack::materials(&swapped.result.custom_data, true).get(0).to_string(), "test:stone");
+        assert_eq!(swapped.result.damage, 0, "repair_value 6 * 40 / 3 repairs the 5 damage");
+        assert_eq!(swapped.consumed, vec![1, 0, 0]);
+        // An unrelated item on the table matches nothing.
+        let stray = [Some(Input::Other { item: id("minecraft:dirt") }), None, None];
+        assert!(matches!(lookup_with(&ctx, Some(&tool), &stray, None, Some(&data)).unwrap(), Outcome::NoMatch));
+        // A fixed material with no stats for the head is a failure, not a pass.
+        let bad = vec![(id("tconstruct:tools/armor/slime_skull/swapping/bad"), json!({"type":"tconstruct:fixed_material_swapping","index":0,"ingredient":{"item":"minecraft:skeleton_skull"},"material":"test:unknown","tools":{"tag":"test:swappable"}}))];
+        let bad_recipes = crate::swapping_recipes::Recipes::load(&bad, &Always);
+        let bad_data = SwapData { part_cost: &zero, recipes: Some(&bad_recipes), raw: &raw, in_tag: &in_tag };
+        assert!(matches!(lookup_with(&ctx, Some(&tool), &inputs, None, Some(&bad_data)).unwrap(),
+            Outcome::Failure(key) if key == "recipe.tconstruct.part_swapping.invalid_material"));
+    }
+    #[test]
+    fn material_value_swapping_pays_the_cost_and_refunds_the_leftover() {
+        let world = world();
+        let tools = [(id("tconstruct:pickaxe"), &world.pickaxe)];
+        let item_max = |_: &Identifier| 1;
+        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+        let files = vec![(id("tconstruct:tools/armor/travelers/vest"), json!({"type":"tconstruct:material_value_swapping","cost":2,"index":0,"tools":{"tag":"test:swappable"},"material":{"type":"tconstruct:stat_type","stat_type":"tconstruct:head"},"max_stack_size":16}))];
+        let recipes = crate::swapping_recipes::Recipes::load(&files, &Always);
+        assert_eq!(recipes.len(), 1, "{:?}", recipes.problems);
+        let in_tag = |item: &Identifier, tag: &Identifier| *item == id("tconstruct:pickaxe") && *tag == id("test:swappable");
+        let zero = |_: &Identifier| 0;
+        let material_recipe = crate::material_recipes::Recipe {
+            id: id("tconstruct:tools/materials/gem"),
+            ingredient: crate::material_recipes::Ingredient::Item(id("test:gem")),
+            material: variant("test:stone"), needed: 1, value: 3,
+            leftover: Some(crate::material_recipes::Leftover { source: crate::material_recipes::LeftoverSource::Item(id("test:shard")), count: 1 }),
+        };
+        let input = Some(Input::Material { item: id("test:gem"), material: id("test:stone"), recipe: material_recipe, count: 4 });
+        let inputs = [input, None, None];
+        let raw: Vec<Option<(Identifier, u32)>> = vec![Some((id("test:gem"), 4)), None, None];
+        let data = SwapData { part_cost: &zero, recipes: Some(&recipes), raw: &raw, in_tag: &in_tag };
+        let tool = build(&ctx, "test:wood", "test:wood");
+        let Outcome::Crafted(swapped) = lookup_with(&ctx, Some(&tool), &inputs, None, Some(&data)).unwrap() else { panic!("expected a value swap") };
+        assert_eq!(crate::tool_stack::materials(&swapped.result.custom_data, true).get(0).to_string(), "test:stone");
+        // Cost 2 of value 3 per item uses a single item; the unused 1 of 3 comes back as a shard.
+        assert_eq!(swapped.consumed, vec![1, 0, 0]);
+        assert_eq!(swapped.leftover, vec![(id("test:shard"), 1)]);
+        // A predicate the material does not satisfy (no skull stats anywhere) matches nothing.
+        let skull = vec![(id("tconstruct:tools/armor/travelers/skull"), json!({"type":"tconstruct:material_value_swapping","cost":2,"index":0,"tools":{"tag":"test:swappable"},"material":{"type":"tconstruct:stat_type","stat_type":"tconstruct:skull"},"max_stack_size":16}))];
+        let skull_recipes = crate::swapping_recipes::Recipes::load(&skull, &Always);
+        let skull_data = SwapData { part_cost: &zero, recipes: Some(&skull_recipes), raw: &raw, in_tag: &in_tag };
+        assert!(matches!(lookup_with(&ctx, Some(&tool), &inputs, None, Some(&skull_data)).unwrap(), Outcome::NoMatch));
+    }
+    #[test]
+    fn tool_swapping_takes_the_material_from_a_sacrifice_and_repairs_from_it() {
+        let world = world();
+        let tools = [(id("tconstruct:pickaxe"), &world.pickaxe)];
+        let item_max = |_: &Identifier| 1;
+        let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
+        let files = vec![(id("tconstruct:tables/tool_material_swapping"), json!({"type":"tconstruct:tool_material_swapping","tools":{"type":"forge:difference","base":{"tag":"test:multipart"},"subtracted":{"tag":"test:unswappable"}}}))];
+        let recipes = crate::swapping_recipes::Recipes::load(&files, &Always);
+        assert_eq!(recipes.len(), 1, "{:?}", recipes.problems);
+        let in_tag = |item: &Identifier, tag: &Identifier| *item == id("tconstruct:pickaxe") && *tag == id("test:multipart");
+        let zero = |_: &Identifier| 0;
+        let mut tool = build(&ctx, "test:wood", "test:wood");
+        hurt(&ctx, &world, &mut tool, 10);
+        let sacrifice = build(&ctx, "test:stone", "test:wood");
+        let inputs = [Some(Input::Tool { stack: Box::new(sacrifice.clone()) }), None, None];
+        let raw: Vec<Option<(Identifier, u32)>> = vec![Some((id("tconstruct:pickaxe"), 1)), None, None];
+        let data = SwapData { part_cost: &zero, recipes: Some(&recipes), raw: &raw, in_tag: &in_tag };
+        let Outcome::Crafted(swapped) = lookup_with(&ctx, Some(&tool), &inputs, None, Some(&data)).unwrap() else { panic!("expected a tool swap") };
+        assert_eq!(crate::tool_stack::materials(&swapped.result.custom_data, true).get(0).to_string(), "test:stone", "the head took the sacrifice's material");
+        assert_eq!(swapped.result.damage, 0, "the sacrifice's remaining durability (plus 5%) repaired the tool");
+        assert_eq!(swapped.consumed, vec![1, 0, 0]);
+        // A sacrifice carrying upgrades is refused with the no-modifiers failure.
+        let mut upgraded = sacrifice.clone();
+        let upgrades = crate::tool_stack::upgrades(&upgraded.custom_data).with_modifier(id("test:sharp"), 1).unwrap();
+        upgraded.custom_data.insert(crate::tool_stack::TAG_UPGRADES.into(), upgrades.to_nbt());
+        let inputs = [Some(Input::Tool { stack: Box::new(upgraded) }), None, None];
+        assert!(matches!(lookup_with(&ctx, Some(&tool), &inputs, None, Some(&data)).unwrap(),
+            Outcome::Failure(key) if key == "recipe.tconstruct.part_swapping.no_modifiers"));
+        // A different item in the slot is no sacrifice at all.
+        let stick = ItemSlot::new(id("minecraft:stick"), 1);
+        let inputs = [Some(Input::Tool { stack: Box::new(stick) }), None, None];
+        assert!(matches!(lookup_with(&ctx, Some(&tool), &inputs, None, Some(&data)).unwrap(), Outcome::NoMatch));
     }
 }

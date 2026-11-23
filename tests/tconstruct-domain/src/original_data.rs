@@ -813,7 +813,12 @@ fn a_damaged_wood_pickaxe_is_repaired_with_wood_material_items() {
     tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
     assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
     tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(20));
-    let planks = Input::Material { item: Identifier::parse("minecraft:oak_planks").unwrap(), material: Identifier::parse("tconstruct:wood").unwrap(), value: 1, needed: 1, count: 8 };
+    let planks = Input::Material { item: Identifier::parse("minecraft:oak_planks").unwrap(), material: Identifier::parse("tconstruct:wood").unwrap(), recipe: crate::material_recipes::Recipe {
+        id: Identifier::parse("tconstruct:tools/materials/planks").unwrap(),
+        ingredient: crate::material_recipes::Ingredient::Item(Identifier::parse("minecraft:oak_planks").unwrap()),
+        material: crate::tool_materials::MaterialVariant::parse("tconstruct:wood").unwrap(),
+        needed: 1, value: 1, leftover: None,
+    }, count: 8 };
     let outcome = lookup(&ctx, Some(&tool), &[Some(planks), None, None, None]).unwrap();
     match outcome {
         Outcome::Crafted(done) => assert!(crate::tool_stack::damage(&done.result.custom_data) < 20, "repair lowers the damage"),

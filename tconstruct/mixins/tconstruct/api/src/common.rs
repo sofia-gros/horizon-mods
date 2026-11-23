@@ -34,6 +34,8 @@ static STATION_LAYOUTS: OnceLock<Arc<RwLock<crate::station_layouts::Layouts>>> =
 pub(crate) fn station_layouts() -> Option<&'static Arc<RwLock<crate::station_layouts::Layouts>>> { STATION_LAYOUTS.get() }
 static OVERSLIME_RECIPES: OnceLock<Arc<RwLock<crate::overslime::Recipes>>> = OnceLock::new();
 pub(crate) fn overslime_recipes() -> Option<&'static Arc<RwLock<crate::overslime::Recipes>>> { OVERSLIME_RECIPES.get() }
+static SWAPPING_RECIPES: OnceLock<Arc<RwLock<crate::swapping_recipes::Recipes>>> = OnceLock::new();
+pub(crate) fn swapping_recipes() -> Option<&'static Arc<RwLock<crate::swapping_recipes::Recipes>>> { SWAPPING_RECIPES.get() }
 pub(crate) fn material_recipes() -> Option<&'static Arc<RwLock<crate::material_recipes::Recipes>>> { MATERIAL_RECIPES.get() }
 /// TinkerTags.isTagsLoaded for the server: true once a reload callback captured the native
 /// item registry/tag snapshot, which is where item-tag membership comes from here.
@@ -166,6 +168,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers overslime recipe listener registration failed");
         OVERSLIME_RECIPES.set(overslime).expect("Tinkers overslime recipes already initialized");
+        let swapping_config = config.clone();
+        let swapping = crate::swapping_recipes::register(move || {
+            let config = swapping_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers swapping recipe listener registration failed");
+        SWAPPING_RECIPES.set(swapping).expect("Tinkers swapping recipes already initialized");
         let smeltery_config = config.clone();
         let smeltery = crate::smeltery_data::register(move || {
             let config = smeltery_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

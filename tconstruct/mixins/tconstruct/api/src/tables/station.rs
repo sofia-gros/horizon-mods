@@ -35,7 +35,7 @@ pub(crate) fn resolve_input(stack: &ItemSlot, resolver: &Resolver) -> Input {
     let instrument = crate::material_recipes::instrument_of(stack);
     if let Some(recipe) = resolver.recipes.and_then(|recipes| recipes.find_facts(&stack.item, resolver.in_tag, &crate::material_recipes::StackFacts { instrument: instrument.as_ref(), ..Default::default() })) {
         if let Some(material) = recipe.material.material_id() {
-            return Input::Material { item: stack.item.clone(), material, value: recipe.value, needed: recipe.needed, count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
+            return Input::Material { item: stack.item.clone(), material, recipe: recipe.clone(), count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
         }
     }
     Input::Other { item: stack.item.clone() }
@@ -50,7 +50,17 @@ pub(crate) fn read(menu: &dyn MenuAccess, input_count: usize, resolver: &Resolve
 
 /// What the station would produce for the staged menu, with no side effects.
 pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, resolver: &Resolver) -> Result<Outcome, String> {
-    let (tool, inputs) = read(menu, input_count, resolver);
+    let (tool, mut inputs) = read(menu, input_count, resolver);
+    // A tinkerable tool stack in an input slot is the sacrifice of tool material swapping;
+    // resolve_input cannot know the tool definitions, so it is recognized here.
+    for (index, input) in inputs.iter_mut().enumerate() {
+        let is_tool = matches!(input, Some(Input::Other { item }) if ctx.tools.iter().any(|(tool_item, _)| tool_item == item));
+        if is_tool {
+            if let Some(stack) = menu.stack(index + 1).filter(|stack| stack.count > 0) {
+                *input = Some(Input::Tool { stack: Box::new(stack) });
+            }
+        }
+    }
     let raw: Vec<Option<(Identifier, u32)>> = (1..=input_count)
         .map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| (stack.item.clone(), stack.count))).collect();
     // A modifier crystal carries its modifier in the stack's data, which the plain item and count above do not.
@@ -60,7 +70,13 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
     })).collect();
     let crystal = crate::modifier_recipes::lone_crystal(&stacks);
     let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, crystal, overslime: resolver.overslime_recipes, raw: &raw, in_tag: resolver.in_tag });
-    tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref())
+    // The part swap's repair and the material swapping recipes: the casting lookup lives
+    // with the smeltery recipes, the swapping recipes in their own registry.
+    let casting = crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.recipes.material_casting.clone()));
+    let part_cost = |item: &Identifier| casting.as_ref().map_or(0, |casting| casting.item_cost(item));
+    let swapping = crate::common::swapping_recipes().and_then(|recipes| recipes.read().ok().map(|recipes| recipes.clone()));
+    let swap_data = tool_station::SwapData { part_cost: &part_cost, recipes: swapping.as_ref(), raw: &raw, in_tag: resolver.in_tag };
+    tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref(), Some(&swap_data))
 }
 
 /// craftResult: computes the outcome, consumes the inputs and the tool, and hands back the result.
@@ -175,7 +191,7 @@ mod tests {
         assert_eq!(recipes.len(), 1);
         let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), modifier_recipes: None, overslime_recipes: None, in_tag: &|_, _| false };
         let plank = ItemSlot::new(id("test:plank"), 5);
-        assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { value: 1, needed: 1, count: 5, .. }));
+        assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { count: 5, recipe, .. } if recipe.value == 1 && recipe.needed == 1));
         assert!(matches!(resolve_input(&plank, &resolver), Input::Other { .. }), "without recipes the plank is just an item");
         let mut hurt = built.clone();
         crate::tool_slot::damage_slot(&mut hurt, &Environment4::of(&ctx, &pickaxe), 10, true, true, None, &mut || 1.0).unwrap();

@@ -152,6 +152,7 @@ mod common;
 mod fancy_gadgets;
 mod advancements;
 mod shaped_materials;
+mod swapping_recipes;
 mod commands;
 mod particles;
 mod aoe;
