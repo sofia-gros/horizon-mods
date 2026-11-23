@@ -84,6 +84,8 @@
     "api/src/edible_hook.rs",
     "api/src/fishing_hook.rs",
     "api/src/blocking_hook.rs",
+    "api/src/brush.rs",
+    "api/src/brush_hook.rs",
     "api/src/weapon_effect_hook.rs",
     "api/src/block_break_hook.rs",
     "api/src/severing.rs",

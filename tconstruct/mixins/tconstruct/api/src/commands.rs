@@ -1839,6 +1839,11 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:general_interact");
             out.insert("tconstruct:tool_action");
         }
+        Module::Brush => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
         Module::WalkTransform { .. } => {
             out.insert("tconstruct:boot_walk");
             out.insert("tconstruct:tool_action");
@@ -2237,6 +2242,13 @@ mod tests {
         module_hooks(&Module::PlaceFire, &mut out);
         let expected: BTreeSet<&'static str> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].into_iter().collect();
         assert_eq!(out, expected);
+    }
+
+    #[test]
+    fn brush_reports_exactly_its_three_hooks() {
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::Brush, &mut out);
+        assert_eq!(out, BTreeSet::from(["tconstruct:general_interact", "tconstruct:block_interact", "tconstruct:aoe_highlight"]));
     }
 
     #[test]

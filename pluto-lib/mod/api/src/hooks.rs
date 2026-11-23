@@ -1674,6 +1674,13 @@ impl WorldOps for HostWorld {
         horizon_client::entry::pluto_explosion_access::push(dimension, center, radius, fire, blast)
     }
 
+    fn brush_block(&mut self, dimension: &str, pos: [i32; 3], face: [i32; 3]) -> bool {
+        // The mod-facing host has no brush call either (the game's own `BrushableBlockEntity.brush`
+        // lives inside the game, in its brush module), so the stroke is queued the same way and the
+        // game's creature tick seam applies it in that dimension (see pluto_brush_access).
+        horizon_client::entry::pluto_brush_access::push(dimension, pos, face)
+    }
+
     fn send_particles(&mut self, _dimension: &str, particle: &str, data: &crate::pure::particle_api_v1::ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
         use horizon_client::mod_api::{ParticleOptions, ParticleType};
         // A vanilla name resolves to the host's own type; any other namespaced name is a mod's own
@@ -3843,6 +3850,12 @@ impl Hooks for PlutoHooks {
             player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
             dimension: player.dimension.to_string(),
             position: player.position,
+            eye: [player.position[0], player.position[1] + f64::from(player.eye_height), player.position[2]],
+            look: {
+                let yaw = f64::from(player.yaw).to_radians();
+                let pitch = f64::from(player.pitch).to_radians();
+                [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
+            },
             creative: player.game_mode == 1,
             ticks_used: (total - event.duration).max(0) as u32,
             duration: total as u32,

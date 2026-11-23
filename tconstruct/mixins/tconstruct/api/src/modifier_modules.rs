@@ -345,6 +345,8 @@ pub(crate) enum Module {
     /// PlutoLib's entity reach names no verb to ignite a creeper, and the pin exposes no
     /// ignited-state entry a pure surface could write (see tool_action_hook's head note).
     PlaceFire,
+    /// BrushModule: the tool brushes suspicious blocks like the vanilla brush (brush_hook).
+    Brush,
     /// InfinityModule: the launcher fires its named ammo without the shooter carrying any, paid for with
     /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
     /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
@@ -1048,6 +1050,10 @@ impl Module {
             // PlaceFireModule: an enum module with no fields, on its four default hooks (entity and
             // block interact, tool action, remove block).
             "tconstruct:place_fire" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:remove_block")) => Self::PlaceFire,
+            // BrushModule: a right click on a block starts the brush use, whose ticks brush the aimed
+            // block and its AOE transform neighbours (the per-stack use the throwing hook's registration
+            // composes, the strokes in brush_hook).
+            "tconstruct:brush" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:block_interact" | "tconstruct:aoe_highlight")) => Self::Brush,
             "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
@@ -1500,7 +1506,7 @@ impl Module {
                 }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::Sleeves | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::Brush | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -2231,6 +2237,8 @@ impl Module {
     pub fn blocking(&self) -> bool { matches!(self, Self::Blocking) }
     /// Whether this is a place fire module (PlaceFireModule: the flint and steel behaviour).
     pub fn place_fire(&self) -> bool { matches!(self, Self::PlaceFire) }
+    /// Whether this is a brush module (BrushModule: the tool brushes suspicious blocks like the vanilla brush).
+    pub fn brush(&self) -> bool { matches!(self, Self::Brush) }
     /// Whether a campfire extinguish module puts out a lit campfire the tool is used on, when its conditions hold.
     pub fn extinguishes_campfires(&self, entry: &Entry, facts: &Facts) -> bool {
         let Self::CampfireExtinguish { condition } = self else { return false; };
@@ -2442,6 +2450,19 @@ mod tests {
         // Any other hook in the binding leaves the kind unbound, as the guard set is the decode set.
         assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:general_interact", "tconstruct:remove"]})), None);
         assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:armor_interact"]})), None);
+    }
+
+    #[test]
+    fn brush_binds_as_a_singleton_over_its_three_hooks() {
+        let module = decode(json!({"type":"tconstruct:brush","hooks":["tconstruct:general_interact","tconstruct:block_interact","tconstruct:aoe_highlight"]})).expect("the brush module binds");
+        assert_eq!(module, Module::Brush);
+        assert!(module.brush());
+        // The shipped modifier names no hooks at all, which binds the same way (the guard
+        // reads the bound set as a subset, as the blocking module's does).
+        assert_eq!(decode(json!({"type":"tconstruct:brush"})), Some(Module::Brush));
+        // A binding to any hook outside the module's three is not honored.
+        assert_eq!(decode(json!({"type":"tconstruct:brush","hooks":["tconstruct:melee_hit"]})), None);
+        assert_eq!(decode(json!({"type":"tconstruct:brush","hooks":["tconstruct:block_interact","tconstruct:remove_block"]})), None);
     }
     #[test]
     fn the_one_probe_marks_held_tools_and_helmets_in_the_raw_data() {

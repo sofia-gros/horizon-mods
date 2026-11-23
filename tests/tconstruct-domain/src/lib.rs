@@ -93,6 +93,10 @@ mod sling_modules;
 mod shoot_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/blocking_hook.rs"]
 mod blocking_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/brush.rs"]
+mod brush;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/brush_hook.rs"]
+mod brush_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/walk_hook.rs"]
 mod walk_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/replace_fluid.rs"]

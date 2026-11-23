@@ -505,6 +505,10 @@ pub struct UseTick {
     pub dimension: String,
     /// Where the player stands (their feet).
     pub position: [f64; 3],
+    /// Where the player's eyes are: where a use that aims (a brush's strokes) traces from.
+    pub eye: [f64; 3],
+    /// The direction the player looks, as a unit vector: how a use that aims traces.
+    pub look: [f64; 3],
     /// Whether the player is in creative mode.
     pub creative: bool,
     /// How many ticks the use has run: the use's full time less the ticks left, so the first

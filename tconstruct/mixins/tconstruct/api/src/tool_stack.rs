@@ -860,6 +860,13 @@ pub(crate) fn blocking(nbt: &NbtCompound, env: &Environment) -> bool {
     saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.blocking()))
 }
 
+/// Whether any of the tool's modifiers lets it brush (BrushModule), so a right click on a block
+/// starts the brush use. A broken piece's modifiers do not run, so it contributes nothing.
+pub(crate) fn brush(nbt: &NbtCompound, env: &Environment) -> bool {
+    if is_broken(nbt) { return false; }
+    saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.brush()))
+}
+
 /// Whether any of the tool's modifiers puts out a lit campfire the tool is used on (ExtinguishCampfireModule).
 pub(crate) fn extinguishes_campfires(nbt: &NbtCompound, env: &Environment) -> bool {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.modules().iter().any(|module| module.extinguishes_campfires(entry, facts))))
