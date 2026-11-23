@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (72, 43), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (68, 41), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -162,9 +162,8 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     for bound in ["enderclearance", "channeling"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The craft count, material repair, volatile float and quiver inventory modules are bound; revitalizing's
-    // update health binds for its armor slots but its hand module stays unbound (held tools are not reported).
-    for bound in ["craft_count", "material_repair", "volatile_float", "quiver_inventory"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    assert!(kinds.contains("tconstruct:update_health"), "update_health is still unbound for the hand slots");
+    // update health binds for its armor slots and its hand slots alike (the player tick reports held tools).
+    for bound in ["craft_count", "material_repair", "volatile_float", "quiver_inventory", "update_health"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
     assert!(unbound_of("stalwart").is_empty(), "stalwart's protection counts the attacker's filled equipment slots, which the hit reports");
     assert!(unbound_of("enderclearance").is_empty(), "enderclearance is fully bound");
@@ -172,16 +171,22 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("restore").is_empty(), "restore runs on the modify hurt hook, before armor");
     // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
     // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
+    // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
+    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
     // stay unbound; the form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
-    // digging player — their effects, the rain on them and the enchantments on the tool they dig with, which is what
-    // hydraulic's aqua affinity branch and its raining branch read; lightspeed keeps only its own attribute kind.
+    // digging player: their effects, the rain on them and the enchantments on the tool they dig with, which is what
+    // hydraulic's aqua affinity branch and its raining branch read. Lightspeed's attribute binds over the light the player
+    // tick reports at the wearer, and gold guard's golden attribute over the tick's count of the wearer's golden pieces;
+    // chrysophilite's golden attribute names Tinkers' own attribute, which the host does not have, so it stays unbound.
     assert!(unbound_of("temperate").is_empty(), "temperate is fully bound");
-    assert_eq!(unbound_of("lightspeed"), ["tconstruct:lightspeed_attribute"]);
-    assert_eq!(unbound_of("lightspeed_armor"), ["tconstruct:lightspeed_attribute"]);
+    assert!(unbound_of("lightspeed").is_empty(), "lightspeed is fully bound");
+    assert!(unbound_of("lightspeed_armor").is_empty(), "lightspeed_armor is fully bound");
+    assert!(unbound_of("gold_guard").is_empty(), "gold_guard is fully bound");
+    assert_eq!(unbound_of("chrysophilite"), ["tconstruct:golden_attribute"], "chrysophilite's attribute is Tinkers' own");
     for name in ["blasting", "crumbling"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
     assert!(unbound_of("hydraulic").is_empty(), "hydraulic reads the reported digging player and binds");
     for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    assert_eq!(unbound_of("revitalizing"), ["tconstruct:update_health"], "the armor update health binds; the hand one is not reported");
+    assert!(unbound_of("revitalizing").is_empty(), "revitalizing is fully bound: the tick reports held tools as it does armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
     // Armor looting is bound: a worn piece's modules add into the looting total the severing flow captures from the killer's hit
     // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments stay unbound: no break
@@ -2036,10 +2041,12 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     assert!(unbound("tconstruct:reach").is_empty() && unbound("tconstruct:step_up").is_empty() && unbound("tconstruct:skyfall").is_empty());
     assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
     assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
-    // The modules that need host data this port does not receive stay unbound.
-    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:tank", "stat_boost")] {
+    // The modules that need host data this port does not receive stay unbound. Gold guard's golden attribute and
+    // lightspeed's attribute bind now: the player tick reports the wearer's equipment whole and the light at them.
+    for (modifier, kind) in [("tconstruct:tank", "stat_boost")] {
         assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
     }
+    assert!(unbound("tconstruct:gold_guard").is_empty() && unbound("tconstruct:lightspeed").is_empty());
     // Experienced's volatile float is bound now; only its experience multiplier attribute has no counterpart.
     assert_eq!(unbound("tconstruct:experienced"), vec!["tconstruct:attribute"]);
     assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());

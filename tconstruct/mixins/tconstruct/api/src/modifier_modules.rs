@@ -184,6 +184,10 @@ pub(crate) enum Module {
     Fishing,
     /// MaxArmorAttributeModule: an attribute worked from the largest level among the worn pieces.
     MaxArmorAttribute { module: Box<crate::max_armor::MaxArmorAttribute>, condition: Condition },
+    /// GoldenAttributeModule: an attribute worked from how many of the wearer's armor pieces have gold.
+    GoldenAttribute { module: Box<crate::max_armor::GoldenAttribute>, condition: Condition },
+    /// LightspeedAttributeModule: boots that grant an attribute while their wearer walks in bright light.
+    LightspeedAttribute { module: crate::wearer_modules::LightspeedAttribute, condition: Condition },
     /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
     ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
     /// ShowOffhandModule: a chest piece counts 1 toward the `tconstruct:show_empty_offhand` armor level while worn.
@@ -748,6 +752,18 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:golden_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                match crate::max_armor::GoldenAttribute::decode(fields)? {
+                    Some(module) => Self::GoldenAttribute { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:lightspeed_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:boot_walk" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                match crate::wearer_modules::LightspeedAttribute::decode(fields)? {
+                    Some(module) => Self::LightspeedAttribute { module, condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:armor_level" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::ArmorLevel { module: Box::new(crate::max_armor::ArmorLevel::decode(fields)?) }
             }
@@ -1092,7 +1108,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1377,6 +1393,20 @@ impl Module {
             _ => None,
         }
     }
+    /// The (attribute, amount) a golden attribute module grants a wearer with `total_gold` golden pieces.
+    pub fn golden_amount(&self, entry: &Entry, facts: &Facts, total_gold: i32) -> Option<(String, f64)> {
+        let Self::GoldenAttribute { module, condition } = self else { return None; };
+        module.amount(condition.matches(entry, facts), total_gold)
+    }
+    /// Whether this is a golden attribute module.
+    pub fn is_golden_attribute(&self) -> bool { matches!(self, Self::GoldenAttribute { .. }) }
+    /// The lightspeed module and the entry's effective level, when its condition holds.
+    pub fn lightspeed(&self, entry: &Entry, facts: &Facts) -> Option<(&crate::wearer_modules::LightspeedAttribute, f32)> {
+        let Self::LightspeedAttribute { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (module, entry.effective_level()))
+    }
+    /// Whether this is a lightspeed attribute module.
+    pub fn is_lightspeed_attribute(&self) -> bool { matches!(self, Self::LightspeedAttribute { .. }) }
     /// Whether this is a max armor attribute module.
     pub fn is_max_armor_attribute(&self) -> bool { matches!(self, Self::MaxArmorAttribute { .. }) }
     /// Whether this is an armor level module.
@@ -2249,15 +2279,28 @@ mod tests {
     }
 
     #[test]
-    fn update_health_binds_for_armor_slots_and_stays_unbound_for_hands() {
+    fn update_health_binds_for_armor_slots_and_hands_alike() {
         let in_tag = |_: &Identifier, _: &Identifier| false;
         let f = facts(None, &in_tag);
-        // The shipped revitalizing armor module carries no bonus; the hand one cannot be reported.
+        // The shipped revitalizing armor module carries no bonus; the hand one carries 2 per level.
         let armor = decode(json!({"type":"tconstruct:update_health","slots":["feet","legs","chest","head"],"hooks":["tconstruct:equipment_change"]})).unwrap();
         assert_eq!(armor.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "chest", true), 0.0);
-        assert!(decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"],"hooks":["tconstruct:equipment_change"]})).is_none());
+        let hands = decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"],"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert_eq!(hands.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "mainhand", true), 4.0, "the tick reports held tools, so the hand module binds");
+        assert_eq!(hands.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "offhand", false), -4.0);
         let bonus = decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["feet"],"hooks":["tconstruct:equipment_change"]})).unwrap();
         assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", true), 4.0);
         assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", false), -4.0);
+    }
+
+    #[test]
+    fn golden_attribute_and_lightspeed_bind_in_their_shipped_forms() {
+        // The shipped gold guard (a vanilla attribute, addition) binds; chrysophilite's own attribute does not
+        // exist in the host, so its golden module stays unbound.
+        assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"minecraft:generic.max_health","each_level":4.0,"flat":4.0,"operation":"addition"})).is_some());
+        assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"tconstruct:generic.chrysophilite","each_level":1.0,"flat":1.0,"operation":"addition"})).is_none());
+        // The shipped lightspeed attribute binds; a foreign hook binding stays unbound.
+        assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4})).is_some());
+        assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4,"hooks":["tconstruct:melee_hit"]})).is_none());
     }
 }

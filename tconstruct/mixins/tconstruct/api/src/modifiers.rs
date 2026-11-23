@@ -300,6 +300,14 @@ impl Modifier {
     pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_max_armor_attribute())
     }
+    /// The golden attribute modules.
+    pub fn golden_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_golden_attribute())
+    }
+    /// The lightspeed attribute modules.
+    pub fn lightspeed_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_lightspeed_attribute())
+    }
     /// The armor level modules.
     pub fn armor_level_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_armor_level())

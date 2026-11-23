@@ -7,11 +7,19 @@
 //! (BaseFireBlock.canBePlacedAt) and cover ground (BlockState.canSurvive) both turn on whether the face of
 //! the block below is sturdy or full, a fact only the block callbacks' level view answers — the player tick
 //! seam is handed the mod host, whose queries carry no such call; glow walker places the `tconstruct:glow`
-//! block, which this port never registered as a block. Two further differences from the original, both
+//! block, which content does declare (light 14), but its placement turns on the same sturdy-face fact, and
+//! its walker form also needs the brightness of the cell it would light, which the tick seam does not
+//! report for cells other than the wearer's own. Two further differences from the original, both
 //! inherited from this port's surfaces: the cell above the ground is cleared without dropping it (the world
 //! operations have no destroy-with-drops call; the original destroys it with drops), and whether a cell can
 //! be replaced is answered by the port's replaceable table, the same one the click transform's ground check
 //! uses, which names air and the common plants but not fluids.
+//!
+//! LightspeedAttributeModule rides the same tick: the boots' attribute is granted while the light at the
+//! wearer (which the tick reports) is above the module's minimum, and the boots take wear by the module's
+//! chance as the wearer walks into a new block, as the original's onWalk does both. The original grants the
+//! attribute from onWalk, so it lands on the first step; the tick grants it from the first tick, the same
+//! difference the max armor attributes have.
 use crate::{break_speed_hook::with_held_tool, tool_actions::replaceable_above, tool_slot, tool_stack};
 use pluto_lib::{ActionTarget, BlockState, EntityAction, Identifier, ItemSlot, ServerLivingEntityEvents, StackSlot, World};
 use std::collections::BTreeMap;
@@ -19,6 +27,9 @@ use std::sync::Mutex;
 
 /// The block each player's feet were last seen in, by uuid: the original hears a walk when the position changes.
 static PREVIOUS: Mutex<BTreeMap<u128, [i32; 3]>> = Mutex::new(BTreeMap::new());
+
+/// The same, for the lightspeed wear roll, which is its own walk hearing.
+static PREVIOUS_STEP: Mutex<BTreeMap<u128, [i32; 3]>> = Mutex::new(BTreeMap::new());
 
 fn air() -> BlockState {
     BlockState::new(Identifier::new("minecraft", "air").expect("fixed block id"))
@@ -67,6 +78,37 @@ pub(crate) fn register() {
         });
         if let Ok(Some(edits)) = walked {
             tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
+        }
+    });
+    // LightspeedAttributeModule.onWalk: while the light at the wearer is above the module's minimum the boots
+    // grant their attribute, and walking rolls the module's wear chance against the excess light.
+    ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+        let Some((_, feet)) = tick.armor.iter().find(|(slot, _)| slot == "feet") else { return };
+        let block_pos = [tick.position[0].floor() as i32, tick.position[1].floor() as i32, tick.position[2].floor() as i32];
+        let previous = PREVIOUS_STEP.lock().map(|mut map| map.insert(tick.player, block_pos)).unwrap_or(None);
+        let walked = previous != Some(block_pos) && tick.on_ground;
+        let world = World::new(&tick.dimension);
+        let done = with_held_tool(feet, |env, stack| {
+            let modules = tool_stack::lightspeed(&stack.custom_data, env);
+            if modules.is_empty() || tool_stack::is_broken(&stack.custom_data) { return None; }
+            let mut slot: ItemSlot = stack.clone();
+            let before = slot.custom_data.clone();
+            let mut additions = Vec::new();
+            for (modifier, module, level) in &modules {
+                let light = module.light(tick.block_light, tick.sky_light, tick.sky_darken);
+                if let Some(boost) = module.boost(light, *level) { additions.push((module.attribute().to_owned(), f64::from(boost))); }
+                if walked && world.random_float().is_some_and(|roll| roll < module.wear_chance(light)) {
+                    let _ = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(modifier), &mut crate::tool_damage_hook::random);
+                }
+            }
+            let edits = crate::wearer_modules::edits_between(&before, &slot.custom_data);
+            Some((additions, edits))
+        });
+        if let Ok(Some((additions, edits))) = done {
+            tick.attribute_additions.borrow_mut().extend(additions);
+            if !edits.is_empty() {
+                tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
+            }
         }
     });
 }

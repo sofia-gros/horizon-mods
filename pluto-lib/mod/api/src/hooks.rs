@@ -4205,15 +4205,27 @@ impl Hooks for PlutoHooks {
             let data = stack_data_of(host, &stack);
             if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
         }
+        // Held tools carrying custom data are reported too: a module may key on a hand slot (update health names the
+        // hands), and the tick is heard while either sort is carried.
+        let mut hands = Vec::new();
+        for (name, slot) in [("mainhand", horizon_client::mod_api::EquipmentSlot::MainHand), ("offhand", horizon_client::mod_api::EquipmentSlot::OffHand)] {
+            let Some(stack) = host.player_equipment(player.uuid, slot) else { continue };
+            let data = stack_data_of(host, &stack);
+            if !data.custom_data.is_empty() { hands.push((name.to_string(), data)); }
+        }
         // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
         let worn = armor.clone();
         // The state of a wearer, for the damage event of a hit on them (their health and surroundings as of this tick).
         let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
         entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
-        if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
+        if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty())) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            // The light where the player stands, sampled half a block up, the point the original's walk modules read.
+            let light_pos = [player.position[0].floor() as i32, (player.position[1] + 0.5).floor() as i32, player.position[2].floor() as i32];
+            let (block_light, sky_light) = host.light(light_pos);
+            let (rain, thunder) = host.weather();
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             // The world scope is open while the tick runs, so a callback may work on the blocks around the player.
             for id in scoped(host, || entity_events_v1::player_tick(&tick)) { host.remove_effect(player.uuid, &id); }
             // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.

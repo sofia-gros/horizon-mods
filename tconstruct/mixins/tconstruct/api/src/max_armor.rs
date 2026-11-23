@@ -2,7 +2,8 @@
 //! value worked from the LARGEST level of its modifier among the worn pieces, never a sum; an armor level adds up the level of its modifier
 //! over the worn pieces under a key other modules read. Only a vanilla attribute with the `addition` operation is honored (the host can
 //! only move a player's base value, which is exact for an addition); a held tool (`held_tag`) is not counted, as the player tick lists
-//! worn armor only. Both skip a broken piece unless `allow_broken`.
+//! worn armor only. Both skip a broken piece unless `allow_broken`. A golden attribute, whose amount is a leveling value computed over
+//! how many of the wearer's armor pieces have gold, binds on the same terms (see [`GoldenAttribute`]).
 //! The shipped forms that stay unbound fail on one of those two limits, each named by the module that carries it: a Tinkers
 //! attribute (`tconstruct:player.critical_damage` on dragonborn, `tconstruct:generic.bad_effect_duration_multiplier` on
 //! magic_protection, `tconstruct:player.use_item_speed` on melee_protection, `tconstruct:generic.crouch_damage_multiplier`
@@ -51,6 +52,60 @@ impl MaxArmorAttribute {
             key: format!("{}/{}", entry.id, self.attribute), attribute: self.attribute.clone(), level: entry.effective_level(), flat: self.flat, each: self.each,
         })
     }
+}
+
+/// GoldenAttributeModule: an attribute whose amount is a leveling value computed over how many of the wearer's
+/// armor pieces have gold (the original's TotalGold tracker), granted while any piece carries the modifier. The
+/// count spans the whole worn equipment, so the claim is worked out by the player tick, which reads the wearer's
+/// armor whole, and it is not scaled by the modifier's own level. The flat part is granted with no gold at all.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct GoldenAttribute { attribute: String, flat: f32, each: f32 }
+
+impl GoldenAttribute {
+    /// `None` for an attribute the host lacks (a Tinkers or Forge one) or an operation other than `addition`.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
+        let operation = fields.get("operation").and_then(Value::as_str).ok_or("operation missing")?;
+        let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
+        if operation != "addition" { return Ok(None); }
+        let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+        let number = |key: &str| match fields.get(key).filter(|value| !value.is_null()) {
+            None => Ok(0.0),
+            Some(value) => value.as_f64().map(|value| value as f32).ok_or_else(|| format!("{key} must be a number")),
+        };
+        Ok(Some(Self { attribute: format!("minecraft:{path}"), flat: number("flat")?, each: number("each_level")? }))
+    }
+
+    /// The (attribute, amount) a wearer with `total_gold` golden pieces gets, when the module's condition holds.
+    pub(crate) fn amount(&self, condition: bool, total_gold: i32) -> Option<(String, f64)> {
+        condition.then(|| (self.attribute.clone(), f64::from(self.flat + self.each * total_gold as f32)))
+    }
+}
+
+/// Whether a worn piece has gold for a golden attribute's count (TotalGold.hasGold): a built piece with the
+/// piglin-neutral volatile flag (the golden modifier grants it from level 2, chrysophilite likewise), or one of
+/// the game's own golden armor pieces, which make piglins neutral by themselves.
+pub(crate) fn is_golden(piece: &pluto_lib::StackData) -> bool {
+    crate::tool_stack::volatile_flag(&piece.custom_data, "tconstruct:piglin_neutral")
+        || matches!(piece.item.as_str(), "minecraft:golden_helmet" | "minecraft:golden_chestplate" | "minecraft:golden_leggings" | "minecraft:golden_boots")
+}
+
+/// How many of the wearer's armor pieces have gold (TotalGold's total over the four armor slots).
+pub(crate) fn gold_count(pieces: &[pluto_lib::StackData]) -> i32 {
+    pieces.iter().filter(|piece| is_golden(piece)).count() as i32
+}
+
+/// What the wearer gets for the golden claims of every worn piece, as (attribute, amount) with the amounts of
+/// one attribute added up: a claim is keyed by its modifier, so the same modifier carried by two pieces counts
+/// once (the original keeps one tracker and one attribute modifier per modifier). A zero amount is not applied.
+pub(crate) fn golden_totals(claims: impl IntoIterator<Item = (Identifier, String, f64)>) -> Vec<(String, f64)> {
+    let mut seen: std::collections::BTreeSet<(Identifier, String)> = std::collections::BTreeSet::new();
+    let mut totals: BTreeMap<String, f64> = BTreeMap::new();
+    for (modifier, attribute, amount) in claims {
+        if amount == 0.0 || !seen.insert((modifier, attribute.clone())) { continue; }
+        *totals.entry(attribute).or_insert(0.0) += amount;
+    }
+    totals.into_iter().collect()
 }
 
 /// What the wearer gets for the claims of every worn piece, as (attribute, amount) with the amounts of one attribute added up: for each
@@ -148,5 +203,42 @@ mod tests {
         assert!(totals(vec![(key.clone(), 1), (key, -1)]).is_empty());
         let belt = ArmorLevel::decode(json!({"key":"tconstruct:soul_belt","allow_broken":true}).as_object().unwrap()).unwrap();
         assert_eq!(belt.level(&entry(1), true).unwrap().1, 1);
+    }
+
+    fn piece(item: &str, piglin_neutral: bool) -> pluto_lib::StackData {
+        let mut custom_data = pluto_lib::NbtCompound::new();
+        if piglin_neutral {
+            let mut volatile = pluto_lib::NbtCompound::new();
+            volatile.insert("tconstruct:piglin_neutral".into(), pluto_lib::Nbt::Byte(1));
+            custom_data.insert(crate::tool_stack::TAG_VOLATILE.into(), pluto_lib::Nbt::Compound(volatile));
+        }
+        pluto_lib::StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data, custom_model_data: None, enchantments: Default::default() }
+    }
+
+    #[test]
+    fn golden_counts_flagged_and_vanilla_gold_pieces_and_scales_the_amount_with_the_count() {
+        // The shipped gold guard: 4 flat and 4 per golden piece on max health.
+        let module = GoldenAttribute::decode(json!({"attribute":"minecraft:generic.max_health","operation":"addition","flat":4.0,"each_level":4.0}).as_object().unwrap()).unwrap().unwrap();
+        assert_eq!(module.amount(true, 0), Some(("minecraft:max_health".to_owned(), 4.0)), "the flat part is granted with no gold at all");
+        assert_eq!(module.amount(true, 3), Some(("minecraft:max_health".to_owned(), 16.0)));
+        assert_eq!(module.amount(false, 3), None, "a failed condition grants nothing");
+        let pieces = [piece("tconstruct:plate_helmet", true), piece("minecraft:golden_chestplate", false), piece("tconstruct:plate_leggings", false), piece("minecraft:iron_boots", false)];
+        assert_eq!(gold_count(&pieces), 2, "a flagged built piece and a vanilla gold piece; plain pieces do not count");
+        // Chrysophilite's attribute is Tinkers' own, which the host does not have: it stays unbound.
+        assert!(GoldenAttribute::decode(json!({"attribute":"tconstruct:generic.chrysophilite","operation":"addition","flat":1.0,"each_level":1.0}).as_object().unwrap()).unwrap().is_none());
+        assert!(GoldenAttribute::decode(json!({"attribute":"minecraft:generic.max_health","operation":"multiply_total","flat":4.0,"each_level":4.0}).as_object().unwrap()).unwrap().is_none());
+    }
+
+    #[test]
+    fn golden_totals_count_one_modifier_once_and_add_different_modifiers_up() {
+        let guard = Identifier::parse("tconstruct:gold_guard").unwrap();
+        let other = Identifier::parse("tconstruct:other").unwrap();
+        let claims = vec![
+            (guard.clone(), "minecraft:max_health".to_owned(), 16.0),
+            (guard.clone(), "minecraft:max_health".to_owned(), 16.0),
+            (other.clone(), "minecraft:max_health".to_owned(), 4.0),
+            (other, "minecraft:armor".to_owned(), 0.0),
+        ];
+        assert_eq!(golden_totals(claims), vec![("minecraft:max_health".to_owned(), 20.0)], "one modifier once, the other adds, a zero is not applied");
     }
 }

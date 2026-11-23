@@ -2,12 +2,13 @@
 //! for another tool) refreshes its wearer's health by its bonus, and one that leaves takes the bonus back —
 //! healing for a positive change (the game cuts a heal to the maximum, as the original caps the raised health)
 //! and damage of the `tconstruct:update_health` type for a negative one. SlimeKnights (MIT; see LICENSE).
-//! The tick reports worn armor only, so modules naming a hand slot stay unbound at decode.
+//! The tick reports worn armor and held tools, so a module naming a hand slot is watched as one naming an
+//! armor slot is (the shipped revitalizing hand module carries the bonus the armor one lacks).
 use crate::{break_speed_hook::with_held_tool, tool_stack};
 use pluto_lib::{ActionTarget, EntityAction, ServerLivingEntityEvents, StackData};
 use std::{collections::BTreeMap, sync::Mutex};
 
-/// The armor each player (by entity id) wore at their last tick.
+/// The equipment (armor and held tools) each player (by entity id) carried at their last tick.
 static WORN: Mutex<BTreeMap<i32, Vec<(String, StackData)>>> = Mutex::new(BTreeMap::new());
 
 /// EquipmentChangeModifierHook.didChange over the stacks as the tick reports them: the item or the modifier list differs.
@@ -36,15 +37,16 @@ fn action(delta: f32) -> Option<EntityAction> {
 pub(crate) fn register() {
     ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
         let Ok(mut worn) = WORN.lock() else { return; };
-        let before = if tick.armor.is_empty() { worn.remove(&tick.entity) } else { worn.insert(tick.entity, tick.armor.clone()) };
+        let watched: Vec<(String, StackData)> = tick.armor.iter().chain(tick.hands.iter()).cloned().collect();
+        let before = if watched.is_empty() { worn.remove(&tick.entity) } else { worn.insert(tick.entity, watched.clone()) };
         let Some(before) = before else { return; };
         let mut actions = Vec::new();
-        for (slot, piece) in departed(&before, &tick.armor) {
+        for (slot, piece) in departed(&before, &watched) {
             if let Ok(delta) = with_held_tool(piece, |env, stack| tool_stack::update_health_delta(&stack.custom_data, env, slot, false)) {
                 actions.extend(action(delta));
             }
         }
-        for (slot, piece) in arrived(&before, &tick.armor) {
+        for (slot, piece) in arrived(&before, &watched) {
             if let Ok(delta) = with_held_tool(piece, |env, stack| tool_stack::update_health_delta(&stack.custom_data, env, slot, true)) {
                 actions.extend(action(delta));
             }

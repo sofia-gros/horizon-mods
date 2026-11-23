@@ -1599,8 +1599,12 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::InventorySlotMenu => {
             out.insert("tconstruct:slot_stack");
         }
-        Module::MaxArmorAttribute { .. } | Module::ArmorLevel { .. } | Module::ShowOffhand { .. } | Module::MobDisguise { .. }
+        Module::MaxArmorAttribute { .. } | Module::GoldenAttribute { .. } | Module::ArmorLevel { .. } | Module::ShowOffhand { .. } | Module::MobDisguise { .. }
         | Module::ClearEffectOnUnequip { .. } | Module::DamageOnUnequip { .. } | Module::ReduceEffectOnUnequip { .. } => {
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::LightspeedAttribute { .. } => {
+            out.insert("tconstruct:boot_walk");
             out.insert("tconstruct:equipment_change");
         }
         Module::Edible => {

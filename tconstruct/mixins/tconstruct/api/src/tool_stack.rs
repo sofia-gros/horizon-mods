@@ -464,6 +464,27 @@ pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crat
     })
 }
 
+/// Whether a worn armor piece carries a golden attribute module.
+pub(crate) fn has_golden_modules(nbt: &NbtCompound, env: &Environment) -> bool {
+    saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.golden_attribute_modules().next().is_some())
+}
+
+/// The (modifier, attribute, amount) claims a worn armor piece makes through golden attribute modules for a
+/// wearer with `total_gold` golden pieces, in modifier order.
+pub(crate) fn golden_amounts(nbt: &NbtCompound, env: &Environment, total_gold: i32) -> Vec<(Identifier, String, f64)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.golden_attribute_modules().filter_map(move |module| module.golden_amount(entry, facts, total_gold).map(|(attribute, amount)| (entry.id.clone(), attribute, amount))).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// The lightspeed modules a worn piece carries, each with its modifier's id and the entry's effective level,
+/// in modifier order.
+pub(crate) fn lightspeed(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, crate::wearer_modules::LightspeedAttribute, f32)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.lightspeed_attribute_modules().filter_map(move |module| module.lightspeed(entry, facts)).map(|(module, level)| (entry.id.clone(), module.clone(), level)).collect::<Vec<_>>()).collect()
+    })
+}
+
 /// The levels a worn armor piece adds under each armor level key, in modifier order; `slot` is the slot the piece is worn in.
 pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(Identifier, i32)> {
     let broken = is_broken(nbt);
