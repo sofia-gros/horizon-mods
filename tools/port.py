@@ -36,6 +36,14 @@ CONTENT_PATHS = (
     # walked by books.rs through the client resources; the two .nbt files are the structure templates of the book images folder.
     re.compile(r'assets/tconstruct/book(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|lang|png|nbt)'),
     re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The material swapping recipes of the station (swapping_recipes.rs): the tool swapping recipe of the
+    # tables tree and the fixed and material-value swapping recipes of the tools armor trees.
+    re.compile(r'data/tconstruct/recipes/tables/tool_material_swapping\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/armor(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The material render infos (the original's assets/tconstruct/tinkering/materials, imported verbatim):
+    # display color, fallbacks and sprite-generator coverage, decoded by material_render.rs through the
+    # client resources; a variant's file lives one folder below its material.
+    re.compile(r'assets/tconstruct/tinkering/materials(?:/[a-z0-9_]+)?/[a-z0-9_]+\.json'),
     # The part builder's damageable recycling recipes of the tables tree (the tools tree's are under recycling above).
     re.compile(r'data/tconstruct/recipes/tables/recycling(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The smeltery domain's melting, alloy, fuel, casting and molding recipes and the fluid tags they name (tools/import_original_data.py),
@@ -500,6 +508,10 @@ def checked_content(root, version):
                     reviewed = ('tconstruct:part_builder_tool_recycling', 'tconstruct:part_builder_recycling')
                 elif '/recipes/tables/recycling/' in name:
                     reviewed = ('tconstruct:part_builder_recycling',)
+                elif '/recipes/tables/' in name:
+                    reviewed = ('tconstruct:tool_material_swapping',)
+                elif '/recipes/tools/armor/' in name:
+                    reviewed = ('tconstruct:fixed_material_swapping', 'tconstruct:material_value_swapping')
                 else:
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
