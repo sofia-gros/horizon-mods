@@ -41,12 +41,15 @@ fn named_state(role: &str, name: &str) -> Result<Option<Identifier>, String> {
         "mantle:underwater" => "in_water",
         "tconstruct:airborne" => "airborne",
         "tconstruct:full_health" => "full_health",
-        // What a mob that hurt a wearer was doing is reported without its crouching and its eyes, so these are asked of the target (the wearer,
+        // What a mob that hurt a wearer was doing is reported without its crouching, so that is asked of the target (the wearer,
         // or what a weapon hit) only. The holder of a dig is the exception: the break-speed event reports the digging player's own eyes
         // and ground, so a condition over the holder as an entity (role `holder`, carried in the attacker slot) may ask them too.
         "mantle:crouching" if role == "target" || role == "holder" => "crouching",
-        "mantle:eyes_in_water" if role == "target" || role == "holder" => "eyes_in_water",
-        "mantle:feet_in_water" if role == "target" || role == "holder" => "feet_in_water",
+        // The water at the eyes and the feet is reported for the attacker too: the hurt report fills the attacker's eyes from the
+        // mob's own fluid state (as read_surroundings fills them for a weapon hit's parties), and the feet are answered from the
+        // water the mob stands in.
+        "mantle:eyes_in_water" if role == "target" || role == "holder" || role == "attacker" => "eyes_in_water",
+        "mantle:feet_in_water" if role == "target" || role == "holder" || role == "attacker" => "feet_in_water",
         // Rain on the entity is reported for both roles (read_surroundings fills it from the weather,
         // the sky light and the biome), unlike the crouching and eye facts above.
         "mantle:raining_at" => "raining",
@@ -114,8 +117,11 @@ impl TargetCondition {
     /// `role` is `attacker` or `target`: whose state the state conditions ask about; empty for none.
     pub(crate) fn decode_for(role: &str, value: Option<&Value>) -> Result<Option<Self>, String> {
         let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
-        // A bare string is a predicate type with no fields.
-        if let Some(name) = value.as_str() { return Ok(named_state(role, name)?.map(Self::Tag)); }
+        // A bare string is a predicate type with no fields; `mantle:any` is the one that asks nothing.
+        if let Some(name) = value.as_str() {
+            if name == "mantle:any" { return Ok(Some(Self::Any)); }
+            return Ok(named_state(role, name)?.map(Self::Tag));
+        }
         let Some(object) = value.as_object() else { return Ok(None); };
         let kind = object.get("type").and_then(Value::as_str).ok_or("target type missing")?;
         let list = || -> Result<Option<Vec<Self>>, String> {

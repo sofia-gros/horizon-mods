@@ -1234,14 +1234,14 @@ pub(crate) fn counter_actions(nbt: &NbtCompound, env: &Environment, in_tag: &dyn
     })
 }
 
-/// The mob effects a worn armor piece puts on the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and the
-/// pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
-pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
+/// The mob effects a worn armor piece puts on the mob that hit its wearer, in modifier order. `source` is the hit's damage; `in_tag`
+/// answers the entity type tags and the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
+pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut grants = Vec::new();
         for (entry, modifier) in saved {
             for module in modifier.counter_effect_modules() {
-                if let Some(grant) = module.counter_effect(entry, facts, in_tag, rolls) { grants.push(grant); }
+                if let Some(grant) = module.counter_effect(entry, facts, source, in_tag, rolls) { grants.push(grant); }
             }
         }
         grants

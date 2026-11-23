@@ -50,16 +50,22 @@ impl WeaponEffect {
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> { Self::decode_as(fields, false) }
 
     /// MobEffectModule.ArmorCounter: an armor piece that puts the effect on the mob that hit its wearer. The chance defaults to 15% a level,
-    /// `target` asks about the attacking mob, and the module stays unbound when it targets the wearer (`target_self`), conditions the
-    /// wearer or the damage source, or limits the direct damage: this port holds none of that for the wearer.
+    /// `target` asks about the attacking mob, and a `damage_source` condition is decoded like an armor attack's and checked against the
+    /// hurt report's damage source when the counter lands. The module stays unbound when it conditions the wearer (`holder`), limits the
+    /// direct damage to anything but always, or targets the wearer (`target_self`) with a `target` condition: this port holds none of
+    /// that for the wearer.
     pub(crate) fn decode_counter(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let present = |key: &str| fields.get(key).is_some_and(|value| !value.is_null());
-        if present("holder") || present("damage_source") { return Ok(None); }
+        if present("holder") { return Ok(None); }
         if fields.get("direct_damage").and_then(Value::as_str).is_some_and(|mode| mode != "always") { return Ok(None); }
+        let source = match fields.get("damage_source").filter(|value| !value.is_null()) {
+            None => crate::protection::SourceCondition::Any,
+            Some(value) => match crate::protection::SourceCondition::decode(value)? { Some(source) => source, None => return Ok(None) },
+        };
         let whom = if fields.get("target_self").and_then(Value::as_bool).unwrap_or(false) { Whom::Wearer } else { Whom::Attacker };
         // An effect on the wearer is not filtered by the target condition (the original repurposes `holder` for the attacker there).
         if whom == Whom::Wearer && present("target") { return Ok(None); }
-        Ok(Self::decode_as(fields, true)?.map(|module| Self { whom, ..module }))
+        Ok(Self::decode_as(fields, true)?.map(|module| Self { whom, source, ..module }))
     }
 
     /// MobEffectModule.ArmorAttack: armor that puts the effect on the mob its wearer hits. A melee hit by the wearer is direct damage of the
@@ -116,6 +122,13 @@ impl WeaponEffect {
     /// hit's damage; `in_tag` answers the entity tags and states as for `grant`.
     pub(crate) fn grant_armor_attack(&self, entry: &Entry, condition: bool, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<Grant> {
         if self.direct == Some(false) || !self.source.matches(source) { return None; }
+        self.grant(entry, condition, in_tag, rolls)
+    }
+
+    /// MobEffectModule.ArmorCounter.onAttacked for a hit the wearer took: the effect to put on the mob that dealt it (or on the
+    /// wearer, for `target_self`), or None. `source` is the hit's damage, which the original matches before the chance roll.
+    pub(crate) fn grant_counter(&self, entry: &Entry, condition: bool, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<Grant> {
+        if !self.source.matches(source) { return None; }
         self.grant(entry, condition, in_tag, rolls)
     }
 
@@ -290,8 +303,40 @@ mod tests {
         let revenge = counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"target_self":true,"chance":{"flat":1.0}})).unwrap();
         assert_eq!(revenge.whom(), Whom::Wearer, "an effect on the wearer is bound");
         assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"target_self":true,"target":"mantle:on_fire"})).is_none(), "a target condition on an effect for the wearer stays unbound");
-        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"damage_source":{"type":"mantle:attacker"}})).is_none(), "a damage source condition stays unbound");
+        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"damage_source":{"type":"mantle:attacker"}})).is_none(), "a damage source condition this port does not hold stays unbound");
+        assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"damage_source":{"type":"mantle:in_biome","biome":"minecraft:plains"}})).is_none(), "an unknown damage source predicate stays unbound");
         assert!(counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},"holder":"mantle:sprinting"})).is_none(), "a wearer condition stays unbound");
+    }
+
+    #[test]
+    fn a_bare_mantle_any_is_the_condition_that_asks_nothing() {
+        for role in ["attacker", "target"] {
+            assert_eq!(TargetCondition::decode_for(role, Some(&json!("mantle:any"))).unwrap(), Some(TargetCondition::Any), "{role}");
+        }
+        assert_eq!(TargetCondition::decode_for("target", Some(&json!({"type":"mantle:any"}))).unwrap(), Some(TargetCondition::Any), "the object form agrees");
+    }
+
+    #[test]
+    fn the_shipped_revenge_counter_binds_and_lands_on_the_wearer() {
+        // revenge: strength for 200 ticks a level on the wearer, whenever the entity that caused the hit is any entity at all.
+        let revenge = WeaponEffect::decode_counter(json!({"chance":{"flat":1.0},
+            "damage_source":{"type":"mantle:attacker","entity_type":"mantle:any","which":"causing"},
+            "direct_damage":"always","durability_usage":0,"effect":"minecraft:strength","level":{"flat":1.0},
+            "target_self":true,"time":{"per_level":200.0}}).as_object().unwrap()).unwrap().unwrap();
+        assert_eq!(revenge.whom(), Whom::Wearer);
+        let tags = melee_tags();
+        let mob_attack = Identifier::parse("minecraft:mob_attack").unwrap();
+        let hit = source(&mob_attack, &tags, &all_tags);
+        assert_eq!(revenge.grant_counter(&entry(1), true, &hit, &all_tags, &mut || 0.0), Some(Grant { effect: Identifier::parse("minecraft:strength").unwrap(), amplifier: 0, duration: 200 }));
+        assert_eq!(revenge.grant_counter(&entry(2), true, &hit, &all_tags, &mut || 0.0).unwrap().duration, 400, "200 ticks a level");
+        // A counter whose source condition asks about the causing entity lands only when that entity passes it.
+        let picky = WeaponEffect::decode_counter(json!({"effect":"minecraft:strength","level":{"flat":1.0},"time":{"flat":200.0},
+            "damage_source":{"type":"mantle:attacker","entity_type":"mantle:on_fire","which":"causing"}}).as_object().unwrap()).unwrap().unwrap();
+        let state_only = |tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE;
+        let burning = source(&mob_attack, &tags, &state_only);
+        assert!(picky.grant_counter(&entry(1), true, &burning, &all_tags, &mut || 0.0).is_some(), "the causing mob was on fire");
+        let calm = source(&mob_attack, &tags, &no_tags);
+        assert!(picky.grant_counter(&entry(1), true, &calm, &all_tags, &mut || 0.0).is_none(), "the causing mob was not on fire");
     }
 
     #[test]

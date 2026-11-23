@@ -42,6 +42,7 @@ fn pluto_player_hurt(game:&crate::game::Game<'_>,attacker:i32) {
         position:[mob.position.x,mob.position.y,mob.position.z],
         on_ground:mob.on_ground,
         in_water:mob.fluids.in_water,
+        eyes_in_water:mob.fluids.eye_in_water,
         fire_ticks:mob.fire_ticks,
         fire_immune:mob.kind.flags.fire_immune,
         effects:mob.extra.effects.iter().map(|effect| effect.0.to_string()).collect(),

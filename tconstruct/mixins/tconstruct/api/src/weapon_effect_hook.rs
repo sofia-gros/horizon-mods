@@ -45,6 +45,13 @@ pub(crate) fn register() {
             if tag.namespace() == melee_damage::STATE_NAMESPACE { return melee_damage::state_in_tag(tag, Some(&hit.attacker_state), None); }
             melee_hook::target_in_tag(entities.as_deref(), attacker.as_ref(), tag)
         };
+        // The hit's damage, for the counter modules that condition on its source. The hurt report does not work the damage type
+        // out, so the type stands as the generic one, which no tag names: a condition on the causing entity (its type tags and
+        // what it was doing, answered by `in_tag` and the reported state) is exact, which is the condition the shipped counters
+        // name; a condition on the type or its tags finds nothing, as for a state that was not reported. A mob's hit is direct.
+        let tags = crate::protection_hook::tags();
+        let damage_type = Identifier::parse(&hit.damage_type).unwrap_or_else(|_| Identifier::parse("minecraft:generic").unwrap());
+        let source = crate::protection::DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &in_tag, entities: crate::entity_facts::Entities { attacker: Some(&hit.attacker_state), target: None } };
         let mut actions = Vec::new();
         for (_, piece) in &hit.armor {
             // Fire, freezing and knockback against the attacker.
@@ -56,7 +63,7 @@ pub(crate) fn register() {
                     hit.counter_damage.borrow_mut().push(pluto_lib::CounterDamage { damage_type: hurt.damage_type.to_string(), amount: hurt.amount });
                 }
             }
-            let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::counter_effects(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) else { continue; };
+            let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::counter_effects(&stack.custom_data, env, &source, &in_tag, &mut tool_damage_hook::random)) else { continue; };
             for (whom, grant) in grants {
                 if grant.effect.namespace() != "minecraft" { continue; }
                 let grant = EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration };
