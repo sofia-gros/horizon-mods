@@ -170,6 +170,7 @@ mod glow_block;
 mod piggyback;
 mod config;
 mod recipe_conditions;
+mod recipe_removal;
 mod common;
 mod fancy_gadgets;
 mod advancements;

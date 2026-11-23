@@ -89,6 +89,10 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/(?:block|item|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
+    # The original's common fluid tag (its data/c/tags/fluids, imported by copy_hidden_fluid_tag):
+    # the fluids recipe viewers hide, referenced by tconstruct's hide_in_creative_tanks fluid tag.
+    # The port's tag kinds are singular, so it lands under data/c/tags/fluid.
+    re.compile(r'data/c/tags/fluid/hidden_from_recipe_viewers\.json'),
     # Gameplay advancements and the functions their internal advancements reward, converted by the importer
     # (display icons in the host's form); the starting book's advancement reward table rides with them.
     re.compile(r'data/tconstruct/advancement/(?:foundry|internal|smeltery|tools|world)/[a-z0-9_]+\.json'),

@@ -3534,6 +3534,16 @@ def copy_cobalt_tags():
             write_json(CONTENT_DATA / f'c/tags/{kind}/{path}.json', {'values': kept})
 
 
+def copy_hidden_fluid_tag():
+    """The original's common fluid tag (its data/c/tags/fluids/hidden_from_recipe_viewers.json):
+    the fluids recipe viewers hide, which tconstruct's own hide_in_creative_tanks fluid tag
+    references. The port's tag kinds are singular, so it lands in c/tags/fluid. The values are
+    the original's, verbatim: just molten soulsteel."""
+    src = GENERATED_DATA / 'c/tags/fluids/hidden_from_recipe_viewers.json'
+    entries = json.loads(src.read_text(encoding='utf-8'))['values']
+    write_json(CONTENT_DATA / 'c/tags/fluid/hidden_from_recipe_viewers.json', {'values': entries})
+
+
 LANG_SOURCE = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/lang'
 LANG_TARGET = ROOT / 'tconstruct/content/assets/tconstruct/lang'
 LANGUAGES = ['de_de', 'en_us', 'es_ar', 'es_cl', 'es_es', 'es_mx', 'fr_fr', 'id_id', 'it_it', 'ja_jp', 'ko_kr', 'lzh', 'pl_pl', 'pt_br', 'ru_ru', 'sv_se', 'tr_tr', 'uk_ua', 'zh_cn', 'zh_tw']
@@ -3756,6 +3766,7 @@ def main():
     write_slime_entities()
     world_tags = copy_vanilla_tags()
     copy_cobalt_tags()
+    copy_hidden_fluid_tag()
     part_names, part_models, part_textures = copy_part_assets()
     tool_names, tool_models, tool_textures, tools_left_out = copy_tool_assets()
     worn_textures, worn_rows = copy_armor_worn_assets()
