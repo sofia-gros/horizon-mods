@@ -1698,6 +1698,22 @@ kind = "HEAD"
 require = 1
 helper = "pluto-damage-dragon.rs"
 bindings = [{ name = "dragon", ty = "&Dragon", value = "&*self" }]
+# The frame's celestial bodies are built: the mods' dynamic sky layers are asked for their quads
+# (bright stars that twinkle, and the dark patches), and a layer may drop the vanilla star frame.
+[[module]]
+id = "pluto-sky-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_sky_access"
+source = "pluto-sky-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-sky-celestial"
+target = "horizon_client::game::frame_geometry::Game<'_>::celestial_geometry"
+kind = "RETURN"
+helper = "pluto-sky-celestial.rs"
+bindings = [{ name = "value", ty = "(Vec<horizon_client::mesher::Vertex>, Option<(glam::Mat4, f32)>)", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "sky", ty = "&horizon_client::environment::Sky", value = "sky" }, { name = "rain", ty = "f32", value = "rain" }]
+
 
 # A mob works out how far it sees the player (sneaking, invisibility, worn heads): the mods scale that range for the kind of mob that is looking.
 [[module]]
