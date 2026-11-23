@@ -298,7 +298,7 @@ fn the_sky_slimes_bounce_and_the_head_cap_follow_the_original() {
     assert!(sky_fall(&CauseFallDamageContext { suppressing_bounce: true, ..fall(10.0, [0.0, -2.0, 0.0]) }).is_none(), "the suppressing branch is declined for mobs");
     // The head drop cap: above 0.25 with size over 1 caps to 0.25; at size 1 the chance stands.
     let chance = |size: Option<i32>, chance: f32| EquipmentDropChanceContext {
-        entity_type: Identifier::parse("tconstruct:sky_slime").unwrap(), slot: "head".into(), slime_size: size, chance,
+        entity_type: Identifier::parse("tconstruct:sky_slime").unwrap(), slot: "head".into(), slime_size: size, chance, looting: 0,
     };
     assert_eq!(head_drop_chance(&chance(Some(4), 2.0)), Some(0.25));
     assert_eq!(head_drop_chance(&chance(Some(1), 2.0)), None);
@@ -385,8 +385,8 @@ fn the_placement_predicates_follow_the_originals_rules() {
 
 #[test]
 fn teleport_destinations_and_the_civil_calendar_match_their_sources() {
-    assert_eq!(teleport_destination([100.0, 70.0, -50.0], 0.5, 0, 0.5), [100.0, 70.0, -50.0]);
-    assert_eq!(teleport_destination([0.0, 70.0, 0.0], 0.0, 300, 1.0), [-8.0, 320.0, 8.0], "the vertical clamps to the build range");
+    assert_eq!(teleport_destination([100.0, 70.0, -50.0], "minecraft:overworld", 0.5, 0, 0.5), [100.0, 70.0, -50.0]);
+    assert_eq!(teleport_destination([0.0, 70.0, 0.0], "minecraft:overworld", 0.0, 300, 1.0), [-8.0, 320.0, 8.0], "the vertical clamps to the build range");
     assert_eq!(civil_from_days(0), (1970, 1, 1));
     assert_eq!(civil_from_days(19723), (2024, 1, 1));
     assert_eq!(civil_from_days(20089), (2025, 1, 1));
