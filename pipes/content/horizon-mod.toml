@@ -1,0 +1,7 @@
+id = "pipes"
+name = "Pipes content"
+version = "0.0.1"
+api = "0.2"
+side = "both"
+capabilities = ["registries"]
+namespaces = ["pipes"]
