@@ -28,8 +28,10 @@
 //!   take no clicks: the host's menu model binds container slots to the opened block entity or to
 //!   linked block containers only, so swapping a worn piece still happens in the inventory
 //!   window. A neighbour's items are not carried either.
-//! - The armor stand preview does not carry over: the host's scene drawing draws blocks and block
-//!   entities only, never entities, and the stand is an entity.
+//! - The armor stand preview is drawn through PlutoLib's living preview (the host's own
+//!   screen-preview path for a stand, the smithing screen's), wearing or holding the staged
+//!   result. It stands at the original's anchor; the original turns it with the mouse and
+//!   drops it when the layout list grows past six rows, neither of which is carried here.
 //! - The rename field edits on the client, but the name is never applied to the crafted tool: a
 //!   screen has no channel that carries text to the block entity (menu buttons carry an id alone,
 //!   and a stack's name is not a field a slot carries), where the original's field writes the
@@ -49,7 +51,7 @@ use crate::{
 use std::sync::{Arc, Mutex};
 
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, EquipmentSlotKind, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
+    BlockEntityType, BlockEntityTypeRegistry, EquipmentSlotKind, I18n, Identifier, ItemSlot, LivingPreview, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
     ScreenCanvas, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction, SlotClick,
 };
 
@@ -361,6 +363,14 @@ fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icon
     let ((caption, lines), (caption2, lines2)) = panel_content(draw.items, input_count + 1, active_full as usize);
     draw_info_panel(canvas, [ox + 178.0, oy + 15.0], &caption, &lines);
     draw_info_panel(canvas, [ox + 178.0, oy + 15.0 + PANEL_SIZE.1 + 4.0], &caption2, &lines2);
+    // The armor stand preview left of the window, wearing or holding what the station would
+    // produce (the staged result, else the tool in the tool slot), as the original's screen
+    // draws it (TinkerStationScreen: setupArmorStandPreview(-55, 195, 35); the box's foot
+    // stands at the anchor's y, its head 70 above it).
+    let shown = draw.items.get(input_count + 1).cloned().flatten().or_else(|| draw.items.first().cloned().flatten());
+    if let Some(item) = shown {
+        canvas.living([ox - 55.0, oy + 125.0, ox - 5.0, oy + 195.0], &LivingPreview::armor_stand(item));
+    }
 }
 
 /// An item's display name: its `item.` (or `block.`) translation, else its path as words.

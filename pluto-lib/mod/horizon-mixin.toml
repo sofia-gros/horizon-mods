@@ -1623,6 +1623,29 @@ kind = "RETURN"
 helper = "dynamic-screen-slots-data-update.rs"
 bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
+# Living-entity previews in mod screens: a screen's draw queues them (it holds only the
+# frame's batch), and the flush after the draw renders them with the game at hand.
+[[module]]
+id = "pluto-living-preview-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_living_preview"
+source = "pluto-living-preview-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-living-preview"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_living_preview"
+source = "pluto-living-preview.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-living-preview-flush"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_draw"
+kind = "RETURN"
+helper = "pluto-living-preview-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "batch" }]
+
 # Pinned Persistent::worker installs saved structure starts in every dimension.
 # Keep make_streaming native; the former dimension replacement is not attached.
 

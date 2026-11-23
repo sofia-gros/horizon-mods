@@ -15,8 +15,9 @@
 //! mapping (`tinkering/modifier_icons.json`, shipped with its `gui/modifiers` sprites): one or
 //! more atlas sprites layered at 16x16, and the default pages and cover for a modifier with no
 //! entry (the cover is drawn untinted; the original tints it with the modifier's colour, which
-//! the registry here does not carry). What is not ported: the armor stand preview (the host
-//! draws no entities in a screen; see the station's note).
+//! the registry here does not carry). The armor stand preview is drawn through PlutoLib's
+//! living preview (see the station's note), at the original's anchor
+//! (ModifierWorktableScreen: setupArmorStandPreview(-55, 134, 50)).
 use crate::{
     common, enchantment_converting, modifier_removal,
     station_menu::take_with,
@@ -397,6 +398,13 @@ pub(crate) fn register() {
             let (first, second) = panels(draw.items, selected_modifier);
             crate::station_menu::draw_info_panel(draw.canvas, [draw.origin[0] + 178.0, draw.origin[1] + 11.0], &first.0, &first.1);
             crate::station_menu::draw_info_panel(draw.canvas, [draw.origin[0] + 178.0, draw.origin[1] + 98.0], &second.0, &second.1);
+            // The armor stand preview left of the window, wearing or holding the staged result
+            // (else the tool in the tool slot), at the original's anchor: the box's foot stands
+            // at the anchor's y (134), its head 70 above it.
+            let shown = draw.items.get(RESULT_SLOT).cloned().flatten().or_else(|| draw.items.get(TOOL_SLOT).cloned().flatten());
+            if let Some(item) = shown {
+                draw.canvas.living([draw.origin[0] - 55.0, draw.origin[1] + 64.0, draw.origin[0] - 5.0, draw.origin[1] + 134.0], &pluto_lib::LivingPreview::armor_stand(item));
+            }
         })
         .on_scroll(move |event| {
             let count = event.data.get(1).copied().unwrap_or(0).max(0) as usize;

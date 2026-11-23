@@ -49,7 +49,7 @@ pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableE
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
 pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, InventoryTick, KeyPress, MemoryPlayerOps, PlayerInventoryEvents, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
 pub use crate::pure::screen_handler_api_v1::{
-    self, ContainerAccept, EquipmentSlotKind, MenuButton, MenuAccess, SceneBlock, SceneEntity, SceneView, SlotAction, SlotClick, SlotSource, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenScroll, ScreenTooltip, SlotRule,
+    self, ContainerAccept, EquipmentSlotKind, LivingPreview, MenuButton, MenuAccess, SceneBlock, SceneEntity, SceneView, SlotAction, SlotClick, SlotSource, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenScroll, ScreenTooltip, SlotRule,
 };
 pub use crate::pure::hud_api_v1::{self, HudDraw, HudEquipment, HudRegistry};
 pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, TradeOfferFactory, TradeOfferContext, TradeRandom, TradeWorld};

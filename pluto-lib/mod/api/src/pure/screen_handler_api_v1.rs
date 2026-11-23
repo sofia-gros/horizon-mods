@@ -50,6 +50,46 @@ pub trait ScreenCanvas {
     fn scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView) {
         let _ = (rect, blocks, view);
     }
+    /// Draws a living entity's preview into `rect` (`[x0, y0, x1, y1]` corner coordinates, as
+    /// [`ScreenCanvas::scene`] takes): the figure [`LivingPreview`] names, wearing or holding
+    /// its item, as the smithing screen draws its preview stand. The default draws nothing: a
+    /// canvas with no living reach (a test's recording canvas, a server) simply skips it.
+    fn living(&mut self, rect: [f32; 4], preview: &LivingPreview) {
+        let _ = (rect, preview);
+    }
+}
+
+/// A living entity drawn as a screen preview (the station windows' armor stand, wearing the
+/// piece being made): which entity it is, the one item it wears or holds, and how the figure
+/// stands. The host places the item by the item's own equipment slot, exactly as its smithing
+/// screen's preview does — a worn piece on its part of the figure, anything else in the left
+/// hand. Today the host has a renderer for the armor stand only; another `kind` draws nothing.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LivingPreview {
+    /// The entity type drawn, such as `minecraft:armor_stand`.
+    pub kind: Identifier,
+    /// The item the figure wears or holds, if any.
+    pub item: Option<ItemSlot>,
+    /// The figure's turn, in degrees.
+    pub yaw: f32,
+    /// Whether an armor stand figure shows its arms.
+    pub arms: bool,
+    /// Whether an armor stand figure shows its base plate.
+    pub base_plate: bool,
+}
+
+impl LivingPreview {
+    /// An armor stand preview holding or wearing `item`, standing as the smithing screen's
+    /// preview stand stands: turned to 210 degrees, arms shown, no base plate.
+    pub fn armor_stand(item: ItemSlot) -> Self {
+        Self {
+            kind: Identifier::parse("minecraft:armor_stand").expect("valid entity id"),
+            item: Some(item),
+            yaw: 210.0,
+            arms: true,
+            base_plate: false,
+        }
+    }
 }
 
 /// One block of a scene drawn by [`ScreenCanvas::scene`]: its state, where it stands in the scene's own
@@ -839,6 +879,17 @@ mod tests {
         assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
         let view = SceneView::default();
         assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45.0, 30.0, 16.0));
+    }
+
+    #[test]
+    fn a_canvas_without_a_living_reach_skips_a_living_preview() {
+        let mut canvas = Recorder::default();
+        let preview = LivingPreview::armor_stand(ItemSlot::new(Identifier::parse("minecraft:iron_chestplate").unwrap(), 1));
+        assert_eq!(preview.kind.to_string(), "minecraft:armor_stand");
+        assert_eq!((preview.yaw, preview.arms, preview.base_plate), (210.0, true, false), "the smithing preview stand's stance");
+        // The default living draw is a no-op: nothing is recorded and nothing panics.
+        canvas.living([0.0, 0.0, 50.0, 70.0], &preview);
+        assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
     }
 
     #[test]

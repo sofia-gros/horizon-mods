@@ -2981,6 +2981,26 @@ impl ScreenCanvas for HostCanvas<'_> {
             scale: view.scale,
         });
     }
+
+    fn living(&mut self, rect: [f32; 4], preview: &screen_handler_api_v1::LivingPreview) {
+        // The batch a screen draws into has no living-entity reach of its own: the request is
+        // queued with the host module, whose flush at the end of the screen's draw renders it
+        // with the game's own preview path (the smithing screen's stand) while the game, not
+        // just the batch, is at hand.
+        let item = preview.item.as_ref().map(|slot| {
+            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+            write_slot(&mut stack, slot);
+            stack
+        });
+        horizon_client::game::pluto_living_preview::queue(horizon_client::game::pluto_living_preview::QueuedPreview {
+            rect,
+            kind: preview.kind.to_string(),
+            item,
+            yaw: preview.yaw,
+            arms: preview.arms,
+            base_plate: preview.base_plate,
+        });
+    }
 }
 
 fn model_config(file: &NativeConfigFile) -> ModConfig {
