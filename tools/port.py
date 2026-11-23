@@ -37,10 +37,14 @@ CONTENT_PATHS = (
     # The books' Mantle data (tools/import_original_data.py): index, appearance, section files, per-language pages and images,
     # walked by books.rs through the client resources; the two .nbt files are the structure templates of the book images folder.
     re.compile(r'assets/tconstruct/book(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|lang|png|nbt)'),
-    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|building|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The material swapping recipes of the station (swapping_recipes.rs): the tool swapping recipe of the
     # tables tree and the fixed and material-value swapping recipes of the tools armor trees.
     re.compile(r'data/tconstruct/recipes/tables/tool_material_swapping\.json'),
+    # The tinker station's own table recipes (table_recipes.rs, damaging.rs): part swapping for tools,
+    # throwing weapons and ammo, station repair, and the damaging recipes of the damaging folder.
+    re.compile(r'data/tconstruct/recipes/tables/(?:ammo_part_swapping|throwing_axe_part_swapping|tinker_station_part_swapping|tinker_station_repair)\.json'),
+    re.compile(r'data/tconstruct/recipes/tables/tinker_station_damaging/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/recipes/tools/armor(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The material render infos (the original's assets/tconstruct/tinkering/materials, imported verbatim):
     # display color, fallbacks and sprite-generator coverage, decoded by material_render.rs through the
@@ -511,19 +515,23 @@ def checked_content(root, version):
                 continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
-                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
+                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting', 'tconstruct:armor_dyeing_modifier', 'tconstruct:modifier_repair', 'tconstruct:extract_modifier', 'tconstruct:modifier_set_worktable', 'tconstruct:modifier_sorting', 'tconstruct:toggle_interaction')
                 elif '/recipes/tools/parts/builder/' in name:
                     # part_builder_recipes.rs reads both kinds from this folder: the part recipes
                     # and the item part recipes (elytra_copying, the building folder's one).
                     reviewed = ('tconstruct:part_builder', 'tconstruct:item_part_builder')
                 elif '/recipes/tools/severing/' in name:
                     reviewed = ('tconstruct:severing',)
+                elif '/recipes/tools/building/' in name:
+                    # table_recipes.rs reads both kinds from this folder: the tool building recipes
+                    # and the tipped transform that turns a vanilla arrow into a tipped one.
+                    reviewed = ('tconstruct:tool_building', 'tconstruct:tipped_tool_transform')
                 elif '/recipes/tools/recycling/' in name:
                     reviewed = ('tconstruct:part_builder_tool_recycling', 'tconstruct:part_builder_recycling')
                 elif '/recipes/tables/recycling/' in name:
                     reviewed = ('tconstruct:part_builder_recycling',)
                 elif '/recipes/tables/' in name:
-                    reviewed = ('tconstruct:tool_material_swapping',)
+                    reviewed = ('tconstruct:tool_material_swapping', 'tconstruct:tinker_station_part_swapping', 'tconstruct:tinker_station_repair', 'tconstruct:tinker_station_damaging')
                 elif '/recipes/tools/armor/' in name:
                     reviewed = ('tconstruct:fixed_material_swapping', 'tconstruct:material_value_swapping')
                 else:
