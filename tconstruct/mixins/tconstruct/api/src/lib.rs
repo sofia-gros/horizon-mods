@@ -98,6 +98,7 @@ mod smelting_hook;
 mod strong_bones_hook;
 mod severing;
 mod severing_hook;
+mod loot_injectors;
 mod loot_modifiers;
 mod loot_modifier_hook;
 mod melee_hook;
@@ -252,6 +253,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     smelting_hook::register();
     severing_hook::register();
     loot_modifier_hook::register();
+    loot_injectors::register_hooks();
     effect_immunity_hook::register();
     unequip_hook::register();
     update_health_hook::register();

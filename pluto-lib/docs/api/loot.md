@@ -112,7 +112,7 @@ assert_eq!(profile.uuid, 42);
 
 ### `LootFunctionContext`
 
-A loot function of a mod's own kind being applied to one stack: a loot table entry named a `modifier` whose `type` is not one of the game's (such as `mantle:fill_retextured_block`). `kind` is that type, `data` the function's own JSON beside `type`, `origin` and `dimension` where the table rolled, `block_entity` the block entity the broken block had (its saved data, id and position included; a mod's block entity carries its own data in it), and `stack` the stack to change in place. Away from a broken block the place fields are `None`.
+A loot function of a mod's own kind being applied to one stack: a loot table entry named a `modifier` whose `type` is not one of the game's (such as `mantle:fill_retextured_block`). `kind` is that type, `data` the function's own JSON beside `type`, `origin` and `dimension` where the table rolled, `seed` a seed from the roll's random for a mod's own draws, `block_entity` the block entity the broken block had (its saved data, id and position included; a mod's block entity carries its own data in it), and `stack` the stack to change in place. Away from a broken block the place fields are `None`.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, LootFunctionContext, LootTableEvents, Nbt};
@@ -124,7 +124,7 @@ LootTableEvents::FUNCTION.register(|c| {
         c.stack.borrow_mut().custom_data.insert("marker".into(), Nbt::String("example:stone".into()));
     }
 });
-let context = LootFunctionContext { kind: "example:fill_marker".into(), data: json!({}), origin: None, dimension: None,
+let context = LootFunctionContext { kind: "example:fill_marker".into(), data: json!({}), origin: None, dimension: None, seed: 0,
     block_entity: None, stack: RefCell::new(ItemSlot::new(Identifier::parse("example:rock").unwrap(), 1)) };
 LootTableEvents::FUNCTION.invoke(&context);
 assert_eq!(context.stack.borrow().custom_data.get("marker"), Some(&Nbt::String("example:stone".into())));

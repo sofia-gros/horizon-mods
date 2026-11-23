@@ -76,6 +76,9 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/loot_table/entities/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
     # Global loot modifiers and the list that orders them (the list keeps its Forge-era folder).
     re.compile(r'data/tconstruct/loot_modifiers/(?:lustrous/)?[a-z0-9_]+\.json'), re.compile(r'data/forge/loot_modifiers/global_loot_modifiers\.json'),
+    # Mantle loot injectors (tools/import_original_data.py): the entries merged into vanilla tables
+    # at load, with their top-level conditions evaluated against the live config.
+    re.compile(r'data/tconstruct/mantle/loot_injectors/[a-z0-9_]+\.json'),
     # Slime islands (tools/import_original_data.py): the island structures and their sets, the island biome tags the
     # structures name, and the binary NBT templates the repalleter produced (payloads are not JSON; shape only).
     # Each template ships twice: the original's plural `structures/` folder and, byte-identical, the singular

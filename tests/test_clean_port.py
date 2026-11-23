@@ -121,6 +121,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/lib.rs',
                 'mixins/tconstruct_native/api/src/lifesteal.rs',
                 'mixins/tconstruct_native/api/src/lifesteal_hook.rs',
+                'mixins/tconstruct_native/api/src/loot_injectors.rs',
                 'mixins/tconstruct_native/api/src/loot_modifier_hook.rs',
                 'mixins/tconstruct_native/api/src/loot_modifiers.rs',
                 'mixins/tconstruct_native/api/src/material_recipes.rs',

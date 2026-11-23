@@ -12,12 +12,12 @@
 //!   The other props' only original data users are files the host loads itself, whose
 //!   conditions cannot name a config value: gravel_to_flint, glass_recipe_fix and
 //!   slime_recipe_fix are recipe-level conditions on host crafting recipes, spawn_with_book
-//!   conditions the starting-book advancement, and slimy_loot_chests conditions Mantle loot
-//!   injectors. The converted content ships those recipes with the condition stripped and
-//!   the advancement unwrapped, and no loot-injector data ships at all: the host's
-//!   recipe/advancement condition vocabulary is the closed neoforge set (an unknown type
-//!   never loads) and PlutoLib has no seam into host data loading, so those files load
-//!   unconditionally here; the props stay parsed and evaluable for any data the port
+//!   conditions the starting-book advancement, and slimy_loot_chests conditions the Mantle loot
+//!   injectors, which the port ships and evaluates at table load (loot_injectors.rs). The
+//!   converted content ships those recipes with the condition stripped and the advancement
+//!   unwrapped: the host's recipe/advancement condition vocabulary is the closed neoforge set
+//!   (an unknown type never loads) and PlutoLib has no seam into host data loading, so those
+//!   files load unconditionally here; the props stay parsed and evaluable for any data the port
 //!   itself loads.
 //! - repairKitAmount: RepairKitItem.getRepairAmount and CraftingTableRepairKitRecipe ->
 //!   station_menu.rs reads `repair_kit_amount()`.

@@ -90,6 +90,7 @@
     "api/src/block_break_hook.rs",
     "api/src/severing.rs",
     "api/src/severing_hook.rs",
+    "api/src/loot_injectors.rs",
     "api/src/loot_modifiers.rs",
     "api/src/loot_modifier_hook.rs",
     "api/src/damage_tags.rs",
