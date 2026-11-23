@@ -166,7 +166,7 @@ pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Opt
         if let Some(recipe) = sortings.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag) {
             let buttons: Vec<Identifier> = recipe.options(tool).into_iter().take(MAX_BUTTONS).collect();
             let selected_index = selected.and_then(|name| buttons.iter().position(|button| button.to_string() == name));
-            let first_empty = inputs.first().copied().flatten().is_none();
+            let first_empty = inputs.first().cloned().flatten().is_none();
             let result = selected_index.and_then(|index| recipe.result(tool, &buttons[index], first_empty));
             return Computation { buttons, selected: selected_index, result, leftovers: Vec::new(), conversion: None, extract: None, set: None, toggle: None, sort: true };
         }
