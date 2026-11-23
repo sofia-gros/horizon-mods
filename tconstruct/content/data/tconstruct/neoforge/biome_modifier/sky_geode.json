@@ -1,6 +1,6 @@
 {
   "type": "neoforge:add_features",
-  "biomes": "#minecraft:is_overworld",
+  "biomes": "#tconstruct:has_sky_geode",
   "features": "tconstruct:sky_geode",
   "step": "local_modifications"
 }

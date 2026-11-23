@@ -127,10 +127,16 @@ fn the_shipped_spawn_modifiers_spawn_the_slimes_where_the_original_spawns_them()
     assert_eq!(overworld["type"], "neoforge:add_spawns");
     assert_eq!(overworld["biomes"], "#minecraft:is_overworld");
     assert_eq!(overworld["spawners"], serde_json::json!([{"type": "tconstruct:sky_slime", "weight": 100, "minCount": 2, "maxCount": 4}]));
-    // The terracube's predicate is widened to the overworld tag (the module documentation records why).
+    // The terracube's predicate (the overworld minus the forge:no_default_monsters biomes) ships expanded
+    // as the terracube_spawns biome tag: every overworld biome but the mushroom fields and the deep dark.
     let terracube = modifier("spawn_terracube");
     assert_eq!(terracube["type"], "neoforge:add_spawns");
-    assert_eq!(terracube["biomes"], "#minecraft:is_overworld");
+    assert_eq!(terracube["biomes"], "#tconstruct:terracube_spawns");
+    let spawns = content("tconstruct/tags/worldgen/biome/terracube_spawns.json");
+    let values: Vec<&str> = spawns["values"].as_array().unwrap().iter().map(|value| value.as_str().unwrap()).collect();
+    assert_eq!(values.len(), 54);
+    assert!(values.contains(&"minecraft:beach"), "beaches keep their terracubes");
+    assert!(!values.contains(&"minecraft:mushroom_fields") && !values.contains(&"minecraft:deep_dark"));
     assert_eq!(terracube["spawners"], serde_json::json!([{"type": "tconstruct:terracube", "weight": 10, "minCount": 2, "maxCount": 4}]));
     let end = modifier("spawn_end_slime");
     assert_eq!(end["type"], "neoforge:add_spawns");
