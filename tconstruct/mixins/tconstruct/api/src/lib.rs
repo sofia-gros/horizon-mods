@@ -157,6 +157,7 @@ mod advancements;
 mod shaped_materials;
 mod swapping_recipes;
 mod material_render;
+mod crafting_repair;
 mod commands;
 mod particles;
 mod aoe;
@@ -235,6 +236,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     advancements::register();
     shaped_materials::register();
     material_render::register();
+    crafting_repair::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()

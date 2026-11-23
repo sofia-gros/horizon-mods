@@ -1,5 +1,5 @@
 // Read-only admission and provider assembly before the native matching/assembly body.
-use super::{Input, ItemStack, Recipe};
+use super::{Context, Input, ItemStack, Recipe, Recipes};
 use crate::pluto_component_view::ItemFacts;
 use horizon_world::nbt::Tag;
 use pluto_inventory_api::{
@@ -7,6 +7,7 @@ use pluto_inventory_api::{
     crafting::{
         assembly::{self, Outcome as AssemblyOutcome},
         matching::{self, InputFacts, Outcome, RecipeFacts, Request, TemplateFacts},
+        special,
     },
     recipe_book::placement::{Form, Ingredient},
 };
@@ -131,4 +132,57 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Verdict {
         }
     }
     Verdict::Native
+}
+
+/// The find_with HEAD fill for special recipes: the native scan runs
+/// first here (a native match always stands, so the caller continues into
+/// the real body and recomputes it), and only a native miss reaches the
+/// providers. None continues natively; Some(result) breaks with the
+/// providers' answer, itself None when no provider matches.
+pub fn evaluate_special(
+    recipes: &Recipes,
+    grid: &[Option<ItemStack>],
+    size: usize,
+    map_scale: &dyn Fn(i32) -> Option<u8>,
+) -> Option<Option<(&str, ItemStack)>> {
+    if !special::has_providers() {
+        return None;
+    }
+    let input = Input::of(grid, size)?;
+    let ctx = Context { recipes, map_scale };
+    for (_, recipe) in &recipes.crafting {
+        if Recipes::assemble_if_matches(&ctx, &input, recipe).is_some() {
+            return None;
+        }
+    }
+    let captures: Vec<_> = input
+        .cells
+        .iter()
+        .map(|cell| cell.map(ItemFacts::capture))
+        .collect();
+    let cells: Vec<_> = captures
+        .iter()
+        .map(|cell| cell.as_ref().map(ItemFacts::view))
+        .collect();
+    let facts = InputFacts {
+        width: input.width,
+        height: input.height,
+        left: input.left,
+        top: input.top,
+        cells: &cells,
+    };
+    let Some((name, spec)) = special::evaluate(&facts) else {
+        return Some(None);
+    };
+    let stack = ItemStack {
+        item: spec.item.into(),
+        count: spec.count,
+        damage: spec.damage,
+        extra: None,
+    };
+    let stack = match spec.custom_data {
+        Some(data) => with_custom_data(stack, data),
+        None => stack,
+    };
+    Some(Some((name, stack)))
 }

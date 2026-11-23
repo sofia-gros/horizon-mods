@@ -645,6 +645,16 @@ cancellable = true
 helper = "crafting-match-veto.rs"
 bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
 
+# Special recipes: a native miss in the grid lookup reaches the registered
+# special-recipe providers; a native match is returned unchanged.
+[[injection]]
+id = "crafting-special"
+target = "horizon_client_lib::crafting::Recipes::find_with"
+kind = "HEAD"
+cancellable = true
+helper = "crafting-special.rs"
+bindings = [{ name = "recipes", ty = "&Recipes", value = "self" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }, { name = "map_scale", ty = "&dyn Fn(i32) -> Option<u8>", value = "map_scale" }]
+
 # Derived render bindings have lower-layer ownership and no gameplay dependency.
 [[module]]
 id = "terrain-bindings"

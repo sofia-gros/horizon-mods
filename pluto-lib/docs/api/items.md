@@ -1102,3 +1102,103 @@ use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snaps
 publish_tag_snapshot("example:docs", TagSnapshot::new());
 assert!(tag_snapshots().iter().any(|(owner, snapshot)| owner == "example:docs" && snapshot.is_empty()));
 ```
+
+## Stacked-on-other clicks
+
+A carried stack can answer clicks onto other stacks itself — the game's `overrideStackedOnOther` shape, as a bundle answers clicks onto items. Register the behaviour for the carried item with `StackedOnOtherRegistry`: the dispatch runs in every menu, including the game's own inventory and container menus, before the game's bundle handling, exactly where the game asks the carried item first. The callback decides from the two stacks: pass (the game's own click handling runs), consume (the click is taken with no stack change), or apply — both stacks are replaced and an optional sound event is played to the player. Menu sounds carry only their event id, so volume and pitch are the game's own.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest};
+
+fn consume(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Consume }
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), consume);
+let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: true, allow_modification: true };
+assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
+```
+
+### `StackedOnOtherRequest`
+
+A click of the carried stack onto another stack in a menu: `carried` is the stack in the player's hand (the registered item), `clicked` the stack in the clicked slot (None when the slot is empty), `secondary` is true for the secondary (right) click and false for the primary, and `allow_modification` is whether the clicked slot allows modification by this player (the game's own `Slot.allowModification` answer).
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+use pluto_lib::item_api_v1::StackedOnOtherRequest;
+
+let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 2);
+let clicked = ItemSlot::new(Identifier::new("example", "tool").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: false };
+assert!(request.secondary);
+assert!(!request.allow_modification);
+assert_eq!(request.clicked.map(|slot| slot.count), Some(1));
+```
+
+### `StackedOnOtherDecision`
+
+What the carried item does with the click: `Pass` leaves the game's own click handling to run; `Consume` takes the click with no stack change; `Apply` takes the click and replaces both stacks — `clicked` is the clicked slot's new stack (None empties it), `carried` the carried stack (None empties the hand), and `sound` a sound event id played to the player.
+
+```rust
+use pluto_lib::item_api_v1::StackedOnOtherDecision;
+
+let decision = StackedOnOtherDecision::Apply { clicked: None, carried: None, sound: Some("example:saw") };
+assert!(matches!(decision, StackedOnOtherDecision::Apply { sound: Some("example:saw"), .. }));
+assert!(matches!(StackedOnOtherDecision::Pass, StackedOnOtherDecision::Pass));
+assert!(matches!(StackedOnOtherDecision::Consume, StackedOnOtherDecision::Consume));
+```
+
+### `StackedOnOtherCallback`
+
+`type StackedOnOtherCallback = fn(&StackedOnOtherRequest<'_>) -> StackedOnOtherDecision`. Decides one click of the carried stack it is registered for.
+
+```rust
+use pluto_lib::item_api_v1::{StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRequest};
+
+fn pass(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Pass }
+let callback: StackedOnOtherCallback = pass;
+let carried = pluto_lib::ItemSlot::new(pluto_lib::Identifier::new("example", "kit").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: false, allow_modification: true };
+assert!(matches!(callback(&request), StackedOnOtherDecision::Pass));
+```
+
+### `StackedOnOtherRegistry`
+
+The registry of stacked-on-other behaviours, keyed by the carried item. Register once during startup; registering the same item again replaces the earlier entry.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest};
+
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Consume);
+let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: true, allow_modification: true };
+assert!(StackedOnOtherRegistry::get("example:kit").is_some());
+assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
+assert!(StackedOnOtherRegistry::get("example:other").is_none());
+```
+
+### `StackedOnOtherRegistry::register`
+
+`fn register(item: Identifier, callback: StackedOnOtherCallback)`. Makes `item` answer clicks of its carried stacks onto other stacks; registering the same item again replaces the earlier entry.
+
+```rust
+use pluto_lib::Identifier;
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry};
+
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Pass);
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Consume);
+assert!(StackedOnOtherRegistry::get("example:kit").is_some());
+```
+
+### `StackedOnOtherRegistry::get`
+
+`fn get(item: &str) -> Option<StackedOnOtherCallback>`. The callback registered for `item` (an id such as `tconstruct:repair_kit`), if anything.
+
+```rust
+use pluto_lib::Identifier;
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry};
+
+assert!(StackedOnOtherRegistry::get("example:kit").is_none());
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Pass);
+assert!(StackedOnOtherRegistry::get("example:kit").is_some());
+```

@@ -15,7 +15,11 @@ RULES = [
             return Ok(());
         }
         let size = self.slots.len() as i32;
-        let in_range = |i: i32| (0..size).contains(&i);''')],
+        let in_range = |i: i32| (0..size).contains(&i);'''),
+            # The carried stack's stacked-on-other override is asked before
+            # the bundle handling inside a pickup, as the game asks the
+            # carried item first; a consumed click skips both.
+            ('''        if !self.bundle_click(env, s, primary) {''', '''        if !pluto_menu_actions::stacked_on_other(self, env, s, primary) && !self.bundle_click(env, s, primary) {''')],
     },
     {
         'id': 'pluto-menu-actions-local',

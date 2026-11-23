@@ -412,3 +412,104 @@ assert!(prepare_assembly(&facts).is_some());
 let other = RecipeFacts { result_item: Some("minecraft:apple"), ..facts };
 assert!(prepare_assembly(&other).is_none());
 ```
+
+## Special recipes
+
+A special recipe's result depends on the grid's concrete stacks — their materials, damage or saved data — so it has no fixed result template the engine could assemble, and the engine's own special-recipe list is closed. A mod registers the recipe itself: the provider is consulted only when the native lookup found no match for the grid, inspects the cropped grid, and either passes or supplies the complete result stack. The registration id is the recipe identity the lookup reports, in the `<namespace>:<path>` form the recipe file would declare. Taking the result consumes one item from every occupied grid cell, as for any crafting recipe, so a provider that answers a tool-and-ingredient pair produces exactly the original's craft. Providers must be read-only and deterministic: the lookup re-evaluates grids on every inventory change.
+
+```rust
+use pluto_lib::recipe_api_v1::{GridFacts, SpecialRecipeRegistration, SpecialResult, StackView, evaluate_special_recipe, register_special_recipe};
+
+register_special_recipe(SpecialRecipeRegistration {
+    id: "example:apple_pie",
+    callback: |grid| {
+        let apples = grid.cells.iter().flatten().filter(|cell| cell.id == "minecraft:apple").count();
+        (apples == 2).then(|| SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None })
+    },
+}).unwrap();
+
+let cells = [Some(StackView { id: "minecraft:apple", count: 1, damage: 0, custom_data: None }); 2];
+let grid = GridFacts { width: 2, height: 1, left: 0, top: 0, cells: &cells };
+let (name, result) = evaluate_special_recipe(&grid).unwrap();
+assert_eq!(name, "example:apple_pie");
+assert_eq!(result.item, "example:pie");
+```
+
+### `SpecialResult`
+
+The complete result stack a special recipe produces for one grid: `item` is the result's item id, `count` how many, `damage` its damage, and `custom_data` its `minecraft:custom_data` compound when the result carries one (a repaired tool's saved tool data, for instance).
+
+```rust
+use pluto_lib::recipe_api_v1::SpecialResult;
+
+let result = SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None };
+assert_eq!(result.item, "example:pie");
+assert_eq!((result.count, result.damage), (1, 0));
+assert!(result.custom_data.is_none());
+```
+
+### `SpecialCallback`
+
+`type SpecialCallback = for<'a> fn(&GridFacts<'a>) -> Option<SpecialResult>`. Answers one cropped grid: a result when the recipe matches it, or None to pass.
+
+```rust
+use pluto_lib::recipe_api_v1::{GridFacts, SpecialCallback, SpecialResult};
+
+fn never(_: &GridFacts<'_>) -> Option<SpecialResult> { None }
+let callback: SpecialCallback = never;
+let grid = GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] };
+assert!(callback(&grid).is_none());
+```
+
+### `SpecialRecipeRegistration`
+
+One special recipe: `id` is the recipe identity reported for a match, in `<namespace>:<path>` form (the id the recipe file would declare), and `callback` answers grids for it.
+
+```rust
+use pluto_lib::recipe_api_v1::{SpecialRecipeRegistration, register_special_recipe};
+
+register_special_recipe(SpecialRecipeRegistration {
+    id: "example:apple_pie",
+    callback: |_| None,
+}).unwrap();
+```
+
+### `register_special_recipe`
+
+`fn register_special_recipe(entry: SpecialRecipeRegistration) -> Result<(), RegistrationError>`. Registers one special recipe once during startup; there is no unregister path.
+
+```rust
+use pluto_lib::recipe_api_v1::{SpecialRecipeRegistration, has_special_recipes, register_special_recipe};
+
+assert!(!has_special_recipes());
+register_special_recipe(SpecialRecipeRegistration { id: "example:apple_pie", callback: |_| None }).unwrap();
+assert!(has_special_recipes());
+```
+
+### `has_special_recipes`
+
+`fn has_special_recipes() -> bool`. Whether any special recipe is registered, so the lookup can skip the provider evaluation entirely otherwise.
+
+```rust
+use pluto_lib::recipe_api_v1::{SpecialRecipeRegistration, has_special_recipes, register_special_recipe};
+
+register_special_recipe(SpecialRecipeRegistration { id: "example:apple_pie", callback: |_| None }).unwrap();
+assert!(has_special_recipes());
+```
+
+### `evaluate_special_recipe`
+
+`fn evaluate_special_recipe(grid: &GridFacts<'_>) -> Option<(&'static str, SpecialResult)>`. The first answering provider's recipe identity and result, in lexical registration order, or None when no provider answers the grid.
+
+```rust
+use pluto_lib::recipe_api_v1::{GridFacts, SpecialRecipeRegistration, SpecialResult, evaluate_special_recipe, register_special_recipe};
+
+register_special_recipe(SpecialRecipeRegistration {
+    id: "example:apple_pie",
+    callback: |_| Some(SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None }),
+}).unwrap();
+let grid = GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] };
+let (name, result) = evaluate_special_recipe(&grid).unwrap();
+assert_eq!(name, "example:apple_pie");
+assert_eq!(result.count, 1);
+```

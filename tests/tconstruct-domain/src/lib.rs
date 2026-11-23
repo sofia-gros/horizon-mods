@@ -348,6 +348,8 @@ mod shaped_materials;
 mod swapping_recipes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_render.rs"]
 mod material_render;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_repair.rs"]
+mod crafting_repair;
 #[cfg(test)]
 mod shaped_materials_tests;
 #[cfg(test)]

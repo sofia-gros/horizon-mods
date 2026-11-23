@@ -38,6 +38,7 @@
     "api/src/break_speed_hook.rs",
     "api/src/commands.rs",
     "api/src/conducting.rs",
+    "api/src/crafting_repair.rs",
     "api/src/melee_damage.rs",
     "api/src/entity_facts.rs",
     "api/src/knockback.rs",

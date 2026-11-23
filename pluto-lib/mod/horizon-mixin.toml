@@ -1843,6 +1843,17 @@ cancellable = true
 helper = "pluto-crafting-match-veto-head.rs"
 bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
 
+# Special recipes: a native miss in the grid lookup reaches the registered
+# special-recipe providers; a native match is returned unchanged. Reviewed
+# with the crafting-match pair (crafting-match-boundaries.json).
+[[injection]]
+id = "pluto-crafting-special"
+target = "horizon_client_lib::crafting::Recipes::find_with"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-crafting-special-head.rs"
+bindings = [{ name = "recipes", ty = "&Recipes", value = "self" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }, { name = "map_scale", ty = "&dyn Fn(i32) -> Option<u8>", value = "map_scale" }]
+
 # Queued custom advancement events drain into the native sink each tick.
 [[injection]]
 id = "pluto-advancement-event-drain"
