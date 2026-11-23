@@ -697,6 +697,18 @@ assert_eq!(query.action, "shears_harvest");
 assert!(query.custom_data.is_empty());
 ```
 
+### `IndestructibleContext`
+
+A per-stack indestructibility query with `item: String` and `custom_data: NbtCompound` (the stack's own data, empty for none). A dropped stack answering true never takes environmental damage (fire, lava, cactus) and never ages out — the original's indestructible item entity, whose lifespan is unbounded and which is invulnerable to everything but the sources that bypass invulnerability. Only `Some(true)` changes anything.
+
+```rust
+use pluto_lib::{IndestructibleContext, Nbt, NbtCompound};
+let mut data = NbtCompound::new();
+data.insert("indestructible".into(), Nbt::Byte(1));
+let query = IndestructibleContext { item: "example:tool".into(), custom_data: data };
+assert!(query.custom_data.contains_key("indestructible"));
+```
+
 ### `ItemBehavior::enchantability`
 
 `fn enchantability(self, callback: impl Fn(&EnchantabilityContext) -> Option<i32> + Send + Sync + 'static) -> ItemBehavior`. How readily a stack of this item takes enchantments; `None` delegates to the item's own value. A negative answer is treated as no answer.
@@ -718,6 +730,17 @@ use pluto_lib::{Identifier, ItemBehavior};
 
 let behavior = ItemBehavior::new(Identifier::parse("example:kama").unwrap())
     .can_perform_action(|query| query.action.starts_with("shears_").then_some(true));
+let _ = behavior;
+```
+
+### `ItemBehavior::indestructible`
+
+`fn indestructible(self, callback: impl Fn(&IndestructibleContext) -> Option<bool> + Send + Sync + 'static) -> ItemBehavior`. Whether a dropped stack of this item is indestructible (see `IndestructibleContext`); `None` delegates to the item's own behaviour, and only a true answer changes anything.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:tool").unwrap())
+    .indestructible(|query| Some(query.custom_data.contains_key("indestructible")));
 let _ = behavior;
 ```
 

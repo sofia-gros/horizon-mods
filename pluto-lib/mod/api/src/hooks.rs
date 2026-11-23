@@ -325,10 +325,10 @@ pub fn hooks() -> Box<dyn Hooks> {
                 })
         },
         has_drop_chance:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_drop_chance,
-        drop_chance:|kind,slot,slime_size,chance| {
+        drop_chance:|kind,slot,slime_size,chance,looting| {
             let entity_type=Identifier::parse(kind).ok()?;
             crate::pure::living_entity_behavior::LivingEntityBehaviors::equipment_drop_chance(
-                &crate::pure::living_entity_behavior::EquipmentDropChanceContext {entity_type,slot:slot.to_string(),slime_size,chance})
+                &crate::pure::living_entity_behavior::EquipmentDropChanceContext {entity_type,slot:slot.to_string(),slime_size,chance,looting})
         },
     }).expect("PlutoLib living query sink installs once");
     horizon_client::entry::pluto_block::set_skull_definition_provider(|| {
@@ -382,6 +382,11 @@ pub fn hooks() -> Box<dyn Hooks> {
             item: item.to_owned(), action: action.to_owned(), custom_data: nbt_from_json(data),
         })
     }).expect("PlutoLib item tool action dispatcher installs once");
+    horizon_client::entry::pluto_block::set_indestructible_dispatcher(|item, data| {
+        item_api_v1::indestructible(&item_api_v1::IndestructibleContext {
+            item: item.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item indestructible dispatcher installs once");
     horizon_client::entry::pluto_block::set_schedule_drain(|dimension, edit| {
         world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
         // The extra blocks a break's callbacks asked for go through the game's own destroy path, drops and all.
@@ -417,6 +422,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         horizon_client::entry::pluto_spawn_placement::Provider {
             active:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_registrations,
             evaluate:native_spawn_placement,
+            active_or:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_or_registrations,
+            evaluate_or:native_spawn_placement_or,
+            or_types:native_spawn_placement_or_types,
         }).expect("PlutoLib spawn placement dispatcher installs once");
     horizon_client::entry::pluto_hanging_access::set_provider(
         horizon_client::entry::pluto_hanging_access::Provider {
@@ -1202,16 +1210,27 @@ fn native_split_inherit(host:&mut dyn Host,info:&horizon_client::entry::pluto_mo
     scoped(host,|| crate::pure::mob_split_api::MobSplitCallbacks::inherit(&mut view))
 }
 
-fn native_spawn_placement(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
-    let context=crate::pure::spawn_placement_api::SpawnPlacementContext {
+fn spawn_placement_context(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<crate::pure::spawn_placement_api::SpawnPlacementContext> {
+    Some(crate::pure::spawn_placement_api::SpawnPlacementContext {
         entity_type:Identifier::parse(&facts.entity_type).ok()?,
         dimension:Identifier::parse(&facts.dimension).ok()?,
         position:facts.position,reason:facts.reason.clone(),peaceful:facts.peaceful,
         block_below:Identifier::parse(&facts.block_below).ok()?,
         fluid_at:Identifier::parse(&facts.fluid_at).ok()?,
         fluid_below:Identifier::parse(&facts.fluid_below).ok()?,
-        block_below_valid_spawn:facts.block_below_valid_spawn,dark_enough:facts.dark_enough };
-    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate(&context)
+        block_below_valid_spawn:facts.block_below_valid_spawn,dark_enough:facts.dark_enough })
+}
+
+fn native_spawn_placement(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate(&spawn_placement_context(facts)?)
+}
+
+fn native_spawn_placement_or(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate_or(&spawn_placement_context(facts)?)
+}
+
+fn native_spawn_placement_or_types()->Vec<String> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::or_types().into_iter().map(|id|id.to_string()).collect()
 }
 
 fn native_hanging_frame(facts:&crate::pure::hanging_api_v1::FrameVariant)->horizon_client::entry::pluto_hanging_access::FrameFacts {
@@ -2089,16 +2108,22 @@ impl EntityOps for HostEntities {
         let host = self.host.get();
         // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
         // another entity is moved keeping the way it faces. A player is reached by neither of those
-        // calls, but the host's own player teleport (the `/tp` path) moves one, keeping the way they face.
+        // calls: the host's own player teleport (the `/tp` path) moves one directly, keeping the way
+        // they face, and a player that call cannot reach is queued through the player teleport
+        // transport, to be applied by the game's own server teleport at the level's rider
+        // synchronisation.
         if host.teleport_mob(&self.dimension, id, pos) {
             return true;
         }
         let wanted = i32::try_from(id).unwrap_or(-1);
-        if let Some(player) = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
-            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)) {
-            if host.teleport_player(player.uuid, &self.dimension, pos, player.yaw, player.pitch) {
-                return true;
-            }
+        let direct = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted))
+            .is_some_and(|player| host.teleport_player(player.uuid, &self.dimension, pos, player.yaw, player.pitch));
+        if direct {
+            return true;
+        }
+        if queue_player_teleport(host, &self.dimension, wanted, pos) {
+            return true;
         }
         let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
         host.move_entity(&self.dimension, id, pos, rotation[0], rotation[1])
@@ -2629,6 +2654,22 @@ fn apply_carried_edits(host: &mut dyn Host, player: u128, edits: Vec<entity_even
     }
 }
 
+/// Queues a server teleport of the player `id` names in `dimension` through the player teleport
+/// transport: the game's own server teleport (the call /tp uses) applies it at the level's rider
+/// synchronisation, so an accepted request answers true and lands by the next tick. The player list
+/// names players by entity id (0 for the owner of a single-player world); the owner match is only
+/// trusted when `id` does not name a reachable non-player entity. False when `id` names no player
+/// on the server or the queue refuses the request.
+fn queue_player_teleport(host: &mut dyn Host, dimension: &str, id: i32, pos: [f64; 3]) -> bool {
+    let names_other_entity = u32::try_from(id).ok().and_then(|id| host.entity(id))
+        .is_some_and(|entity| host.entity_kind(entity).as_deref() != Some("minecraft:player"));
+    if names_other_entity { return false; }
+    let player = host.acting_player().filter(|acting| acting.entity_id == id || acting.entity_id == 0)
+        .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+    let Some(player) = player else { return false };
+    horizon_client::game::pluto_entity_teleport_access::request_teleport(dimension, player.uuid, pos, player.yaw, player.pitch)
+}
+
 /// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
 /// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
 fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
@@ -2708,15 +2749,18 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             EntityAction::Teleport { target, position } => {
                 // A mob is teleported by the game's own call (its navigation stops, its fall distance
                 // resets); another entity is moved keeping the way it faces. A player is reached by
-                // neither of those calls, but the host's own player teleport (the `/tp` path) moves
-                // one, keeping the way they face.
+                // neither of those calls: the host's own player teleport (the `/tp` path) moves one
+                // directly, keeping the way they face, and a player that call cannot reach is queued
+                // through the player teleport transport, to be applied by the game's own server
+                // teleport at the level's rider synchronisation.
                 let Ok(id) = u32::try_from(id_of(target)) else { continue };
                 if host.teleport_mob(dimension, id, position) { continue; }
                 let wanted = i32::try_from(id).unwrap_or(-1);
-                if let Some(player) = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
-                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)) {
-                    if host.teleport_player(player.uuid, dimension, position, player.yaw, player.pitch) { continue; }
-                }
+                let direct = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted))
+                    .is_some_and(|player| host.teleport_player(player.uuid, dimension, position, player.yaw, player.pitch));
+                if direct { continue; }
+                if queue_player_teleport(host, dimension, id_of(target), position) { continue; }
                 let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
                 host.move_entity(dimension, id, position, rotation[0], rotation[1]);
             }

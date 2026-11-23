@@ -75,7 +75,11 @@ pub enum FallOutcome {
 /// The equipment drop chance one class computes for one slot, consulted
 /// where the game rolls equipment drops on death. A returned value replaces
 /// the recorded chance for that slot's roll only; the recorded chances of
-/// the mob are not changed.
+/// the mob are not changed. The roll a class's own `dropCustomDeathLoot`
+/// makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is
+/// rolled even when the recorded chance is exactly 0: with looting, a
+/// 0-chance slot still drops at `looting` percent (a Halloween pumpkin on a
+/// mob whose recorded chance is 0 is the vanilla case).
 #[derive(Clone,Debug)]
 pub struct EquipmentDropChanceContext {
     pub entity_type:Identifier,
@@ -85,6 +89,10 @@ pub struct EquipmentDropChanceContext {
     pub slime_size:Option<i32>,
     /// The recorded chance, or the game's default for the slot.
     pub chance:f32,
+    /// The killing blow's Looting level (`dropCustomDeathLoot`'s `looting`
+    /// argument: the attacker's main-hand Looting, 0 when there is no
+    /// looting attacker).
+    pub looting:i32,
 }
 /// Current server load context. Attachment methods on entity use the normal
 /// callback scope; this is not a durable entity handle or a constructor event.
@@ -260,7 +268,7 @@ mod tests {
         let mut fall=CauseFallDamageContext {entity:9,entity_type:id.clone(),distance:3.0,multiplier:1.0,velocity:[0.95,-1.0,0.0],suppressing_bounce:false};
         assert_eq!(LivingEntityBehaviors::cause_fall_damage(&fall),Some(FallOutcome::Bounce {velocity:[1.0,0.9,0.0],sound:None}));
         fall.distance=1.0;assert_eq!(LivingEntityBehaviors::cause_fall_damage(&fall),None);
-        let mut chance=EquipmentDropChanceContext {entity_type:id.clone(),slot:"head".into(),slime_size:Some(4),chance:2.0};
+        let mut chance=EquipmentDropChanceContext {entity_type:id.clone(),slot:"head".into(),slime_size:Some(4),chance:2.0,looting:0};
         assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&chance),Some(0.25));
         chance.slime_size=Some(1);assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&chance),None);
         chance.entity_type=Identifier::parse("living_query:unregistered").unwrap();

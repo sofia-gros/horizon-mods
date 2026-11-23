@@ -21,7 +21,7 @@ pub struct Sink {
     pub has_cause_fall:fn(&str)->bool,
     pub cause_fall:fn(u32,&str,f64,f32,[f64;3],bool)->Option<FallOutcome>,
     pub has_drop_chance:fn(&str)->bool,
-    pub drop_chance:fn(&str,&str,Option<i32>,f32)->Option<f32>,
+    pub drop_chance:fn(&str,&str,Option<i32>,f32,i32)->Option<f32>,
 }
 static SINK:OnceLock<Sink>=OnceLock::new();
 pub fn set_sink(sink:Sink)->Result<(),&'static str> {SINK.set(sink).map_err(|_|"living query sink already installed")}

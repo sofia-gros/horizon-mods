@@ -65,10 +65,26 @@ pub struct ToolActionContext {
     pub custom_data: super::base::NbtCompound,
 }
 
+/// A per-stack indestructibility query (the original's indestructible item entity: a dropped
+/// stack answering true never takes environmental damage — fire, lava, cactus — and never ages
+/// out, the entity's `isInvulnerableTo` outside the bypasses-invulnerability sources together
+/// with its unbounded lifespan). The game asks through the item behaviour transport at the head
+/// of the item entity's own environment tick, the one place every environmental hurt of a
+/// dropped stack flows through: a true answer stills that tick and pins the entity's age at the
+/// host's unlimited-lifetime value. Only `Some(true)` changes anything; false and None both run
+/// the original tick.
+#[derive(Clone, Debug)]
+pub struct IndestructibleContext {
+    pub item: String,
+    /// The stack's custom data, empty for a stack that carries none.
+    pub custom_data: super::base::NbtCompound,
+}
+
 type Mask = Arc<dyn Fn(&EnderMaskContext) -> Option<bool> + Send + Sync>;
 type MaxStackSize = Arc<dyn Fn(&MaxStackSizeContext) -> Option<u32> + Send + Sync>;
 type Enchantability = Arc<dyn Fn(&EnchantabilityContext) -> Option<i32> + Send + Sync>;
 type ToolAction = Arc<dyn Fn(&ToolActionContext) -> Option<bool> + Send + Sync>;
+type Indestructible = Arc<dyn Fn(&IndestructibleContext) -> Option<bool> + Send + Sync>;
 /// Item extension behavior. None from a callback preserves the native answer.
 #[derive(Clone)]
 pub struct ItemBehavior {
@@ -77,9 +93,10 @@ pub struct ItemBehavior {
     max_stack_size: Option<MaxStackSize>,
     enchantability: Option<Enchantability>,
     tool_action: Option<ToolAction>,
+    indestructible: Option<Indestructible>,
 }
 impl ItemBehavior {
-    pub fn new(item: Identifier) -> Self { Self { item, mask: None, max_stack_size: None, enchantability: None, tool_action: None } }
+    pub fn new(item: Identifier) -> Self { Self { item, mask: None, max_stack_size: None, enchantability: None, tool_action: None, indestructible: None } }
     /// Explicit false disables even a native mask; None delegates to native.
     pub fn is_ender_mask(mut self, callback: impl Fn(&EnderMaskContext) -> Option<bool> + Send + Sync + 'static) -> Self {
         self.mask = Some(Arc::new(callback)); self
@@ -98,6 +115,11 @@ impl ItemBehavior {
     /// [`ToolActionContext`]); None delegates to the item's own actions.
     pub fn can_perform_action(mut self, callback: impl Fn(&ToolActionContext) -> Option<bool> + Send + Sync + 'static) -> Self {
         self.tool_action = Some(Arc::new(callback)); self
+    }
+    /// Whether a dropped stack of this item is indestructible (see [`IndestructibleContext`]); None delegates
+    /// to the item's own behaviour. Only a true answer changes anything.
+    pub fn indestructible(mut self, callback: impl Fn(&IndestructibleContext) -> Option<bool> + Send + Sync + 'static) -> Self {
+        self.indestructible = Some(Arc::new(callback)); self
     }
 }
 fn registry() -> &'static Mutex<HashMap<String, ItemBehavior>> {
@@ -132,6 +154,11 @@ pub(crate) fn enchantability(context: &EnchantabilityContext) -> Option<i32> {
 
 pub(crate) fn can_perform_action(context: &ToolActionContext) -> Option<bool> {
     let callback = registry().lock().ok()?.get(&context.item)?.tool_action.clone()?;
+    callback(context)
+}
+
+pub(crate) fn indestructible(context: &IndestructibleContext) -> Option<bool> {
+    let callback = registry().lock().ok()?.get(&context.item)?.indestructible.clone()?;
     callback(context)
 }
 
@@ -200,5 +227,18 @@ mod tests {
         let mut other = context("shears_dig");
         other.item = "action_test:other".into();
         assert_eq!(can_perform_action(&other), None, "unregistered items delegate");
+    }
+
+    #[test]
+    fn indestructible_answers_by_stack_data_and_delegates_otherwise() {
+        use crate::pure::base::{Nbt, NbtCompound};
+        ItemBehaviors::register(ItemBehavior::new(Identifier::parse("indestructible_test:tool").unwrap())
+            .indestructible(|context| Some(context.custom_data.contains_key("indestructible")))).unwrap();
+        let mut context = IndestructibleContext { item: "indestructible_test:tool".into(), custom_data: NbtCompound::new() };
+        assert_eq!(indestructible(&context), Some(false), "a stack without the mark is destructible");
+        context.custom_data.insert("indestructible".into(), Nbt::Byte(1));
+        assert_eq!(indestructible(&context), Some(true));
+        context.item = "indestructible_test:other".into();
+        assert_eq!(indestructible(&context), None, "unregistered items delegate");
     }
 }

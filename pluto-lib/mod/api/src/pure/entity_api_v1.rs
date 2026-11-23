@@ -53,7 +53,10 @@ pub trait EntityOps {
     /// Moves entity `id` to `pos` (`Entity.teleportTo`): a mob's navigation stops and its fall distance
     /// resets, as the game's own teleport does; another entity keeps the way it faces. A player is moved
     /// by the host's own player teleport (the `/tp` path: they leave their vehicle, lose their motion
-    /// and fall, and their client is told), keeping the way they face. False when the host cannot move it.
+    /// and fall, and their client is told), keeping the way they face; a player that call cannot reach is
+    /// queued through the player teleport transport and applied at the level's rider synchronisation by
+    /// the game's own server teleport, with the game's own bounds (a living player on the server, the
+    /// `/tp` position bounds) the last word. False when the host cannot move it.
     fn teleport(&mut self, _id: u64, _pos: [f64; 3]) -> bool {
         false
     }
@@ -189,7 +192,11 @@ impl EntityReach {
     }
 
     /// Moves entity `id` to `pos` (`Entity.teleportTo`); false outside a scope or when the host cannot
-    /// move it (see [`EntityOps::teleport`] for exactly who is reached).
+    /// by the host's own player teleport (the `/tp` path: they leave their vehicle, lose their motion
+    /// and fall, and their client is told), keeping the way they face; a player that call cannot reach is
+    /// queued through the player teleport transport and applied at the level's rider synchronisation by
+    /// the game's own server teleport, with the game's own bounds (a living player on the server, the
+    /// `/tp` position bounds) the last word. False when the host cannot move it.
     pub fn teleport(id: u64, pos: [f64; 3]) -> bool {
         with_current(false, |ops| ops.teleport(id, pos))
     }
