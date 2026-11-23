@@ -19,7 +19,7 @@ const DISGUISE_HELMETS: [&str; 3] = ["tconstruct:travelers_helmet", "tconstruct:
 
 /// Registers the behaviours. Called once from the product's hooks.
 pub(crate) fn register() {
-    for item in tool_definitions::registered() {
+    for item in tool_definitions::registered().iter().map(|id| tool_definitions::item_for_definition(id)) {
         if DISGUISE_HELMETS.contains(&item.to_string().as_str()) { continue; }
         let behavior = ItemBehavior::new(item.clone())
             .enchantability(|_| Some(0))

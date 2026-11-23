@@ -700,15 +700,18 @@ impl Definitions {
 }
 
 /// ToolDefinitions and ArmorDefinitions, excluding other-mod integration.
-/// These are definition identities, not item registrations (slime_chestplate is
-/// intentionally different from the original item's slimy_chestplate identity).
+/// These are definition identities, not item registrations: one definition's item
+/// differs (the slime chestplate's item is `slimy_chestplate`), translated by
+/// `item_for_definition` wherever an item is meant. The minotaur axe is registered
+/// unconditionally here; the original registers it only with Twilight Forest loaded,
+/// a condition the port's data cannot express, and its data ships with the port.
 pub(crate) fn registered() -> BTreeSet<Identifier> {
     let mut ids: BTreeSet<_> = [
         "pickaxe", "sledge_hammer", "vein_hammer", "mattock", "pickadze", "excavator",
         "hand_axe", "broad_axe", "kama", "scythe", "dagger", "sword", "cleaver",
         "crossbow", "longbow", "fishing_rod", "javelin", "arrow", "shuriken", "throwing_axe",
         "flint_and_brick", "sky_staff", "earth_staff", "ichor_staff", "ender_staff",
-        "melting_pan", "war_pick", "battlesign", "swasher",
+        "melting_pan", "war_pick", "battlesign", "swasher", "minotaur_axe",
         "travelers_shield", "plate_shield", "slime_wings",
     ].into_iter().map(|path| Identifier::new("tconstruct", path).unwrap()).collect();
     for family in ["travelers", "plate", "slime"] {
@@ -717,6 +720,27 @@ pub(crate) fn registered() -> BTreeSet<Identifier> {
         }
     }
     ids
+}
+
+/// The item carrying a definition: every tool item shares its definition's id but one - the
+/// original registers the slime chestplate item as `slimy_chestplate`, while its definition
+/// (built from family and slot, like the other armor definitions) is `slime_chestplate`.
+pub(crate) fn item_for_definition(definition: &Identifier) -> Identifier {
+    if definition.namespace() == "tconstruct" && definition.path() == "slime_chestplate" {
+        Identifier::new("tconstruct", "slimy_chestplate").expect("valid item")
+    } else { definition.clone() }
+}
+
+/// The definition a tool item carries: the inverse of `item_for_definition`.
+pub(crate) fn definition_id_for_item(item: &Identifier) -> Identifier {
+    if item.namespace() == "tconstruct" && item.path() == "slimy_chestplate" {
+        Identifier::new("tconstruct", "slime_chestplate").expect("valid definition")
+    } else { item.clone() }
+}
+
+/// The (item, definition) pairs the tool contexts key by item.
+pub(crate) fn item_pairs(definitions: &Definitions) -> Vec<(Identifier, &Data)> {
+    definitions.data.iter().map(|(id, data)| (item_for_definition(id), data)).collect()
 }
 
 static SERVER: OnceLock<Arc<RwLock<Definitions>>> = OnceLock::new();

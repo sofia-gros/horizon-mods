@@ -169,7 +169,7 @@ fn dispatch(ctx: &CommandContext, route: Route) -> Outcome {
     let modifiers = modifiers_lock.read().unwrap_or_else(|poisoned| poisoned.into_inner());
     let recipes_guard = common::modifier_recipes().map(|lock| lock.read().unwrap_or_else(|poisoned| poisoned.into_inner()));
     let item_tags = common::item_snapshot();
-    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
+    let tools: Vec<(Identifier, &tool_definitions::Data)> = tool_definitions::item_pairs(&definitions);
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let cx = Cx {
         materials: &materials,

@@ -170,7 +170,7 @@ class ContentAssets(unittest.TestCase):
         whose cases are shipped material ids, then the modifier overlays; every model resolves."""
         materials = {p.stem for p in MATERIALS.glob('*.json')}
         tools = sorted(p.stem for p in TOOLS.glob('*.json'))
-        self.assertEqual(len(tools), 44)
+        self.assertEqual(len(tools), 45)
         self.used_overlays = set()
         for tool in tools:
             definition = load(TOOLS / f'{tool}.json')
@@ -475,7 +475,7 @@ class ContentAssets(unittest.TestCase):
                     self.assertEqual(namespace, 'tconstruct')
                     self.assertTrue((ASSETS / f'textures/entity/equipment/{kind}/{path}.png').is_file(), f'{name}: {layer}')
         slots = {'helmet': 'head', 'chestplate': 'chest', 'leggings': 'legs', 'boots': 'feet', 'wings': 'chest'}
-        armor = [p for p in (DECLARED / 'item').glob('*.json') if re.fullmatch(r'(travelers|plate|slime)_(helmet|chestplate|leggings|boots)|slime_wings', p.stem)]
+        armor = [p for p in (DECLARED / 'item').glob('*.json') if re.fullmatch(r'(travelers|plate|slime|slimy)_(helmet|chestplate|leggings|boots)|slime_wings', p.stem)]
         self.assertEqual(len(armor), 13)
         for path in armor:
             equippable = load(path)['components']['minecraft:equippable'] if 'components' in load(path) else None

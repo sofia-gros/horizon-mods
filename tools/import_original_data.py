@@ -23,7 +23,9 @@ SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruc
 TARGET = ROOT / 'tconstruct/content/data/tconstruct/tinkering'
 FOLDERS = ['tool_definitions', 'materials/definition', 'materials/stats', 'materials/traits', 'modifiers']
 TAG_FOLDERS = ['tags/materials', 'tags/modifiers']
-EXCLUDED_TOOLS = {'minotaur_axe'}
+# No tool definition is excluded: the minotaur axe ships unconditionally (the original's
+# Twilight Forest condition cannot be expressed in the port's data).
+EXCLUDED_TOOLS = set()
 # The original's Forge-era tag folders, renamed to the singular names the pinned host reads.
 TAG_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/tags'
 TAG_TARGET = ROOT / 'tconstruct/content/data/tconstruct/tags'
@@ -100,15 +102,22 @@ def write_creative_parts(skipped):
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_parts.rs').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
 
-# TinkerTools.addTabItems order: tools that lack materials, small tools, broad tools, ranged, ancient tools, then armor (minotaur_axe is another mod's).
+# TinkerTools.addTabItems order: tools that lack materials, small tools, broad tools, ranged, ancient tools, then armor.
+# The minotaur axe closes the ancient tools, as in TinkerTools.addTabItems: the original registers the item itself only
+# when Twilight Forest is loaded, but this port registers it, so it is listed like every other tool.
 TOOL_ORDER = ['flint_and_brick', 'sky_staff', 'earth_staff', 'ichor_staff', 'ender_staff',
               'pickaxe', 'pickadze', 'mattock', 'hand_axe', 'kama', 'dagger', 'sword',
               'sledge_hammer', 'vein_hammer', 'excavator', 'broad_axe', 'scythe', 'cleaver',
               'crossbow', 'longbow', 'fishing_rod', 'javelin', 'arrow', 'shuriken', 'throwing_axe',
-              'melting_pan', 'war_pick', 'battlesign', 'swasher',
+              'melting_pan', 'war_pick', 'battlesign', 'swasher', 'minotaur_axe',
               'travelers_helmet', 'travelers_chestplate', 'travelers_leggings', 'travelers_boots', 'travelers_shield',
               'plate_helmet', 'plate_chestplate', 'plate_leggings', 'plate_boots', 'plate_shield',
               'slime_helmet', 'slime_chestplate', 'slime_leggings', 'slime_boots', 'slime_wings']
+
+
+# The tab names items, while the definitions are opened by definition name: the one tool whose
+# item differs from its definition (see item_for_definition in tool_definitions.rs).
+TOOL_ITEM_NAMES = {'slime_chestplate': 'slimy_chestplate'}
 
 
 def write_creative_fluids(fluid_names):
@@ -174,7 +183,7 @@ def write_creative_tools():
         if not required:
             entries = [[]]  # no materials: one plain stack
         rows = ', '.join('&[' + ', '.join(f'"{m}"' for m in entry) + ']' for entry in entries)
-        lines.append(f'    ("{tool}", &[{rows}]),')
+        lines.append(f'    ("{TOOL_ITEM_NAMES.get(tool, tool)}", &[{rows}]),')
     lines.append('];')
     (ROOT / 'tconstruct/mixins/tconstruct/api/src/creative_tools.rs').write_text(chr(10).join(lines) + chr(10), encoding='utf-8', newline=chr(10))
 
@@ -357,13 +366,14 @@ def copy_loot_modifiers():
 
 
 def copy_part_builder_recipes():
-    """The part builder recipes that make tool parts from materials, byte for byte. The sand and
-    red sand cast recipes belong to the smeltery and come with it."""
+    """The part builder recipes, byte for byte: the material part recipes and the fixed-material
+    item recipes (the plating dummies). The sand and red sand cast recipes belong to the smeltery
+    and come with it."""
     if PART_RECIPE_TARGET.exists():
         shutil.rmtree(PART_RECIPE_TARGET)
     count = 0
     for path in sorted(PART_RECIPE_SOURCE.rglob('*.json')):
-        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:part_builder':
+        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:part_builder', 'tconstruct:item_part_builder'):
             continue
         destination = PART_RECIPE_TARGET / path.relative_to(PART_RECIPE_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -1510,7 +1520,8 @@ def copy_part_assets():
     return parts, len(collected.models), len(collected.textures)
 
 
-# The port declares the slime chestplate as `slime_chestplate`; the original registers (and models) it as `slimy_chestplate`.
+# Tool definitions are named from family and slot, so the slime chestplate's definition is
+# `slime_chestplate`; the original registers (and models) its item as `slimy_chestplate`.
 MODEL_ALIASES = {'slime_chestplate': 'slimy_chestplate'}
 FORGE_PARENTS = {'forge:item/default': 'minecraft:item/generated', 'forge:item/default-tool': 'minecraft:item/handheld'}
 MODEL_SOURCE = ASSET_SOURCE / 'models'
@@ -1740,7 +1751,7 @@ def copy_tool_assets():
         if data.get('large'):
             gui = state_tree(overrides, root, lambda ref: leaf(name, ref, False), True)
             full = {'type': 'minecraft:select', 'property': 'minecraft:display_context', 'cases': [{'when': 'gui', 'model': gui}], 'fallback': full}
-        write_json(ASSET_TARGET / 'items' / f'{name}.json', {'model': full}, compact=True)
+        write_json(ASSET_TARGET / 'items' / f'{MODEL_ALIASES.get(name, name)}.json', {'model': full}, compact=True)
         tools.append(name)
     collected.write(extra)
     write_model_flags(table)
@@ -1907,9 +1918,9 @@ DIRT_TYPES = {'earth': 'GRASS', 'sky': 'WARPED_STEM', 'ichor': 'TERRACOTTA_LIGHT
 WORLD_ITEMS = ['seared_brick', 'scorched_brick', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball',
                'earth_slime_crystal', 'sky_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal',
                'earth_slime_grass_seeds', 'sky_slime_grass_seeds', 'ichor_slime_grass_seeds', 'ender_slime_grass_seeds', 'blood_slime_grass_seeds']
-# The shipped metals of TinkerMaterials (`registerMetal` each: a storage block, an ingot and a nugget; soulsteel has
-# no compaction recipes and stays undeclared, as its fluid's bucket does). Their items are plain items.
-METALS = ['cobalt', 'steel', 'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron', 'cinderslime', 'queens_slime', 'manyullyn', 'hepatizon', 'knightmetal', 'knightslime']
+# The shipped metals of TinkerMaterials (`registerMetal` each: a storage block, an ingot and a nugget; soulsteel
+# has no compaction recipes, but is registered all the same). Their items are plain items.
+METALS = ['cobalt', 'steel', 'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron', 'cinderslime', 'queens_slime', 'manyullyn', 'hepatizon', 'knightmetal', 'knightslime', 'soulsteel']
 METAL_ITEMS = [f'{metal}_{part}' for metal in METALS for part in ('ingot', 'nugget')] + ['copper_nugget', 'netherite_nugget', 'debris_nugget']
 WORLD_FEATURES = ['cobalt_ore_small', 'cobalt_ore_large', 'earth_geode', 'sky_geode', 'ichor_geode', 'ender_geode']
 # Configured features with no placed feature of their own: the slime trees and fungi are placed by saplings (the growth
@@ -2380,6 +2391,7 @@ def metal_blocks():
         'hepatizon_block': metal('TERRACOTTA_BLUE', netherite_sound),
         'knightmetal_block': metal('GRASS', netherite_sound, False),
         'knightslime_block': metal('COLOR_BLACK', metal_sound, False),
+        'soulsteel_block': metal('COLOR_BROWN', metal_sound, False),
     }
 
 
@@ -2406,6 +2418,7 @@ def commons_blocks():
         return {'template': template, 'properties': {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': False, 'occludes': False}, 'item': True}
 
     blocks = {'clear_glass': glass('minecraft:glass', 'NONE'), 'clear_glass_pane': glass('minecraft:glass_pane', 'NONE')}
+    blocks['clear_tinted_glass'] = glass('minecraft:glass', 'COLOR_GRAY')
     for name, color in GLASS_COLORS:
         blocks[f'{name}_clear_stained_glass'] = glass('minecraft:glass', color)
         blocks[f'{name}_clear_stained_glass_pane'] = glass('minecraft:glass_pane', color)
@@ -2460,6 +2473,8 @@ def firewood_blocks():
         blocks[f'{name}_fence'] = declare('minecraft:nether_brick_fence', color, light)
         blocks[f'{name}_slab'] = declare('minecraft:stone_slab', color, light)
         blocks[f'{name}_stairs'] = declare('minecraft:stone_stairs', color, light)
+    # The original's data ships a fence gate for nahuatl only; blazewood has none.
+    blocks['nahuatl_fence_gate'] = declare('minecraft:oak_fence_gate', 'COLOR_PURPLE')
     return blocks
 
 
@@ -3277,23 +3292,6 @@ def copy_gameplay_loot():
     return 1
 
 
-def fix_stale_item_ids():
-    """The original's generated data names the slime chestplate `slimy_chestplate` in a handful of tags,
-    recipes and lang keys, but the item is registered as `slime_chestplate` (MODEL_ALIASES covers its
-    model), so those references name nothing. Project them onto the registered id wherever the copies
-    landed: the quoted item id in data files, the dotted key form in language files."""
-    fixed = 0
-    for path in (ROOT / 'tconstruct/content').rglob('*.json'):
-        text = path.read_text(encoding='utf-8')
-        updated = text.replace('"tconstruct:slimy_chestplate"', '"tconstruct:slime_chestplate"')
-        if 'lang' in path.parts:
-            updated = updated.replace('tconstruct.slimy_chestplate', 'tconstruct.slime_chestplate')
-        if updated != text:
-            path.write_text(updated, encoding='utf-8', newline='\n')
-            fixed += 1
-    return fixed
-
-
 def main():
     pins = json.loads((ROOT / 'tconstruct/compatibility.json').read_text(encoding='utf-8'))
     head = subprocess.run(['git', '-C', str(ROOT / '.local/tconstruct-source'), 'rev-parse', 'HEAD'],
@@ -3367,8 +3365,7 @@ def main():
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
     recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes()
     layouts = copy_station_layouts()
-    stale_fixed = fix_stale_item_ids()
-    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {stale_fixed} files had the stale slime chestplate id projected; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
+    print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table')
 
 
 if __name__ == '__main__':

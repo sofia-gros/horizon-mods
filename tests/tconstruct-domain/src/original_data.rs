@@ -98,7 +98,7 @@ fn every_original_trim_material_is_shipped_as_data() {
 #[test]
 fn every_shipped_tool_definition_decodes() {
     let definitions = files("tool_definitions");
-    assert_eq!(definitions.len(), 44, "45 original definitions minus the other-mod minotaur axe");
+    assert_eq!(definitions.len(), 45, "all 45 original definitions, the minotaur axe included");
     let failures: Vec<String> = definitions.iter()
         .filter_map(|(id, value)| Data::decode(value).err().map(|error| format!("{id}: {error}"))).collect();
     assert!(failures.is_empty(), "definitions that do not decode: {failures:#?}");
@@ -598,10 +598,10 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     use crate::part_builder_recipes::{Context, Inventory, Recipes};
     let world = world();
     let part_files = recursive_files("tools/parts/builder", "tools/parts/builder");
-    assert_eq!(part_files.len(), 24);
+    assert_eq!(part_files.len(), 28);
     let recipes = Recipes::load(&part_files, &conditions());
     assert!(recipes.problems.is_empty(), "{:#?}", recipes.problems);
-    assert_eq!(recipes.len(), 24);
+    assert_eq!(recipes.len(), 28);
     let materials = crate::material_recipes::Recipes::load(&recursive_files("tools/materials", "tools/materials"), &conditions());
     let parts = crate::tool_parts::registry();
     let in_tag = |item: &Identifier, tag: &Identifier| match tag.path() {
@@ -616,10 +616,10 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     assert_eq!(wood.material.to_string(), "tconstruct:wood");
     let inv = |count: u32| Inventory { pattern_item: Some(&pattern), stack: Some((&planks, count)), material: Some(wood) };
 
-    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 24.
+    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 28.
     let offered = recipes.patterns(&inv(8), &ctx);
     assert!(offered.iter().any(|p| p.path() == "pick_head") && offered.iter().any(|p| p.path() == "tool_handle"), "{offered:?}");
-    assert_eq!(recipes.patterns(&Inventory { pattern_item: Some(&pattern), stack: None, material: None }, &ctx).len(), 24);
+    assert_eq!(recipes.patterns(&Inventory { pattern_item: Some(&pattern), stack: None, material: None }, &ctx).len(), 28);
 
     let head = Identifier::parse("tconstruct:pick_head").unwrap();
     // A log is worth 4 and a pick head costs 2: one log pays for it and half is handed back as 2 planks.
@@ -2258,7 +2258,7 @@ fn the_items_eaten_by_a_right_click_are_the_tools_in_the_shipped_charge_tag() {
     }
     let mut charge = std::collections::BTreeSet::new();
     members("modifiable/interactable/charge", &mut charge);
-    // The original's other-mod minotaur axe is not a tool here.
+    // The minotaur axe counts as a tool here: this port registers it itself (the original registers it only with Twilight Forest).
     let tools: std::collections::BTreeSet<String> = crate::tool_parts::tool_items().map(|id| id.to_string()).collect();
     let charge: std::collections::BTreeSet<String> = charge.into_iter().filter(|id| tools.contains(id)).collect();
     let used: std::collections::BTreeSet<String> = crate::edible_hook::USE_ITEMS.iter().map(|path| format!("tconstruct:{path}")).collect();

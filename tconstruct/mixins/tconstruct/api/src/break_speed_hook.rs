@@ -11,7 +11,7 @@ pub(crate) fn with_held_tool<R>(held: &pluto_lib::StackData, run: impl FnOnce(&t
     let materials = common::register().read().map_err(|_| "materials locked")?;
     let modifiers = common::server_modifiers().ok_or("modifier registry missing")?.read().map_err(|_| "modifiers locked")?;
     if !materials.server_loaded || !modifiers.definitions_loaded || definitions.data.is_empty() { return Err("registries not loaded"); }
-    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
+    let tools: Vec<(Identifier, &tool_definitions::Data)> = tool_definitions::item_pairs(&definitions);
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
     let ctx = Tools { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };

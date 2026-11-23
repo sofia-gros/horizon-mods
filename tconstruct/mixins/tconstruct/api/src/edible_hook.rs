@@ -8,8 +8,8 @@ use pluto_lib::{Identifier, ItemUseRegistry, StackData, StackUse, UseAction, Use
 /// The tool items `EdibleModule.onToolUse` can start eating with: those tagged `tconstruct:modifiable/interactable/charge` (a tool that charges
 /// its right click: the swasher, the right-click and dual tools, the shields and the bows). Armor is never eaten with a right click, which
 /// equips it, and the stat's other valid tools are not interactable.
-pub(crate) const USE_ITEMS: [&str; 28] = [
-    "swasher", "pickaxe", "sledge_hammer", "vein_hammer", "mattock", "pickadze", "excavator", "hand_axe", "broad_axe", "kama", "scythe", "dagger",
+pub(crate) const USE_ITEMS: [&str; 29] = [
+    "swasher", "pickaxe", "sledge_hammer", "vein_hammer", "mattock", "pickadze", "excavator", "hand_axe", "broad_axe", "minotaur_axe", "kama", "scythe", "dagger",
     "sword", "cleaver", "javelin", "flint_and_brick", "fishing_rod", "sky_staff", "earth_staff", "ichor_staff", "ender_staff", "melting_pan",
     "battlesign", "travelers_shield", "plate_shield", "longbow", "crossbow", "war_pick",
 ];

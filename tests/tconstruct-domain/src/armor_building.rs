@@ -44,9 +44,10 @@ fn definition<'w>(world: &'w crate::original_data::World, name: &str) -> &'w cra
 /// `ToolBuildHandler.buildToolFromMaterials`: a built stack's data for a definition and its materials, in slot order.
 fn build(world: &crate::original_data::World, name: &str, materials: &[&str]) -> pluto_lib::NbtCompound {
     let item = id(&format!("tconstruct:{name}"));
+    let definition_name = crate::tool_definitions::definition_id_for_item(&item);
     let variants: Vec<MaterialVariant> = materials.iter().map(|material| variant(material)).collect();
     let env = crate::tool_stack::Environment {
-        definition: Some(definition(world, name)), has_materials: true, materials: &world.materials,
+        definition: Some(definition(world, definition_name.path())), has_materials: true, materials: &world.materials,
         modifiers: &world.registry, item_tags_loaded: true, item: Some(&item), item_tags: None,
     };
     let list = crate::tool_materials::MaterialList::from_variants(variants);
@@ -150,7 +151,7 @@ fn slimesuit_pieces_and_wings_build_from_their_casting_materials() {
     // stats carry repair amounts only, and the skull stat contributes armor alone, so durability is the slime
     // stat's, scaled (the wings add their base 222).
     for (name, materials, durability) in [
-        ("slime_chestplate", &["bone", "earthslime"][..], 80),
+        ("slimy_chestplate", &["bone", "earthslime"][..], 80),
         ("slime_leggings", &["dragon_scale", "earthslime"][..], 75),
         ("slime_boots", &["cheese", "earthslime"][..], 65),
         ("slime_helmet", &["bone", "enderslime"][..], 110),
@@ -193,7 +194,7 @@ fn the_thirteen_are_listed_in_the_creative_tools_tab_in_the_original_order() {
     // with the wings last in the whole tab; every listed stack carries one material per stat slot.
     let order = ["travelers_helmet", "travelers_chestplate", "travelers_leggings", "travelers_boots",
         "plate_helmet", "plate_chestplate", "plate_leggings", "plate_boots",
-        "slime_helmet", "slime_chestplate", "slime_leggings", "slime_boots", "slime_wings"];
+        "slime_helmet", "slimy_chestplate", "slime_leggings", "slime_boots", "slime_wings"];
     let slots = |name: &str| if name == "slime_wings" { 1 } else { 2 };
     let mut first_at: Vec<usize> = Vec::new();
     for name in order {
@@ -230,7 +231,7 @@ fn armor_items_declare_their_equipment_and_the_armor_tags_name_them() {
         ("travelers_chestplate", "minecraft:leather_chestplate", "chest", "tconstruct:travelers"),
         ("travelers_leggings", "minecraft:leather_leggings", "legs", "tconstruct:travelers"),
         ("travelers_boots", "minecraft:leather_boots", "feet", "tconstruct:travelers"),
-        ("slime_chestplate", "minecraft:leather_chestplate", "chest", "tconstruct:slime"),
+        ("slimy_chestplate", "minecraft:leather_chestplate", "chest", "tconstruct:slime"),
         ("slime_leggings", "minecraft:leather_leggings", "legs", "tconstruct:slime"),
         ("slime_boots", "minecraft:leather_boots", "feet", "tconstruct:slime"),
         ("slime_wings", "minecraft:elytra", "chest", "tconstruct:slime_wings"),
@@ -245,11 +246,11 @@ fn armor_items_declare_their_equipment_and_the_armor_tags_name_them() {
     let helmet = content_json("horizon/item/slime_helmet.json");
     assert_eq!(helmet["template"], "minecraft:leather_helmet", "the slime helmet keeps the leather helmet template");
     assert_eq!(helmet["max_stack_size"], 1, "the slime helmet is unstackable");
-    // The armor attribute path keys off these tags; they must name the port's items (the chestplate tag
-    // carried the original's pre-rename `slimy_chestplate` id, which no port item has).
+    // The armor attribute path keys off these tags; they must name the port's items (the slime
+    // chestplate's item is `slimy_chestplate`; only its tool definition is `slime_chestplate`).
     for (tag, members) in [
         ("helmets", &["travelers_helmet", "plate_helmet", "slime_helmet"][..]),
-        ("chestplate", &["travelers_chestplate", "plate_chestplate", "slime_chestplate", "slime_wings"][..]),
+        ("chestplate", &["travelers_chestplate", "plate_chestplate", "slimy_chestplate", "slime_wings"][..]),
         ("leggings", &["travelers_leggings", "plate_leggings", "slime_leggings"][..]),
         ("boots", &["travelers_boots", "plate_boots", "slime_boots"][..]),
     ] {

@@ -493,7 +493,7 @@ def checked_content(root, version):
                 if '/recipes/tools/modifiers/' in name:
                     reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
                 elif '/recipes/tools/parts/builder/' in name:
-                    reviewed = ('tconstruct:part_builder',)
+                    reviewed = ('tconstruct:part_builder', 'tconstruct:item_part_builder')
                 elif '/recipes/tools/severing/' in name:
                     reviewed = ('tconstruct:severing',)
                 elif '/recipes/tools/recycling/' in name:

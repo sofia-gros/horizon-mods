@@ -57,7 +57,7 @@ fn with_context<R>(read: impl FnOnce(&Context, &Removals, &enchantment_convertin
     let salvages = common::salvages()?.read().ok()?;
     let modifier_recipes = common::modifier_recipes()?.read().ok()?;
     if !removals.loaded || !conversions.loaded || !salvages.loaded || !modifier_recipes.loaded { return None; }
-    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
+    let tools: Vec<(Identifier, &tool_definitions::Data)> = tool_definitions::item_pairs(&definitions);
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
     let ctx = Context { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };
