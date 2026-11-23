@@ -39,6 +39,7 @@ fn pluto_player_hurt(game:&crate::game::Game<'_>,attacker:i32) {
     let hurt=crate::entry::pluto_player_hurt_access::PlayerHurt {
         attacker,
         attacker_kind:mob.kind.id.to_string(),
+        position:[mob.position.x,mob.position.y,mob.position.z],
         on_ground:mob.on_ground,
         in_water:mob.fluids.in_water,
         fire_ticks:mob.fire_ticks,

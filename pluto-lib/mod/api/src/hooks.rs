@@ -180,6 +180,7 @@ pub fn hooks() -> Box<dyn Hooks> {
         hurt: |hurt| {
             let hit = entity_events_v1::WearerHit {
                 attacker: hurt.attacker, kind: hurt.attacker_kind.clone(), damage_type: hurt.damage_type.clone(), amount: hurt.amount,
+                attacker_position: Some(hurt.position),
                 attacker_state: entity_events_v1::EntityState {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
@@ -1962,6 +1963,9 @@ fn read_surroundings(host: &mut dyn Host, state: &mut entity_events_v1::EntitySt
     state.sky_darken = entity_events_v1::sky_darken(rain, thunder, host.day_time());
     state.y = Some(f64::from(block[1]));
     state.rain_exposed = entity_events_v1::rain_exposed(raining, sky_light, biome.as_deref(), block[1]);
+    // The thunder level past the same threshold the rain level is read with: a storm the game
+    // reports, whether or not the rain reaches this entity.
+    state.thundering = thunder > 0.2;
     state.biome_temperature = biome.as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, block[1]));
     state.biome = biome;
     if let Some(eyes) = eyes {
@@ -1997,6 +2001,15 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
         if host.player_equipment(player.uuid, slot).is_some() { equipment.push(name.to_owned()); }
     }
     state.equipment = Some(equipment);
+    // The enchantments on everything held or worn, for the conditions that ask whether an
+    // enchantment is present (mantle:has_enchantment reads an entity's equipment levels).
+    let mut enchantments: Vec<String> = Vec::new();
+    for slot in [EquipmentSlot::MainHand, EquipmentSlot::OffHand, EquipmentSlot::Head, EquipmentSlot::Chest, EquipmentSlot::Legs, EquipmentSlot::Feet] {
+        if let Some(levels) = host.player_equipment(player.uuid, slot).and_then(|stack| read_enchantments(&stack)) {
+            for id in levels.into_keys() { if !enchantments.contains(&id) { enchantments.push(id); } }
+        }
+    }
+    state.enchantments = enchantments;
     let [x, y, z] = player.position;
     let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
     read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
@@ -2275,6 +2288,14 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 let mut native = ItemStack::new(&stack.item, stack.count);
                 write_stack(&mut native, &stack);
                 horizon_client::entry::pluto_damage_facts_access::push_drop(entity, native);
+            }
+            EntityAction::Summon { target, kind } => {
+                // The kind is summoned at the target's own position through the host's summon (the
+                // game's `/summon`: any kind from its data, lightning included).
+                let Ok(id) = u32::try_from(id_of(target)) else { continue };
+                let Some(entity) = host.entity(id) else { continue };
+                let Some(position) = host.entity_position(entity) else { continue };
+                host.summon(dimension, &kind, position, compound_to_tag(&NbtCompound::new()));
             }
         }
     }
@@ -4054,7 +4075,14 @@ impl Hooks for PlutoHooks {
             // Entity.isEyeInFluid(water): the block at the eyes holds water (a water block or a waterlogged one).
             let eyes = [player.position[0].floor() as i32, (player.position[1] + f64::from(player.eye_height)).floor() as i32, player.position[2].floor() as i32];
             let eyes_in_water = host.level_block_state(level, eyes).is_some_and(|state| state.starts_with("minecraft:water") || state.contains("waterlogged=true"));
-            events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water }
+            // The player's effects with their levels, and whether rain falls on them (the weather, the
+            // sky light over their own block and their biome, as an entity's surroundings are read).
+            let effect_levels = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier))).collect();
+            let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
+            let (rain, _) = host.weather();
+            let (_, sky_light) = host.light(feet);
+            let rain_exposed = entity_events_v1::rain_exposed(rain > 0.2, sky_light, host.biome(feet).as_deref(), feet[1]);
+            events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water, effect_levels, rain_exposed }
         });
         // The light at the block being dug and the temperature of the biome it stands in, for the variables that read them.
         // The event names no face, so the light is the dug block's own, not the block on the side that was hit.
@@ -4336,10 +4364,13 @@ impl Hooks for PlutoHooks {
         let attacker_state = state_of(&mut *host, event.causing).or_else(|| player_state(&mut *host));
         let target_state = state_of(&mut *host, event.entity);
         entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
+        // Where the mob stands, for the callbacks that act on the place of the hit (a teleport of the
+        // mob itself, a lightning strike where it stands).
+        let target_position = u32::try_from(event.entity).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity));
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
-            attacker_state, target_state, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
+            attacker_state, target_state, target_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {

@@ -85,12 +85,18 @@ pub struct DiggingFacts {
 }
 
 /// What a break-speed callback may read about the player who digs.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DiggingPlayer {
     /// On the ground, as the player's last accepted move said.
     pub on_ground: bool,
     /// The player's eyes are inside water (their block, at eye height, holds water).
     pub eyes_in_water: bool,
+    /// The effects on the player, as (effect id, amplifier): the amplifier is the level less one.
+    /// Empty when the game did not report them.
+    pub effect_levels: Vec<(String, i32)>,
+    /// Whether rain falls on the player: it is raining, the sky is open above them and the biome
+    /// rains rather than snows or stays dry.
+    pub rain_exposed: bool,
 }
 
 /// The hand a player used an item in (Minecraft: `InteractionHand`).
@@ -520,13 +526,13 @@ mod tests {
     #[test]
     fn break_speed_callbacks_read_the_digging_player_and_change_the_speed() {
         BreakSpeedCallback::EVENT.register(|c| {
-            if let Some(player) = c.player {
+            if let Some(player) = &c.player {
                 if !player.on_ground { c.speed.set(c.speed.get() * 5.0); }
                 if player.eyes_in_water { c.speed.set(c.speed.get() + 1.0); }
             }
         });
         let block = BlockState { block: super::super::base::Identifier::parse("test:rock").unwrap(), properties: Default::default() };
-        let state = |on_ground, eyes_in_water| Some(DiggingPlayer { on_ground, eyes_in_water });
+        let state = |on_ground, eyes_in_water| Some(DiggingPlayer { on_ground, eyes_in_water, ..DiggingPlayer::default() });
         assert_eq!(break_speed([0, 0, 0], block.clone(), 2.0, 2.0, None, state(true, false), DiggingFacts::default()), 2.0);
         assert_eq!(break_speed([0, 0, 0], block.clone(), 2.0, 2.0, None, state(false, false), DiggingFacts::default()), 10.0);
         assert_eq!(break_speed([0, 0, 0], block.clone(), 2.0, 2.0, None, state(true, true), DiggingFacts::default()), 3.0);

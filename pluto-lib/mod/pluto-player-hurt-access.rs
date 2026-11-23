@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 pub struct PlayerHurt {
     pub attacker:i32,
     pub attacker_kind:String,
+    pub position:[f64;3],
     pub on_ground:bool,
     pub in_water:bool,
     pub fire_ticks:i32,
