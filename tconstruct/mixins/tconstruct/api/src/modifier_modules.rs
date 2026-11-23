@@ -1908,8 +1908,8 @@ pub(crate) fn supports(stat: Stat, facts: &Facts) -> bool {
         Stat::SeaLuck | Stat::Lure => &["modifiable/fishing_rods"],
         // EdibleModule.VALID_TOOLS: tools that charge an interaction, and armor.
         Stat::Hunger | Stat::Saturation | Stat::EatDuration | Stat::EdibleCounterChance => &["modifiable/interactable/charge", "modifiable/armor"],
-        // Water inertia and overslime declare no tag.
-        Stat::WaterInertia | Stat::Overslime => return true,
+        // Water inertia and overslime declare no tag; tank capacity neither (CapacityStat ANY).
+        Stat::WaterInertia | Stat::Overslime | Stat::TankCapacity => return true,
     };
     tags.iter().any(|tag| (facts.in_tag)(item, &Identifier::new("tconstruct", tag).expect("valid tag id")))
 }

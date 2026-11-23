@@ -5,10 +5,11 @@
 #![allow(dead_code)]
 use crate::{
     fluid_ingredient::{id_of, int_field, only_keys, FluidIngredient, FluidOutput, FluidTags, InTag},
-    fluid_values::{scale_output, OreRate, OreRateType},
+    fluid_values::{scale_output, OreRateType},
     material_recipes::Ingredient,
     tool_materials::MaterialVariant,
 };
+pub(crate) use crate::fluid_values::OreRate;
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
 

@@ -53,6 +53,8 @@ mod tool_definitions;
 mod tool_rebuild;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_stack.rs"]
 mod tool_stack;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_tank.rs"]
+mod tool_tank;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_damage.rs"]
 mod tool_damage;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_repair.rs"]

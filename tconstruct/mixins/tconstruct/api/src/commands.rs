@@ -1825,6 +1825,63 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::Throwing => {
             out.insert("tconstruct:general_interaction");
         }
+        Module::Tank => {
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:validate");
+            out.insert("tconstruct:remove");
+            out.insert("tconstruct:slot_stack");
+            out.insert("tconstruct:display_name");
+        }
+        Module::Bucket { .. } => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:general_interact");
+        }
+        Module::TankInteraction { .. } => {
+            out.insert("tconstruct:block_interact");
+        }
+        Module::Melting { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:launcher_hit");
+            out.insert("tconstruct:process_loot");
+        }
+        Module::Slurping { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:inventory_tick");
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::Spilling { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:launcher_hit");
+        }
+        Module::Spitting { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:inventory_tick");
+        }
+        Module::Splashing { .. } => {
+            out.insert("tconstruct:entity_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
+        Module::Overburn => {
+            out.insert("tconstruct:inventory_tick");
+            out.insert("tconstruct:remove");
+        }
+        Module::Smashing => {
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_fuse");
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:validate");
+            out.insert("tconstruct:remove");
+            out.insert("tconstruct:display_name");
+            out.insert("tconstruct:tooltip");
+        }
     }
 }
 

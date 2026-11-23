@@ -233,7 +233,7 @@ mod tests {
             DispenseRegistry::register(item.clone(), DispenseBehavior::Shoot { entity: item, power: DISPENSE_POWER, inaccuracy: DISPENSE_INACCURACY });
         }
         for thrown in &THROWABLES {
-            let behavior = DispenseRegistry::get(&id(thrown.name)).expect("the behaviour is registered");
+            let behavior = DispenseRegistry::get(&id(thrown.name).to_string()).expect("the behaviour is registered");
             let DispenseBehavior::Shoot { entity, power, inaccuracy } = behavior else { panic!("a shot, not another behaviour") };
             assert_eq!(entity, id(thrown.name), "{} shoots its own entity type", thrown.name);
             assert_eq!((power, inaccuracy), (1.1, 6.0), "ShootProjectileDispenserBehavior's numbers");

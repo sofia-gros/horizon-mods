@@ -133,7 +133,7 @@ pub(crate) fn register() {
         // block, which the before-break callback noted.
         let melted = with_held_tool(tool, |env, stack| {
             let force = tool_stack::volatile_flag(&stack.custom_data, "tconstruct:force_melting") && take_melt_effective(&drops.dimension, drops.block);
-            tool_stack::melting_loot(&stack.custom_data, env, &mut loot, force, &|slot, module, level| melt_drop(slot, module, level, &in_tag))
+            tool_stack::melting_loot(&mut stack.custom_data.clone(), env, &mut loot, force, &|slot, module, level| melt_drop(slot, module, level, &in_tag))
         });
         if let Ok(edits) = melted { drops.actions.borrow_mut().extend(edit_action(tool, edits)); }
     });
