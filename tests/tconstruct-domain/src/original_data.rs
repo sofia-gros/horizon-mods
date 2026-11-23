@@ -2471,7 +2471,7 @@ impl crate::materials::Conditions for EverythingOn {
 pub(crate) fn fluid_tags() -> crate::fluid_ingredient::FluidTags { crate::fluid_ingredient::FluidTags::load(&fluid_tag_files()) }
 pub(crate) fn fluid_recipes(everything_on: bool) -> crate::fluid_recipes::Recipes {
     let files = recursive_files("fluids", "fluids");
-    assert_eq!(files.len(), 1858, "melting, casting, alloy, fuel, entity and molding recipes outside the compat folder");
+    assert_eq!(files.len(), 1904, "melting, casting, alloy, fuel, entity and molding recipes, the compat folder included (its 46 other-mod integrations ship with their conditions, as the integration alloys already did)");
     if everything_on { crate::fluid_recipes::Recipes::load(&files, &EverythingOn(conditions())) } else { crate::fluid_recipes::Recipes::load(&files, &conditions()) }
 }
 pub(crate) fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
@@ -2508,9 +2508,10 @@ fn every_shipped_fluid_recipe_decodes_whatever_its_conditions_and_only_unported_
         }
     }
     assert_eq!((tool, swapping, tipping, clearing), (21, 10, 2, 2));
-    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); all 689 casting recipes decode
-    assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (819, 48, 2, true, 32, 24));
-    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (689, 58, 39, 34, 112));
+    // 844 melting (25 of them the compat folder's other-mod integrations, which ship with their conditions),
+    // 48 material melting, 32 entity melting; 25 alloys (netherite's two forms are one recipe); all 709 casting recipes decode
+    assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (844, 48, 2, true, 32, 25));
+    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (709, 58, 39, 34, 112));
 }
 
 #[test]
@@ -2520,7 +2521,7 @@ fn shipped_melting_and_cooling_times_follow_the_original_formula() {
     // The generator gives a plain melting recipe sqrt(ingots) * T^0.585 unless its author overrode the time (clay, glass, ores...).
     let plain: Vec<_> = recipes.melting.iter().filter(|recipe| recipe.kind == MeltingKind::Plain).collect();
     let agree = plain.iter().filter(|recipe| calc_time_for_amount(recipe.temperature, recipe.output.amount) == recipe.time).count();
-    assert_eq!((plain.len(), agree), (481, 293), "the other 188 carry an authored time");
+    assert_eq!((plain.len(), agree), (502, 293), "the other 209 carry an authored time");
     // Casting uses the same formula on the casting fluid's temperature, from the fluid's material_fluid recipe.
     let temperature_of = |source: &Source| recipes.material_casting.casting.iter()
         .find(|fluid| fluid.fluid.options.iter().any(|(own, _)| own == source)).map(|fluid| fluid.temperature);
@@ -2533,7 +2534,7 @@ fn shipped_melting_and_cooling_times_follow_the_original_formula() {
         else if recipe.cooling_time == 1 { bottles += 1; }
         else { other.push(recipe.id.to_string()); }
     }
-    assert_eq!((agree_cast, bottles, other.len()), (338, 7, 0), "the 7 bottle casts take 1 tick by design: {other:?}");
+    assert_eq!((agree_cast, bottles, other.len()), (345, 7, 0), "the 7 bottle casts take 1 tick by design: {other:?}");
 }
 
 #[test]
@@ -2915,7 +2916,7 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 368, "the plain recipes the importer converts, as measured on the merged tree: 103 of the smeltery folder, 19 of the tables, 172 of the commons, 17 of the gadgets and 52 of the world wood (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane; the recipe remainder unit added the platforms, the cheese and the firewood, and with the gold platform the scorched basin; 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; and the four book recipes of the commons, materials and you, puny smelting, fantastic foundry and tinkers gadgetry, with the books unit; and 10 more with the shaped-materials pack (the four material anvils and forges of the tables, the five travellers armor pieces and the fake ingot's storage block), whose material ingredients ship verbatim for the shaped-materials consumer; and 74 more with the final conversion (the four slime woods' world recipes, the twelve slime crystal recipes of the commons, and ten gadget recipes: the clear stand and frame, the four metal frames and the four slime cakes, whose items the intervening lanes declared; the necrotic bone stand alone of the fancy gadgets still waits); and 4 more with the grid part recipes (the pick head, tool handle and tool binding and the pickaxe they assemble, converted for the inventory grid gate); and 1 more with the shapeless-materials recipe (the fake ingot broken back out of its storage block), whose material ingredient ships verbatim for the shapeless-materials consumer; the rest name items this port does not declare yet");
+    assert_eq!(count, 381, "the plain recipes the importer converts, as measured on the merged tree: 103 of the smeltery folder, 19 of the tables, 172 of the commons, 17 of the gadgets and 52 of the world wood (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane; the recipe remainder unit added the platforms, the cheese and the firewood, and with the gold platform the scorched basin; 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; and the four book recipes of the commons, materials and you, puny smelting, fantastic foundry and tinkers gadgetry, with the books unit; and 10 more with the shaped-materials pack (the four material anvils and forges of the tables, the five travellers armor pieces and the fake ingot's storage block), whose material ingredients ship verbatim for the shaped-materials consumer; and 74 more with the final conversion (the four slime woods' world recipes, the twelve slime crystal recipes of the commons, and ten gadget recipes: the clear stand and frame, the four metal frames and the four slime cakes, whose items the intervening lanes declared; the necrotic bone stand alone of the fancy gadgets still waits); and 4 more with the grid part recipes (the pick head, tool handle and tool binding and the pickaxe they assemble, converted for the inventory grid gate); and 1 more with the shapeless-materials recipe (the fake ingot broken back out of its storage block), whose material ingredient ships verbatim for the shapeless-materials consumer; and 13 more with the data restoration (the five tool-building recipes of the tools folder, the six smeltery retextured recipes shipped as plain shaped recipes, and the two kiln blasting fallbacks); the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_casting_tank", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "scorched_alloyer", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can", "copper_gauge", "seared_fluid_cannon",
@@ -2951,7 +2952,7 @@ fn the_forge_item_tags_the_host_lacks_come_from_the_original_data() {
 #[test]
 fn shipped_fluid_recipes_load_and_an_iron_ingot_melts_through_its_forge_tag() {
     let files = recursive_files("fluids", "fluids");
-    assert_eq!(files.len(), 1858, "every file the smeltery domain ships under recipes/fluids");
+    assert_eq!(files.len(), 1904, "every file the smeltery domain ships under recipes/fluids");
     let recipes = crate::fluid_recipes::Recipes::load(&files, &conditions());
     // 813 melting files ship, but most are switched off in this tag-less test world by their own conditions
     // (the tag-filled and other-mod gates of conditions()); what loads unconditionally must still be hundreds.
