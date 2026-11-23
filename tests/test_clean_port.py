@@ -67,6 +67,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/creative_fluids.rs',
                 'mixins/tconstruct_native/api/src/creative_parts.rs',
                 'mixins/tconstruct_native/api/src/creative_tools.rs',
+                'mixins/tconstruct_native/api/src/custom_attributes.rs',
                 'mixins/tconstruct_native/api/src/damage_tags.rs',
                 'mixins/tconstruct_native/api/src/damage_vanilla.rs',
                 'mixins/tconstruct_native/api/src/damageable_recycling.rs',

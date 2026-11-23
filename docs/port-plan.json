@@ -180,6 +180,7 @@
     "api/src/shaped_materials.rs",
     "api/src/swapping_recipes.rs",
     "api/src/material_render.rs",
+    "api/src/custom_attributes.rs",
     "LICENSE"
   ],
   "cargo_dependencies": ["serde_json", "toml"],
