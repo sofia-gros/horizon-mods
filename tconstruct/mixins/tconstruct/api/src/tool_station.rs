@@ -106,8 +106,13 @@ pub(crate) struct ModifierRecipes<'a> {
     pub modifier_repairs: Option<&'a crate::modifier_repair::Recipes>,
     pub damaging: Option<&'a crate::damaging::Recipes>,
     pub dyeing: Option<&'a crate::dyeing::Recipes>,
+    pub banner: Option<&'a crate::banner_modifier::Recipes>,
+    pub trim: Option<&'a crate::armor_trim::Recipes>,
     /// Each input slot's item and count (None when empty), independent of how it resolved.
     pub raw: &'a [Option<(Identifier, u32)>],
+    /// Each input slot's full stack (None when empty): the banner recipe reads
+    /// the banner stack's own pattern data, which the item and count do not carry.
+    pub stacks: &'a [Option<ItemSlot>],
     /// The slot and modifier of a modifier crystal when it is the only thing on the table.
     pub crystal: Option<(usize, Identifier)>,
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
@@ -196,6 +201,34 @@ fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> 
         // Nor dyeing: a damaging recipe may still take the tool.
         if let Some(recipes) = modifiers.damaging {
             if let Some(attempt) = recipes.attempt(tool, &env, modifiers.raw, modifiers.in_tag) {
+                return Ok(match attempt {
+                    Err(message) => Outcome::Failure(message),
+                    Ok((result, consumed)) => Outcome::Crafted(Crafted {
+                        result,
+                        consumed: consumed.into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect(),
+                        tool_shrink: 1,
+                        leftover: Vec::new(),
+                    }),
+                });
+            }
+        }
+        // Nor damaging: a banner may apply its patterns to a shield.
+        if let Some(recipes) = modifiers.banner {
+            if let Some(attempt) = recipes.attempt(tool, &env, modifiers.stacks, modifiers.in_tag) {
+                return Ok(match attempt {
+                    Err(message) => Outcome::Failure(message),
+                    Ok((result, consumed)) => Outcome::Crafted(Crafted {
+                        result,
+                        consumed: consumed.into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect(),
+                        tool_shrink: 1,
+                        leftover: Vec::new(),
+                    }),
+                });
+            }
+        }
+        // Nor a banner: a template and material may trim the tool.
+        if let Some(recipes) = modifiers.trim {
+            if let Some(attempt) = recipes.attempt(tool, &env, modifiers.stacks, modifiers.in_tag) {
                 return Ok(match attempt {
                     Err(message) => Outcome::Failure(message),
                     Ok((result, consumed)) => Outcome::Crafted(Crafted {

@@ -201,6 +201,8 @@
     "api/src/crafting_overslime.rs",
     "api/src/damaging.rs",
     "api/src/dyeing.rs",
+    "api/src/banner_modifier.rs",
+    "api/src/armor_trim.rs",
     "api/src/modifier_repair.rs",
     "api/src/table_recipes.rs",
     "api/src/custom_attributes.rs",

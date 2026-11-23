@@ -19,6 +19,8 @@ pub(crate) struct Resolver<'a> {
     pub modifier_repair_recipes: Option<&'a crate::modifier_repair::Recipes>,
     pub damaging_recipes: Option<&'a crate::damaging::Recipes>,
     pub dyeing_recipes: Option<&'a crate::dyeing::Recipes>,
+    pub banner_recipes: Option<&'a crate::banner_modifier::Recipes>,
+    pub trim_recipes: Option<&'a crate::armor_trim::Recipes>,
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
 }
 
@@ -72,7 +74,9 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
         (stack.item.clone(), stack.count, modifier)
     })).collect();
     let crystal = crate::modifier_recipes::lone_crystal(&stacks);
-    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, crystal, overslime: resolver.overslime_recipes, modifier_repairs: resolver.modifier_repair_recipes, damaging: resolver.damaging_recipes, dyeing: resolver.dyeing_recipes, raw: &raw, in_tag: resolver.in_tag });
+    // The full input stacks: the banner recipe reads the banner stack's pattern data.
+    let full_stacks: Vec<Option<ItemSlot>> = (1..=input_count).map(|slot| menu.stack(slot).filter(|stack| stack.count > 0)).collect();
+    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, crystal, overslime: resolver.overslime_recipes, modifier_repairs: resolver.modifier_repair_recipes, damaging: resolver.damaging_recipes, dyeing: resolver.dyeing_recipes, banner: resolver.banner_recipes, trim: resolver.trim_recipes, raw: &raw, stacks: &full_stacks, in_tag: resolver.in_tag });
     // The part swap's repair and the material swapping recipes: the casting lookup lives
     // with the smeltery recipes, the swapping recipes in their own registry.
     let casting = crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.recipes.material_casting.clone()));
@@ -178,7 +182,7 @@ mod tests {
         let tools = [(id("tconstruct:pickaxe"), &pickaxe)];
         let item_max = |_: &Identifier| 1;
         let ctx = Context { materials: &materials, modifiers: &registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
-        let resolver = Resolver { kit_amount: 2.0, recipes: None, modifier_recipes: None, overslime_recipes: None, modifier_repair_recipes: None, damaging_recipes: None, dyeing_recipes: None, in_tag: &|_, _| false };
+        let resolver = Resolver { kit_amount: 2.0, recipes: None, modifier_recipes: None, overslime_recipes: None, modifier_repair_recipes: None, damaging_recipes: None, dyeing_recipes: None, banner_recipes: None, trim_recipes: None, in_tag: &|_, _| false };
         let mut lazy = LazyResultContainer::default();
         lazy.result(|| Some(ItemSlot::new(id("test:stale"), 1)));
         // Slots: tool, 4 inputs, result placeholder.
@@ -206,7 +210,7 @@ mod tests {
         let recipes = crate::material_recipes::Recipes::load(&[(id("tconstruct:tools/materials/plank"), json!({"type":"tconstruct:material",
             "ingredient":{"item":"test:plank"},"material":"test:wood","needed":1,"value":1}))], &Always);
         assert_eq!(recipes.len(), 1);
-        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), modifier_recipes: None, overslime_recipes: None, modifier_repair_recipes: None, damaging_recipes: None, dyeing_recipes: None, in_tag: &|_, _| false };
+        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), modifier_recipes: None, overslime_recipes: None, modifier_repair_recipes: None, damaging_recipes: None, dyeing_recipes: None, banner_recipes: None, trim_recipes: None, in_tag: &|_, _| false };
         let plank = ItemSlot::new(id("test:plank"), 5);
         assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { count: 5, recipe, .. } if recipe.value == 1 && recipe.needed == 1));
         assert!(matches!(resolve_input(&plank, &resolver), Input::Other { .. }), "without recipes the plank is just an item");

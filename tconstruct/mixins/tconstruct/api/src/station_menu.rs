@@ -148,12 +148,16 @@ pub(crate) fn with_context<R>(read: impl FnOnce(&Context, &Resolver) -> R) -> Op
     let modifier_repair_recipes = common::modifier_repair_recipes().and_then(|recipes| recipes.read().ok());
     let damaging_recipes = common::damaging_recipes().and_then(|recipes| recipes.read().ok());
     let dyeing_recipes = common::dyeing_recipes().and_then(|recipes| recipes.read().ok());
+    let banner_recipes = common::banner_recipes().and_then(|recipes| recipes.read().ok());
+    let trim_recipes = common::trim_recipes().and_then(|recipes| recipes.read().ok());
     let resolver = Resolver { kit_amount, recipes: recipes.as_deref().filter(|recipes| recipes.loaded),
         modifier_recipes: modifier_recipes.as_deref().filter(|recipes| recipes.loaded),
         overslime_recipes: overslime_recipes.as_deref().filter(|recipes| recipes.loaded),
         modifier_repair_recipes: modifier_repair_recipes.as_deref().filter(|recipes| recipes.loaded),
         damaging_recipes: damaging_recipes.as_deref().filter(|recipes| recipes.loaded),
-        dyeing_recipes: dyeing_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
+        dyeing_recipes: dyeing_recipes.as_deref().filter(|recipes| recipes.loaded),
+        banner_recipes: banner_recipes.as_deref().filter(|recipes| recipes.loaded),
+        trim_recipes: trim_recipes.as_deref().filter(|recipes| recipes.loaded), in_tag: &in_tag };
     Some(read(&ctx, &resolver))
 }
 

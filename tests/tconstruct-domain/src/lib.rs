@@ -390,6 +390,10 @@ mod modifier_repair;
 mod damaging;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/dyeing.rs"]
 mod dyeing;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/banner_modifier.rs"]
+mod banner_modifier;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/armor_trim.rs"]
+mod armor_trim;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/table_recipes.rs"]
 mod table_recipes;
 #[cfg(test)]
