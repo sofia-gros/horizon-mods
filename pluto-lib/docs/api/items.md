@@ -1226,6 +1226,20 @@ ItemEvents::RELEASE_USING.register(|release| {
 });
 ```
 
+### `ItemEvents::USE_TICK`
+
+One tick of a player using an item over time (see [`UseTick`](#usetick)): heard every tick of the use, for the using player only, and only when a callback listens. The tick itself changes nothing; a callback acts through the player and the world. Server only.
+
+```rust
+use pluto_lib::ItemEvents;
+
+ItemEvents::USE_TICK.register(|tick| {
+    if tick.ticks_used % 4 == 0 {
+        // every fourth tick of the use: an eating tool's sound, a charge's drain
+    }
+});
+```
+
 ### `ReleaseUsing`
 
 A player releasing an item they were using. `stack` is the stack that was being used, `player` who let go and `dimension` the dimension they are in. `position` is where the player stands, `eye` where their eyes are (where a thrown projectile leaves from) and `look` the direction they look, as a unit vector. `creative` says whether the player is in creative mode. `ticks_used` is how many ticks the use was held — the charge. `main_hand` and `off_hand` are the stacks in the player's hands as the use ends (the used stack is one of them). Set `used` (with `set_used`) to count the release as a use of the item, which starts its cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the player carries, written after the callbacks ran; a count of 0 empties the place, as an ammunition callback spends its source.
@@ -1288,4 +1302,45 @@ let release = ReleaseUsing {
     ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
 };
 assert_eq!(release.world().dimension, "minecraft:the_nether");
+```
+
+### `UseTick`
+
+One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`). `stack` is the stack in use, `player` the player using it and `dimension` the dimension they are in; `position` is where the player stands (their feet) and `creative` whether they are in creative mode. `ticks_used` is how many ticks the use has run (the use's full time less the ticks left, so the first ticks of a use read near 0 and the last near the end) and `duration` the use's full time in ticks, as the stack's use gives it. The tick itself changes nothing: a callback acts through the player and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's drain). A use that ran its time out is finished, not ticked past its end.
+
+```rust
+use pluto_lib::{ServerPlayer, StackData};
+use pluto_lib::item_api_v1::UseTick;
+
+let tick = UseTick {
+    stack: StackData { item: "example:eaten_tool".into(), count: 1, ..Default::default() },
+    player: ServerPlayer { uuid: 7, name: "eater".into() },
+    dimension: "minecraft:overworld".into(),
+    position: [0.5, 64.0, 0.5],
+    creative: false,
+    ticks_used: 8,
+    duration: 32,
+};
+assert_eq!(tick.world().dimension, "minecraft:overworld");
+assert!(tick.ticks_used < tick.duration);
+```
+
+### `UseTick::world`
+
+`fn world(&self) -> World`. The world the player is in.
+
+```rust
+use pluto_lib::{ServerPlayer, StackData};
+use pluto_lib::item_api_v1::UseTick;
+
+let tick = UseTick {
+    stack: StackData::default(),
+    player: ServerPlayer { uuid: 1, name: "a".into() },
+    dimension: "minecraft:the_nether".into(),
+    position: [0.0; 3],
+    creative: false,
+    ticks_used: 0,
+    duration: 20,
+};
+assert_eq!(tick.world().dimension, "minecraft:the_nether");
 ```

@@ -140,7 +140,7 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`.
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand, `equipment` the pieces the breaker wears or holds in the off hand (as (slot, stack): `feet`, `legs`, `chest`, `head`, then `offhand`, as of their last tick; only the pieces carrying custom data) and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`.
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};

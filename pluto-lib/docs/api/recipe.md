@@ -513,3 +513,72 @@ let (name, result) = evaluate_special_recipe(&grid).unwrap();
 assert_eq!(name, "example:apple_pie");
 assert_eq!(result.count, 1);
 ```
+
+## Cooking lookups
+
+### `CookingRecipe`
+
+One cooking recipe of the game's own book (the furnace family), as a lookup answers it: `result` the result's item id, `result_count` the result's count for one input item, `experience` the experience the recipe grants per item cooked and `time` the cooking time in ticks.
+
+```rust
+use pluto_lib::recipe_api_v1::CookingRecipe;
+
+let recipe = CookingRecipe { result: "minecraft:cooked_beef".into(), result_count: 1, experience: 0.35, time: 200 };
+assert_eq!(recipe.result, "minecraft:cooked_beef");
+assert_eq!((recipe.result_count, recipe.time), (1, 200));
+```
+
+### `CookingLookup`
+
+`type CookingLookup = fn(&str, &str) -> Option<CookingRecipe>`. The adapter's cooking lookup: the first recipe of a kind (a recipe type id such as `minecraft:smelting`) that takes an item, or None when the book has none for it.
+
+```rust
+use pluto_lib::recipe_api_v1::{CookingLookup, CookingRecipe};
+
+let lookup: CookingLookup = |kind, item| {
+    if kind == "minecraft:smelting" && item == "minecraft:beef" {
+        Some(CookingRecipe { result: "minecraft:cooked_beef".into(), result_count: 1, experience: 0.35, time: 200 })
+    } else {
+        None
+    }
+};
+assert_eq!(lookup("minecraft:smelting", "minecraft:beef").map(|recipe| recipe.result), Some("minecraft:cooked_beef".into()));
+assert!(lookup("minecraft:smelting", "minecraft:stone").is_none());
+```
+
+### `set_cooking_lookup`
+
+`fn set_cooking_lookup(lookup: CookingLookup)`. Installs the adapter's cooking lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::recipe_api_v1::{CookingRecipe, cooking_recipe, set_cooking_lookup};
+
+set_cooking_lookup(|kind, item| {
+    if kind == "minecraft:smelting" && item == "minecraft:beef" {
+        Some(CookingRecipe { result: "minecraft:cooked_beef".into(), result_count: 1, experience: 0.35, time: 200 })
+    } else {
+        None
+    }
+});
+assert_eq!(cooking_recipe("minecraft:smelting", "minecraft:beef").map(|recipe| recipe.result), Some("minecraft:cooked_beef".into()));
+```
+
+### `cooking_recipe`
+
+`fn cooking_recipe(kind: &str, item: &str) -> Option<CookingRecipe>`. The first cooking recipe of `kind` that takes `item`, as the game's recipe book answers it (its ingredient naming the item; a stack-sensitive ingredient test is the engine's and is not replayed). None when the book has none, or when no adapter is installed.
+
+```rust
+use pluto_lib::recipe_api_v1::{CookingRecipe, cooking_recipe, set_cooking_lookup};
+
+assert!(cooking_recipe("minecraft:smelting", "minecraft:beef").is_none(), "no adapter installed yet");
+set_cooking_lookup(|kind, item| {
+    if kind == "minecraft:smelting" && item == "minecraft:beef" {
+        Some(CookingRecipe { result: "minecraft:cooked_beef".into(), result_count: 1, experience: 0.35, time: 200 })
+    } else {
+        None
+    }
+});
+let recipe = cooking_recipe("minecraft:smelting", "minecraft:beef").unwrap();
+assert_eq!((recipe.result.as_str(), recipe.result_count, recipe.time), ("minecraft:cooked_beef", 1, 200));
+assert!(cooking_recipe("minecraft:blasting", "minecraft:beef").is_none());
+```
