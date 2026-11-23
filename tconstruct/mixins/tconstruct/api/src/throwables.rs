@@ -201,6 +201,7 @@ mod tests {
             owner: 1,
             entity,
             entity_kind: if entity.is_some() { "minecraft:zombie".into() } else { String::new() },
+            entity_effects: Vec::new(),
             block,
             face,
             at: [block[0] as f64 + 0.5, block[1] as f64 + 0.5, block[2] as f64 + 0.5],

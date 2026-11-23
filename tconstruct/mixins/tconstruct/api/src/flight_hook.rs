@@ -182,6 +182,29 @@ fn put_flight(dimension: &str, projectile: u32, flight: InFlight) {
     with_flights(|flights| { flights.insert((dimension.to_owned(), projectile), flight); });
 }
 
+/// The damage type a thrown tool's hit is dealt as (TinkerDamageTypes.THROWN_TOOL): a projectile
+/// type, in the projectile tag — an enderman dodges it as it dodges any shot.
+const THROWN_TOOL_DAMAGE: &str = "tconstruct:thrown_tool";
+
+/// The damage type that replaces it under the enderference override (TinkerDamageTypes.MELEE_THROWN_TOOL):
+/// the same type (same death message, same scaling) outside the projectile tag, so the hit lands
+/// on a mob projectiles cannot touch.
+const MELEE_THROWN_TOOL_DAMAGE: &str = "tconstruct:melee_thrown_tool";
+
+/// Which of the two types a thrown tool's hit on this target is dealt as
+/// (ToolAttackContext.makeDamageSource, through TinkerEffects.needsEnderferenceOverride): the
+/// melee type only for an enderman carrying the enderference effect; every other target — an
+/// enderman without the effect, any other kind carrying it — takes the thrown type.
+fn thrown_tool_damage_type(entity_kind: &str, entity_effects: &[String]) -> &'static str {
+    if entity_kind == "minecraft:enderman"
+        && entity_effects.iter().any(|effect| effect.as_str() == crate::teleport_dodge::ENDERFERENCE)
+    {
+        MELEE_THROWN_TOOL_DAMAGE
+    } else {
+        THROWN_TOOL_DAMAGE
+    }
+}
+
 /// The flight pass: the scheduled tasks, the attractions a hit queued, and a thrown tool's magnet and
 /// loyalty, tick by tick.
 fn on_flight(flight: &ProjectileFlight) {
@@ -298,13 +321,18 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
         return false;
     }
     // A thrown tool's own hit: a full melee attack with the tool, then it bounces off the target.
+    // Its damage source is the one ToolAttackContext.makeDamageSource builds for a thrown tool:
+    // the thrown type, or the melee type on an enderman the enderference effect exposes — the
+    // port dealt every such hit as a player attack before, which no enderman ever dodged and no
+    // projectile-keyed protection ever read as a shot.
     if hit.entity.is_some() {
         if let Some(thrown) = &mut state.thrown {
             let amount = crate::break_speed_hook::with_held_tool(&thrown.stack, |env, tool| {
                 let base = (1.0 + tool_stack::stat(&tool.custom_data, crate::tool_stats::Stat::AttackDamage)) * thrown.multiplier;
                 tool_stack::melee_damage(&tool.custom_data, env, base, base, &|_| false, &crate::entity_facts::Entities { attacker: None, target: None })
             }).unwrap_or(0.0);
-            hit.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: "minecraft:player_attack".into() });
+            let damage_type = thrown_tool_damage_type(&hit.entity_kind, &hit.entity_effects);
+            hit.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: damage_type.into() });
             *hit.motion_after.borrow_mut() = Some([hit.motion[0] * -0.01, hit.motion[1] * -0.1, hit.motion[2] * -0.01]);
             thrown.dealt = true;
             put_flight(&hit.dimension, hit.projectile, state);
@@ -432,5 +460,90 @@ mod tests {
         assert!(merged.efln);
         assert!(merged.enderference);
         assert!(!merged.is_empty(), "a lone enderference mark still binds a flight");
+    }
+
+    /// A thrown tool's impact for the damage-type tests: a thrown flight bound under the
+    /// projectile, meeting the named kind carrying the named effects; `mark` says the tool
+    /// itself carries the enderference volatile flag. The stack is no loaded tool, so the
+    /// attack's amount reads 0 — the type the hit is dealt as is what is under test.
+    fn thrown_hit(dimension: &str, kind: &str, effects: Vec<String>, mark: bool) -> ProjectileImpact {
+        let stack = StackData {
+            item: "tconstruct:hand_axe".into(),
+            count: 1,
+            damage: 0,
+            max_damage: None,
+            custom_data: pluto_lib::NbtCompound::new(),
+            custom_model_data: None,
+            enchantments: Default::default(),
+        };
+        let profile = tool_stack::FlightProfile { enderference: mark, ..Default::default() };
+        bind(dimension, 7, thrown_flight(profile, stack, 1.0));
+        ProjectileImpact {
+            dimension: dimension.into(),
+            projectile: 7,
+            kind: "minecraft:arrow".into(),
+            owner: 1,
+            entity: Some(9),
+            entity_kind: kind.into(),
+            entity_effects: effects,
+            block: [0, 64, 0],
+            face: [0, 1, 0],
+            at: [0.5, 64.5, 0.5],
+            motion: [0.0, 0.0, -1.0],
+            data: pluto_lib::NbtCompound::new(),
+            discard: std::cell::Cell::new(false),
+            motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
+        }
+    }
+
+    /// The damage type of the one hurt a thrown hit dealt.
+    fn dealt_type(hit: &ProjectileImpact) -> String {
+        let actions = hit.actions.borrow();
+        assert_eq!(actions.len(), 1, "a thrown tool's hit deals exactly its attack");
+        match &actions[0] {
+            EntityAction::Hurt { damage_type, .. } => damage_type.clone(),
+            _ => panic!("a thrown tool's hit deals a hurt"),
+        }
+    }
+
+    #[test]
+    fn a_thrown_tool_hits_an_exposed_enderman_with_the_melee_type() {
+        // ToolAttackContext.makeDamageSource: an enderman carrying the enderference effect is
+        // the one target a thrown tool strikes with the melee type, so the hit lands on a mob
+        // that dodges projectiles.
+        let hit = thrown_hit("test:endermelee-exposed", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], false);
+        assert!(!on_impact(&hit), "a thrown tool's own hit replaces the game's");
+        assert_eq!(dealt_type(&hit), MELEE_THROWN_TOOL_DAMAGE);
+    }
+
+    #[test]
+    fn a_thrown_tool_keeps_the_thrown_type_on_every_other_target() {
+        // An enderman without the effect, and any other kind — even one carrying the effect —
+        // take the thrown type: the override names the enderman alone. The plain enderman is
+        // met by a marked tool: the ToolEvents gate lets a marked tool's hit hooks run on it,
+        // and makeDamageSource still deals the thrown type, as the target itself lacks the
+        // effect — the mark opens the hooks, it does not retitle the damage.
+        for (dimension, kind, effects, mark) in [
+            ("test:endermelee-plain-enderman", "minecraft:enderman", Vec::new(), true),
+            ("test:endermelee-marked-zombie", "minecraft:zombie", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], false),
+            ("test:endermelee-plain-zombie", "minecraft:zombie", Vec::new(), false),
+        ] {
+            let hit = thrown_hit(dimension, kind, effects, mark);
+            assert!(!on_impact(&hit), "{dimension}: a thrown tool's own hit replaces the game's");
+            assert_eq!(dealt_type(&hit), THROWN_TOOL_DAMAGE, "{dimension}");
+        }
+    }
+
+    #[test]
+    fn the_thrown_tool_type_turns_on_the_enderman_and_the_effect_together() {
+        // The qualifying boundary of TinkerEffects.needsEnderferenceOverride, read straight off
+        // the choice: the kind and the effect must both be present, and no other effect stands in.
+        let enderference = crate::teleport_dodge::ENDERFERENCE;
+        assert_eq!(thrown_tool_damage_type("minecraft:enderman", &[enderference.to_owned()]), MELEE_THROWN_TOOL_DAMAGE);
+        assert_eq!(thrown_tool_damage_type("minecraft:enderman", &[]), THROWN_TOOL_DAMAGE);
+        assert_eq!(thrown_tool_damage_type("minecraft:enderman", &["minecraft:speed".to_owned()]), THROWN_TOOL_DAMAGE);
+        assert_eq!(thrown_tool_damage_type("minecraft:zombie", &[enderference.to_owned()]), THROWN_TOOL_DAMAGE);
+        assert_eq!(thrown_tool_damage_type("", &[enderference.to_owned()]), THROWN_TOOL_DAMAGE);
     }
 }
