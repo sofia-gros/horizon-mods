@@ -49,7 +49,15 @@ fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static 
             holder,
         };
         let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, env.modifiers).len();
-        (tool_stack::break_speed(&stack.custom_data, env, &context, dig.speed.get()), effective, multiplier, modifier_count)
+        let speed = tool_stack::break_speed(&stack.custom_data, env, &context, dig.speed.get());
+        // ToolEvents.onBreakSpeed: the speed is scaled by the player's mining speed multiplier,
+        // from the digging tool's own attribute modules and the player's effects. The worn
+        // armor's share of the attribute reaches it through the player tick, which this event
+        // does not report, so it is not in this scaling.
+        let effects: Vec<(String, i32)> = dig.player.as_ref().map(|player| player.effect_levels.iter().map(|(id, amplifier)| (id.clone(), amplifier + 1)).collect()).unwrap_or_default();
+        let mining_multiplier = crate::custom_attributes::stack_value(&stack.custom_data, env, "mainhand", &effects, crate::custom_attributes::MINING_SPEED_MULTIPLIER);
+        let speed = if mining_multiplier != 1.0 { speed * mining_multiplier as f32 } else { speed };
+        (speed, effective, multiplier, modifier_count)
     })
 }
 

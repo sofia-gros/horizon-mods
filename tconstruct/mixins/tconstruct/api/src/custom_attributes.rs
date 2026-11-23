@@ -163,10 +163,21 @@ pub(crate) fn value_from(pieces: &[(String, StackData)], hands: &[(String, Stack
     AttributeRegistry::value(attribute, contributions.get(attribute).map(Vec::as_slice).unwrap_or(&[])).unwrap_or(0.0)
 }
 
-/// The value of `attribute` from one held stack alone (in `slot`) and the holder's effects:
-/// what a flow that only sees the digging or attacking stack can read.
-pub(crate) fn held_value(held: &StackData, slot: &str, effects: &[(String, i32)], attribute: &str) -> f64 {
-    value_from(&[], &[(slot.to_owned(), held.clone())], effects, attribute)
+/// The value of `attribute` from one loaded stack's modules for `slot`, plus the effect
+/// payloads among `effects` (as (effect id, level)): the form for a flow that already holds
+/// the stack as a tool (the break-speed hook's digging tool).
+pub(crate) fn stack_value(nbt: &pluto_lib::NbtCompound, env: &tool_stack::Environment, slot: &str, effects: &[(String, i32)], attribute: &str) -> f64 {
+    declare();
+    let mut contributions = Vec::new();
+    for (named, operation, amount) in tool_stack::custom_attribute_amounts(nbt, env, slot) {
+        if named == attribute { contributions.push(AttributeContribution { operation, amount }); }
+    }
+    for (id, level) in effects {
+        if let Some(grant) = EFFECT_GRANTS.iter().find(|grant| grant.effect == id && grant.attribute == attribute) {
+            contributions.push(AttributeContribution { operation: grant.operation, amount: grant.amount * f64::from(*level) });
+        }
+    }
+    AttributeRegistry::value(attribute, &contributions).unwrap_or(0.0)
 }
 
 /// The multiplier an effect landing on an entity gets to its duration: the good effect
