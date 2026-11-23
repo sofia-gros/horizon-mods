@@ -9,24 +9,25 @@
 //! break-speed hook, the knockback multiplier on the knockback event, the crouch damage
 //! multiplier in the melee hook, and the effect duration multipliers where the hit hooks put
 //! effects on a target. Chrysophilite is read in the loot flow itself, which already worked
-//! the golden amount out from the worn pieces. The rest — jump boost and jump count (read by
-//! the client's jump handling), bouncy (the fall handler), use item speed (the client's item
-//! use slowdown), critical damage (the critical hit event) and the experience multiplier (the
-//! experience drop events) — have no surface in this port yet: their values are computed and
-//! kept here, and nothing reads them until those surfaces exist. The original's percent and
-//! multiplier registrations do not state their ranges in the source this port follows, so the
-//! declared ranges use the widest bounds the original's own registrations use (0 to 100);
-//! no shipped content comes near them.
+//! the golden amount out from the worn pieces. Bouncy is read by the fall handler, the
+//! critical damage, jump boost, jump count and use item speed by the attribute hooks, and
+//! the self-destructing movement-speed payload is folded into the base value on the tick.
+//! The experience multiplier still has no surface: the host has no hook for the experience
+//! a block break or a death drops, so its value is computed and kept here and nothing reads
+//! it until that reach exists. The original's percent and multiplier registrations do not
+//! state their ranges in the source this port follows, so the declared ranges use the widest
+//! bounds the original's own registrations use (0 to 100); no shipped content comes near them.
 //!
 //! An effect's attribute payload cannot ride its declaration (the schema carries only a
 //! category and a colour), so the payloads are held here as a table and applied while the
 //! effect is active: a payload naming one of the twelve joins the value's contributions, and
 //! one naming a host attribute with the addition operation goes out with the tick's base
-//! additions. The two multiply-total payloads on host attributes (antigravity's gravity,
-//! self-destructing's movement speed) cannot be expressed by moving a base value and are not
-//! applied. SlimeKnights (MIT; see LICENSE).
+//! additions. The self-destructing multiply-total payload on the movement speed is folded
+//! into the base value instead (see `self_destructing_factor`); antigravity's gravity has
+//! no host attribute (gravity is hardcoded 0.08) and is realised by the mob-effect tick
+//! module instead. SlimeKnights (MIT; see LICENSE).
 use crate::{break_speed_hook::with_held_tool, max_armor, tool_stack};
-use pluto_lib::{AttributeContribution, AttributeOperation, AttributeRegistry, Identifier, ServerLivingEntityEvents, ServerPlayer, StackData};
+use pluto_lib::{ActionTarget, AttributeContribution, AttributeOperation, AttributeRegistry, EntityAction, Identifier, PlayerTick, ServerLivingEntityEvents, ServerPlayer, StackData};
 use std::{collections::BTreeMap, sync::Mutex};
 
 pub(crate) const BOUNCY: &str = "tconstruct:generic.bouncy";
@@ -109,6 +110,36 @@ fn vanilla_effect_additions(effects: &[(String, i32)]) -> Vec<(String, f64)> {
         if grant.operation != AttributeOperation::Addition || AttributeRegistry::is_registered(grant.attribute) { return None; }
         Some((grant.attribute.to_owned(), grant.amount * f64::from(*level)))
     }).collect()
+}
+
+/// The factor a multiply-total payload of `amount` folds into a base value while its effect
+/// is active on the tick, not being taken off by another callback this tick, and still kept
+/// by the piece that granted it: 1 + the amount while all three hold, 1.0 otherwise. The
+/// amount is deliberately UNSCALED by level: a vanilla effect attribute modifier applies its
+/// fixed amount once whatever the amplifier, and the self-destructing amplifier encodes the
+/// explosion radius (amplifier + 1), not an attribute level.
+fn fold_factor(amount: f64, active: bool, removing: bool, kept: bool) -> f64 {
+    if active && !removing && kept { 1.0 + amount } else { 1.0 }
+}
+
+/// Whether the helmet the tick wears still carries the self-destructive modifier: kept in
+/// step with armor_interact_hook.rs, which takes the effect off when the helmet leaves.
+fn helmet_keeps_self_destructing(tick: &PlayerTick) -> bool {
+    tick.armor.iter().find(|(slot, _)| slot == "head")
+        .is_some_and(|(_, head)| with_held_tool(head, |env, tool| tool_stack::modifier_level(&tool.custom_data, env, "tconstruct:self_destructive") > 0).unwrap_or(false))
+}
+
+/// The factor the self-destructing effect folds into the base value of the movement speed
+/// while it is primed on the tick: 0.1 while the effect is active, not being taken off, and
+/// the helmet that primed it still keeps it; 1.0 otherwise (which unfolds it). The helmet
+/// check matters because this callback registers before the armor-interact one: on the tick
+/// the helmet leaves, the removal is not yet queued when this runs, and without the check
+/// the fold would stay stuck, as the tick is not heard again once the helmet is gone.
+fn self_destructing_factor(tick: &PlayerTick) -> f64 {
+    let Some(grant) = EFFECT_GRANTS.iter().find(|grant| grant.effect == "tconstruct:self_destructing") else { return 1.0 };
+    let active = tick.effects.iter().any(|(id, _, _)| id == grant.effect);
+    let removing = tick.remove_effects.borrow().iter().any(|id| id == grant.effect);
+    fold_factor(grant.amount, active, removing, helmet_keeps_self_destructing(tick))
 }
 
 /// The golden total the golden attribute modules among `pieces` are worked out over, when any
@@ -229,6 +260,11 @@ pub(crate) fn register() {
             if stored.is_empty() { values.remove(&tick.entity); } else { values.insert(tick.entity, stored); }
         }
         tick.attribute_additions.borrow_mut().extend(vanilla_effect_additions(&effects));
+        // The self-destructing effect's movement-speed payload folds into the base value (a
+        // multiply-total cannot ride a base move): the action lands at the end of the tick, and
+        // the factor is 1.0 once the effect is gone, which unfolds it. It is pushed every tick
+        // the callback runs; the fold is a ratio, so a repeated 1.0 changes nothing.
+        tick.actions.borrow_mut().push(EntityAction::MultiplyAttribute { target: ActionTarget::Attacker, attribute: "minecraft:movement_speed".to_owned(), factor: self_destructing_factor(tick) });
     });
     // LivingKnockBackEvent: the strength is scaled by the victim's knockback multiplier.
     ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
@@ -236,4 +272,64 @@ pub(crate) fn register() {
         let multiplier = value(push.entity, KNOCKBACK_MULTIPLIER);
         if multiplier != 1.0 { push.strength.set(push.strength.get() * multiplier); }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    fn tick_for(entity: i32, effects: Vec<(String, i32, i32)>, armor: Vec<(String, StackData)>, remove: Vec<String>) -> PlayerTick {
+        PlayerTick {
+            player: entity as u128, entity, dimension: "minecraft:overworld".to_owned(),
+            position: [0.0; 3], on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false,
+            armor, hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects,
+            remove_effects: RefCell::new(remove), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()),
+        }
+    }
+
+    fn head(item: &str) -> (String, StackData) {
+        ("head".to_owned(), StackData { item: item.into(), count: 1, ..StackData::default() })
+    }
+
+    #[test]
+    fn the_fold_factor_is_a_tenth_while_primed_and_kept_and_one_otherwise() {
+        // 1.0 - 0.9 is not exactly 0.1 in binary, so the tenth is compared loosely.
+        assert!((fold_factor(-0.9, true, false, true) - 0.1).abs() < 1e-9, "primed and kept: 1 - 0.9");
+        assert_eq!(fold_factor(-0.9, false, false, true), 1.0, "no effect, nothing to fold");
+        assert_eq!(fold_factor(-0.9, true, true, true), 1.0, "being taken off, unfold");
+        assert_eq!(fold_factor(-0.9, true, false, false), 1.0, "the helmet left, unfold");
+        assert!((fold_factor(-0.9, true, false, true) - 0.1).abs() < 1e-9, "the level is not scaled: the amplifier is the blast radius, not a level");
+    }
+
+    #[test]
+    fn the_self_destructing_factor_follows_the_effect_and_the_helmet() {
+        let primed = vec![("tconstruct:self_destructing".to_owned(), 1, 30)];
+        assert_eq!(self_destructing_factor(&tick_for(7705, Vec::new(), Vec::new(), Vec::new())), 1.0, "no effect");
+        assert_eq!(self_destructing_factor(&tick_for(7705, primed.clone(), Vec::new(), Vec::new())), 1.0, "no helmet to keep it");
+        assert_eq!(
+            self_destructing_factor(&tick_for(7705, primed.clone(), vec![head("tconstruct:helmet")], Vec::new())),
+            1.0,
+            "a head piece with no tool data keeps nothing"
+        );
+        assert_eq!(
+            self_destructing_factor(&tick_for(7705, primed, vec![head("tconstruct:helmet")], vec!["tconstruct:self_destructing".to_owned()])),
+            1.0,
+            "being taken off this tick, unfold"
+        );
+    }
+
+    #[test]
+    fn the_tick_pushes_the_fold_action() {
+        register();
+        let tick = tick_for(7706, Vec::new(), Vec::new(), Vec::new());
+        ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick);
+        assert!(
+            tick.actions.borrow().iter().any(|action| matches!(action,
+                EntityAction::MultiplyAttribute { target: ActionTarget::Attacker, attribute, factor }
+                if attribute == "minecraft:movement_speed" && *factor == 1.0)),
+            "the fold action is queued with 1.0 while nothing is primed: {:?}",
+            tick.actions.borrow()
+        );
+    }
 }
