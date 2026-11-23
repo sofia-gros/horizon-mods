@@ -499,6 +499,14 @@ fn install_native_inventory_forwarders() {
         },
     )
     .expect("PlutoLib advancement tag source installs once");
+    horizon_client::pluto_inventory::crafting::matching::register(
+        horizon_client::pluto_inventory::crafting::matching::Registration {
+            id: "pluto_lib:recipe_api_v1",
+            interest: recipe_admission_interest,
+            callback: recipe_admission_forward,
+        },
+    )
+    .expect("PlutoLib recipe admission forwarder installs once");
     horizon_client::pluto_inventory::crafting::assembly::register(
         horizon_client::pluto_inventory::crafting::assembly::Registration {
             id: "pluto_lib:recipe_api_v1",
@@ -668,6 +676,13 @@ fn recipe_assembly_interest(
     recipe_api_v1::has_assembly_providers()
 }
 
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_admission_interest(
+    _: &horizon_client::pluto_inventory::crafting::matching::RecipeFacts<'_>,
+) -> bool {
+    recipe_api_v1::has_admission_providers()
+}
+
 /// The native half of the pure recipe API's crafting assembly: the host's
 /// crafting gate consults only the native inventory-api registry, so this
 /// forwarder carries evaluations into the pure registry, converting the
@@ -696,6 +711,7 @@ fn recipe_assembly_forward(
         },
         result_item: request.recipe.template.and_then(|t| t.item),
         result_count: request.recipe.template.map_or(0, |t| t.count),
+        id: request.recipe.id,
     };
     let Some(evaluation) = recipe_api_v1::prepare_assembly(&facts) else {
         return Decision::Pass;
@@ -748,6 +764,87 @@ fn recipe_assembly_forward(
         recipe_api_v1::AssemblyOutcome::Assembled { custom_data, .. } => Decision::Assemble {
             custom_data: nbt_component(&Nbt::Compound(custom_data)),
         },
+    }
+}
+
+/// The native half of the pure recipe API's crafting admission: the host's
+/// crafting gate consults only the native inventory-api registry, so this
+/// forwarder carries decisions into the pure registry, converting the
+/// native stack facts into pure views. A pure denial is the native denial;
+/// anything else leaves the native result standing.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_admission_forward(
+    request: &horizon_client::pluto_inventory::crafting::matching::Request<'_>,
+) -> horizon_client::pluto_inventory::crafting::matching::Decision {
+    use horizon_client::pluto_inventory::crafting::matching::Decision;
+    use horizon_client::pluto_inventory::recipe_book::placement::Form;
+    if !recipe_api_v1::has_admission_providers() {
+        return Decision::Pass;
+    }
+    let facts = recipe_api_v1::RecipeFacts {
+        form: match request.recipe.form {
+            Form::Shaped { width, height } => {
+                recipe_api_v1::RecipeForm::Shaped { width, height }
+            }
+            Form::Shapeless => recipe_api_v1::RecipeForm::Shapeless,
+            Form::Special => recipe_api_v1::RecipeForm::Special,
+            // Cooking recipes never match in a crafting grid, and the
+            // pure registry models grid forms only: no policy evaluation
+            // applies, so the native result stands.
+            Form::Cooking => return Decision::Pass,
+        },
+        result_item: request.recipe.template.and_then(|t| t.item),
+        result_count: request.recipe.template.map_or(0, |t| t.count),
+        id: request.recipe.id,
+    };
+    let Some(evaluation) = recipe_api_v1::prepare_admission(&facts) else {
+        return Decision::Pass;
+    };
+    // Owned pure component trees behind the borrowed views, alive for the
+    // synchronous evaluation only.
+    let cell_data: Vec<Option<Nbt>> = request
+        .input
+        .cells
+        .iter()
+        .map(|cell| cell.and_then(|snap| snap.components.and_then(advancement_components)))
+        .collect();
+    let cells: Vec<Option<recipe_api_v1::StackView<'_>>> = request
+        .input
+        .cells
+        .iter()
+        .zip(&cell_data)
+        .map(|(cell, data)| {
+            cell.map(|snap| recipe_api_v1::StackView {
+                id: snap.id,
+                count: snap.count,
+                damage: snap.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let result_data = request
+        .result
+        .and_then(|snap| snap.components.and_then(advancement_components));
+    let result = request.result.map(|snap| recipe_api_v1::StackView {
+        id: snap.id,
+        count: snap.count,
+        damage: snap.damage,
+        custom_data: result_data.as_ref(),
+    });
+    let forwarded = recipe_api_v1::AdmissionRequest {
+        recipe: &facts,
+        grid: recipe_api_v1::GridFacts {
+            width: request.input.width,
+            height: request.input.height,
+            left: request.input.left,
+            top: request.input.top,
+            cells: &cells,
+        },
+        result,
+    };
+    match evaluation.evaluate(&forwarded) {
+        recipe_api_v1::AdmissionOutcome::Native => Decision::Pass,
+        recipe_api_v1::AdmissionOutcome::Denied { .. } => Decision::Deny,
     }
 }
 

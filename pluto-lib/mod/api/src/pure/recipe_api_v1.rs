@@ -20,6 +20,14 @@
 //! `minecraft:custom_data` component replaced by the supplied compound).
 //! Providers never see or mutate the inventory itself.
 //!
+//! Admission policies are the deny-only sibling of assembly: consulted
+//! before a recipe is matched or assembled, a policy may pass (the native
+//! result stands) or deny (the recipe does not match this grid after all);
+//! a policy never assembles. The recipe facts name the recipe's loaded id,
+//! so a policy can admit by identity — the shape a config-gated recipe
+//! needs, since the game's data conditions cannot name a mod's config
+//! values.
+//!
 //! Special recipes are the third shape: a recipe whose result depends on
 //! the grid's concrete stacks (their materials, damage or data) has no
 //! fixed template the engine could assemble, and the engine's own special
@@ -143,6 +151,10 @@ pub struct RecipeFacts<'a> {
     pub form: RecipeForm,
     pub result_item: Option<&'a str>,
     pub result_count: u32,
+    /// The recipe's id as loaded (`<namespace>:<path>` for a content mod's
+    /// recipe, the bare name for one of vanilla's), when the adapter could
+    /// name it; None when it could not.
+    pub id: Option<&'a str>,
 }
 
 /// The crafting grid as the engine cropped it to the recipe's bounds:
@@ -267,6 +279,110 @@ pub fn register_assembly(entry: AssemblyRegistration) -> Result<(), Registration
     ASSEMBLERS.register(entry)
 }
 
+/* Crafting admission */
+
+/// What an admission callback answers: the recipe's facts, the cropped
+/// grid, and the result template's native created stack (not a proposed
+/// output).
+pub struct AdmissionRequest<'a> {
+    pub recipe: &'a RecipeFacts<'a>,
+    pub grid: GridFacts<'a>,
+    pub result: Option<StackView<'a>>,
+}
+
+/// What one admission policy decides for one grid.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AdmissionDecision {
+    /// Not this policy's recipe, or nothing to refuse: the native result
+    /// stands (unless another policy denies).
+    Pass,
+    /// The recipe does not match this grid after all.
+    Deny,
+}
+
+pub type AdmissionInterest = for<'a> fn(&RecipeFacts<'a>) -> bool;
+pub type AdmissionCallback = for<'a> fn(&AdmissionRequest<'a>) -> AdmissionDecision;
+#[derive(Clone, Copy)]
+pub struct AdmissionRegistration {
+    pub id: &'static str,
+    pub interest: AdmissionInterest,
+    pub callback: AdmissionCallback,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AdmissionOutcome {
+    /// No policy denied: the native result stands.
+    Native,
+    Denied { first: &'static str },
+}
+struct AdmissionRegistry(RwLock<BTreeMap<&'static str, (AdmissionInterest, AdmissionCallback)>>);
+impl AdmissionRegistry {
+    const fn new() -> Self {
+        Self(RwLock::new(BTreeMap::new()))
+    }
+    fn register(&self, entry: AdmissionRegistration) -> Result<(), RegistrationError> {
+        if entry.id.is_empty() {
+            return Err(RegistrationError::EmptyId);
+        }
+        let mut callbacks = self.0.write().unwrap_or_else(|e| e.into_inner());
+        if callbacks.contains_key(entry.id) {
+            return Err(RegistrationError::DuplicateId);
+        }
+        callbacks.insert(entry.id, (entry.interest, entry.callback));
+        Ok(())
+    }
+    fn has_providers(&self) -> bool {
+        !self.0.read().unwrap_or_else(|e| e.into_inner()).is_empty()
+    }
+    fn prepare(&self, recipe: &RecipeFacts<'_>) -> Option<AdmissionEvaluation> {
+        let callbacks: Vec<_> = self
+            .0
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .map(|(&id, &(interest, callback))| (id, interest, callback))
+            .collect();
+        let selected: Vec<_> = callbacks
+            .into_iter()
+            .filter_map(|(id, interest, callback)| interest(recipe).then_some((id, callback)))
+            .collect();
+        (!selected.is_empty()).then_some(AdmissionEvaluation(selected))
+    }
+}
+/// Ephemeral callback snapshot only, not a recipe/world identity or
+/// authority token. The adapter evaluates it synchronously with the same
+/// recipe facts.
+pub struct AdmissionEvaluation(Vec<(&'static str, AdmissionCallback)>);
+impl AdmissionEvaluation {
+    /// Any denial wins. Pass cannot grant matching or provide an output.
+    /// Callbacks run unlocked in lexical registration order, including
+    /// after a prior denial; the first denying ID is reported
+    /// deterministically.
+    pub fn evaluate(&self, request: &AdmissionRequest<'_>) -> AdmissionOutcome {
+        let mut first = None;
+        for &(id, callback) in &self.0 {
+            if callback(request) == AdmissionDecision::Deny && first.is_none() {
+                first = Some(id);
+            }
+        }
+        first.map_or(AdmissionOutcome::Native, |first| AdmissionOutcome::Denied { first })
+    }
+}
+static ADMISSIONS: AdmissionRegistry = AdmissionRegistry::new();
+/// Register one admission policy once during startup. Both functions must
+/// be read-only and deterministic for their arguments. There is no
+/// unregister/reset path.
+pub fn register_admission(entry: AdmissionRegistration) -> Result<(), RegistrationError> {
+    ADMISSIONS.register(entry)
+}
+pub fn has_admission_providers() -> bool {
+    ADMISSIONS.has_providers()
+}
+/// Interest runs on cheap borrowed recipe facts. None avoids all grid and
+/// result capture in the adapter, even with unrelated registrations.
+pub fn prepare_admission(recipe: &RecipeFacts<'_>) -> Option<AdmissionEvaluation> {
+    ADMISSIONS.prepare(recipe)
+}
+
 /* Special recipes */
 
 /// The complete result stack a special recipe produces for one grid.
@@ -354,7 +470,7 @@ mod tests {
     use super::*;
 
     fn facts() -> RecipeFacts<'static> {
-        RecipeFacts { form: RecipeForm::Special, result_item: None, result_count: 1 }
+        RecipeFacts { form: RecipeForm::Special, result_item: None, result_count: 1, id: None }
     }
     fn request<'a>(recipe: &'a RecipeFacts<'a>) -> AssemblyRequest<'a> {
         AssemblyRequest {
@@ -426,6 +542,59 @@ mod tests {
         r.register(AssemblyRegistration { id: "one", interest: inspect, callback: deny }).unwrap();
         assert_eq!(
             r.register(AssemblyRegistration { id: "one", interest: ignore, callback: pass }),
+            Err(RegistrationError::DuplicateId)
+        );
+    }
+
+    fn admission_request<'a>(recipe: &'a RecipeFacts<'a>) -> AdmissionRequest<'a> {
+        AdmissionRequest {
+            recipe,
+            grid: GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] },
+            result: None,
+        }
+    }
+    fn pass_admission(_: &AdmissionRequest<'_>) -> AdmissionDecision {
+        AdmissionDecision::Pass
+    }
+    fn deny_admission(_: &AdmissionRequest<'_>) -> AdmissionDecision {
+        AdmissionDecision::Deny
+    }
+
+    #[test]
+    fn admission_denial_wins_in_lexical_order() {
+        let empty = AdmissionRegistry::new();
+        assert!(!empty.has_providers());
+        assert!(empty.prepare(&facts()).is_none());
+        empty
+            .register(AdmissionRegistration { id: "unrelated", interest: ignore, callback: deny_admission })
+            .unwrap();
+        assert!(empty.prepare(&facts()).is_none());
+        for order in [["z", "a"], ["a", "z"]] {
+            let r = AdmissionRegistry::new();
+            r.register(AdmissionRegistration { id: "0", interest: inspect, callback: pass_admission }).unwrap();
+            let facts = facts();
+            assert_eq!(r.prepare(&facts).unwrap().evaluate(&admission_request(&facts)), AdmissionOutcome::Native);
+            for id in order {
+                r.register(AdmissionRegistration { id, interest: inspect, callback: deny_admission }).unwrap();
+            }
+            assert_eq!(
+                r.prepare(&facts).unwrap().evaluate(&admission_request(&facts)),
+                AdmissionOutcome::Denied { first: "a" },
+                "lexical order, not registration order"
+            );
+        }
+    }
+
+    #[test]
+    fn admission_ids_are_unique_and_nonempty() {
+        let r = AdmissionRegistry::new();
+        assert_eq!(
+            r.register(AdmissionRegistration { id: "", interest: inspect, callback: pass_admission }),
+            Err(RegistrationError::EmptyId)
+        );
+        r.register(AdmissionRegistration { id: "one", interest: inspect, callback: deny_admission }).unwrap();
+        assert_eq!(
+            r.register(AdmissionRegistration { id: "one", interest: ignore, callback: pass_admission }),
             Err(RegistrationError::DuplicateId)
         );
     }
