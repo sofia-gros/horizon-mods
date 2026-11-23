@@ -1055,6 +1055,15 @@ kind = "RETURN"
 helper = "pluto-block-facts-return.rs"
 bindings = [{ name = "value", ty = "std::result::Result<GameplayTables, String>", value = "$value" }]
 
+# A dig is worked out: the level's build range is published for the dig report the mods are
+# about to be asked for (dwarven reads the level's max build height).
+[[injection]]
+id = "pluto-block-facts-head"
+target = "horizon_client::game::native_hooks::Game<'_>::native_break_speed"
+kind = "HEAD"
+helper = "pluto-block-facts-head.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
 [[injection]]
 id = "pluto-block-survive"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"

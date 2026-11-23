@@ -303,6 +303,10 @@ pub(crate) enum Module {
     /// shooter's current effect) wait for facts neither transport reports; see the module header of
     /// mining_speed for the dig facts that do arrive.
     Momentum,
+    /// DwarvenModifier (a code modifier): dig speed and projectile velocity grow the deeper the
+    /// holder is under the level's top and fade near it (mining_speed::dwarven_boost over the dig
+    /// report's block facts: the dug block's y and the level's build height).
+    Dwarven,
     /// EnderclearanceModule: a hit may teleport the mob it landed on (and a hit on the wearer may
     /// teleport the attacker) to a random place within a diameter. The original tries up to its
     /// teleport chances for a spot the mob fits; the port's teleport names one destination, so a
@@ -1045,6 +1049,7 @@ impl Module {
             "tconstruct:insatiable" => Self::Insatiable,
             "tconstruct:lacerating" => Self::Lacerating,
             "tconstruct:momentum" => Self::Momentum,
+            "tconstruct:dwarven" => Self::Dwarven,
             "tconstruct:enderclearance" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:on_attacked" | "tconstruct:tooltip")) => {
                 Self::Enderclearance { chance: leveling_keyed(fields, "chance")?, diameter: leveling_keyed(fields, "diameter")? }
             }
@@ -1151,7 +1156,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1224,6 +1229,16 @@ impl Module {
     /// BreakSpeedModifierHook for a conditional mining speed module: the speed after it, with its priority
     /// (percent modules run after the additive ones, at 75).
     pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
+        // DwarvenModifier.modifyBreakSpeed: on an effective dig, the speed grows with depth under
+        // the level's top and fades near it; the bonus is the dig's own multiplier (haste, fatigue,
+        // water, air) times the tool's mining speed multiplier times the mining bonus of 6. A dig
+        // that reported no build height leaves the speed alone.
+        if let Self::Dwarven = self {
+            if !context.effective { return speed; }
+            let Some(build) = context.facts.build_height else { return speed; };
+            let bonus = context.multiplier * tool.multiplier(Stat::MiningSpeed) * 6.0;
+            return crate::mining_speed::dwarven_boost(build[1], context.facts.pos_y as f32, entry.effective_level(), speed, bonus);
+        }
         // MomentumModifier.modifyBreakSpeed: on an effective dig, the speed grows by the harvest
         // momentum the holder carries (a quarter more a modifier level at the effect's tenth level).
         if let Self::Momentum = self {
@@ -1243,6 +1258,14 @@ impl Module {
             Self::Insatiable if stat == Stat::ProjectileDamage => return value + crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:insatiable_ranged") * entry.effective_level() / 4.0 * multiplier,
             // MomentumModifier.modifyStat: draw speed grows with the ranged momentum effect.
             Self::Momentum if stat == Stat::DrawSpeed => return value * (1.0 + entry.effective_level() * crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:momentum_ranged") / 40.0),
+            // DwarvenModifier.modifyStat: projectile velocity follows the same depth curve, its
+            // per-level bonus the velocity bonus of 0.05 times the stat's own multiplier. The
+            // holder's height and the level's build height must both be reported (the dig report
+            // carries them; a stat read that has neither leaves the stat standing).
+            Self::Dwarven if stat == Stat::Velocity => {
+                let (Some(y), Some(build)) = (tool.entities.attacker.and_then(|holder| holder.y), tool.facts.build_height) else { return value; };
+                return crate::mining_speed::dwarven_boost(build[1], y as f32, entry.effective_level(), value, multiplier * 0.05);
+            }
             _ => {}
         }
         let Self::ConditionalStat { module, condition } = self else { return value; };
@@ -1253,7 +1276,7 @@ impl Module {
         match self {
             Self::ConditionalStat { module, .. } => Some(module.percent()),
             // The code modifiers below are not percent modules; they run at their modifier's priority.
-            Self::Conducting | Self::Insatiable | Self::Momentum => Some(false),
+            Self::Conducting | Self::Insatiable | Self::Momentum | Self::Dwarven => Some(false),
             _ => None,
         }
     }
@@ -1782,7 +1805,8 @@ impl Module {
         match self {
             Self::MiningSpeed { module, .. } => Some(module.percent()),
             // MomentumModifier is not a percent module; it runs at its modifier's priority (75).
-            Self::Momentum => Some(false),
+            // Neither is DwarvenModifier; it runs at its own priority (85).
+            Self::Momentum | Self::Dwarven => Some(false),
             _ => None,
         }
     }

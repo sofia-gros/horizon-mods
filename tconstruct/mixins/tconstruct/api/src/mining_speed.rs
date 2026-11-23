@@ -129,6 +129,32 @@ pub(crate) struct BlockFacts {
     pub blast_resistance: Option<f32>,
     /// Whether the block needs the correct tool for drops, as the break-speed event carries it; None when unreported.
     pub requires_tool: Option<bool>,
+    /// The y of the block being dug, for the modules that scale with depth (dwarven); 0 when no dig reported it.
+    pub pos_y: i32,
+    /// The build range of the level the dig is in, [min, max), for the modules that read the level's
+    /// max build height (dwarven); None when the game did not report it.
+    pub build_height: Option<[i32; 2]>,
+}
+
+/// DwarvenModifier.getBoost: the speed after the depth adjustment, for a dig or a shot at height
+/// `y` in a level whose max build height is `max_build_height`. `bonus` is the per-level bonus at
+/// full depth (the mining bonus for a dig, the velocity bonus for a shot), already scaled by the
+/// caller; the boost can go negative nowhere, the debuff only scales the base down.
+pub(crate) fn dwarven_boost(max_build_height: i32, y: f32, level: f32, base: f32, bonus: f32) -> f32 {
+    // Grants 0 bonus at 64, 1x at -64, 2x at -128; clamped so tall worlds stay sane.
+    if y < 64.0 {
+        let scale = ((64.0 - y) / 64.0).clamp(0.0, 2.0);
+        return base + level * scale * bonus;
+    }
+    // The debuff starts 192 blocks below the top, but at the earliest at 96, so short worlds
+    // (the nether: between 256 and 96) keep their 64 blocks of neutral above the boost range.
+    let baseline = (max_build_height - 192).max(96) as f32;
+    if y > baseline {
+        // A range of 128 blocks for the regular debuff; anything above is the full debuff.
+        if y >= baseline + 128.0 { return base * 0.25; }
+        return base * (1.0 - ((y - baseline) / 128.0 * 0.75));
+    }
+    base
 }
 
 /// What the dig is, for one evaluation.
@@ -407,7 +433,7 @@ mod tests {
     fn block_variables_read_the_facts_of_the_dig() {
         let nbt = NbtCompound::new();
         let mut view = ToolView::of(&nbt);
-        view.facts = BlockFacts { block_light: Some(9), sky_light: Some(15), sky_darken: 11, biome_temperature: Some(0.8), blast_resistance: None, requires_tool: None };
+        view.facts = BlockFacts { block_light: Some(9), sky_light: Some(15), sky_darken: 11, biome_temperature: Some(0.8), blast_resistance: None, requires_tool: None, pos_y: 0, build_height: None };
         let read = |value: &Value| Variable::decode_in(value, EntityScope::None).unwrap().unwrap().value(&view);
         assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"})), 9.0);
         assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "sky"})), 4.0, "15 less the 11 the night takes");
@@ -418,6 +444,24 @@ mod tests {
         let read = |value: &Value| Variable::decode_in(value, EntityScope::None).unwrap().unwrap().value(&unreported);
         assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"})), 15.0);
         assert_eq!(read(&json!({"type": "tconstruct:biome_temperature", "fallback": -0.5})), -0.5);
+    }
+
+    #[test]
+    fn dwarven_boost_scales_with_depth_and_fades_with_height() {
+        // At 64 and up to the debuff baseline nothing changes.
+        assert_eq!(dwarven_boost(320, 64.0, 2.0, 10.0, 6.0), 10.0);
+        assert_eq!(dwarven_boost(320, 100.0, 2.0, 10.0, 6.0), 10.0);
+        // At 0 the scale is 1: base + level * bonus; at -64 it is 2, and no deeper than that.
+        assert_eq!(dwarven_boost(320, 0.0, 2.0, 10.0, 6.0), 22.0);
+        assert_eq!(dwarven_boost(320, -64.0, 1.0, 10.0, 6.0), 22.0);
+        assert_eq!(dwarven_boost(320, -640.0, 1.0, 10.0, 6.0), 22.0);
+        // The overworld debuff baseline is 320 - 192 = 128: halfway up its range the speed
+        // keeps 1 - 0.375, and at 256 and above only a quarter is left.
+        assert_eq!(dwarven_boost(320, 192.0, 1.0, 10.0, 6.0), 6.25);
+        assert_eq!(dwarven_boost(320, 256.0, 1.0, 10.0, 6.0), 2.5);
+        // A short world (max build height 256) starts its debuff at 96 instead.
+        assert_eq!(dwarven_boost(256, 96.0, 1.0, 10.0, 6.0), 10.0);
+        assert_eq!(dwarven_boost(256, 224.0, 1.0, 10.0, 6.0), 2.5);
     }
 
     #[test]

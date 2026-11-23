@@ -21,3 +21,16 @@ pub fn publish(states: Vec<(String, DigFacts)>) {
 pub fn for_block(block: &str) -> Option<DigFacts> {
     FACTS.read().ok()?.iter().find(|(name, _)| name == block).map(|(_, facts)| *facts)
 }
+
+static DIG_HEIGHT: RwLock<Option<[i32; 2]>> = RwLock::new(None);
+
+/// The build range of the level the current dig is in, published at the head of every native
+/// break-speed call: the dig report is worked out inside that call, so the value always names
+/// the dig's own level.
+pub fn publish_dig_height(height: [i32; 2]) {
+    if let Ok(mut slot) = DIG_HEIGHT.write() { *slot = Some(height); }
+}
+
+pub fn dig_height() -> Option<[i32; 2]> {
+    DIG_HEIGHT.read().ok().and_then(|slot| *slot)
+}

@@ -4532,6 +4532,8 @@ impl Hooks for PlutoHooks {
             biome_temperature: host.biome(event.pos).as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, event.pos[1])),
             blast_resistance: dig_facts.map(|dig| dig.explosion_resistance),
             requires_tool: dig_facts.map(|dig| dig.requires_tool),
+            // The build range of the dig's level, published at the head of this very call.
+            build_height: horizon_client::entry::pluto_block_facts::dig_height(),
         };
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);

@@ -85,6 +85,10 @@ pub struct BreakSpeedContext {
     /// Whether the block needs the correct tool for drops (`BlockState.requiresCorrectToolForDrops`), for the
     /// `mantle:requires_tool` block predicate; None when the game did not report it.
     pub requires_tool: Option<bool>,
+    /// The build range of the level the dig is in, [min, max) as `Level.getMinBuildHeight` and
+    /// `Level.getMaxBuildHeight` bound it, for the modules that scale with depth under the level's
+    /// top (dwarven); None when the game did not report it.
+    pub build_height: Option<[i32; 2]>,
 }
 
 /// What the world reports about a dig besides the block itself: its light and the temperature of its biome.
@@ -96,6 +100,7 @@ pub struct DiggingFacts {
     pub biome_temperature: Option<f32>,
     pub blast_resistance: Option<f32>,
     pub requires_tool: Option<bool>,
+    pub build_height: Option<[i32; 2]>,
 }
 
 /// What a break-speed callback may read about the player who digs.
@@ -384,7 +389,7 @@ pub(crate) fn use_item_finish(context: &UseItemFinishContext) -> Option<ItemSlot
 
 /// The dig speed after every callback has had its say.
 pub(crate) fn break_speed(pos: [i32; 3], block: BlockState, original: f32, speed: f32, held: Option<super::player_api::StackData>, player: Option<DiggingPlayer>, facts: DiggingFacts) -> f32 {
-    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held, player, block_light: facts.block_light, sky_light: facts.sky_light, sky_darken: facts.sky_darken, biome_temperature: facts.biome_temperature, blast_resistance: facts.blast_resistance, requires_tool: facts.requires_tool };
+    let context = BreakSpeedContext { pos, block, original, speed: Cell::new(speed), held, player, block_light: facts.block_light, sky_light: facts.sky_light, sky_darken: facts.sky_darken, biome_temperature: facts.biome_temperature, blast_resistance: facts.blast_resistance, requires_tool: facts.requires_tool, build_height: facts.build_height };
     BREAK_SPEED.invoke(&context);
     context.speed.get()
 }

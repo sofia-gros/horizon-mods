@@ -7,7 +7,7 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
 /// Module types only code-defined modifiers use; the original ships no data for them.
-const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum", "tconstruct:tank"];
+const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum", "tconstruct:dwarven", "tconstruct:tank"];
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
@@ -705,8 +705,8 @@ mod tests {
 
 /// The modifiers the original defines only in code (a Java class, no data file) whose behaviour
 /// Tinkers has ported: ConductingModifier (blazing bone, priority 90), InsatiableModifier (jadeite),
-/// LaceratingModifier (nahuatl) and MomentumModifier (hepatizon, priority 75). Each is built from
-/// its code module kind at its class's priority.
+/// LaceratingModifier (nahuatl), MomentumModifier (hepatizon, priority 75) and DwarvenModifier
+/// (copper, priority 85). Each is built from its code module kind at its class's priority.
 pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
     let build = |name: &str, definition: serde_json::Value| -> Result<Modifier, String> {
         let id = Identifier::new("tconstruct", name).map_err(|e| e.to_string())?;
@@ -717,12 +717,12 @@ pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
         build("insatiable", serde_json::json!({"modules": [{"type": "tconstruct:insatiable"}]}))?,
         build("lacerating", serde_json::json!({"modules": [{"type": "tconstruct:lacerating"}]}))?,
         build("momentum", serde_json::json!({"priority": 75, "modules": [{"type": "tconstruct:momentum"}]}))?,
+        build("dwarven", serde_json::json!({"priority": 85, "modules": [{"type": "tconstruct:dwarven"}]}))?,
     ])
 }
 
 /// The code-defined modifiers that a material trait names and Tinkers has not ported:
-/// DwarvenModifier (copper — its boost and its debuff both read the level's max build height,
-/// which neither the dig nor the stat transport reports), EnderportingModifier (ender pearl and
+/// EnderportingModifier (ender pearl and
 /// ender slime vine — it teleports the tool's user, and the host has no call that moves a player),
 /// SelfDestructiveModifier (gunpowder — the armor interact packet reaches no server surface, and
 /// its effect's explosion is an effect behaviour no registry here runs) and StrongBonesModifier
@@ -738,7 +738,7 @@ pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
 /// gives no grant path — registry parity is all they ask.
 /// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
 /// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
-pub(crate) const CODE_MODIFIERS: &[&str] = &["dwarven", "enderporting", "self_destructive", "strong_bones",
+pub(crate) const CODE_MODIFIERS: &[&str] = &["enderporting", "self_destructive", "strong_bones",
     "sinistral", "exchanging", "bursting", "wetting", "dual_wielding", "ambidextrous", "parrying", "offhand_attack",
     "tank_handler", "piercing", "plague", "wildfire", "breathtaking", "firebreath", "olympic", "energy_handler"];
 
