@@ -9,10 +9,11 @@
 //! here works; the original draws them at apply time, after its manual finalize — the same stream, a different
 //! point in it, so the outcomes agree in distribution rather than draw for draw.
 //!
-//! Two parts of the original do not land yet:
-//! - the tank fill (`fluid`): a passed swasher there is filled with a random amount of a random fluid from its tag.
-//!   A held tool's tank has no foundation in this port yet (the tank modifier family is unported), so the field is
-//!   parsed and kept, and the tool is given empty.
+//! The tank fill (`fluid`) lands through the tool tank: a passed entry naming a fluid tag fills the built
+//! tool's tank with a random amount of a random fluid from the tag, drawn from the mob's stream during
+//! preparation like the rest (see `build_replacement`).
+//!
+//! One part of the original does not land yet:
 //! - files carrying `conditions` are skipped: the one shipped file with any asks for another mod
 //!   (`forge:mod_loaded` twilightforest, for the minotaur axe), which is not present, so skipping it is the
 //!   condition's own answer; any other condition shape is reported as a problem rather than guessed at.
@@ -73,7 +74,7 @@ struct Equip {
     tool: Identifier,
     count: u32,
     materials: Vec<RandomMat>,
-    /// The fluid tag the tool's tank would be filled from; parsed and kept, not yet filled (see the module docs).
+    /// The fluid tag the built tool's tank is filled from (MobEquipment's `fluid`).
     fluid_tag: Option<Identifier>,
     chance: f32,
     priority: i32,
@@ -305,7 +306,23 @@ fn build_replacement(view: &mut dyn MobSpawnPreparation, equip: &Equip) -> Optio
         };
         variants.push(MaterialVariant::parse(&chosen.to_string())?);
     }
-    let tool = crate::tool_build::create_tool(&env, &MaterialList::from_variants(variants), false).ok()?;
+    let mut tool = crate::tool_build::create_tool(&env, &MaterialList::from_variants(variants), false).ok()?;
+    // MobEquipment's fluid fill: a random amount up to the tank's capacity (`nextInt(capacity + 1)`) of a
+    // random fluid from the entry's tag, both drawn from the mob's stream. A tool without a tank reads
+    // capacity 0 and is given empty, as there; a tag with no captured members fills nothing.
+    if let Some(tag) = &equip.fluid_tag {
+        let amount = view.next_int(crate::tool_tank::capacity(&tool) + 1).unwrap_or(0);
+        if amount > 0 {
+            if let Some(members) = common::fluid_snapshot().and_then(|fluids| fluids.get_tag(tag).cloned()) {
+                if !members.is_empty() {
+                    let pick = view.next_int(members.len() as i32).unwrap_or(0);
+                    if let Some(fluid) = members.iter().nth(pick as usize) {
+                        crate::tool_tank::set_fluid(&mut tool, Some(&pluto_lib::FluidStack::new(fluid.clone(), amount as u32)));
+                    }
+                }
+            }
+        }
+    }
     Some(StackData { item: equip.tool.to_string(), count: equip.count, custom_data: tool, ..Default::default() })
 }
 
