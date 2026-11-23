@@ -665,8 +665,8 @@ mod tests {
         data.insert("tank".to_owned(), Nbt::Compound(tank.write()));
         let mut items = Vec::new();
         let mut carried = None;
-        press(&mut MenuButton { pos: [0, 0, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried });
-        press(&mut MenuButton { pos: [0, 0, 0], id: 5, data: &mut data, items: &mut items, carried: &mut carried });
+        press(&mut MenuButton { pos: [0, 0, 0], id: 1, data: &mut data, items: &mut items, carried: &mut carried, switch: None });
+        press(&mut MenuButton { pos: [0, 0, 0], id: 5, data: &mut data, items: &mut items, carried: &mut carried, switch: None });
         let mut read = SmelteryTank::default();
         read.read(data.get("tank").and_then(Nbt::as_compound).unwrap());
         assert_eq!(read.fluids().iter().map(|fluid| fluid.fluid.to_string()).collect::<Vec<_>>(), ["a:gold", "a:iron"]);
@@ -678,7 +678,7 @@ mod tests {
         let mut items = Vec::new();
         let mut carried = None;
         for expected in [1, 2, 0] {
-            press(&mut MenuButton { pos: [0, 0, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried });
+            press(&mut MenuButton { pos: [0, 0, 0], id: 0, data: &mut data, items: &mut items, carried: &mut carried, switch: None });
             assert_eq!(data.get_int(BUCKET_KEY, 0), expected);
         }
         let empty = data_with(&[]);
