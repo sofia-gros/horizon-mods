@@ -489,12 +489,14 @@ pub struct ReleaseUsing {
     pub eye: [f64; 3],
     /// The direction the player looks, as a unit vector: how a release aims what it throws or shoots.
     pub look: [f64; 3],
+    /// Whether the player is in creative mode (a thrown tool is kept, a thrown stack is not spent).
+    pub creative: bool,
     /// How many ticks the use was held before the release: the charge. A use that ran its whole time out is finished,
     /// not released, and is not heard here.
     pub ticks_used: u32,
     /// The stacks in the player's main hand and off hand as the use ends; the used stack is one of them.
-    pub main_hand: Option<super::player_api::StackData>,
-    pub off_hand: Option<super::player_api::StackData>,
+    pub main_hand: Option<super::block_entity_api_v1::ItemSlot>,
+    pub off_hand: Option<super::block_entity_api_v1::ItemSlot>,
     /// Whether the release counts as a use of the item: set it (with [`ReleaseUsing::set_used`]) and the game starts
     /// the item's cooldown, as a bow's release does. Left alone, no cooldown starts.
     pub used: std::cell::Cell<bool>,
@@ -641,8 +643,9 @@ mod tests {
             position: [0.5, 64.0, 0.5],
             eye: [0.5, 65.62, 0.5],
             look: [0.0, 0.0, 1.0],
+            creative: false,
             ticks_used,
-            main_hand: Some(tool.clone()),
+            main_hand: Some(super::super::block_entity_api_v1::ItemSlot::new(Identifier::parse("test:thrown_tool").expect("valid id"), 1)),
             off_hand: None,
             used: std::cell::Cell::new(false),
             edits: RefCell::new(Vec::new()),

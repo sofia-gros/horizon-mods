@@ -3331,9 +3331,10 @@ impl Hooks for PlutoHooks {
                 let pitch = f64::from(player.pitch).to_radians();
                 [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
             },
+            creative: player.game_mode == 1,
             ticks_used: (total - event.time_left as i32).max(0) as u32,
-            main_hand: host.held_stack(player.uuid).map(|stack| read_stack(&stack)),
-            off_hand: host.player_equipment(player.uuid, horizon_client::mod_api::EquipmentSlot::OffHand).map(|stack| read_stack(&stack)),
+            main_hand: host.held_stack(player.uuid).and_then(|stack| slot_of(&stack)),
+            off_hand: host.player_equipment(player.uuid, horizon_client::mod_api::EquipmentSlot::OffHand).and_then(|stack| slot_of(&stack)),
             used: std::cell::Cell::new(false),
             edits: std::cell::RefCell::new(Vec::new()),
         };
