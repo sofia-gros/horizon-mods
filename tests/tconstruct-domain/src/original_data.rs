@@ -137,7 +137,11 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (12, 11), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    // Settled at INTEGRATION-4: the 11-kind wave bound the last 12 modifiers (sling_force,
+    // counter_mob_effect, thorns, volatile_flag, attribute/max_armor_attribute swim-speed
+    // bridge, teleport_dodge, replace_fluid, place_fire, sleeves, brush, severing's 7
+    // stateful recipes, banner + armor trim, hidden fluid tag + recipe_removal table).
+    assert_eq!((unbound, kinds.len()), (0, 0), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -2086,7 +2090,7 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_decla
     registry.reload(&files("modifiers"), &conditions());
     let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:reach").is_empty() && unbound("tconstruct:step_up").is_empty() && unbound("tconstruct:skyfall").is_empty());
-    assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
+    assert!(unbound("tconstruct:turtles_grace").is_empty(), "forge:swim_speed now bridges to the water movement efficiency");
     assert!(unbound("tconstruct:double_jump").is_empty(), "double jump's attribute is declared with PlutoLib now");
     // The modules that need host data this port does not receive stay unbound. Gold guard's golden attribute and
     // lightspeed's attribute bind now: the player tick reports the wearer's equipment whole and the light at them,
