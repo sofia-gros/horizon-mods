@@ -6,8 +6,8 @@
 //! [`strongest_custom`]) rather than moving a base value. A held tool (`held_tag`) is not counted, as the player tick lists
 //! worn armor only. Both skip a broken piece unless `allow_broken`. A golden attribute, whose amount is a leveling value computed over
 //! how many of the wearer's armor pieces have gold, binds on the same terms (see [`GoldenAttribute`]).
-//! The shipped forms that stay unbound are the ones naming a Forge attribute (`forge:swim_speed` on turtle_shell), which no mod
-//! declares here.
+//! The shipped forms that stay unbound are the ones naming a Forge attribute no mod declares here, other than
+//! `forge:swim_speed` (turtle_shell), which binds through the bridge in the decoders below.
 use crate::modifier_entries::Entry;
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -29,8 +29,8 @@ fn allow_broken(fields: &Map<String, Value>) -> Result<bool, String> {
 }
 
 impl MaxArmorAttribute {
-    /// `None` for an attribute nobody declared and the host lacks (a Forge one), or for a vanilla
-    /// attribute under an operation other than `addition`.
+    /// `None` for an attribute nobody declared and the host lacks (a Forge one the swim speed
+    /// bridge does not cover), or for a vanilla attribute under an operation other than `addition`.
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
         let operation = fields.get("operation").and_then(Value::as_str).ok_or("operation missing")?;
@@ -43,6 +43,18 @@ impl MaxArmorAttribute {
         // the value out from the claim (strongest_custom), it does not move a base value.
         if crate::custom_attributes::is_declared(name) {
             return Ok(Some(Self { attribute: name.to_owned(), operation, flat: number("flat")?, each: number("each_level")?, allow_broken: allow_broken(fields)? }));
+        }
+        // The swim speed bridge, the same one the attribute module kind makes (modifier_modules):
+        // Forge's swim speed (base 1) has no host attribute; the host's swim physics reads the water
+        // movement efficiency instead, an attribute of base 0 that reduces water drag. On the Forge
+        // attribute every operation's per-level increment is the stated amount itself, so the claim is
+        // stored as the addition of that amount onto the efficiency, which is what `strongest` applies:
+        // swimming gets faster by the stated amount per level of the strongest piece, as the original
+        // grants, but through the drag curve rather than a speed multiplier, so the curve is not
+        // formula-identical. Keeping the multiplied form would multiply the efficiency's base of 0
+        // and grant nothing at all.
+        if name == "forge:swim_speed" {
+            return Ok(Some(Self { attribute: "minecraft:water_movement_efficiency".to_owned(), operation: pluto_lib::AttributeOperation::Addition, flat: number("flat")?, each: number("each_level")?, allow_broken: allow_broken(fields)? }));
         }
         let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
         if operation != pluto_lib::AttributeOperation::Addition { return Ok(None); }
@@ -66,8 +78,8 @@ impl MaxArmorAttribute {
 pub(crate) struct GoldenAttribute { attribute: String, operation: pluto_lib::AttributeOperation, flat: f32, each: f32 }
 
 impl GoldenAttribute {
-    /// `None` for an attribute nobody declared and the host lacks (a Forge one), or for a vanilla
-    /// attribute under an operation other than `addition`.
+    /// `None` for an attribute nobody declared and the host lacks (a Forge one the swim speed
+    /// bridge does not cover), or for a vanilla attribute under an operation other than `addition`.
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
         let operation = fields.get("operation").and_then(Value::as_str).ok_or("operation missing")?;
@@ -80,6 +92,11 @@ impl GoldenAttribute {
         // MaxArmorAttribute: its amounts are worked out by golden_custom, not by a base move.
         if crate::custom_attributes::is_declared(name) {
             return Ok(Some(Self { attribute: name.to_owned(), operation, flat: number("flat")?, each: number("each_level")? }));
+        }
+        // The swim speed bridge, on the same terms as MaxArmorAttribute above: the claim is stored
+        // as the addition of the stated amount onto the water movement efficiency.
+        if name == "forge:swim_speed" {
+            return Ok(Some(Self { attribute: "minecraft:water_movement_efficiency".to_owned(), operation: pluto_lib::AttributeOperation::Addition, flat: number("flat")?, each: number("each_level")? }));
         }
         let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
         if operation != pluto_lib::AttributeOperation::Addition { return Ok(None); }
@@ -246,7 +263,33 @@ mod tests {
         assert_eq!(custom[0].1, pluto_lib::AttributeOperation::MultiplyBase);
         assert!((custom[0].2 - 0.1).abs() < 1e-6, "{custom:?}");
         assert!(decode(json!({"attribute":"minecraft:generic.knockback_resistance","operation":"multiply_base","each_level":0.05})).is_none());
-        assert!(decode(json!({"attribute":"forge:swim_speed","operation":"addition","each_level":0.05})).is_none(), "a Forge attribute stays unbound");
+        assert!(decode(json!({"attribute":"forge:swim_speed","operation":"addition","each_level":0.05})).is_some(), "swim speed binds through the bridge to the water movement efficiency");
+    }
+
+    #[test]
+    fn turtle_shell_swim_speed_bridges_and_only_the_largest_level_counts() {
+        // The shipped turtle shell module, verbatim: Forge swim speed, a tenth a level, multiplied
+        // total, broken pieces not allowed. It binds as the water movement efficiency, added.
+        let module = attribute(json!({"allow_broken":false,"attribute":"forge:swim_speed","each_level":0.1,"held_tag":"tconstruct:modifiable/held","operation":"multiply_total"}));
+        assert_eq!(module.attribute, "minecraft:water_movement_efficiency");
+        assert_eq!(module.operation, pluto_lib::AttributeOperation::Addition, "a multiplied form would multiply the efficiency's base of 0 and grant nothing");
+        // Two pieces at levels 1 and 3: the value comes from level 3 only, never their sum.
+        let claims = [1, 3].map(|level| module.candidate(&entry(level), true, false).unwrap());
+        let amounts = strongest(claims);
+        assert_eq!(amounts.len(), 1, "{amounts:?}");
+        assert_eq!(amounts[0].0, "minecraft:water_movement_efficiency");
+        assert!((amounts[0].1 - 0.3).abs() < 1e-6, "a tenth a level at the largest level 3: {amounts:?}");
+        // A broken piece claims nothing (allow_broken is false), as before the bridge.
+        assert!(module.candidate(&entry(3), true, true).is_none());
+    }
+
+    #[test]
+    fn the_golden_decoder_shares_the_swim_speed_bridge() {
+        let module = GoldenAttribute::decode(json!({"attribute":"forge:swim_speed","operation":"multiply_total","each_level":0.1}).as_object().unwrap()).unwrap().unwrap();
+        let (attribute, operation, amount) = module.amount(true, 2).unwrap();
+        assert_eq!(attribute, "minecraft:water_movement_efficiency");
+        assert_eq!(operation, pluto_lib::AttributeOperation::Addition);
+        assert!((amount - 0.2).abs() < 1e-6, "a tenth per golden piece over two pieces: {amount}");
     }
 
     #[test]
