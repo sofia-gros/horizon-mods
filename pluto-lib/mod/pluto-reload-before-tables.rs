@@ -17,12 +17,3 @@ fn pluto_reload_before_tables_open(game: &mut Game<'_>, prepared: &world_loading
     game.world_root = prepared.save_root.clone();
     game.native_reload_listeners();
 }
-
-/// A reload: a remote client builds no server tables, and its body
-/// returns before building any; keep that shape.
-fn pluto_reload_before_tables_reload(game: &mut Game<'_>) {
-    if game.remote.is_some() {
-        return;
-    }
-    game.native_reload_listeners();
-}
