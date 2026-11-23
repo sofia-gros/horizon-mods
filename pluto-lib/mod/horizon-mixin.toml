@@ -1708,12 +1708,14 @@ name = "pluto_sky_access"
 source = "pluto-sky-access.rs"
 visibility = "pub"
 
-[[injection]]
-id = "pluto-sky-celestial"
-target = "horizon_client::game::frame_geometry::Game<'_>::celestial_geometry"
-kind = "RETURN"
-helper = "pluto-sky-celestial.rs"
-bindings = [{ name = "value", ty = "(Vec<horizon_client::mesher::Vertex>, Option<(glam::Mat4, f32)>)", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "sky", ty = "&horizon_client::environment::Sky", value = "sky" }, { name = "rain", ty = "f32", value = "rain" }]
+# BUILD-SP TEST COMPOSITION ONLY: the pluto-sky-celestial RETURN reach is
+# disabled on this scratch branch. The weave rejects it with
+# E_UNSUPPORTED_MACRO: celestial_geometry's body calls format! by its bare
+# name and the weaver requires an unshadowed absolute standard path, which
+# only the pinned host source could provide. The dynamic sky layer (bright
+# stars, darkening, vanilla-star suppression) is therefore NOT exercised by
+# this build; the reach needs a redesign. The helper file stays in the
+# bundle for the record.
 
 
 # A mob works out how far it sees the player (sneaking, invisibility, worn heads): the mods scale that range for the kind of mob that is looking.
