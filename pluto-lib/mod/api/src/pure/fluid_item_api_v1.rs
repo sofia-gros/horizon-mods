@@ -207,6 +207,11 @@ impl FluidItems {
         DEFS.lock().ok()?.as_ref()?.get(item).cloned()
     }
 
+    /// Every definition registered so far, in no particular order.
+    pub fn registered() -> Vec<FluidItemDef> {
+        DEFS.lock().ok().and_then(|all| all.as_ref().map(|all| all.values().cloned().collect())).unwrap_or_default()
+    }
+
     /// Whether the stack's item holds, or can be filled with, fluid.
     pub fn is_container(stack: &ItemSlot) -> bool {
         Self::get(&stack.item.to_string()).is_some()

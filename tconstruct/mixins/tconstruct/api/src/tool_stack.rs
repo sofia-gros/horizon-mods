@@ -142,6 +142,51 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }
 
+/// A tool's tank modules, collected for the tank consumers (`tank_hook`): the modules live inside
+/// the loaded modifier definitions, so a consumer that only holds the tool's data reads them here,
+/// each with the entry that carries it. The spilling levels are already condition-checked and
+/// computed, as SpillingModule's own gate does.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct TankModules {
+    /// SpillingModule levels, in modifier order.
+    pub spilling: Vec<f32>,
+    /// SlurpingModule instances: the entry and the module.
+    pub slurping: Vec<(crate::modifier_entries::Entry, crate::tool_tank::Slurping)>,
+    /// SpittingModule instances.
+    pub spitting: Vec<(crate::modifier_entries::Entry, crate::tool_tank::Spitting)>,
+    /// SplashingModule instances.
+    pub splashing: Vec<(crate::modifier_entries::Entry, crate::tool_tank::Splashing)>,
+    /// BucketModule instances (the `tconstruct:bucket` code-named module data).
+    pub bucket: Vec<crate::tool_tank::Bucket>,
+    /// TankInteractionModule instances.
+    pub tank_interaction: Vec<crate::tool_tank::TankInteraction>,
+}
+
+impl TankModules {
+    /// Whether the tool carries no tank module at all.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.spilling.is_empty() && self.slurping.is_empty() && self.spitting.is_empty() && self.splashing.is_empty() && self.bucket.is_empty() && self.tank_interaction.is_empty()
+    }
+}
+
+/// The tank modules of the tool in `nbt`.
+pub(crate) fn tank_modules(nbt: &NbtCompound, env: &Environment) -> TankModules {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut modules = TankModules::default();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(level) = module.spilling_level(entry, facts) { modules.spilling.push(level); }
+                if let Some(slurping) = module.slurping() { modules.slurping.push((entry.clone(), *slurping)); }
+                if let Some(spitting) = module.spitting() { modules.spitting.push((entry.clone(), *spitting)); }
+                if let Some(splashing) = module.splashing() { modules.splashing.push((entry.clone(), *splashing)); }
+                if let Some(bucket) = module.bucket() { modules.bucket.push(bucket.clone()); }
+                if let Some(interaction) = module.tank_interaction() { modules.tank_interaction.push(*interaction); }
+            }
+        }
+        modules
+    })
+}
+
 /// BreakSpeedModifierHook over every modifier of the tool: each conditional mining speed module in
 /// priority order (highest first, ties in modifier order), starting from `speed`.
 pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate::mining_speed::Context, speed: f32) -> f32 {
@@ -1008,6 +1053,10 @@ pub(crate) struct FlightProfile {
     /// under the modifier's ID, copied at the shot as onProjectileShoot copies it) and
     /// the entry's int effective level, which sets the hit's divisor.
     pub tipped: Option<(String, i32)>,
+    /// SpillingModule instances: the computed level and a snapshot of the firing tool's tank
+    /// fluid, which a launcher hit applies to what it hits (the firing tool is out of reach at
+    /// the impact telling, so the fluid travels with the profile as the shot's own copy).
+    pub spilling: Vec<(f32, Option<pluto_lib::FluidStack>)>,
 }
 
 impl FlightProfile {
@@ -1015,7 +1064,7 @@ impl FlightProfile {
     pub(crate) fn is_empty(&self) -> bool {
         self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
             && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
-            && !self.enderporting && !self.enderference && self.tipped.is_none()
+            && !self.enderporting && !self.enderference && self.tipped.is_none() && self.spilling.is_empty()
     }
 }
 
@@ -1054,6 +1103,8 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
                 // TippedModule: the potion is read from the persistent data below; the
                 // modifier's ID stands in as the key until then.
                 if module.is_tipped() { profile.tipped = Some((entry.id.to_string(), entry.int_effective_level())); }
+                // SpillingModule: the level now, the tank's fluid with it.
+                if let Some(level) = module.spilling_level(entry, facts) { profile.spilling.push((level, crate::tool_tank::fluid(nbt))); }
             }
         }
         profile

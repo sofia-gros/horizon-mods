@@ -227,6 +227,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_stats.rs',
                 'mixins/tconstruct_native/api/src/tool_swap.rs',
                 'mixins/tconstruct_native/api/src/tool_tank.rs',
+                'mixins/tconstruct_native/api/src/tank_hook.rs',
                 'mixins/tconstruct_native/api/src/trader.rs',
                 'mixins/tconstruct_native/api/src/unequip_hook.rs',
                 'mixins/tconstruct_native/api/src/update_health_hook.rs',

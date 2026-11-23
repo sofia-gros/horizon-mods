@@ -12,14 +12,16 @@
 //! no-levels display).
 //!
 //! What is wired in game today: the capacity stat and its boosts, the tank handler trait, the
-//! validate clamp on rebuild (TankModule.validate), the removal cleanup, and melting's process
-//! loot on block drops (block_break_hook). The rest is the modules' logic over the tool's data,
-//! ready for its consumers, with the same standing as the overgrowth module: the effects
-//! themselves run through the fluid effects engine, which needs a live world context the
-//! interaction and hit events do not carry, and the inventory tick event
-//! (`PlayerInventoryEvents::TICK`) reports neither the holder's tick count nor the level's game
-//! time that overburn's gating reads, nor a way to write the stack back. Each module below says
-//! exactly what its consumer still owes.
+//! validate clamp on rebuild (TankModule.validate), the removal cleanup, melting's process
+//! loot on block drops (block_break_hook), and — since the tank consumers landed — the whole
+//! module family in `tank_hook`: spilling on melee and launcher hits, wetting and bursting on
+//! being hit, slurping (held drink and the armor timer), spitting (held charge and the helmet
+//! timer), splashing on entity and block use, the tank interaction with fluid-handler blocks,
+//! TankModule's slot interaction in both directions, and overburn on the inventory tick (the
+//! holder's tick count and the game time are counted from the player tick there; the stack
+//! writes back through the player handle). What still stands open is named in tank_hook's
+//! header: the bucket module's world halves (no fluid block form is registered in the port)
+//! and splashing's item cooldown (it rides the item-cooldown surface of the sleeves work).
 use crate::{
     fluid_effects::{LevelingInt, LevelingValue},
     fluid_values::{OreRateType, BOTTLE, BUCKET},
@@ -365,9 +367,9 @@ fn write_fuel_info(persistent: &mut NbtCompound, key: &str, info: FuelInfo) {
 /// the holder's tick count and `game_time` the level's game time, both of which the original
 /// reads from the holder and the level. `fuel` answers MeltingFuelLookup for a fluid; `rolls`
 /// gives one uniform value in [0, 1) when a burn's rate has a remainder. Returns whether the
-/// tool changed. Nothing calls this in game yet: the inventory tick event reports neither the
-/// holder's tick count nor the game time, and has no channel to write the stack back — the
-/// same gap the overgrowth driver documents.
+/// tool changed. The caller is tool_stack's driver of the same name, run from tank_hook's
+/// inventory tick: the holder's tick count and the game time are counted from the player tick
+/// there, and the stack writes back through the player handle.
 pub(crate) fn overburn_tick(nbt: &mut NbtCompound, env: &Environment, entry: &Entry, holder_tick: i32, game_time: i64, using_this: bool,
     fuel: &dyn Fn(&Identifier) -> Option<Fuel>, rolls: &mut dyn FnMut() -> f32) -> bool {
     // Levels above 6 leave the integer interval behind; the original caps the level at 6.

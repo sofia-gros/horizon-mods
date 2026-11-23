@@ -279,6 +279,10 @@ use pluto_lib::FluidItems;
 assert!(FluidItems::get("example:never_registered").is_none());
 ```
 
+### `FluidItems::registered`
+
+`fn registered() -> Vec<FluidItemDef>`. Every definition registered so far, in registration order.
+
 ### `FluidItems::is_container`
 
 `fn is_container(stack: &ItemSlot) -> bool`. Whether the stack's item holds or can be filled with fluid.

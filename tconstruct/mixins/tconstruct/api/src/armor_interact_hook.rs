@@ -29,6 +29,11 @@
 //! tick explodes on the player tick below, and taking the helmet off removes it there too
 //! (SelfDestructiveModifier.onUnequip). The primed sound plays on the effect's first tick,
 //! where the tick reports the wearer's place.
+//!
+//! The tank armor forms run here too, for the same reason: SlurpingModule's and
+//! SpittingModule's armor timers change only the worn piece's own persistent data (which the
+//! player handle writes at the armor slots) and the wearer's effects, so the receiver starts
+//! and stops them through tank_hook on the plain tooltip key, ahead of the exchange drop.
 use crate::{break_speed_hook::with_held_tool, tool_inventory::{MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
 use pluto_lib::{ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
 use std::collections::BTreeSet;
@@ -228,12 +233,20 @@ pub(crate) fn register() {
         if !start {
             // SelfDestructiveModifier.stopInteract is the one stop half with work to do.
             if slot == SLOT_HEAD { self_destructive_stop(player); }
+            // The tank armor forms stop here too (the slurp and spit timers on the helmet and
+            // the leggings): a stop with no live timer is a no-op.
+            crate::tank_hook::armor_stop(player, slot);
             return;
         }
         // SelfDestructiveModifier.startInteract runs on the packet (see the module notes): the
         // tooltip key is Shift exactly when shift was held.
         if slot == SLOT_HEAD && key == MenuKey::Shift && self_destructive_level(player) > 0 {
             self_destructive_start(player);
+            return;
+        }
+        // The tank armor forms start on the plain tooltip key: the slurp and spit timers of
+        // SlurpingModule and SpittingModule (their startInteract).
+        if key == MenuKey::Normal && crate::tank_hook::armor_start(player, slot) {
             return;
         }
         // The exchange the packet asks for has no server surface yet (see the module notes).

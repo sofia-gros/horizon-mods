@@ -87,6 +87,7 @@
     "api/src/brush.rs",
     "api/src/brush_hook.rs",
     "api/src/weapon_effect_hook.rs",
+    "api/src/tank_hook.rs",
     "api/src/block_break_hook.rs",
     "api/src/severing.rs",
     "api/src/severing_hook.rs",

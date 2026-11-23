@@ -333,6 +333,8 @@ mod potion_contents;
 mod flight_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/throwing_hook.rs"]
 mod throwing_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tank_hook.rs"]
+mod tank_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/glow_block.rs"]
 mod glow_block;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/piggyback.rs"]

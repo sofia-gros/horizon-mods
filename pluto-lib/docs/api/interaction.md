@@ -248,7 +248,7 @@ assert!(UseBlockCallback::EVENT.invoke(&UseBlockContext { pos: [0, 0, 0], face: 
 
 ### `UseItemOnBlockContext`
 
-A player used an item on a block. `item` is the item id, `count` how many are held, `pos` the block, `face` the face that was clicked as a unit offset, `dimension` the dimension id, `player` the player (its methods work inside the callback) and `creative` whether the player is in creative mode.
+A player used an item on a block. `item` is the item id, `count` how many are held, `pos` the block, `face` the face that was clicked as a unit offset, `dimension` the dimension id, `player` the player (its methods work inside the callback), `creative` whether the player is in creative mode and `sneaking` whether the player is sneaking.
 
 ```rust
 use pluto_lib::{ServerPlayer, UseItemOnBlockContext};
@@ -261,6 +261,7 @@ let used = UseItemOnBlockContext {
     dimension: "minecraft:overworld".into(),
     player: ServerPlayer { uuid: 1, name: "Alex".into() },
     creative: false,
+    sneaking: false,
     held: None,
 };
 assert_eq!((used.count, used.pos, used.face), (3, [1, 64, 1], [0, 1, 0]));
@@ -493,14 +494,14 @@ assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light:
 
 ### `UseItemOnEntityContext`
 
-A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none) and `actions` the `EntityAction`s a callback queues for the player.
+A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `dimension` the dimension id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none) and `actions` the `EntityAction`s a callback queues for the player.
 
 ```rust
 use std::cell::RefCell;
 use pluto_lib::{Hand, ServerPlayer, StackData, UseItemOnEntityContext};
 
 let click = UseItemOnEntityContext {
-    entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
+    entity: 5, kind: "minecraft:sheep".into(), dimension: String::new(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
     player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
 };
@@ -599,7 +600,7 @@ UseEntityCallback::EVENT.register(|click| {
     if click.kind == "minecraft:sheep" && click.held.as_ref().is_some_and(|held| held.item == "test:kama") { ActionResult::Success } else { ActionResult::Pass }
 });
 let click = UseItemOnEntityContext {
-    entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
+    entity: 5, kind: "minecraft:sheep".into(), dimension: String::new(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
     player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
 };

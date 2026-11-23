@@ -2194,6 +2194,16 @@ impl EntityOps for HostEntities {
         let Some(id) = self.push_target(id) else { return false };
         horizon_client::game::pluto_entity_push_access::request_leave_ground(&self.dimension, id)
     }
+
+    fn add_effect(&mut self, id: u64, effect: &str, duration: i32, amplifier: u8) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        if host.entity(id).is_none() {
+            return false;
+        }
+        horizon_client::entry::pluto_mob_effect_access::push(id, effect, duration, amplifier);
+        true
+    }
 }
 
 /// Runs `f` with the player scope and the world scope both open over the host.
@@ -4593,15 +4603,16 @@ impl Hooks for PlutoHooks {
             return Flow::Continue;
         }
         let player = host.acting_player();
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
         let context = events_interaction_v0::UseItemOnEntityContext {
             entity: event.entity,
             kind: event.kind.to_owned(),
+            dimension: dimension.clone(),
             hand: match event.hand { Hand::Off => events_interaction_v0::Hand::Off, _ => events_interaction_v0::Hand::Main },
             held: event.stack.map(read_stack),
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
             actions: std::cell::RefCell::new(Vec::new()),
         };
-        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
         let handle = HostHandle::new(host);
         let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::use_item_on_entity(&context)));
         let actions = context.actions.take();
@@ -4956,11 +4967,15 @@ impl Hooks for PlutoHooks {
             count: event.stack.count,
             pos: event.pos,
             face: event.face,
-            dimension,
+            dimension: dimension.clone(),
             creative,
+            sneaking: host.sneaking(),
             player: player_api::ServerPlayer { uuid, name },
         };
-        cancel_if(scoped(host, || events_interaction_v0::use_item_on_block(&context)))
+        // A block use sees the same reach as the block hooks do: its dimension ticking, and the
+        // neighbours' containers and tanks, so a callback can trade fluid with the clicked block.
+        let handle = HostHandle::new(host);
+        cancel_if(scoped(host, || world_api_v1::with_ticking_dimension(&dimension, || neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || events_interaction_v0::use_item_on_block(&context)))))
     }
 
     fn living_entity_use_item_finish(&self, host: &mut dyn Host, event: &mut LivingEntityUseItemFinishEvent<'_>) {
@@ -5329,7 +5344,7 @@ impl Hooks for PlutoHooks {
                 .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.position));
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
-            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
+            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),
             attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {
