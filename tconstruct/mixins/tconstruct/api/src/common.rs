@@ -48,6 +48,10 @@ static DAMAGING_RECIPES: OnceLock<Arc<RwLock<crate::damaging::Recipes>>> = OnceL
 pub(crate) fn damaging_recipes() -> Option<&'static Arc<RwLock<crate::damaging::Recipes>>> { DAMAGING_RECIPES.get() }
 static DYEING_RECIPES: OnceLock<Arc<RwLock<crate::dyeing::Recipes>>> = OnceLock::new();
 pub(crate) fn dyeing_recipes() -> Option<&'static Arc<RwLock<crate::dyeing::Recipes>>> { DYEING_RECIPES.get() }
+static BANNER_RECIPES: OnceLock<Arc<RwLock<crate::banner_modifier::Recipes>>> = OnceLock::new();
+pub(crate) fn banner_recipes() -> Option<&'static Arc<RwLock<crate::banner_modifier::Recipes>>> { BANNER_RECIPES.get() }
+static TRIM_RECIPES: OnceLock<Arc<RwLock<crate::armor_trim::Recipes>>> = OnceLock::new();
+pub(crate) fn trim_recipes() -> Option<&'static Arc<RwLock<crate::armor_trim::Recipes>>> { TRIM_RECIPES.get() }
 static REPAIR_GATE: OnceLock<Arc<RwLock<crate::table_recipes::RepairGate>>> = OnceLock::new();
 pub(crate) fn repair_gate() -> Option<&'static Arc<RwLock<crate::table_recipes::RepairGate>>> { REPAIR_GATE.get() }
 static PART_SWAPPING: OnceLock<Arc<RwLock<crate::table_recipes::PartSwapping>>> = OnceLock::new();
@@ -231,6 +235,18 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers dyeing recipe listener registration failed");
         DYEING_RECIPES.set(dyeing).expect("Tinkers dyeing recipes already initialized");
+        let banner_config = config.clone();
+        let banner = crate::banner_modifier::register(move || {
+            let config = banner_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers banner recipe listener registration failed");
+        BANNER_RECIPES.set(banner).expect("Tinkers banner recipes already initialized");
+        let trim_config = config.clone();
+        let trim = crate::armor_trim::register(move || {
+            let config = trim_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers armor trim recipe listener registration failed");
+        TRIM_RECIPES.set(trim).expect("Tinkers armor trim recipes already initialized");
         let repair_gate_config = config.clone();
         let repair_gate = crate::table_recipes::register_repair_gate(move || {
             let config = repair_gate_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

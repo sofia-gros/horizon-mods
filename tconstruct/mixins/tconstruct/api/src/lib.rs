@@ -6,6 +6,8 @@ mod instrument_tags;
 mod damage_tags;
 mod damaging;
 mod dyeing;
+mod banner_modifier;
+mod armor_trim;
 mod protection;
 mod protection_hook;
 mod tool_damage_hook;
