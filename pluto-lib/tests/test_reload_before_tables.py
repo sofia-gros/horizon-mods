@@ -36,7 +36,7 @@ class ReloadBeforeTablesTests(unittest.TestCase):
         self.assertEqual(hook['target'], "horizon_client::game::world_entry::Game<'_>::reload_world_tables")
         self.assertEqual(hook['kind'], 'HEAD')
         self.assertNotIn('cancellable', hook)
-        self.assertEqual(hook['helper'], 'pluto-reload-before-tables.rs')
+        self.assertEqual(hook['helper'], 'pluto-reload-before-tables-reload.rs')  # one private function per helper file (E_INVALID_HELPER, build-sp weave plan 2026-11-23)
         self.assertEqual(hook['bindings'], [
             {'name': 'game', 'ty': "&mut Game<'_>", 'value': '&mut *self'},
         ])
@@ -50,7 +50,7 @@ class ReloadBeforeTablesTests(unittest.TestCase):
         self.assertLess(root, apply)
 
     def test_the_reload_head_keeps_the_remote_return(self):
-        source = (BUNDLE / 'pluto-reload-before-tables.rs').read_text(encoding='utf-8')
+        source = (BUNDLE / 'pluto-reload-before-tables-reload.rs').read_text(encoding='utf-8')
         reload_fn = source.index('fn pluto_reload_before_tables_reload')
         guard = source.index('game.remote.is_some()')
         apply = source.index('game.native_reload_listeners();', reload_fn)

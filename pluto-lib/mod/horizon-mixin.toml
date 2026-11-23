@@ -113,7 +113,7 @@ bindings = [
 id = "pluto-reload-before-tables-reload"
 target = "horizon_client::game::world_entry::Game<'_>::reload_world_tables"
 kind = "HEAD"
-helper = "pluto-reload-before-tables.rs"
+helper = "pluto-reload-before-tables-reload.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
