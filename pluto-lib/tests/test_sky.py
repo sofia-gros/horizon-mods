@@ -7,8 +7,8 @@ surface is a pure registry of layers (stars, darkenings, a say over the
 vanilla stars) whose frame quads the game draws with the sun and moon.
 These checks pin that wiring so it cannot silently fall away: the pure
 module and its exports, the support-matrix row, the access module in the
-entry point, the celestial return reach (with no `require`: the weave
-accepts require only on site injections, E_SELECTOR), the helper's white-
+entry point, the celestial cancellable head reach (with no `require`:
+cancellable head reaches carry none, E_SELECTOR), the helper's white-
 texel vertices and star-frame drop, and the transport's sink.
 """
 from pathlib import Path
@@ -57,17 +57,24 @@ class SkySurfaceTests(unittest.TestCase):
         self.assertIn('pub struct SkyQuad', source)
         self.assertIn('pub struct Sink', source)
 
-    def test_the_celestial_reach_is_a_return_reach_without_require(self):
+    def test_the_celestial_reach_is_a_cancellable_head_without_require(self):
         reach = self.injection('pluto-sky-celestial')
         self.assertEqual(reach['target'], "horizon_client::game::frame_geometry::Game<'_>::celestial_geometry")
-        self.assertEqual(reach['kind'], 'RETURN')
-        self.assertNotIn('require', reach)  # RETURN reaches carry no require (E_SELECTOR)
+        self.assertEqual(reach['kind'], 'HEAD')
+        self.assertTrue(reach['cancellable'])
+        self.assertNotIn('require', reach)  # cancellable HEAD reaches carry no require (E_SELECTOR)
         self.assertEqual(reach['helper'], 'pluto-sky-celestial.rs')
         source = self.source('pluto-sky-celestial.rs')
         self.assertIn('pluto_sky_access::sink()', source)
         self.assertIn('white_uv', source)
         self.assertIn('sky.star_angle', source)
-        self.assertIn('if hide {None} else {stars}', source)
+        # No layer for the frame: the game's own body runs untouched. A layer
+        # answers: the helper returns the bodies, its quads joined and the
+        # star frame dropped when the layer hides the vanilla stars.
+        self.assertIn('ControlFlow::Continue(())', source)
+        self.assertIn('ControlFlow::Break((out, stars))', source)
+        self.assertIn('if hide {', source)
+        self.assertIn('view_day_time', source)
 
     def test_the_transport_installs_the_sink_and_serves_the_overworld_layer(self):
         hooks = (API / 'hooks.rs').read_text(encoding='utf-8')

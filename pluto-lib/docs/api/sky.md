@@ -35,13 +35,17 @@ vanilla stars also drops the host's procedural star frame for that world. Positi
 equatorial, as the catalogs give them (J2000 right ascension in hours, declination in degrees).
 
 > **Use with Caution.** The registry, the frame mathematics and the validation are pure-tested.
-> The transport is source-declared: a return reach on the game's celestial-geometry builder (the
-> shape the player-visibility reach already uses) hands the frame's star angle and brightness to
-> the registered layer and appends its quads to the bodies' vertex list, sampling the atlas's
-> white texel — the same untextured-quad path the lightning bolts use — and drops the vanilla
-> star frame when the layer says so. That reach has not been natively attached yet: its first
-> compile is the combined build, and the darkening rings' softness rides on the celestial pass's
-> alpha blending, which the moon's own rain fade already exercises.
+> The transport is source-declared: a cancellable head reach on the game's celestial-geometry
+> builder hands the frame's star angle and brightness to the registered layer. (A return reach
+> cannot weave here: the builder names the moon's sprite with a bare `format!`, which the weaver
+> cannot re-emit — E_UNSUPPORTED_MACRO.) With no layer for the frame the reach continues and the
+> game builds the sun, moon and stars itself, untouched; when a layer answers, the reach returns
+> the bodies built the game's own way with the layer's quads joined to the vertex list, sampling
+> the atlas's white texel — the same untextured-quad path the lightning bolts use — and drops the
+> vanilla star frame when the layer says so. The reach's weave plan is verified; it has not been
+> natively compiled yet: its first compile is the combined build, and the darkening rings'
+> softness rides on the celestial pass's alpha blending, which the moon's own rain fade already
+> exercises.
 
 ## Reference
 
