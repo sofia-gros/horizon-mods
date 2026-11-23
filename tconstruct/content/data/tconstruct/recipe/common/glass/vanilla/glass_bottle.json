@@ -1,5 +1,11 @@
 {
   "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "tconstruct:config",
+      "prop": "glass_recipe_fix"
+    }
+  ],
   "key": {
     "#": [
       "minecraft:glass"

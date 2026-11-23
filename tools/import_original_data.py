@@ -3084,7 +3084,9 @@ def copy_crafting_recipes():
     holds no plain recipes at all: its melting and casting recipes are gated on other mods (`forge:mod_loaded`), which this
     port does not carry. The `tconstruct:crafting_shaped_materials` type (the material anvils and forges, the travelers
     armor, the fake ingot conversion) is not converted either: it resolves its material ingredient against the material
-    registry at craft time, which no plain recipe consumer here does, so its recipes wait with the stations."""
+    registry at craft time, which no plain recipe consumer here does, so its recipes wait with the stations. A recipe's
+    `tconstruct:config` conditions ship in the original's form (see the note at the write); every other condition
+    type stays stripped."""
     shutil.rmtree(CRAFTING_TARGET, ignore_errors=True)
     declared = {f'tconstruct:{p.stem}' for kind in ('block', 'item') for p in (HORIZON_DECLARATIONS / kind).glob('*.json')}
     tag_files = GENERATED_DATA / 'tconstruct/tags/items'
@@ -3222,6 +3224,13 @@ def copy_crafting_recipes():
         if not known(item):
             left_out.append((stem, item))
             continue
+        config_conditions = [entry for entry in data.get('conditions', []) if entry.get('type') == 'tconstruct:config']
+        if config_conditions:
+            # A `tconstruct:config` condition ships in the original's form, ahead of the body as the original
+            # writes it. The host reads only `neoforge:conditions`, so the key is inert in the file: the gate
+            # is enforced at match time by the consumer's crafting-match veto (api/src/recipe_conditions.rs),
+            # which decides from the same prop names in the parsed common config.
+            out = {'type': out['type'], 'conditions': config_conditions, **{key: value for key, value in out.items() if key != 'type'}}
         write_json(CRAFTING_TARGET / f'{stem}.json', out)
         written += 1
     # The shaped-materials recipes (the material anvils and forges in `tables/`, the travellers armor in
