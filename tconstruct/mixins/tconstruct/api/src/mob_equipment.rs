@@ -71,7 +71,7 @@ struct Equip {
     slot: String,
     matches: Match,
     tool: Identifier,
-    count: i32,
+    count: u32,
     materials: Vec<RandomMat>,
     /// The fluid tag the tool's tank would be filled from; parsed and kept, not yet filled (see the module docs).
     fluid_tag: Option<Identifier>,
@@ -197,7 +197,7 @@ fn parse_equip(value: &Value) -> Result<Equip, String> {
         Value::String(text) => (parse_id(text, "tool")?, 1),
         Value::Object(output) => {
             let item = output.get("item").and_then(Value::as_str).ok_or("a tool output has no item")?;
-            let count = output.get("count").and_then(Value::as_i64).unwrap_or(1) as i32;
+            let count = output.get("count").and_then(Value::as_i64).unwrap_or(1).clamp(0, i64::from(u32::MAX)) as u32;
             (parse_id(item, "tool")?, count)
         }
         _ => return Err("tool must be an item id or an output object".into()),
@@ -303,7 +303,7 @@ fn build_replacement(view: &mut dyn MobSpawnPreparation, equip: &Equip) -> Optio
             Some(RandomMat::Ancient) => crate::slime_entities::ancient_material(&materials, stat, view)?,
             Some(RandomMat::First) | None => materials.first_with_stat(stat).map(|material| material.id.clone())?,
         };
-        variants.push(MaterialVariant::parse(&chosen.to_string()).ok()?);
+        variants.push(MaterialVariant::parse(&chosen.to_string())?);
     }
     let tool = crate::tool_build::create_tool(&env, &MaterialList::from_variants(variants), false).ok()?;
     Some(StackData { item: equip.tool.to_string(), count: equip.count, custom_data: tool, ..Default::default() })
