@@ -5,7 +5,7 @@
 
 use horizon_client::mod_api::{
     AddServerReloadListenersEvent, ServerReloadListenerApplyEvent, NativeReloadListener,
-    AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
+    AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, LootFunctionEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
@@ -2588,6 +2588,59 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     Some(slot)
 }
 
+/// A custom data compound in its JSON form, for transports that carry data as JSON (the loot
+/// function's stack keeps its components as JSON). The mirror of `nbt_from_json`: bytes and
+/// booleans have no JSON form of their own, so a byte rides as its number.
+fn json_from_compound(compound: &NbtCompound) -> serde_json::Value {
+    serde_json::Value::Object(compound.iter().map(|(key, value)| (key.clone(), json_value_from_nbt(value))).collect())
+}
+
+fn json_value_from_nbt(nbt: &Nbt) -> serde_json::Value {
+    match nbt {
+        Nbt::Byte(value) => serde_json::Value::from(*value),
+        Nbt::Short(value) => serde_json::Value::from(*value),
+        Nbt::Int(value) => serde_json::Value::from(*value),
+        Nbt::Long(value) => serde_json::Value::from(*value),
+        Nbt::Float(value) => serde_json::Number::from_f64(f64::from(*value)).map_or(serde_json::Value::Null, serde_json::Value::Number),
+        Nbt::Double(value) => serde_json::Number::from_f64(*value).map_or(serde_json::Value::Null, serde_json::Value::Number),
+        Nbt::ByteArray(values) => serde_json::Value::Array(values.iter().map(|value| serde_json::Value::from(*value)).collect()),
+        Nbt::String(value) => serde_json::Value::from(value.clone()),
+        Nbt::List(values) => serde_json::Value::Array(values.iter().map(json_value_from_nbt).collect()),
+        Nbt::Compound(compound) => json_from_compound(compound),
+        Nbt::IntArray(values) => serde_json::Value::Array(values.iter().map(|value| serde_json::Value::from(*value)).collect()),
+        Nbt::LongArray(values) => serde_json::Value::Array(values.iter().map(|value| serde_json::Value::from(*value)).collect()),
+    }
+}
+
+/// A loot roll's stack as an item slot: item, count, damage, enchantments and the
+/// `minecraft:custom_data` component (the one a loot function of a mod's own kind reads and
+/// writes); None for an item id PlutoLib cannot name.
+fn loot_slot_of(stack: &horizon_client::mod_api::LootStack) -> Option<ItemSlot> {
+    let mut slot = ItemSlot::new(Identifier::parse(&stack.item).ok()?, stack.count.max(0) as u32);
+    slot.damage = stack.damage.max(0) as u32;
+    if let Some((_, value)) = stack.components.iter().find(|(id, _)| id == "minecraft:custom_data") {
+        slot.custom_data = nbt_from_json(value);
+    }
+    if !stack.enchantments.is_empty() {
+        slot.enchantments = Some(stack.enchantments.iter().cloned().collect());
+    }
+    Some(slot)
+}
+
+/// Writes an item slot back over a loot roll's stack, the fields `loot_slot_of` read.
+fn write_loot_slot(stack: &mut horizon_client::mod_api::LootStack, slot: &ItemSlot) {
+    stack.item = slot.item.to_string();
+    stack.count = slot.count as i32;
+    stack.damage = slot.damage as i32;
+    stack.components.retain(|(id, _)| id != "minecraft:custom_data");
+    if !slot.custom_data.is_empty() {
+        stack.components.push(("minecraft:custom_data".to_owned(), json_from_compound(&slot.custom_data)));
+    }
+    if let Some(enchantments) = &slot.enchantments {
+        stack.enchantments = enchantments.iter().map(|(id, level)| (id.clone(), *level)).collect();
+    }
+}
+
 /// Restore the source stack, not the destination's components, then apply public edits.
 fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     let item = slot.item.to_string();
@@ -4617,6 +4670,24 @@ impl Hooks for PlutoHooks {
     fn loot_table_load(&self, event: &mut LootTableLoadEvent<'_>) {
         let edited = loot_api_v2::modify(event.id, event.table.clone());
         *event.table = edited;
+    }
+
+    fn loot_function(&self, event: &mut LootFunctionEvent<'_>) {
+        // A loot table named a function kind outside the game's own: the callbacks answer the
+        // kinds they own (Mantle's `fill_retextured_block` is the first) and change the stack.
+        if !loot_api_v2::functions_heard() { return; }
+        let Some(slot) = loot_slot_of(event.stack) else { return };
+        let place = event.ctx.place.as_deref();
+        let context = loot_api_v2::LootFunctionContext {
+            kind: event.kind.to_owned(),
+            data: event.data.clone(),
+            origin: place.and_then(|place| place.origin),
+            dimension: place.and_then(|place| place.level.as_ref()).map(|level| level.dimension.clone()),
+            block_entity: place.and_then(|place| place.block_entity.as_ref()).and_then(nbt_from_tag).and_then(|tag| match tag { Nbt::Compound(data) => Some(data), _ => None }),
+            stack: std::cell::RefCell::new(slot.clone()),
+        };
+        let after = loot_api_v2::apply_function(&context);
+        if after != slot { write_loot_slot(event.stack, &after); }
     }
 
     fn add_server_reload_listeners(&self, _host: &mut dyn Host, event: &mut AddServerReloadListenersEvent<'_>) {

@@ -5,7 +5,7 @@
 
 use std::cell::RefCell;
 
-use super::base::Event;
+use super::base::{Event, NbtCompound};
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
 use super::entity_events_v1::EntityAction;
 use super::player_api::StackData;
@@ -45,8 +45,32 @@ pub struct LootDrops {
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
+/// A loot function of a mod's own kind being applied to one stack: a loot table entry named a
+/// `modifier` whose `type` is not one of the game's, and the game hands the kind to the callbacks
+/// registered for [`LootTableEvents::FUNCTION`] (the game's own kinds never arrive here). Callbacks
+/// change `stack`; a callback that does not know `kind` leaves it alone.
+pub struct LootFunctionContext {
+    /// The function's kind, such as `mantle:fill_retextured_block`.
+    pub kind: String,
+    /// The function's own JSON (its fields beside `type`), for kinds that take settings.
+    pub data: serde_json::Value,
+    /// Where the table rolled: a broken block's centre, a dead mob's position; None for rolls the
+    /// game makes away from a place.
+    pub origin: Option<[f64; 3]>,
+    /// The dimension the table rolled in, such as `minecraft:overworld`; None away from a place.
+    pub dimension: Option<String>,
+    /// The block entity the broken block had, saved with its id and position before the break
+    /// (Minecraft: `LootContextParams.BLOCK_ENTITY`): a mod's block entity carries its own data in
+    /// it, which is what functions like `mantle:fill_retextured_block` read. None when the block
+    /// had no block entity or the roll is not a block's.
+    pub block_entity: Option<NbtCompound>,
+    /// The stack the function applies to. Change it in place.
+    pub stack: RefCell<ItemSlot>,
+}
+
 static MODIFY: Event<LootTableContext, ()> = Event::void();
 static MODIFY_DROPS: Event<LootDrops, ()> = Event::void();
+static FUNCTION: Event<LootFunctionContext, ()> = Event::void();
 
 /// Fabric: `LootTableEvents`.
 pub struct LootTableEvents;
@@ -57,6 +81,9 @@ impl LootTableEvents {
     /// Fabric: `MODIFY_DROPS` (NeoForge: global loot modifiers): runs for the items a block, a mob or a player's use is about to drop, after
     /// the loot table rolled. Edit `context.drops`. Other breaks (leaves decaying, a piston) are not heard.
     pub const MODIFY_DROPS: &'static Event<LootDrops, ()> = &MODIFY_DROPS;
+    /// A loot function of a mod's own kind, applied to one stack as its table rolls. Register a
+    /// callback and answer only the `kind`s you own; every callback hears every kind.
+    pub const FUNCTION: &'static Event<LootFunctionContext, ()> = &FUNCTION;
 }
 
 /// Whether anyone listens to the drops, so the game only converts stacks when someone does.
@@ -75,6 +102,17 @@ pub(crate) fn modify(id: &str, table: serde_json::Value) -> serde_json::Value {
     let context = LootTableContext { id: id.to_owned(), table: RefCell::new(table) };
     MODIFY.invoke(&context);
     context.table.into_inner()
+}
+
+/// Whether anyone answers loot functions of a mod's own kind, so the game only converts stacks when someone does.
+pub(crate) fn functions_heard() -> bool {
+    !FUNCTION.is_empty()
+}
+
+/// Runs the `FUNCTION` callbacks over one stack and returns the stack they leave.
+pub(crate) fn apply_function(context: &LootFunctionContext) -> ItemSlot {
+    FUNCTION.invoke(context);
+    context.stack.borrow().clone()
 }
 
 #[cfg(test)]
@@ -132,5 +170,29 @@ mod tests {
         };
         assert!(modify_drops(&rock).is_empty());
         assert_eq!(rock.actions.take(), [EntityAction::Heal { target: ActionTarget::Attacker, amount: 1.0 }]);
+    }
+
+    #[test]
+    fn a_function_changes_only_the_stacks_of_its_own_kind() {
+        use super::super::base::{Identifier, Nbt};
+        assert!(!functions_heard());
+        LootTableEvents::FUNCTION.register(|context| {
+            if context.kind == "example:fill_marker" {
+                if let Some(marker) = context.block_entity.as_ref().and_then(|data| data.get("marker")).and_then(|value| match value { Nbt::String(text) => Some(text.clone()), _ => None }) {
+                    context.stack.borrow_mut().custom_data.insert("marker".to_owned(), Nbt::String(marker));
+                }
+            }
+        });
+        assert!(functions_heard());
+        let mut block_entity = NbtCompound::new();
+        block_entity.insert("marker".to_owned(), Nbt::String("example:stone".to_owned()));
+        let context = |kind: &str| LootFunctionContext {
+            kind: kind.into(), data: json!({}), origin: Some([0.5; 3]), dimension: Some("minecraft:overworld".into()),
+            block_entity: Some(block_entity.clone()), stack: RefCell::new(ItemSlot::new(Identifier::parse("example:rock").unwrap(), 1)),
+        };
+        let filled = apply_function(&context("example:fill_marker"));
+        assert_eq!(filled.custom_data.get("marker"), Some(&Nbt::String("example:stone".to_owned())));
+        let untouched = apply_function(&context("example:other_kind"));
+        assert!(untouched.custom_data.is_empty(), "another kind's function leaves the stack alone");
     }
 }

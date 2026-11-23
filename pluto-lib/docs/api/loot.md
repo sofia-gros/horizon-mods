@@ -85,6 +85,40 @@ LootTableEvents::MODIFY_DROPS.register(|context| {
 });
 ```
 
+### `LootFunctionContext`
+
+A loot function of a mod's own kind being applied to one stack: a loot table entry named a `modifier` whose `type` is not one of the game's (such as `mantle:fill_retextured_block`). `kind` is that type, `data` the function's own JSON beside `type`, `origin` and `dimension` where the table rolled, `block_entity` the block entity the broken block had (its saved data, id and position included; a mod's block entity carries its own data in it), and `stack` the stack to change in place. Away from a broken block the place fields are `None`.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, LootFunctionContext, LootTableEvents, Nbt};
+use serde_json::json;
+use std::cell::RefCell;
+
+LootTableEvents::FUNCTION.register(|c| {
+    if c.kind == "example:fill_marker" {
+        c.stack.borrow_mut().custom_data.insert("marker".into(), Nbt::String("example:stone".into()));
+    }
+});
+let context = LootFunctionContext { kind: "example:fill_marker".into(), data: json!({}), origin: None, dimension: None,
+    block_entity: None, stack: RefCell::new(ItemSlot::new(Identifier::parse("example:rock").unwrap(), 1)) };
+LootTableEvents::FUNCTION.invoke(&context);
+assert_eq!(context.stack.borrow().custom_data.get("marker"), Some(&Nbt::String("example:stone".into())));
+```
+
+### `LootTableEvents::FUNCTION`
+
+Runs for every loot function of a mod's own kind as its table rolls, once per stack the function applies to. Every callback hears every kind; answer only the kinds you own and leave the others' stacks alone. The game's own function kinds never arrive here.
+
+```rust
+use pluto_lib::LootTableEvents;
+
+LootTableEvents::FUNCTION.register(|context| {
+    if context.kind == "mantle:fill_retextured_block" {
+        // read the texture from context.block_entity and set it on context.stack
+    }
+});
+```
+
 ### `LivingDropInfo`
 
 `LivingDropInfo { entity: EntityInfo, position: [f64; 3], damage_type: Option<String>, killer_type: Option<String> }` owns the victim identity/dimension, actual position, optional damage type and damage owner's type. `killer_type` is not the direct projectile and does not establish a class capability: a derived creeper may have a custom type ID.
