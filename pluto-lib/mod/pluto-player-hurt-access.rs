@@ -8,6 +8,7 @@ pub struct PlayerHurt {
     pub position:[f64;3],
     pub on_ground:bool,
     pub in_water:bool,
+    pub eyes_in_water:bool,
     pub fire_ticks:i32,
     pub fire_immune:bool,
     pub effects:Vec<String>,
