@@ -20,6 +20,21 @@ pub(crate) fn usage_actions(stacks: &[&Option<pluto_lib::StackData>], usage: cra
     Vec::new()
 }
 
+/// ModifierEvents: an effect starting on an entity lasts longer or shorter by the entity's good or
+/// bad effect duration multiplier, worked out from the pieces it wears and the effects it carries.
+/// A grant whose effect has no known category is left as it is.
+fn scaled(grant: EffectGrant, pieces: &[(String, pluto_lib::StackData)], effects: &[(String, i32)]) -> EffectGrant {
+    let Some(category) = pluto_lib::effect_category(&grant.effect) else { return grant; };
+    let multiplier = crate::custom_attributes::effect_duration_multiplier(pieces, effects, category == pluto_lib::EffectCategory::Beneficial);
+    EffectGrant { duration: crate::custom_attributes::scaled_duration(grant.duration, multiplier), ..grant }
+}
+
+/// [`scaled`] against an entity state the game reported, or the grant as it is when it reported none.
+fn scaled_on(grant: EffectGrant, state: Option<&pluto_lib::EntityState>) -> EffectGrant {
+    let Some(state) = state else { return grant; };
+    scaled(grant, &state.armor_stacks, &state.effect_levels)
+}
+
 /// Registers the callbacks. Called once from the product's hooks.
 pub(crate) fn register() {
     // Armor that counters: each worn piece's counter modules may put an effect on the mob that hit the wearer.
@@ -45,11 +60,13 @@ pub(crate) fn register() {
             for (whom, grant) in grants {
                 if grant.effect.namespace() != "minecraft" { continue; }
                 let grant = EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration };
-                if whom == crate::weapon_effect::Whom::Wearer { hit.self_effects.borrow_mut().push(grant); } else { hit.effects.borrow_mut().push(grant); }
+                // The wearer's own grants are scaled by the wearer's worn pieces (their active
+                // effects are not reported here); the mob's by what the hit reports of it.
+                if whom == crate::weapon_effect::Whom::Wearer { hit.self_effects.borrow_mut().push(scaled(grant, &hit.armor, &[])); } else { hit.effects.borrow_mut().push(scaled(grant, &hit.attacker_state.armor_stacks, &hit.attacker_state.effect_levels)); }
             }
             // Lacerating: a worn piece may put the bleeding effect on the mob that hit its wearer.
             if let Ok(Some(grant)) = with_held_tool(piece, |env, stack| tool_stack::lacerating_counter_grant(&stack.custom_data, env, &hit.armor, &mut tool_damage_hook::random)) {
-                hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+                hit.effects.borrow_mut().push(scaled(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration }, &hit.attacker_state.armor_stacks, &hit.attacker_state.effect_levels));
             }
             // Enderclearance: a hit on the wearer may teleport the mob that dealt it to a random
             // place within the module's diameter of where it stands (the chance doubles on a
@@ -84,7 +101,7 @@ pub(crate) fn register() {
                 let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::armor_attack_effects(&stack.custom_data, env, &source, &in_tag, &mut tool_damage_hook::random)) else { continue; };
                 for grant in grants {
                     if grant.effect.namespace() != "minecraft" { continue; }
-                    hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+                    hit.effects.borrow_mut().push(scaled_on(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration }, hit.target_state.as_ref()));
                 }
             }
         }
@@ -98,7 +115,7 @@ pub(crate) fn register() {
         }
         // Lacerating: a melee hit puts the bleeding effect on the mob, at the hit's looting.
         if let Ok(Some(grant)) = with_held_tool(held, |env, stack| tool_stack::lacerating_hit_grant(&stack.custom_data, env, &hit.armor)) {
-            hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+            hit.effects.borrow_mut().push(scaled_on(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration }, hit.target_state.as_ref()));
         }
         // Enderclearance: a hit may teleport the mob it landed on to a random place within the
         // module's diameter of where it stands. The original tries up to its teleport chances for
@@ -145,7 +162,7 @@ pub(crate) fn register() {
         for (_, grant) in grants {
             // Effects that apply before the hit and after it both land here, before the damage; the game has no later mod call.
             if grant.effect.namespace() != "minecraft" { continue; }
-            hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+            hit.effects.borrow_mut().push(scaled_on(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration }, hit.target_state.as_ref()));
         }
     });
     // A bow or crossbow shot by the player: the tool's usage effects for the holder (MobEffectModule.ToolUsage's launch half, once for each

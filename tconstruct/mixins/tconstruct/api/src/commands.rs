@@ -1688,6 +1688,10 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:attributes");
             out.insert("tconstruct:equipment_change");
         }
+        Module::CustomAttribute { .. } => {
+            out.insert("tconstruct:attributes");
+            out.insert("tconstruct:equipment_change");
+        }
         Module::Float { .. } => {
             out.insert("tconstruct:volatile_data");
             out.insert("tconstruct:projectile_launch");
