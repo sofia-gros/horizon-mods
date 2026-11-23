@@ -1941,6 +1941,27 @@ cancellable = true
 helper = "pluto-advancement-tag-index-head.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
 
+# Advancement function rewards resolved in code: the game's function
+# store carries only data pack files, so a function a mod registered
+# with the pure advancement API is granted by this hook at the head of
+# the game's own reward-function runner. The target is the function
+# runner in game/functions.rs, not one of the advancement caller
+# boundaries pinned by the advancement guard.
+[[module]]
+id = "pluto-advancement-function-source"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_advancement_function_source"
+source = "pluto-advancement-function-source.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-advancement-function-reward"
+target = "horizon_client::game::functions::Game<'_>::run_advancement_reward_function"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-function-reward-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "id", ty = "&str", value = "id" }]
+
 # Fancy hanging entities: item frame and armor stand variants registered
 # with PlutoLib's hanging registry run their variant behaviour over the
 # host's vanilla frame/stand state (the variant rides in the entity's kept
