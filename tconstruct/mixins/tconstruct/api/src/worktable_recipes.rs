@@ -124,6 +124,113 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
     Ok(state)
 }
 
+/// The extraction recipe (`tconstruct:extract_modifier`), the original's ExtractModifierRecipe
+/// (SlimeKnights, MIT; see LICENSE): a removal whose taken modifier level is handed back on a
+/// modifier crystal. Its options are the predicate's modifiers with an effective level above 0
+/// (a partial first level of an incremental modifier does not extract, which keeps the recipe
+/// from minting crystals), and its predicates may name slot types, decided through the modifier
+/// recipe lookup as ModifierRecipeLookup decides them.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Extraction {
+    pub id: Identifier,
+    pub name: String,
+    pub tools: Sized,
+    pub inputs: Vec<Sized>,
+    pub leftovers: Vec<Identifier>,
+    pub predicate: CausePredicate,
+}
+
+impl Extraction {
+    fn decode(id: &Identifier, value: &Value) -> Result<Self, String> {
+        let fields = value.as_object().ok_or("recipe must be an object")?;
+        let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
+            .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
+        let tools = match fields.get("tools") {
+            None => Sized { ingredient: Ingredient::Tag(Identifier::new("tconstruct", "modifiable").expect("valid tag")), amount: 1 },
+            Some(value) => Sized::decode(value)?,
+        };
+        let leftovers = match fields.get("leftovers") {
+            None => Vec::new(),
+            Some(Value::Array(list)) => list.iter().map(|item| match item {
+                Value::String(item) => Identifier::parse(item).map_err(|e| e.to_string()),
+                _ => Err("a leftover must be an item ID string".to_owned()),
+            }).collect::<Result<Vec<_>, _>>()?,
+            Some(_) => return Err("leftovers must be an array".into()),
+        };
+        let predicate = CausePredicate::decode(fields.get("modifier_predicate"))?.ok_or("unsupported modifier predicate")?;
+        let name = fields.get("name").and_then(Value::as_str).unwrap_or("modifiers").to_owned();
+        Ok(Self { id: id.clone(), name, tools, inputs, leftovers, predicate })
+    }
+
+    /// matches: the tool qualifies (and is stacked high enough) and the inputs are exactly this recipe's.
+    pub fn matches_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        self.tools.test(tool, in_tag) && check_match_facts(&self.inputs, inputs, facts, in_tag).is_some()
+    }
+
+    /// getModifierOptions: the tool's upgrades the predicate allows, at an effective level above
+    /// 0. `slot_member` answers the predicate's slot types through the recipe lookup.
+    pub fn options(&self, tool: &ItemSlot, modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, slot_member: &dyn Fn(&str, &Identifier) -> bool) -> Vec<Identifier> {
+        List::from_nbt(tool.custom_data.get(TAG_UPGRADES)).entries().iter()
+            .filter(|entry| entry.int_effective_level() > 0 && self.predicate.matches_slotted(Some(&entry.id), modifier_in_tag, slot_member))
+            .map(|entry| entry.id.clone()).collect()
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct Extractions { recipes: Vec<Extraction>, pub problems: Vec<String>, pub loaded: bool }
+
+impl Extractions {
+    pub fn load<C: Conditions>(files: &[(Identifier, Value)], conditions: &C) -> Self {
+        let mut result = Self { loaded: true, ..Self::default() };
+        let mut sorted: Vec<&(Identifier, Value)> = files.iter().collect();
+        sorted.sort_by(|a, b| a.0.cmp(&b.0));
+        for (id, value) in sorted {
+            let outcome = (|| -> Result<Option<Extraction>, String> {
+                let fields = value.as_object().ok_or("recipe must be an object")?;
+                if fields.get("type").and_then(Value::as_str) != Some("tconstruct:extract_modifier") { return Ok(None); }
+                if let Some(list) = fields.get("conditions") {
+                    let parsed = list.as_array().ok_or("conditions must be an array")?.iter().map(|c| conditions.decode(c)).collect::<Result<Vec<_>, _>>()?;
+                    for condition in &parsed { if !conditions.test(condition)? { return Ok(None); } }
+                }
+                Extraction::decode(id, value).map(Some)
+            })();
+            match outcome {
+                Ok(Some(recipe)) => result.recipes.push(recipe),
+                Ok(None) => {}
+                Err(error) => result.problems.push(format!("{id}: {error}")),
+            }
+        }
+        result
+    }
+    pub fn len(&self) -> usize { self.recipes.len() }
+    /// The first recipe whose tool requirement and inputs match, in id order.
+    pub fn find_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&Extraction> {
+        self.recipes.iter().find(|recipe| recipe.matches_facts(tool, inputs, facts, in_tag))
+    }
+}
+
+/// Reload listener for the extraction recipes, shaped like the removals'.
+pub(crate) fn register_extractions<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<Arc<RwLock<Extractions>>, String> {
+    let state = Arc::new(RwLock::new(Extractions::default()));
+    let output = state.clone();
+    ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "worktable_extractions").unwrap(), FOLDER, move |files| {
+            let context = context();
+            let mut state = output.write().map_err(|_| "worktable extractions poisoned")?;
+            match context {
+                Ok(context) => {
+                    *state = Extractions::load(files, &context);
+                    for problem in &state.problems { eprintln!("Tinkers: {problem}"); }
+                    Ok(())
+                }
+                Err(error) => { *state = Extractions { problems: vec![error.clone()], ..Extractions::default() }; Err(error) }
+            }
+        })?;
+    let stopped = state.clone();
+    ServerLifecycleEvents::SERVER_STOPPED.register(move |_| *stopped.write().expect("worktable extractions poisoned") = Extractions::default());
+    Ok(state)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

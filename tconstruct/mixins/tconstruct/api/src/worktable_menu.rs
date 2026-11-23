@@ -21,7 +21,7 @@ use crate::{
     tables::input_consumption::consume_input,
     tool_definitions, tool_parts,
     tool_station::{definition_for, Context},
-    worktable_recipes::Removals,
+    worktable_recipes::{Extractions, Removals},
 };
 use pluto_lib::{
     BlockEntityType, BlockEntityTypeRegistry, FluidItems, FluidStack, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
@@ -58,19 +58,23 @@ pub(crate) struct Computation {
     /// recipe's options rather than a removal's: the craft then pays per level and hands the
     /// disenchanted stack back.
     pub conversion: Option<(enchantment_converting::Recipe, (Identifier, i32))>,
+    /// The extraction recipe, when the buttons are an extraction's options: the craft then also
+    /// hands a modifier crystal holding the taken modifier.
+    pub extract: Option<crate::worktable_recipes::Extraction>,
 }
 
 /// Runs `read` over the loaded registries; `None` while any has not loaded.
-fn with_context<R>(read: impl FnOnce(&Context, &Removals, &enchantment_converting::Conversions, &modifier_removal::Salvages, &dyn Fn(&Identifier, &Identifier) -> bool, &dyn Fn(&Identifier, &Identifier) -> bool, &dyn Fn(Option<&str>, &Identifier) -> bool) -> R) -> Option<R> {
+fn with_context<R>(read: impl FnOnce(&Context, &Removals, &Extractions, &enchantment_converting::Conversions, &modifier_removal::Salvages, &dyn Fn(&Identifier, &Identifier) -> bool, &dyn Fn(&Identifier, &Identifier) -> bool, &dyn Fn(Option<&str>, &Identifier) -> bool) -> R) -> Option<R> {
     let definitions = tool_definitions::register().read().ok()?;
     let materials = common::register().read().ok()?;
     let modifiers = common::server_modifiers()?.read().ok()?;
     if !materials.server_loaded || !modifiers.definitions_loaded || definitions.data.is_empty() { return None; }
     let removals = common::removals()?.read().ok()?;
+    let extractions = common::extractions()?.read().ok()?;
     let conversions = common::conversions()?.read().ok()?;
     let salvages = common::salvages()?.read().ok()?;
     let modifier_recipes = common::modifier_recipes()?.read().ok()?;
-    if !removals.loaded || !conversions.loaded || !salvages.loaded || !modifier_recipes.loaded { return None; }
+    if !removals.loaded || !extractions.loaded || !conversions.loaded || !salvages.loaded || !modifier_recipes.loaded { return None; }
     let tools: Vec<(Identifier, &tool_definitions::Data)> = tool_definitions::item_pairs(&definitions);
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
@@ -78,7 +82,7 @@ fn with_context<R>(read: impl FnOnce(&Context, &Removals, &enchantment_convertin
     let in_tag = |item: &Identifier, tag: &Identifier| crate::tool_station::item_in_tag(item_tags.as_deref(), &tools, item, tag);
     let modifier_in_tag = |modifier: &Identifier, tag: &Identifier| modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
     let recipe_modifier = |slot: Option<&str>, modifier: &Identifier| modifier_recipes.is_recipe_modifier(slot, modifier);
-    Some(read(&ctx, &removals, &conversions, &salvages, &in_tag, &modifier_in_tag, &recipe_modifier))
+    Some(read(&ctx, &removals, &extractions, &conversions, &salvages, &in_tag, &modifier_in_tag, &recipe_modifier))
 }
 
 /// Every modifier by its stable sorted position, the order button data indexes: both sides of a local world read the
@@ -120,8 +124,8 @@ pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Opt
     let data = common::smeltery_data().and_then(|data| data.read().ok());
     let held = input_contents(items);
     let facts = input_facts(&held, data.as_deref());
-    with_context(|ctx, removals, conversions, salvages, in_tag, modifier_in_tag, recipe_modifier| {
-        let empty = Computation { buttons: Vec::new(), selected: None, result: None, leftovers: Vec::new(), conversion: None };
+    with_context(|ctx, removals, extractions, conversions, salvages, in_tag, modifier_in_tag, recipe_modifier| {
+        let empty = Computation { buttons: Vec::new(), selected: None, result: None, leftovers: Vec::new(), conversion: None, extract: None };
         let Some(tool) = tool.as_ref() else { return empty; };
         if let Some(recipe) = removals.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag) {
             let buttons: Vec<Identifier> = recipe.options(tool, modifier_in_tag).into_iter().take(MAX_BUTTONS).collect();
@@ -131,7 +135,18 @@ pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Opt
                 let env = ctx.environment(&tool.item, definition);
                 modifier_removal::remove(tool, &env, &buttons[index], salvages, in_tag).ok()?.ok()
             });
-            return Computation { buttons, selected: selected_index, result, leftovers: recipe.leftovers.clone(), conversion: None };
+            return Computation { buttons, selected: selected_index, result, leftovers: recipe.leftovers.clone(), conversion: None, extract: None };
+        }
+        if let Some(recipe) = extractions.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag) {
+            let slot_member = |name: &str, modifier: &Identifier| recipe_modifier(Some(name), modifier);
+            let buttons: Vec<Identifier> = recipe.options(tool, modifier_in_tag, &slot_member).into_iter().take(MAX_BUTTONS).collect();
+            let selected_index = selected.and_then(|name| buttons.iter().position(|button| button.to_string() == name));
+            let result = selected_index.and_then(|index| {
+                let definition = definition_for(ctx, tool)?;
+                let env = ctx.environment(&tool.item, definition);
+                modifier_removal::remove(tool, &env, &buttons[index], salvages, in_tag).ok()?.ok()
+            });
+            return Computation { buttons, selected: selected_index, result, leftovers: recipe.leftovers.clone(), conversion: None, extract: Some(recipe.clone()) };
         }
         // Enchantment converting: the tool slot holds an enchanted book or an enchantable stack whose
         // enchantments the map turns into crystal options.
@@ -145,7 +160,7 @@ pub(crate) fn compute(items: &[Option<ItemSlot>], selected: Option<&str>) -> Opt
             Some(index) => (recipe.result(&options[index], &inputs, &facts, in_tag), Some((recipe.clone(), options[index].clone()))),
             None => (None, None),
         };
-        Computation { buttons, selected: selected_index, result, leftovers: Vec::new(), conversion }
+        Computation { buttons, selected: selected_index, result, leftovers: Vec::new(), conversion, extract: None }
     })
 }
 
@@ -180,7 +195,7 @@ fn craft_converting(menu: &mut dyn MenuAccess, selected: Option<&str>, recipe: &
     let data = common::smeltery_data().and_then(|data| data.read().ok());
     let held = input_contents(&items);
     let facts = input_facts(&held, data.as_deref());
-    let payment = with_context(|_, _, _, _, in_tag, _, _| conversion_payment(recipe, chosen.1, &inputs, &facts, in_tag)).flatten()?;
+    let payment = with_context(|_, _, _, _, _, in_tag, _, _| conversion_payment(recipe, chosen.1, &inputs, &facts, in_tag)).flatten()?;
     for (index, amount) in payment {
         let slot = index + 1;
         let stack = menu.stack(slot);
@@ -195,7 +210,7 @@ fn craft_converting(menu: &mut dyn MenuAccess, selected: Option<&str>, recipe: &
     // The disenchanted return: the same stack one level poorer in the converted enchantment — a book
     // left with none becomes a plain book (its custom name does not survive the change of item, as a
     // slot carries no name).
-    let returned = with_context(|ctx, _, _, _, _, _, _| {
+    let returned = with_context(|ctx, _, _, _, _, _, _, _| {
         recipe.unenchanted_return(&tool.item, &tool.enchantments.clone().unwrap_or_default(), &ctx.modifiers.enchantment_map, &chosen.0)
     }).flatten();
     if let Some(returned) = returned {
@@ -220,19 +235,30 @@ fn craft_once(menu: &mut dyn MenuAccess, selected: Option<&str>) -> Option<ItemS
         return craft_converting(menu, selected, recipe, chosen);
     }
     // The recipe's input amounts, in slot order (each ingredient takes the first matching slot).
-    let amounts = with_context(|_, removals, _, _, in_tag, _, _| {
+    let amounts = with_context(|_, removals, extractions, _, _, in_tag, _, _| {
         let tool = items[TOOL_SLOT].as_ref()?;
         let inputs: Vec<Option<(Identifier, u32)>> = (1..=INPUT_COUNT).map(|slot| items[slot].as_ref().map(|stack| (stack.item.clone(), stack.count))).collect();
         let data = common::smeltery_data().and_then(|data| data.read().ok());
         let held = input_contents(&items);
         let facts = input_facts(&held, data.as_deref());
-        let recipe = removals.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag)?;
-        let taken = crate::modifier_recipes::check_match_facts(&recipe.inputs, &inputs, &facts, in_tag)?;
+        let recipe_inputs = match removals.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag) {
+            Some(recipe) => &recipe.inputs,
+            None => &extractions.find_facts(&(tool.item.clone(), tool.count), &inputs, &facts, in_tag)?.inputs,
+        };
+        let taken = crate::modifier_recipes::check_match_facts(recipe_inputs, &inputs, &facts, in_tag)?;
         let mut amounts = vec![0u32; INPUT_COUNT];
-        for (slot, ingredient) in taken.into_iter().zip(&recipe.inputs) { amounts[slot] += ingredient.amount; }
+        for (slot, ingredient) in taken.into_iter().zip(recipe_inputs) { amounts[slot] += ingredient.amount; }
         Some(amounts)
     }).flatten()?;
     for item in &computation.leftovers { menu.give_stack(ItemSlot::new(item.clone(), 1)); }
+    // An extraction hands the taken modifier back on a crystal (ExtractModifierRecipe.updateInputs).
+    if computation.extract.is_some() {
+        if let Some(modifier) = computation.selected.and_then(|index| computation.buttons.get(index)) {
+            let mut crystal = ItemSlot::new(Identifier::new(crate::modifier_recipes::CRYSTAL_ITEM.0, crate::modifier_recipes::CRYSTAL_ITEM.1).expect("valid crystal item"), 1);
+            crystal.custom_data.insert(crate::modifier_recipes::CRYSTAL_KEY.into(), Nbt::String(modifier.to_string()));
+            menu.give_stack(crystal);
+        }
+    }
     for (index, amount) in amounts.into_iter().enumerate() {
         if amount == 0 { continue; }
         let slot = index + 1;

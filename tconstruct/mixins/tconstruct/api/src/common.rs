@@ -26,6 +26,8 @@ static SALVAGES: OnceLock<Arc<RwLock<crate::modifier_removal::Salvages>>> = Once
 pub(crate) fn salvages() -> Option<&'static Arc<RwLock<crate::modifier_removal::Salvages>>> { SALVAGES.get() }
 static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = OnceLock::new();
 pub(crate) fn removals() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Removals>>> { REMOVALS.get() }
+static EXTRACTIONS: OnceLock<Arc<RwLock<crate::worktable_recipes::Extractions>>> = OnceLock::new();
+pub(crate) fn extractions() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Extractions>>> { EXTRACTIONS.get() }
 static CONVERSIONS: OnceLock<Arc<RwLock<crate::enchantment_converting::Conversions>>> = OnceLock::new();
 pub(crate) fn conversions() -> Option<&'static Arc<RwLock<crate::enchantment_converting::Conversions>>> { CONVERSIONS.get() }
 static DAMAGEABLE: OnceLock<Arc<RwLock<crate::damageable_recycling::Recycles>>> = OnceLock::new();
@@ -151,6 +153,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers worktable removal listener registration failed");
         REMOVALS.set(removals).expect("Tinkers worktable removals already initialized");
+        let extraction_config = config.clone();
+        let extractions = crate::worktable_recipes::register_extractions(move || {
+            let config = extraction_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers worktable extraction listener registration failed");
+        EXTRACTIONS.set(extractions).expect("Tinkers worktable extractions already initialized");
         let conversion_config = config.clone();
         let conversions = crate::enchantment_converting::register(move || {
             let config = conversion_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
