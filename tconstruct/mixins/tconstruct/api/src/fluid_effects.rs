@@ -719,8 +719,10 @@ pub(crate) trait WorldAccess {
     fn flowing_fluid_block(&self, fluid: &Identifier, level: i32) -> Option<BlockState>;
     /// The item form of a block, when it has one.
     fn block_item(&self, block: &Identifier) -> Option<Identifier>;
-    /// The block an item provides for placing (BlockItemProviderCapability), when it provides one.
-    fn item_provided_block(&self, item: &Identifier) -> Option<BlockState>;
+    /// The block a stack provides for placing (BlockItemProviderCapability), when it provides one: a block item provides itself, a tool
+    /// its provider module's item. The whole stack is the query, not just its item: a tool's provider lives in its data, so an item id
+    /// alone cannot answer it.
+    fn item_provided_block(&self, stack: &Stack) -> Option<BlockState>;
     /// TierSortingRegistry.isCorrectTierForDrops for a tier name such as `minecraft:stone`.
     fn correct_tier_for_drops(&self, tier: &str, pos: BlockPos) -> bool;
     /// A named block predicate of Mantle's (`mantle:blocks_motion`, `mantle:can_be_replaced`,
@@ -1763,7 +1765,7 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
             let mut found = None;
             for (index, hand) in [&context.env.holder.off_hand, &context.env.holder.main_hand].iter().enumerate() {
                 if hand.is_empty() { continue; }
-                if let Some(state) = context.env.world.item_provided_block(&hand.item) {
+                if let Some(state) = context.env.world.item_provided_block(hand) {
                     found = Some((PlaceMode::ProviderHand, 1 - index, state));
                     break;
                 }
@@ -1772,7 +1774,7 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
                 Some(found) => Some(found),
                 None => {
                     let stack = &context.env.holder.stack;
-                    if stack.is_empty() { None } else { context.env.world.item_provided_block(&stack.item).map(|state| (PlaceMode::ContextStack, 2, state)) }
+                    if stack.is_empty() { None } else { context.env.world.item_provided_block(stack).map(|state| (PlaceMode::ContextStack, 2, state)) }
                 }
             }
         }
@@ -2089,6 +2091,8 @@ mod tests {
         placed: Vec<(BlockPos, BlockState)>,
         targets: Vec<TestTarget>,
         potions: Vec<PotionEffect>,
+        /// What each stack provides for placing (item to block), for the provider half of place_block.
+        provided: HashMap<Identifier, Identifier>,
     }
 
     impl WorldAccess for TestWorld {
@@ -2139,7 +2143,10 @@ mod tests {
         fn within_world_border(&self, _pos: BlockPos) -> bool {
             true
         }
-        fn place_block(&mut self, _spec: &mut PlaceSpec) -> InteractionResult {
+        fn place_block(&mut self, spec: &mut PlaceSpec) -> InteractionResult {
+            if let Some(block) = &spec.block {
+                self.placed.push((spec.pos, block.clone()));
+            }
             InteractionResult::Success
         }
         fn interact_block(&mut self, _spec: &mut InteractSpec) -> InteractionResult {
@@ -2164,8 +2171,8 @@ mod tests {
         fn block_item(&self, block: &Identifier) -> Option<Identifier> {
             Some(block.clone())
         }
-        fn item_provided_block(&self, _item: &Identifier) -> Option<BlockState> {
-            None
+        fn item_provided_block(&self, stack: &Stack) -> Option<BlockState> {
+            self.provided.get(&stack.item).map(|block| BlockState::new(block.clone()))
         }
         fn correct_tier_for_drops(&self, _tier: &str, _pos: BlockPos) -> bool {
             false
@@ -2477,5 +2484,73 @@ mod tests {
             "action": "add", "group_cost": "sum",
         })).expect("area");
         assert!(BlockEffect::decode(&json!({"type": "tconstruct:alternatives", "effects": []})).is_err());
+    }
+
+    fn place_block_effects() -> FluidEffects {
+        FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:molten_obsidian", "amount": 100},
+            "block_effects": [{"type": "tconstruct:place_block"}],
+        })).expect("place block")
+    }
+
+    fn place_block_context<'a>(world: &'a mut TestWorld, holder: Holder) -> BlockContext<'a> {
+        BlockContext { env: Env { world, holder }, pos: [0, 0, 0], direction: Direction::Up, location: [0.5, 1.5, 0.5] }
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_uses_the_offhand_first() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        world.provided.insert(id("minecraft:glowstone"), id("minecraft:glowstone"));
+        let mut holder = Holder::default();
+        holder.off_hand = Stack::of(id("minecraft:stone"), 64);
+        holder.main_hand = Stack::of(id("minecraft:glowstone"), 64);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:stone")))]);
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_falls_back_to_the_mainhand() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.provided.insert(id("minecraft:glowstone"), id("minecraft:glowstone"));
+        let mut holder = Holder::default();
+        holder.main_hand = Stack::of(id("minecraft:glowstone"), 64);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:glowstone")))]);
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_falls_back_to_the_context_stack() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        let mut holder = Holder::default();
+        holder.stack = Stack::of(id("minecraft:stone"), 1);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:stone")))]);
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_places_nothing_when_no_hand_provides() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        let mut holder = Holder::default();
+        holder.off_hand = Stack::of(id("minecraft:stick"), 1);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 0);
+        drop(context);
+        assert!(world.placed.is_empty());
     }
 }
