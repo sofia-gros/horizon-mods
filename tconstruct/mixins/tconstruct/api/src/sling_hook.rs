@@ -57,6 +57,10 @@ const RANGE: f64 = 5.0;
 /// telling does not carry it; the player tick does).
 static ON_GROUND: Mutex<BTreeMap<u128, bool>> = Mutex::new(BTreeMap::new());
 
+/// Each player's entity id, for the formulas that read the holder's own attributes
+/// (the release telling names the player by uuid; their tick names the id).
+static HOLDER_ENTITY: Mutex<BTreeMap<u128, i32>> = Mutex::new(BTreeMap::new());
+
 /// Registers the tick cache and the release callback. Called once from the product's
 /// hooks, after the throwing hook (whose use registration this composes into).
 pub(crate) fn register() {
@@ -68,9 +72,19 @@ fn on_tick(tick: &PlayerTick) {
     if let Ok(mut map) = ON_GROUND.lock() {
         map.insert(tick.player, tick.on_ground);
     }
+    if let Ok(mut map) = HOLDER_ENTITY.lock() {
+        map.insert(tick.player, tick.entity);
+    }
 }
 
 fn on_release(release: &ReleaseUsing) {
+    // The sling force formulas read the holder's own attributes as of their last tick:
+    // name the holder by the entity id their tick reported, for the evaluation below.
+    let holder_entity = HOLDER_ENTITY.lock().ok().and_then(|map| map.get(&release.player.uuid).copied());
+    crate::entity_facts::with_holder_entity(holder_entity, || release_with(release));
+}
+
+fn release_with(release: &ReleaseUsing) {
     let _ = with_held_tool(&release.stack, |env, tool| {
         let nbt = &tool.custom_data;
         let slings = tool_stack::sling_modules(nbt, env);
