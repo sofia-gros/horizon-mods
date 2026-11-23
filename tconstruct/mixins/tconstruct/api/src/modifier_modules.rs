@@ -511,6 +511,7 @@ impl CausePredicate {
             }
             "mantle:and" => {
                 let Some(list) = object.get("predicates").and_then(Value::as_array) else { return Ok(None); };
+                if list.is_empty() { return Ok(None); }
                 let mut parts = Vec::with_capacity(list.len());
                 for part in list {
                     let Some(part) = Self::decode(Some(part))? else { return Ok(None); };
