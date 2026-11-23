@@ -322,6 +322,12 @@ pub(crate) enum Module {
     CampfireExtinguish { condition: Condition },
     /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
     Blocking,
+    /// PlaceFireModule: the flint and steel behaviour — a right click lights campfires and candles,
+    /// primes TNT and starts fire where fire can be placed, and a fire block is not broken by a
+    /// left-click tool carrying it. The creeper ignite half (afterEntityUse) has no consumer:
+    /// PlutoLib's entity reach names no verb to ignite a creeper, and the pin exposes no
+    /// ignited-state entry a pure surface could write (see tool_action_hook's head note).
+    PlaceFire,
     /// InfinityModule: the launcher fires its named ammo without the shooter carrying any, paid for with
     /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
     /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
@@ -1012,6 +1018,9 @@ impl Module {
             }
             // BlockingModule: a right click raises the tool like a shield (the per-stack use the blocking hook registers).
             "tconstruct:blocking" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_action")) => Self::Blocking,
+            // PlaceFireModule: an enum module with no fields, on its four default hooks (entity and
+            // block interact, tool action, remove block).
+            "tconstruct:place_fire" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:remove_block")) => Self::PlaceFire,
             "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
@@ -1442,7 +1451,7 @@ impl Module {
                 }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -2145,6 +2154,8 @@ impl Module {
             Self::Fishing => name == "fishing_rod_cast",
             // BlockingModule.canPerformAction: a blocking tool performs the shield block action.
             Self::Blocking => name == "shield_block",
+            // PlaceFireModule.canPerformAction: a place fire tool performs the two lighting actions.
+            Self::PlaceFire => matches!(name, "light_fire" | "light_campfire"),
             // ToolActionWalkerTransformModule.canPerformAction: its own action, while its condition holds.
             Self::WalkTransform { action, condition, .. } => condition.matches(entry, facts) && action.name() == name,
             _ => false,
@@ -2152,6 +2163,8 @@ impl Module {
     }
     /// Whether this is a blocking module (BlockingModule: the tool is raised like a shield on a right click).
     pub fn blocking(&self) -> bool { matches!(self, Self::Blocking) }
+    /// Whether this is a place fire module (PlaceFireModule: the flint and steel behaviour).
+    pub fn place_fire(&self) -> bool { matches!(self, Self::PlaceFire) }
     /// Whether a campfire extinguish module puts out a lit campfire the tool is used on, when its conditions hold.
     pub fn extinguishes_campfires(&self, entry: &Entry, facts: &Facts) -> bool {
         let Self::CampfireExtinguish { condition } = self else { return false; };
@@ -2824,5 +2837,24 @@ mod tests {
         // The shipped lightspeed attribute binds; a foreign hook binding stays unbound.
         assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4})).is_some());
         assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4,"hooks":["tconstruct:melee_hit"]})).is_none());
+    }
+
+    #[test]
+    fn place_fire_decodes_as_the_flint_and_steel_and_answers_the_lighting_actions() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("test:firestarter"), 1);
+        // The shipped firestarter module carries no fields and no hooks list.
+        let module = decode(json!({"type":"tconstruct:place_fire"})).expect("the shipped place fire module binds");
+        assert_eq!(module, Module::PlaceFire);
+        assert!(module.place_fire());
+        // PlaceFireModule.canPerformAction answers the two lighting actions and no other.
+        assert!(module.can_perform_action(&entry, &f, "light_fire"));
+        assert!(module.can_perform_action(&entry, &f, "light_campfire"));
+        assert!(!module.can_perform_action(&entry, &f, "shield_block"));
+        // Bound on its four default hooks it still binds; on a foreign hook it stays unbound.
+        let hooks: Vec<Identifier> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].iter().map(|hook| id(hook)).collect();
+        assert_eq!(Module::decode("tconstruct:place_fire", json!({}).as_object().unwrap(), &hooks).unwrap(), Some(Module::PlaceFire));
+        assert!(decode(json!({"type":"tconstruct:place_fire","hooks":["tconstruct:melee_hit"]})).is_none());
     }
 }

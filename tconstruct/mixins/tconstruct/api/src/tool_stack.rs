@@ -849,6 +849,12 @@ pub(crate) fn extinguishes_campfires(nbt: &NbtCompound, env: &Environment) -> bo
     with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.modules().iter().any(|module| module.extinguishes_campfires(entry, facts))))
 }
 
+/// Whether any of the tool's modifiers is a place fire module (PlaceFireModule: the flint and
+/// steel behaviour the tool action click and the block-break veto both hear).
+pub(crate) fn place_fire(nbt: &NbtCompound, env: &Environment) -> bool {
+    with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.place_fire())))
+}
+
 /// What the tool's damage on shoot modules hurt its holder by for firing it, in modifier order.
 pub(crate) fn damage_on_shoot(nbt: &NbtCompound, env: &Environment) -> Vec<(String, f32)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.damage_on_shoot(entry, facts))).collect())

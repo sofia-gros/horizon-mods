@@ -186,6 +186,21 @@ pub(crate) fn register() {
         let carries = with_held_tool(held, |env, stack| !tool_stack::is_broken(&stack.custom_data) && !tool_stack::place_glow(&stack.custom_data, env).is_empty()).unwrap_or(false);
         !carries
     });
+    // PlaceFireModule.removeBlock: a fire block is not removed by a left-click-interactable tool
+    // carrying the module (unbroken), so a left click on fire reaches the interaction instead of
+    // putting the fire out. The original names Blocks.FIRE alone — soul fire is not protected and
+    // breaks as usual. The definition's interaction gate (canInteract for the left click) is not
+    // consulted, as nowhere in this port (see tool_definitions).
+    PlayerBlockBreakEvents::BEFORE.register(|broken| {
+        let (Some(held), Some(state)) = (broken.held.as_ref(), broken.state.as_ref()) else { return true; };
+        if state.block.to_string() != "minecraft:fire" { return true; }
+        let Some(items) = common::item_snapshot() else { return true; };
+        let left = Identifier::new("tconstruct", "modifiable/interactable/left").expect("valid id");
+        let Ok(item) = Identifier::parse(&held.item) else { return true; };
+        if !items.get_tag(&left).is_some_and(|members| members.contains(&item)) { return true; }
+        let carries = with_held_tool(held, |env, stack| !tool_stack::is_broken(&stack.custom_data) && tool_stack::place_fire(&stack.custom_data, env)).unwrap_or(false);
+        !carries
+    });
     // finishHarvest (one block harvested) and afterBlockBreak: the capacity modules that run after the break and the effects the tool puts on
     // its holder. The tool is read as the break left it.
     PlayerBlockBreakEvents::AFTER.register(|broken| {

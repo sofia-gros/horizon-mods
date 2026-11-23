@@ -1938,6 +1938,12 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:block_interact");
             out.insert("tconstruct:remove_block");
         }
+        Module::PlaceFire => {
+            out.insert("tconstruct:entity_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:tool_action");
+            out.insert("tconstruct:remove_block");
+        }
         Module::BlockItemProvider { .. } => {
             out.insert("tconstruct:block_item_provider");
         }
@@ -2205,6 +2211,16 @@ mod tests {
     use super::*;
     use pluto_lib::{MemoryPlayerOps, Translations, with_ops};
     use serde_json::json;
+
+    #[test]
+    fn place_fire_module_hooks_are_its_four_default_hooks() {
+        // The module_hooks set must equal the decode guard set in modifier_modules (the census
+        // counts the kind bound only when the two agree).
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::PlaceFire, &mut out);
+        let expected: BTreeSet<&'static str> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].into_iter().collect();
+        assert_eq!(out, expected);
+    }
 
     #[test]
     fn java_float_rendering_matches_float_to_string() {
