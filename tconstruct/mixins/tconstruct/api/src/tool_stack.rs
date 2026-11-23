@@ -808,6 +808,54 @@ pub(crate) fn damage_on_shoot(nbt: &NbtCompound, env: &Environment) -> Vec<(Stri
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.damage_on_shoot(entry, facts))).collect())
 }
 
+/// The tool's sling modules in modifier order, each with its entry and its modifier's ID:
+/// the release computation runs them in order, as the original's hook iteration does.
+pub(crate) fn sling_modules(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::modifier_entries::Entry, Identifier, crate::sling_modules::Sling)> {
+    if is_broken(nbt) { return Vec::new(); }
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                if let Some(sling) = module.sling(entry, facts) { found.push((entry.clone(), entry.id.clone(), sling.clone())); }
+            }
+        }
+        found
+    })
+}
+
+/// SlingForceModifierHook over the tool: each of the tool's sling force modules reshapes
+/// the force in modifier order, filtered on its predicates against the modifier doing the
+/// slinging (`sling`), the holder and the target.
+pub(crate) fn sling_force(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, holder: &crate::sling_modules::LivingState, target: &crate::sling_modules::LivingState, sling: &Identifier, force: f32, multiplier: f32) -> f32 {
+    let in_tag = |modifier: &Identifier, tag: &Identifier| env.modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
+    let view = crate::mining_speed::ToolView::with(nbt, *entities);
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut force = force;
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                force = module.sling_force(entry, facts, &view, holder, target, sling, &in_tag, force, multiplier);
+            }
+        }
+        force
+    })
+}
+
+/// The power a sling spends (SlingModule.getPower): half the tool's conditional
+/// projectile damage times its conditional velocity, for the holder `entities`.
+pub(crate) fn sling_power(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat(nbt, env, Stat::ProjectileDamage, &|_| false, entities) / 2.0 * conditional_stat(nbt, env, Stat::Velocity, &|_| false, entities)
+}
+
+/// The draw speed a sling charges by (the conditional stat in SlingModule.getDrawtime).
+pub(crate) fn draw_speed(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat(nbt, env, Stat::DrawSpeed, &|_| false, entities)
+}
+
+/// ModifierUtil.getInaccuracy: `3 * (1 / accuracy - 1)` over the conditional accuracy.
+pub(crate) fn inaccuracy(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    3.0 * (1.0 / conditional_stat(nbt, env, Stat::Accuracy, &|_| false, entities) - 1.0)
+}
+
 /// The infinity supply of a launcher: the first module in modifier order that fires for this shot (one that
 /// skips standard ammo, or whose count the remaining durability cannot pay for, lets the next try, as the
 /// composed bow ammo hook passes an empty result on), as the stack to fire, the durability one shot costs

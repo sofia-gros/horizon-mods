@@ -3451,7 +3451,11 @@ impl Hooks for PlutoHooks {
             used: std::cell::Cell::new(false),
             edits: std::cell::RefCell::new(Vec::new()),
         };
-        let (used, edits) = scoped(host, || item_api_v1::released(&release));
+        // The callbacks see the world and the entities around the player, as a projectile
+        // impact's do: a release can search for what it acts on (a sling's bonk target).
+        let handle = HostHandle::new(host);
+        let dimension = release.dimension.clone();
+        let (used, edits) = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || item_api_v1::released(&release)));
         if used { event.used = true; }
         if !edits.is_empty() { apply_carried_edits(host, player.uuid, edits); }
     }

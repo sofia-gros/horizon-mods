@@ -224,6 +224,102 @@ impl SlingForce {
     }
 }
 
+/// A SlingModule: charges like a bow and spends the charge as a force on release.
+/// SlingKnockbackModule bonks a target in front of the holder, SlingLeapModule launches
+/// the holder, SlingTeleportModule moves the holder along the look. `force` is the
+/// force multiplier as a (flat, each_level) leveling value; the launch itself is computed
+/// in `sling_hook`.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Sling {
+    Knockback { force: (f32, f32), drawtime_multiplier: f32, damage_multiplier: f32, target: LivingPredicate },
+    Leap { force: (f32, f32), drawtime_multiplier: f32, leave_ground: bool, height_reduction: f32, bias_upwards: bool, target: LivingPredicate },
+    Teleport { force: (f32, f32), drawtime_multiplier: f32, target: LivingPredicate },
+}
+
+/// A required number field (the original's loaders fail the module without it).
+fn required_number(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
+    match fields.get(key).filter(|value| !value.is_null()) {
+        Some(value) => value.as_f64().map(|value| value as f32).ok_or_else(|| format!("{key} must be a number")),
+        None => Err(format!("{key} is required")),
+    }
+}
+
+/// A required leveling value field (LevelingValue in the original's loaders).
+fn required_leveling(fields: &Map<String, Value>, key: &str) -> Result<(f32, f32), String> {
+    if fields.get(key).filter(|value| !value.is_null()).is_none() { return Err(format!("{key} is required")); }
+    leveling(fields, key)
+}
+
+/// A required boolean field.
+fn required_boolean(fields: &Map<String, Value>, key: &str) -> Result<bool, String> {
+    match fields.get(key).filter(|value| !value.is_null()) {
+        Some(Value::Bool(value)) => Ok(*value),
+        Some(_) => Err(format!("{key} must be a boolean")),
+        None => Err(format!("{key} is required")),
+    }
+}
+
+impl Sling {
+    /// SlingKnockbackModule's record: force multiplier, drawtime multiplier and damage
+    /// multiplier are all required; the target predicate defaults to any.
+    pub(crate) fn decode_knockback(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(target) = LivingPredicate::decode(fields.get("target"))? else { return Ok(None) };
+        Ok(Some(Self::Knockback {
+            force: required_leveling(fields, "force_multiplier")?,
+            drawtime_multiplier: required_number(fields, "drawtime_multiplier")?,
+            damage_multiplier: required_number(fields, "damage_multiplier")?,
+            target,
+        }))
+    }
+
+    /// SlingLeapModule's record: every field is required in the original's loader (its
+    /// field names are `force` and `drawtime`, not the knockback module's longer ones).
+    pub(crate) fn decode_leap(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(target) = LivingPredicate::decode(fields.get("target"))? else { return Ok(None) };
+        Ok(Some(Self::Leap {
+            force: required_leveling(fields, "force")?,
+            drawtime_multiplier: required_number(fields, "drawtime")?,
+            leave_ground: required_boolean(fields, "leave_ground")?,
+            height_reduction: required_number(fields, "height_reduction")?,
+            bias_upwards: required_boolean(fields, "bias_upwards")?,
+            target,
+        }))
+    }
+
+    /// SlingTeleportModule's record: force and drawtime, both required (named as the
+    /// leap module names them).
+    pub(crate) fn decode_teleport(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let Some(target) = LivingPredicate::decode(fields.get("target"))? else { return Ok(None) };
+        Ok(Some(Self::Teleport {
+            force: required_leveling(fields, "force")?,
+            drawtime_multiplier: required_number(fields, "drawtime")?,
+            target,
+        }))
+    }
+
+    /// LevelingValue.compute of the force multiplier at the entry's level.
+    pub(crate) fn force_multiplier(&self, entry: &Entry) -> f32 {
+        match self {
+            Self::Knockback { force, .. } | Self::Leap { force, .. } | Self::Teleport { force, .. } => compute(*force, entry),
+        }
+    }
+
+    /// SlingModule's drawtime multiplier.
+    pub(crate) fn drawtime_multiplier(&self) -> f32 {
+        match self {
+            Self::Knockback { drawtime_multiplier, .. } | Self::Leap { drawtime_multiplier, .. } | Self::Teleport { drawtime_multiplier, .. } => *drawtime_multiplier,
+        }
+    }
+
+    /// The predicate over the entity the sling acts on: the found target for a knockback,
+    /// the holder for a leap or a teleport.
+    pub(crate) fn target(&self) -> &LivingPredicate {
+        match self {
+            Self::Knockback { target, .. } | Self::Leap { target, .. } | Self::Teleport { target, .. } => target,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,6 +346,30 @@ mod tests {
         let in_tag = |id: &Identifier, wanted: &Identifier| id == &bonking && wanted.to_string() == "tconstruct:knockback_slings/self";
         assert!(tag.matches(&bonking, &in_tag));
         assert!(!tag.matches(&Identifier::parse("tconstruct:flinging").unwrap(), &in_tag));
+    }
+
+    #[test]
+    fn the_sling_kinds_decode_their_shipped_data() {
+        // bonking: the knockback module's own field names.
+        let bonking = Sling::decode_knockback(&fields(json!({
+            "damage_multiplier": 1.5, "drawtime_multiplier": 1.5,
+            "force_multiplier": {"flat": 1.0, "each_level": 2.0}
+        }))).unwrap().unwrap();
+        assert_eq!(bonking.drawtime_multiplier(), 1.5);
+        // flinging: the leap module's shorter field names, a negative force.
+        let flinging = Sling::decode_leap(&fields(json!({
+            "bias_upwards": false, "drawtime": 1.5, "force": {"flat": -2.0, "each_level": -2.0},
+            "height_reduction": 3.0, "leave_ground": false,
+            "target": {"type": "mantle:and", "predicates": ["mantle:on_ground", "tconstruct:targeting_block"]}
+        }))).unwrap().unwrap();
+        assert_eq!(flinging.drawtime_multiplier(), 1.5);
+        // warping: the teleport module.
+        let warping = Sling::decode_teleport(&fields(json!({
+            "drawtime": 1.5, "force": {"flat": 2.0, "each_level": 4.0}
+        }))).unwrap().unwrap();
+        assert_eq!(warping.drawtime_multiplier(), 1.5);
+        // A missing required field is a data error, as the original's loader fails.
+        assert!(Sling::decode_knockback(&fields(json!({"damage_multiplier": 1.5}))).is_err());
     }
 
     #[test]
