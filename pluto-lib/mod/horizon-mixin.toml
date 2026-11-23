@@ -1646,6 +1646,30 @@ kind = "RETURN"
 helper = "pluto-living-preview-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "batch" }]
 
+# Menu switches a mod's menu button asked for (a tabbed table's tab): the press queues them
+# through the mod API, and the flush at the end of the press applies them with the game at
+# hand, opening the named block's menu for the player whose menu was pressed.
+[[module]]
+id = "pluto-menu-switch-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_menu_switch"
+source = "pluto-menu-switch-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-menu-switch"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_menu_switch"
+source = "pluto-menu-switch.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-menu-switch-flush"
+target = "horizon_client::game::native_hooks::Game<'_>::mod_menu_button"
+kind = "RETURN"
+helper = "pluto-menu-switch-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" }]
+
 # Pinned Persistent::worker installs saved structure starts in every dimension.
 # Keep make_streaming native; the former dimension replacement is not attached.
 

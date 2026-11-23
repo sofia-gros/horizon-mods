@@ -3680,7 +3680,13 @@ impl Hooks for PlutoHooks {
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
         let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(slot_of);
         let before = carried.clone();
-        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried));
+        let mut switch: Option<[i32; 3]> = None;
+        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried, &mut switch));
+        // A menu switch the button asked for (a tabbed table's tab): the game-side module
+        // applies it at the end of this press, where the game is at hand (pluto-menu-switch).
+        if let Some(target) = switch {
+            horizon_client::game::pluto_menu_switch::queue(pos, target);
+        }
         if carried != before {
             *event.carried = carried.filter(|s| s.count > 0).map(|s| {
                 let mut stack = ItemStack::new(&s.item.to_string(), s.count);
@@ -3730,11 +3736,24 @@ impl Hooks for PlutoHooks {
     }
 
     /// The containers a window's linked slots show: the neighbour block entities its layout
-    /// declares, in declaration order. The host asks each tick while the menu is open and
+    /// declares, in declaration order, or — for a window with a menu-links callback — the
+    /// containers the callback names for this menu (it looks for them with the neighbours'
+    /// reach open, as a ticker reads them). The host asks each tick while the menu is open and
     /// passes by anything that is not a container, so a neighbour slot with nothing behind it
     /// simply holds nothing and takes nothing.
-    fn menu_links(&self, _host: &mut dyn Host, event: &mut MenuLinksEvent<'_>) {
+    fn menu_links(&self, host: &mut dyn Host, event: &mut MenuLinksEvent<'_>) {
         let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
+        if screen_handler_api_v1::has_menu_links(&block) {
+            let dimension = host.dimension().to_owned();
+            let handle = HostHandle::new(host);
+            let named = neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension }, || {
+                screen_handler_api_v1::menu_links(&block, event.pos)
+            });
+            if let Some(positions) = named {
+                event.links.extend(positions);
+                return;
+            }
+        }
         for offset in screen_handler_api_v1::neighbour_sources(&block) {
             event.links.push([event.pos[0] + offset[0], event.pos[1] + offset[1], event.pos[2] + offset[2]]);
         }

@@ -310,8 +310,10 @@ fn panel_content(items: &[Option<ItemSlot>], selected: Option<&Identifier>) -> (
 /// Registers the block entity type and the window. Called once from the product's hooks.
 pub(crate) fn register() {
     let id = Identifier::new("tconstruct", NAME).expect("valid part builder id");
-    let layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background()
+    let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background()
         .slot(29.0, 43.0).slot(8.0, 43.0).slot(148.0, 42.0);
+    // The side inventory's linked range follows the window's own slots (see `tabbed_tables`).
+    for _ in 0..crate::tabbed_tables::SIDE_SLOTS { layout = layout.linked_slot(); }
     // The button list's scroll offset: the window's own client-side state, shared by its draw,
     // click, tooltip and wheel callbacks (a menu button cannot carry it back from the server).
     let scroll: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
@@ -322,6 +324,12 @@ pub(crate) fn register() {
     let mut window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(|rule| { if rule.slot == RESULT_SLOT { rule.may_place = false; } })
         .exclude_from_pick_all(RESULT_SLOT)
+        .on_menu_links(|context| crate::tabbed_tables::links_answer(context.pos))
+        .on_dynamic_slots(|state| {
+            let mut positions = vec![Some([29.0, 43.0]), Some([8.0, 43.0]), Some([148.0, 42.0])];
+            positions.extend(crate::tabbed_tables::side_positions(state.data, DATA_SLOTS));
+            Some(positions)
+        })
         .on_draw(move |draw| {
             let canvas = &mut *draw.canvas;
             let (ox, oy) = (draw.origin[0], draw.origin[1]);
@@ -357,9 +365,13 @@ pub(crate) fn register() {
             } else { None };
             let (caption, lines) = panel_content(draw.items, selected_pattern);
             draw_info_panel_sized(canvas, [ox + 178.0, oy], (126.0, 184.0), &caption, &lines);
+            // The neighbouring chest's side inventory and the tables' tabs (see `tabbed_tables`).
+            crate::tabbed_tables::draw_side_panel(canvas, [ox, oy], draw.data, DATA_SLOTS);
+            crate::tabbed_tables::draw_tabs(canvas, [ox, oy], draw.data, DATA_SLOTS, ICONS);
         })
         .on_click(move |press| {
             if press.right { return None; }
+            if let Some(id) = crate::tabbed_tables::tab_click(press.at, press.data, DATA_SLOTS) { return Some(id); }
             let count = press.data.get(1).copied().unwrap_or(0).max(0) as usize;
             let offset = scroll_offset(&click_scroll, count);
             if let Some(scroll) = scroll_at(press.at, offset, count) {
@@ -381,6 +393,10 @@ pub(crate) fn register() {
             true
         })
         .on_tooltip(move |tip| {
+            if let Some(name) = crate::tabbed_tables::tab_tooltip(tip.at, tip.data, DATA_SLOTS) {
+                tip.lines.push(name);
+                return;
+            }
             let count = tip.data.get(1).copied().unwrap_or(0).max(0) as usize;
             let offset = scroll_offset(&tip_scroll, count);
             if let Some(index) = button_at(tip.at, offset, count) {
@@ -391,6 +407,7 @@ pub(crate) fn register() {
             }
         })
         .on_button(|press| {
+            if crate::tabbed_tables::press_tab(press) { return; }
             // The press names a button by its position in the sorted list; resolve it against the current slots.
             let Some(index) = usize::try_from(press.id - 1).ok() else { return; };
             let selected = selected_of(press.data);
@@ -421,6 +438,8 @@ pub(crate) fn register() {
                     .fold(0i32, |bits, (slot, item)| if item.is_some() { bits | (1 << slot) } else { bits });
                 publish(tick, &computation, filled);
             }
+            // The tabbed words follow this window's own (see `tabbed_tables`).
+            crate::tabbed_tables::publish(tick, DATA_SLOTS, true);
         }),
     );
 }

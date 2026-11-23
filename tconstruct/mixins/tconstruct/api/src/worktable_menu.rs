@@ -43,6 +43,8 @@ pub(crate) const DATA_SLOTS: usize = HEADER + MAX_BUTTONS;
 const NAME: &str = "modifier_worktable";
 const SELECTED: &str = "modifier";
 const BACKGROUND: &str = "tconstruct:gui/worktable";
+/// The icons sheet, as the station windows name it (the tab strip's texture).
+const ICONS: &str = "tconstruct:gui/icons";
 /// Button grid: left, top and size (ModifierWorktableScreen's MODIFIER_LEFT/TOP/SIZE).
 const GRID: (f32, f32, f32) = (28.0, 15.0, 18.0);
 const COLUMNS: usize = 4;
@@ -347,8 +349,10 @@ fn panels(items: &[Option<ItemSlot>], selected_modifier: Option<&Identifier>) ->
 /// Registers the block entity type and the window. Called once from the product's hooks.
 pub(crate) fn register() {
     let id = Identifier::new("tconstruct", NAME).expect("valid worktable id");
-    let layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background()
+    let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background()
         .slot(8.0, 24.0).slot(8.0, 46.0).slot(8.0, 68.0).slot(148.0, 34.0);
+    // The side inventory's linked range follows the window's own slots (see `tabbed_tables`).
+    for _ in 0..crate::tabbed_tables::SIDE_SLOTS { layout = layout.linked_slot(); }
     // The scroll is the window's own state, shared by its draw, click, tooltip and wheel: a menu
     // button press is the only thing a click can send, and scrolling sends nothing.
     let scroll = std::sync::Arc::new(std::sync::Mutex::new(0usize));
@@ -359,6 +363,12 @@ pub(crate) fn register() {
     let mut window = ScreenHandlerType::new(id.clone(), layout)
         .on_slot_rule(|rule| { if rule.slot == RESULT_SLOT { rule.may_place = false; } })
         .exclude_from_pick_all(RESULT_SLOT)
+        .on_menu_links(|context| crate::tabbed_tables::links_answer(context.pos))
+        .on_dynamic_slots(|state| {
+            let mut positions = vec![Some([8.0, 24.0]), Some([8.0, 46.0]), Some([8.0, 68.0]), Some([148.0, 34.0])];
+            positions.extend(crate::tabbed_tables::side_positions(state.data, DATA_SLOTS));
+            Some(positions)
+        })
         .on_draw(move |draw| {
             let selected = draw.data.first().copied().unwrap_or(-1);
             let count = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
@@ -405,6 +415,9 @@ pub(crate) fn register() {
             if let Some(item) = shown {
                 draw.canvas.living([draw.origin[0] - 55.0, draw.origin[1] + 64.0, draw.origin[0] - 5.0, draw.origin[1] + 134.0], &pluto_lib::LivingPreview::armor_stand(item));
             }
+            // The neighbouring chest's side inventory and the tables' tabs (see `tabbed_tables`).
+            crate::tabbed_tables::draw_side_panel(draw.canvas, draw.origin, draw.data, DATA_SLOTS);
+            crate::tabbed_tables::draw_tabs(draw.canvas, draw.origin, draw.data, DATA_SLOTS, ICONS);
         })
         .on_scroll(move |event| {
             let count = event.data.get(1).copied().unwrap_or(0).max(0) as usize;
@@ -417,6 +430,10 @@ pub(crate) fn register() {
             changed
         })
         .on_tooltip(move |tip| {
+            if let Some(name) = crate::tabbed_tables::tab_tooltip(tip.at, tip.data, DATA_SLOTS) {
+                tip.lines.push(name);
+                return;
+            }
             let count = tip.data.get(1).copied().unwrap_or(0).max(0) as usize;
             if let Some(index) = button_at(tip.at, count, scroll_offset(&scroll_tip, count)) {
                 let order = modifier_order();
@@ -426,6 +443,9 @@ pub(crate) fn register() {
             }
         })
         .on_click(move |press| {
+            if !press.right {
+                if let Some(id) = crate::tabbed_tables::tab_click(press.at, press.data, DATA_SLOTS) { return Some(id); }
+            }
             let count = press.data.get(1).copied().unwrap_or(0).max(0) as usize;
             // the slider track pages the window a row at a time, on this side only
             if !press.right && press.at[0] >= SLIDER.0 && press.at[0] < SLIDER.0 + 12.0 && press.at[1] >= SLIDER.1 && press.at[1] < SLIDER.1 + 74.0 {
@@ -439,6 +459,7 @@ pub(crate) fn register() {
             (!press.right).then(|| button_at(press.at, count, scroll_offset(&scroll_click, count))).flatten().map(|index| index as i32 + 1)
         })
         .on_button(|press| {
+            if crate::tabbed_tables::press_tab(press) { return; }
             let Some(index) = usize::try_from(press.id - 1).ok() else { return; };
             let selected = selected_of(press.data);
             let Some(computation) = compute(press.items, selected.as_deref()) else { return; };
@@ -456,6 +477,8 @@ pub(crate) fn register() {
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:modifier_worktable").ticker(|tick| {
+            // The tabbed words publish even when nothing can be applied (see `tabbed_tables`).
+            crate::tabbed_tables::publish(tick, DATA_SLOTS, true);
             if tick.items.len() < SLOT_COUNT { return; }
             let selected = selected_of(tick.data);
             let Some(computation) = compute(tick.items, selected.as_deref()) else { return; };

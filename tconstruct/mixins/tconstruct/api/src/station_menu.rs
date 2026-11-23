@@ -22,12 +22,14 @@
 //! - A slot a layout leaves out is hidden here (its item shows in the still-filled row); the
 //!   original keeps it dormant and take-out-able. Switching back to a layout that shows the slot
 //!   reaches its contents again.
-//! - The original's window also carries the player's armor and offhand slots and the neighbouring
-//!   chests as side inventories. The armor and offhand slots are declared (at the original's
-//!   places, after the result slot) and drawn from the opening player's live equipment, but they
-//!   take no clicks: the host's menu model binds container slots to the opened block entity or to
-//!   linked block containers only, so swapping a worn piece still happens in the inventory
-//!   window. A neighbour's items are not carried either.
+//! - The original's window also carries the player's armor and offhand slots. They are declared
+//!   (at the original's places, after the result slot) and drawn from the opening player's live
+//!   equipment, but they take no clicks: the host's menu model binds container slots to the
+//!   opened block entity or to linked block containers only, so swapping a worn piece still
+//!   happens in the inventory window.
+//! - The neighbouring tables' tabs above the window are carried (see `tabbed_tables`): a tab
+//!   switches the open menu to that table. The station family shows no side inventory in the
+//!   original, and none here. A LAN guest's tab press does not switch (see `tabbed_tables`).
 //! - The armor stand preview is drawn through PlutoLib's living preview (the host's own
 //!   screen-preview path for a stand, the smithing screen's), wearing or holding the staged
 //!   result. It stands at the original's anchor; the original turns it with the mouse and
@@ -301,13 +303,15 @@ fn draw_icon(canvas: &mut dyn ScreenCanvas, icon: &TabIcon, at: [f32; 2], size: 
 /// face), and the two side info panels. `metal` is the anvils' style; the tinker station's is
 /// wood (the original picks by input count: metal above three).
 #[allow(clippy::too_many_arguments)]
-fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icons_at: usize, filled_at: usize, tabs_at: usize, map_at: usize, dormant_at: usize, name: &str) {
+fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icons_at: usize, filled_at: usize, tabs_at: usize, map_at: usize, dormant_at: usize, tabbed_at: usize, name: &str) {
     let canvas = &mut *draw.canvas;
     let (ox, oy) = (draw.origin[0], draw.origin[1]);
     let data = draw.data;
     let active = data.get(DATA_TAB).copied().unwrap_or(0);
     let active_full = data.get(map_at + active as usize).copied().unwrap_or(0);
     canvas.sprite(TINKER, [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
+    // The neighbouring tables' tabs above the window (see `tabbed_tables`).
+    crate::tabbed_tables::draw_tabs(canvas, [ox, oy], data, tabbed_at, ICONS);
     // The rename field (its text is the client's own; see the header for why it goes no further).
     canvas.sprite(TINKER, [0.0, 244.0, 90.0, 12.0], [ox + TEXT_BOX_AT.0, oy + TEXT_BOX_AT.1, 90.0, 12.0]);
     if !name.is_empty() {
@@ -506,6 +510,8 @@ fn register_station(name: &'static str, input_count: usize) {
     let tabs_at = filled_at + 1;
     let map_at = tabs_at + 1;
     let dormant_at = map_at + TAB_ICONS.len();
+    // The tabbed tables' words (the neighbouring-table strip) follow the still-filled row.
+    let tabbed_at = dormant_at + (input_count + 1) * 2;
     let metal = input_count > 3;
     // The rename field's text: the window's own client-side state, shared by its draw and its
     // text-input callbacks (see the header for why it never leaves the client).
@@ -543,7 +549,7 @@ fn register_station(name: &'static str, input_count: usize) {
         })
         .on_draw(move |draw| {
             let name = draw_field.lock().map(|text| text.clone()).unwrap_or_default();
-            draw_station(draw, metal, input_count, icons_at, filled_at, tabs_at, map_at, dormant_at, &name);
+            draw_station(draw, metal, input_count, icons_at, filled_at, tabs_at, map_at, dormant_at, tabbed_at, &name);
         })
         .on_char(move |c| {
             if c.is_control() { return false; }
@@ -564,13 +570,22 @@ fn register_station(name: &'static str, input_count: usize) {
                 _ => false,
             }
         })
-        .on_click(move |press| (!press.right).then(|| tab_at(press.at, press.data, tabs_at, map_at)).flatten())
+        .on_click(move |press| {
+            if press.right { return None; }
+            crate::tabbed_tables::tab_click(press.at, press.data, tabbed_at)
+                .or_else(|| tab_at(press.at, press.data, tabs_at, map_at))
+        })
         .on_tooltip(move |tip| {
+            if let Some(name) = crate::tabbed_tables::tab_tooltip(tip.at, tip.data, tabbed_at) {
+                tip.lines.push(name);
+                return;
+            }
             if let Some(button) = tab_at(tip.at, tip.data, tabs_at, map_at) {
                 tip.lines.push(tab_name((button - MAIN_BUTTON) as usize));
             }
         })
         .on_button(move |press| {
+            if crate::tabbed_tables::press_tab(press) { return; }
             if press.id == MAIN_BUTTON { press.data.remove(SELECTED); return; }
             if let Some(name) = TAB_ORDER.get((press.id - MAIN_BUTTON - 1) as usize) {
                 press.data.insert(SELECTED.to_owned(), Nbt::String(format!("tconstruct:{name}")));
@@ -645,6 +660,9 @@ fn register_station(name: &'static str, input_count: usize) {
                 tick.set_menu_data(dormant_at + slot * 2, x);
                 tick.set_menu_data(dormant_at + slot * 2 + 1, y);
             }
+            // The neighbouring tables' strip (tabs only; the station family has no side
+            // inventory in the original).
+            crate::tabbed_tables::publish(tick, tabbed_at, false);
         }),
     );
 }

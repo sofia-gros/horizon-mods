@@ -166,6 +166,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/station_layout_order.rs',
                 'mixins/tconstruct_native/api/src/station_layouts.rs',
                 'mixins/tconstruct_native/api/src/station_menu.rs',
+                'mixins/tconstruct_native/api/src/tabbed_tables.rs',
                 'mixins/tconstruct_native/api/src/tables/input_consumption.rs',
                 'mixins/tconstruct_native/api/src/tables/lazy_result.rs',
                 'mixins/tconstruct_native/api/src/tables/mod.rs',
