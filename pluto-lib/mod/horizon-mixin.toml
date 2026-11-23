@@ -2223,9 +2223,9 @@ bindings = [
 
 [[injection]]
 id = "pluto-projectile-flight-return"
-target = "horizon_client::game::creatures::Game<'_>::tick_projectiles"
-kind = "RETURN"
+target = "horizon_client::game::fangs::Game<'_>::tick_fangs"
+kind = "HEAD"
 helper = "pluto-projectile-flight-return.rs"
 bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }
 ]
