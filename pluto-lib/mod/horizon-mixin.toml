@@ -1091,8 +1091,10 @@ kind = "HEAD"
 helper = "pluto-block-facts-publish-head.rs"
 bindings = [{ name = "resources", ty = "&Resources", value = "resources" }]
 
-# The game's cooking recipes (the furnace family), published when the recipe book loads so the
-# recipe API's cooking lookup can answer what a furnace does to an item.
+# The game's cooking recipes (the furnace family), kept published from the recipe table the
+# game is currently using (the startup table, a world's pack table after open or /reload, or a
+# server's synced table) so the recipe API's cooking lookup can answer what a furnace does to
+# an item. The creature tick refreshes the publication whenever the table in use changes.
 [[module]]
 id = "pluto-cooking-recipes"
 file = "crates/horizon-client/src/entry.rs"
@@ -1101,11 +1103,11 @@ source = "pluto-cooking-recipes.rs"
 visibility = "pub"
 
 [[injection]]
-id = "pluto-cooking-recipes-return"
-target = "horizon_client_lib::crafting::Recipes::load"
-kind = "RETURN"
-helper = "pluto-cooking-recipes-return.rs"
-bindings = [{ name = "value", ty = "Result<Recipes>", value = "$value" }]
+id = "pluto-cooking-recipes-tick"
+target = "horizon_client::game::creatures::Game<'_>::tick_creatures"
+kind = "HEAD"
+helper = "pluto-cooking-recipes-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 # A dig is worked out: the level's build range is published for the dig report the mods are
 # about to be asked for (dwarven reads the level's max build height).
