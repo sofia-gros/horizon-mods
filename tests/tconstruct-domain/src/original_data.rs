@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (87, 56), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (77, 47), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -145,6 +145,9 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // The projectile pair binds over the shoot and ammo hooks, the campfire douse over the tool action transform, blocking over
     // the per-stack use pose, and dye, banner and trim bind as the display variants the original also only presents.
     for bound in ["recurrent_protection", "damage_on_shoot", "infinity", "campfire_extinguish", "blocking", "dye", "banner", "trim"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The in-flight modules bind on the projectile spawn, flight and impact tellings, and throwing on
+    // the release telling (the thrown tool's charge gate).
+    for bound in ["arrow_pierce", "projectile_bounce", "projectile_gravity", "projectile_fuse", "projectile_explosion", "projectile_attract_mobs", "projectile_place_glow", "restrict_projectile_angle", "throwing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Restore lost health bound to the modify hurt hook runs as the damage arrives, before armor, and stalwart's protection
     // reads the equipment the attacker holds, which the hit reports: both bind now.
     for bound in ["restore_lost_health", "protection"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }

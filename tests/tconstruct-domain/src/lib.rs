@@ -301,6 +301,10 @@ mod fluid_transfers;
 mod fluid_items;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/throwables.rs"]
 mod throwables;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/flight_hook.rs"]
+mod flight_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/throwing_hook.rs"]
+mod throwing_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/glow_block.rs"]
 mod glow_block;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/piggyback.rs"]

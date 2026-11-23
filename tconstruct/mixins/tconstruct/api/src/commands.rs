@@ -1764,6 +1764,31 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:boot_walk");
             out.insert("tconstruct:tool_action");
         }
+        Module::ArrowPierce { .. } => {
+            out.insert("tconstruct:projectile_shot");
+        }
+        Module::ProjectileBounce { .. } => {
+            out.insert("tconstruct:projectile_hit");
+        }
+        Module::ProjectileGravity { .. } | Module::ProjectileFuse { .. } => {
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:schedule_projectile_task");
+        }
+        Module::ProjectileExplosion { .. } | Module::ProjectileAttractMobs { .. } => {
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_fuse");
+        }
+        Module::ProjectilePlaceGlow { .. } => {
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_launch");
+        }
+        Module::RestrictAngle { .. } => {
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:sling_launch");
+        }
+        Module::Throwing => {
+            out.insert("tconstruct:general_interaction");
+        }
     }
 }
 
