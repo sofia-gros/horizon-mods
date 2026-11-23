@@ -247,12 +247,11 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // The sling family binds over the release telling (which now runs with the entity scope
     // open, so a bonk can search for its target): the knockback, leap and teleport kinds
     // themselves, and the sling force formula in its plain form (padded's, over $value and
-    // $level). Knockback keeps exactly one unbound module: its own sling force instance,
-    // whose formula variables read the holder's `tconstruct:generic.knockback_multiplier`
-    // attribute, which the host does not have; the target instance is a plain formula and binds.
+    // $level). Knockback's own sling force instance binds too since the formula variables
+    // read the holder's custom attributes (formula-fix: EntityFact::CustomAttribute).
     for bound in ["sling_knockback", "sling_leap", "sling_teleport"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for name in ["bonking", "flinging", "springing", "warping", "padded"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    assert_eq!(unbound_of("knockback"), ["tconstruct:sling_force"], "knockback's own sling force reads an attribute the host does not have");
+    assert!(unbound_of("knockback").is_empty(), "knockback is fully bound: its sling force reads the holder's custom attributes now");
     // Fireball binds with its entity (a derived type over the game's own fireball body), and
     // tipped binds over the flight profile and the impact application.
     for bound in ["fireball", "tipped"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
