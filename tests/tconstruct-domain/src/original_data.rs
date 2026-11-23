@@ -552,7 +552,7 @@ fn shipped_material_recipes_load_without_problems_and_horns_match_by_instrument(
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 367, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime and 10 enchantment converting records");
+    assert_eq!(files.len(), 383, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime, 10 enchantment converting, 10 extract, 2 modifier set worktable, 1 modifier repair, 1 armor dyeing, 1 modifier sorting and 1 toggle interaction records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
