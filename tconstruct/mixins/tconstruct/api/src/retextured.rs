@@ -6,13 +6,18 @@
 //! it drops the item with the texture restored by the `mantle:fill_retextured_block` loot
 //! function, which reads the block entity the block had.
 //!
-//! The data path is complete; the picture is not. Neither the host's block mesher nor its item
-//! models ever read a block entity's data (or a stack's `texture`) to choose a texture: the
-//! original chooses through Mantle's model data (`RetexturedHelper.BLOCK_PROPERTY` feeding
-//! `RetexturedModel`, whose model JSON names the `retextured` texture slots to swap), and
-//! PlutoLib has no model-data surface to offer. Until one exists, a retextured block renders
-//! with its model's fixed textures while its texture record travels exactly as the original's
-//! does: recipe to stack, stack to block entity on placement, block entity to the drop.
+//! The data path is complete, and the world-block picture now exists too.
+//! PlutoLib's retexture surface carries the texture from the block entity to
+//! the mesh: `pluto_lib::retexture_api_v1` names which baked faces of a
+//! block's model belong to its retextured slots (sprite + UV rectangle, read
+//! off the original model JSONs), the client block-entity tick pass feeds a
+//! position-to-texture cache, and the `pluto-retexture-layer` expression
+//! injection on `Mesher::face` swaps a slot face's sprite layer for its
+//! texture block's particle layer. The item side is still open: neither the
+//! host's item models nor its item renderer read a stack's `texture`, and the
+//! host bakes item models once per item with no per-stack model data to swap
+//! on — a retextured block held in the hand or sitting in a chest renders
+//! with its model's fixed textures.
 
 use std::collections::BTreeMap;
 use std::sync::{OnceLock, RwLock};

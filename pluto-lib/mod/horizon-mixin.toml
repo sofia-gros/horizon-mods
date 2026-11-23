@@ -1409,6 +1409,36 @@ bindings = [
     { name = "face", ty = "&BakedFace", value = "face" },
 ]
 
+# Retextured blocks: a block entity's texture on its model. The face's own
+# tile layer is replaced with the texture block's particle layer, only on
+# faces the pure table names as retextured slots. An expression value, not a
+# second MODIFY_VARIABLE on Mesher::face: the block-tint injection already
+# owns that (target, kind, selector) place. The second occurrence of the
+# expression is the `own` tile (the first feeds the connected-texture pick
+# and must stay on the model's own sprite).
+[[module]]
+id = "pluto-retexture-module"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "pluto_retexture"
+source = "pluto-retexture.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-retexture-layer"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "face.layer as u16"
+require = 1
+ordinal = 1
+helper = "pluto-retexture-layer.rs"
+bindings = [
+    { name = "value", ty = "u16", value = "$value" },
+    { name = "mesher", ty = "&Mesher<'_>", value = "&*self" },
+    { name = "id", ty = "u32", value = "id" },
+    { name = "world", ty = "BlockPos", value = "world" },
+    { name = "face", ty = "&BakedFace", value = "face" },
+]
+
 # Common terrain-particle tint; preserve sprites and native grass dirt crumbs.
 [[injection]]
 id = "pluto-block-particle-tint"

@@ -20,6 +20,7 @@ pub use crate::pure::config_api::{self, ConfigEvents, ConfigKind, ConfigRegistry
 pub use crate::pure::particle_factory_registry::{self, ParticleFactoryRegistry};
 pub use crate::pure::particle_api_v1::{self, ParticleData, ParticleFactory, ParticleTypeRegistry};
 pub use crate::pure::sky_api_v1::{self, SkyDarkening, SkyFrame, SkyLayer, SkyQuad, SkyRegistry, SkyStar, Twinkle, VanillaStars, celestial_direction, frame_quads, twinkle_factor};
+pub use crate::pure::retexture_api_v1::{self, RetextureSlot, is_retextured_face, slots_for, uv_rect};
 pub use crate::pure::attribute_api_v1::{self, AttributeContribution, AttributeDef, AttributeOperation, AttributeRegistry, attribute_value};
 pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullModelRegistry};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
