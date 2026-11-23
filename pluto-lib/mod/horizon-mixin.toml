@@ -181,6 +181,7 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_mob_split"
 kind = "RETURN"
 helper = "pluto-mob-split-head.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "parent", ty = "u32", value = "parent" },
  { name = "kind", ty = "&str", value = "kind" },
@@ -196,6 +197,7 @@ target = "horizon_client::game::creatures::Game<'_>::split_dead_cube"
 kind = "RETURN"
 helper = "pluto-mob-split-children.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "m", ty = "&Mob", value = "&*m" },
 ]
@@ -1978,6 +1980,7 @@ target = "horizon_client::game::frames::Game<'_>::tick_item_frames"
 kind = "RETURN"
 helper = "pluto-hanging-frame-tick.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
 
@@ -2011,6 +2014,7 @@ target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
 kind = "RETURN"
 helper = "pluto-hanging-frame-explosion.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "blast", ty = "[f64; 3]", value = "blast" },
  { name = "diameter", ty = "f64", value = "diameter" },
@@ -2037,6 +2041,7 @@ target = "horizon_client::game::frames::Game<'_>::hit_frame"
 kind = "RETURN"
 helper = "pluto-hanging-frame-hit.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "i", ty = "usize", value = "i" },
  { name = "by_player", ty = "bool", value = "by_player" },
@@ -2095,6 +2100,7 @@ target = "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands"
 kind = "RETURN"
 helper = "pluto-hanging-stand-tick.rs"
 bindings = [
+ { name = "value", ty = "Result<()>", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
 
