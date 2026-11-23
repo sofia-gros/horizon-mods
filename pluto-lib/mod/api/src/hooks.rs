@@ -2911,6 +2911,43 @@ impl ScreenCanvas for HostCanvas<'_> {
     fn text_width(&self, text: &str) -> f32 {
         self.host.text_width(text)
     }
+
+    fn scene(&mut self, rect: [f32; 4], blocks: &[screen_handler_api_v1::SceneBlock], view: &screen_handler_api_v1::SceneView) {
+        // The host draws a scene of block states resolved by name. Its state table names a state's
+        // properties only one state at a time (there is no block-plus-properties lookup), so each block
+        // resolves to its block's default state: a scene block whose properties the default state does
+        // not carry draws in the default state. The structure templates this serves are built of default
+        // states but for facings, which the turn of the view makes cosmetic.
+        let entities: Vec<Option<horizon_client::mod_api::ModBlockEntity>> = blocks.iter().map(|block| {
+            block.entity.as_ref().map(|entity| {
+                horizon_client::mod_api::ModBlockEntity::new(horizon_client::containers::ModBlockEntityFields {
+                    id: entity.block.to_string(),
+                    nbt: compound_to_tag(&entity.data),
+                    items: entity.items.iter().map(|slot| {
+                        slot.as_ref().map(|slot| {
+                            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+                            write_slot(&mut stack, slot);
+                            stack
+                        })
+                    }).collect(),
+                    data: Vec::new(),
+                })
+            })
+        }).collect();
+        let native: Vec<horizon_client::mod_api::NativeSceneBlock<'_>> = blocks.iter().zip(&entities).filter_map(|(block, entity)| {
+            let state = self.host.default_state(&block.block.block.to_string())?;
+            Some(horizon_client::mod_api::NativeSceneBlock { pos: block.pos, state, entity: entity.as_ref() })
+        }).collect();
+        if native.is_empty() {
+            return;
+        }
+        self.host.draw_scene(self.batch, rect, &native, horizon_client::mod_api::NativeSceneView {
+            center: view.center,
+            yaw: view.yaw,
+            pitch: view.pitch,
+            scale: view.scale,
+        });
+    }
 }
 
 fn model_config(file: &NativeConfigFile) -> ModConfig {

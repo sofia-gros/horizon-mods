@@ -344,6 +344,64 @@ assert_eq!(canvas.0, 2);
 assert_eq!(canvas.text_width("ab"), 12.0);
 ```
 
+### `ScreenCanvas::scene`
+
+`fn scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView)`. Draws a 3D scene of blocks into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike the flat draws' `[x, y, width, height]`), seen as `view` says. Each block is drawn with its model; a block carrying a `SceneEntity` is drawn by that block's block-entity renderer, with its baked entity-model layers, as in the world — how a screen shows a small structure (a book's multiblock page) or a dressed block entity (an armor stand wearing the piece being made). The host resolves each block by name to its default state, so a state whose properties the default state does not carry draws in the default state. The default method draws nothing, so a canvas with no scene reach skips it.
+
+```rust
+use pluto_lib::{BlockState, Identifier, SceneBlock, SceneView, ScreenCanvas};
+
+struct Counting(u32);
+impl ScreenCanvas for Counting {
+    fn fill(&mut self, _: [f32; 4], _: u32) { self.0 += 1; }
+    fn sprite(&mut self, _: &str, _: [f32; 4], _: [f32; 4]) -> bool { true }
+    fn text(&mut self, _: &str, _: [f32; 2], _: u32, _: bool) {}
+    fn text_width(&self, text: &str) -> f32 { text.len() as f32 * 6.0 }
+}
+let mut canvas = Counting(0);
+let blocks = [SceneBlock { pos: [0, 0, 0], block: BlockState::new(Identifier::parse("minecraft:stone").unwrap()), entity: None }];
+canvas.scene([0.0, 0.0, 32.0, 32.0], &blocks, &SceneView::default());
+assert_eq!(canvas.0, 0, "the default canvas has no scene reach and draws nothing");
+```
+
+### `SceneBlock`
+
+`struct SceneBlock { pos: [i32; 3], block: BlockState, entity: Option<SceneEntity> }`. One block of a scene: its state, where it stands in the scene's own coordinates, and the block entity drawn with it, if any.
+
+```rust
+use pluto_lib::{BlockState, Identifier, SceneBlock};
+
+let block = SceneBlock { pos: [1, 0, -2], block: BlockState::new(Identifier::parse("minecraft:stone").unwrap()), entity: None };
+assert_eq!(block.pos, [1, 0, -2]);
+assert!(block.entity.is_none());
+```
+
+### `SceneEntity`
+
+`struct SceneEntity { block: Identifier, data: NbtCompound, items: Vec<Option<ItemSlot>> }`. The block entity a scene draws at a block: which block's entity it is, the data it renders from, and the items it holds, in its slot order (an armor stand's worn pieces).
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, NbtCompound, SceneEntity};
+
+let stand = SceneEntity {
+    block: Identifier::parse("minecraft:armor_stand").unwrap(),
+    data: NbtCompound::new(),
+    items: vec![Some(ItemSlot::new(Identifier::parse("minecraft:iron_chestplate").unwrap(), 1))],
+};
+assert_eq!(stand.items.len(), 1);
+```
+
+### `SceneView`
+
+`struct SceneView { center: [f32; 3], yaw: f32, pitch: f32, scale: f32 }`. Where a scene is seen from: `center` is the scene point the rect's middle shows, `yaw` and `pitch` turn it in degrees (unturned, the scene is seen from the north; a positive pitch tilts its top towards the viewer), and `scale` is GUI pixels per block. The default centres one block at the origin, turned halfway round with its top tilted to the viewer at sixteen pixels a block.
+
+```rust
+use pluto_lib::SceneView;
+
+let view = SceneView::default();
+assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45.0, 30.0, 16.0));
+```
+
 ### `ScreenLayoutContext`
 
 What `ScreenHandlerType::on_dynamic_slots` receives. `data` are the menu's data slots; `items` are the block entity's current item slots only, in menu-slot order. Return positions in that same order.

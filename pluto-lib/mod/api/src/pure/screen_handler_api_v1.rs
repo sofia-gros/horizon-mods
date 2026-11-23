@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 use super::base::{Identifier, NbtCompound};
 use super::block_api_v1::Direction;
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
+use super::world_api_v1::BlockState;
 
 /// The surface a screen draws on, in GUI pixels. PlutoLib passes one to the draw callback; a test can implement it to check what a screen
 /// draws.
@@ -39,6 +40,65 @@ pub trait ScreenCanvas {
     fn text(&mut self, text: &str, at: [f32; 2], rgb: u32, shadow: bool);
     /// The width of `text` in GUI pixels.
     fn text_width(&self, text: &str) -> f32;
+    /// Draws a 3D scene of `blocks` into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike the
+    /// `[x, y, width, height]` of the flat draws), seen as `view` says. Each block is drawn with its model;
+    /// a block carrying a [`SceneEntity`] is drawn by that block's block-entity renderer, with its baked
+    /// entity-model layers, as in the world — which is how a screen shows a small structure (a book's
+    /// multiblock page) or a dressed block entity (an armor stand wearing the piece being made). The scene
+    /// has a depth of its own inside the rect and never covers the screen's other drawing. The default
+    /// draws nothing: a canvas with no scene reach (a test's recording canvas, a server) simply skips it.
+    fn scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView) {
+        let _ = (rect, blocks, view);
+    }
+}
+
+/// One block of a scene drawn by [`ScreenCanvas::scene`]: its state, where it stands in the scene's own
+/// coordinates (the view's centre is measured in the same ones), and the block entity drawn with it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SceneBlock {
+    /// The block's position in scene coordinates.
+    pub pos: [i32; 3],
+    /// The block's state (its id and properties).
+    pub block: BlockState,
+    /// The block entity drawn at this block, if any.
+    pub entity: Option<SceneEntity>,
+}
+
+/// The block entity a scene draws at a block: which block's entity it is, the data it renders from, and
+/// the items it holds (an armor stand's worn pieces). The block's registered block-entity renderer draws
+/// it, exactly as it draws the entity in the world.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SceneEntity {
+    /// The block whose block entity this is.
+    pub block: Identifier,
+    /// The entity's data, as its renderer reads it.
+    pub data: NbtCompound,
+    /// The items the entity holds, in its slot order.
+    pub items: Vec<Option<ItemSlot>>,
+}
+
+/// Where a scene is seen from (the host's scene view): `center` is the scene point the rect's middle
+/// shows, `yaw` and `pitch` turn it in degrees (unturned, the scene is seen from the north, as a player at
+/// yaw 0 sees it; a positive pitch tilts its top towards the viewer), and `scale` is how many GUI pixels
+/// one block spans.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SceneView {
+    /// The scene point at the rect's centre.
+    pub center: [f32; 3],
+    /// The turn around the vertical axis, in degrees.
+    pub yaw: f32,
+    /// The tilt, in degrees.
+    pub pitch: f32,
+    /// GUI pixels per block.
+    pub scale: f32,
+}
+
+impl Default for SceneView {
+    /// A single block at the origin, seen turned halfway round with its top tilted to the viewer, sixteen
+    /// pixels to a block: the smithing screen's way of showing one thing.
+    fn default() -> Self {
+        SceneView { center: [0.5, 0.5, 0.5], yaw: 45.0, pitch: 30.0, scale: 16.0 }
+    }
 }
 
 /// Where things are in a window, in GUI pixels from its top left (Minecraft: `Slot.x`, `Slot.y`).
@@ -653,6 +713,21 @@ mod tests {
         fn text_width(&self, text: &str) -> f32 {
             text.len() as f32 * 6.0
         }
+    }
+
+    #[test]
+    fn a_canvas_without_a_scene_reach_skips_a_scene_and_the_view_defaults_to_one_block() {
+        let mut canvas = Recorder::default();
+        let blocks = [SceneBlock {
+            pos: [0, 0, 0],
+            block: BlockState::new(Identifier::parse("minecraft:stone").unwrap()),
+            entity: Some(SceneEntity { block: Identifier::parse("minecraft:armor_stand").unwrap(), data: NbtCompound::new(), items: vec![None] }),
+        }];
+        // The default scene draw is a no-op: nothing is recorded and nothing panics.
+        canvas.scene([0.0, 0.0, 32.0, 32.0], &blocks, &SceneView::default());
+        assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
+        let view = SceneView::default();
+        assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45.0, 30.0, 16.0));
     }
 
     #[test]
