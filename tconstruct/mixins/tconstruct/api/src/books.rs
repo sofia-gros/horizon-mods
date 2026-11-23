@@ -17,16 +17,19 @@
 //!
 //! What still differs from the original, and why: Mantle's padding transformer (blank pages so a section starts on a left
 //! page of a two-page spread) has no counterpart in the single-page view — the `mantle:blank` and `mantle:right_padding`
-//! entries of the section files become blank pages where they sit. The index transformer's exact rule could not be read
-//! from the sources at hand (it is Mantle's, and no Mantle source is on this machine), so no index pages are added to file
-//! sections that do not carry one; the generated sections lead with their index page, the shape of the original's own
-//! first page there. A generated page's sidebar of display items (a material's built tools, a tool's recipe parts, a
-//! modifier's recipe) has no row form and is not drawn; the text, stats, traits and effect lists are the page. Sort-free
-//! tag injections (the armor and staff sections) take their order from the captured registry snapshot, whose tag members
-//! are a set, where the original walks the tag file's own order. A damage effect's book description names its damage
-//! type through the type's message id, which no registry this port keeps carries, so those lines use the unsuffixed
-//! translation. The fluid transformer keeps the original's early return: an entry whose ingredient names no fluids ends
-//! the section's generation, as it does there.
+//! entries of the section files become blank pages where they sit. A file section's own `mantle:index` page becomes a
+//! listing of the section's pages (the index transformer below); no index page is added to a file section that does not
+//! carry one, and the generated sections lead with their index page, the shape of the original's own first page there.
+//! A generated page's sidebar of display items rides its first page: a material's parts in that material, a tool page's
+//! tool and parts, a fluid page's buckets. A modifier page's sidebar (its recipe's items) is not drawn: the modifier
+//! definitions carry no recipe, and the modifier recipes are not among the snapshots the client holds. A crafting
+//! page's grid fills from the crafting recipes captured at the server's data reload, so it draws in full where that
+//! capture ran (a local world); a reader on a remote server sees the grid the page decoded with, which is empty.
+//! Sort-free tag injections (the armor and staff sections) take their order from the captured registry snapshot, whose
+//! tag members are a set, where the original walks the tag file's own order. A damage effect's book description names
+//! its damage type through the type's message id, which no registry this port keeps carries, so those lines use the
+//! unsuffixed translation. The fluid transformer keeps the original's early return: an entry whose ingredient names no
+//! fluids ends the section's generation, as it does there.
 use std::sync::Arc;
 
 use pluto_lib::{ActionResult, Book, BookAppearance, BookIcon, BookPage, BookRegistry, BookRow, I18n, Identifier, Nbt, NbtCompound, RegistryLookup, ResourceManagerHelper, ResourceType, UseItemCallback, open_book};
@@ -274,13 +277,21 @@ fn paginate(kind: &str, title: Option<String>, intro: Vec<pluto_lib::BookText>, 
         } else {
             (Vec::new(), false)
         };
-        pages.push(BookPage::Table { kind: kind.to_owned(), title: title.clone(), intro: page_intro, rows: chunk, text: page_text });
+        pages.push(BookPage::Table { kind: kind.to_owned(), title: title.clone(), intro: page_intro, rows: chunk, text: page_text, sidebar: Vec::new() });
         first = false;
         if last {
-            if spill { pages.push(BookPage::Table { kind: kind.to_owned(), title: title.clone(), intro: Vec::new(), rows: Vec::new(), text: text.clone() }); }
+            if spill { pages.push(BookPage::Table { kind: kind.to_owned(), title: title.clone(), intro: Vec::new(), rows: Vec::new(), text: text.clone(), sidebar: Vec::new() }); }
             break;
         }
     }
+    pages
+}
+
+/// Gives the first of `pages` a sidebar of display items (a generated page's sidebar in the
+/// original: a material's built tools, a tool's recipe parts, a modifier's recipe, a fluid's
+/// bucket), drawn in a column at the page's right edge.
+fn with_sidebar(mut pages: Vec<BookPage>, items: Vec<pluto_lib::ItemSlot>) -> Vec<BookPage> {
+    if let Some(BookPage::Table { sidebar, .. }) = pages.first_mut() { *sidebar = items; }
     pages
 }
 
@@ -371,7 +382,15 @@ fn tool_pages(item: &Identifier, json: Option<&Value>) -> Vec<BookPage> {
         rows.push(BookRow::Header { icon: None, text: tr("book.tconstruct.tool.properties") });
         rows.extend(properties.into_iter().map(|property| book_row(None, format!("● {property}"), None, None)));
     }
-    paginate("tconstruct:tool", Some(item_name(item)), text, rows, Vec::new())
+    // The sidebar: the tool itself, then its recipe parts (plain part stacks; the definition's
+    // part list, when the definitions are at hand where the books build).
+    let mut sidebar = vec![pluto_lib::ItemSlot::new(item.clone(), 1)];
+    if let Ok(definitions) = crate::tool_definitions::register().read() {
+        if let Some(definition) = definitions.data.get(item) {
+            sidebar.extend(definition.tool_parts().iter().map(|part| pluto_lib::ItemSlot::new(part.clone(), 1)));
+        }
+    }
+    with_sidebar(paginate("tconstruct:tool", Some(item_name(item)), text, rows, Vec::new()), sidebar)
 }
 
 /// Builds a modifier page's content: the modifier's name as title, the page's text, and its effects under
@@ -769,7 +788,17 @@ fn material_pages(definitions: &Definitions, data: &GenData, kind: &MaterialType
         rows.extend(trait_rows(definitions, data, material, stat));
     }
     let text = flavor_text(kind, material, detailed).map(|text| vec![pluto_lib::BookText::plain(&text)]).unwrap_or_default();
-    paginate(kind.kind, Some(title), Vec::new(), rows, text)
+    with_sidebar(paginate(kind.kind, Some(title), Vec::new(), rows, text), material_part_items(material))
+}
+
+/// The sidebar items of a material's pages: every part the part builder makes, in this material
+/// (a part stack names its material in its own data, the form the part models select on).
+fn material_part_items(material: &Identifier) -> Vec<pluto_lib::ItemSlot> {
+    crate::tool_parts::material_items().into_keys().map(|part| {
+        let mut stack = pluto_lib::ItemSlot::new(part, 1);
+        stack.custom_data.insert("Material".to_owned(), Nbt::String(material.to_string()));
+        stack
+    }).collect()
 }
 
 /// The armor material page: the combined plating block (one line per property, the present plating
@@ -807,7 +836,7 @@ fn armor_material_pages(definitions: &Definitions, data: &GenData, material: &Id
     }
     let text = flavor_text(material_type("tconstruct:armor").expect("the armor type"), material, detailed)
         .map(|text| vec![pluto_lib::BookText::plain(&text)]).unwrap_or_default();
-    paginate("tconstruct:armor_material", Some(title), Vec::new(), rows, text)
+    with_sidebar(paginate("tconstruct:armor_material", Some(title), Vec::new(), rows, text), material_part_items(material))
 }
 
 /// The overview pages of a generated section: one entry per content page group, icon and title, linking
@@ -1033,7 +1062,12 @@ fn fluid_page(read: &Read<'_>, book: &str, language: &str, folder: &str, id: &Id
         let bucket = Identifier::new(fluid.namespace(), &format!("{}_bucket", fluid.path())).ok()?;
         data.items.as_ref().is_some_and(|items| items.contains(&bucket)).then_some(BookIcon::Item(bucket))
     });
-    (title.clone(), icon, paginate("tconstruct:fluid_effect", Some(title), text, rows, Vec::new()))
+    // The sidebar: one bucket per fluid the entry names, where that bucket item exists.
+    let buckets: Vec<pluto_lib::ItemSlot> = fluids.iter().filter_map(|fluid| {
+        let bucket = Identifier::new(fluid.namespace(), &format!("{}_bucket", fluid.path())).ok()?;
+        data.items.as_ref().is_some_and(|items| items.contains(&bucket)).then(|| pluto_lib::ItemSlot::new(bucket, 1))
+    }).collect();
+    (title.clone(), icon, with_sidebar(paginate("tconstruct:fluid_effect", Some(title), text, rows, Vec::new()), buckets))
 }
 
 /// Runs the fluid effect transformer over the encyclopedia's fluid section: an overview of the
@@ -1160,6 +1194,127 @@ fn opaque(kind: &str, json: &Value) -> Vec<BookPage> {
     }
 }
 
+/// Mantle's index transformer for a file section: a `mantle:index` page becomes a listing of the
+/// section's own pages — each named page's title, linking to its section-local position — skipping
+/// the pages its `hidden` list names and itself. The links are section-local here; `build_book`'s
+/// shift makes them the book's flat indices, as for every generated listing. Runs before the other
+/// transformers: the sections that carry an index page carry no injections or groupings, so their
+/// page positions no longer move afterwards. The page's own group operations (headers and column
+/// breaks over the listing) are not applied; the listing is flat.
+fn index_transform(section: &mut RawSection) {
+    let mut flat = 0;
+    let mut positions: Vec<usize> = Vec::new();
+    for raw in &section.pages { positions.push(flat); flat += raw.pages.len(); }
+    let mut built: Vec<(usize, Vec<BookPage>)> = Vec::new();
+    for (index, raw) in section.pages.iter().enumerate() {
+        if raw.kind.as_deref() != Some("mantle:index") { continue; }
+        let Some(BookPage::Opaque { data, .. }) = raw.pages.first() else { continue };
+        let title = data.get("title").and_then(Nbt::as_str).map(str::to_owned);
+        let subtext = data.get("subText").and_then(Nbt::as_str).map(str::to_owned);
+        let hidden: Vec<&str> = match data.get("hidden") {
+            Some(Nbt::List(list)) => list.iter().filter_map(Nbt::as_str).collect(),
+            _ => Vec::new(),
+        };
+        let mut rows = Vec::new();
+        for (other, other_raw) in section.pages.iter().enumerate() {
+            if other == index { continue; }
+            let Some(name) = &other_raw.name else { continue };
+            if hidden.contains(&name.as_str()) { continue; }
+            let label = other_raw.title().map(str::to_owned).unwrap_or_else(|| name.clone());
+            rows.push(book_row(None, label, None, Some(positions[other])));
+        }
+        let intro = subtext.map(|text| vec![pluto_lib::BookText::plain(&text)]).unwrap_or_default();
+        built.push((index, paginate("mantle:index", title, intro, rows, Vec::new())));
+    }
+    for (index, pages) in built { section.pages[index].pages = pages; }
+}
+
+/// One ingredient of a captured crafting recipe: an item, or a tag (resolved through the item
+/// snapshot when a book builds, as the tag's first member).
+#[derive(Clone, Debug)]
+enum BookIngredient {
+    Item(Identifier),
+    Tag(Identifier),
+}
+
+/// The crafting recipes the book pages show, captured from the server data reload's recipes
+/// folder: recipe id to its nine grid cells (each cell's options) and its result.
+static BOOK_RECIPES: std::sync::OnceLock<std::sync::RwLock<std::collections::HashMap<String, (Vec<Vec<BookIngredient>>, Option<(Identifier, u32)>)>>> = std::sync::OnceLock::new();
+
+fn book_recipes() -> &'static std::sync::RwLock<std::collections::HashMap<String, (Vec<Vec<BookIngredient>>, Option<(Identifier, u32)>)>> {
+    BOOK_RECIPES.get_or_init(|| std::sync::RwLock::new(std::collections::HashMap::new()))
+}
+
+/// One ingredient JSON value's options: an item, a tag, or an array of either. The shipped form
+/// writes an ingredient as a bare string (`"minecraft:stick"`, or `"#minecraft:planks"` for a tag);
+/// the object form names `item` or `tag`.
+fn book_ingredient(value: &Value) -> Vec<BookIngredient> {
+    match value {
+        Value::Array(list) => list.iter().flat_map(book_ingredient).collect(),
+        Value::String(text) => match text.strip_prefix('#') {
+            Some(tag) => Identifier::parse(tag).ok().map(|tag| vec![BookIngredient::Tag(tag)]).unwrap_or_default(),
+            None => Identifier::parse(text).ok().map(|item| vec![BookIngredient::Item(item)]).unwrap_or_default(),
+        },
+        Value::Object(_) => {
+            if let Some(item) = value.get("item").and_then(Value::as_str).and_then(|id| Identifier::parse(id).ok()) { return vec![BookIngredient::Item(item)]; }
+            if let Some(tag) = value.get("tag").and_then(Value::as_str).and_then(|id| Identifier::parse(id).ok()) { return vec![BookIngredient::Tag(tag)]; }
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// Captures the shaped and shapeless crafting recipes of a data reload for the book pages.
+fn capture_crafting_recipes(files: &[(Identifier, Value)]) {
+    let mut captured = std::collections::HashMap::new();
+    for (id, value) in files {
+        let Some(kind) = value.get("type").and_then(Value::as_str) else { continue };
+        let result = value.get("result").and_then(|result| {
+            let item = match result {
+                Value::String(item) => Identifier::parse(item).ok(),
+                Value::Object(_) => result.get("id").or_else(|| result.get("item")).and_then(Value::as_str).and_then(|item| Identifier::parse(item).ok()),
+                _ => None,
+            }?;
+            let count = result.get("count").and_then(Value::as_u64).unwrap_or(1);
+            Some((item, u32::try_from(count).unwrap_or(1)))
+        });
+        let mut cells: Vec<Vec<BookIngredient>> = vec![Vec::new(); 9];
+        match kind {
+            "minecraft:crafting_shaped" => {
+                let Some(pattern) = value.get("pattern").and_then(Value::as_array) else { continue };
+                let Some(key) = value.get("key").and_then(Value::as_object) else { continue };
+                for (row, line) in pattern.iter().take(3).enumerate() {
+                    let Some(line) = line.as_str() else { continue };
+                    for (column, cell) in line.chars().take(3).enumerate() {
+                        if cell == ' ' { continue; }
+                        if let Some(ingredient) = key.get(&cell.to_string()) { cells[row * 3 + column] = book_ingredient(ingredient); }
+                    }
+                }
+            }
+            "minecraft:crafting_shapeless" => {
+                let Some(ingredients) = value.get("ingredients").and_then(Value::as_array) else { continue };
+                for (index, ingredient) in ingredients.iter().take(9).enumerate() { cells[index] = book_ingredient(ingredient); }
+            }
+            _ => continue,
+        }
+        captured.insert(id.to_string(), (cells, result));
+    }
+    if let Ok(mut held) = book_recipes().write() { *held = captured; }
+}
+
+/// Fills a decoded crafting page's grid and result from the captured recipes, when the capture
+/// has the page's recipe (tag ingredients resolve to the tag's first member in the item snapshot).
+fn fill_crafting(page: &mut BookPage, data: &GenData) {
+    let BookPage::Crafting { recipe, ingredients, result, .. } = page else { return };
+    let Ok(held) = book_recipes().read() else { return };
+    let Some((cells, captured_result)) = held.get(&recipe.to_string()) else { return };
+    *ingredients = cells.iter().map(|cell| cell.iter().filter_map(|ingredient| match ingredient {
+        BookIngredient::Item(item) => Some(pluto_lib::ItemSlot::new(item.clone(), 1)),
+        BookIngredient::Tag(tag) => data.items.as_ref().and_then(|items| items.get_tag(tag)).and_then(|members| members.iter().next()).map(|item| pluto_lib::ItemSlot::new(item.clone(), 1)),
+    }).collect()).collect();
+    *result = captured_result.as_ref().map(|(item, count)| pluto_lib::ItemSlot::new(item.clone(), *count));
+}
+
 /// Builds one page entry of a section file: blanks and padding markers become blank pages; a data
 /// file's generated kinds (tool, modifier, the material contents) build their content when their
 /// registry is at hand and ride as their decoded form otherwise; every other kind decodes as before.
@@ -1208,6 +1363,9 @@ fn build_raw_page(read: &Read<'_>, book: &str, language: &str, entry: &Value, da
                 }
             } else {
                 raw.pages = opaque(&kind, &json);
+                if kind == "mantle:crafting" {
+                    for page in &mut raw.pages { fill_crafting(page, data); }
+                }
             }
         }
     }
@@ -1243,6 +1401,7 @@ pub(crate) fn build_book(read: &Read<'_>, name: &str, language: &str, data: &Gen
                 Some(refs) => section.pages = refs.iter().map(|entry| build_raw_page(read, name, language, entry, data)).collect(),
                 None => eprintln!("Tinkers: book {name}'s section {section_name} does not load"),
             }
+            index_transform(&mut section);
         }
         sections.push(section);
     }
@@ -1307,6 +1466,11 @@ pub(crate) fn register() {
     });
     ResourceManagerHelper::get(ResourceType::ClientResources)
         .register_reload_listener(Identifier::new("tconstruct", "books").expect("valid listener id"), load_books);
+    // The crafting pages' grids come from the crafting recipes themselves, captured at the data
+    // reload; the books rebuild afterwards through the same triggers as the other registries.
+    let _ = ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+        Identifier::new("tconstruct", "book_recipes").expect("valid listener id"), "recipe",
+        |files| { capture_crafting_recipes(files); Ok(()) });
     // The generated pages come from the registries; when the materials land (a local load or a remote
     // snapshot), the books rebuild with them.
     crate::materials::MATERIALS_LOADED.register(|_| rebuild_books());
@@ -1521,6 +1685,59 @@ mod tests {
         assert!(rows.iter().any(|row| matches!(row, BookRow::Header { text, .. } if text == "book.tconstruct.fluid_effects.entity")));
         assert!(rows.iter().any(|row| matches!(row, BookRow::Entry { label, .. } if label == "● fluid_effect.tconstruct.extinguish")),
             "the entity list generates from the entry's effects");
+    }
+
+    #[test]
+    fn a_crafting_page_fills_its_grid_from_the_captured_recipes() {
+        capture_crafting_recipes(&[(Identifier::parse("tconstruct:tables/book_test_pattern").unwrap(), json!({
+            "type": "minecraft:crafting_shaped",
+            "pattern": ["ps", "sp"],
+            "key": {"p": "#minecraft:planks", "s": "minecraft:stick"},
+            "result": {"id": "tconstruct:pattern", "count": 6},
+        }))]);
+        let mut page = BookPage::from_json("mantle:crafting", &json!({"title": "Pattern", "recipe": "tconstruct:tables/book_test_pattern"})).unwrap();
+        fill_crafting(&mut page, &GenData::default());
+        match &page {
+            BookPage::Crafting { ingredients, result, .. } => {
+                assert_eq!(ingredients.len(), 9);
+                assert!(ingredients[0].is_empty(), "the tag cell stays empty without an item snapshot");
+                assert_eq!(ingredients[1].len(), 1);
+                assert_eq!(ingredients[1][0].item.to_string(), "minecraft:stick");
+                assert!(ingredients[8].is_empty(), "the third row stays empty");
+                assert_eq!(result.as_ref().map(|stack| (stack.item.to_string(), stack.count)), Some(("tconstruct:pattern".to_owned(), 6)));
+            }
+            other => panic!("a crafting page: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn an_index_page_lists_its_sections_pages_and_skips_the_hidden_ones() {
+        let mut files = fixture();
+        files.insert("book/materials_and_you/sections/introduction.json".to_owned(), serde_json::to_vec(&json!([
+            {"name": "index", "type": "mantle:index", "data": "intro/index.json"},
+            {"name": "welcome", "type": "mantle:text", "data": "intro/welcome.json"},
+            {"name": "craft", "type": "mantle:crafting", "data": "intro/pattern_craft.json"}
+        ])).unwrap());
+        files.insert("book/materials_and_you/en_us/intro/index.json".to_owned(), serde_json::to_vec(&json!({
+            "title": "Contents", "subText": "Start here.", "hidden": ["craft"]
+        })).unwrap());
+        let read = |path: &str| files.get(path).cloned();
+        let book = build_book(&read, "materials_and_you", "en_us", &GenData::default()).unwrap();
+        let first = &book.sections[0].pages[0];
+        match first {
+            BookPage::Table { kind, rows, .. } => {
+                assert_eq!(kind, "mantle:index");
+                assert_eq!(rows.len(), 1, "only the welcome page is listed (the craft page is hidden, the index itself is not): {rows:?}");
+                match &rows[0] {
+                    BookRow::Entry { label, link, .. } => {
+                        assert_eq!(label, "Materials & You");
+                        assert_eq!(*link, Some(1), "the welcome page is the section's second page");
+                    }
+                    other => panic!("a listing row: {other:?}"),
+                }
+            }
+            other => panic!("the index page became a listing, not {other:?}"),
+        }
     }
 
     #[test]

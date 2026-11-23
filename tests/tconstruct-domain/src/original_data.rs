@@ -3257,8 +3257,8 @@ fn every_shipped_fluid_effect_decodes_and_the_conditioned_ones_wait_for_their_wo
 fn the_six_books_build_from_their_shipped_mantle_data() {
     let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/assets/tconstruct");
     let read = |path: &str| std::fs::read(assets.join(path)).ok();
-    let expected = [("materials_and_you", 8, 30), ("puny_smelting", 12, 55), ("mighty_smelting", 10, 43),
-                    ("tinkers_gadgetry", 11, 39), ("fantastic_foundry", 8, 39), ("encyclopedia", 13, 36)];
+    let expected = [("materials_and_you", 8, 30), ("puny_smelting", 12, 55), ("mighty_smelting", 10, 44),
+                    ("tinkers_gadgetry", 11, 40), ("fantastic_foundry", 8, 39), ("encyclopedia", 13, 36)];
     let mut total = 0;
     for (name, sections, pages) in expected {
         let book = crate::books::build_book(&read, name, "en_us", &crate::books::GenData::default()).unwrap_or_else(|error| panic!("{name}: {error}"));
@@ -3267,7 +3267,7 @@ fn the_six_books_build_from_their_shipped_mantle_data() {
         assert!(book.sections.iter().all(|section| !section.pages.is_empty()), "{name} has an empty section");
         total += pages;
     }
-    assert_eq!(total, 242);
+    assert_eq!(total, 244);
     let first = crate::books::build_book(&read, "materials_and_you", "en_us", &crate::books::GenData::default()).unwrap();
     assert_eq!(first.sections[0].name, "Introduction");
     assert_eq!(first.sections[0].pages[0].title(), Some("Materials & You"), "the welcome page opens the book");
