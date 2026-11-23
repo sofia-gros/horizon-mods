@@ -1,30 +1,30 @@
-//! PlutoLib's fishing reach, game side: casts, hooks and retrieves for a mod's rod, inside the game's
-//! own fishing tick. The rod's numbers arrive as plain data through `crate::entry::pluto_fishing_access`
-//! (the pure fishing API's profile, field for field); the formulas here are that API's, written out
-//! again because this code is part of the game, not of the mod's crate — the two are kept in step by
-//! the pure side's tests of the same numbers.
-//!
-//! What this does, after the original's `FishingModule` and `CombatFishingHook`:
-//! - a queued use with no hook out casts: the hook is the game's own `Hook`, built as its rod use
-//!   builds it, but with the profile's luck and lure and the combat cast's velocity (per axis, the
-//!   profile's velocity over the look vector's length plus a triangle spread of the inaccuracy).
-//! - a queued use with the combat hook out retrieves: a grounded grapple pulls the owner first; a
-//!   hooked entity is collected, hurt and pulled as the combat hook's `pullEntity` does; the catch
-//!   and the plain cases go through the game's own `retrieve_hook`, loot and all; the rod's wear is
-//!   reported to the mod, which damages its own tool (the game's `damage_held` would wear the item's
-//!   own damage, which is not where a mod tool keeps its wear).
-//! - a queued use with a vanilla hook out reels it in at the vanilla cost.
-//!
-//! Reductions, each for a named reason: the pull a hooked entity gets is the combat pull (the game's
-//! own retrieve is not run for a hooked combat hook, so nothing pulls twice); a collecting hook pulls
-//! its item strongly instead of the original's `playerTouch`, so the item arcs to the owner and is
-//! picked up on contact, and the discard-on-failed-pickup list is not applied; the hurt carries no
-//! attacker (the game's hurt-by-entity call resolves an attacker by entity id, and the hook's owner
-//! here is the local player, whose server id this code does not hold), so no kill credit or last-hurt
-//! mark is set, and the launcher-hit modifier hooks do not run; a boat, cart or TNT is pulled but not
-//! hurt (the hurt call reaches living beings and armour stands); the drill's spin attack has no game
-//! surface and is not started; the wall-stick of a grapple hook (`onHitBlock`) has no hook state here,
-//! so a grapple against a wall retrieves as a flying hook, not a grounded one.
+// PlutoLib's fishing reach, game side: casts, hooks and retrieves for a mod's rod, inside the game's
+// own fishing tick. The rod's numbers arrive as plain data through `crate::entry::pluto_fishing_access`
+// (the pure fishing API's profile, field for field); the formulas here are that API's, written out
+// again because this code is part of the game, not of the mod's crate — the two are kept in step by
+// the pure side's tests of the same numbers.
+//
+// What this does, after the original's `FishingModule` and `CombatFishingHook`:
+// - a queued use with no hook out casts: the hook is the game's own `Hook`, built as its rod use
+//   builds it, but with the profile's luck and lure and the combat cast's velocity (per axis, the
+//   profile's velocity over the look vector's length plus a triangle spread of the inaccuracy).
+// - a queued use with the combat hook out retrieves: a grounded grapple pulls the owner first; a
+//   hooked entity is collected, hurt and pulled as the combat hook's `pullEntity` does; the catch
+//   and the plain cases go through the game's own `retrieve_hook`, loot and all; the rod's wear is
+//   reported to the mod, which damages its own tool (the game's `damage_held` would wear the item's
+//   own damage, which is not where a mod tool keeps its wear).
+// - a queued use with a vanilla hook out reels it in at the vanilla cost.
+//
+// Reductions, each for a named reason: the pull a hooked entity gets is the combat pull (the game's
+// own retrieve is not run for a hooked combat hook, so nothing pulls twice); a collecting hook pulls
+// its item strongly instead of the original's `playerTouch`, so the item arcs to the owner and is
+// picked up on contact, and the discard-on-failed-pickup list is not applied; the hurt carries no
+// attacker (the game's hurt-by-entity call resolves an attacker by entity id, and the hook's owner
+// here is the local player, whose server id this code does not hold), so no kill credit or last-hurt
+// mark is set, and the launcher-hit modifier hooks do not run; a boat, cart or TNT is pulled but not
+// hurt (the hurt call reaches living beings and armour stands); the drill's spin attack has no game
+// surface and is not started; the wall-stick of a grapple hook (`onHitBlock`) has no hook state here,
+// so a grapple against a wall retrieves as a flying hook, not a grounded one.
 
 use super::{cast_direction, pull_item, Hook, State};
 use crate::entry::pluto_fishing_access as access;

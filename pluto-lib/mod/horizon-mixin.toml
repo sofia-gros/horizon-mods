@@ -1136,7 +1136,7 @@ id = "pluto-block-fire-odds"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_fire_odds"
 kind = "HEAD"
 helper = "pluto-block-fire-odds.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "_dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
 
 [[injection]]
 id = "pluto-block-may-place-on"
@@ -1984,7 +1984,7 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-frame-from-nbt"
-target = "horizon_client::entity_nbt::item_frame_from_nbt"
+target = "horizon_client::entity_nbt::hanging::item_frame_from_nbt"
 kind = "HEAD"
 cancellable = true
 helper = "pluto-hanging-frame-from-nbt.rs"
@@ -2004,7 +2004,7 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-frame-analog"
-target = "horizon_client::game::GameLevel<'_>::item_frame_analog_output"
+target = "horizon_client::game::<GameLevel<'_> as LevelAccess>::item_frame_analog_output"
 kind = "HEAD"
 cancellable = true
 helper = "pluto-hanging-frame-analog.rs"
@@ -2028,14 +2028,11 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-frame-explosion-return"
-target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
-kind = "RETURN"
-helper = "pluto-hanging-frame-explosion.rs"
+target = "horizon_client::game::explosion::Game<'_>::explosion_breaks_decorations"
+kind = "HEAD"
+helper = "pluto-hanging-frame-explosion-return.rs"
 bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
- { name = "blast", ty = "[f64; 3]", value = "blast" },
- { name = "diameter", ty = "f64", value = "diameter" },
- { name = "interaction", ty = "super::explosion::BlockInteraction", value = "interaction" }
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
 
 [[injection]]
@@ -2069,7 +2066,7 @@ bindings = [
 id = "pluto-hanging-frame-set-item"
 target = "horizon_client::game::frames::Game<'_>::set_frame_item"
 kind = "HEAD"
-helper = "pluto-hanging-frame-hit.rs"
+helper = "pluto-hanging-frame-set-item.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "i", ty = "usize", value = "i" },
@@ -2220,15 +2217,15 @@ target = "horizon_client::game::creatures::Game<'_>::add_projectile"
 kind = "HEAD"
 helper = "pluto-projectile-spawn-head.rs"
 bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
- { name = "projectile", ty = "&mut Projectile", value = "&mut p" }
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "&mut crate::projectiles::Projectile", value = "&mut p" }
 ]
 
 [[injection]]
 id = "pluto-projectile-flight-return"
-target = "horizon_client::game::creatures::Game<'_>::tick_projectiles"
-kind = "RETURN"
+target = "horizon_client::game::fangs::Game<'_>::tick_fangs"
+kind = "HEAD"
 helper = "pluto-projectile-flight-return.rs"
 bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }
 ]
