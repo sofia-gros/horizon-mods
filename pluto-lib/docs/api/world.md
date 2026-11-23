@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, every entity summoned in `summons`, every explosion asked for in `explosions`, every particle send asked for in `particles`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every particle send asked for in `particles`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -616,6 +616,25 @@ with_world(&mut ops, || {
 });
 assert_eq!(ops.brushes.len(), 2);
 assert_eq!(ops.brushes[0].pos, [0, 64, 0]);
+```
+
+### `BrushRecord`
+
+One brush stroke a `MemoryWorldOps` was asked to apply, as it was asked: `dimension`, `pos` and `face`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:suspicious_sand".to_owned());
+with_world(&mut ops, || {
+    assert!(world.brush_block([0, 64, 0], [0, 1, 0]));
+});
+let record = &ops.brushes[0];
+assert_eq!(record.dimension, "minecraft:overworld");
+assert_eq!(record.pos, [0, 64, 0]);
+assert_eq!(record.face, [0, 1, 0]);
 ```
 
 ### `ExplosionInteraction`

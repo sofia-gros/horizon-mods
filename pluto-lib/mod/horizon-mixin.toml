@@ -1095,6 +1095,9 @@ bindings = [{ name = "resources", ty = "&Resources", value = "resources" }]
 # game is currently using (the startup table, a world's pack table after open or /reload, or a
 # server's synced table) so the recipe API's cooking lookup can answer what a furnace does to
 # an item. The creature tick refreshes the publication whenever the table in use changes.
+# The same tick also applies the brush strokes a mod ordered: the flush in the game's brush
+# module applies the queued strokes to its brushable block entities. One injection per place:
+# both callbacks run from this single head injection, cooking first.
 [[module]]
 id = "pluto-cooking-recipes"
 file = "crates/horizon-client/src/entry.rs"
@@ -1107,15 +1110,6 @@ id = "pluto-cooking-recipes-tick"
 target = "horizon_client::game::creatures::Game<'_>::tick_creatures"
 kind = "HEAD"
 helper = "pluto-cooking-recipes-tick.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
-# The brush strokes a mod orders land at the same creature tick: the flush in the game's
-# brush module applies the queued strokes to its brushable block entities.
-[[injection]]
-id = "pluto-brush-flush-head"
-target = "horizon_client::game::creatures::Game<'_>::tick_creatures"
-kind = "HEAD"
-helper = "pluto-brush-flush-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 # A dig is worked out: the level's build range is published for the dig report the mods are
