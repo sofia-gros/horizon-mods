@@ -1900,9 +1900,13 @@ impl EntityOps for HostEntities {
         let Ok(id) = u32::try_from(id) else { return false };
         let host = self.host.get();
         // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
-        // another entity is moved keeping the way it faces. A player is reached by neither call — the
-        // host has no call that moves a player — so a player's teleport answers false here.
+        // a player is moved by the game's own server teleport, queued through the player teleport
+        // transport and applied at the level's rider synchronisation; another entity is moved
+        // keeping the way it faces.
         if host.teleport_mob(&self.dimension, id, pos) {
+            return true;
+        }
+        if queue_player_teleport(host, &self.dimension, i32::try_from(id).unwrap_or(-1), pos) {
             return true;
         }
         let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
@@ -2418,6 +2422,22 @@ fn apply_carried_edits(host: &mut dyn Host, player: u128, edits: Vec<entity_even
     }
 }
 
+/// Queues a server teleport of the player `id` names in `dimension` through the player teleport
+/// transport: the game's own server teleport (the call /tp uses) applies it at the level's rider
+/// synchronisation, so an accepted request answers true and lands by the next tick. The player list
+/// names players by entity id (0 for the owner of a single-player world); the owner match is only
+/// trusted when `id` does not name a reachable non-player entity. False when `id` names no player
+/// on the server or the queue refuses the request.
+fn queue_player_teleport(host: &mut dyn Host, dimension: &str, id: i32, pos: [f64; 3]) -> bool {
+    let names_other_entity = u32::try_from(id).ok().and_then(|id| host.entity(id))
+        .is_some_and(|entity| host.entity_kind(entity).as_deref() != Some("minecraft:player"));
+    if names_other_entity { return false; }
+    let player = host.acting_player().filter(|acting| acting.entity_id == id || acting.entity_id == 0)
+        .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+    let Some(player) = player else { return false };
+    horizon_client::game::pluto_entity_teleport_access::request_teleport(dimension, player.uuid, pos, player.yaw, player.pitch)
+}
+
 /// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
 /// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
 fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
@@ -2496,10 +2516,11 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             }
             EntityAction::Teleport { target, position } => {
                 // A mob is teleported by the game's own call (its navigation stops, its fall distance
-                // resets); another entity is moved keeping the way it faces. A player is reached by
-                // neither — the host has no call that moves a player — so a player's teleport is skipped.
+                // resets); a player is moved by the game's own server teleport, queued through the
+                // player teleport transport; another entity is moved keeping the way it faces.
                 let Ok(id) = u32::try_from(id_of(target)) else { continue };
                 if host.teleport_mob(dimension, id, position) { continue; }
+                if queue_player_teleport(host, dimension, id_of(target), position) { continue; }
                 let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
                 host.move_entity(dimension, id, position, rotation[0], rotation[1]);
             }

@@ -1456,6 +1456,23 @@ kind = "HEAD"
 helper = "pluto-entity-ride-drain-head.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
 
+# Player teleport transport for the entity reach: a queue of player teleports,
+# applied by the game's own server teleport call at the head of its rider
+# synchronisation (the passenger transport's drain point).
+[[module]]
+id = "pluto-entity-teleport-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_entity_teleport_access"
+source = "pluto-entity-teleport-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-entity-teleport-drain"
+target = "horizon_client::game::passengers::Game<'_>::sync_riders"
+kind = "HEAD"
+helper = "pluto-entity-teleport-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
 [[injection]]
 id = "pluto-entity-seat-player"
 target = "horizon_client::game::seats::Game<'_>::seat"

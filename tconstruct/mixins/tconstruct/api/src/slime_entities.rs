@@ -59,8 +59,8 @@
 //!   original's `dropCustomDeathLoot` shape already (looting-scaled roll, the same durability
 //!   formula, the slot cleared), and the one class rule on top — the chance capped at 0.25 for
 //!   size > 1 — is registered as the living behaviour's equipment drop chance for all three types.
-//!   One host nuance differs from the original for every mob, not just these: a recorded chance of
-//!   exactly 0 never drops, where the original's roll could still drop it at high looting.
+//!   The looting of the killing blow reaches the roll through the drop chance context, so a
+//!   recorded chance of exactly 0 still drops at looting × 1%, as the original's roll does.
 //!
 //! SkySlimeEntity: jump power sqrt(size) x block jump factor / 2 (registered). Its `causeFallDamage`
 //! is registered as the living behaviour's cause-fall override: falling more than 2 blocks bounces —
@@ -81,9 +81,10 @@
 //! 16 candidate positions, a candidate refused when either block the body would occupy is solid
 //! or liquid (read through the world reach, where the original tests the entity's own collision
 //! box), the `tconstruct:slime_teleport` sound at the origin and the destination, and a passenger
-//! leaves its vehicle before it moves. What still differs: the reach never moves a player (the
-//! original teleports players too), and the vertical destination clamps to the overworld build
-//! range instead of the dimension's own heights.
+//! leaves its vehicle before it moves. Players are teleported too: the reach queues them through
+//! the player teleport transport, and the game's own server teleport applies the request at the
+//! level's rider synchronisation, so a player's teleport also lands at most a tick after the hit.
+//! The vertical destination clamps to the dimension's own build range.
 //! The hurt-side trigger approximates the original's health-decreased check with the damage event's
 //! post-absorption amount, so a fully absorbed hit inside the invulnerability window can teleport
 //! where the original would not.
@@ -463,9 +464,14 @@ fn teleport_draw() -> u64 {
 fn teleport_double() -> f64 { (teleport_draw() >> 11) as f64 / (1u64 << 53) as f64 }
 
 /// TeleportHelper.randomNearbyTeleport's destination: diameter 16 around the origin, the vertical
-/// clamped to the build range (the original clamps to the dimension's own heights).
-pub(crate) fn teleport_destination(origin: [f64; 3], dx: f64, dy: i32, dz: f64) -> [f64; 3] {
-    [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(-64.0, 320.0), origin[2] + (dz - 0.5) * 16.0]
+/// clamped to the dimension's own build range (the original clamps to the dimension's
+/// `minBuildHeight` and logical height: the overworld −64..319, the nether and the end 0..255).
+pub(crate) fn teleport_destination(origin: [f64; 3], dimension: &str, dx: f64, dy: i32, dz: f64) -> [f64; 3] {
+    let (min_y, max_y) = match dimension {
+        "minecraft:the_nether" | "minecraft:the_end" => (0.0, 255.0),
+        _ => (-64.0, 319.0),
+    };
+    [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(min_y, max_y), origin[2] + (dz - 0.5) * 16.0]
 }
 
 /// Whether a block is a liquid a teleport refuses to land in: the vanilla fluid blocks and
@@ -499,7 +505,7 @@ fn random_nearby_teleport(id: u32, dimension: &str) {
     if EntityReach::vehicle_of(id as u64).is_some() { EntityReach::stop_riding(id as u64); }
     let world = World::new(dimension);
     for _ in 0..16 {
-        let destination = teleport_destination(origin, teleport_double(), (teleport_draw() % 16) as i32 - 8, teleport_double());
+        let destination = teleport_destination(origin, dimension, teleport_double(), (teleport_draw() % 16) as i32 - 8, teleport_double());
         if teleport_lands(&world, destination) {
             EntityReach::teleport(id as u64, destination);
             world.play_sound("tconstruct:slime_teleport", origin, 1.0, 1.0);
