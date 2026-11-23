@@ -15,6 +15,10 @@ from port import checked_files
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# The pipes consumer bundle, laid out exactly like the Tinkers bundle
+# (port.BUNDLE): <mod>/mixins/<mod>/{horizon-mixin.toml, api/}.
+PIPES_BUNDLE = Path('pipes/mixins/pipes')
+
 
 def prepare(prepared):
     prepared = prepared.resolve()
@@ -59,7 +63,7 @@ def prepare(prepared):
     # Second consumer (build-test composition): the pipes mod's API crate,
     # staged with the same host rewrite and bundle edge as the tconstruct
     # consumer. Its manifest carries the same reviewed dependency allowlist.
-    pipes_source = ROOT / 'pipes/mixins/pipes/api'
+    pipes_source = ROOT / PIPES_BUNDLE / 'api'
     pipes_manifest = (pipes_source / 'Cargo.toml').read_text(encoding='utf-8')
     pipes_parsed = tomllib.loads(pipes_manifest)
     if pipes_parsed['package']['name'] != 'mod-pipes':

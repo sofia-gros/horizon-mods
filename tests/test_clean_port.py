@@ -26,6 +26,7 @@ class CleanPort(unittest.TestCase):
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / rel, dst)
         shutil.copytree(ROOT / port.BUNDLE, self.root / port.BUNDLE)
+        shutil.copytree(ROOT / 'pipes/mixins/pipes', self.root / 'pipes/mixins/pipes')
 
     def test_package_contains_only_checked_product_and_never_overwrites(self):
         output = self.root / '.local/test.hnmod'
@@ -59,6 +60,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/common.rs',
                 'mixins/tconstruct_native/api/src/conditional_stat.rs',
                 'mixins/tconstruct_native/api/src/conditions.rs',
+                'mixins/tconstruct_native/api/src/conducting.rs',
                 'mixins/tconstruct_native/api/src/config.rs',
                 'mixins/tconstruct_native/api/src/convention_tags.rs',
                 'mixins/tconstruct_native/api/src/crafting_repair.rs',
@@ -80,6 +82,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/entity_facts.rs',
                 'mixins/tconstruct_native/api/src/fancy_gadgets.rs',
                 'mixins/tconstruct_native/api/src/faucet.rs',
+                'mixins/tconstruct_native/api/src/fishing_hook.rs',
                 'mixins/tconstruct_native/api/src/flight_hook.rs',
                 'mixins/tconstruct_native/api/src/fluid_cannon.rs',
                 'mixins/tconstruct_native/api/src/fluid_defs.rs',
@@ -109,6 +112,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/loot_modifier_hook.rs',
                 'mixins/tconstruct_native/api/src/loot_modifiers.rs',
                 'mixins/tconstruct_native/api/src/material_recipes.rs',
+                'mixins/tconstruct_native/api/src/material_render.rs',
                 'mixins/tconstruct_native/api/src/material_snapshot.rs',
                 'mixins/tconstruct_native/api/src/material_stats.rs',
                 'mixins/tconstruct_native/api/src/material_sync.rs',
@@ -128,6 +132,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/mining_speed.rs',
                 'mixins/tconstruct_native/api/src/mob_disguise.rs',
                 'mixins/tconstruct_native/api/src/mob_disguise_hook.rs',
+                'mixins/tconstruct_native/api/src/mob_equipment.rs',
                 'mixins/tconstruct_native/api/src/model_flags.rs',
                 'mixins/tconstruct_native/api/src/modifier_entries.rs',
                 'mixins/tconstruct_native/api/src/modifier_module_types.rs',
@@ -166,6 +171,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/station_layout_order.rs',
                 'mixins/tconstruct_native/api/src/station_layouts.rs',
                 'mixins/tconstruct_native/api/src/station_menu.rs',
+                'mixins/tconstruct_native/api/src/swapping_recipes.rs',
                 'mixins/tconstruct_native/api/src/tables/input_consumption.rs',
                 'mixins/tconstruct_native/api/src/tables/lazy_result.rs',
                 'mixins/tconstruct_native/api/src/tables/mod.rs',
