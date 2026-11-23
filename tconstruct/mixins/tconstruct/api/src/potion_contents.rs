@@ -1,16 +1,19 @@
 //! A potion's contents (PotionUtils.getPotion): the effects a potion ID carries.
 //!
-//! No PlutoLib reach hands out a potion's effects — the host keeps potions in its own
-//! code and its mod API has no potion call, the same gap `fluid_world` records for the
-//! potion fluid effects — so this reads empty today. The tipped application in
-//! `flight_hook` runs against it exactly as the fluid effects run against theirs: the
-//! wiring is complete, and the contents arrive when a potion reach does.
+//! PlutoLib's potion reach reads the game's own potion registry (`pluto_lib::Potions`),
+//! so the effects are the game's, and a potion the game does not know carries none —
+//! the original's tipped module does nothing for an invalid ID the same way. The tipped
+//! application in `flight_hook` runs against these.
 use crate::fluid_effects::PotionEffect;
-use pluto_lib::Identifier;
+use pluto_lib::{Identifier, Potions};
 
-/// The effects of the potion `potion` (empty while no reach reports potion contents).
-pub(crate) fn effects(_potion: &Identifier) -> Vec<PotionEffect> {
-    Vec::new()
+/// The effects of the potion `potion` (empty when the game has no potion under that ID).
+pub(crate) fn effects(potion: &Identifier) -> Vec<PotionEffect> {
+    Potions::effects(potion)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|fact| PotionEffect { effect: fact.effect, duration: fact.duration, amplifier: fact.amplifier, instant: fact.instant })
+        .collect()
 }
 
 /// TippedModule's divisor for a tipped entry of the given int level:
