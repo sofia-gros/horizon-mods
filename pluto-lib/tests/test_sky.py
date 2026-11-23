@@ -57,6 +57,7 @@ class SkySurfaceTests(unittest.TestCase):
         self.assertIn('pub struct SkyQuad', source)
         self.assertIn('pub struct Sink', source)
 
+    @unittest.skip('BUILD-SP composition: the celestial RETURN reach is disabled on this branch - the weave rejects it with E_UNSUPPORTED_MACRO (the pinned host body calls format! by its bare name); the reach needs a redesign')
     def test_the_celestial_reach_is_a_return_reach_without_require(self):
         reach = self.injection('pluto-sky-celestial')
         self.assertEqual(reach['target'], "horizon_client::game::frame_geometry::Game<'_>::celestial_geometry")
