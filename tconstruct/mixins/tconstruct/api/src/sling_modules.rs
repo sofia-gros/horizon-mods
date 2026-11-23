@@ -202,10 +202,10 @@ pub(crate) struct SlingForce {
 
 impl SlingForce {
     /// `None` when a predicate or a formula variable names an input this port does not
-    /// hold — shipped: the knockback modifier's own sling force names the holder's
-    /// `tconstruct:generic.knockback_multiplier` attribute, which the host does not have,
-    /// so that one instance stays unbound while the target instance (a plain formula)
-    /// binds.
+    /// hold. The knockback modifier's own sling force names two of the holder's
+    /// attributes: the knockback resistance, which no report carries and so reads its
+    /// fallback, and `tconstruct:generic.knockback_multiplier`, an attribute Tinkers
+    /// declares itself, which reads the holder's value as of their last tick.
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let Some(target) = LivingPredicate::decode(fields.get("target"))? else { return Ok(None) };
         let Some(holder) = LivingPredicate::decode(fields.get("holder"))? else { return Ok(None) };
@@ -393,19 +393,39 @@ mod tests {
     }
 
     #[test]
-    fn the_plain_sling_force_formula_binds_and_the_attribute_one_does_not() {
+    fn the_plain_sling_force_formula_binds() {
         // padded's instance: a formula over $value and $level only.
         let plain = SlingForce::decode(&fields(json!({
             "formula": ["$value", 2.0, "$level", "^", "/"], "percent": false,
             "sling": {"type": "tconstruct:tag", "tag": "tconstruct:knockback_slings"}
         }))).unwrap();
         assert!(plain.is_some());
-        // knockback's own instance: its variables read the knockback multiplier attribute
-        // the host does not have, so the formula cannot decode and the module stays unbound.
-        let attributed = SlingForce::decode(&fields(json!({
-            "formula": ["$value"], "percent": false,
-            "variables": {"knockback_multiplier": {"type": "tconstruct:entity", "attribute": "tconstruct:generic.knockback_multiplier", "entity_type": "tconstruct:attribute", "fallback": 1.0}}
-        }))).unwrap();
-        assert!(attributed.is_none());
+    }
+
+    #[test]
+    fn the_knockback_sling_force_binds_and_reads_the_holders_attributes() {
+        // knockback's own instance, as shipped: its variables read the holder's knockback
+        // resistance (a fact no report carries, so its fallback of 0 stands) and the
+        // knockback multiplier, an attribute Tinkers declares itself, read as of the
+        // holder's last tick (its default of 1 while nothing bends it).
+        let module = SlingForce::decode(&fields(json!({
+            "formula": [0.25, "$level", "*", "$multiplier", "*", 1.0, "$knockback_resistance", "-", "*", "$knockback_multiplier", "*", "$value", "+"],
+            "percent": false,
+            "sling": {"type": "tconstruct:tag", "tag": "tconstruct:knockback_slings/self"},
+            "variables": {
+                "knockback_multiplier": {"type": "tconstruct:entity", "attribute": "tconstruct:generic.knockback_multiplier", "entity_type": "tconstruct:attribute", "fallback": 1.0},
+                "knockback_resistance": {"type": "tconstruct:entity", "attribute": "minecraft:generic.knockback_resistance", "entity_type": "tconstruct:attribute", "fallback": 0.0}
+            }
+        }))).unwrap().expect("the shipped knockback sling force binds");
+        // 0.25 * level 2 * multiplier 3 * (1 - 0) * 1 + value 10 = 11.5.
+        let entry = Entry::new(Identifier::parse("tconstruct:knockback").unwrap(), 2);
+        let nbt = pluto_lib::NbtCompound::new();
+        let holder_state = pluto_lib::EntityState::default();
+        let entities = crate::entity_facts::Entities { attacker: Some(&holder_state), target: None };
+        let tool = ToolView::with(&nbt, entities);
+        let bonking = Identifier::parse("tconstruct:bonking").unwrap();
+        let in_tag = |id: &Identifier, tag: &Identifier| id == &bonking && tag.to_string() == "tconstruct:knockback_slings/self";
+        let force = crate::entity_facts::with_holder_entity(Some(7), || module.apply(&entry, true, &tool, &LivingState::default(), &LivingState::default(), &bonking, &in_tag, 10.0, 3.0));
+        assert_eq!(force, 11.5);
     }
 }
