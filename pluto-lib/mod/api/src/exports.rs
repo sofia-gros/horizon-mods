@@ -48,6 +48,7 @@ pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemG
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
 pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, InventoryTick, KeyPress, MemoryPlayerOps, PlayerInventoryEvents, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
+pub use crate::pure::potion_api_v1::{self, PotionEffectFact, Potions};
 pub use crate::pure::screen_handler_api_v1::{
     self, ContainerAccept, MenuButton, MenuAccess, SceneBlock, SceneEntity, SceneView, SlotAction, SlotClick, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenScroll, ScreenTooltip, SlotRule,
 };

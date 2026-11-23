@@ -46,6 +46,7 @@ pub mod neighbour_api_v1;
 pub mod fluid_storage_api_v1;
 pub mod item_storage_api_v1;
 pub mod player_api;
+pub mod potion_api_v1;
 pub mod projectile_api_v1;
 pub mod projectile_events_v1;
 pub mod resource_loader_v0;

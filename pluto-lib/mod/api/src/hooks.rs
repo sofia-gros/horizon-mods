@@ -85,6 +85,23 @@ pub fn hooks() -> Box<dyn Hooks> {
         code: horizon_client::lang::code,
         get: |key| horizon_client::lang::has(key).then(|| horizon_client::lang::get(key)),
     });
+    crate::pure::potion_api_v1::set_host(crate::pure::potion_api_v1::HostPotions {
+        effects: |id| {
+            let facts = horizon_client::pluto_potions::potion(id)?;
+            Some(
+                facts
+                    .effects
+                    .iter()
+                    .map(|(raw, duration, amplifier)| {
+                        let effect = horizon_client::pluto_potions::effect(raw);
+                        let canonical = effect.map_or(*raw, |effect| effect.canonical_id);
+                        let instant = effect.is_some_and(|effect| effect.instant);
+                        (canonical.to_string(), *duration, *amplifier, instant)
+                    })
+                    .collect(),
+            )
+        },
+    });
     horizon_client::mesher::pluto_block_colors::set_provider(
         crate::pure::color_provider_api_v1::has_block_provider,
         crate::pure::color_provider_api_v1::block_color_from_host,
