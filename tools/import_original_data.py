@@ -401,16 +401,16 @@ FLUID_RECIPE_TYPES = {
 
 
 def copy_fluid_recipes():
-    """The smeltery domain's recipes, byte for byte, under recipes/fluids with the original's relative path. Other-mod
-    integration (the compat folder) is left out. A forge:conditional file is kept when any wrapped recipe is of a listed
-    type. The sand and clay cast pattern recipes of the part builder (item_part_builder) in smeltery/casts come with them."""
+    """The smeltery domain's recipes, byte for byte, under recipes/fluids with the original's relative path,
+    the compat folder with the rest: its recipes carry their forge:mod_loaded load conditions, which the
+    loader evaluates, as the integration alloys' mantle:tag_filled conditions already ship. A forge:conditional
+    file is kept when any wrapped recipe is of a listed type. The sand and clay cast pattern recipes of the
+    part builder (item_part_builder) in smeltery/casts come with them."""
     if FLUID_RECIPE_TARGET.exists():
         shutil.rmtree(FLUID_RECIPE_TARGET)
     count = 0
     for path in sorted(FLUID_RECIPE_SOURCE.rglob('*.json')):
         relative = path.relative_to(FLUID_RECIPE_SOURCE)
-        if relative.parts[0] == 'compat':
-            continue
         data = json.loads(path.read_text(encoding='utf-8'))
         types = [entry['recipe']['type'] for entry in data['recipes']] if data['type'] == 'forge:conditional' else [data['type']]
         if not any(kind in FLUID_RECIPE_TYPES or (kind == 'tconstruct:item_part_builder' and relative.parts[:2] == ('smeltery', 'casts')) for kind in types):
@@ -1961,10 +1961,10 @@ WORLD_ISLAND_TEMPLATES = {'blood': 'generated', 'earth': 'generated', 'ender': '
 ISLAND_SIZES = ['0x1x0', '2x2x4', '4x1x6', '8x1x11', '11x1x11']
 # The sky and ender geode modifiers select biomes with Forge biome predicates (forge:and/or/not), which the neoforge
 # HolderSet form cannot express. The ender predicate (the end, minus the main island) expands exactly to these four
-# biomes; the sky predicate (the overworld, minus its oceans, beaches and rivers) has no exact HolderSet form, so the
-# overworld tag ships and sky geodes also generate under those water biomes.
+# biomes; the sky predicate (the overworld, minus its oceans, deep oceans, beaches and rivers) expands to the
+# explicit set write_biome_spawn_tags computes from the pinned base game's biome tags, shipped as a tag of our own.
 WORLD_BIOME_PREDICATES = {
-    'sky_geode': '#minecraft:is_overworld',
+    'sky_geode': '#tconstruct:has_sky_geode',
     'ender_geode': ['minecraft:end_highlands', 'minecraft:end_midlands', 'minecraft:small_end_islands', 'minecraft:end_barrens'],
 }
 # Items that hold fluid, with their stack size (TinkerFluids: the bottles stack to 16 and the soup bowl to 1, TinkerSmeltery: the copper can to 16).
@@ -2725,6 +2725,34 @@ def upgrade_feature(feature):
     return convert(body)
 
 
+def write_biome_spawn_tags():
+    """The explicit biome sets the original's Forge biome predicates name, expanded from the pinned base
+    game's biome tags: sky geodes generate in the overworld minus its oceans, deep oceans, beaches and
+    rivers, and terracubes spawn in the overworld minus the forge:no_default_monsters biomes (the mushroom
+    fields and the deep dark). The sets ship as tconstruct biome tags, which the modifiers name."""
+    base = ROOT / '.local/base-26.3/data/minecraft/tags/worldgen/biome'
+
+    def flatten(name):
+        values = []
+        for entry in json.loads((base / f'{name}.json').read_text(encoding='utf-8'))['values']:
+            entry = entry if isinstance(entry, str) else entry['id']
+            if entry.startswith('#'):
+                values += flatten(entry.split(':', 1)[1])
+            else:
+                values.append(entry)
+        return values
+
+    overworld = set(flatten('is_overworld'))
+    water = set()
+    for tag in ('is_ocean', 'is_deep_ocean', 'is_beach', 'is_river'):
+        water |= set(flatten(tag))
+    write_json(CONTENT_DATA / 'tconstruct/tags/worldgen/biome/has_sky_geode.json', {'values': sorted(overworld - water)})
+    no_default = json.loads((GENERATED_DATA / 'forge/tags/worldgen/biome/no_default_monsters.json').read_text(encoding='utf-8'))['values']
+    excluded = {entry if isinstance(entry, str) else entry['id'] for entry in no_default}
+    write_json(CONTENT_DATA / 'tconstruct/tags/worldgen/biome/terracube_spawns.json', {'values': sorted(overworld - excluded)})
+    return 2
+
+
 def copy_world_features():
     """Cobalt's configured and placed features and its biome modifier (the host reads `neoforge/biome_modifier` and the
     `forge:`/`neoforge:` types alike; the original's `forge:add_features` becomes `neoforge:add_features`)."""
@@ -2754,7 +2782,7 @@ def copy_world_features():
         if isinstance(modifier['biomes'], dict):
             modifier['biomes'] = WORLD_BIOME_PREDICATES[name]
         write_json(CONTENT_DATA / f'tconstruct/neoforge/biome_modifier/{name}.json', modifier)
-    return len(WORLD_FEATURES) * 2 + len(WORLD_CONFIGURED_FEATURES) + len(WORLD_BIOME_MODIFIERS) + copy_world_structures()
+    return len(WORLD_FEATURES) * 2 + len(WORLD_CONFIGURED_FEATURES) + len(WORLD_BIOME_MODIFIERS) + copy_world_structures() + write_biome_spawn_tags()
 
 
 def copy_world_structures():
@@ -2804,27 +2832,31 @@ def write_slime_entities():
     `minecraft:entity_data`, the form the base game's own eggs take), the entity loot tables through the same
     upgrade as the block tables, and the natural-spawn biome modifiers (`forge:add_spawns` becomes
     `neoforge:add_spawns`). Runs after copy_world_loot and copy_world_features, whose directory wipes it must
-    follow. The terracube modifier's biome predicate (overworld and not `forge:no_default_monsters`) widens
-    to the overworld tag: no biome-predicate form exists to express the exclusion, the same reduction the
-    geode modifiers carry. The entity types themselves, their class behaviour and their (unregistered) spawn
-    placements live in the api module `slime_entities.rs`."""
+    follow. The entity types themselves, their class behaviour and their (unregistered) spawn
+    placements live in the api module `slime_entities.rs`. The terracube predicate's exclusion (the
+    forge:no_default_monsters biomes) ships expanded as the terracube_spawns biome tag
+    (write_biome_spawn_tags), so the modifier names that tag instead of widening to the overworld."""
     for name in SLIME_ENTITIES:
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}_spawn_egg.json',
                    {'template': 'minecraft:slime_spawn_egg', 'components': {'minecraft:entity_data': {'id': f'tconstruct:{name}'}}}, compact=True)
         table = json.loads((GENERATED_DATA / 'tconstruct/loot_tables/entities' / f'{name}.json').read_text(encoding='utf-8'))
         write_json(CONTENT_DATA / 'tconstruct/loot_table/entities' / f'{name}.json', whole(upgrade_loot(table)))
+    # The fancy gadgets' armor stand entity is registered with the gadgets; the original's loot table for
+    # it is empty (the stand returns its item through its own death logic, not through the table).
+    table = json.loads((GENERATED_DATA / 'tconstruct/loot_tables/entities/armor_stand.json').read_text(encoding='utf-8'))
+    write_json(CONTENT_DATA / 'tconstruct/loot_table/entities/armor_stand.json', whole(upgrade_loot(table)))
     for name in SLIME_SPAWN_MODIFIERS:
         modifier = json.loads((GENERATED_DATA / 'tconstruct/forge/biome_modifier' / f'{name}.json').read_text(encoding='utf-8'))
         if modifier.get('type') != 'forge:add_spawns' or set(modifier) != {'type', 'biomes', 'spawners'}:
             raise SystemExit(f'biome modifier {name} is not a forge spawn modifier')
         biomes = modifier['biomes']
         if not isinstance(biomes, str):
-            biomes = '#minecraft:is_overworld'  # spawn_terracube's widened predicate, see above
+            biomes = '#tconstruct:terracube_spawns' if name == 'spawn_terracube' else '#minecraft:is_overworld'
         rows = modifier['spawners'] if isinstance(modifier['spawners'], list) else [modifier['spawners']]
         spawners = [{'type': spawner['type'], 'weight': spawner['weight'], 'minCount': spawner['minCount'], 'maxCount': spawner['maxCount']} for spawner in rows]
         write_json(CONTENT_DATA / 'tconstruct/neoforge/biome_modifier' / f'{name}.json',
                    {'type': 'neoforge:add_spawns', 'biomes': biomes, 'spawners': whole(spawners)})
-    return len(SLIME_ENTITIES) * 2 + len(SLIME_SPAWN_MODIFIERS)
+    return len(SLIME_ENTITIES) * 2 + len(SLIME_SPAWN_MODIFIERS) + 1
 
 
 # Forge's convention tags do not exist in the host: the vanilla items they stand for in the recipes of the smeltery blocks.
@@ -2835,7 +2867,7 @@ def write_slime_entities():
 # each read off the original's generated forge tags.
 GLASS_ITEMS = ['minecraft:glass', 'minecraft:tinted_glass'] + [f'minecraft:{color}_stained_glass' for color in (
     'white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black')]
-FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'], 'forge:gems/diamond': ['minecraft:diamond'],
+FORGE_TAGS = {'forge:ingots/copper': ['minecraft:copper_ingot'], 'forge:ingots/netherite': ['minecraft:netherite_ingot'], 'forge:ingots/gold': ['minecraft:gold_ingot'], 'forge:ingots/iron': ['minecraft:iron_ingot'], 'forge:gems/quartz': ['minecraft:quartz'], 'forge:gems/diamond': ['minecraft:diamond'],
               'forge:gems/lapis': ['minecraft:lapis_lazuli'], 'forge:chests/wooden': ['minecraft:chest', 'minecraft:trapped_chest'],
               'forge:workbenches': ['minecraft:crafting_table', 'tconstruct:crafting_station'],
               'forge:sand/colorless': ['minecraft:sand'], 'forge:sand/red': ['minecraft:red_sand'], 'forge:glass': GLASS_ITEMS, 'forge:glass/colorless': ['minecraft:glass'], 'forge:glass/tinted': ['minecraft:tinted_glass'],
@@ -3091,12 +3123,23 @@ def copy_crafting_recipes():
         return ingredient
 
     written, left_out = 0, []
-    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'common').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'world').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'gadgets').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'compat').rglob('*.json')):
+    for path in sorted((FLUID_RECIPE_SOURCE / 'smeltery').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tables').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'common').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'world').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'gadgets').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'compat').rglob('*.json')) + sorted((FLUID_RECIPE_SOURCE / 'tools/building').rglob('*.json')):
         tables = path.is_relative_to(FLUID_RECIPE_SOURCE / 'tables')
         gadgets = path.is_relative_to(FLUID_RECIPE_SOURCE / 'gadgets')
         data = json.loads(path.read_text(encoding='utf-8'))
-        # the retextured table recipes lose the texture the result would take (retexturing is not ported): plain shaped recipes
-        if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured' and not tables):
+        if data.get('type') == 'forge:conditional':
+            # The kiln pair (smeltery/seared, smeltery/scorched): the ceramics entry waits on that mod, and
+            # the blasting fallback is gated on forge:true, so the fallback is the recipe this port's world
+            # has; it ships as the plain blasting recipe it wraps.
+            fallback = [entry['recipe'] for entry in data.get('recipes', [])
+                        if entry.get('conditions') == [{'type': 'forge:true'}] and entry['recipe'].get('type') in CRAFTING_TYPES]
+            if len(fallback) != 1:
+                continue
+            data = fallback[0]
+        # the retextured table and smeltery recipes lose the texture the result would take (retexturing is
+        # not ported): plain shaped recipes
+        if data.get('type') not in CRAFTING_TYPES or (data['type'] == 'mantle:crafting_shaped_retextured'
+                                                      and not (tables or path.is_relative_to(FLUID_RECIPE_SOURCE / 'smeltery'))):
             continue
         stem = path.relative_to(FLUID_RECIPE_SOURCE).with_suffix('').as_posix()
         result = data['result']
@@ -3219,6 +3262,12 @@ def copy_vanilla_tags():
     item_target = CONTENT_DATA / 'minecraft/tags/item'
     shutil.rmtree(item_target, ignore_errors=True)
     for path in sorted((GENERATED_DATA / 'minecraft/tags/items').rglob('*.json')):
+        if path.stem == 'arrows':
+            # The arrows tag's one member this port declares is the arrow tool itself. A shipped vanilla
+            # tag file stands for the whole tag in the port's item snapshot, so the file would leave the
+            # host's arrows tag holding nothing but a tool, and a tool in a casting table is not a cast;
+            # the member returns when the snapshot merges the host's own tag members.
+            continue
         values = []
         for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
             value = entry if isinstance(entry, str) else entry['id']
