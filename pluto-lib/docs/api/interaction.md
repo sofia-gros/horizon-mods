@@ -1131,12 +1131,12 @@ assert_eq!(FallOutcome::Cancel, FallOutcome::Cancel);
 
 ### `EquipmentDropChanceContext`
 
-The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, and `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only.
+The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only, and `looting` is the killing blow's Looting level. The roll a class's own `dropCustomDeathLoot` makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is rolled even when the recorded chance is exactly 0: with looting, a 0-chance slot still drops at `looting` percent.
 
 ```rust
 use pluto_lib::{EquipmentDropChanceContext, Identifier};
 let context = EquipmentDropChanceContext { entity_type: Identifier::parse("example:armored").unwrap(),
-    slot: "head".into(), slime_size: Some(4), chance: 2.0 };
+    slot: "head".into(), slime_size: Some(4), chance: 2.0, looting: 0 };
 assert_eq!(context.chance, 2.0);
 assert_eq!(context.slot, "head");
 ```
@@ -1181,7 +1181,7 @@ Dispatches the registered per-slot drop chance for the context's type; `None` ke
 ```rust
 use pluto_lib::{EquipmentDropChanceContext, Identifier, LivingEntityBehaviors};
 let context = EquipmentDropChanceContext { entity_type: Identifier::parse("example:unregistered").unwrap(),
-    slot: "head".into(), slime_size: None, chance: 0.085 };
+    slot: "head".into(), slime_size: None, chance: 0.085, looting: 0 };
 assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&context), None);
 ```
 

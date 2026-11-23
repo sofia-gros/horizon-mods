@@ -69,7 +69,7 @@ fn actual_query_helpers_keep_unregistered_fallback_zero_and_native_inputs_withou
                 velocity:[velocity[0]/0.95,-velocity[1]*0.9,velocity[2]/0.95],sound:Some("query_host:bounce")})
         },
         has_drop_chance:|kind|kind=="query_host:claimed",
-        drop_chance:|kind,slot,size,chance| {
+        drop_chance:|kind,slot,size,chance,_looting| {
             assert_eq!(kind,"query_host:claimed");
             (slot=="head"&&size.is_some_and(|s|s>1)&&chance>0.25).then_some(0.25)
         },

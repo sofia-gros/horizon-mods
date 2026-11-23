@@ -306,10 +306,10 @@ pub fn hooks() -> Box<dyn Hooks> {
                 })
         },
         has_drop_chance:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_drop_chance,
-        drop_chance:|kind,slot,slime_size,chance| {
+        drop_chance:|kind,slot,slime_size,chance,looting| {
             let entity_type=Identifier::parse(kind).ok()?;
             crate::pure::living_entity_behavior::LivingEntityBehaviors::equipment_drop_chance(
-                &crate::pure::living_entity_behavior::EquipmentDropChanceContext {entity_type,slot:slot.to_string(),slime_size,chance})
+                &crate::pure::living_entity_behavior::EquipmentDropChanceContext {entity_type,slot:slot.to_string(),slime_size,chance,looting})
         },
     }).expect("PlutoLib living query sink installs once");
     horizon_client::entry::pluto_block::set_skull_definition_provider(|| {

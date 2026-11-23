@@ -9,10 +9,22 @@ use crate::game::pluto_living_drops as access;
 fn killer_id(m:&Mob)->Option<u32> {
     match m.last_damage.and_then(|(damage,_)|damage.attacker) {Some(Who::Mob(id))=>Some(id),_=>None}
 }
+/// The killing blow's Looting level (`EnchantmentHelper.getMobLooting`):
+/// the attacker's main-hand Looting. A mob attacker's hand is read from its
+/// equipment; a player attacker's is the local player's held stack (a LAN
+/// guest's hand is not resolved in this scope and reads 0).
+fn killer_looting(game:&Game<'_>,m:&Mob)->i32 {
+    let stack=match m.last_damage.and_then(|(damage,_)|damage.attacker) {
+        Some(Who::Mob(id))=>game.mobs.iter().find(|other|other.id==id).and_then(|mob|mob.extra.main_hand_stack()),
+        Some(Who::Player)=>game.held(),
+        _=>None,
+    };
+    stack.map_or(0,|stack|stack.enchantment_level("minecraft:looting") as i32)
+}
 /// The class-adjusted equipment drop chances for this death, when a living
 /// behaviour overrides any slot's chance for this kind. Built from the
 /// effective chances the death roll itself reads.
-fn pluto_drop_chance_override(m:&Mob)->Option<Box<[f32;8]>> {
+fn pluto_drop_chance_override(m:&Mob,looting:i32)->Option<Box<[f32;8]>> {
     let sink=horizon_client::mobs::pluto_living_entity_access::sink()?;
     if !(sink.has_drop_chance)(&m.kind.id) {return None;}
     let slots=horizon_world::loot::EQUIPMENT_SLOTS;
@@ -23,8 +35,13 @@ fn pluto_drop_chance_override(m:&Mob)->Option<Box<[f32;8]>> {
     let mut adjusted=Box::new(std::array::from_fn(|i|drops::drop_chance(m,slots[i])));
     let mut changed=false;
     for (index,slot) in slots.iter().enumerate() {
-        if let Some(chance)=(sink.drop_chance)(&m.kind.id,slot,size,adjusted[index]) {
-            adjusted[index]=chance;changed=true;
+        if let Some(chance)=(sink.drop_chance)(&m.kind.id,slot,size,adjusted[index],looting) {
+            // The class's own roll is (nextFloat - looting*0.01) < chance;
+            // the native roll tests nextFloat >= chance with no looting
+            // term and skips a chance of exactly 0. Folding the looting
+            // term into the swapped chance keeps the same probability and
+            // lets a class chance of 0 roll when looting is positive.
+            adjusted[index]=chance+looting as f32*0.01;changed=true;
         }
     }
     changed.then_some(adjusted)
@@ -108,7 +125,7 @@ impl Game<'_> {
         // A class drop-chance override (e.g. the armored slime head cap)
         // replaces the recorded chances for this death's rolls only; the
         // mob's own record is restored untouched afterwards.
-        let chance_override=pluto_drop_chance_override(m);
+        let chance_override=pluto_drop_chance_override(m,killer_looting(self,m));
         let saved_chances=chance_override.map(|adjusted| {
             let saved=m.extra.drop_chances.clone();
             m.extra.drop_chances=Some(adjusted);
