@@ -14,9 +14,9 @@
 //! land a tick after the crossing; and "living" is read from the notice's kind — the seams carry
 //! players, mobs and item entities, and of those only the items are not living. Not ported, each named:
 //! - the 0.4 speed factor: the host's block properties have no speed-factor key.
-//! - waterlogging: left out of the declaration, as with the pouring blocks (no fluid logging here).
-//! - the per-facing collision box: the declaration holds one default box (the floor one, 3,0,3 to 13,6,13);
-//!   the sticks' outline still follows the model per facing.
+//! - waterlogging: the declaration carries the property and placement sets it from the water at the
+//!   clicked position, as PunjiBlock.getStateForPlacement does; the fluid tick the original schedules
+//!   on a neighbour change is the host's own business for a waterlogged block, not scheduled here.
 //! - the path node is the original's DAMAGE_OTHER, which the host's categories have no name for; its
 //!   DAMAGING category is the damaging-block one and is what the behaviour answers.
 //!
@@ -30,7 +30,7 @@
 //! - the tooltip's duration suffix ("Bouncy (0:30)"): a tooltip line here is one flat text or key, so the
 //!   line is the effect's name in its category's colour, without the duration. The amplifier wrap never
 //!   applies: every cake effect is amplifier 0.
-//! - the ichor cake's per-bite collision narrowing: one default box (its unbitten shape), as with the punji.
+//! - the ichor cake's per-bite collision narrowing: one default box (its unbitten shape).
 //! The Tinkers effects the cakes give (bouncy, double jump, antigravity, returning) are other units' work;
 //! given to a player they are skipped by the game until those land, the same as the slime bottles' effects.
 use pluto_lib::{
@@ -174,14 +174,15 @@ fn punji_state(view: &dyn BlockView, pos: [i32; 3], facing: Direction) -> BlockS
 }
 
 /// PunjiBlock.getStateForPlacement: face the way the clicked face points away, else the first side in
-/// Direction order that can hold the sticks, else refuse the placement.
+/// Direction order that can hold the sticks, else refuse the placement. The state is waterlogged when
+/// the clicked position holds water, as there.
 pub(crate) fn punji_placement(context: &PlacementContext<'_>) -> Placement {
     let first = context.face.opposite();
     let order = [first].into_iter().chain(Direction::ALL.into_iter().filter(move |side| *side != first));
     for facing in order {
         let probe = BlockState::new(id("punji")).with("facing", facing.name());
         if punji_survives(&probe, context.pos, context.view) {
-            return Placement::State(punji_state(context.view, context.pos, facing));
+            return Placement::State(punji_state(context.view, context.pos, facing).with("waterlogged", bool_text(context.in_water)));
         }
     }
     Placement::Refuse

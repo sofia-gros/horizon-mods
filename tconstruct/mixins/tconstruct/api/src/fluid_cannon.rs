@@ -320,8 +320,10 @@ pub(crate) fn register() {
         BlockBehaviors::register(behaviour);
     }
     // KnightMetalBlock itself: the same bite and the same path type, on the plain block, which
-    // otherwise rides its vanilla template with no behaviour of its own.
+    // otherwise rides its vanilla template. Its placement is waterlogged in water, as
+    // KnightMetalBlock.getStateForPlacement leaves it.
     BlockBehaviors::register(BlockBehavior::new(Identifier::new("tconstruct", "knightmetal_block").expect("valid block id"))
+        .state_for_placement(|c| Placement::State(c.state.clone().with("waterlogged", if c.in_water { "true" } else { "false" })))
         .entity_inside(knightmetal_bite)
         .path_node_type(|_| Some(PathNodeType::Damaging)));
 }
