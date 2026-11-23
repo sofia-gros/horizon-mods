@@ -78,6 +78,10 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
     let casting = crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.recipes.material_casting.clone()));
     let part_cost = |item: &Identifier| casting.as_ref().map_or(0, |casting| casting.item_cost(item));
     let swapping = crate::common::swapping_recipes().and_then(|recipes| recipes.read().ok().map(|recipes| recipes.clone()));
+    // The repair gate disables the station's material repair only once a reload has run
+    // without the fieldless tinker_station_repair recipe; before any reload (or where the
+    // registry was never initialized) repair runs as the station's own, which is the
+    // original's behaviour with its shipped recipe present.
     let repair_gate = crate::common::repair_gate().and_then(|gate| gate.read().ok());
     let part_swapping = crate::common::part_swapping().and_then(|recipes| recipes.read().ok());
     let building_recipes = crate::common::building_recipes().and_then(|recipes| recipes.read().ok());
@@ -87,7 +91,7 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
     let building_data = building_recipes.as_deref().filter(|recipes| recipes.loaded)
         .map(|recipes| tool_station::BuildingData { recipes, potion: potion.as_deref() });
     let swap_data = tool_station::SwapData { part_cost: &part_cost, recipes: swapping.as_ref(), raw: &raw, in_tag: resolver.in_tag,
-        repair_present: repair_gate.as_ref().is_some_and(|gate| gate.present),
+        repair_present: repair_gate.as_ref().map_or(true, |gate| !gate.loaded || gate.present),
         part_swapping: part_swapping.as_deref().filter(|recipes| recipes.loaded), building: building_data };
     tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref(), Some(&swap_data))
 }
