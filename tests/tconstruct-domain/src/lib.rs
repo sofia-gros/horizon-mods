@@ -197,6 +197,8 @@ mod creative;
 mod config;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/monster_melee.rs"]
 mod monster_melee;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_equipment.rs"]
+mod mob_equipment;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/dragon_scales.rs"]
 mod dragon_scales;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/conditions.rs"]

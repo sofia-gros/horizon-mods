@@ -14,18 +14,32 @@
 //! the complete decision logic of the Java classes as the pure functions below, unit-tested
 //! against the Java control flow.
 //!
-//! What does not ship: the live wiring, walled with evidence. Java's behaviour runs in
-//! `interactLivingEntity` and in the worn stack's `inventoryTick`, and moves entities with
-//! `Entity.startRiding`/`stopRiding`. The host has the seams — the `interact_entity` hook
-//! (claimable, `InteractEntityEvent { entity, kind, stack }`), `interact_entity_v2` (with the
-//! hand), and the `inventory_tick` hook (`InventoryTickEvent { slot, selected }`) — but this
-//! PlutoLib base dispatches none of them from `hooks.rs`, and no PlutoLib surface can make one
-//! entity ride another (the entity reach reads and hurts; it has no passenger operations).
-//! Wiring those two host hooks into PlutoLib events and adding a ride operation to the entity
-//! reach is foundation work (the same class FND2 did for its surfaces); the functions below
-//! are written against exactly the facts those callbacks will carry, so the consumer is a
-//! thin shell over them when the seams land. Until then the item exists — which is also what
-//! the advancements need (`world/piggybackpack`) — but using it on a mob does nothing.
+//! What does not ship: the live wiring, walled with evidence (re-checked 2026-11-23 by the
+//! FIX-ENT lane). Java's behaviour runs in `interactLivingEntity` and in the worn stack's
+//! `inventoryTick`, and moves entities with `Entity.startRiding`/`stopRiding`. Two of the
+//! three surfaces the first porting pass missed have since landed in PlutoLib: `hooks.rs`
+//! dispatches both entity-interaction hooks (as `InteractEntityCallback` and
+//! `UseEntityCallback`, with the entity scope open) and the `inventory_tick` hook (as
+//! `PlayerInventoryEvents::TICK`), and the entity reach has passenger operations
+//! (`passengers_of`, `vehicle_of`, `start_riding`, `stop_riding`). Two walls remain:
+//! - The interaction contexts name the player by uuid only. The ride's vehicle root is the
+//!   player ENTITY, and no pure operation turns a player's uuid into their entity id, so
+//!   the chain walk and `start_riding` cannot name their root exactly.
+//! - The chest bookkeeping cannot be done. On a pickup Java moves one pack from the hand
+//!   into the CHEST slot and keeps that stack's count equal to the carried count, and both
+//!   the `inventoryTick` effect and the carry effect's trim key off the chest stack. A
+//!   player's carried slots are readable and rewritable through `ServerPlayer::stack` /
+//!   `update_stack` (the host's numbering: 0..=35 main, 100..=103 armour with 101 the
+//!   chest, -106 the offhand), but the host's `native_carried_stack` reaches only a slot
+//!   that already holds a stack \u2014 a count of 0 empties it \u2014 so no call can create the pack
+//!   in an empty chest slot, and `EntityAction::EditStackData` edits a stack's data, never
+//!   its item or count. Without the chest stack the effect/trim half has nothing to read,
+//!   and a ride wired without it would strand entities on the player with no trim, which
+//!   diverges further from the original than the item staying inert.
+//! The functions below are written against exactly the facts those callbacks carry, so the
+//! consumer is a thin shell over them once a player-equipment write (or a slot write that
+//! can create) lands. Until then the item exists \u2014 which is also what the advancements
+//! need (`world/piggybackpack`) \u2014 but using it on a mob does nothing.
 //! The carry effect's icons (`carry`/`carry_2`/`carry_3` by amplifier, client side) are
 //! presentation and ride along with the same follow-up; [`carry_icon`] keeps the mapping.
 

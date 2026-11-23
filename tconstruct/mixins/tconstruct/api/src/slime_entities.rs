@@ -77,10 +77,13 @@
 //! being hurt teleports the slime itself (the original's ender teleport helper, diameter 16). Wired
 //! through the living damage event plus the entity tick: the damage event records the pending
 //! teleports, and the slime's next tick applies them through the entity reach, so a teleport lands
-//! at most a tick after the hit rather than inside it. The reach moves an entity unconditionally
-//! (the original retries up to 16 candidate positions, rejecting collisions and lava), never moves
-//! a player (the original teleports players too), and plays no `tconstruct:slime_teleport` sound;
-//! the vertical destination clamps to the overworld build range instead of the dimension's own.
+//! at most a tick after the hit rather than inside it. The application follows the helper: up to
+//! 16 candidate positions, a candidate refused when either block the body would occupy is solid
+//! or liquid (read through the world reach, where the original tests the entity's own collision
+//! box), the `tconstruct:slime_teleport` sound at the origin and the destination, and a passenger
+//! leaves its vehicle before it moves. What still differs: the reach never moves a player (the
+//! original teleports players too), and the vertical destination clamps to the overworld build
+//! range instead of the dimension's own heights.
 //! The hurt-side trigger approximates the original's health-decreased check with the damage event's
 //! post-absorption amount, so a fully absorbed hit inside the invulnerability window can teleport
 //! where the original would not.
@@ -105,7 +108,7 @@
 //! tag, the same reduction the geode modifiers carry: no biome-predicate surface exists to express the
 //! exclusion. The slime island structures' spawn overrides name exactly these three types (plus the
 //! vanilla slime and magma cube), which is what makes the islands' forward references resolve.
-use pluto_lib::{AttachmentRegistry, AttachmentType, AttackDamageContext, AttributeBaseValue, AttributeModifierOperation, CalculateFallDamageContext, CauseFallDamageContext, DamageModification, EntityInfo, EntityReach, EntityTypeRegistry, EquipmentDropChanceContext, FallOutcome, Identifier, JumpPowerContext, LivingEntityBehavior, LivingEntityBehaviors, LivingEntityLoadContext, MobSpawnAction, MobSpawnCallback, MobSpawnCompletion, MobSpawnPreparation, MobSplitCallback, MobSplitCallbacks, MobSplitInheritance, Nbt, NbtCompound, ServerEntityEvents, ServerLivingEntityEvents, SpawnPlacementContext, SpawnPlacementRegistry, StackData, TransientAttributeModifier};
+use pluto_lib::{AttachmentRegistry, AttachmentType, AttackDamageContext, AttributeBaseValue, AttributeModifierOperation, CalculateFallDamageContext, CauseFallDamageContext, DamageModification, EntityInfo, EntityReach, EntityTypeRegistry, EquipmentDropChanceContext, FallOutcome, Identifier, JumpPowerContext, LivingEntityBehavior, LivingEntityBehaviors, LivingEntityLoadContext, MobSpawnAction, MobSpawnCallback, MobSpawnCompletion, MobSpawnPreparation, MobSplitCallback, MobSplitCallbacks, MobSplitInheritance, Nbt, NbtCompound, ServerEntityEvents, ServerLivingEntityEvents, SpawnPlacementContext, SpawnPlacementRegistry, StackData, TransientAttributeModifier, World};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Mutex, OnceLock};
 
@@ -465,10 +468,45 @@ pub(crate) fn teleport_destination(origin: [f64; 3], dx: f64, dy: i32, dz: f64) 
     [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(-64.0, 320.0), origin[2] + (dz - 0.5) * 16.0]
 }
 
-fn random_nearby_teleport(id: u32) {
+/// Whether a block is a liquid a teleport refuses to land in: the vanilla fluid blocks and
+/// this port's own fluid blocks (the content names every fluid block `<fluid>_fluid`).
+fn is_liquid(block: &Identifier) -> bool {
+    let id = block.to_string();
+    matches!(id.as_str(), "minecraft:water" | "minecraft:lava" | "minecraft:bubble_column") || id.ends_with("_fluid")
+}
+
+/// TeleportHelper's landing test, as far as the world reach can state it: the two blocks the
+/// body would occupy (feet and head) must hold no liquid and nothing solid — air, or a block
+/// the game calls replaceable. An unloaded destination refuses, as a collision there cannot
+/// be ruled out (the original's `randomTeleport` fails the same way).
+fn teleport_lands(world: &World, dest: [f64; 3]) -> bool {
+    let x = dest[0].floor() as i32;
+    let y = dest[1].floor() as i32;
+    let z = dest[2].floor() as i32;
+    for dy in 0..2 {
+        let Some(state) = world.get_block_state([x, y + dy, z]) else { return false };
+        if is_liquid(&state.block) { return false; }
+        if state.block.to_string() != "minecraft:air" && !state.is_in_tag("minecraft:replaceable") { return false; }
+    }
+    true
+}
+
+/// TeleportHelper.randomNearbyTeleport: up to 16 candidate positions around the entity; the
+/// first that lands moves it, with the slime_teleport sound at both ends. A passenger leaves
+/// its vehicle first (`LivingEntity.randomTeleport` stops riding before it moves).
+fn random_nearby_teleport(id: u32, dimension: &str) {
     let Some(origin) = EntityReach::position_of(id as u64) else { return };
-    let destination = teleport_destination(origin, teleport_double(), (teleport_draw() % 16) as i32 - 8, teleport_double());
-    EntityReach::teleport(id as u64, destination);
+    if EntityReach::vehicle_of(id as u64).is_some() { EntityReach::stop_riding(id as u64); }
+    let world = World::new(dimension);
+    for _ in 0..16 {
+        let destination = teleport_destination(origin, teleport_double(), (teleport_draw() % 16) as i32 - 8, teleport_double());
+        if teleport_lands(&world, destination) {
+            EntityReach::teleport(id as u64, destination);
+            world.play_sound("tconstruct:slime_teleport", origin, 1.0, 1.0);
+            world.play_sound("tconstruct:slime_teleport", destination, 1.0, 1.0);
+            return;
+        }
+    }
 }
 
 /// EnderSlimeEntity.actuallyHurt and doEnchantDamageEffects, recorded from the damage event.
@@ -505,8 +543,8 @@ fn ender_tick(info: &EntityInfo) {
         let mut queue = TELEPORTS.lock().expect("teleport queue lock poisoned");
         (queue.self_pending.remove(&info.id), queue.victims.remove(&info.id).unwrap_or_default())
     };
-    if teleport_self { random_nearby_teleport(info.id); }
-    for victim in victims { random_nearby_teleport(victim); }
+    if teleport_self { random_nearby_teleport(info.id, &info.dimension); }
+    for victim in victims { random_nearby_teleport(victim, &info.dimension); }
 }
 
 /// SlimePlacementPredicate over the type's slime_spawn tag expansion: never on peaceful, always from
@@ -569,4 +607,48 @@ pub(crate) fn register() {
     ServerEntityEvents::ENTITY_LOAD.register(ender_load);
     ServerEntityEvents::ENTITY_UNLOAD.register(ender_unload);
     ServerEntityEvents::ENTITY_TICK_POST.register(ender_tick);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pluto_lib::world_api_v1::{with_world, MemoryWorldOps};
+
+    fn lands(ops: &mut MemoryWorldOps, dest: [f64; 3]) -> bool {
+        with_world(ops, || teleport_lands(&World::new("minecraft:overworld"), dest))
+    }
+
+    #[test]
+    fn a_teleport_lands_in_open_air_and_refuses_solids_and_liquids() {
+        let mut ops = MemoryWorldOps::default();
+        assert!(lands(&mut ops, [0.5, 64.0, 0.5]), "open air lands");
+        // A solid at the feet refuses.
+        ops.blocks.insert(("minecraft:overworld".into(), [0, 64, 0]), "minecraft:stone".into());
+        assert!(!lands(&mut ops, [0.5, 64.0, 0.5]), "a solid at the feet refuses");
+        // A solid at the head refuses.
+        let mut ops = MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".into(), [0, 65, 0]), "minecraft:stone".into());
+        assert!(!lands(&mut ops, [0.5, 64.0, 0.5]), "a solid at the head refuses");
+        // Water, lava and a mod fluid block refuse.
+        for fluid in ["minecraft:water", "minecraft:lava", "tconstruct:molten_iron_fluid"] {
+            let mut ops = MemoryWorldOps::default();
+            ops.blocks.insert(("minecraft:overworld".into(), [0, 64, 0]), fluid.into());
+            assert!(!lands(&mut ops, [0.5, 64.0, 0.5]), "{fluid} refuses");
+        }
+        // A replaceable block (tall grass) lets the teleport land.
+        let mut ops = MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".into(), [0, 64, 0]), "minecraft:tall_grass".into());
+        ops.tags.push(("minecraft:tall_grass".into(), "minecraft:replaceable".into()));
+        assert!(lands(&mut ops, [0.5, 64.0, 0.5]), "a replaceable block lands");
+    }
+
+    #[test]
+    fn liquid_blocks_are_the_vanilla_fluids_and_the_ports_fluid_blocks() {
+        for id in ["minecraft:water", "minecraft:lava", "minecraft:bubble_column", "tconstruct:molten_gold_fluid", "tconstruct:venom_fluid"] {
+            assert!(is_liquid(&Identifier::parse(id).unwrap()), "{id}");
+        }
+        for id in ["minecraft:air", "minecraft:stone", "tconstruct:earth_slime_block"] {
+            assert!(!is_liquid(&Identifier::parse(id).unwrap()), "{id}");
+        }
+    }
 }
