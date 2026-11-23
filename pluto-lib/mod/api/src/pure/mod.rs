@@ -39,6 +39,7 @@ pub mod item_group_api_v1;
 pub mod lifecycle_events_v1;
 pub mod loot_api_v2;
 pub mod networking_api_v1;
+pub mod nbt_binary;
 pub mod neighbour_api_v1;
 pub mod fluid_storage_api_v1;
 pub mod item_storage_api_v1;

@@ -127,6 +127,38 @@ data.insert("heat".to_owned(), Nbt::Int(100));
 assert_eq!(data.len(), 1);
 ```
 
+### `Nbt::from_binary`
+
+`fn from_binary(bytes: &[u8]) -> Result<NbtCompound, String>`. Reads a binary NBT document (a named root compound) into the model, inflating it first when it is gzip-wrapped, as structure templates are stored. The root's own name is dropped; trailing bytes after the root are refused, so a corrupt file fails instead of reading as a shorter one. Java's byte arrays are signed there and bit patterns here, so a byte array round-trips exactly.
+
+```rust
+use pluto_lib::Nbt;
+
+// A root compound holding one int, DataVersion 3465, written out by hand.
+let bytes: &[u8] = &[
+    10, 0, 0, // compound, empty root name
+    3, 0, 11, b'D', b'a', b't', b'a', b'V', b'e', b'r', b's', b'i', b'o', b'n', 0, 0, 13, 137,
+    0, // end
+];
+let root = Nbt::from_binary(bytes).unwrap();
+assert_eq!(root.get("DataVersion"), Some(&Nbt::Int(3465)));
+assert!(Nbt::from_binary(&[3, 0, 0]).is_err(), "an int root is not a compound");
+```
+
+### `gunzip`
+
+`fn gunzip(bytes: &[u8]) -> Result<Vec<u8>, String>`. Inflates a gzip stream to the bytes it wraps (stored and Huffman deflate blocks alike; the pure crate takes no compression dependency, so the inflater is PlutoLib's own). The stream's CRC32 and size trailer are not verified: the deflate stream's own final block marks the data's end.
+
+```rust
+use pluto_lib::gunzip;
+
+// A stored (uncompressed) gzip stream around the bytes 1, 2, 3.
+let mut stream = vec![0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 3, 1, 3, 0, 0xfc, 0xff, 1, 2, 3];
+stream.extend_from_slice(&[0; 8]);
+assert_eq!(gunzip(&stream).unwrap(), [1, 2, 3]);
+assert!(gunzip(&[0x1f, 0x8b, 7]).is_err(), "a non-deflate gzip is refused");
+```
+
 ### `Nbt::as_i64`
 
 `fn as_i64(&self) -> Option<i64>`. Any integer tag (`Byte`, `Short`, `Int`, `Long`) as an `i64`; `None` for other tags.

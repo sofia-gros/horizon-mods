@@ -32,7 +32,7 @@
 //! fluids ends the section's generation, as it does there.
 use std::sync::Arc;
 
-use pluto_lib::{ActionResult, Book, BookAppearance, BookIcon, BookPage, BookRegistry, BookRow, I18n, Identifier, Nbt, NbtCompound, RegistryLookup, ResourceManagerHelper, ResourceType, UseItemCallback, open_book};
+use pluto_lib::{ActionResult, Book, BookAppearance, BookIcon, BookPage, BookRegistry, BookRow, BookStructure, I18n, Identifier, Nbt, NbtCompound, RegistryLookup, ResourceManagerHelper, ResourceType, UseItemCallback, open_book};
 use serde_json::Value;
 
 use crate::commands;
@@ -1336,6 +1336,24 @@ fn build_raw_page(read: &Read<'_>, book: &str, language: &str, entry: &Value, da
     let named_id = |field: &str| json.get(field).and_then(Value::as_str).and_then(|id| Identifier::parse(id).ok())
         .or_else(|| raw.name.as_deref().and_then(|name| Identifier::parse(name).ok()));
     match kind.as_str() {
+        "mantle:structure" => {
+            // The page's JSON names its template in `data` (a resource id in this namespace, such as
+            // `tconstruct:book/structures/smeltery.nbt`); the template itself is a binary NBT file in
+            // the same resources, read and decoded here so the page carries its scene from the start.
+            raw.pages = opaque(&kind, &json);
+            for page in &mut raw.pages {
+                let BookPage::Structure { data: id, structure, .. } = page else { continue };
+                let Some(path) = id.to_string().split_once(':').map(|(_, path)| path.to_owned()) else { continue };
+                let Some(bytes) = read(&path) else {
+                    eprintln!("Tinkers: book {book}'s structure {path} is not in the resources");
+                    continue;
+                };
+                match Nbt::from_binary(&bytes).and_then(|root| BookStructure::from_template(&root)) {
+                    Ok(filled) => *structure = Some(filled),
+                    Err(error) => eprintln!("Tinkers: book {book}'s structure {path} does not read: {error}"),
+                }
+            }
+        }
         "tconstruct:tool" => match named_id("tool") {
             Some(item) => { raw.pages = tool_pages(&item, Some(&json)); raw.content = Some(GenPage::Tool(item)); }
             None => raw.pages = opaque(&kind, &json),

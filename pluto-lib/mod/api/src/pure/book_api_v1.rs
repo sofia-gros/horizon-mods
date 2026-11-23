@@ -16,7 +16,8 @@ use std::sync::Mutex;
 
 use super::base::{Identifier, Nbt, NbtCompound};
 use super::block_entity_api_v1::ItemSlot;
-use super::screen_handler_api_v1::ScreenCanvas;
+use super::screen_handler_api_v1::{SceneBlock, SceneView, ScreenCanvas};
+use super::world_api_v1::BlockState;
 
 /// One run of text on a page (Mantle: one entry of a page's `text` list). `paragraph` asks for a blank line before it.
 #[derive(Clone, Debug, PartialEq)]
@@ -105,6 +106,85 @@ pub enum BookRow {
     },
 }
 
+/// A structure a book page shows: the blocks of a vanilla structure template (the file a `mantle:structure`
+/// page's `data` names, read as binary NBT — see [`super::nbt_binary`]), as scene blocks ready for
+/// [`ScreenCanvas::scene`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct BookStructure {
+    /// The template's size in blocks, per axis.
+    pub size: [i32; 3],
+    /// The template's blocks in scene coordinates, air left out (a scene draws nothing for air, and the
+    /// template's air is most of its volume).
+    pub blocks: Vec<SceneBlock>,
+}
+
+impl BookStructure {
+    /// Reads a structure template compound (the root of the binary document) into scene blocks. The
+    /// palette's names and properties become each block's state; a block entry's own `nbt` becomes its
+    /// scene entity's data, so a block entity in the template renders as it does in the world. A malformed
+    /// template is an error naming the field, never a partial structure.
+    pub fn from_template(template: &NbtCompound) -> Result<Self, String> {
+        let palette = template.get("palette").and_then(Nbt::as_list).ok_or("structure template has no palette")?;
+        let mut states: Vec<BlockState> = Vec::with_capacity(palette.len());
+        for (index, entry) in palette.iter().enumerate() {
+            let entry = entry.as_compound().ok_or_else(|| format!("structure palette entry {index} is not a compound"))?;
+            let name = entry.get("Name").and_then(Nbt::as_str).ok_or_else(|| format!("structure palette entry {index} has no Name"))?;
+            let mut state = BlockState::new(Identifier::parse(name).map_err(|e| format!("structure palette entry {index}: {e}"))?);
+            if let Some(properties) = entry.get("Properties").and_then(Nbt::as_compound) {
+                for (key, value) in properties {
+                    let value = value.as_str().ok_or_else(|| format!("structure palette entry {index} property {key} is not a string"))?;
+                    state = state.with(key, value);
+                }
+            }
+            states.push(state);
+        }
+        let entries = template.get("blocks").and_then(Nbt::as_list).ok_or("structure template has no blocks")?;
+        let mut blocks: Vec<SceneBlock> = Vec::new();
+        let mut max = [0i32; 3];
+        for (index, entry) in entries.iter().enumerate() {
+            let entry = entry.as_compound().ok_or_else(|| format!("structure block {index} is not a compound"))?;
+            let pos_list = entry.get("pos").and_then(Nbt::as_list).ok_or_else(|| format!("structure block {index} has no pos"))?;
+            if pos_list.len() != 3 {
+                return Err(format!("structure block {index} pos is not three numbers"));
+            }
+            let mut pos = [0i32; 3];
+            for (axis, value) in pos_list.iter().enumerate() {
+                pos[axis] = i32::try_from(value.as_i64().ok_or_else(|| format!("structure block {index} pos is not numbers"))?)
+                    .map_err(|_| format!("structure block {index} pos out of range"))?;
+            }
+            let state_index = usize::try_from(entry.get("state").and_then(Nbt::as_i64).ok_or_else(|| format!("structure block {index} has no state"))?)
+                .map_err(|_| format!("structure block {index} state out of range"))?;
+            let state = states.get(state_index).ok_or_else(|| format!("structure block {index} state {state_index} is past the palette"))?;
+            for axis in 0..3 {
+                max[axis] = max[axis].max(pos[axis] + 1);
+            }
+            if state.block.to_string() == "minecraft:air" {
+                continue;
+            }
+            let entity = entry.get("nbt").and_then(Nbt::as_compound).map(|data| super::screen_handler_api_v1::SceneEntity {
+                block: state.block.clone(),
+                data: data.clone(),
+                items: Vec::new(),
+            });
+            blocks.push(SceneBlock { pos, block: state.clone(), entity });
+        }
+        let size = match template.get("size").and_then(Nbt::as_list) {
+            Some(list) if list.len() == 3 => {
+                let mut size = [0i32; 3];
+                for (axis, value) in list.iter().enumerate() {
+                    size[axis] = i32::try_from(value.as_i64().ok_or("structure size is not numbers")?).map_err(|_| "structure size out of range")?;
+                }
+                size
+            }
+            _ => max,
+        };
+        Ok(BookStructure { size, blocks })
+    }
+}
+
+/// One page of a book. Text, image-and-text, crafting and table pages are the kinds this renderer draws in full;
+/// any other Mantle page kind (a smelting page, ...) is kept as [`BookPage::Opaque`] with its data intact, so a
+/// book loses nothing by being registered before its kind has a renderer.
 /// One page of a book. Text, image-and-text, text-image, showcase, crafting and table pages are the kinds this
 /// renderer draws in full; any other Mantle page kind (a smelting page, a structure page, ...) is kept as
 /// [`BookPage::Opaque`] with its data intact, so a book loses nothing by being registered before its kind has a renderer.
@@ -184,6 +264,19 @@ pub enum BookPage {
         /// bucket). Empty for a page with no sidebar; the rows and text narrow to make room.
         sidebar: Vec<ItemSlot>,
     },
+    /// A structure display (Mantle: `mantle:structure`): a 3D scene of a structure template, drawn
+    /// turning slowly. The page names its template in `data` (a resource id such as
+    /// `tconstruct:book/structures/smeltery.nbt`); the loader that reads the page fills `structure` from
+    /// that file's binary NBT (a page decoded from JSON alone carries no structure yet and draws its
+    /// title over an empty scene).
+    Structure {
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// The structure template resource the page's `data` names.
+        data: Identifier,
+        /// The template's blocks, filled by the loader; empty until then.
+        structure: Option<BookStructure>,
+    },
     /// A page kind this renderer does not draw yet; `data` is the page's own data, converted from its JSON.
     Opaque {
         /// The page kind's id, such as `mantle:smelting`.
@@ -203,6 +296,7 @@ impl BookPage {
             Self::Showcase { .. } => "mantle:showcase",
             Self::Crafting { .. } => "mantle:crafting",
             Self::Table { kind, .. } => kind,
+            Self::Structure { .. } => "mantle:structure",
             Self::Opaque { kind, .. } => kind,
         }
     }
@@ -210,7 +304,7 @@ impl BookPage {
     /// The page's title, if it has one. An opaque page's title is read from its data's `title` string, if it has one.
     pub fn title(&self) -> Option<&str> {
         match self {
-            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::TextImage { title, .. } | Self::Showcase { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } => title.as_deref(),
+            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::TextImage { title, .. } | Self::Showcase { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } | Self::Structure { title, .. } => title.as_deref(),
             Self::Opaque { data, .. } => data.get("title").and_then(Nbt::as_str),
         }
     }
@@ -280,6 +374,14 @@ impl BookPage {
                     ingredients: Vec::new(),
                     result: None,
                     description: text_list(data.get("description"))?,
+                })
+            }
+            "mantle:structure" => {
+                let data_id = data.get("data").and_then(serde_json::Value::as_str).ok_or("structure page has no data")?;
+                Ok(Self::Structure {
+                    title,
+                    data: Identifier::parse(data_id).map_err(|e| format!("structure page's data: {e}"))?,
+                    structure: None,
                 })
             }
             _ => Ok(Self::Opaque { kind: kind.to_owned(), data: json_compound(data) }),
@@ -993,6 +1095,26 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             }
             draw_text_block(canvas, text, content[0], y + 2.0, width, bottom, INK);
         }
+        BookPage::Structure { structure, .. } => {
+            if let Some(structure) = structure {
+                let height = (bottom - y).max(0.0);
+                // Fit the template into the area left under the title: the scale answers the wider of
+                // the footprint's span and the height's share of it, capped so a one-block template
+                // does not fill the page.
+                let span = (structure.size[0].max(structure.size[2])) as f32 + structure.size[1] as f32 * 0.5;
+                let scale = if span > 0.0 { (content[2].min(height * 1.4) / span).clamp(2.0, 24.0) } else { 16.0 };
+                // Mantle turns the structure slowly as the page is read; the turn is the wall clock's,
+                // one revolution a minute, so two draws a moment apart agree.
+                let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|elapsed| elapsed.as_millis()).unwrap_or(0);
+                let view = SceneView {
+                    center: [structure.size[0] as f32 / 2.0, structure.size[1] as f32 / 2.0, structure.size[2] as f32 / 2.0],
+                    yaw: (millis % 60_000) as f32 / 60_000.0 * 360.0,
+                    pitch: 30.0,
+                    scale,
+                };
+                canvas.scene([content[0], y, content[0] + content[2], y + height], &structure.blocks, &view);
+            }
+        }
         BookPage::Opaque { kind, .. } => {
             canvas.text(kind, [content[0], y], FADED_INK, false);
         }
@@ -1109,6 +1231,7 @@ mod tests {
         fills: Vec<([f32; 4], u32)>,
         texts: Vec<(String, [f32; 2])>,
         sprites: Vec<String>,
+        scenes: Vec<(Vec<SceneBlock>, SceneView)>,
     }
 
     impl ScreenCanvas for Recorder {
@@ -1124,6 +1247,9 @@ mod tests {
         }
         fn text_width(&self, text: &str) -> f32 {
             text.len() as f32 * 6.0
+        }
+        fn scene(&mut self, _: [f32; 4], blocks: &[SceneBlock], view: &SceneView) {
+            self.scenes.push((blocks.to_vec(), *view));
         }
     }
 
@@ -1218,6 +1344,99 @@ mod tests {
             other => panic!("expected an opaque page, got {other:?}"),
         }
         assert!(BookPage::from_json("mantle:crafting", &serde_json::json!({})).is_err(), "a crafting page without a recipe is an error, not an opaque page");
+    }
+
+    fn template() -> NbtCompound {
+        let entry = |name: &str, properties: Option<NbtCompound>| {
+            let mut entry = NbtCompound::new();
+            entry.insert("Name".into(), Nbt::String(name.into()));
+            if let Some(properties) = properties {
+                entry.insert("Properties".into(), Nbt::Compound(properties));
+            }
+            Nbt::Compound(entry)
+        };
+        let block = |pos: [i32; 3], state: i32, nbt: Option<NbtCompound>| {
+            let mut block = NbtCompound::new();
+            block.insert("pos".into(), Nbt::List(pos.iter().map(|axis| Nbt::Int(*axis)).collect()));
+            block.insert("state".into(), Nbt::Int(state));
+            if let Some(nbt) = nbt {
+                block.insert("nbt".into(), Nbt::Compound(nbt));
+            }
+            Nbt::Compound(block)
+        };
+        let mut facing = NbtCompound::new();
+        facing.insert("facing".into(), Nbt::String("north".into()));
+        let mut burn = NbtCompound::new();
+        burn.insert("BurnTime".into(), Nbt::Short(5));
+        let mut root = NbtCompound::new();
+        root.insert("size".into(), Nbt::List(vec![Nbt::Int(3), Nbt::Int(1), Nbt::Int(1)]));
+        root.insert("palette".into(), Nbt::List(vec![
+            entry("minecraft:stone", None),
+            entry("minecraft:furnace", Some(facing)),
+            entry("minecraft:air", None),
+        ]));
+        root.insert("blocks".into(), Nbt::List(vec![
+            block([0, 0, 0], 0, None),
+            block([1, 0, 0], 1, Some(burn)),
+            block([2, 0, 0], 2, None),
+        ]));
+        root
+    }
+
+    #[test]
+    fn a_structure_page_decodes_and_its_template_becomes_scene_blocks() {
+        let page = BookPage::from_json("mantle:structure", &serde_json::json!({"title": "Smeltery", "data": "tconstruct:book/structures/smeltery.nbt"})).unwrap();
+        assert_eq!(page.kind(), "mantle:structure");
+        assert_eq!(page.title(), Some("Smeltery"));
+        match &page {
+            BookPage::Structure { data, structure, .. } => {
+                assert_eq!(data.to_string(), "tconstruct:book/structures/smeltery.nbt");
+                assert!(structure.is_none(), "the loader fills the structure, not the JSON decode");
+            }
+            other => panic!("expected a structure page, got {other:?}"),
+        }
+        let structure = BookStructure::from_template(&template()).unwrap();
+        assert_eq!(structure.size, [3, 1, 1]);
+        assert_eq!(structure.blocks.len(), 2, "the air block is left out");
+        assert_eq!(structure.blocks[0].block.block.to_string(), "minecraft:stone");
+        let furnace = &structure.blocks[1];
+        assert_eq!(furnace.pos, [1, 0, 0]);
+        assert_eq!(furnace.block.property("facing"), Some("north"), "the palette's properties ride along");
+        let entity = furnace.entity.as_ref().expect("the block's nbt becomes its scene entity");
+        assert_eq!(entity.data.get("BurnTime"), Some(&Nbt::Short(5)));
+        // A palette index past the end is an error, not a shorter structure.
+        let mut broken = template();
+        if let Some(Nbt::List(blocks)) = broken.get_mut("blocks") {
+            if let Some(Nbt::Compound(first)) = blocks.first_mut() {
+                first.insert("state".into(), Nbt::Int(9));
+            }
+        }
+        assert!(BookStructure::from_template(&broken).is_err());
+    }
+
+    #[test]
+    fn a_structure_page_draws_its_scene_under_its_title() {
+        let structure = BookStructure::from_template(&template()).unwrap();
+        let book = Book::new(
+            Identifier::parse("test:structures").unwrap(),
+            vec![BookSection {
+                name: "Builds".into(),
+                icon: None,
+                pages: vec![BookPage::Structure {
+                    title: Some("Smeltery".into()),
+                    data: Identifier::parse("test:book/structures/smeltery.nbt").unwrap(),
+                    structure: Some(structure),
+                }],
+            }],
+        );
+        let view = BookView::new(book.id.clone());
+        let mut canvas = Recorder::default();
+        draw_book(&mut canvas, &book, &view, [0.0, 0.0, 200.0, 200.0]);
+        assert_eq!(canvas.scenes.len(), 1, "the page draws one scene");
+        let (blocks, scene_view) = &canvas.scenes[0];
+        assert_eq!(blocks.len(), 2);
+        assert_eq!(scene_view.center, [1.5, 0.5, 0.5], "the view centres the template");
+        assert_eq!(scene_view.pitch, 30.0);
     }
 
     #[test]

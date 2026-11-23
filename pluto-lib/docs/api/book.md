@@ -159,7 +159,7 @@ assert_eq!(section.pages.len(), 1);
 
 ### `BookPage`
 
-One page. `Text` and `ImageText` carry a `title` and `text` runs (an image page also its `image`); `TextImage` is the same pair with the text beside the image; `Showcase` carries a `title`, the `item` it shows large, its `tooltip` lines and a `text`; `Crafting` carries a `title`, the `recipe` it shows, a `grid_size`, the `ingredients` and `result` the grid draws (the page's JSON names only the recipe, so the mod that owns it fills those in) and a `description`; `Table` carries the `kind` of the content it stands for, a `title`, `intro` text, its `rows`, `text` below them and a `sidebar` of display items drawn in a column at the page's right edge (a material's built tools, a tool's recipe parts, a modifier's recipe, a fluid's bucket) — the page a mod generates from its registries (one row per material, tool or modifier); `Opaque` keeps any other kind's `kind` id and `data`. The section rail draws each section's icon beside its name. `kind()` is the Mantle page kind's id and `title()` the page's title. `BookPage::from_json(kind, data)` decodes one localized page from its JSON (see [Building a book](#building-a-book-from-the-original-data)); it decodes the text, image-text, text-image, showcase, crafting and padding kinds, and keeps the rest opaque.
+One page. `Text` and `ImageText` carry a `title` and `text` runs (an image page also its `image`); `TextImage` is the same pair with the text beside the image; `Showcase` carries a `title`, the `item` it shows large, its `tooltip` lines and a `text`; `Crafting` carries a `title`, the `recipe` it shows, a `grid_size`, the `ingredients` and `result` the grid draws (the page's JSON names only the recipe, so the mod that owns it fills those in) and a `description`; `Table` carries the `kind` of the content it stands for, a `title`, `intro` text, its `rows`, `text` below them and a `sidebar` of display items drawn in a column at the page's right edge (a material's built tools, a tool's recipe parts, a modifier's recipe, a fluid's bucket) — the page a mod generates from its registries (one row per material, tool or modifier); `Structure` carries a `title`, the `data` id of its structure template and the `structure` the loader filled from it; `Opaque` keeps any other kind's `kind` id and `data`. The section rail draws each section's icon beside its name. `kind()` is the Mantle page kind's id and `title()` the page's title. `BookPage::from_json(kind, data)` decodes one localized page from its JSON (see [Building a book](#building-a-book-from-the-original-data)); it decodes the text, image-text, text-image, showcase, crafting, structure and padding kinds, and keeps the rest opaque.
 
 ```rust
 use pluto_lib::{BookPage, BookText};
@@ -170,6 +170,28 @@ let page = BookPage::Text {
 };
 assert_eq!(page.kind(), "mantle:text");
 assert_eq!(page.title(), Some("Welcome"));
+```
+
+### `BookStructure`
+
+A structure a book page shows: the blocks of a vanilla structure template as scene blocks, with the template's `size`. `BookStructure::from_template(template)` reads the template compound (the root of its binary NBT document, read with `Nbt::from_binary`): the palette's names and properties become each block's state, a block entry's own `nbt` becomes its scene entity's data, and air is left out. A structure page draws it turning slowly, one revolution a minute.
+
+```rust
+use pluto_lib::{BookStructure, Nbt, NbtCompound};
+
+let mut entry = NbtCompound::new();
+entry.insert("Name".into(), Nbt::String("minecraft:stone".into()));
+let mut block = NbtCompound::new();
+block.insert("pos".into(), Nbt::List(vec![Nbt::Int(0), Nbt::Int(0), Nbt::Int(0)]));
+block.insert("state".into(), Nbt::Int(0));
+let mut template = NbtCompound::new();
+template.insert("size".into(), Nbt::List(vec![Nbt::Int(1), Nbt::Int(1), Nbt::Int(1)]));
+template.insert("palette".into(), Nbt::List(vec![Nbt::Compound(entry)]));
+template.insert("blocks".into(), Nbt::List(vec![Nbt::Compound(block)]));
+let structure = BookStructure::from_template(&template).unwrap();
+assert_eq!(structure.size, [1, 1, 1]);
+assert_eq!(structure.blocks.len(), 1);
+assert_eq!(structure.blocks[0].block.block.to_string(), "minecraft:stone");
 ```
 
 ### `BookRow`
