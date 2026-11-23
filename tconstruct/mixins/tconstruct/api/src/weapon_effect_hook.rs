@@ -35,6 +35,15 @@ fn scaled_on(grant: EffectGrant, state: Option<&pluto_lib::EntityState>) -> Effe
     scaled(grant, &state.armor_stacks, &state.effect_levels)
 }
 
+/// Whether a thorns hurt's damage type may reach the game as counter damage: the game's own
+/// types and the port's own registered ones (the `tconstruct` damage types shipped as content
+/// data, `tconstruct:shock` among them). A type from any other namespace is not one the game
+/// knows here, so it stays dropped. There is no Rust-side registry of the port's damage types
+/// to check against — they live as content data files — so the namespace is the boundary.
+fn counter_damage_type_allowed(damage_type: &Identifier) -> bool {
+    matches!(damage_type.namespace(), "minecraft" | "tconstruct")
+}
+
 /// Registers the callbacks. Called once from the product's hooks.
 pub(crate) fn register() {
     // Armor that counters: each worn piece's counter modules may put an effect on the mob that hit the wearer.
@@ -56,10 +65,10 @@ pub(crate) fn register() {
         for (_, piece) in &hit.armor {
             // Fire, freezing and knockback against the attacker.
             if let Ok(done) = with_held_tool(piece, |env, stack| tool_stack::counter_actions(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) { actions.extend(done); }
-            // Thorns: the damage goes to the attacker as the damage type names it (the game's own types only).
+            // Thorns: the damage goes to the attacker as the damage type names it (the game's own types and the port's own registered ones).
             if let Ok(hurts) = with_held_tool(piece, |env, stack| tool_stack::thorns_hurts(&stack.custom_data, env, &in_tag, &mut tool_damage_hook::random)) {
                 for hurt in hurts {
-                    if hurt.damage_type.namespace() != "minecraft" { continue; }
+                    if !counter_damage_type_allowed(&hurt.damage_type) { continue; }
                     hit.counter_damage.borrow_mut().push(pluto_lib::CounterDamage { damage_type: hurt.damage_type.to_string(), amount: hurt.amount });
                 }
             }
@@ -192,4 +201,46 @@ pub(crate) fn register() {
     ServerEntityEvents::SHEAR.register(|attempt| {
         attempt.actions.borrow_mut().extend(usage_actions(&[&attempt.tool], crate::weapon_effect::Usage::Shear { target: true }));
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn counter_damage_accepts_the_game_and_the_port_s_own_damage_types() {
+        assert!(counter_damage_type_allowed(&Identifier::parse("minecraft:thorns").unwrap()));
+        assert!(counter_damage_type_allowed(&Identifier::parse("tconstruct:shock").unwrap()));
+        assert!(counter_damage_type_allowed(&Identifier::parse("tconstruct:smeltery_heat").unwrap()));
+        assert!(!counter_damage_type_allowed(&Identifier::parse("other:shock").unwrap()), "a type no side registered stays dropped");
+    }
+
+    struct Always;
+    impl crate::materials::Conditions for Always {
+        type Parsed = ();
+        fn decode(&self, _: &serde_json::Value) -> Result<(), String> { Ok(()) }
+        fn test(&self, _: &()) -> Result<bool, String> { Ok(true) }
+    }
+
+    #[test]
+    fn shock_thorns_hurt_a_rain_exposed_attacker_through_the_worn_piece() {
+        // The shipped shock modifier's second thorns, without its tool tag: the consumer
+        // already iterates worn armor pieces, and a tool-tag predicate needs an item the
+        // test stack does not carry, so it would never match here.
+        let mut registry = crate::modifiers::Registry::default();
+        registry.reload(&[(Identifier::parse("test:shock").unwrap(), json!({"modules": [{"type": "tconstruct:thorns", "attacker": "mantle:raining_at", "chance": {"each_level": 0.1}, "constant_damage": {"flat": 2.0}, "damage_type": "tconstruct:shock", "random_damage": {"flat": 3.0}}]}))], &Always);
+        let mut materials = crate::materials::Definitions::default();
+        materials.server_loaded = true;
+        let data = crate::tool_definitions::Data::default();
+        let env = crate::tool_stack::Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
+        let mut nbt = pluto_lib::NbtCompound::new();
+        nbt.insert(crate::tool_stack::TAG_MODIFIERS.into(), crate::modifier_entries::List::default().with_modifier(Identifier::parse("test:shock").unwrap(), 1).unwrap().to_nbt());
+        let rain = pluto_lib::EntityState { rain_exposed: true, ..Default::default() };
+        let in_rain = |tag: &Identifier| crate::melee_damage::state_in_tag(tag, Some(&rain), None);
+        assert_eq!(crate::tool_stack::thorns_hurts(&nbt, &env, &in_rain, &mut || 0.0), vec![crate::thorns::Hurt { damage_type: Identifier::parse("tconstruct:shock").unwrap(), amount: 2.0 }]);
+        let dry = pluto_lib::EntityState::default();
+        let in_dry = |tag: &Identifier| crate::melee_damage::state_in_tag(tag, Some(&dry), None);
+        assert!(crate::tool_stack::thorns_hurts(&nbt, &env, &in_dry, &mut || 0.0).is_empty(), "no rain, no shock");
+    }
 }
