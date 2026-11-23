@@ -1,11 +1,12 @@
 //! The melter and heater block entities, their windows and slot rules over PlutoLib's public API
 //! (SlimeKnights MelterBlockEntity, HeaterBlockEntity, MelterContainerMenu, SingleItemContainerMenu, MelterScreen and
 //! the GuiMeltingModule/GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The melter menu holds its three melting
-//! slots and, as its fourth slot, the fuel slot of the block below: the original adds it at (151, 32) when the block
-//! below is a fuel tank (`MelterContainerMenu`), and here it is a neighbour-sourced slot — the menu type declares it
-//! under `links` and PlutoLib answers the host's menu-links question with the block below, so the slot shows and edits
-//! the heater's own inventory in place (the burn cycle, which reads the block below, sees every change in the same
-//! step). With no container below, the linked slot holds nothing and takes nothing. This window frames the slot (the
+//! slots and, as its fourth slot, the fuel slot of the block below: the original adds it at (151, 32) only when the block
+//! below is a fuel tank (`MelterContainerMenu`, `TinkerTags.Blocks.FUEL_TANKS` — the seared heater, the seared tanks,
+//! the scorched tanks), and here the menu-links callback answers the host's question with the block below only then, so
+//! the slot shows and edits the fuel tank's own inventory in place (the burn cycle, which reads the block below, sees
+//! every change in the same step). With any other block below — a chest, say — no link is answered, the linked slot holds
+//! nothing and takes nothing, and the chest's slot 0 stays untouched. This window frames the slot (the
 //! FUEL_SLOT background) when a heater is below, from the same menu-data flag the ticker publishes. The tank is drawn as
 //! the fluid's still texture tiled over a flat fill of its colour (the fill is what shows where the host's atlas
 //! holds no sprite for the texture); clicking it trades the held container with the tank, and its tooltip names the
@@ -17,7 +18,7 @@ use crate::{
     heating::MELTER_CAPACITY,
 };
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, FluidItems, FluidRegistry, I18n, Identifier, MenuButton, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType,
+    BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidItems, FluidRegistry, I18n, Identifier, MenuButton, Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType,
     ScreenLayout, TransferDirection,
 };
 
@@ -240,6 +241,18 @@ fn melter_press(button: &mut MenuButton<'_>) {
     *button.carried = done.held;
 }
 
+/// `MelterContainerMenu`: the fuel slot is the block below's slot 0 only when that block is a fuel tank
+/// (`TinkerTags.Blocks.FUEL_TANKS`). Any other block below lends no slot: the link is not answered, so the
+/// menu shows no fuel slot for it and its slot 0 stays untouched.
+fn fuel_links(pos: BlockPos) -> Vec<BlockPos> {
+    let below = [pos[0], pos[1] - 1, pos[2]];
+    if Neighbours::block_state(below).is_some_and(|state| state.is_in_tag(melter::FUEL_TANKS)) {
+        vec![below]
+    } else {
+        Vec::new()
+    }
+}
+
 pub(crate) fn register() {
     let melter_id = Identifier::new("tconstruct", MELTER).expect("valid melter id");
     // The fuel slot follows the melting slots, at the original's (151, 32), backed by the block
@@ -253,7 +266,8 @@ pub(crate) fn register() {
         .on_draw(|draw| draw_melter(draw.canvas, draw.origin, draw.data, draw.mouse))
         .on_click(|press| melter_click(press.at))
         .on_tooltip(|tip| melter_tooltip(tip.at, tip.data, tip.lines))
-        .on_button(|button| melter_press(button));
+        .on_button(|button| melter_press(button))
+        .on_menu_links(|context| fuel_links(context.pos));
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(melter_id).item_slots(SLOTS as u32).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").sync_data().ticker(tick_melter)
@@ -274,6 +288,7 @@ pub(crate) fn register() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pluto_lib::{MemoryNeighbourOps, MemoryWorldOps, with_neighbours, with_world};
 
     #[derive(Default)]
     struct Recorder { sprites: Vec<(String, [f32; 4], [f32; 4])>, fills: Vec<([f32; 4], u32)>, tinted: Vec<(String, [f32; 4], [f32; 4], u32)> }
@@ -357,6 +372,27 @@ mod tests {
         lines.clear();
         melter_tooltip([SLOT_X - 4.0, SLOT_Y + 3.0], &values, &mut lines);
         assert_eq!(lines, vec!["Not enough heat to melt this item.".to_owned()], "the ingot wants 900 and the fuel gives 800");
+    }
+
+    #[test]
+    fn the_fuel_link_answers_only_a_fuel_tank_below() {
+        let mut neighbours = MemoryNeighbourOps::default();
+        neighbours.states.insert([0, 63, 0], "tconstruct:seared_heater".to_owned());
+        neighbours.states.insert([5, 63, 0], "minecraft:chest".to_owned());
+        neighbours.states.insert([9, 63, 0], "tconstruct:seared_fuel_tank".to_owned());
+        let mut world = MemoryWorldOps::default();
+        world.tags.push(("tconstruct:seared_heater".to_owned(), "tconstruct:fuel_tanks".to_owned()));
+        world.tags.push(("tconstruct:seared_fuel_tank".to_owned(), "tconstruct:fuel_tanks".to_owned()));
+        // The scopes nest as the transport nests them around the callback: the world outside,
+        // the neighbours inside (the tag is read through the world scope).
+        with_world(&mut world, || {
+            with_neighbours(&mut neighbours, || {
+                assert_eq!(fuel_links([0, 64, 0]), vec![[0, 63, 0]], "a heater below lends its slot 0");
+                assert_eq!(fuel_links([9, 64, 0]), vec![[9, 63, 0]], "a seared fuel tank below lends its slot 0");
+                assert_eq!(fuel_links([5, 64, 0]), Vec::<BlockPos>::new(), "a chest below lends nothing: its slot 0 stays untouched");
+                assert_eq!(fuel_links([3, 64, 0]), Vec::<BlockPos>::new(), "air below lends nothing");
+            });
+        });
     }
 
     #[test]

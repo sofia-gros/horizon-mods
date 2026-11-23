@@ -8,16 +8,22 @@
 //! The minimap reads the worn helmet's own minimap inventory, as the other elements read
 //! theirs: the original keeps the current map in the player's data, filled from the helmet's
 //! inventory on equip, but the helmet's selected stored map is the same stack, so the HUD
-//! derives it directly and no player-data key is kept. What does not carry over: the map is
-//! not ticked while it is stored (the original swaps it into the offhand each tick so it
-//! updates and its data reaches the player; PlutoLib has no map-tick verb), the top-right
-//! corner's shift for the player's active effects is not applied (the HUD draw is given no
-//! effects), the map's decorations are not drawn (they ride the game's 3D map pipeline, not
-//! the HUD batch), and the background is a plain paper panel where the original blits its
-//! background texture (a checkerboard when the map has no data yet).
+//! derives it directly and no player-data key is kept. The top-right corner's shift for the
+//! player's active effects is applied (52 for a visible non-beneficial effect, 26 for a visible
+//! beneficial one), the map's decorations are drawn by the map-face flush (all of them, the
+//! player arrow included), and the paper panel behind the face is the original's background
+//! texture (the checkerboard when the map has data, the plain sheet when it does not).
+//!
+//! What does not carry over: the map is not ticked while it is stored (the original swaps it
+//! into the offhand each tick so it updates and its data reaches the player; PlutoLib has no
+//! map-tick verb). Closing that needs a new PlutoLib reach — a host-side player-tick injection
+//! that swaps the helmet's stored map into the offhand, lets the vanilla tick run, swaps it
+//! back and sends the update packet, with the mod supplying the stored map through a registered
+//! handler (the host cannot parse a Tinkers helmet's NBT layout) — its own design and weave
+//! verification, not a fix in this file.
 
 use crate::{config::{self, Orientation2D}, tool_stack};
-use pluto_lib::{HudDraw, HudRegistry, ItemSlot, Nbt, NbtCompound, NbtCompoundExt};
+use pluto_lib::{HudDraw, HudEffect, HudRegistry, ItemSlot, Nbt, NbtCompound, NbtCompoundExt};
 
 /// `slimeknights.tconstruct.library.client.Icons.ICONS`: the slot frames' sheet.
 const ICONS: &str = "tconstruct:gui/icons";
@@ -70,6 +76,17 @@ fn grid_origin(location: Orientation2D, size: [f32; 2], grid: [f32; 2], offsets:
     [x + offsets.0 as f32, y + offsets.1 as f32]
 }
 
+/// ModifierClientEvents.getEffectOffset: the top-right corner's shift for the player's active
+/// effects — 52 when any visible effect is not beneficial, 26 when any visible effect is
+/// beneficial, 0 otherwise. A visible effect is one that shows its icon (the draw is given the
+/// icon flag as the host reports it: not ambient); an effect hidden with showIcon still shifts,
+/// which vanilla never does.
+fn effect_offset(effects: &[HudEffect]) -> f32 {
+    if effects.iter().any(|effect| effect.visible && !effect.beneficial) { 52.0 }
+    else if effects.iter().any(|effect| effect.visible && effect.beneficial) { 26.0 }
+    else { 0.0 }
+}
+
 /// The minimap: the worn helmet's selected stored map, drawn at its configured corner at the
 /// configured scale (ModifierClientEvents' map rendering: a 142-square panel, the map's face
 /// inset by seven). Returns where it sits and how far its footprint reaches, for the item
@@ -83,10 +100,15 @@ fn minimap(draw: &mut HudDraw<'_>, client: &config::Client) -> Option<(Orientati
     if stack.item.to_string() != "minecraft:filled_map" { return None; }
     let scale = client.map_scale as f32;
     let size = 142.0 * scale;
-    let origin = grid_origin(client.map_location, draw.size, [size, size], (client.map_x_offset, client.map_y_offset));
+    let mut origin = grid_origin(client.map_location, draw.size, [size, size], (client.map_x_offset, client.map_y_offset));
+    // The top-right corner's shift for the player's active effects: the effect icons sit above
+    // the map there, as the original shifts it below them, and the footprint grows by the shift
+    // (the original's mapOffset) so the item frame clears the map's bottom edge.
+    let shift = if client.map_location == Orientation2D::TopRight { effect_offset(draw.effects) } else { 0.0 };
+    origin[1] += shift;
     draw.canvas.fill([origin[0], origin[1], size, size], 0xFFE8_D8B0);
     draw.canvas.map([origin[0] + 7.0 * scale, origin[1] + 7.0 * scale, 128.0 * scale, 128.0 * scale], &stack);
-    Some((client.map_location, size))
+    Some((client.map_location, size + shift))
 }
 
 fn draw(draw: &mut HudDraw<'_>) {
@@ -142,6 +164,12 @@ fn draw(draw: &mut HudDraw<'_>) {
                             };
                         }
                     }
+                    // The item frame at the top right shifts for the player's active effects
+                    // too, as the original shifts its grid there — unless the minimap is at the
+                    // same corner, whose footprint already carries the shift.
+                    if client.item_frame_location == Orientation2D::TopRight && map.map_or(true, |(location, _)| location != Orientation2D::TopRight) {
+                        origin[1] += effect_offset(draw.effects);
+                    }
                     for (index, item) in items.iter().enumerate() {
                         let at = [origin[0] + (index % columns) as f32 * FRAME, origin[1] + (index / columns) as f32 * FRAME];
                         framed(draw, 167.0, at, item);
@@ -186,5 +214,18 @@ mod tests {
         assert_eq!(items.iter().map(|item| item.item.to_string()).collect::<Vec<_>>(), ["minecraft:torch", "minecraft:apple"]);
         assert_eq!(stored_slot(&stack, "tconstruct:item_frame", 2).map(|item| item.item.to_string()), Some("minecraft:apple".to_owned()));
         assert!(stored_stacks(&stack, "tconstruct:sleeves").is_empty(), "another modifier's list is not this one's");
+    }
+
+    #[test]
+    fn the_effect_shift_is_52_for_a_visible_harmful_effect_and_26_for_a_beneficial_one() {
+        let harmful = HudEffect { beneficial: false, visible: true };
+        let beneficial = HudEffect { beneficial: true, visible: true };
+        let hidden = HudEffect { beneficial: false, visible: false };
+        assert_eq!(effect_offset(&[]), 0.0);
+        assert_eq!(effect_offset(&[hidden]), 0.0, "an ambient effect shows no icon, so it shifts nothing");
+        assert_eq!(effect_offset(&[beneficial]), 26.0);
+        assert_eq!(effect_offset(&[harmful]), 52.0);
+        assert_eq!(effect_offset(&[beneficial, harmful]), 52.0, "any non-beneficial visible effect wins");
+        assert_eq!(effect_offset(&[beneficial, hidden]), 26.0);
     }
 }

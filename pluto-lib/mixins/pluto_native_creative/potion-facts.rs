@@ -12,6 +12,8 @@ pub struct EffectFacts {
     pub color_rgb: u32,
     /// Native catalog flag, not permission to apply this effect.
     pub instant: bool,
+    /// Whether the effect's category is beneficial (a harmful or neutral effect is not).
+    pub beneficial: bool,
 }
 
 /// Return facts for the host's existing registered effect, or None if unknown.
@@ -24,6 +26,7 @@ pub fn effect(id: &str) -> Option<EffectFacts> {
         canonical_id: potions::namespaced(def.id),
         color_rgb: def.color,
         instant: def.instant,
+        beneficial: def.category == potions::Category::Beneficial,
     })
 }
 
@@ -50,5 +53,17 @@ pub fn potion(id: &str) -> Option<PotionFacts> {
 /// return true. Use effect() separately when catalog membership is required.
 pub fn has_custom_namespace(id: &str) -> bool {
     potions::is_mod_effect(id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_category_read_is_beneficial_for_speed_and_not_for_poison() {
+        assert_eq!(effect("minecraft:speed").map(|facts| facts.beneficial), Some(true), "speed is beneficial");
+        assert_eq!(effect("minecraft:poison").map(|facts| facts.beneficial), Some(false), "poison is harmful");
+        assert!(effect("minecraft:unknown_effect_xyz").is_none());
+    }
 }
 

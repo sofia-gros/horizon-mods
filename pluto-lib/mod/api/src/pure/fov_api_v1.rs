@@ -11,6 +11,7 @@
 //! the stacks (held and worn alike), works out its factor from them,
 //! and answers it, or answers None when nothing it owns contributes.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 use super::block_entity_api_v1::ItemSlot;
@@ -38,6 +39,10 @@ pub struct FovFacts<'a> {
     /// None when the player is not using anything: a zoom reads the
     /// count against its draw time.
     pub using_ticks: Option<i32>,
+    /// Whether the worn-helmet keybind is held: a zoom module answers it with its keybind
+    /// factor (the original's `startInteract` zoom), as the armor interact hook's key tracking
+    /// reports it. A callback that does not answer the keybind ignores it.
+    pub keybind_zoom: bool,
 }
 
 /// One equipment slot of the local player, as a [`FovFacts`] stack
@@ -69,6 +74,11 @@ pub type FovCallback = fn(&FovFacts<'_>) -> Option<f32>;
 
 static CALLBACKS: RwLock<Vec<FovCallback>> = RwLock::new(Vec::new());
 
+/// Whether the worn-helmet keybind is held, as the armor interact hook last reported it: set on
+/// the helmet key's press, cleared on its release. The transport reads it into the facts, so a
+/// zoom module's keybind zoom needs no packet round trip to show.
+static KEYBIND_ZOOM: AtomicBool = AtomicBool::new(false);
+
 /// The registry of field-of-view callbacks. Register once during
 /// startup; the transport asks every registered callback on each
 /// field-of-view computation and multiplies the game's modifier by
@@ -84,6 +94,18 @@ impl FovRegistry {
             }
         }
     }
+
+    /// The helmet key is held (`true`) or released (`false`): the keybind zoom's half of the
+    /// state, written by the armor interact hook's key tracking.
+    pub fn set_keybind_zoom(held: bool) {
+        KEYBIND_ZOOM.store(held, Ordering::Relaxed);
+    }
+}
+
+/// Whether the helmet key is held now, as the armor interact hook last reported it: the
+/// transport reads it into the facts on each field-of-view computation.
+pub fn keybind_zoom() -> bool {
+    KEYBIND_ZOOM.load(Ordering::Relaxed)
 }
 
 /// The product of every registered callback's factor over `facts`, or
@@ -106,7 +128,7 @@ mod tests {
     use super::*;
 
     fn facts<'a>(stacks: &'a [FovStack<'a>]) -> FovFacts<'a> {
-        FovFacts { base: 1.0, flying: false, walking_speed: 0.1, movement_speed: 0.1, stacks, using_ticks: None }
+        FovFacts { base: 1.0, flying: false, walking_speed: 0.1, movement_speed: 0.1, stacks, using_ticks: None, keybind_zoom: false }
     }
 
     #[test]
@@ -120,5 +142,14 @@ mod tests {
         let stacks = [FovStack { slot: FovSlot::Head, stack: &stack }];
         assert_eq!(fov_multiplier(&facts(&stacks)), Some(1.05 * 0.5));
         assert_eq!(fov_multiplier(&facts(&[])), Some(1.05));
+    }
+
+    #[test]
+    fn the_keybind_zoom_flag_is_set_on_press_and_cleared_on_release() {
+        assert!(!keybind_zoom(), "nothing held it yet");
+        FovRegistry::set_keybind_zoom(true);
+        assert!(keybind_zoom());
+        FovRegistry::set_keybind_zoom(false);
+        assert!(!keybind_zoom());
     }
 }

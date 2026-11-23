@@ -12,6 +12,12 @@
 //! sound conditions), unit-tested below. The minimap's selection write-back rides the same walled
 //! surface as the swaps (it changes the worn piece's own data, which no event offers a write for).
 //!
+//! The zoom keybind is wired too (ZoomModule.startInteract/stopInteract, the spyglass style only —
+//! the scope binds no armor interact hook): the client key tracking sets the FOV keybind flag on the
+//! helmet key's press and clears it on its release (see fov_hook), and the server receiver plays the
+//! spyglass use and stop sounds. The receiver has no position or dimension to play one at, so it queues
+//! the sound for the player and the player tick — which carries both — plays it on its next tick.
+//!
 //! What cannot run yet, with the evidence: executing a swap on the server needs to replace stacks in
 //! places whose item changes — the off hand takes the strap inventory's first stack, hotbar slots take
 //! belt stacks. The player handle writes a slot back only when it still holds the same item
@@ -29,7 +35,8 @@
 //! tick explodes on the player tick below, and taking the helmet off removes it there too
 //! (SelfDestructiveModifier.onUnequip). The primed sound plays on the effect's first tick,
 //! where the tick reports the wearer's place.
-use crate::{break_speed_hook::with_held_tool, tool_inventory::{MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
+use crate::{break_speed_hook::with_held_tool, modifier_modules::ZoomStyle, tool_inventory::{MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
+use pluto_lib::fov_api_v1::FovRegistry;
 use pluto_lib::{ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -201,6 +208,29 @@ fn self_destructive_stop(player: u128) {
     wearer.remove_effect("tconstruct:self_destructing");
 }
 
+/// The head piece's zoom style, if it carries a zoom module (ZoomModule's keybind half).
+fn head_zoom_style(player: u128) -> Option<ZoomStyle> {
+    let (_, head) = pluto_lib::entity_events_v1::equipment_of(player).into_iter().find(|(slot, _)| slot == "head")?;
+    crate::fov_hook::zoom_style_of(&head)
+}
+
+/// The keybind zoom sounds the receiver asked for, by player: the receiver has no position or
+/// dimension to play one at, so the player tick — which carries both — plays them on its next
+/// tick (at most a tick late, unnoticeable for a key press).
+static ZOOM_SOUNDS: Mutex<Vec<(u128, &'static str)>> = Mutex::new(Vec::new());
+
+fn queue_zoom_sound(player: u128, sound: &'static str) {
+    if let Ok(mut sounds) = ZOOM_SOUNDS.lock() {
+        sounds.push((player, sound));
+    }
+}
+
+fn take_zoom_sound(player: u128) -> Option<&'static str> {
+    let mut sounds = ZOOM_SOUNDS.lock().ok()?;
+    let at = sounds.iter().position(|(who, _)| *who == player)?;
+    Some(sounds.remove(at).1)
+}
+
 /// The players whose primed sound has played for the effect they currently carry, by uuid.
 static PRIMED: Mutex<BTreeSet<u128>> = Mutex::new(BTreeSet::new());
 
@@ -215,6 +245,9 @@ pub(crate) fn register() {
             "key.keyboard.left.control" | "key.keyboard.right.control" => keys.1 = press.pressed,
             "key.keyboard.left.alt" | "key.keyboard.right.alt" => keys.2 = press.pressed,
             "key.keyboard.z" => {
+                // The keybind zoom's half of the state: held until the key is released (the FOV
+                // callback answers it only while the head piece carries a spyglass zoom).
+                FovRegistry::set_keybind_zoom(press.pressed);
                 let _ = ClientPlayNetworking::send(&channel(), &encode(SLOT_HEAD, tooltip_key(keys.0, keys.1, keys.2), press.pressed));
             }
             "key.keyboard.i" => {
@@ -228,12 +261,23 @@ pub(crate) fn register() {
         if !start {
             // SelfDestructiveModifier.stopInteract is the one stop half with work to do.
             if slot == SLOT_HEAD { self_destructive_stop(player); }
+            // ZoomModule.stopInteract: letting go of the keybind zoom plays its stop sound (the
+            // spyglass style only — the scope binds no armor interact hook).
+            if slot == SLOT_HEAD && head_zoom_style(player) == Some(ZoomStyle::Spyglass) {
+                queue_zoom_sound(player, "minecraft:item.spyglass.stop_using");
+            }
             return;
         }
         // SelfDestructiveModifier.startInteract runs on the packet (see the module notes): the
         // tooltip key is Shift exactly when shift was held.
         if slot == SLOT_HEAD && key == MenuKey::Shift && self_destructive_level(player) > 0 {
             self_destructive_start(player);
+            return;
+        }
+        // ZoomModule.startInteract: the helmet key's press plays the spyglass use sound (the
+        // spyglass style only); the zoom itself is the client's keybind flag (see fov_hook).
+        if slot == SLOT_HEAD && head_zoom_style(player) == Some(ZoomStyle::Spyglass) {
+            queue_zoom_sound(player, "minecraft:item.spyglass.use");
             return;
         }
         // The exchange the packet asks for has no server surface yet (see the module notes).
@@ -248,6 +292,11 @@ pub(crate) fn register() {
     // player tick: the primed sound on the effect's first tick, the explosion on its last,
     // and the removal when the helmet that primes it is no longer worn.
     ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+        // A keybind zoom sound the receiver queued for this player: the tick carries the position
+        // and dimension the receiver never had, so it plays here, on the next tick.
+        if let Some(sound) = take_zoom_sound(tick.player) {
+            World::new(&tick.dimension).play_sound(sound, tick.position, 1.0, 1.0);
+        }
         let Some((_, amplifier, left)) = tick.effects.iter().find(|(id, _, _)| id == "tconstruct:self_destructing") else {
             let _ = PRIMED.lock().map(|mut primed| primed.remove(&tick.player));
             return;
@@ -364,5 +413,15 @@ mod tests {
         assert_eq!(select_next(&inventory, &mut single), None);
         // An empty inventory answers nothing either.
         assert_eq!(select_next(&inventory, &mut NbtCompound::new()), None);
+    }
+
+    #[test]
+    fn a_queued_keybind_zoom_sound_plays_once_for_its_player_only() {
+        queue_zoom_sound(7, "minecraft:item.spyglass.use");
+        queue_zoom_sound(9, "minecraft:item.spyglass.stop_using");
+        assert_eq!(take_zoom_sound(9), Some("minecraft:item.spyglass.stop_using"), "the other player's sound is untouched");
+        assert_eq!(take_zoom_sound(7), Some("minecraft:item.spyglass.use"));
+        assert_eq!(take_zoom_sound(7), None, "a queued sound plays once");
+        assert_eq!(take_zoom_sound(9), None);
     }
 }

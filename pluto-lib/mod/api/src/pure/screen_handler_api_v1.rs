@@ -193,8 +193,8 @@ impl EquipmentSlotKind {
 /// declares a range of them and the host fills the range from the named containers in order,
 /// which is how a window shows an inventory it has to look for first (a station's neighbouring
 /// chest, whose side varies). An equipment slot is drawn from the opening player's live
-/// equipment; the host's menu model binds container slots to the opened block entity or to
-/// linked block containers only, so an equipment slot takes no clicks yet.
+/// equipment; the menu carries it as an armor slot over the player's equipment (registered with
+/// the window, see pluto-menu-equipment), so it clicks through the native armor behaviour.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SlotSource {
     /// The opened block entity's own item slot of the same index.
@@ -285,8 +285,9 @@ impl ScreenLayout {
 
     /// The same layout with one more slot at `(x, y)` showing a piece of the opening player's own
     /// equipment (the original station windows' armor and offhand slots). The slot is drawn from
-    /// the player's live equipment; it is not one of the block entity's slots, so the menu's item
-    /// sync and clicks do not reach it (see [`SlotSource::PlayerEquipment`]).
+    /// the player's live equipment; the menu carries it as an armor slot over the player's
+    /// equipment, so clicks reach it through the native armor behaviour (see
+    /// [`SlotSource::PlayerEquipment`]).
     pub fn equipment_slot(mut self, x: f32, y: f32, kind: EquipmentSlotKind) -> Self {
         self.slots.push(Some([x, y]));
         self.dynamic.push(false);

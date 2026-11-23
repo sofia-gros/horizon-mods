@@ -19,10 +19,10 @@
 //! - A side inventory taller than the window scrolls behind a slider in the original; here
 //!   every slot is positioned, so a tall one (a double chest is nine rows at three columns)
 //!   draws past the window's lower edge.
-//! - A menu switch is carried out for the game's own player; a LAN guest's tab press runs
-//!   through the same button dispatch, but a guest's menu lives in the host's guest state,
-//!   which the switch flush cannot reach, so a guest's tabs draw and name their tables but do
-//!   not switch (see the pluto-menu-switch module).
+//! - A menu switch is carried out for the game's own player, and for a LAN guest too: a guest's
+//!   tab press runs through the same button dispatch, and the guest switch flush (on the guest's
+//!   own station-button path, see the pluto-menu-switch module) opens the table in the host's
+//!   guest state.
 use pluto_lib::{
     BlockEntityTick, BlockPos, Direction, I18n, Identifier, ItemSlot, Nbt, Neighbours, ScreenCanvas,
 };
