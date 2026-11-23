@@ -50,7 +50,7 @@ class HangingTests(unittest.TestCase):
 
     def test_the_loader_applies_the_variant_rotation(self):
         load = self.injection('pluto-hanging-frame-from-nbt')
-        self.assertEqual(load['target'], 'horizon_client::entity_nbt::item_frame_from_nbt')
+        self.assertEqual(load['target'], 'horizon_client::entity_nbt::hanging::item_frame_from_nbt')  # the loader lives in the hanging submodule (E_TARGET_NOT_FOUND, build-sp weave plan 2026-11-23)
         self.assertEqual(load['kind'], 'HEAD')
         self.assertTrue(load['cancellable'])
         source = (BUNDLE / 'pluto-hanging-frame-from-nbt.rs').read_text(encoding='utf-8')
