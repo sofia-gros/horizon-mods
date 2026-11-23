@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (57, 30), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (56, 29), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -215,10 +215,11 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     for name in ["tank", "bucketing", "melting", "slurping", "spilling", "spitting", "splashing", "overburn", "smashing"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the tool tank"); }
     // The inventory consumers are bound: the quivers draw through the ammo event, the strap and belt
     // kinds decode with their interact plan, share durability runs on the wear event, and shears and
-    // fishing answer the tool-action query. Harvest stays unbound (no destroy-with-drops or block-use
-    // re-dispatch reaches a use callback), as does the armor harvest enchantment above.
+    // fishing answer the tool-action query. Harvest binds over the block actions PlutoLib queues for
+    // a use callback (destroy-with-drops and the block-use re-dispatch, applied at the level's tick
+    // seam); the armor harvest enchantment above stays unbound.
     for bound in ["bulk_quiver", "trick_quiver", "shield_strap", "tool_belt", "share_durability", "shears", "fishing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    assert!(kinds.contains("tconstruct:harvest"), "harvest is still unbound");
+    assert!(!kinds.contains("tconstruct:harvest"), "harvest should be bound");
     for name in ["bulk_quiver", "trick_quiver", "sliver", "deciduous", "fishing", "shears", "silky_shears", "silky_aoe_shears", "shield_strap", "tool_belt"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
 }
 

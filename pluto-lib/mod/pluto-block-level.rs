@@ -300,6 +300,25 @@ impl LevelEdit for Edit<'_, '_> {
         Some(behaviours.destroy_block(&mut *self.level, ticks, at(pos), drop))
     }
 
+    fn use_block(&mut self, pos: [i32; 3], face: u8, hit: [f64; 3], item: Option<&str>) -> Option<bool> {
+        let ticks = self.ticks.as_deref_mut()?;
+        let face = match face {
+            0 => Direction::Down,
+            1 => Direction::Up,
+            2 => Direction::North,
+            3 => Direction::South,
+            4 => Direction::West,
+            _ => Direction::East,
+        };
+        // The use is re-dispatched as a survival player who may build: the identity of the
+        // holder is not the level's to know, and the harvest uses it drives (a berry bush, a
+        // cave vine) ask nothing more of the player.
+        let player = horizon_world::level::PlayerContext { yaw: 0.0, pitch: 0.0, may_build: true, can_eat: false, game_master: false };
+        let behaviours = self.level.behaviours;
+        let result = behaviours.use_item_on(&mut *self.level, ticks, at(pos), face, horizon_core::geometry::Vec3::new(hit[0], hit[1], hit[2]), player, item);
+        Some(result.consumes_action())
+    }
+
     fn random_int(&mut self, bound: i32) -> i32 {
         if bound <= 0 {
             return 0;

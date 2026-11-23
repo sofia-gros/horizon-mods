@@ -78,6 +78,7 @@ mod mob_disguise_hook;
 mod weapon_effect_hook;
 mod block_break_hook;
 mod enderporting_hook;
+mod harvest_hook;
 mod severing;
 mod severing_hook;
 mod loot_modifiers;
@@ -215,6 +216,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     mob_equipment::register();
     dragon_scales::register();
     tool_action_hook::register();
+    harvest_hook::register();
     protection_hook::register();
     tool_damage_hook::register();
     weapon_effect_hook::register();

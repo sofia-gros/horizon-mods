@@ -367,6 +367,19 @@ pub fn hooks() -> Box<dyn Hooks> {
         world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
         // The extra blocks a break's callbacks asked for go through the game's own destroy path, drops and all.
         events_interaction_v0::apply_pending_extra_breaks(dimension, |pos| edit.break_block(pos, true) == Some(true));
+        // The block actions a use callback queued (a harvest's breaks, re-dispatched uses and the
+        // writes that must land after them), in the order they were asked for.
+        world_api_v1::apply_pending_block_actions(dimension, |action| match action {
+            world_api_v1::PendingBlockAction::Break { pos, drop } => edit.break_block(*pos, *drop) == Some(true),
+            world_api_v1::PendingBlockAction::Use { pos, face, hit, item } => {
+                let face = match *face { [0, -1, 0] => 0, [0, 0, -1] => 2, [0, 0, 1] => 3, [-1, 0, 0] => 4, [1, 0, 0] => 5, _ => 1 };
+                edit.use_block(*pos, face, *hit, item.as_deref()).is_some()
+            }
+            world_api_v1::PendingBlockAction::SetState { pos, state } => match BlockState::parse(state) {
+                Ok(parsed) => edit.set_state(*pos, &to_info(&parsed), 3),
+                Err(_) => false,
+            },
+        });
     });
     horizon_client::entry::pluto_entity_spawn_access::set_provider(
         horizon_client::entry::pluto_entity_spawn_access::Provider {
@@ -1426,6 +1439,21 @@ impl WorldOps for HostWorld {
         // The mod-facing host has no scheduling call, so the request is queued and the level's
         // own tick seams apply it in that dimension (see world_api_v1::queue_block_tick).
         world_api_v1::queue_block_tick(dimension, pos, block, delay)
+    }
+
+    fn break_block(&mut self, dimension: &str, pos: [i32; 3], drop: bool) -> bool {
+        // The mod-facing host has no destroy call from a use callback either, so the break is
+        // queued the same way and the level's tick seams run it through the game's own destroy
+        // path, drops and all (see world_api_v1::queue_block_action).
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::Break { pos, drop })
+    }
+
+    fn use_block(&mut self, dimension: &str, pos: [i32; 3], face: [i32; 3], hit: [f64; 3], item: Option<&str>) -> bool {
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::Use { pos, face, hit, item: item.map(str::to_owned) })
+    }
+
+    fn set_block_state_queued(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::SetState { pos, state: state.to_owned() })
     }
 
     fn block_entity_data(&mut self, dimension: &str, pos: [i32; 3]) -> Option<NbtCompound> {

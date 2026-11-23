@@ -913,6 +913,11 @@ pub(crate) fn enderporting(nbt: &NbtCompound, env: &Environment) -> bool {
     !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_enderporting())))
 }
 
+/// Whether the tool carries the harvest module (HarvestModule) and is not broken.
+pub(crate) fn harvests(nbt: &NbtCompound, env: &Environment) -> bool {
+    !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_harvest())))
+}
+
 /// The stack edits of wearing this tool by `amount` (ToolDamageUtil.damageTool, as the repair and
 /// swap flows apply it directly): the damage value, and the broken mark when the wear breaks it.
 /// Empty when the wear does not land (a broken or unbreakable tool, or nothing to wear).
