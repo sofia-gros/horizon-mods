@@ -7,11 +7,11 @@ fn pluto_hanging_stand_break(
     creative: bool,
     always_kills: bool,
     by: Option<super::commands::Target>,
-) -> std::ops::ControlFlow<Option<bool>> {
+) -> std::ops::ControlFlow<bool> {
     let Some(facts) = crate::game::pluto_hanging_game::stand_facts(game, &game.armor_stands[i]) else {
         return std::ops::ControlFlow::Continue(());
     };
-    std::ops::ControlFlow::Break(Some(crate::game::pluto_hanging_game::break_fancy_stand(
+    std::ops::ControlFlow::Break(crate::game::pluto_hanging_game::break_fancy_stand(
         game, i, creative, always_kills, by, &facts,
-    )))
+    ))
 }
