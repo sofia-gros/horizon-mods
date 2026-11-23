@@ -325,7 +325,7 @@ mod tests {
         // one level (250) buys 2 seconds of fire on an unburning zombie: the whole shot is spent
         let hit = ProjectileImpact {
             dimension: "minecraft:overworld".to_owned(), projectile: 1, kind: FLUID_SPIT.to_owned(), owner: -1,
-            entity: Some(9), entity_kind: "minecraft:zombie".to_owned(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
+            entity: Some(9), entity_kind: "minecraft:zombie".to_owned(), entity_effects: Vec::new(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
             motion: [0.0; 3], data: NbtCompound::new(), discard: std::cell::Cell::new(false), motion_after: std::cell::RefCell::new(None),
             actions: std::cell::RefCell::new(Vec::new()),
         };
@@ -346,7 +346,7 @@ mod tests {
         let shot = Shot { fluid: FluidStack { fluid: id("tconstruct:molten_obsidian"), amount: 50, tag: None }, power: 1.0, cannon: Some([0, 64, 0]), stack: Stack::empty() };
         let hit = ProjectileImpact {
             dimension: "minecraft:overworld".to_owned(), projectile: 3, kind: FLUID_SPIT.to_owned(), owner: -1,
-            entity: None, entity_kind: String::new(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
+            entity: None, entity_kind: String::new(), entity_effects: Vec::new(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
             motion: [0.0; 3], data: NbtCompound::new(), discard: std::cell::Cell::new(false), motion_after: std::cell::RefCell::new(None),
             actions: std::cell::RefCell::new(Vec::new()),
         };
@@ -371,7 +371,7 @@ mod tests {
         let shot = Shot { fluid: FluidStack { fluid: id("tconstruct:molten_obsidian"), amount: 150, tag: None }, power: 1.0, cannon: Some([0, 64, 0]), stack: Stack::empty() };
         let hit = ProjectileImpact {
             dimension: "minecraft:overworld".to_owned(), projectile: 3, kind: FLUID_SPIT.to_owned(), owner: -1,
-            entity: None, entity_kind: String::new(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
+            entity: None, entity_kind: String::new(), entity_effects: Vec::new(), block: [0, 64, -1], face: [0, 0, 1], at: [0.5, 64.5, -0.5],
             motion: [1.0, 0.0, -0.2], data: NbtCompound::new(), discard: std::cell::Cell::new(false), motion_after: std::cell::RefCell::new(None),
             actions: std::cell::RefCell::new(Vec::new()),
         };

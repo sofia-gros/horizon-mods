@@ -611,6 +611,7 @@ mod tests {
             owner: -1,
             entity: Some(1),
             entity_kind: "minecraft:zombie".to_owned(),
+            entity_effects: Vec::new(),
             block: [0, 0, 0],
             face: [0, 1, 0],
             at: [0.5, 0.5, 0.5],
