@@ -234,6 +234,11 @@ pub(crate) fn walk_transforms(nbt: &NbtCompound, env: &Environment) -> Vec<(Iden
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.walk_transforms(entry, facts)).collect())
 }
 
+/// The boot walk modules over every modifier of the tool (ArmorWalkModifierHook), in modifier order.
+pub(crate) fn walk_modules(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, crate::modifier_modules::WalkModule)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.walk_modules(entry, facts)).collect())
+}
+
 /// ToolActionModifierHook over every modifier of the tool: whether one of them lets it perform the named tool action
 /// (a tool actions module such as `item_hook`, `drill_attack`, `grapple_hook` or `shield_disable`).
 pub(crate) fn can_perform_action(nbt: &NbtCompound, env: &Environment, name: &str) -> bool {

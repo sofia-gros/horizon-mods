@@ -7,6 +7,7 @@ use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
+use std::sync::RwLock;
 
 use super::base::{Identifier, IdentifierError, Nbt, NbtCompound};
 use super::block_entity_api_v1::BlockPos;
@@ -87,6 +88,12 @@ pub enum ExplosionInteraction {
 pub trait WorldOps {
     /// The block state at `pos` as text, or None if the chunk is not loaded.
     fn block_state(&mut self, dimension: &str, pos: BlockPos) -> Option<String>;
+    /// The light at `pos` in the dimension: (block light, sky light), each 0..=15 (Minecraft:
+    /// `Level.getBrightness` for the block and sky layers). None if the chunk is not loaded or
+    /// the host cannot read light. The default host cannot read light.
+    fn light(&mut self, _dimension: &str, _pos: BlockPos) -> Option<(u8, u8)> {
+        None
+    }
     /// Sets the block at `pos` to the state given as text; false if it could not be set.
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool;
     /// Plays the sound event `sound` for the players near `at` in the dimension; false if the sound is unknown or could not be played.
@@ -159,6 +166,30 @@ pub trait WorldOps {
     fn send_particles(&mut self, _dimension: &str, _particle: &str, _data: &ParticleData, _at: [f64; 3], _spread: [f64; 3], _speed: f64, _count: i32) -> bool {
         false
     }
+}
+
+/// A face-sturdiness lookup the host installs: whether the named block's face in a direction
+/// (Minecraft's Direction ordinal: 0 down, 1 up, 2 north, 3 south, 4 west, 5 east) is sturdy
+/// for the full support type (`BlockState.isFaceSturdy(.., SupportType.FULL)`), as the game's
+/// own block table reports it. The table answers by block name, so a block whose states
+/// differ answers with its first state.
+pub type SturdyLookup = fn(&str, u8) -> Option<bool>;
+
+static STURDY_LOOKUP: RwLock<Option<SturdyLookup>> = RwLock::new(None);
+
+/// Installs the face-sturdiness lookup. Called by the host adapter at startup.
+pub fn set_sturdy_lookup(lookup: SturdyLookup) {
+    if let Ok(mut slot) = STURDY_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// Whether the named block's face in `direction` (a Direction ordinal) is sturdy for the
+/// full support type, when the game's table answers for the block.
+pub fn face_sturdy(block: &str, direction: u8) -> Option<bool> {
+    let guard = STURDY_LOOKUP.read().ok()?;
+    let lookup = (*guard)?;
+    lookup(block, direction)
 }
 
 thread_local! {
@@ -239,6 +270,13 @@ impl World {
     pub fn get_block_state(&self, pos: BlockPos) -> Option<BlockState> {
         let text = with_current(None, |ops| ops.block_state(&self.dimension, pos))?;
         BlockState::parse(&text).ok()
+    }
+
+    /// Minecraft: `getBrightness` for the block and sky layers at `pos`: (block light, sky
+    /// light), each 0..=15. None if the chunk is not loaded or the call is made outside a
+    /// callback that carries a world.
+    pub fn light(&self, pos: BlockPos) -> Option<(u8, u8)> {
+        with_current(None, |ops| ops.light(&self.dimension, pos))
     }
 
     /// The world of the block entity being ticked (`BlockEntity.getLevel`); `None` outside a ticker the host opened the scope for.

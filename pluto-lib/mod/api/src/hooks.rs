@@ -473,6 +473,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             result: facts.result, result_count: facts.result_count, experience: facts.experience, time: facts.time,
         })
     });
+    world_api_v1::set_sturdy_lookup(|block, direction| horizon_client::entry::pluto_block_facts::face_sturdy(block, direction));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -1413,6 +1414,13 @@ impl WorldOps for HostWorld {
         let host = self.0.get();
         let level = host.level(dimension)?;
         host.level_block_state(level, pos)
+    }
+
+    fn light(&mut self, _dimension: &str, pos: [i32; 3]) -> Option<(u8, u8)> {
+        // The host's light read names no dimension (it reads the level the current callback
+        // runs in, as the player tick's own light does); world reads are made from inside
+        // such a callback, for that level.
+        Some(self.0.get().light(pos))
     }
 
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {

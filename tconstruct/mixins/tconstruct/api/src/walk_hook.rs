@@ -3,13 +3,16 @@
 //! replaceable cell around them takes its transformed state, with the module's sound and one point of wear
 //! per cell, as ArmorWalkRadiusModule.onWalk and the module's walkOn do in the original.
 //!
-//! The original's other walk modules stay unbound, each for a named gap at the walk seam: fire walker
+//! The original's other walk modules bind over two PlutoLib reaches: fire walker
 //! (BaseFireBlock.canBePlacedAt) and cover ground (BlockState.canSurvive) both turn on whether the face of
-//! the block below is sturdy or full, a fact only the block callbacks' level view answers — the player tick
-//! seam is handed the mod host, whose queries carry no such call; glow walker places the `tconstruct:glow`
-//! block, which content does declare (light 14), but its placement turns on the same sturdy-face fact, and
-//! its walker form also needs the brightness of the cell it would light, which the tick seam does not
-//! report for cells other than the wearer's own. Two further differences from the original, both
+//! the block below is sturdy or full, which the block facts PlutoLib publishes from the game's own table
+//! now answer by block name, and glow walker's per-cell brightness is answered by the world light read.
+//! Reductions against the original: the sturdy fact answers by block name (a block's first state, as the
+//! dig facts do), fire's flammable-neighbour placement path is not modelled (a sturdy face below, plus
+//! soul fire over soul sand or soil as BaseFireBlock.getState picks it), glow's survival is read as the
+//! sturdy face below and its place sound is the glow block's default (stone) place sound, and the three
+//! forms run as their own tick hearing after the transform's, where the original's merger runs all walk
+//! modules in one order. Two further differences from the original, both
 //! inherited from this port's surfaces: the cell above the ground is cleared without dropping it (the world
 //! operations have no destroy-with-drops call; the original destroys it with drops), and whether a cell can
 //! be replaced is answered by the port's replaceable table, the same one the click transform's ground check
@@ -20,7 +23,7 @@
 //! chance as the wearer walks into a new block, as the original's onWalk does both. The original grants the
 //! attribute from onWalk, so it lands on the first step; the tick grants it from the first tick, the same
 //! difference the max armor attributes have.
-use crate::{break_speed_hook::with_held_tool, tool_actions::replaceable_above, tool_slot, tool_stack};
+use crate::{break_speed_hook::with_held_tool, modifier_modules::WalkModule, tool_actions::replaceable_above, tool_slot, tool_stack};
 use pluto_lib::{ActionTarget, BlockState, EntityAction, Identifier, ItemSlot, ServerLivingEntityEvents, StackSlot, World};
 use std::collections::BTreeMap;
 use std::sync::Mutex;
@@ -30,6 +33,9 @@ static PREVIOUS: Mutex<BTreeMap<u128, [i32; 3]>> = Mutex::new(BTreeMap::new());
 
 /// The same, for the lightspeed wear roll, which is its own walk hearing.
 static PREVIOUS_STEP: Mutex<BTreeMap<u128, [i32; 3]>> = Mutex::new(BTreeMap::new());
+
+/// The same, for the fire, glow and cover walks.
+static PREVIOUS_WALK: Mutex<BTreeMap<u128, [i32; 3]>> = Mutex::new(BTreeMap::new());
 
 fn air() -> BlockState {
     BlockState::new(Identifier::new("minecraft", "air").expect("fixed block id"))
@@ -70,6 +76,77 @@ pub(crate) fn register() {
                         let _ = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(cause), &mut crate::tool_damage_hook::random);
                         // walkOn answers whether the tool is broken, which stops the iteration (and later modules).
                         if tool_stack::is_broken(&slot.custom_data) { break 'modules; }
+                    }
+                }
+            }
+            let edits = crate::wearer_modules::edits_between(&before, &slot.custom_data);
+            (!edits.is_empty()).then_some(edits)
+        });
+        if let Ok(Some(edits)) = walked {
+            tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
+        }
+    });
+    // FireWalkerModule, GlowWalkerModule and CoverGroundWalkerModule: the radius walk over the
+    // sturdy-face fact and the world light read (see the file's head note for the reductions).
+    ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+        let Some((_, feet)) = tick.armor.iter().find(|(slot, _)| slot == "feet") else { return };
+        let block_pos = [tick.position[0].floor() as i32, tick.position[1].floor() as i32, tick.position[2].floor() as i32];
+        let previous = PREVIOUS_WALK.lock().map(|mut map| map.insert(tick.player, block_pos)).unwrap_or(None);
+        if previous == Some(block_pos) || !tick.on_ground { return; }
+        let world = World::new(&tick.dimension);
+        let walked = with_held_tool(feet, |env, stack| {
+            let mut slot: ItemSlot = stack.clone();
+            let walkers = tool_stack::walk_modules(&slot.custom_data, env);
+            if walkers.is_empty() || tool_stack::is_broken(&slot.custom_data) { return None; }
+            let before = slot.custom_data.clone();
+            let center = [tick.position[0].floor() as i32, (tick.position[1] + 0.5).floor() as i32, tick.position[2].floor() as i32];
+            'modules: for (cause, walk) in &walkers {
+                let radius = match walk { WalkModule::Fire { radius } | WalkModule::Glow { radius, .. } | WalkModule::Cover { radius, .. } => *radius };
+                let true_radius = radius.min(16.0);
+                let reach = true_radius.floor() as i32;
+                'cells: for x in center[0] - reach..=center[0] + reach {
+                    for z in center[2] - reach..=center[2] + reach {
+                        let target = [x, center[1], z];
+                        let (dx, dy, dz) = (f64::from(x) + 0.5 - tick.position[0], f64::from(center[1]) + 0.5 - tick.position[1], f64::from(z) + 0.5 - tick.position[2]);
+                        if dx * dx + dy * dy + dz * dz >= f64::from(true_radius) * f64::from(true_radius) { continue; }
+                        let below = [x, center[1] - 1, z];
+                        match walk {
+                            WalkModule::Fire { .. } => {
+                                let Some(cell) = world.get_block_state(target) else { continue };
+                                if !replaceable_above(&cell.block) { continue; }
+                                let Some(ground) = world.get_block_state(below) else { continue };
+                                if pluto_lib::world_api_v1::face_sturdy(&ground.block.to_string(), 1) != Some(true) { continue; }
+                                let fire = if matches!(ground.block.to_string().as_str(), "minecraft:soul_sand" | "minecraft:soul_soil") { "minecraft:soul_fire" } else { "minecraft:fire" };
+                                let Ok(fire) = Identifier::parse(fire) else { continue };
+                                if !world.set_block_state(target, &BlockState::new(fire)) { continue; }
+                                let pitch = 0.8 + world.random_float().unwrap_or(0.0) * 0.4;
+                                world.play_sound("minecraft:item.flintandsteel.use", [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5], 1.0, pitch);
+                                let _ = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(cause), &mut crate::tool_damage_hook::random);
+                                if tool_stack::is_broken(&slot.custom_data) { break 'modules; }
+                            }
+                            WalkModule::Glow { min_light, damage, .. } => {
+                                let Some(cell) = world.get_block_state(target) else { continue };
+                                if !matches!(cell.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") { continue; }
+                                let Some((block_light, _)) = world.light(target) else { continue };
+                                if i32::from(block_light) >= *min_light { continue; }
+                                let Some(ground) = world.get_block_state(below) else { continue };
+                                if pluto_lib::world_api_v1::face_sturdy(&ground.block.to_string(), 1) != Some(true) { continue; }
+                                crate::throwables::place_glow(&world, target, pluto_lib::Direction::Down);
+                                if world.get_block_state(target).is_some_and(|state| state.block.to_string() == "tconstruct:glow") {
+                                    world.play_sound("minecraft:block.stone.place", [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5], 1.0, 1.0);
+                                    let _ = tool_slot::damage_slot(&mut slot, env, *damage, true, true, Some(cause), &mut crate::tool_damage_hook::random);
+                                    // A single success per walk, as the original stops there to let the lighting settle.
+                                    break 'cells;
+                                }
+                            }
+                            WalkModule::Cover { block, .. } => {
+                                let Some(cell) = world.get_block_state(target) else { continue };
+                                if !matches!(cell.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") { continue; }
+                                let Some(ground) = world.get_block_state(below) else { continue };
+                                if pluto_lib::world_api_v1::face_sturdy(&ground.block.to_string(), 1) != Some(true) { continue; }
+                                world.set_block_state(target, &BlockState::new(block.clone()));
+                            }
+                        }
                     }
                 }
             }

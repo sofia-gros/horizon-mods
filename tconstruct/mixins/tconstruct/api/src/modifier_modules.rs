@@ -72,6 +72,18 @@ pub(crate) enum Display {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// What a boot walk module does at each cell it walks over (ArmorWalkRadiusModule.walkOn),
+/// at the entry's effective level.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum WalkModule {
+    /// FireWalkerModule: place fire where fire can be placed.
+    Fire { radius: f32 },
+    /// GlowWalkerModule: place a glow block in a dark empty cell, once per walk.
+    Glow { radius: f32, min_light: i32, damage: i32 },
+    /// CoverGroundWalkerModule: cover an empty cell with the named block where it can survive.
+    Cover { block: Identifier, radius: f32 },
+}
+
 pub(crate) enum Module {
     Flag { id: Identifier, condition: Condition },
     Rarity(i32),
@@ -230,6 +242,12 @@ pub(crate) enum Module {
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ToolActionWalkerTransformModule: walking turns the ground under a replaceable cell into its transformed state.
     WalkTransform { action: crate::tool_actions::ToolAction, sound: String, radius: crate::wearer_modules::Leveling, condition: Condition },
+    /// FireWalkerModule: walking places fire in the cells fire can be placed at.
+    FireWalker { radius: crate::wearer_modules::Leveling },
+    /// GlowWalkerModule: walking places a glow block in a dark empty cell, wearing the boots.
+    GlowWalker { radius: crate::wearer_modules::Leveling, min_light: i32, damage: i32 },
+    /// CoverGroundWalkerModule: walking covers an empty cell with a block where it can survive.
+    CoverGround { block: Identifier, radius: crate::wearer_modules::Leveling, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
     /// LootingModule.Armor: a worn piece adds this looting to its wearer's kills while it sits in one of the listed slots.
@@ -913,6 +931,20 @@ impl Module {
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
                 Self::WalkTransform { action, sound, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
             }
+            // FireWalkerModule, GlowWalkerModule, CoverGroundWalkerModule (BOOT_WALK): the walk
+            // forms in walk_hook, over the sturdy-face fact PlutoLib publishes from the game's
+            // block table and the world light read.
+            "tconstruct:fire_walker" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                Self::FireWalker { radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")? }
+            }
+            "tconstruct:glow_walker" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                let min_light = fields.get("min_light").and_then(Value::as_i64).ok_or("min_light must be an integer")?;
+                let damage = fields.get("tool_damage").and_then(Value::as_i64).ok_or("tool_damage must be an integer")?;
+                Self::GlowWalker { radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, min_light: min_light as i32, damage: damage as i32 }
+            }
+            "tconstruct:cover_ground" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                Self::CoverGround { block: identifier(fields, "block")?, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
+            }
             // Presentation-only modules: one block, bound as recorded no-ops (Java: display name, durability display and tooltip hooks only).
             "tconstruct:show_interaction_source" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::InteractionSource),
             "tconstruct:variant_color" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::VariantColor),
@@ -1242,7 +1274,7 @@ impl Module {
                 }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1890,6 +1922,16 @@ impl Module {
     pub fn walk_transform(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, f32)> {
         let Self::WalkTransform { action, sound, radius, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), radius.compute(entry.effective_level())))
+    }
+    /// The boot walk this module performs, at the entry's effective level (ArmorWalkRadiusModule,
+    /// the radius as in walk_transform above).
+    pub fn walk_module(&self, entry: &Entry, facts: &Facts) -> Option<WalkModule> {
+        match self {
+            Self::FireWalker { radius } => Some(WalkModule::Fire { radius: radius.compute(entry.effective_level()) }),
+            Self::GlowWalker { radius, min_light, damage } => Some(WalkModule::Glow { radius: radius.compute(entry.effective_level()), min_light: *min_light, damage: *damage }),
+            Self::CoverGround { block, radius, condition } if condition.matches(entry, facts) => Some(WalkModule::Cover { block: block.clone(), radius: radius.compute(entry.effective_level()) }),
+            _ => None,
+        }
     }
     /// ToolActionModifierHook.canPerformAction: a tool actions module answers for its named actions, a shears
     /// module for the four shear actions and a fishing module for the cast, each while its condition holds

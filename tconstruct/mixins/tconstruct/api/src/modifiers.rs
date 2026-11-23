@@ -237,6 +237,10 @@ impl Modifier {
     pub fn walk_transforms(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::tool_actions::ToolAction, String, f32)> {
         self.modules.iter().filter_map(|module| module.walk_transform(entry, facts)).map(|(action, sound, radius)| (entry.id.clone(), action, sound, radius)).collect()
     }
+    /// The boot walk modules of this modifier (ArmorWalkRadiusModule), in module order.
+    pub fn walk_modules(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::modifier_modules::WalkModule)> {
+        self.modules.iter().filter_map(|module| module.walk_module(entry, facts)).map(|walk| (entry.id.clone(), walk)).collect()
+    }
     /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
     pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
         self.modules.iter().any(|module| module.can_perform_action(entry, facts, name))

@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (48, 25), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (45, 22), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -209,6 +209,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(!kinds.contains("tconstruct:smelting"), "smelting should be bound");
     assert!(unbound_of("autosmelt").is_empty(), "autosmelt is fully bound");
     assert!(unbound_of("smelting").is_empty(), "smelting is fully bound");
+    // The boot walk forms bind over the sturdy-face fact PlutoLib publishes from the game's block
+    // table and the world light read: fire walker, glow walker and cover ground.
+    assert!(!kinds.contains("tconstruct:fire_walker"), "fire walker should be bound");
+    assert!(!kinds.contains("tconstruct:glow_walker"), "glow walker should be bound");
+    assert!(!kinds.contains("tconstruct:cover_ground"), "cover ground should be bound");
+    assert!(unbound_of("flamewake").is_empty(), "flamewake is fully bound");
+    assert!(unbound_of("snowdrift").is_empty(), "snowdrift is fully bound");
     // The edible family is bound in full: the representative item binds over the use tick PlutoLib
     // reports (its eating sounds while the use runs; its item particles and the Diet integration
     // are the parts the port does not carry, as edible.rs's head note records).

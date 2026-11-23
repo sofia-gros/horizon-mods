@@ -10,6 +10,10 @@ pub struct DigFacts {
     pub hardness: f32,
     pub requires_tool: bool,
     pub explosion_resistance: f32,
+    /// `isFaceSturdy(.., SupportType.FULL)` packed by Direction ordinal (0 down, 1 up,
+    /// 2 north, 3 south, 4 west, 5 east): the one fact here that can differ across a block's
+    /// states, so a block answers with its first state, as above.
+    pub sturdy_full: u8,
 }
 
 static FACTS: RwLock<Vec<(String, DigFacts)>> = RwLock::new(Vec::new());
@@ -20,6 +24,13 @@ pub fn publish(states: Vec<(String, DigFacts)>) {
 
 pub fn for_block(block: &str) -> Option<DigFacts> {
     FACTS.read().ok()?.iter().find(|(name, _)| name == block).map(|(_, facts)| *facts)
+}
+
+/// Whether the named block's face in `direction` (a Direction ordinal, 0..=5) is sturdy for
+/// the full support type, as the game's table reports it.
+pub fn face_sturdy(block: &str, direction: u8) -> Option<bool> {
+    if direction > 5 { return None; }
+    for_block(block).map(|facts| facts.sturdy_full & (1 << direction) != 0)
 }
 
 static DIG_HEIGHT: RwLock<Option<[i32; 2]>> = RwLock::new(None);
