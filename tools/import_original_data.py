@@ -2948,6 +2948,9 @@ FORGE_TAGS['forge:storage_blocks/netherite'] = ['minecraft:netherite_block']
 FORGE_TAGS['forge:nuggets/gold'] = ['minecraft:gold_nugget']
 FORGE_TAGS['forge:nuggets/iron'] = ['minecraft:iron_nugget']
 FORGE_TAGS['forge:rods/wooden'] = ['minecraft:stick']
+# The necrotic bone stand's wither-bone tag: the original's generated forge tags name the necrotic
+# bone alone (wither_bones is it plus bones/wither, which is it again).
+FORGE_TAGS['forge:wither_bones'] = ['tconstruct:necrotic_bone']
 CRAFTING_TYPES = ('minecraft:crafting_shaped', 'minecraft:crafting_shapeless', 'minecraft:smelting', 'minecraft:blasting', 'minecraft:stonecutting', 'mantle:crafting_shaped_retextured')
 # Tags of the table recipes that stay tag ingredients (they hold vanilla items); the smeltery recipes expand tags to the declared items.
 TABLE_TAGS = {'tconstruct:planklike', 'tconstruct:workstation_rock', 'tconstruct:seared_blocks', 'minecraft:planks', 'minecraft:logs'}

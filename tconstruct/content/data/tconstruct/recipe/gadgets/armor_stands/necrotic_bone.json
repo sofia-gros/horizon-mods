@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "B": "tconstruct:blazewood_slab",
+    "S": [
+      "tconstruct:necrotic_bone"
+    ]
+  },
+  "pattern": [
+    "SSS",
+    " S ",
+    "SBS"
+  ],
+  "result": {
+    "id": "tconstruct:necrotic_bone_armor_stand"
+  }
+}
