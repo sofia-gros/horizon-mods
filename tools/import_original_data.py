@@ -3303,27 +3303,51 @@ def upgrade_advancement(data, name):
     return result
 
 
+def unwrap_conditional(data, name):
+    """A Forge conditional advancement wrapper in the form the loader presents in this port's world:
+    the entry gated on forge:true (the fallback that always holds), or the starting book's entry, whose
+    spawn_with_book config defaults to true and which the host's advancement loading cannot gate.
+    A wrapper whose entries all wait on another mod's presence has no form here and returns None."""
+    if 'advancements' not in data:
+        return data
+    entries = data['advancements']
+    for entry in entries:
+        if entry.get('conditions') == [{'type': 'forge:true'}]:
+            return entry['advancement']
+    if len(entries) == 1 and entries[0].get('conditions') == [{'type': 'tconstruct:config', 'prop': 'spawn_with_book'}]:
+        return entries[0]['advancement']
+    if all(any(condition.get('type') == 'forge:mod_loaded' for condition in entry.get('conditions', [])) for entry in entries):
+        return None
+    raise SystemExit(f'advancement {name}: unreviewed conditional wrapper')
+
+
 def copy_advancements():
     """The gameplay advancements (data/<ns>/advancement, the host's folder name), converted by
-    upgrade_advancement. The recipe unlock advancements beside them are host-format artifacts
-    and stay out. internal/starting_book is a Forge conditional wrapper in the original: the
-    wrapped advancement ships unwrapped, as Forge's loader presents it when the condition
-    holds. The condition is the spawn_with_book config (default true), which the host's
-    advancement loading cannot express, so the config no longer gates the starting book."""
+    upgrade_advancement, and the recipe unlock advancements of the recipes/ tree with them: the
+    host's advancement engine evaluates minecraft:recipe_unlocked (its own advancements carry
+    it), so the unlocks drive the recipe book as the original's do. Forge conditional wrappers
+    ship unwrapped in the form the loader presents in this port's world (unwrap_conditional)."""
     source_root = GENERATED_DATA / 'tconstruct/advancements'
     target_root = CONTENT_DATA / 'tconstruct/advancement'
     shutil.rmtree(target_root, ignore_errors=True)
     count = 0
     for group in ADVANCEMENT_GROUPS:
         for entry in sorted((source_root / group).glob('*.json')):
-            data = json.loads(entry.read_text(encoding='utf-8'))
-            if 'advancements' in data:
-                entries = data['advancements']
-                if len(entries) != 1 or entries[0].get('conditions') != [{'type': 'tconstruct:config', 'prop': 'spawn_with_book'}]:
-                    raise SystemExit(f'advancement {entry.name}: unreviewed conditional wrapper')
-                data = entries[0]['advancement']
+            data = unwrap_conditional(json.loads(entry.read_text(encoding='utf-8')), entry.name)
+            if data is None:
+                raise SystemExit(f'advancement {entry.name}: a gameplay advancement waits on another mod')
             write_json(target_root / group / entry.name, upgrade_advancement(data, entry.name))
             count += 1
+    skipped = []
+    for entry in sorted((source_root / 'recipes').rglob('*.json')):
+        data = unwrap_conditional(json.loads(entry.read_text(encoding='utf-8')), entry.name)
+        if data is None:
+            skipped.append(entry.relative_to(source_root / 'recipes').with_suffix('').as_posix())
+            continue
+        write_json(target_root / 'recipes' / entry.relative_to(source_root / 'recipes'), upgrade_advancement(data, entry.name))
+        count += 1
+    if skipped:
+        print(f'advancements left out (they wait on another mod): {skipped}')
     return count
 
 

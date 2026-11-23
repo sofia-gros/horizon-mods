@@ -84,6 +84,7 @@ CONTENT_PATHS = (
     # Gameplay advancements and the functions their internal advancements reward, converted by the importer
     # (display icons in the host's form); the starting book's advancement reward table rides with them.
     re.compile(r'data/tconstruct/advancement/(?:foundry|internal|smeltery|tools|world)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/advancement/recipes(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/function/grant_advancement/[a-z0-9_]+\.mcfunction'),
     re.compile(r'data/tconstruct/loot_table/gameplay/[a-z0-9_]+\.json'),
     # Crafting, smelting, blasting and stonecutting recipes of the smeltery blocks and the commons, converted to the game's own recipe format by the importer.
@@ -175,7 +176,7 @@ def check_loot_modifier(item, name):
     for function in item.get('functions', []):
         if function.get('function') not in LOOT_MODIFIER_FUNCTIONS:
             raise ValueError(f'unreviewed loot modifier function in {name}')
-ADVANCEMENT_TRIGGERS = {'minecraft:inventory_changed', 'minecraft:placed_block', 'minecraft:location', 'minecraft:tick', 'minecraft:player_interacted_with_entity', 'tconstruct:block_container_opened'}
+ADVANCEMENT_TRIGGERS = {'minecraft:inventory_changed', 'minecraft:placed_block', 'minecraft:location', 'minecraft:tick', 'minecraft:player_interacted_with_entity', 'minecraft:recipe_unlocked', 'tconstruct:block_container_opened'}
 ADVANCEMENT_KEYS = {'parent', 'display', 'criteria', 'requirements', 'rewards', 'sends_telemetry_event'}
 TOOL_PREDICATE_TYPES = {'tconstruct:has_modifier', 'tconstruct:has_material', 'tconstruct:has_volatile_key', 'tconstruct:tool_action', 'tconstruct:stat_in_range', 'tconstruct:stat_in_set', 'mantle:and', 'mantle:or', 'mantle:set', 'mantle:tag', 'mantle:inverted'}
 
@@ -499,6 +500,11 @@ def checked_content(root, version):
                 if not wrapped or any(kind not in FLUID_RECIPE_TYPES for kind in wrapped):
                     raise ValueError(f'only the reviewed smeltery recipe types are allowed here: {name}')
                 continue
+            # Advancements first: the recipe unlock advancements live under advancement/recipes/,
+            # whose paths also contain '/recipes/'.
+            if '/advancement/' in name:
+                check_advancement(item, name)
+                continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
                     reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
@@ -542,9 +548,6 @@ def checked_content(root, version):
                         or source['type'] != 'minecraft:directory' or not isinstance(source['source'], str) or not isinstance(source['prefix'], str)
                         for source in item['sources']):
                     raise ValueError(f'an atlas definition must be an object with a sources list of directory sources: {name}')
-                continue
-            if '/advancement/' in name:
-                check_advancement(item, name)
                 continue
             if '/loot_table/' in name:
                 if '/gameplay/' in name:
