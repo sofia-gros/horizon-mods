@@ -15,9 +15,10 @@
 //! is open keeps the copy it opened with. The one section condition the original ships (an armor section, shown when its
 //! book armor tag is not empty) is evaluated against the captured item registry when there is one.
 //!
-//! What still differs from the original, and why: Mantle's padding transformer (blank pages so a section starts on a left
-//! page of a two-page spread) has no counterpart in the single-page view — the `mantle:blank` and `mantle:right_padding`
-//! entries of the section files become blank pages where they sit. A file section's own `mantle:index` page becomes a
+//! What still differs from the original, and why: the books open as two-page spreads, and the
+//! `mantle:blank` and `mantle:right_padding` entries of the section files ride as padding
+//! markers that the spread pairing consumes (Mantle's padding transformer, kept in the data
+//! instead of being applied to it), so a section starts on a left page as in the original. A file section's own `mantle:index` page becomes a
 //! listing of the section's pages (the index transformer below); no index page is added to a file section that does not
 //! carry one, and the generated sections lead with their index page, the shape of the original's own first page there.
 //! A generated page's sidebar of display items rides its first page: a material's parts in that material, a tool page's
@@ -1315,16 +1316,17 @@ fn fill_crafting(page: &mut BookPage, data: &GenData) {
     *result = captured_result.as_ref().map(|(item, count)| pluto_lib::ItemSlot::new(item.clone(), *count));
 }
 
-/// Builds one page entry of a section file: blanks and padding markers become blank pages; a data
-/// file's generated kinds (tool, modifier, the material contents) build their content when their
-/// registry is at hand and ride as their decoded form otherwise; every other kind decodes as before.
-/// A page whose file is in neither the reader's language nor English is left out (Mantle logs and
-/// skips it too).
+/// Builds one page entry of a section file: blanks and padding markers stay padding markers
+/// (PlutoLib's spread pairing consumes them, so a section starts on a left page as Mantle's
+/// padding transformer arranges); a data file's generated kinds (tool, modifier, the material
+/// contents) build their content when their registry is at hand and ride as their decoded form
+/// otherwise; every other kind decodes as before. A page whose file is in neither the reader's
+/// language nor English is left out (Mantle logs and skips it too).
 fn build_raw_page(read: &Read<'_>, book: &str, language: &str, entry: &Value, data: &GenData) -> RawPage {
     let mut raw = RawPage::new(entry);
     let Some(kind) = raw.kind.clone() else { return raw };
     if kind == "mantle:blank" || kind == "mantle:right_padding" {
-        raw.pages.push(BookPage::Text { title: None, text: Vec::new() });
+        raw.pages.push(BookPage::Padding { right: kind == "mantle:right_padding" });
         return raw;
     }
     let Some(path) = raw.data.clone() else { return raw };
@@ -1539,10 +1541,10 @@ mod tests {
         let intro = &book.sections[0];
         assert_eq!(intro.name, "Introduction", "the section list shows the language table's title");
         assert_eq!(intro.icon.as_ref().map(|icon| icon.item().to_string()), Some("tconstruct:pattern".to_owned()));
-        assert_eq!(intro.pages.len(), 3, "two file pages and the blank page");
+        assert_eq!(intro.pages.len(), 3, "two file pages and the blank entry");
         assert_eq!(intro.pages[0].title(), Some("Materials & You"));
         assert_eq!(intro.pages[1].kind(), "mantle:crafting");
-        assert_eq!(intro.pages[2], BookPage::Text { title: None, text: Vec::new() }, "a blank entry is a blank page");
+        assert_eq!(intro.pages[2], BookPage::Padding { right: false }, "a blank entry stays a padding marker for the spread pairing");
         let materials = &book.sections[1];
         assert_eq!(materials.name, "Tier 1 Materials");
         assert_eq!(materials.icon.as_ref().map(|icon| icon.item().to_string()), Some("tconstruct:tool_binding".to_owned()),
