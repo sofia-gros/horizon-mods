@@ -344,9 +344,7 @@ assert_eq!(canvas.0, 2);
 assert_eq!(canvas.text_width("ab"), 12.0);
 ```
 
-### `ScreenCanvas::scene`
-
-`fn scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView)`. Draws a 3D scene of blocks into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike the flat draws' `[x, y, width, height]`), seen as `view` says. Each block is drawn with its model; a block carrying a `SceneEntity` is drawn by that block's block-entity renderer, with its baked entity-model layers, as in the world — how a screen shows a small structure (a book's multiblock page) or a dressed block entity (an armor stand wearing the piece being made). The host resolves each block by name to its default state, so a state whose properties the default state does not carry draws in the default state. The default method draws nothing, so a canvas with no scene reach skips it.
+The canvas also draws 3D scenes: `scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView)` draws a scene of blocks into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike the flat draws' `[x, y, width, height]`), seen as `view` says. Each block is drawn with its model; a block carrying a `SceneEntity` is drawn by that block's block-entity renderer, with its baked entity-model layers, as in the world — how a screen shows a small structure (a book's multiblock page) or a dressed block entity (an armor stand wearing the piece being made). The host resolves each block by name to its default state, so a state whose properties the default state does not carry draws in the default state. The default method draws nothing, so a canvas with no scene reach skips it.
 
 ```rust
 use pluto_lib::{BlockState, Identifier, SceneBlock, SceneView, ScreenCanvas};

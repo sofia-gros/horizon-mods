@@ -1417,3 +1417,114 @@ assert_eq!(retrieve_damage(0, true), 2);
 assert_eq!(retrieve_damage(5, false), 3);
 assert_eq!(retrieve_damage(1, false), 1);
 ```
+
+### `DispenseRegistry::register`
+
+Registers the behaviour for an item, replacing any earlier one for it.
+
+```rust
+use pluto_lib::{DispenseBehavior, DispenseRegistry, Identifier};
+
+DispenseRegistry::register(
+    Identifier::parse("example:ball").unwrap(),
+    DispenseBehavior::Shoot { entity: Identifier::parse("example:ball").unwrap(), power: 1.1, inaccuracy: 6.0 },
+);
+assert!(DispenseRegistry::get("example:ball").is_some());
+```
+
+### `DispenseRegistry::get`
+
+The behaviour registered for the item named, if any.
+
+```rust
+use pluto_lib::DispenseRegistry;
+
+assert!(DispenseRegistry::get("example:never_registered").is_none());
+```
+
+### `FishingRegistry::register`
+
+Registers a rod item and its cast profile computation: when the item is used, the computation reads the stack and answers the profile to cast with, or None to leave the use to the game.
+
+```rust
+use pluto_lib::{FishingProfile, FishingRegistry, Identifier};
+
+FishingRegistry::register(Identifier::parse("example:rod").unwrap(), |_| Some(FishingProfile::default()));
+assert!(FishingRegistry::is_rod("example:rod"));
+```
+
+### `FishingRegistry::register_rod`
+
+Names an item a fishing rod for the hook's lifetime check, without a cast computation of its own.
+
+```rust
+use pluto_lib::{FishingRegistry, Identifier};
+
+FishingRegistry::register_rod(Identifier::parse("example:plain_rod").unwrap());
+assert!(FishingRegistry::is_rod("example:plain_rod"));
+```
+
+### `FishingRegistry::is_rod`
+
+Whether the item named is a registered rod.
+
+```rust
+use pluto_lib::FishingRegistry;
+
+assert!(!FishingRegistry::is_rod("example:not_a_rod"));
+```
+
+### `FishingRegistry::profile`
+
+The profile a stack casts with, when its item registered a computation and the computation answers one.
+
+```rust
+use pluto_lib::{FishingRegistry, StackData};
+
+assert_eq!(FishingRegistry::profile(&StackData::default()), None);
+```
+
+### `Fishing::use_rod`
+
+Queues a use of a fishing rod by the player with the profile: the game's fishing tick casts with it when no hook of this rod is out, and retrieves when one is.
+
+```rust
+use pluto_lib::{Fishing, FishingProfile, ServerPlayer};
+
+let player = ServerPlayer { uuid: 3, name: "Sam".into() };
+Fishing::use_rod(&player, FishingProfile::default());
+assert!(Fishing::take_use().is_some());
+```
+
+### `Fishing::take_use`
+
+Takes the queued use, if any; the transport calls this.
+
+```rust
+use pluto_lib::Fishing;
+
+assert_eq!(Fishing::take_use(), None);
+```
+
+### `Fishing::note_wear`
+
+Records rod wear the game side reports; the transport calls this.
+
+```rust
+use pluto_lib::{Fishing, ServerPlayer};
+
+Fishing::note_wear(5, 2);
+let player = ServerPlayer { uuid: 5, name: "Sam".into() };
+assert_eq!(Fishing::take_wear(&player), 2);
+```
+
+### `Fishing::take_wear`
+
+The rod wear waiting for the player, drained: the total the game side has reported since the last call.
+
+```rust
+use pluto_lib::{Fishing, ServerPlayer};
+
+let player = ServerPlayer { uuid: 6, name: "Sam".into() };
+assert_eq!(Fishing::take_wear(&player), 0);
+```

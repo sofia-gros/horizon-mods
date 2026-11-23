@@ -194,6 +194,16 @@ assert_eq!(structure.blocks.len(), 1);
 assert_eq!(structure.blocks[0].block.block.to_string(), "minecraft:stone");
 ```
 
+### `BookStructure::from_template`
+
+Reads a vanilla structure template compound (the root of its binary NBT document) into a structure: the palette's names and properties become each block's state, a block entry's own `nbt` becomes its scene entity's data, and air is left out. An error names why the compound is not a template.
+
+```rust
+use pluto_lib::{BookStructure, NbtCompound};
+
+assert!(BookStructure::from_template(&NbtCompound::new()).is_err());
+```
+
 ### `BookRow`
 
 One row of a table page: `Header { icon, text }` names what follows (a group, a stat block) and is drawn underlined; `Entry { icon, label, value, link }` is one entry of the table — its `label`, an optional `value` drawn right-aligned on the same line, an optional `icon`, and an optional `link` to the flat index of another page of the same book, which a click on the row opens. A row is one line tall when drawn; a table longer than a page is split into several table pages by its producer.

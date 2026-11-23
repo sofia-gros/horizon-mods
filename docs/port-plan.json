@@ -77,6 +77,7 @@
     "api/src/books.rs",
     "api/src/hud.rs",
     "api/src/edible_hook.rs",
+    "api/src/fishing_hook.rs",
     "api/src/blocking_hook.rs",
     "api/src/weapon_effect_hook.rs",
     "api/src/block_break_hook.rs",
