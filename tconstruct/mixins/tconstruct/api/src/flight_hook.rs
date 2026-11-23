@@ -25,10 +25,10 @@
 //! does not pierce; the ammunition's own pierce does. A thrown tool's block hit sticks where it landed
 //! instead of breaking a soft block it could harvest. The glow module's wear on the launching tool is
 //! not applied (the launch pass knows the tool only as a stack in a hand it cannot edit here).
-use crate::{break_speed_hook::with_held_tool, projectile_modules::clamp_to, slime_entities, tool_stack};
+use crate::{break_speed_hook::with_held_tool, projectile_modules::clamp_to, slime_entities, tool_damage_hook, tool_stack};
 use pluto_lib::{
     ActionTarget, EntityAction, EntityReach, ExplosionInteraction, FlightAction, ItemSlot, KnockbackDirection,
-    ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData,
+    NbtCompoundExt, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData,
 };
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -191,17 +191,98 @@ const THROWN_TOOL_DAMAGE: &str = "tconstruct:thrown_tool";
 /// on a mob projectiles cannot touch.
 const MELEE_THROWN_TOOL_DAMAGE: &str = "tconstruct:melee_thrown_tool";
 
+/// TinkerEffects.needsEnderferenceOverride, on the facts an impact reports: the target is an
+/// enderman and it carries the enderference effect. Both halves are the original's — either one
+/// alone (an enderman without the effect, any other kind carrying it) is no override. Every
+/// damage-type choice below that turns on the override reads it through here.
+fn needs_enderference_override(entity_kind: &str, entity_effects: &[String]) -> bool {
+    entity_kind == "minecraft:enderman"
+        && entity_effects.iter().any(|effect| effect.as_str() == crate::teleport_dodge::ENDERFERENCE)
+}
+
 /// Which of the two types a thrown tool's hit on this target is dealt as
 /// (ToolAttackContext.makeDamageSource, through TinkerEffects.needsEnderferenceOverride): the
 /// melee type only for an enderman carrying the enderference effect; every other target — an
 /// enderman without the effect, any other kind carrying it — takes the thrown type.
 fn thrown_tool_damage_type(entity_kind: &str, entity_effects: &[String]) -> &'static str {
-    if entity_kind == "minecraft:enderman"
-        && entity_effects.iter().any(|effect| effect.as_str() == crate::teleport_dodge::ENDERFERENCE)
-    {
+    if needs_enderference_override(entity_kind, entity_effects) {
         MELEE_THROWN_TOOL_DAMAGE
     } else {
         THROWN_TOOL_DAMAGE
+    }
+}
+
+/// The damage type a shuriken's hit is dealt as on any other target (DamageSources.thrown): a
+/// projectile type, in the projectile tag.
+const THROWN_DAMAGE: &str = "minecraft:thrown";
+
+/// The damage type that replaces it under the enderference override (TinkerDamageTypes.MELEE_THROWN):
+/// outside the projectile tag, so the hit lands on a mob projectiles cannot touch.
+const MELEE_THROWN_DAMAGE: &str = "tconstruct:melee_thrown";
+
+/// Which of the two types a shuriken's hit on this target is dealt as (ThrownShuriken.onHitEntity,
+/// through TinkerEffects.needsEnderferenceOverride).
+fn shuriken_damage_type(entity_kind: &str, entity_effects: &[String]) -> &'static str {
+    if needs_enderference_override(entity_kind, entity_effects) {
+        MELEE_THROWN_DAMAGE
+    } else {
+        THROWN_DAMAGE
+    }
+}
+
+/// The damage type ModifierEvents deals an arrow's reimplemented hit as
+/// (TinkerDamageTypes.MELEE_ARROW): outside the projectile tag, so it lands on the enderman the
+/// effect exposes.
+const MELEE_ARROW_DAMAGE: &str = "tconstruct:melee_arrow";
+
+/// Whether ModifierEvents' arrow reimplementation answers this hit: an arrow (the trident is on
+/// the original's ENDERFERENCE_ARROW_BLACKLIST, and thrown tools and shurikens answer their own
+/// hits above) meeting a target the enderference override exposes. The reimplementation is the
+/// enderference effect's machinery, not the projectile's own hook: it answers arrows no flight
+/// is bound for as much as bound ones.
+fn arrow_override(hit: &ProjectileImpact) -> bool {
+    hit.entity.is_some()
+        && matches!(hit.kind.as_str(), "minecraft:arrow" | "minecraft:spectral_arrow")
+        && needs_enderference_override(&hit.entity_kind, &hit.entity_effects)
+}
+
+/// The damage of ModifierEvents' reimplemented arrow hit: the arrow's speed times its base
+/// damage, rounded up (clamped at the integer maximum, as the original clamps), with a critical
+/// arrow's bonus of a roll under `damage / 2 + 2` added on top. The same formula the game's own
+/// arrow hit computes — the reimplementation exists because the game's hit never lands on an
+/// enderman, not because its numbers differ.
+fn arrow_hit_damage(motion: [f64; 3], base_damage: f64, critical: bool, roll: &mut dyn FnMut(i32) -> i32) -> f32 {
+    let speed = (motion[0] * motion[0] + motion[1] * motion[1] + motion[2] * motion[2]).sqrt();
+    let mut damage = (speed * base_damage).clamp(0.0, f64::from(i32::MAX)).ceil() as i32;
+    if critical {
+        damage = damage.saturating_add(roll(damage / 2 + 2));
+    }
+    damage as f32
+}
+
+/// Deals ModifierEvents' reimplemented arrow hit on the impact's target: the arrow's own damage
+/// as the melee type, the target lit for 5 seconds when the arrow burns, and the arrow spent
+/// unless it pierces (a piercing arrow flies on; the original's pierce bookkeeping — the ignore
+/// list and the killed list — is the game's own, which a cancelled hit never runs, so a piercing
+/// arrow may meet the same enderman again). The arrow's numbers are read off its saved data, as
+/// the game saves them: `damage` the base damage (2.0 when the save names none, the game's own
+/// default), `crit`, `PierceLevel`, and `Fire` the ticks it has left burning. The punch knockback
+/// the original adds is not dealt: the arrow's save does not carry its knockback, and the game's
+/// own hit — which applies it — is the hit being replaced.
+fn deal_arrow_override(hit: &ProjectileImpact) {
+    let base_damage = hit.data.get_double("damage", 2.0);
+    let critical = hit.data.get_int("crit", 0) != 0;
+    let amount = arrow_hit_damage(hit.motion, base_damage, critical, &mut |bound| {
+        (f64::from(tool_damage_hook::random()) * f64::from(bound.max(1))) as i32
+    });
+    let mut actions = hit.actions.borrow_mut();
+    actions.push(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: MELEE_ARROW_DAMAGE.into() });
+    if hit.data.get_int("Fire", 0) > 0 {
+        actions.push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
+    }
+    drop(actions);
+    if hit.data.get_int("PierceLevel", 0) <= 0 {
+        hit.discard.set(true);
     }
 }
 
@@ -297,7 +378,16 @@ fn thrown_tool_flight(flight: &ProjectileFlight, thrown: &mut ThrownTool, profil
 
 /// The impact pass: what lands where the projectile lands. Returns whether the game's own hit runs.
 fn on_impact(hit: &ProjectileImpact) -> bool {
-    let Some(mut state) = take_flight(&hit.dimension, hit.projectile) else { return true };
+    let Some(mut state) = take_flight(&hit.dimension, hit.projectile) else {
+        // No flight is bound, so none of the projectile's own hooks can run — but ModifierEvents'
+        // arrow reimplementation is not the projectile's hook, it is the enderference effect's,
+        // and it answers an unbound arrow (a skeleton's, a dispenser's) as much as a bound one.
+        if arrow_override(hit) {
+            deal_arrow_override(hit);
+            return false;
+        }
+        return true;
+    };
     let profile = state.profile.clone();
     // ToolEvents.projectileHit's enderference gate is the one read of the enderference mark
     // with no port application yet: in the original, an entity hit runs the projectile's hit
@@ -307,10 +397,13 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
     // effects, and whether an enderman dodges a shot at all is the game's own behaviour, so
     // the mark is carried and readable here but gates nothing.
     // A shuriken's own hit replaces the game's (its damage is the tool's stat, not the type's).
+    // Its damage source is the one ThrownShuriken.onHitEntity builds: the vanilla thrown type,
+    // or the melee thrown type on an enderman the enderference effect exposes.
     if let Some(shuriken) = &state.shuriken {
         let stack = shuriken.stack.clone();
         if let Some(_victim) = hit.entity {
-            hit.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Victim, amount: shuriken.power, damage_type: "minecraft:mob_projectile".into() });
+            let damage_type = shuriken_damage_type(&hit.entity_kind, &hit.entity_effects);
+            hit.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Victim, amount: shuriken.power, damage_type: damage_type.into() });
             if shuriken.knockback > 0.0 {
                 hit.actions.borrow_mut().push(EntityAction::Knockback { target: ActionTarget::Victim, strength: f64::from(shuriken.knockback) * 0.6, direction: KnockbackDirection::AwayFromOther });
             }
@@ -422,6 +515,16 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
             crate::throwables::place_glow(&hit.world(), pos, facing);
             if hit.entity.is_none() { hit.discard.set(true); }
         }
+    }
+    // ModifierEvents' arrow reimplementation, last: an arrow that met an enderman the
+    // enderference effect exposes is answered here rather than by the game's own hit, which the
+    // enderman dodges as it dodges any shot — the hit hooks above have run, as the enderference
+    // gate lets them on such a target, and the reimplementation deals the arrow's damage as the
+    // melee type and cancels the hit so the arrow does not bounce.
+    if arrow_override(hit) {
+        deal_arrow_override(hit);
+        put_flight(&hit.dimension, hit.projectile, state);
+        return false;
     }
     put_flight(&hit.dimension, hit.projectile, state);
     true
@@ -545,5 +648,116 @@ mod tests {
         assert_eq!(thrown_tool_damage_type("minecraft:enderman", &["minecraft:speed".to_owned()]), THROWN_TOOL_DAMAGE);
         assert_eq!(thrown_tool_damage_type("minecraft:zombie", &[enderference.to_owned()]), THROWN_TOOL_DAMAGE);
         assert_eq!(thrown_tool_damage_type("", &[enderference.to_owned()]), THROWN_TOOL_DAMAGE);
+    }
+
+    #[test]
+    fn the_shuriken_type_turns_on_the_enderman_and_the_effect_together() {
+        // The same boundary, read off ThrownShuriken.onHitEntity's choice: the melee thrown type
+        // only where the override holds, the vanilla thrown type everywhere else.
+        let enderference = crate::teleport_dodge::ENDERFERENCE;
+        assert_eq!(shuriken_damage_type("minecraft:enderman", &[enderference.to_owned()]), MELEE_THROWN_DAMAGE);
+        assert_eq!(shuriken_damage_type("minecraft:enderman", &[]), THROWN_DAMAGE);
+        assert_eq!(shuriken_damage_type("minecraft:enderman", &["minecraft:speed".to_owned()]), THROWN_DAMAGE);
+        assert_eq!(shuriken_damage_type("minecraft:zombie", &[enderference.to_owned()]), THROWN_DAMAGE);
+        assert_eq!(shuriken_damage_type("", &[enderference.to_owned()]), THROWN_DAMAGE);
+    }
+
+    #[test]
+    fn the_reimplemented_arrow_damage_is_the_game_s_own_formula() {
+        // Speed times base damage, rounded up; a critical arrow adds a roll under
+        // damage / 2 + 2 (ModifierEvents reads the same numbers AbstractArrow.onHitEntity does).
+        assert_eq!(arrow_hit_damage([0.0, 0.0, -3.0], 2.0, false, &mut |_| panic!("no roll without a crit")), 6.0);
+        assert_eq!(arrow_hit_damage([1.5, 0.0, 0.0], 2.0, false, &mut |_| 0), 3.0);
+        assert_eq!(arrow_hit_damage([0.0, 0.0, -3.0], 2.0, true, &mut |bound| { assert_eq!(bound, 5); 4 }), 10.0);
+        assert_eq!(arrow_hit_damage([0.0, 0.0, 0.0], 2.0, false, &mut |_| 0), 0.0);
+    }
+
+    /// An arrow's impact for the reimplementation tests: the named projectile kind meeting the
+    /// named kind carrying the named effects, flying at speed 3, its saved data carrying the
+    /// named base damage, crit flag, pierce level and remaining fire ticks. `bound` first binds
+    /// an attracting flight under the projectile (the one hook whose firing is visible without
+    /// the world), as a shot with a profile would.
+    fn arrow_hit(dimension: &str, kind: &str, entity_kind: &str, effects: Vec<String>, base_damage: f64, critical: bool, pierce: i8, fire: i16, bound: bool) -> ProjectileImpact {
+        if bound {
+            bind(dimension, 7, InFlight { profile: tool_stack::FlightProfile { attracts: vec![(3.0, 0.5)], ..Default::default() }, ..Default::default() });
+        }
+        let mut data = pluto_lib::NbtCompound::new();
+        data.insert("damage".into(), pluto_lib::Nbt::Double(base_damage));
+        data.insert("crit".into(), pluto_lib::Nbt::Byte(if critical { 1 } else { 0 }));
+        data.insert("PierceLevel".into(), pluto_lib::Nbt::Byte(pierce));
+        data.insert("Fire".into(), pluto_lib::Nbt::Short(fire));
+        ProjectileImpact {
+            dimension: dimension.into(),
+            projectile: 7,
+            kind: kind.into(),
+            owner: 1,
+            entity: Some(9),
+            entity_kind: entity_kind.into(),
+            entity_effects: effects,
+            block: [0, 64, 0],
+            face: [0, 1, 0],
+            at: [0.5, 64.5, 0.5],
+            motion: [0.0, 0.0, -3.0],
+            data,
+            discard: std::cell::Cell::new(false),
+            motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
+        }
+    }
+
+    /// The hurts an impact dealt, as (damage type, amount) pairs.
+    fn dealt_hurts(hit: &ProjectileImpact) -> Vec<(String, f32)> {
+        hit.actions.borrow().iter().filter_map(|action| match action {
+            EntityAction::Hurt { damage_type, amount, .. } => Some((damage_type.clone(), *amount)),
+            _ => None,
+        }).collect()
+    }
+
+    #[test]
+    fn an_unbound_arrow_is_reimplemented_on_an_exposed_enderman() {
+        // A skeleton's arrow, no flight bound: ModifierEvents still answers, dealing the arrow's
+        // damage (speed 3 × base 2 = 6) as the melee type, and the arrow is spent.
+        let hit = arrow_hit("test:enderarrow-unbound", "minecraft:arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 0, 0, false);
+        assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
+        assert_eq!(dealt_hurts(&hit), vec![(MELEE_ARROW_DAMAGE.to_owned(), 6.0)]);
+        assert!(hit.discard.get(), "a non-piercing arrow is spent");
+    }
+
+    #[test]
+    fn a_bound_arrow_is_reimplemented_after_its_hit_hooks() {
+        // A shot with a profile: the hit hooks run (the attraction queues), then the
+        // reimplementation deals the damage; a burning arrow lights the target for 5 seconds.
+        let dimension = "test:enderarrow-bound";
+        let hit = arrow_hit(dimension, "minecraft:spectral_arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 0, 100, true);
+        assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
+        assert_eq!(dealt_hurts(&hit), vec![(MELEE_ARROW_DAMAGE.to_owned(), 6.0)]);
+        assert!(hit.actions.borrow().iter().any(|action| matches!(action, EntityAction::SetFire { seconds: 5, .. })), "a burning arrow lights its target");
+        let mut guard = PENDING_ATTRACTION.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let queued = guard.get_or_insert_with(HashMap::new).remove(dimension).unwrap_or_default();
+        assert_eq!(queued.len(), 1, "the attraction hook ran before the reimplementation");
+    }
+
+    #[test]
+    fn a_piercing_arrow_flies_on_after_the_reimplemented_hit() {
+        let hit = arrow_hit("test:enderarrow-pierce", "minecraft:arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 1, 0, false);
+        assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
+        assert_eq!(dealt_hurts(&hit), vec![(MELEE_ARROW_DAMAGE.to_owned(), 6.0)]);
+        assert!(!hit.discard.get(), "a piercing arrow is not spent");
+    }
+
+    #[test]
+    fn the_reimplementation_answers_nothing_else() {
+        // A plain enderman (no effect), a marked zombie, and a trident (the original's blacklist)
+        // all keep the game's own hit, bound or not.
+        for (dimension, kind, entity_kind, effects) in [
+            ("test:enderarrow-plain-enderman", "minecraft:arrow", "minecraft:enderman", Vec::new()),
+            ("test:enderarrow-marked-zombie", "minecraft:arrow", "minecraft:zombie", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()]),
+            ("test:enderarrow-trident", "minecraft:trident", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()]),
+        ] {
+            let hit = arrow_hit(dimension, kind, entity_kind, effects, 2.0, false, 0, 0, false);
+            assert!(on_impact(&hit), "{dimension}: the game's own hit runs");
+            assert!(dealt_hurts(&hit).is_empty(), "{dimension}");
+            assert!(!hit.discard.get(), "{dimension}");
+        }
     }
 }

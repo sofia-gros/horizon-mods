@@ -1439,6 +1439,17 @@ assert_eq!(combat_damage(0.5, 1.0), 0.8);
 assert_eq!(combat_damage(3.0, 0.0), 0.0);
 ```
 
+### `hook_damage_type`
+
+The damage type a combat hook's retrieve hurt is dealt as: the ranged `tconstruct:fishing_hook`, or the melee `tconstruct:melee_fishing_hook` when the hooked target is an enderman carrying the enderference effect (the enderference override), so the hurt lands on a mob that dodges projectiles.
+
+```rust
+use pluto_lib::hook_damage_type;
+
+assert_eq!(hook_damage_type(true), "tconstruct:melee_fishing_hook");
+assert_eq!(hook_damage_type(false), "tconstruct:fishing_hook");
+```
+
 ### `pull_delta`
 
 The velocity a hooked entity gains at retrieve: toward the owner, a tenth of the way, plus the knockback bonus `0.25 * knockback / distance` when the rod has knockback.
