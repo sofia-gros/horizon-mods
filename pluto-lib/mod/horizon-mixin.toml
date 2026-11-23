@@ -2028,14 +2028,11 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-frame-explosion-return"
-target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
-kind = "RETURN"
-helper = "pluto-hanging-frame-explosion.rs"
+target = "horizon_client::game::explosion::Game<'_>::explosion_breaks_decorations"
+kind = "HEAD"
+helper = "pluto-hanging-frame-explosion-return.rs"
 bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
- { name = "blast", ty = "[f64; 3]", value = "blast" },
- { name = "diameter", ty = "f64", value = "diameter" },
- { name = "interaction", ty = "super::explosion::BlockInteraction", value = "interaction" }
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
 
 [[injection]]
