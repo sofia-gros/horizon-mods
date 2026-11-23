@@ -74,6 +74,7 @@ impl horizon_client::entry::pluto_block::structures::PieceCallbacks for ApiStruc
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
     horizon_client::menu::pluto_menu_actions::set_handler(staged_menu_click);
+    horizon_client::menu::pluto_menu_actions::set_stacked_handler(staged_stacked_on_other);
     horizon_client::menu::pluto_menu_actions::set_pick_all_exclusion(|menu, slot| {
         block_entity_api_v1::block_of_menu(menu)
             .is_some_and(|block| screen_handler_api_v1::excluded_from_pick_all(&block, slot))
@@ -444,6 +445,13 @@ fn install_native_inventory_forwarders() {
         },
     )
     .expect("PlutoLib recipe assembly forwarder installs once");
+    horizon_client::pluto_inventory::crafting::special::register(
+        horizon_client::pluto_inventory::crafting::special::Registration {
+            id: "pluto_lib:recipe_api_v1",
+            callback: recipe_special_forward,
+        },
+    )
+    .expect("PlutoLib special recipe forwarder installs once");
 }
 
 /// Without the native inventory gates (a standalone API build) there is
@@ -679,6 +687,58 @@ fn recipe_assembly_forward(
             custom_data: nbt_component(&Nbt::Compound(custom_data)),
         },
     }
+}
+
+/// The native half of the pure recipe API's special recipes: the host's
+/// crafting gate consults only the native inventory-api registry, so this
+/// forwarder carries the cropped grid into the pure registry, converting
+/// the native stack facts into pure views. A pure result's custom data
+/// compound becomes the native stack spec's component tree, and the pure
+/// registration's id is the recipe identity the lookup reports.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_special_forward(
+    input: &horizon_client::pluto_inventory::crafting::matching::InputFacts<'_>,
+) -> Option<(&'static str, horizon_client::pluto_inventory::crafting::special::StackSpec)> {
+    if !recipe_api_v1::has_special_recipes() {
+        return None;
+    }
+    // Owned pure component trees behind the borrowed views, alive for the
+    // synchronous evaluation only.
+    let cell_data: Vec<Option<Nbt>> = input
+        .cells
+        .iter()
+        .map(|cell| cell.and_then(|snap| snap.components.and_then(advancement_components)))
+        .collect();
+    let cells: Vec<Option<recipe_api_v1::StackView<'_>>> = input
+        .cells
+        .iter()
+        .zip(&cell_data)
+        .map(|(cell, data)| {
+            cell.map(|snap| recipe_api_v1::StackView {
+                id: snap.id,
+                count: snap.count,
+                damage: snap.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let grid = recipe_api_v1::GridFacts {
+        width: input.width,
+        height: input.height,
+        left: input.left,
+        top: input.top,
+        cells: &cells,
+    };
+    let (name, result) = recipe_api_v1::evaluate_special_recipe(&grid)?;
+    Some((
+        name,
+        horizon_client::pluto_inventory::crafting::special::StackSpec {
+            item: result.item,
+            count: result.count,
+            damage: result.damage,
+            custom_data: result.custom_data.map(|data| nbt_component(&Nbt::Compound(data))),
+        },
+    ))
 }
 
 /// Pure NBT as the native component tree (the reverse of
@@ -1170,6 +1230,38 @@ fn staged_menu_click(menu: &mut horizon_client::menu::Menu, env: &horizon_client
         slot, button, action, data: &mut data, menu: &mut StagedMenu { menu, env } });
     context.data = compound_to_tag(&data);
     true
+}
+
+/// The carried stack's stacked-on-other behaviour (the pure item API's
+/// `StackedOnOtherRegistry`), staged over the native menu: the pure
+/// callback decides from borrowed stack views, and an Apply decision is
+/// written back through the same slot conversions as menu clicks.
+fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_client::menu::Env<'_>,
+    slot: usize, primary: bool) -> bool {
+    use item_api_v1::{StackedOnOtherDecision, StackedOnOtherRequest};
+    if !item_api_v1::has_stacked_on_other() { return false; }
+    let Some(carried_stack) = menu.carried.as_ref() else { return false };
+    let Some(callback) = item_api_v1::stacked_on_other(&carried_stack.item) else { return false };
+    let Some(carried) = slot_of(carried_stack) else { return false };
+    let clicked = menu.slot(slot).and_then(slot_of);
+    let request = StackedOnOtherRequest {
+        carried: &carried,
+        clicked: clicked.as_ref(),
+        secondary: !primary,
+        allow_modification: horizon_client::menu::pluto_menu_actions::allow_modification(menu, env, slot),
+    };
+    match callback(&request) {
+        StackedOnOtherDecision::Pass => false,
+        StackedOnOtherDecision::Consume => true,
+        StackedOnOtherDecision::Apply { clicked, carried, sound } => {
+            menu.set_slot(env, slot, native_slot(clicked));
+            menu.carried = native_slot(carried);
+            if let Some(sound) = sound {
+                horizon_client::menu::pluto_menu_actions::push_player_sound(menu, sound);
+            }
+            true
+        }
+    }
 }
 
 struct HostOps(HostHandle);

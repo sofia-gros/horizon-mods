@@ -398,6 +398,78 @@ pub(crate) fn stack_use_food(stack: &super::player_api::StackData) -> Option<Foo
     behavior.food.as_ref().and_then(|food| food(stack))
 }
 
+/* Stacked-on-other clicks (Fabric: Item.overrideStackedOnOther) */
+
+/// A click of the carried stack onto another stack in a menu.
+pub struct StackedOnOtherRequest<'a> {
+    /// The stack in the player's hand (the registered item).
+    pub carried: &'a super::block_entity_api_v1::ItemSlot,
+    /// The stack in the clicked slot; None when the slot is empty.
+    pub clicked: Option<&'a super::block_entity_api_v1::ItemSlot>,
+    /// True for the secondary (right) click, false for the primary.
+    pub secondary: bool,
+    /// Whether the clicked slot allows modification by this player
+    /// (the game's own `Slot.allowModification` answer).
+    pub allow_modification: bool,
+}
+
+/// What the carried item does with the click.
+pub enum StackedOnOtherDecision {
+    /// Not this item's click: the game's own click handling runs
+    /// (pickup, placement, bundle insertion and the rest).
+    Pass,
+    /// The click is consumed with no stack change: nothing is picked
+    /// up, placed, swapped or inserted.
+    Consume,
+    /// The click is consumed and both stacks are replaced: the clicked
+    /// slot's new stack (None empties it) and the carried stack (None
+    /// empties the hand). `sound` is a sound event id played to the
+    /// player; menu sounds carry no volume or pitch, so the game's own
+    /// level applies.
+    Apply {
+        clicked: Option<super::block_entity_api_v1::ItemSlot>,
+        carried: Option<super::block_entity_api_v1::ItemSlot>,
+        sound: Option<&'static str>,
+    },
+}
+
+pub type StackedOnOtherCallback = fn(&StackedOnOtherRequest<'_>) -> StackedOnOtherDecision;
+
+static STACKED_ON_OTHER: Mutex<Option<HashMap<String, StackedOnOtherCallback>>> = Mutex::new(None);
+
+/// Registers what a carried stack does when it is clicked onto another
+/// stack in a menu (Fabric: `Item.overrideStackedOnOther`). The dispatch
+/// runs in every menu, including the game's own inventory and container
+/// menus, before the game's bundle handling, exactly where the game asks
+/// the carried item first.
+pub struct StackedOnOtherRegistry;
+
+impl StackedOnOtherRegistry {
+    /// Registering the same item again replaces the earlier entry.
+    pub fn register(item: Identifier, callback: StackedOnOtherCallback) {
+        if let Ok(mut all) = STACKED_ON_OTHER.lock() {
+            all.get_or_insert_with(HashMap::new).insert(item.to_string(), callback);
+        }
+    }
+
+    /// The callback registered for `item` (an id such as
+    /// `tconstruct:repair_kit`), if anything.
+    pub fn get(item: &str) -> Option<StackedOnOtherCallback> {
+        STACKED_ON_OTHER.lock().ok()?.as_ref()?.get(item).copied()
+    }
+}
+
+/// Whether any carried item has a stacked-on-other behaviour, so the
+/// game side can skip the dispatch entirely otherwise.
+pub(crate) fn has_stacked_on_other() -> bool {
+    STACKED_ON_OTHER.lock().ok().is_some_and(|all| all.as_ref().is_some_and(|all| !all.is_empty()))
+}
+
+/// The stacked-on-other callback registered for `item`, if any.
+pub(crate) fn stacked_on_other(item: &str) -> Option<StackedOnOtherCallback> {
+    StackedOnOtherRegistry::get(item)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -459,6 +531,28 @@ mod tests {
         assert_eq!(stack_use_action(&stack(2)), Some(UseAction::Block));
         assert_eq!(stack_use_action(&stack(1)), Some(UseAction::Eat), "the selector's pose wins over the fixed one");
         assert_eq!(stack_use_action(&stack(0)), None, "a stack the selector declines keeps the game's pose");
+    }
+
+    #[test]
+    fn stacked_on_other_callbacks_are_keyed_by_the_carried_item() {
+        use super::super::block_entity_api_v1::ItemSlot;
+        fn pass(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Pass }
+        fn consume(request: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision {
+            assert!(request.secondary && request.allow_modification);
+            assert_eq!(request.clicked.map(|slot| slot.item.to_string()).as_deref(), Some("test:tool"));
+            StackedOnOtherDecision::Consume
+        }
+        assert!(!has_stacked_on_other());
+        assert!(stacked_on_other("test:kit").is_none());
+        StackedOnOtherRegistry::register(Identifier::new("test", "kit").unwrap(), consume);
+        assert!(has_stacked_on_other());
+        let carried = ItemSlot::new(Identifier::new("test", "kit").unwrap(), 2);
+        let clicked = ItemSlot::new(Identifier::new("test", "tool").unwrap(), 1);
+        let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: true };
+        assert!(matches!(stacked_on_other("test:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
+        assert!(stacked_on_other("test:other").is_none(), "other carried items keep the game's click");
+        StackedOnOtherRegistry::register(Identifier::new("test", "kit").unwrap(), pass);
+        assert!(matches!(stacked_on_other("test:kit").unwrap()(&request), StackedOnOtherDecision::Pass), "re-registering replaces");
     }
 
     #[test]

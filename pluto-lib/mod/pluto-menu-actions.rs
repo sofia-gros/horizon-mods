@@ -39,6 +39,37 @@ pub mod pluto_menu_actions {
         }
     }
 
+    pub type StackedHandler = fn(&mut Menu, &Env<'_>, usize, bool) -> bool;
+    static STACKED_HANDLER: RwLock<Option<StackedHandler>> = RwLock::new(None);
+
+    pub fn set_stacked_handler(handler: StackedHandler) {
+        if let Ok(mut installed) = STACKED_HANDLER.write() { *installed = Some(handler); }
+    }
+
+    /// The carried stack's own click behaviour, asked before the bundle
+    /// handling inside a pickup: the game asks the carried item first
+    /// (its stacked-on-other override), in every menu kind, unlike the
+    /// mod-menu click bridge above. No carried stack or no installed
+    /// handler leaves the click to the engine.
+    pub(super) fn stacked_on_other(menu: &mut Menu, env: &Env<'_>, s: usize, primary: bool) -> bool {
+        if menu.carried.is_none() { return false; }
+        let handler = STACKED_HANDLER.read().ok().and_then(|installed| *installed);
+        let Some(handler) = handler else { return false };
+        handler(menu, env, s, primary)
+    }
+
+    /// The clicked slot's own modification gate, for stacked-on-other
+    /// handlers staged outside this module.
+    pub fn allow_modification(menu: &Menu, env: &Env<'_>, s: usize) -> bool {
+        menu.allow_modification(env, s)
+    }
+
+    /// Queue a sound for the menu's player. Menu sounds carry only the
+    /// event id; volume and pitch are the engine's own.
+    pub fn push_player_sound(menu: &mut Menu, sound: &'static str) {
+        menu.player_sounds.push(sound);
+    }
+
     // A nested scope must not overwrite its caller's staged data, even on unwind.
     struct Restore(Option<Context>);
     impl Drop for Restore {

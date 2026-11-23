@@ -20,6 +20,17 @@
 //! `minecraft:custom_data` component replaced by the supplied compound).
 //! Providers never see or mutate the inventory itself.
 //!
+//! Special recipes are the third shape: a recipe whose result depends on
+//! the grid's concrete stacks (their materials, damage or data) has no
+//! fixed template the engine could assemble, and the engine's own special
+//! recipe list is closed, so a mod registers the recipe itself. A special
+//! provider is consulted only when the native lookup found no match for
+//! the grid; it inspects the cropped grid and either passes or supplies
+//! the complete result stack. The registration id is the recipe identity
+//! the lookup reports, in the `<namespace>:<path>` form the recipe file
+//! would declare. Consumption stays native: taking the result consumes
+//! one item from every occupied grid cell, as for any crafting recipe.
+//!
 //! Register once during startup, before recipes load or any craft is
 //! evaluated. Callbacks must be read-only and deterministic for their
 //! arguments. No content keys or eligibility rules live here.
@@ -255,6 +266,80 @@ static ASSEMBLERS: AssemblyRegistry = AssemblyRegistry::new();
 pub fn register_assembly(entry: AssemblyRegistration) -> Result<(), RegistrationError> {
     ASSEMBLERS.register(entry)
 }
+
+/* Special recipes */
+
+/// The complete result stack a special recipe produces for one grid.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpecialResult {
+    pub item: String,
+    pub count: u32,
+    pub damage: u32,
+    /// The result's `minecraft:custom_data` compound, when the result
+    /// carries one (a repaired tool's saved tool data, for instance).
+    pub custom_data: Option<NbtCompound>,
+}
+
+pub type SpecialCallback = for<'a> fn(&GridFacts<'a>) -> Option<SpecialResult>;
+#[derive(Clone, Copy)]
+pub struct SpecialRecipeRegistration {
+    /// The recipe identity reported for a match, in `<namespace>:<path>`
+    /// form (the id the recipe file would declare).
+    pub id: &'static str,
+    pub callback: SpecialCallback,
+}
+struct SpecialRegistry(RwLock<BTreeMap<&'static str, SpecialCallback>>);
+impl SpecialRegistry {
+    const fn new() -> Self {
+        Self(RwLock::new(BTreeMap::new()))
+    }
+    fn register(&self, entry: SpecialRecipeRegistration) -> Result<(), RegistrationError> {
+        if entry.id.is_empty() {
+            return Err(RegistrationError::EmptyId);
+        }
+        let mut callbacks = self.0.write().unwrap_or_else(|e| e.into_inner());
+        if callbacks.contains_key(entry.id) {
+            return Err(RegistrationError::DuplicateId);
+        }
+        callbacks.insert(entry.id, entry.callback);
+        Ok(())
+    }
+    fn has_providers(&self) -> bool {
+        !self.0.read().unwrap_or_else(|e| e.into_inner()).is_empty()
+    }
+    fn evaluate(&self, grid: &GridFacts<'_>) -> Option<(&'static str, SpecialResult)> {
+        let callbacks: Vec<_> = self
+            .0
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .map(|(&id, &callback)| (id, callback))
+            .collect();
+        // Callbacks run unlocked in lexical registration order; the first
+        // provider that answers the grid wins, deterministically.
+        callbacks
+            .into_iter()
+            .find_map(|(id, callback)| callback(grid).map(|result| (id, result)))
+    }
+}
+static SPECIAL_RECIPES: SpecialRegistry = SpecialRegistry::new();
+/// Register one special recipe once during startup. The callback must be
+/// read-only and deterministic for its arguments: the lookup re-evaluates
+/// grids on every inventory change. There is no unregister/reset path.
+pub fn register_special_recipe(
+    entry: SpecialRecipeRegistration,
+) -> Result<(), RegistrationError> {
+    SPECIAL_RECIPES.register(entry)
+}
+pub fn has_special_recipes() -> bool {
+    SPECIAL_RECIPES.has_providers()
+}
+/// The first answering provider's recipe identity and result, if any.
+pub fn evaluate_special_recipe(
+    grid: &GridFacts<'_>,
+) -> Option<(&'static str, SpecialResult)> {
+    SPECIAL_RECIPES.evaluate(grid)
+}
 pub fn has_assembly_providers() -> bool {
     ASSEMBLERS.has_providers()
 }
@@ -343,6 +428,68 @@ mod tests {
             r.register(AssemblyRegistration { id: "one", interest: ignore, callback: pass }),
             Err(RegistrationError::DuplicateId)
         );
+    }
+
+    fn special_grid<'a>(cells: &'a [Option<StackView<'a>>]) -> GridFacts<'a> {
+        GridFacts { width: cells.len(), height: 1, left: 0, top: 0, cells }
+    }
+    fn special_result(item: &str) -> SpecialResult {
+        SpecialResult { item: item.to_owned(), count: 1, damage: 0, custom_data: None }
+    }
+    fn answer_apple(grid: &GridFacts<'_>) -> Option<SpecialResult> {
+        grid.cells
+            .iter()
+            .flatten()
+            .any(|cell| cell.id == "test:apple")
+            .then(|| special_result("test:pie"))
+    }
+    fn answer_any(_: &GridFacts<'_>) -> Option<SpecialResult> {
+        Some(special_result("test:any"))
+    }
+    fn pass_special(_: &GridFacts<'_>) -> Option<SpecialResult> {
+        None
+    }
+
+    #[test]
+    fn special_recipes_answer_in_lexical_order_and_pass_through() {
+        let stack = StackView { id: "test:apple", count: 1, damage: 0, custom_data: None };
+        let cells = [Some(stack)];
+        let empty = SpecialRegistry::new();
+        assert!(!empty.has_providers());
+        assert_eq!(empty.evaluate(&special_grid(&cells)), None);
+        for order in [["z:any", "a:apple"], ["a:apple", "z:any"]] {
+            let r = SpecialRegistry::new();
+            for id in order {
+                let callback: SpecialCallback = if id == "a:apple" { answer_apple } else { answer_any };
+                r.register(SpecialRecipeRegistration { id, callback }).unwrap();
+            }
+            assert_eq!(
+                r.evaluate(&special_grid(&cells)),
+                Some(("a:apple", special_result("test:pie"))),
+                "the lexical-first provider that answers wins"
+            );
+            let stone = [Some(StackView { id: "test:stone", ..stack })];
+            assert_eq!(r.evaluate(&special_grid(&stone)), Some(("z:any", special_result("test:any"))));
+        }
+        let passing = SpecialRegistry::new();
+        passing.register(SpecialRecipeRegistration { id: "pass", callback: pass_special }).unwrap();
+        assert!(passing.has_providers());
+        assert_eq!(passing.evaluate(&special_grid(&cells)), None);
+    }
+
+    #[test]
+    fn special_recipe_ids_are_unique_and_nonempty() {
+        let r = SpecialRegistry::new();
+        assert_eq!(
+            r.register(SpecialRecipeRegistration { id: "", callback: pass_special }),
+            Err(RegistrationError::EmptyId)
+        );
+        r.register(SpecialRecipeRegistration { id: "one", callback: answer_any }).unwrap();
+        assert_eq!(
+            r.register(SpecialRecipeRegistration { id: "one", callback: pass_special }),
+            Err(RegistrationError::DuplicateId)
+        );
+        assert_eq!(r.evaluate(&special_grid(&[])), Some(("one", special_result("test:any"))));
     }
 
     #[test]

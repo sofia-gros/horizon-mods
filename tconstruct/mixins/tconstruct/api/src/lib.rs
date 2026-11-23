@@ -152,6 +152,7 @@ mod common;
 mod fancy_gadgets;
 mod advancements;
 mod shaped_materials;
+mod crafting_repair;
 mod commands;
 mod particles;
 mod aoe;
@@ -227,6 +228,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     fancy_gadgets::register();
     advancements::register();
     shaped_materials::register();
+    crafting_repair::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()

@@ -340,6 +340,8 @@ mod advancement_tests;
 mod commands;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/shaped_materials.rs"]
 mod shaped_materials;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_repair.rs"]
+mod crafting_repair;
 #[cfg(test)]
 mod shaped_materials_tests;
 #[cfg(test)]

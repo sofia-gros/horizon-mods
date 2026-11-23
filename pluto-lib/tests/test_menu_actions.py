@@ -37,10 +37,11 @@ pub struct Env<'a> { pub items: &'a std::collections::BTreeMap<String, Item> }
 pub enum Role { Hidden, Mod }
 #[derive(Clone)]
 pub struct Slot { pub role: Role }
-pub struct Menu { pub kind: Kind, pub drag: bool, pub calls: usize, pub slots: Vec<Slot>, pub inventory: Vec<Option<ItemStack>> }
+pub struct Menu { pub kind: Kind, pub drag: bool, pub calls: usize, pub slots: Vec<Slot>, pub inventory: Vec<Option<ItemStack>>, pub carried: Option<ItemStack>, pub player_sounds: Vec<&'static str> }
 impl Menu {
     fn slot_count(&self) -> usize { 4 }
     fn quick_crafting(&self) -> bool { self.drag }
+    fn allow_modification(&self, _: &Env<'_>, s: usize) -> bool { s != 3 }
     fn player_item(&self, i: usize) -> Option<&ItemStack> { self.inventory[i].as_ref() }
     fn set_player_item(&mut self, i: usize, stack: Option<ItemStack>) { self.inventory[i] = stack; }
     // These methods only record bridge delegation; they do not simulate transfers.
@@ -66,6 +67,12 @@ fn dispatch(menu: &mut Menu, _: &Env<'_>, ctx: &mut pluto_menu_actions::Context,
     ctx.data.insert("edited".into(), nbt::Tag::Int(1));
     true
 }
+fn stacked_dispatch(menu: &mut Menu, _: &Env<'_>, slot: usize, primary: bool) -> bool {
+    menu.calls += 1;
+    assert_eq!(slot, 2);
+    assert!(!primary);
+    true
+}
 #[test]
 fn scopes_and_dispatch() {
     use pluto_menu_actions::{scope, click, commit, set_handler};
@@ -79,7 +86,7 @@ fn scopes_and_dispatch() {
     assert!(pluto_menu_actions::crafting_remainder(&env, &ItemStack::new("fixture:filled", 0)).is_none());
     assert!(pluto_menu_actions::crafting_remainder(&env, &ItemStack::new("fixture:plain", 1)).is_none());
     assert!(pluto_menu_actions::crafting_remainder(&env, &ItemStack::new("fixture:unknown", 1)).is_none());
-    let mut menu = Menu { kind: Kind::Mod(&MOD_KIND), drag: false, calls: 0, slots: vec![Slot { role: Role::Mod }; 4], inventory: (0..41).map(|_| None).collect() };
+    let mut menu = Menu { kind: Kind::Mod(&MOD_KIND), drag: false, calls: 0, slots: vec![Slot { role: Role::Mod }; 4], inventory: (0..41).map(|_| None).collect(), carried: None, player_sounds: Vec::new() };
     set_handler(dispatch);
     assert!(pluto_menu_pick_all_head(&menu, 1).is_continue());
     pluto_menu_actions::set_pick_all_exclusion(|id, slot| id == "fixture:menu" && slot == 1);
@@ -159,6 +166,25 @@ fn scopes_and_dispatch() {
     assert_eq!(menu.calls, calls + 1);
     pluto_menu_actions::give_stack(&mut menu, &env, &mut stack);
     assert_eq!(menu.calls, calls + 2); // forwards to native place_back, not move_to
+    // Stacked-on-other: no handler or no carried stack leaves the click alone.
+    menu.carried = Some(ItemStack::new("fixture:kit", 1));
+    assert!(!pluto_menu_actions::stacked_on_other(&mut menu, &env, 2, false));
+    pluto_menu_actions::set_stacked_handler(stacked_dispatch);
+    menu.carried = None;
+    assert!(!pluto_menu_actions::stacked_on_other(&mut menu, &env, 2, false));
+    menu.carried = Some(ItemStack::new("fixture:kit", 1));
+    let calls = menu.calls;
+    assert!(pluto_menu_actions::stacked_on_other(&mut menu, &env, 2, false));
+    assert_eq!(menu.calls, calls + 1);
+    // Native menus are included: the carried item is asked there too.
+    menu.kind = Kind::Plain;
+    assert!(pluto_menu_actions::stacked_on_other(&mut menu, &env, 2, false));
+    menu.kind = Kind::Mod(&MOD_KIND);
+    // The slot gate and the sound queue reach the staged handler's menu.
+    assert!(pluto_menu_actions::allow_modification(&menu, &env, 2));
+    assert!(!pluto_menu_actions::allow_modification(&menu, &env, 3));
+    pluto_menu_actions::push_player_sound(&mut menu, "fixture:saw");
+    assert_eq!(menu.player_sounds, ["fixture:saw"]);
 }
 '''
         with tempfile.TemporaryDirectory() as directory:
