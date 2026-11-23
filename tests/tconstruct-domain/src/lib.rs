@@ -77,6 +77,8 @@ mod melee_damage;
 mod entity_facts;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/conditional_stat.rs"]
 mod conditional_stat;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/conducting.rs"]
+mod conducting;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/knockback.rs"]
 mod knockback;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/punch.rs"]

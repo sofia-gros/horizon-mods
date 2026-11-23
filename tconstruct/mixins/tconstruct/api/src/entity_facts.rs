@@ -95,6 +95,20 @@ impl EntityFact {
             }
             "tconstruct:conditional" => {
                 let condition = fields.get("condition_type").ok_or("condition_type missing")?;
+                // A bare condition type names a predicate whose own fields sit beside it in this
+                // object (mantle:has_enchantment reads its `enchantment` from here, as the shipped
+                // hydraulic writes it), so such a predicate is rebuilt from those fields first.
+                let rebuilt;
+                let condition = match condition.as_str() {
+                    Some(kind @ ("mantle:has_enchantment" | "mantle:has_effect")) => {
+                        let mut object = Map::new();
+                        object.insert("type".to_owned(), Value::String(kind.to_owned()));
+                        for key in ["enchantment", "effect"] { if let Some(value) = fields.get(key) { object.insert(key.to_owned(), value.clone()); } }
+                        rebuilt = Value::Object(object);
+                        &rebuilt
+                    }
+                    _ => condition,
+                };
                 let Some(condition) = TargetCondition::decode_for(role, Some(condition))? else { return Ok(None); };
                 let branch = |key: &str| -> Result<Option<Box<Self>>, String> { Ok(Self::decode_value(fields.get(key).ok_or_else(|| format!("{key} missing"))?, role)?.map(Box::new)) };
                 let (Some(if_true), Some(if_false)) = (branch("if_true")?, branch("if_false")?) else { return Ok(None); };
@@ -149,6 +163,14 @@ impl EntityFact {
     pub fn from_range_name(name: &str) -> Option<Self> {
         Some(match name { "health" => Self::Health, "max_health" => Self::MaxHealth, "biome_temperature" => Self::BiomeTemperature, "water" => Self::Water, "armor_coverage" => Self::ArmorCoverage, _ => return None })
     }
+}
+
+/// The level of `effect` on the entity state PlutoLib reported (the amplifier plus one), 0 when
+/// the state was not reported, does not carry the effect, or names effects without their levels.
+pub(crate) fn effect_level_of(state: Option<&EntityState>, effect: &str) -> f32 {
+    let Some(state) = state else { return 0.0 };
+    if state.effect_levels.len() < state.effects.len() { return 0.0; }
+    state.effect_level(effect) as f32
 }
 
 /// VariableRangePredicate.IntervalType.test.

@@ -47,6 +47,23 @@ pub(crate) fn register() {
                 let grant = EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration };
                 if whom == crate::weapon_effect::Whom::Wearer { hit.self_effects.borrow_mut().push(grant); } else { hit.effects.borrow_mut().push(grant); }
             }
+            // Lacerating: a worn piece may put the bleeding effect on the mob that hit its wearer.
+            if let Ok(Some(grant)) = with_held_tool(piece, |env, stack| tool_stack::lacerating_counter_grant(&stack.custom_data, env, &hit.armor, &mut tool_damage_hook::random)) {
+                hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+            }
+            // Enderclearance: a hit on the wearer may teleport the mob that dealt it to a random
+            // place within the module's diameter of where it stands (the chance doubles on a
+            // blocking wearer in the original; blocking is not reported, so the base chance runs).
+            if let (Ok(pairs), Some(origin)) = (with_held_tool(piece, |env, stack| tool_stack::enderclearance(&stack.custom_data, env)), hit.attacker_position) {
+                for (chance, diameter) in pairs {
+                    if crate::tool_damage_hook::random() < chance {
+                        let angle = crate::tool_damage_hook::random() * std::f32::consts::TAU;
+                        let radius = crate::tool_damage_hook::random() * diameter / 2.0;
+                        let to = [origin[0] + f64::from(radius * angle.cos()), origin[1], origin[2] + f64::from(radius * angle.sin())];
+                        hit.actions.borrow_mut().push(EntityAction::Teleport { target: ActionTarget::Attacker, position: to });
+                    }
+                }
+            }
         }
         hit.actions.borrow_mut().extend(crate::hit_actions::strongest_knockback(actions));
     });
@@ -74,6 +91,45 @@ pub(crate) fn register() {
         let Some(held) = hit.weapon.as_ref() else { return; };
         // Effects the tool puts on its own holder as it swings (MobEffectModule.ToolUsage).
         hit.actions.borrow_mut().extend(usage_actions(&[&hit.weapon], crate::weapon_effect::Usage::MeleeHit));
+        // Insatiable: a melee hit feeds the holder's insatiable (melee) effect a level (the grant is
+        // the original's own effect, landed like the kinetic feed lands its armor effect).
+        if let Ok(Some(grant)) = with_held_tool(held, |env, stack| tool_stack::insatiable_hit_grant(&stack.custom_data, env, hit.attacker_state.as_ref())) {
+            hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Attacker, effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+        }
+        // Lacerating: a melee hit puts the bleeding effect on the mob, at the hit's looting.
+        if let Ok(Some(grant)) = with_held_tool(held, |env, stack| tool_stack::lacerating_hit_grant(&stack.custom_data, env, &hit.armor)) {
+            hit.effects.borrow_mut().push(EffectGrant { effect: grant.effect.to_string(), amplifier: grant.amplifier, duration: grant.duration });
+        }
+        // Enderclearance: a hit may teleport the mob it landed on to a random place within the
+        // module's diameter of where it stands. The original tries up to its teleport chances for
+        // a spot the mob fits; the port's teleport names one destination, so one random spot in
+        // the diameter is named.
+        if let (Ok(pairs), Some(origin)) = (with_held_tool(held, |env, stack| tool_stack::enderclearance(&stack.custom_data, env)), hit.target_position) {
+            for (chance, diameter) in pairs {
+                if crate::tool_damage_hook::random() < chance {
+                    let angle = crate::tool_damage_hook::random() * std::f32::consts::TAU;
+                    let radius = crate::tool_damage_hook::random() * diameter / 2.0;
+                    let to = [origin[0] + f64::from(radius * angle.cos()), origin[1], origin[2] + f64::from(radius * angle.sin())];
+                    hit.actions.borrow_mut().push(EntityAction::Teleport { target: ActionTarget::Victim, position: to });
+                }
+            }
+        }
+        // Channeling (melee form): a hit may call lightning down on the mob, at the chance for the
+        // weather over the attacker (rain or thunder count only under open sky, which the reported
+        // rain exposure stands for). The shipped module forbids melee, so this runs only for data
+        // that allows it; the launcher half is the projectile side's.
+        if let Ok(chances) = with_held_tool(held, |env, stack| tool_stack::channeling_melee(&stack.custom_data, env)) {
+            for (clear, rain, thunder) in chances {
+                let chance = match hit.attacker_state.as_ref() {
+                    Some(state) if state.rain_exposed && state.thundering => thunder,
+                    Some(state) if state.rain_exposed => rain,
+                    _ => clear,
+                };
+                if crate::tool_damage_hook::random() < chance {
+                    hit.actions.borrow_mut().push(EntityAction::Summon { target: ActionTarget::Victim, kind: "minecraft:lightning_bolt".into() });
+                }
+            }
+        }
         // Fire and freezing on the mob hit.
         if let Ok(done) = with_held_tool(held, |env, stack| tool_stack::attack_actions(&stack.custom_data, env)) { hit.actions.borrow_mut().extend(done); }
         // Melee capacity: the tool's modules fill (or drain) their bars as it hits; the edit lands on the held stack before the hit's damage.

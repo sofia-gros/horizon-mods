@@ -1637,9 +1637,17 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:monster_melee_hit");
             out.insert("tconstruct:projectile_hit");
         }
+        Module::TheOneProbe => {
+            out.insert("tconstruct:raw_data");
+        }
         Module::Display(display) => match display {
             Display::InteractionSource | Display::MaterialVariantColor { .. } | Display::VariantColor | Display::VariantName { .. } | Display::BannerPatterns | Display::Dyed | Display::Trim => {
                 out.insert("tconstruct:display_name");
+            }
+            Display::Embellished => {
+                out.insert("tconstruct:display_name");
+                out.insert("tconstruct:remove");
+                out.insert("tconstruct:raw_data");
             }
             Display::DurabilityColor { .. } => {
                 out.insert("tconstruct:durability_display");
@@ -1665,7 +1673,7 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::ArmorLooting { .. } => {
             out.insert("tconstruct:armor_looting");
         }
-        Module::Protection { .. } | Module::DepthProtection { .. } | Module::Overshield { .. } | Module::ProtectionCap { .. } => {
+        Module::Protection { .. } | Module::DepthProtection { .. } | Module::Overshield { .. } | Module::ProtectionCap { .. } | Module::FlameBarrier { .. } => {
             out.insert("tconstruct:protection");
         }
         Module::AdjustDamage { .. } | Module::RestoreLostHealth { .. } => {
@@ -1713,6 +1721,30 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::Kinetic => {
             out.insert("tconstruct:on_attacked");
             out.insert("tconstruct:tooltip");
+        }
+        Module::Conducting => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Insatiable => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Lacerating => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:on_attacked");
+        }
+        Module::Momentum => {
+            out.insert("tconstruct:break_speed");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Enderclearance { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:on_attacked");
+        }
+        Module::Channeling { .. } => {
+            out.insert("tconstruct:melee_hit");
         }
         Module::BulkQuiver { .. } => {
             out.insert("tconstruct:bow_ammo");

@@ -47,6 +47,7 @@ mod mining_speed;
 mod melee_damage;
 mod entity_facts;
 mod conditional_stat;
+mod conducting;
 mod knockback;
 mod punch;
 mod projectile_modules;

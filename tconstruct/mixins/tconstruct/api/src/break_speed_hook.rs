@@ -33,10 +33,20 @@ fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static 
         // What vanilla applied on top of the tool's own rule speed: haste, fatigue, water and air.
         let rule_speed = if effective { tool_stack::stat(&stack.custom_data, crate::tool_stats::Stat::MiningSpeed).max(1.0) } else { 1.0 };
         let multiplier = if rule_speed > 0.0 { dig.original / rule_speed } else { 1.0 };
+        // The holder the formula's entity variables read: the digging player as reported, with the
+        // enchantments of the tool they dig with for `mantle:has_enchantment`.
+        let holder = dig.player.as_ref().map(|player| {
+            let mut state = pluto_lib::EntityState { on_ground: player.on_ground, eyes_in_water: player.eyes_in_water, rain_exposed: player.rain_exposed, ..Default::default() };
+            state.effects = player.effect_levels.iter().map(|(id, _)| id.clone()).collect();
+            state.effect_levels = player.effect_levels.clone();
+            state.enchantments = tool_stack::carried_enchantments(&stack.custom_data, env).into_keys().collect();
+            state
+        });
         let context = Context {
             block: &dig.block.block, block_in_tag: &block_in_tag, original: dig.original, multiplier, effective,
-            on_ground: dig.player.map(|player| player.on_ground), eyes_in_water: dig.player.map(|player| player.eyes_in_water),
+            on_ground: dig.player.as_ref().map(|player| player.on_ground), eyes_in_water: dig.player.as_ref().map(|player| player.eyes_in_water),
             facts: crate::mining_speed::BlockFacts { block_light: dig.block_light, sky_light: dig.sky_light, sky_darken: dig.sky_darken, biome_temperature: dig.biome_temperature },
+            holder,
         };
         let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, env.modifiers).len();
         (tool_stack::break_speed(&stack.custom_data, env, &context, dig.speed.get()), effective, multiplier, modifier_count)

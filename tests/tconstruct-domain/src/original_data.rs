@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (87, 56), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (82, 52), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -148,7 +148,15 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // Restore lost health bound to the modify hurt hook runs as the damage arrives, before armor, and stalwart's protection
     // reads the equipment the attacker holds, which the hit reports: both bind now.
     for bound in ["restore_lost_health", "protection"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    for unbound in ["embellishment"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    // Embellishment binds as a display variant whose raw data half migrates the stored variant through
+    // material redirects on build, and flame barrier as a protection module scaled by the wearer's fire.
+    // The one probe binds too, but its modifier is gated by a mod_loaded condition this context fails,
+    // so it never loads here (as in the original without The One Probe installed).
+    for bound in ["embellishment", "flame_barrier"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // Enderclearance binds over the weapon and wearer hits (the hit now reports where each side
+    // stands), and channeling binds with it: its shipped data forbids melee, so the melee half
+    // stays inert by data and the launcher half is the projectile side's.
+    for bound in ["enderclearance", "channeling"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The craft count, material repair, volatile float and quiver inventory modules are bound; revitalizing's
     // update health binds for its armor slots but its hand module stays unbound (held tools are not reported).
@@ -156,14 +164,19 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(kinds.contains("tconstruct:update_health"), "update_health is still unbound for the hand slots");
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
     assert!(unbound_of("stalwart").is_empty(), "stalwart's protection counts the attacker's filled equipment slots, which the hit reports");
+    assert!(unbound_of("enderclearance").is_empty(), "enderclearance is fully bound");
+    assert!(unbound_of("channeling").is_empty(), "channeling is fully bound");
     assert!(unbound_of("restore").is_empty(), "restore runs on the modify hurt hook, before armor");
     // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
     // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
-    // and over the holder as an entity (hydraulic) stay unbound; lightspeed keeps only its own attribute kind.
+    // stay unbound; the form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
+    // digging player — their effects, the rain on them and the enchantments on the tool they dig with, which is what
+    // hydraulic's aqua affinity branch and its raining branch read; lightspeed keeps only its own attribute kind.
     assert!(unbound_of("temperate").is_empty(), "temperate is fully bound");
     assert_eq!(unbound_of("lightspeed"), ["tconstruct:lightspeed_attribute"]);
     assert_eq!(unbound_of("lightspeed_armor"), ["tconstruct:lightspeed_attribute"]);
-    for name in ["blasting", "crumbling", "hydraulic"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
+    for name in ["blasting", "crumbling"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
+    assert!(unbound_of("hydraulic").is_empty(), "hydraulic reads the reported digging player and binds");
     for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     assert_eq!(unbound_of("revitalizing"), ["tconstruct:update_health"], "the armor update health binds; the hand one is not reported");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
@@ -840,7 +853,7 @@ fn shipped_mining_speed_modifiers_change_the_dig_speed_of_a_rebuilt_pickaxe() {
     let stone = Identifier::parse("minecraft:stone").unwrap();
     let melts = |tag: &Identifier| tag.to_string() == "tconstruct:can_melt";
     let dig = |nbt: &pluto_lib::NbtCompound, effective: bool, on_ground: bool| {
-        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false), facts: Default::default() };
+        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false), facts: Default::default(), holder: None };
         break_speed(nbt, &env, &context, 4.0)
     };
     let build = |upgrades: Vec<(&str, i32)>, persistent: Option<(&str, i32)>, damage: i32| {

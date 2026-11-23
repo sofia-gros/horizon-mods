@@ -60,7 +60,32 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), has_hook: Some(&has_hook), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
+    apply_raw_data(nbt, env);
     Ok(true)
+}
+
+/// RawDataModifierHook over the rebuilt tool, run by the caller that owns the stack (see
+/// tool_rebuild): the top-level keys another mod reads, rebuilt from scratch like the volatile
+/// data, and EmbellishmentModule's migration of its stored variant through material redirects.
+fn apply_raw_data(nbt: &mut NbtCompound, env: &Environment) {
+    // The only writers of top-level keys are TheOneProbeModule's two (EmbellishmentModule's raw
+    // data half writes the persistent data instead, below), so those are the keys cleared first.
+    for key in ["theoneprobe", "theoneprobe_hand"] { nbt.remove(key); }
+    let raw = with_tool_facts(nbt, env, |saved, facts| {
+        let mut raw = NbtCompound::new();
+        for (entry, modifier) in saved { modifier.apply_raw_data(entry, facts, &mut raw); }
+        raw
+    });
+    for (key, value) in raw.iter() { nbt.insert(key.clone(), value.clone()); }
+    // EmbellishmentModule.addRawData: the stored variant follows material redirects on build.
+    let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let edits: Vec<(String, Nbt)> = saved_modifiers(nbt, env.modifiers).iter()
+        .filter_map(|(_, modifier)| modifier.embellish_migration(&persistent, env.materials)).collect();
+    if !edits.is_empty() {
+        let mut persistent = persistent;
+        for (key, value) in edits { persistent.insert(key, value); }
+        nbt.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    }
 }
 
 /// ToolStack.ensureHasData's material half: a tool holding fewer materials than it has stat
@@ -127,7 +152,11 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
             for (priority, module) in modifier.mining_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView::of(nbt);
+        // The formula's entity variables read the digging player the event reported (the holder).
+        let view = match &context.holder {
+            Some(holder) => crate::mining_speed::ToolView::with(nbt, crate::entity_facts::Entities { attacker: Some(holder), target: None }),
+            None => crate::mining_speed::ToolView::of(nbt),
+        };
         modules.into_iter().fold(speed, |speed, (_, _, entry, module)| module.mining_speed(entry, facts, &view, context, speed))
     })
 }
@@ -576,6 +605,77 @@ pub(crate) fn overgrowth_tick(nbt: &mut NbtCompound, env: &Environment, holder_t
 pub(crate) fn kinetic_level(nbt: &NbtCompound, env: &Environment) -> i32 {
     if is_broken(nbt) { return 0; }
     saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.kinetic_level(entry))).sum()
+}
+
+/// InsatiableModifier.afterMeleeHit: the grant a melee hit of this tool feeds its holder's
+/// insatiable (melee) effect — one level more than the holder carries, up to the fifth, for
+/// 100 ticks; None when the tool has no insatiable module or is broken. The swing's charge is
+/// not reported, so every hit counts as fully charged, as the lifesteal module reads a swing.
+pub(crate) fn insatiable_hit_grant(nbt: &NbtCompound, env: &Environment, attacker: Option<&pluto_lib::EntityState>) -> Option<crate::weapon_effect::Grant> {
+    if is_broken(nbt) { return None; }
+    let carried = saved_modifiers(nbt, env.modifiers).iter()
+        .any(|(_, modifier)| modifier.modules().iter().any(|module| module.is_insatiable()));
+    if !carried { return None; }
+    let level = crate::entity_facts::effect_level_of(attacker, "tconstruct:insatiable_melee");
+    // applyEffect: the new amplifier is the current one plus one, capped at 4 (the fifth level).
+    let amplifier = (level as i32).min(4);
+    Some(crate::weapon_effect::Grant { effect: Identifier::new("tconstruct", "insatiable_melee").expect("valid effect id"), amplifier, duration: 100 })
+}
+
+/// The bleeding grant LaceratingModifier.applyEffect builds: the amplifier is the hit's looting,
+/// the duration the modifier's level in seconds (level * 2 * 20 ticks) plus the 19 ticks the
+/// original adds when the effect is not already running at that amplifier. A running bleeding's
+/// remaining ticks are not reported, so the same-amplifier extension (which adds those ticks
+/// instead) cannot be worked out; the 19-tick branch always runs.
+fn bleeding_grant(level: i32, looting: i32) -> crate::weapon_effect::Grant {
+    crate::weapon_effect::Grant { effect: Identifier::new("tconstruct", "bleeding").expect("valid effect id"), amplifier: looting.max(0), duration: level * 40 + 19 }
+}
+
+/// LaceratingModifier.afterMeleeHit: the bleeding grant for the mob a melee hit of this tool
+/// landed on; its looting is the weapon's own looting plus the looting of the armor the attacker
+/// wears (LootingModifierHook and ArmorLootingModifierHook over the hit). None when the tool has
+/// no lacerating module or is broken. The swing's charge is not reported, so every hit counts as
+/// fully charged, as the lifesteal module reads a swing.
+pub(crate) fn lacerating_hit_grant(nbt: &NbtCompound, env: &Environment, armor: &[(String, pluto_lib::StackData)]) -> Option<crate::weapon_effect::Grant> {
+    if is_broken(nbt) { return None; }
+    let level = saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.lacerating_level(entry))).next()?;
+    let mut total = looting(nbt, env);
+    for (slot, piece) in armor { total += armor_looting(&piece.custom_data, env, slot); }
+    Some(bleeding_grant(level, total))
+}
+
+/// LaceratingModifier.onAttacked: the bleeding grant a worn piece may put on the mob that hit
+/// its wearer, when the quarter chance lands (doubled on a blocking wearer in the original; the
+/// wearer's blocking is not reported by the hit, so the base chance always runs). Its looting is
+/// the wearer's armor looting over all the worn pieces, this piece's own included. None when the
+/// piece has no lacerating module, is broken, or the chance misses.
+pub(crate) fn lacerating_counter_grant(nbt: &NbtCompound, env: &Environment, armor: &[(String, pluto_lib::StackData)], rolls: &mut dyn FnMut() -> f32) -> Option<crate::weapon_effect::Grant> {
+    if is_broken(nbt) { return None; }
+    let level = saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.lacerating_level(entry))).next()?;
+    if rolls() >= 0.25 { return None; }
+    let mut total = looting(nbt, env);
+    for (slot, piece) in armor { total += armor_looting(&piece.custom_data, env, slot); }
+    Some(bleeding_grant(level, total))
+}
+
+/// EnderclearanceModule: the (chance, diameter) pairs of this stack's enderclearance modules, in
+/// modifier order; empty when it has none or is broken.
+pub(crate) fn enderclearance(nbt: &NbtCompound, env: &Environment) -> Vec<(f32, f32)> {
+    if is_broken(nbt) { return Vec::new(); }
+    saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.enderclearance(entry)))
+        .collect()
+}
+
+/// ChannelingModule (melee form): the (clear, rain, thunder) chances of this stack's channeling
+/// modules that allow melee; empty when it has none, they forbid melee, or it is broken.
+pub(crate) fn channeling_melee(nbt: &NbtCompound, env: &Environment) -> Vec<(f32, f32, f32)> {
+    if is_broken(nbt) { return Vec::new(); }
+    saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(_, modifier)| modifier.modules().iter().filter_map(|module| module.channeling_melee()))
+        .collect()
 }
 
 /// The recurrent protection modules of a piece: the plain level of each entry whose modifier carries one, with the

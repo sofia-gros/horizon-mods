@@ -7,7 +7,7 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
 /// Module types only code-defined modifiers use; the original ships no data for them.
-const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override"];
+const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum"];
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
@@ -183,6 +183,15 @@ impl Modifier {
     /// The volatile-data hook with tool facts (item tags, modifier levels, persistent keys).
     pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
         for module in &self.modules { module.apply_volatile(entry, facts, data); }
+    }
+    /// The raw-data hook with tool facts: contributions to the tool's top-level data.
+    pub fn apply_raw_data(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
+        for module in &self.modules { module.apply_raw_data(entry, facts, data); }
+    }
+    /// EmbellishmentModule's raw data half over this modifier's modules: the persistent edit that
+    /// migrates the stored variant through material redirects, if any module asks for one.
+    pub fn embellish_migration(&self, persistent: &NbtCompound, materials: &crate::materials::Definitions) -> Option<(String, Nbt)> {
+        self.modules.iter().find_map(|module| module.embellish_migration(&self.id, persistent, materials))
     }
     /// ModifierRemovalHook: clears persistent data this modifier's modules own after it left the tool.
     pub fn on_removed(&self, persistent: &mut NbtCompound) {
@@ -686,12 +695,44 @@ mod tests {
     }
 }
 
-/// The modifiers the original defines only in code (a Java class, no data file) that a material trait names and Tinkers has not ported:
-/// DwarvenModifier (copper), StrongBonesModifier (bone), ConductingModifier (blazing bone), EnderportingModifier (ender pearl and ender slime
-/// vine), InsatiableModifier (jadeite), LaceratingModifier (nahuatl), MomentumModifier (hepatizon) and SelfDestructiveModifier (gunpowder).
+/// The modifiers the original defines only in code (a Java class, no data file) whose behaviour
+/// Tinkers has ported: ConductingModifier (blazing bone, priority 90), InsatiableModifier (jadeite),
+/// LaceratingModifier (nahuatl) and MomentumModifier (hepatizon, priority 75). Each is built from
+/// its code module kind at its class's priority.
+pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
+    let build = |name: &str, definition: serde_json::Value| -> Result<Modifier, String> {
+        let id = Identifier::new("tconstruct", name).map_err(|e| e.to_string())?;
+        Modifier::decode(id, &definition)
+    };
+    Ok(vec![
+        build("conducting", serde_json::json!({"priority": 90, "modules": [{"type": "tconstruct:conducting"}]}))?,
+        build("insatiable", serde_json::json!({"modules": [{"type": "tconstruct:insatiable"}]}))?,
+        build("lacerating", serde_json::json!({"modules": [{"type": "tconstruct:lacerating"}]}))?,
+        build("momentum", serde_json::json!({"priority": 75, "modules": [{"type": "tconstruct:momentum"}]}))?,
+    ])
+}
+
+/// The code-defined modifiers that a material trait names and Tinkers has not ported:
+/// DwarvenModifier (copper — its boost and its debuff both read the level's max build height,
+/// which neither the dig nor the stat transport reports), EnderportingModifier (ender pearl and
+/// ender slime vine — it teleports the tool's user, and the host has no call that moves a player),
+/// SelfDestructiveModifier (gunpowder — the armor interact packet reaches no server surface, and
+/// its effect's explosion is an effect behaviour no registry here runs) and StrongBonesModifier
+/// (bone — its milk cure replaces the granted effect's curative items with the helmet itself and
+/// cures by item on removal, and an effect here carries no curative items).
+/// The same registration covers the code-defined modifiers whose classes the audit found absent
+/// from the registry entirely: the offhand family (sinistral, exchanging, dual_wielding,
+/// ambidextrous, parrying, offhand_attack — a second hand's hits and blocks reach no event here;
+/// the dagger definition and the blockade trait name two of them, so their tools must still
+/// build), bursting and wetting (their behaviours run on interactions no surface here reaches),
+/// tank_handler (the tool tank foundation), piercing (the projectile side's), and plague,
+/// wildfire, breathtaking, firebreath, olympic and energy_handler, which the original itself
+/// gives no grant path — registry parity is all they ask.
 /// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
 /// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
-pub(crate) const CODE_MODIFIERS: &[&str] = &["conducting", "dwarven", "enderporting", "insatiable", "lacerating", "momentum", "self_destructive", "strong_bones"];
+pub(crate) const CODE_MODIFIERS: &[&str] = &["dwarven", "enderporting", "self_destructive", "strong_bones",
+    "sinistral", "exchanging", "bursting", "wetting", "dual_wielding", "ambidextrous", "parrying", "offhand_attack",
+    "tank_handler", "piercing", "plague", "wildfire", "breathtaking", "firebreath", "olympic", "energy_handler"];
 
 pub(crate) fn unported_code_modifiers() -> Result<Vec<Modifier>, String> {
     CODE_MODIFIERS.iter().map(|name| {
@@ -706,6 +747,7 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
     // Overslime is defined in code in the original; it survives every reload as a static modifier.
     let mut registry = Registry::default();
     for modifier in crate::overslime::code_modifiers()? { registry.register_static(modifier)?; }
+    for modifier in ported_code_modifiers()? { registry.register_static(modifier)?; }
     for modifier in unported_code_modifiers()? { registry.register_static(modifier)?; }
     let state = Arc::new(RwLock::new(registry));
     let output = state.clone();

@@ -1,14 +1,14 @@
 //! ConditionalMiningSpeedModule and its block, holder and variable inputs, from SlimeKnights
 //! (MIT; see LICENSE). A module changes the dig speed of a block as PlutoLib's break-speed event
-//! reports it: the block and its tags, the holder's ground and water state, and the facts of the
+//! reports it: the block and its tags, the holder's ground and water state, the facts of the
 //! dig itself — the light at the block and the temperature of its biome — which the block light
-//! and biome temperature variables read. Inputs over data this port does not hold stay unbound
+//! and biome temperature variables read, and the digging player as an entity (their effects, the
+//! rain on them and the enchantments on the tool they dig with), which the entity variables and
+//! `mantle:has_enchantment` read. Inputs over data this port does not hold stay unbound
 //! instead of being half-installed: a block property variable (`tconstruct:block` over blast
-//! resistance or hardness — PlutoLib reports no block properties), the `mantle:requires_tool`
+//! resistance or hardness — PlutoLib reports no block properties) and the `mantle:requires_tool`
 //! block predicate (the same missing block property: whether the block needs the correct tool
-//! for drops), and a variable or condition over the holder as an entity beyond ground and water
-//! (the break-speed event reports no holder state to read one from, and `mantle:has_enchantment`
-//! — the shipped hydraulic's other branch — has no surface anywhere in the port yet).
+//! for drops).
 use crate::{formula::Formula, modifier_entries::{nbt_int, Entry}, tool_stats::Stat};
 use pluto_lib::{Identifier, Nbt, NbtCompound};
 use serde_json::{Map, Value};
@@ -137,6 +137,11 @@ pub(crate) struct Context<'a> {
     pub eyes_in_water: Option<bool>,
     /// The facts of the dig itself, for the formula's block variables.
     pub facts: BlockFacts,
+    /// The player doing the digging, as the break-speed event reported them: their effects, the
+    /// rain on them, and the enchantments on the tool they dig with (which is what
+    /// `mantle:has_enchantment` asks of a digger — a worn piece's enchantments are not reported).
+    /// None when the game did not name a digger.
+    pub holder: Option<pluto_lib::EntityState>,
 }
 
 /// Tool state a variable reads.
@@ -293,7 +298,10 @@ impl Variable {
                     _ => return Ok(None),
                 };
                 let fallback = object.get("fallback").and_then(Value::as_f64).ok_or("fallback missing")? as f32;
-                let role = if whose == Whose::Attacker { "attacker" } else { "target" };
+                // A condition inside the variable asks about the entity the variable reads: in the
+                // holder scope that is the digging player themselves (role `holder`), whose own
+                // eyes and ground the break-speed event reports.
+                let role = match scope { EntityScope::Holder => "holder", _ if whose == Whose::Attacker => "attacker", _ => "target" };
                 // The variable's own fields (effect, attribute, condition) sit beside its `entity_type`.
                 let fact = match object.get("entity_type").ok_or("entity_type missing")? {
                     Value::String(kind) => EntityFact::decode(kind, object, role)?,
@@ -344,7 +352,9 @@ impl MiningSpeed {
         let blocks = match fields.get("blocks").filter(|value| !value.is_null()) { None => BlockCondition::Any, Some(value) => match BlockCondition::decode(value)? { Some(blocks) => blocks, None => return Ok(None) } };
         let Some(holder) = HolderCondition::decode(fields.get("entity"))? else { return Ok(None); };
         let require_effective = match fields.get("require_effective") { None | Some(Value::Null) => true, Some(Value::Bool(value)) => *value, Some(_) => return Err("require_effective must be boolean".into()) };
-        let Some(formula) = StatFormula::decode(fields, &NAMES)? else { return Ok(None); };
+        // The holder is the digging player the event reports, so entity variables over them decode
+        // (EntityScope::Holder); a variable over anything else still stays unbound.
+        let Some(formula) = StatFormula::decode_in(fields, &NAMES, crate::mining_speed::EntityScope::Holder)? else { return Ok(None); };
         Ok(Some(Self { blocks, holder, require_effective, formula }))
     }
 
@@ -388,7 +398,20 @@ mod tests {
 
     #[test]
     fn the_shipped_temperate_and_lightspeed_modules_decode_and_the_block_property_forms_do_not() {
-        // temperate: |temperature - 0.75| * level * 6 * multiplier over the speed.
+        // hydraulic: the bonus is a conditional over the digging player (eyes in water, then the
+        // aqua affinity on their tool, else the rain on them); it decodes over the reported holder.
+        let bonus = json!({"type": "tconstruct:entity", "condition_type": "mantle:eyes_in_water", "entity_type": "tconstruct:conditional", "fallback": 8.0,
+            "if_false": {"type": "tconstruct:conditional", "condition_type": "mantle:raining_at", "if_false": 0.0, "if_true": 4.0},
+            "if_true": {"type": "tconstruct:conditional", "condition_type": "mantle:has_enchantment", "enchantment": "minecraft:aqua_affinity", "if_false": 40.0, "if_true": 8.0}});
+        let fact = crate::entity_facts::EntityFact::decode("tconstruct:conditional", bonus.as_object().unwrap(), "holder");
+        assert!(fact.unwrap().is_some(), "the conditional fact decodes for the holder");
+        let hydraulic = MiningSpeed::decode(&fields(json!({
+            "formula": ["$multiplier", "$bonus", "*", "$level", "*", "$speed", "+"],
+            "percent": false, "require_effective": true,
+            "variables": {"bonus": bonus},
+        })));
+        let hydraulic = hydraulic.unwrap();
+        assert!(hydraulic.is_some(), "hydraulic decodes over the reported digging player");        // temperate: |temperature - 0.75| * level * 6 * multiplier over the speed.
         let temperate = MiningSpeed::decode(&fields(json!({
             "formula": ["$temperature", 0.75, "!-", "non-negative", "$level", "*", 6.0, "*", "$multiplier", "*", "$speed", "+"],
             "percent": false, "require_effective": true,
@@ -399,7 +422,7 @@ mod tests {
         let nbt = NbtCompound::new();
         let view = ToolView::of(&nbt);
         let entry = Entry::new(Identifier::parse("tconstruct:temperate").unwrap(), 1);
-        let dig = |temperature: Option<f32>| Context { block: &block, block_in_tag: &no_tags, original: 2.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: BlockFacts { biome_temperature: temperature, ..BlockFacts::default() } };
+        let dig = |temperature: Option<f32>| Context { block: &block, block_in_tag: &no_tags, original: 2.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: BlockFacts { biome_temperature: temperature, ..BlockFacts::default() }, holder: None };
         // A cold biome (0.0): |0 - 0.75| * 1 * 6 * 1 = 4.5 over the speed of 2.
         assert_eq!(temperate.apply(&entry, true, &view, &dig(Some(0.0)), 2.0), 6.5);
         // Unreported: the fallback -0.5 gives |-0.5 - 0.75| * 6 = 7.5 over the speed.

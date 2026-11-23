@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn a_condition_this_port_cannot_hold_leaves_the_module_unbound() {
-        assert!(thorns(json!({"attacker":"mantle:raining_at","constant_damage":{"flat":2.0}})).is_none(), "the weather stays unbound");
+        assert!(thorns(json!({"attacker":{"type":"mantle:entity_type","entity_type":"minecraft:player"},"constant_damage":{"flat":2.0}})).is_none(), "a predicate over the entity type stays unbound");
         assert!(thorns(json!({"attacker":{"type":"mantle:or","predicates":["mantle:eyes_in_water","mantle:feet_in_water"]},"constant_damage":{"flat":2.0}})).is_none());
         assert!(thorns(json!({"defender":"mantle:sprinting","constant_damage":{"flat":2.0}})).is_none(), "a wearer condition stays unbound");
         assert!(thorns(json!({"attacker":"mantle:on_fire","constant_damage":{"flat":2.0}})).is_some(), "a state the hit reports is bound");

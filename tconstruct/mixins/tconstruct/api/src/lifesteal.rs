@@ -77,7 +77,7 @@ mod tests {
     fn a_missing_share_or_cost_is_malformed_and_an_unreported_condition_leaves_it_unbound() {
         assert!(Lifesteal::decode(json!({"durability_usage":{"flat":1}}).as_object().unwrap()).is_err(), "the percentage is required");
         assert!(Lifesteal::decode(json!({"percentage":{"flat":1.0}}).as_object().unwrap()).is_err(), "the durability usage is required");
-        assert!(lifesteal(json!({"durability_usage":{},"percentage":{"flat":1.0},"attacker":"mantle:raining_at"})).is_none());
+        assert!(lifesteal(json!({"durability_usage":{},"percentage":{"flat":1.0},"attacker":{"type":"mantle:entity_type","entity_type":"minecraft:player"}})).is_none());
         assert!(lifesteal(json!({"durability_usage":{},"percentage":{"flat":1.0},"attacker":"mantle:sprinting","target":"mantle:on_fire"})).is_some());
     }
 
