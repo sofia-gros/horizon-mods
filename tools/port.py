@@ -521,7 +521,8 @@ def checked_content(root, version):
                     # and the item part recipes (elytra_copying, the building folder's one).
                     reviewed = ('tconstruct:part_builder', 'tconstruct:item_part_builder')
                 elif '/recipes/tools/severing/' in name:
-                    reviewed = ('tconstruct:severing',)
+                    # severing.rs loads all six kinds: the plain one and the five whose output reads the mob's own state.
+                    reviewed = ('tconstruct:severing', 'tconstruct:ageable_severing', 'tconstruct:mooshroom_demushrooming', 'tconstruct:player_beheading', 'tconstruct:sheep_shearing', 'tconstruct:snow_golem_beheading')
                 elif '/recipes/tools/building/' in name:
                     # table_recipes.rs reads both kinds from this folder: the tool building recipes
                     # and the tipped transform that turns a vanilla arrow into a tipped one.
