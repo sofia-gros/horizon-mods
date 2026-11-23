@@ -87,6 +87,8 @@ mod knockback;
 mod punch;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/projectile_modules.rs"]
 mod projectile_modules;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/sling_modules.rs"]
+mod sling_modules;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/shoot_hook.rs"]
 mod shoot_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/blocking_hook.rs"]
@@ -307,6 +309,8 @@ mod fluid_transfers;
 mod fluid_items;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/throwables.rs"]
 mod throwables;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/potion_contents.rs"]
+mod potion_contents;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/flight_hook.rs"]
 mod flight_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/throwing_hook.rs"]
