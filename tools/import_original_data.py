@@ -839,6 +839,62 @@ def copy_modifier_icons():
         shutil.copyfile(source, destination)
 
 
+def copy_trim_palettes():
+    """The trim colour palettes, byte for byte: textures/trims/color_palettes of the original's generated
+    resources, one PNG per trim material this port ships as data (data/tconstruct/trim_material): the
+    material's asset_name (tconstruct_<name>) names its palette by the trim convention
+    (textures/trims/color_palettes/<name>.png), the sixteen names matching one for one. Nothing reaches
+    them through models - the trim renderer reads the palette texture by that path - so, like the modifier
+    icons, they are copied as a whole tree rather than by reachability. The trim rendering consumer is a
+    separate modifier-side gap; the data side ships complete. Runs after copy_client_assets."""
+    source_root = asset_source('textures/trims/color_palettes')
+    target_root = ASSET_TARGET / 'textures/trims/color_palettes'
+    written = 0
+    for source in sorted(source_root.glob('*.png')):
+        destination = target_root / source.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        written += 1
+    return written
+
+
+def copy_colormaps():
+    """The slime grass colormaps, byte for byte: textures/colormap of the original (blood, earth, ender,
+    ichor, sky and plain slime grass), sampled by the client colour providers per slime grass type - the
+    six grass types all ship in this port, and the resource facade is expected to read the actual files
+    (the PlutoLib probe names earth_grass_color.png). Nothing reaches them through models, so, like the
+    modifier icons, they are copied as a whole tree rather than by reachability. Runs after
+    copy_client_assets."""
+    source_root = asset_source('textures/colormap')
+    target_root = ASSET_TARGET / 'textures/colormap'
+    written = 0
+    for source in sorted(source_root.glob('*.png')):
+        destination = target_root / source.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        written += 1
+    return written
+
+
+def copy_mob_effect_icons():
+    """The mob effect icons, byte for byte: the whole textures/mob_effect tree of the original. The host
+    resolves an effect's icon by convention - horizon-client-core's potions.rs builds the sprite name
+    mob_effect/<path> for vanilla effects and <ns>:mob_effect/<path> for a mod's, and the HUD stitches
+    assets/<ns>/textures/mob_effect into its icon atlas - so the shipped effects' icons (including the
+    carry amplifier variants and the helmet charging bar) are named by effect id alone, with no model or
+    data field pointing at them. Like the modifier icons, the tree is copied whole rather than by
+    reachability. Runs after copy_client_assets."""
+    source_root = asset_source('textures/mob_effect')
+    target_root = ASSET_TARGET / 'textures/mob_effect'
+    written = 0
+    for source in sorted(source_root.glob('*.png')):
+        destination = target_root / source.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        written += 1
+    return written
+
+
 def write_fluid_atlas():
     """The fluid directory's atlas sources (assets/minecraft/atlases/blocks.json): the game's unified atlas
     (screen draws and native block-entity draws) packs the walked texture folders and the base game's atlas
@@ -3614,6 +3670,9 @@ def main():
     fluid_blocks = write_fluid_world()
     fluid_textures = copy_fluid_textures()
     copy_modifier_icons()
+    trim_palettes = copy_trim_palettes()
+    colormaps = copy_colormaps()
+    mob_effect_icons = copy_mob_effect_icons()
     write_fluid_atlas()
     write_copper_can()
     transfers = write_fluid_transfers()
