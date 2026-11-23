@@ -163,6 +163,7 @@ mod swapping_recipes;
 mod material_render;
 mod crafting_repair;
 mod crafting_modifier_repair;
+mod crafting_overslime;
 mod commands;
 mod particles;
 mod aoe;
@@ -248,6 +249,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     material_render::register();
     crafting_repair::register();
     crafting_modifier_repair::register();
+    crafting_overslime::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()
