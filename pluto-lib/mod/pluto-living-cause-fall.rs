@@ -4,7 +4,6 @@
 // native living-fall cancellation branch shapes it, and a bounce additionally
 // rewrites the motion and clears the landing state. When no class decides,
 // the inherited body runs untouched.
-#[allow(clippy::too_many_arguments)]
 fn pluto_living_cause_fall(
     mob:&mut Mob,
     distance:f64,
