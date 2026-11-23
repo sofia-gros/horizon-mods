@@ -12,11 +12,12 @@ fn pluto_hanging_frame_explosion_head(
 }
 
 fn pluto_hanging_frame_explosion_return(
+    value: (),
     game: &mut Game<'_>,
     blast: [f64; 3],
     diameter: f64,
     interaction: super::explosion::BlockInteraction,
 ) {
-    let _ = (blast, diameter, interaction);
+    let _ = (value, blast, diameter, interaction);
     crate::game::pluto_hanging_game::restore_immune_frames(game);
 }

@@ -5,6 +5,7 @@ fn pluto_hanging_stand_tick_head(game: &mut Game<'_>) {
     crate::game::pluto_hanging_game::tick_fancy_stands(game, false);
 }
 
-fn pluto_hanging_stand_tick_return(game: &mut Game<'_>) {
+fn pluto_hanging_stand_tick_return(value: Result<()>, game: &mut Game<'_>) -> Result<()> {
     crate::game::pluto_hanging_game::tick_fancy_stands(game, true);
+    value
 }
