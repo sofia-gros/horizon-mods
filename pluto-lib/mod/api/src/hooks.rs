@@ -3004,6 +3004,10 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         let block = state.block.to_string();
         block_api_v1::can_bonemeal(&block, &block_api_v1::BonemealContext { state, pos, view: &GameView(view) })
     }
+    fn fire_odds(state: &StateInfo) -> Option<(i32, i32)> {
+        let state = to_state(state)?;
+        block_api_v1::fire_odds(&state.block.to_string())
+    }
     fn bonemeal_success(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
         let state = to_state(state)?;
         let block = state.block.to_string();
@@ -3100,6 +3104,7 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         bonemeal_success,
         bonemeal_perform,
         may_place_on,
+        fire_odds,
     }
 }
 

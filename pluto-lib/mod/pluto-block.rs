@@ -95,6 +95,9 @@ pub struct Sink {
     pub bonemeal_perform: fn(&mut dyn LevelEdit, &StateInfo, [i32; 3]),
     /// A plant, the ground below it and the ground's position.
     pub may_place_on: fn(&dyn LevelView, &StateInfo, &StateInfo, [i32; 3]) -> Option<bool>,
+    /// The state's fire odds (ignite, burn) when its block's behaviour sets them. The game asks
+    /// hundreds of times per fire tick, so the answer stays a plain registry lookup.
+    pub fire_odds: fn(&StateInfo) -> Option<(i32, i32)>,
 }
 
 /// Scope only the recursion bookkeeping. Preserve completed writes and rethrow

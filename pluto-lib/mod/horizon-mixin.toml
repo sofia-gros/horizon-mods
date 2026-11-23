@@ -1130,6 +1130,13 @@ helper = "pluto-block-bonemeal-perform.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
 
 [[injection]]
+id = "pluto-block-fire-odds"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_fire_odds"
+kind = "HEAD"
+helper = "pluto-block-fire-odds.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
+
+[[injection]]
 id = "pluto-block-may-place-on"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_may_place_on"
 kind = "HEAD"

@@ -410,6 +410,17 @@ pub(super) fn bonemeal_valid(level: &GameLevel<'_>, pos: BlockPos, state: BlockS
     }
 }
 
+pub(super) fn fire_odds(level: &GameLevel<'_>, state: BlockStateId, odds: &mut Option<(i32, i32)>) {
+    let Some(sink) = pluto_block::sink() else { return };
+    let Some(current) = info(level, state) else { return };
+    if !(sink.has)(&current.block) {
+        return;
+    }
+    if let Some(answer) = (sink.fire_odds)(&current) {
+        *odds = Some(answer);
+    }
+}
+
 pub(super) fn bonemeal_success(level: &mut GameLevel<'_>, pos: BlockPos, state: BlockStateId, success: &mut bool) {
     let Some(sink) = pluto_block::sink() else { return };
     let Some(current) = info(level, state) else { return };

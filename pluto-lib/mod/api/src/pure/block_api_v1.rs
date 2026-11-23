@@ -644,12 +644,13 @@ pub struct BlockBehavior {
     on_bonemeal: Option<TickFn>,
     may_place_on: Option<PlaceOnFn>,
     pick_stack: Option<PickFn>,
+    flammable: Option<(i32, i32)>,
 }
 
 impl BlockBehavior {
     /// A behaviour for `block` that changes nothing yet.
     pub fn new(block: Identifier) -> Self {
-        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, fall_on: None, after_fall: None, inside_motion: None, slime_block: None, sticky_block: None, stick_to: None, path_node_type: None, piston_behavior: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None }
+        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, fall_on: None, after_fall: None, inside_motion: None, slime_block: None, sticky_block: None, stick_to: None, path_node_type: None, piston_behavior: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None, flammable: None }
     }
 
     /// Where the block may stay: answer `false` and it is refused when placed and breaks (with its drops) when a neighbour changes.
@@ -789,6 +790,19 @@ impl BlockBehavior {
         self.piston_behavior
     }
 
+    /// The block's fire odds (Minecraft: `FireBlock.setFlammable`): how readily fire spreads onto
+    /// the block (ignite) and how strongly it feeds the fire (burn). `(0, 0)` never burns. Without
+    /// it the block keeps the odds of the template its declaration copies.
+    pub fn flammable(mut self, ignite: i32, burn: i32) -> Self {
+        self.flammable = Some((ignite, burn));
+        self
+    }
+
+    /// The fire odds given with [`BlockBehavior::flammable`], if any.
+    pub fn flammable_odds(&self) -> Option<(i32, i32)> {
+        self.flammable
+    }
+
     /// The block this behaviour belongs to.
     pub fn block(&self) -> &Identifier {
         &self.block
@@ -829,6 +843,10 @@ impl BlockBehaviors {
 pub(crate) fn path_node_type(context: &PathNodeTypeContext<'_>) -> Option<PathNodeType> {
     let callback = BlockBehaviors::get(&context.state.block.to_string())?.path_node_type?;
     callback(context)
+}
+
+pub(crate) fn fire_odds(block: &str) -> Option<(i32, i32)> {
+    BlockBehaviors::get(block)?.flammable
 }
 
 pub(crate) fn slime_block(state: &BlockState) -> Option<bool> {
@@ -948,6 +966,20 @@ mod tests {
 
     fn id(text: &str) -> Identifier {
         Identifier::parse(text).unwrap()
+    }
+
+    #[test]
+    fn fire_odds_come_from_the_registered_behaviour() {
+        assert_eq!(fire_odds("example:unregistered_flammable"), None);
+        BlockBehaviors::register(BlockBehavior::new(id("example:flammable")).flammable(30, 60));
+        assert_eq!(fire_odds("example:flammable"), Some((30, 60)));
+        BlockBehaviors::register(BlockBehavior::new(id("example:fireproof")).flammable(0, 0));
+        assert_eq!(fire_odds("example:fireproof"), Some((0, 0)));
+        // A behaviour without odds, and a replaced registration, answer None again.
+        BlockBehaviors::register(BlockBehavior::new(id("example:plain")));
+        assert_eq!(fire_odds("example:plain"), None);
+        BlockBehaviors::register(BlockBehavior::new(id("example:flammable")));
+        assert_eq!(fire_odds("example:flammable"), None);
     }
 
     #[test]

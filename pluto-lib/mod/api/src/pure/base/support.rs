@@ -138,6 +138,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "native attachment source/plan review of Plan::override_gameplay, then consolidated native piston/loot/save/LAN validation; vanilla/unregistered settings reject content-root generation",
     },
     SupportEntry {
+        api: "block_api_v1::BlockBehavior::flammable / flammable_odds",
+        support: Support::Stub,
+        behaviour: "static fire odds (ignite, burn) are registered with the block behaviour and answered through the native fire-odds hook as a plain registry lookup; (0, 0) never burns and a block without odds keeps its declaration template's table odds; the native weave and in-game fire spread remain unvalidated",
+        unblocked_by: "consolidated native build and fire-spread validation; the hook is asked hundreds of times per fire tick, so the answer must stay a plain lookup",
+    },
+    SupportEntry {
         api: "item_api_v1::StandingAndWallBlockItem::register",
         support: Support::Stub,
         behaviour: "records owned floor/wall/attachment declarations; owned-table overlay and cache-suppression policy are pure-tested, native resolver/helpers are drafted, provider and symbolic resource-export hooks are source-wired with transactional ID-name validation and declaration-keyed roots; the old numeric STORE remains undeclared because build()? is unsupported; real plan/site/native placement validation remains pending",

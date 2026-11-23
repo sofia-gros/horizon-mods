@@ -2021,6 +2021,18 @@ W1_NETHER_FOLIAGE = ('ichor', 'blood')  # FoliageType.isNether: nylium grass, fu
 W1_DIRTS = ['vanilla', 'earth', 'sky', 'ichor', 'ender']  # the slime grass EnumObjects, in registration order
 
 
+def compostable(chance):
+    """The `minecraft:compostable` item component for one of TinkerWorld.commonSetup's chances, in the
+    shape of vanilla's own compostable providers: an empty composter always takes a layer, a filled one
+    takes it with the chance. The host reads the component off the item (a block declaration's components
+    patch its block item too) and evaluates the layers provider at each insertion."""
+    weight = round(chance * 100)
+    return {'minecraft:compostable': {'layers': {
+        'type': 'minecraft:number_dispatcher',
+        'cases': [{'condition': {'type': 'minecraft:match_block', 'blocks': 'minecraft:composter', 'state': {'level': '0'}}, 'value': 1}],
+        'default': {'type': 'minecraft:weighted_list', 'distribution': [{'data': 1, 'weight': weight}, {'data': 0, 'weight': 100 - weight}]}}}}
+
+
 def world_w1_blocks():
     """name -> declaration of the slime wood sets, the slime grass, the slime flora, the slime vines and the enderbark roots of
     TinkerWorld (the world tab's trees and foliage), each from its Java registration. Templates carry the vanilla behaviour of the
@@ -2040,18 +2052,24 @@ def world_w1_blocks():
     propagule when bonemealed and the vines growing through their stages are registered in the api crate's world_growth module;
     the declarations here only carry their random_ticks flag, which the original's registrations set with randomTicks() on the
     grass, the saplings, the propagule and the vines (the fungi get none, as in the original). SlimeLeavesBlock measures its decay distance against the tconstruct:slimy_logs tag rather than logs alone;
-    the leaves template's distance behaviour is the host's and the tag distinction is not expressible in a declaration. The signs
+    the leaves template's distance is the host's, so the api crate's world_growth module recomputes the slime distance in
+    its placement, updateShape and tick callbacks. The signs
     are declared as plain blocks: the original's sign block entities (editable text) have no content declaration, so the signs
-    drop and render as in the original but hold no text. Push reactions (the flora and the vines are DESTROY), the flora's render
-    offsets, the compost values of TinkerWorld.commonSetup and the fire spread/burn values are registrations the declaration
-    schema has no keys for; they are documented here rather than faked. The potted blocks and the wall signs have no item in the
+    drop and render as in the original but hold no text. Push reactions (the flora and the vines are DESTROY) and the flora's
+    render offsets are registrations the declaration schema has no keys for; they are documented here rather than faked.
+    The compost values of TinkerWorld.commonSetup ride the declarations' components (the host's compostable item
+    component), and the fire spread/burn values are fire odds on the api crate's block behaviours (world_blocks and
+    world_growth). The potted blocks and the wall signs have no item in the
     original (the wall signs drop through the standing sign's loot table, which copy_world_loot reproduces)."""
-    def declare(template, color, sounds, hardness, resistance, requires_tool, item=True, light=0, **extra):
+    def declare(template, color, sounds, hardness, resistance, requires_tool, item=True, light=0, components=None, **extra):
         properties = {'hardness': hardness, 'explosion_resistance': resistance, 'sounds': sounds, 'map_color': MAP_COLOR[color],
                       'requires_tool': requires_tool, **extra}
         if light:
             properties['light'] = light
-        return {'template': template, 'properties': properties, 'item': item}
+        declaration = {'template': template, 'properties': properties, 'item': item}
+        if components:
+            declaration['components'] = components
+        return declaration
 
     blocks = {}
     # createSlimewood: (suffix, template, variant); the stripped pieces are prefixed in the block name, not suffixed
@@ -2082,19 +2100,19 @@ def world_w1_blocks():
                 blocks[f'{foliage}_{dirt}_slime_grass'] = declare('minecraft:grass_block', color, 'minecraft:slime_block', 2.0, 2.0, True, random_ticks=True)
         # saplingProps: builder(foliage colour, FUNGUS in the nether else GRASS).instabreak().noCollission()
         if foliage == 'ender':  # SlimePropaguleBlock: the mangrove propagule states come with the template
-            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:mangrove_propagule', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True)
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:mangrove_propagule', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True, components=compostable(0.35))
         elif nether:  # SlimeFungusBlock
-            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:crimson_fungus', color, 'minecraft:crimson_fungus', 0.0, 0.0, False)
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:crimson_fungus', color, 'minecraft:crimson_fungus', 0.0, 0.0, False, components=compostable(0.35))
         else:  # SlimeSaplingBlock
-            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:oak_sapling', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True)
+            blocks[f'{foliage}_slime_sapling'] = declare('minecraft:oak_sapling', color, 'minecraft:short_grass', 0.0, 0.0, False, random_ticks=True, components=compostable(0.35))
         if nether:  # a plain block: builder(foliage colour, WART_BLOCK).strength(1.5)
-            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:dirt', color, 'minecraft:nether_wart_block', 1.5, 1.5, False)
+            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:dirt', color, 'minecraft:nether_wart_block', 1.5, 1.5, False, components=compostable(0.85))
         else:  # SlimeLeavesBlock (the propagule leaves for ender): builder(colour, GRASS).strength(1.0).noOcclusion()
-            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:oak_leaves', color, 'minecraft:short_grass', 1.0, 1.0, False, occludes=False)
+            blocks[f'{foliage}_slime_leaves'] = declare('minecraft:oak_leaves', color, 'minecraft:short_grass', 1.0, 1.0, False, occludes=False, components=compostable(0.35))
         # fernProps/tallGrassProps: builder(foliage colour, ROOTS in the nether else GRASS).replaceable().instabreak().noCollission()
         ground_sound = 'minecraft:crimson_roots' if nether else 'minecraft:short_grass'
-        blocks[f'{foliage}_slime_fern'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False)
-        blocks[f'{foliage}_slime_tall_grass'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False)
+        blocks[f'{foliage}_slime_fern'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False, components=compostable(0.65))
+        blocks[f'{foliage}_slime_tall_grass'] = declare('minecraft:short_grass', color, ground_sound, 0.0, 0.0, False, components=compostable(0.35))
         # FlowerPotBlock: no properties beyond the pot itself, and no item
         blocks[f'potted_{foliage}_slime_fern'] = declare('minecraft:flower_pot', 'NONE', 'minecraft:flower_pot', 0.0, 0.0, False, item=False)
         blocks[f'potted_{foliage}_slime_sapling'] = declare('minecraft:flower_pot', 'NONE', 'minecraft:flower_pot', 0.0, 0.0, False, item=False)
@@ -2102,9 +2120,10 @@ def world_w1_blocks():
         # SlimeVineBlock: builder(slime colour, GRASS).replaceable().strength(0.75).noCollission().randomTicks(); the growth stage is its own state
         color, _light = SLIME_TYPES[slime]
         blocks[f'{slime}_slime_vine'] = {**declare('minecraft:vine', color, 'minecraft:short_grass', 0.75, 0.75, False, random_ticks=True),
-                                         'state_properties': {'stage': {'type': 'enum', 'values': ['start', 'middle', 'end']}}}
+                                         'state_properties': {'stage': {'type': 'enum', 'values': ['start', 'middle', 'end']}},
+                                         'components': compostable(0.5)}
     # SlimeRootsBlock: builder(COLOR_BLACK, MANGROVE_ROOTS).instrument(BASS).strength(0.7).noOcclusion()
-    blocks['enderbark_roots'] = declare('minecraft:mangrove_roots', 'COLOR_BLACK', 'minecraft:mangrove_roots', 0.7, 0.7, False, occludes=False)
+    blocks['enderbark_roots'] = declare('minecraft:mangrove_roots', 'COLOR_BLACK', 'minecraft:mangrove_roots', 0.7, 0.7, False, occludes=False, components=compostable(0.4))
     for slime, (color, light) in SLIME_TYPES.items():
         # SlimeDirtBlock: builder(slime colour, MUDDY_MANGROVE_ROOTS).strength(0.7) with the slime light
         blocks[f'{slime}_enderbark_roots'] = declare('minecraft:dirt', color, 'minecraft:muddy_mangrove_roots', 0.7, 0.7, False, light=light)
@@ -2574,7 +2593,9 @@ def write_world_declarations():
     for name, declaration in blocks.items():
         write_json(HORIZON_DECLARATIONS / 'block' / f'{name}.json', declaration, compact=True)
     for name in WORLD_ITEMS + CAST_ITEMS + METAL_ITEMS + COMMONS_ITEMS:
-        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper'}, compact=True)
+        # The slime grass seeds compost at TinkerWorld's 0.35, like the foliage they grow into.
+        declaration = {'template': 'minecraft:paper', 'components': compostable(0.35)} if name.endswith('_slime_grass_seeds') else {'template': 'minecraft:paper'}
+        write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', declaration, compact=True)
     for name, stack in FLUID_ITEMS.items():
         write_json(HORIZON_DECLARATIONS / 'item' / f'{name}.json', {'template': 'minecraft:paper', 'max_stack_size': stack}, compact=True)
     return len(blocks), len(WORLD_ITEMS) + len(CAST_ITEMS) + len(METAL_ITEMS) + len(COMMONS_ITEMS) + len(FLUID_ITEMS)
@@ -3222,7 +3243,7 @@ def copy_vanilla_tags():
     forge_members resolves them for the recipes. The item tags (tool families, logs...) and the entity-type
     tags join with the same reduction: an entry ships when it names a declared item, a shipped Tinkers tag or
     a registered entity type; anything else (Forge's namespace, vanilla's own entries, which the base game
-    already carries) is left out."""
+    already carries) is left out. The gold tier (forge:needs_gold_tool, which has no 26.3 needs_* tag) is rebuilt from the tool components' incorrect_for_* tags at the tail of this function."""
     target = CONTENT_DATA / 'minecraft/tags/block'
     declared = {p.stem for p in (HORIZON_DECLARATIONS / 'block').glob('*.json')}
     shipped = {path.relative_to(TAG_TARGET / 'block').with_suffix('').as_posix() for path in (TAG_TARGET / 'block').rglob('*.json')}
@@ -3251,6 +3272,16 @@ def copy_vanilla_tags():
             count += 1
     # SlimeDirtBlock sustains PLAINS. VegetationBlock checks this ground tag in 26.3.
     write_json(target / 'supports_vegetation.json', {'values': [f'tconstruct:{dirt}_slime_dirt' for dirt in DIRT_TYPES]})
+    count += 1
+    # The gold tier (forge:needs_gold_tool): 26.3 has no needs_* tag for it, but the tier survives in the
+    # tool components — a wooden tool refuses what minecraft:incorrect_for_wooden_tool names, a gold tool
+    # what minecraft:incorrect_for_gold_tool names. Naming the gold-tier blocks that require a correct
+    # tool for drops (the sky slime grass of TinkerWorld, the skyroot log and wood) under the wooden tag
+    # alone reproduces the tier exactly: wooden tools fail, gold and better still harvest. sky_slime_dirt
+    # stays out on purpose: SlimeDirtBlock sets no requiresCorrectToolForDrops, so its membership would
+    # be inert here as it is in the original. The seared and scorched gold-tier blocks follow the same
+    # rule; they join when the smeltery units are checked against it.
+    write_json(target / 'incorrect_for_wooden_tool.json', {'values': ['tconstruct:blood_sky_slime_grass', 'tconstruct:sky_sky_slime_grass', 'tconstruct:sky_vanilla_slime_grass', 'tconstruct:skyroot_log', 'tconstruct:skyroot_wood']})
     count += 1
     # The declared items, and the block items with them (a block declaration's `item` flag): the wood
     # families, the signs and the heads are named by the item tags through their blocks.

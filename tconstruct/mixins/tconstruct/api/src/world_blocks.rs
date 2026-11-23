@@ -1,7 +1,9 @@
 //! TinkerWorld's sticky predicates and CongealedSlimeBlock's landing/contact rules (SlimeKnights, MIT).
 //!
-//! The slime wood sets, slime grass, flora, vines and enderbark roots register nothing here: what of their behaviour is
-//! portable is their vanilla templates' (the importer's declarations, `world_w1_blocks`), and their random-tick growth —
+//! The slime wood sets, slime grass, flora, vines and enderbark roots register nothing here but the fire odds
+//! TinkerWorld's setup gives the flora and the wood sets (the leaves' and vines' odds sit with their growth in
+//! world_growth.rs): what of their behaviour is portable beyond that is their vanilla templates' (the importer's
+//! declarations, `world_w1_blocks`), and their random-tick growth —
 //! grass spreading and bonemeal growth, the saplings and fungi growing, the vines advancing their stage, the propagule
 //! leaves placing a propagule — is registered in world_growth.rs.
 //! Below them, the geodes and heads: CrystalClusterBlock placement and survival, the budding blocks' piston rule,
@@ -12,12 +14,14 @@
 //! impact event, the heads' models on its model-layer and skull registries (SkullModelHelper's layers and
 //! WorldClientEvents' layer definitions and SKIN_BY_TYPE textures), and WorldEvents.creeperKill on its
 //! living-drops callback, whose native side owns the creeper's charged state and spent-skull counter.
-//! Not expressible yet: the head item placing the wall variant (the content schema's wall blocks are signs) and
-//! WorldEvents.livingVisibility (the port's visibility event is heard only for armor carrying custom data,
+//! The head item placing the wall variant (StandingAndWallBlockItem) is registered below through PlutoLib's
+//! item-placement bindings, which the export carries into the game's block tables; the content schema's own
+//! wall_block stays sign-only. Not expressible yet: WorldEvents.livingVisibility (the port's visibility event
+//! is heard only for armor carrying custom data,
 //! which a plain head item does not, and the game already counts worn heads among its own factors; the
 //! enderman stare is modifier-driven, see mob_disguise_hook).
 use pluto_lib::{AfterFallContext, BlockBehavior, BlockBehaviors, BlockState, BlockView, CubeDefinition, Direction, EntityInsideMotionContext, EntityModelLayerRegistry, Identifier, ItemStack, LayerDefinition, LivingEntityDrops, LivingEntityDropsCallback, PartDefinition, PartPose, PathNodeType, PistonBehavior, Placement, ProjectileEvents, ProjectileImpact, SkullModelAnimation, SkullModelRegistry, StackData};
-use pluto_lib::{ItemTooltipCallback, TooltipLine};
+use pluto_lib::{ItemTooltipCallback, StandingAndWallBlockItem, TooltipLine};
 
 pub(crate) fn register() {
     static TOOLTIPS: std::sync::Once = std::sync::Once::new();
@@ -28,7 +32,7 @@ pub(crate) fn register() {
             }
         });
     });
-    let id = |name| Identifier::new("tconstruct", name).unwrap();
+    let id = |name: &str| Identifier::new("tconstruct", name).unwrap();
     for name in ["sky_slime", "ichor_slime", "ender_slime"] {
         BlockBehaviors::register(BlockBehavior::new(id(name))
             .is_slime_block(|_| true)
@@ -66,6 +70,46 @@ pub(crate) fn register() {
     // StandingAndWallBlockItem is registered for.
     for name in WALL_HEADS {
         BlockBehaviors::register(BlockBehavior::new(id(name)).pick_stack(|c| wall_head_pick(&c.state)));
+    }
+    // StandingAndWallBlockItem(heads.get(type), wallHeads.get(type), properties, Direction.DOWN) (TinkerWorld):
+    // the head item places the standing head on a floor and the wall head against a wall. PlutoLib's bindings
+    // reach the game's item-placement tables through the block-behaviours export; the woven placement itself is
+    // first exercised by the combined build's smoke, like the other source-complete transports.
+    for (head, wall) in HEADS.into_iter().zip(WALL_HEADS) {
+        if let Err(error) = StandingAndWallBlockItem::register(id(head), id(head), id(wall), Direction::Down) {
+            eprintln!("Tinkers: {head} wall placement not registered: {error}");
+        }
+    }
+    // TinkerWorld.commonSetup's plant fire values (FireBlock.setFlammable) for the tall grass and the
+    // ferns: the non-nether foliage at 30/60, the nether foliage named (0, 0) — the original gives it
+    // no fire entry, and its short-grass template would otherwise inherit vanilla's 60/100. The leaves'
+    // and vines' odds are registered in world_growth.rs with their growth.
+    for foliage in ["earth", "sky", "ender"] {
+        for kind in ["slime_tall_grass", "slime_fern"] {
+            let name = format!("{foliage}_{kind}");
+            BlockBehaviors::register(BlockBehavior::new(id(&name)).flammable(30, 60));
+        }
+    }
+    for foliage in ["ichor", "blood"] {
+        for kind in ["slime_tall_grass", "slime_fern"] {
+            let name = format!("{foliage}_{kind}");
+            BlockBehaviors::register(BlockBehavior::new(id(&name)).flammable(0, 0));
+        }
+    }
+    // setWoodFireInfo's values for the four wood sets (TinkerWorld): the planks family at 5/20, the log
+    // family at 5/5. They equal vanilla oak's own odds, which the oak templates already carry; naming
+    // them pins the original's values against template drift.
+    for wood in ["greenheart", "skyroot", "bloodshroom", "enderbark"] {
+        for piece in ["planks", "planks_slab", "planks_stairs", "fence", "fence_gate"] {
+            let name = format!("{wood}_{piece}");
+            BlockBehaviors::register(BlockBehavior::new(id(&name)).flammable(5, 20));
+        }
+        for piece in ["log", "wood"] {
+            let name = format!("{wood}_{piece}");
+            BlockBehaviors::register(BlockBehavior::new(id(&name)).flammable(5, 5));
+            let name = format!("stripped_{wood}_{piece}");
+            BlockBehaviors::register(BlockBehavior::new(id(&name)).flammable(5, 5));
+        }
     }
     // CrystalBlock/CrystalClusterBlock.onProjectileHit: the chime (chime_on_impact).
     ProjectileEvents::IMPACT.register(chime_on_impact);

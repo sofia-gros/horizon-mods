@@ -1048,6 +1048,28 @@ let behavior = BlockBehavior::new(Identifier::new("example", "lamp").unwrap())
 assert_eq!(behavior.block().path(), "lamp");
 ```
 
+### `BlockBehavior::flammable`
+
+`fn flammable(self, ignite: i32, burn: i32) -> BlockBehavior`. The block's fire odds (Minecraft: `FireBlock.setFlammable`): how readily fire spreads onto the block (ignite) and how strongly it feeds the fire (burn). Vanilla's planks are 5/20, wool 30/60, leaves 30/60; `(0, 0)` never burns. A block without odds keeps the ones its declaration's template carries. The game asks hundreds of times per fire tick, so the answer is a plain registry lookup.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "leaves").unwrap()).flammable(30, 60);
+assert_eq!(behavior.flammable_odds(), Some((30, 60)));
+```
+
+### `BlockBehavior::flammable_odds`
+
+`fn flammable_odds(&self) -> Option<(i32, i32)>`. The fire odds given with `flammable`, if any.
+
+```rust
+use pluto_lib::{BlockBehavior, Identifier};
+
+let behavior = BlockBehavior::new(Identifier::new("example", "post").unwrap());
+assert_eq!(behavior.flammable_odds(), None);
+```
+
 ### `BlockBehavior::block`
 
 `fn block(&self) -> &Identifier`. The block this behaviour belongs to.
