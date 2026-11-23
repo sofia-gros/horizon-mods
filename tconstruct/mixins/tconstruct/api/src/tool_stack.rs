@@ -723,6 +723,11 @@ pub(crate) fn overgrowth_tick(nbt: &mut NbtCompound, env: &Environment, holder_t
     })
 }
 
+/// ModifierUtil.getModifierLevel: the tool's level of the named modifier, 0 when it does not carry it.
+pub(crate) fn modifier_level(nbt: &NbtCompound, env: &Environment, name: &str) -> i32 {
+    saved_modifiers(nbt, env.modifiers).iter().find(|(entry, _)| entry.id.to_string() == name).map_or(0, |(entry, _)| entry.level)
+}
+
 /// The total kinetic level of a piece: the plain levels of the entries whose modifier carries a kinetic module, as
 /// SlotInChargeModule totals the equipped pieces. A broken piece's modifiers do not run, so it contributes nothing.
 pub(crate) fn kinetic_level(nbt: &NbtCompound, env: &Environment) -> i32 {

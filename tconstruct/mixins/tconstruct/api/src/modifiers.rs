@@ -7,7 +7,7 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
 /// Module types only code-defined modifiers use; the original ships no data for them.
-const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum", "tconstruct:dwarven", "tconstruct:enderporting", "tconstruct:tank"];
+const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum", "tconstruct:dwarven", "tconstruct:enderporting", "tconstruct:self_destructive", "tconstruct:strong_bones", "tconstruct:tank"];
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
@@ -718,7 +718,8 @@ mod tests {
 /// The modifiers the original defines only in code (a Java class, no data file) whose behaviour
 /// Tinkers has ported: ConductingModifier (blazing bone, priority 90), InsatiableModifier (jadeite),
 /// LaceratingModifier (nahuatl), MomentumModifier (hepatizon, priority 75), DwarvenModifier
-/// (copper, priority 85) and EnderportingModifier (ender pearl, priority 45). Each is built from
+/// (copper, priority 85), EnderportingModifier (ender pearl, priority 45), SelfDestructiveModifier
+/// (gunpowder) and StrongBonesModifier (bone). Each is built from
 /// its code module kind at its class's priority.
 pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
     let build = |name: &str, definition: serde_json::Value| -> Result<Modifier, String> {
@@ -732,14 +733,12 @@ pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
         build("momentum", serde_json::json!({"priority": 75, "modules": [{"type": "tconstruct:momentum"}]}))?,
         build("dwarven", serde_json::json!({"priority": 85, "modules": [{"type": "tconstruct:dwarven"}]}))?,
         build("enderporting", serde_json::json!({"priority": 45, "modules": [{"type": "tconstruct:enderporting"}]}))?,
+        build("self_destructive", serde_json::json!({"modules": [{"type": "tconstruct:self_destructive"}]}))?,
+        build("strong_bones", serde_json::json!({"modules": [{"type": "tconstruct:strong_bones"}]}))?,
     ])
 }
 
-/// The code-defined modifiers that a material trait names and Tinkers has not ported:
-/// SelfDestructiveModifier (gunpowder — the armor interact packet reaches no server surface, and
-/// its effect's explosion is an effect behaviour no registry here runs) and StrongBonesModifier
-/// (bone — its milk cure replaces the granted effect's curative items with the helmet itself and
-/// cures by item on removal, and an effect here carries no curative items).
+/// The code-defined modifiers that a material trait names and Tinkers has not ported.
 /// The same registration covers the code-defined modifiers whose classes the audit found absent
 /// from the registry entirely: the offhand family (sinistral, exchanging, dual_wielding,
 /// ambidextrous, parrying, offhand_attack — a second hand's hits and blocks reach no event here;
@@ -750,7 +749,7 @@ pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
 /// gives no grant path — registry parity is all they ask.
 /// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
 /// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
-pub(crate) const CODE_MODIFIERS: &[&str] = &["self_destructive", "strong_bones",
+pub(crate) const CODE_MODIFIERS: &[&str] = &[
     "sinistral", "exchanging", "bursting", "wetting", "dual_wielding", "ambidextrous", "parrying", "offhand_attack",
     "tank_handler", "piercing", "plague", "wildfire", "breathtaking", "firebreath", "olympic", "energy_handler"];
 

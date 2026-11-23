@@ -19,10 +19,18 @@
 //! pieces is not the problem (the player tick reports them, and the handle reads armor at slots 100 to
 //! 103 and the off hand at -106); the exchange itself has no surface. Opening the inventory menu is
 //! walled the same way: screens are keyed by block and open when a block is used, and no call opens one
-//! for an item. So the server receiver decodes the packet and drops it with a one-time log until such a
-//! surface exists; `interact` is ready to be called by it unchanged.
+//! for an item. So the server receiver drops the strap, belt and menu forms with a one-time log until
+//! such a surface exists; `interact` is ready to be called by it unchanged.
+//!
+//! One form needs no exchange and does run: SelfDestructiveModifier primes its wearer from the
+//! helmet key (shift held — the packet's tooltip key is Shift exactly then, which is the
+//! original's isShiftKeyDown check) and takes the effect off on release; the effect's own last
+//! tick explodes on the player tick below, and taking the helmet off removes it there too
+//! (SelfDestructiveModifier.onUnequip). The primed sound plays on the effect's first tick,
+//! where the tick reports the wearer's place.
 use crate::{break_speed_hook::with_held_tool, tool_inventory::{MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
-use pluto_lib::{ClientPlayNetworking, Identifier, ItemSlot, NbtCompound, PlayerKeyEvents, ServerPlayNetworking, StackData};
+use pluto_lib::{ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
+use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
@@ -139,6 +147,32 @@ pub(crate) fn interact(piece: &StackData, key: MenuKey, offhand: Option<ItemSlot
     outcome
 }
 
+/// The wearer's self-destructive level from the head piece the player tick last reported
+/// (SelfDestructiveModifier's tool), 0 when the helmet carries no such modifier.
+fn self_destructive_level(player: u128) -> i32 {
+    let Some((_, head)) = pluto_lib::entity_events_v1::equipment_of(player).into_iter().find(|(slot, _)| slot == "head") else { return 0; };
+    with_held_tool(&head, |env, tool| tool_stack::modifier_level(&tool.custom_data, env, "tconstruct:self_destructive")).unwrap_or(0)
+}
+
+/// SelfDestructiveModifier.startInteract: shift with the helmet key primes the wearer — the
+/// self-destructing effect for 30 ticks at twice the modifier's level.
+fn self_destructive_start(player: u128) {
+    let level = self_destructive_level(player);
+    if level <= 0 { return; }
+    let wearer = pluto_lib::player_api::ServerPlayer { uuid: player, name: String::new() };
+    wearer.add_effect(&pluto_lib::player_api::EffectInstance::new("tconstruct:self_destructing", 30).amplifier((2 * level).clamp(0, 255) as u8));
+}
+
+/// SelfDestructiveModifier.stopInteract: the key's release takes the effect off.
+fn self_destructive_stop(player: u128) {
+    if self_destructive_level(player) <= 0 { return; }
+    let wearer = pluto_lib::player_api::ServerPlayer { uuid: player, name: String::new() };
+    wearer.remove_effect("tconstruct:self_destructing");
+}
+
+/// The players whose primed sound has played for the effect they currently carry, by uuid.
+static PRIMED: Mutex<BTreeSet<u128>> = Mutex::new(BTreeSet::new());
+
 /// Registers the client key tracking, the packet send and the server receiver. Called once from the
 /// product's hooks.
 pub(crate) fn register() {
@@ -158,16 +192,52 @@ pub(crate) fn register() {
             _ => {}
         }
     });
-    if let Err(error) = ServerPlayNetworking::register_global_receiver(channel(), |_player, data| {
-        // The exchange the packet asks for has no server surface yet (see the module notes); the stop
-        // half needs no work for these modules in any case (none of them charges on hold).
+    if let Err(error) = ServerPlayNetworking::register_global_receiver(channel(), |player, data| {
+        let Some((slot, key, start)) = decode(data) else { return; };
+        if !start {
+            // SelfDestructiveModifier.stopInteract is the one stop half with work to do.
+            if slot == SLOT_HEAD { self_destructive_stop(player); }
+            return;
+        }
+        // SelfDestructiveModifier.startInteract runs on the packet (see the module notes): the
+        // tooltip key is Shift exactly when shift was held.
+        if slot == SLOT_HEAD && key == MenuKey::Shift && self_destructive_level(player) > 0 {
+            self_destructive_start(player);
+            return;
+        }
+        // The exchange the packet asks for has no server surface yet (see the module notes).
         static LOGGED: AtomicBool = AtomicBool::new(false);
-        if decode(data).is_some_and(|(_, _, start)| start) && !LOGGED.swap(true, Ordering::Relaxed) {
+        if !LOGGED.swap(true, Ordering::Relaxed) {
             eprintln!("Tinkers: an armor interact key was pressed, but no server surface can exchange a worn piece's stacks yet; the interact was dropped");
         }
     }) {
         eprintln!("Tinkers: armor interact receiver not registered: {error}");
     }
+    // SelfDestructiveEffect.applyEffectTick and SelfDestructiveModifier.onUnequip, over the
+    // player tick: the primed sound on the effect's first tick, the explosion on its last,
+    // and the removal when the helmet that primes it is no longer worn.
+    ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+        let Some((_, amplifier, left)) = tick.effects.iter().find(|(id, _, _)| id == "tconstruct:self_destructing") else {
+            let _ = PRIMED.lock().map(|mut primed| primed.remove(&tick.player));
+            return;
+        };
+        let world = World::new(&tick.dimension);
+        if PRIMED.lock().map(|mut primed| primed.insert(tick.player)).unwrap_or(false) {
+            world.play_sound("minecraft:entity.creeper.primed", tick.position, 1.0, 0.5);
+        }
+        let helmet_keeps_it = tick.armor.iter().find(|(slot, _)| slot == "head")
+            .is_some_and(|(_, head)| with_held_tool(head, |env, tool| tool_stack::modifier_level(&tool.custom_data, env, "tconstruct:self_destructive") > 0).unwrap_or(false));
+        if !helmet_keeps_it {
+            tick.remove_effects.borrow_mut().push("tconstruct:self_destructing".to_owned());
+            return;
+        }
+        if *left == 1 {
+            // The effect's level is the explosion's radius; the blast is a mob-interaction
+            // explosion (the port's block interaction), and the wearer takes the self-destruct hit.
+            world.explode(tick.position, (*amplifier + 1) as f32, false, ExplosionInteraction::Block);
+            tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 99999.0, damage_type: "tconstruct:self_destruct".to_owned() });
+        }
+    });
 }
 
 #[cfg(test)]

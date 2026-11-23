@@ -80,6 +80,7 @@ mod block_break_hook;
 mod enderporting_hook;
 mod harvest_hook;
 mod smelting_hook;
+mod strong_bones_hook;
 mod severing;
 mod severing_hook;
 mod loot_modifiers;
@@ -236,6 +237,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     tool_behavior_hook::register();
     quiver_hook::register();
     armor_interact_hook::register();
+    strong_bones_hook::register();
     edible_hook::register();
     fishing_hook::register();
     books::register();
