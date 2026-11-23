@@ -21,6 +21,11 @@
       "entries": [
         {
           "type": "minecraft:item",
+          "modifier": [
+            {
+              "type": "mantle:fill_retextured_block"
+            }
+          ],
           "name": "tconstruct:tinkers_anvil"
         }
       ],

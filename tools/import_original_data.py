@@ -2658,9 +2658,10 @@ def upgrade_loot(node):
             terms = [upgrade_condition(term) for term in value]
             result['condition'] = terms[0] if len(terms) == 1 else {'type': 'minecraft:all_of', 'terms': terms}
         elif key == 'functions':
-            # The heating controllers' tables also copy the block entity's name and the retexture (mantle:fill_retextured_block);
-            # neither exists here (no named or retextured controllers), so those functions are dropped and the plain drop stays.
-            kept = [upgrade_function(function) for function in value if function['function'] not in ('minecraft:copy_name', 'mantle:fill_retextured_block')]
+            # The heating controllers' tables also copy the block entity's name (minecraft:copy_name): no surface
+            # here hands a drop the block entity's name, so that function is dropped and the plain drop stays.
+            # The retexture (mantle:fill_retextured_block) is kept: the port's own loot function applies it.
+            kept = [upgrade_function(function) for function in value if function['function'] != 'minecraft:copy_name']
             if kept:
                 result['modifier'] = kept
         elif key == 'bonus_rolls' and value == 0:
@@ -2735,6 +2736,10 @@ def upgrade_function(function):
     if kind == 'minecraft:copy_nbt' and rest.get('source') == 'block_entity' and set(rest) == {'source', 'ops'}:
         # the tank items keep their fluid in the stack's custom data under `tank` (TankItem.getTank reads the stack's `tank` tag)
         return {'type': 'minecraft:copy_custom_data', 'source': 'block_entity', 'ops': rest['ops']}
+    if kind == 'mantle:fill_retextured_block' and not rest:
+        # A kind of the port's own: the loot engine hands a kind outside `minecraft:` to the mod's loot
+        # functions (PlutoLib's LootTableEvents::FUNCTION), which read the block entity from the roll's place.
+        return {'type': kind}
     raise SystemExit(f'loot table: unknown function {function}')
 
 
