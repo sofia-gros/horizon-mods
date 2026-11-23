@@ -9,10 +9,10 @@
 // wholesale, so the second application only refreshes the registry
 // snapshots with the tables the load just built.
 
-/// World open: the listeners read the opening world's root (their pack
-/// stack is that world's datapacks), which the body assigns from the
-/// same prepared world a few lines later; assign it first so the early
-/// application reads this world's packs, not the previous one's.
+// World open: the listeners read the opening world's root (their pack
+// stack is that world's datapacks), which the body assigns from the
+// same prepared world a few lines later; assign it first so the early
+// application reads this world's packs, not the previous one's.
 fn pluto_reload_before_tables_open(game: &mut Game<'_>, prepared: &world_loading::PreparedWorld) {
     game.world_root = prepared.save_root.clone();
     game.native_reload_listeners();

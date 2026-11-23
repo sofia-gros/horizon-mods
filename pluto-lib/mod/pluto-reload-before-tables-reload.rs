@@ -9,8 +9,8 @@
 // wholesale, so the second application only refreshes the registry
 // snapshots with the tables the load just built.
 
-/// A reload: a remote client builds no server tables, and its body
-/// returns before building any; keep that shape.
+// A reload: a remote client builds no server tables, and its body
+// returns before building any; keep that shape.
 fn pluto_reload_before_tables_reload(game: &mut Game<'_>) {
     if game.remote.is_some() {
         return;
