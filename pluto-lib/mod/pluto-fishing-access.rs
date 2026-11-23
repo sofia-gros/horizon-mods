@@ -1,7 +1,7 @@
-//! The shared state of PlutoLib's fishing reach: the provider the API crate installs (its queue of rod
-//! uses and its wear reports live in the pure fishing API), the combat hook currently out, and the hit
-//! it last took. The game-side module in `game/fishing.rs` works through this; nothing here knows a
-//! rod, a profile's meaning or a mod.
+// The shared state of PlutoLib's fishing reach: the provider the API crate installs (its queue of rod
+// uses and its wear reports live in the pure fishing API), the combat hook currently out, and the hit
+// it last took. The game-side module in `game/fishing.rs` works through this; nothing here knows a
+// rod, a profile's meaning or a mod.
 
 use std::sync::Mutex;
 
