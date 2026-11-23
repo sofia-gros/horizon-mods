@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (57, 30), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (36, 29), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -177,12 +177,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // digging player: their effects, the rain on them and the enchantments on the tool they dig with, which is what
     // hydraulic's aqua affinity branch and its raining branch read. Lightspeed's attribute binds over the light the player
     // tick reports at the wearer, and gold guard's golden attribute over the tick's count of the wearer's golden pieces;
-    // chrysophilite's golden attribute names Tinkers' own attribute, which the host does not have, so it stays unbound.
+    // chrysophilite's golden attribute names Tinkers' own attribute, which binds now that PlutoLib can register an
+    // attribute the host does not have and Tinkers declares its twelve with it.
     assert!(unbound_of("temperate").is_empty(), "temperate is fully bound");
     assert!(unbound_of("lightspeed").is_empty(), "lightspeed is fully bound");
     assert!(unbound_of("lightspeed_armor").is_empty(), "lightspeed_armor is fully bound");
     assert!(unbound_of("gold_guard").is_empty(), "gold_guard is fully bound");
-    assert_eq!(unbound_of("chrysophilite"), ["tconstruct:golden_attribute"], "chrysophilite's attribute is Tinkers' own");
+    assert!(unbound_of("chrysophilite").is_empty(), "chrysophilite's golden attribute binds now that its attribute is declared with PlutoLib");
     for name in ["blasting", "crumbling"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the dig report's block facts"); }
     assert!(!kinds.contains("tconstruct:conditional_mining_speed"), "conditional_mining_speed should be bound");
     assert!(unbound_of("hydraulic").is_empty(), "hydraulic reads the reported digging player and binds");
@@ -197,7 +198,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment is still unbound");
     assert!(unbound_of("fortunate").is_empty(), "fortunate is fully bound");
     assert!(unbound_of("looting").is_empty(), "looting is fully bound");
-    assert_eq!(unbound_of("looter"), ["tconstruct:attribute"], "only looter's experience multiplier attribute stays unbound");
+    assert!(unbound_of("looter").is_empty(), "looter's experience multiplier attribute is declared with PlutoLib now");
     assert_eq!(unbound_of("luck"), ["tconstruct:armor_harvest_enchantment"], "luck keeps only its armor harvest enchantment unbound");
     assert_eq!(unbound_of("fortune"), ["tconstruct:armor_harvest_enchantment"]);
     assert_eq!(unbound_of("silky"), ["tconstruct:armor_harvest_enchantment"]);
@@ -1491,9 +1492,16 @@ fn shipped_projectile_protection_and_magnet_take_the_largest_and_the_total_over_
     assert_eq!(amounts[0].0, "minecraft:knockback_resistance");
     // The plate boots carry two levels of their own, so the pieces are at levels 3 and 5: the larger counts once, not 8.
     assert!((amounts[0].1 - 0.25).abs() < 1e-6, "{amounts:?}");
-    // The attributes the host lacks leave the other max armor modifiers unbound, so they claim nothing.
+    // Dragonborn's attribute is declared with PlutoLib, so its max armor module claims it now,
+    // next to the boots' own projectile protection claims, and the claim is worked out as a
+    // custom contribution (0.05 a level at level 2), not as a base addition.
     let dragon = max_armor_claims(&piece("tconstruct:dragonborn", 2).custom_data, &env);
-    assert!(dragon.iter().all(|claim| format!("{claim:?}").contains("projectile_protection")), "only the boots' own projectile protection claims: {dragon:?}");
+    assert!(dragon.iter().all(|claim| { let text = format!("{claim:?}"); text.contains("projectile_protection") || text.contains("critical_damage") }), "only the boots' own and dragonborn's claims: {dragon:?}");
+    assert!(max_armor::strongest(dragon.clone()).iter().all(|(attribute, _)| attribute != "tconstruct:player.critical_damage"), "a declared attribute is no base addition");
+    let custom = max_armor::strongest_custom(dragon);
+    assert_eq!(custom.len(), 1, "{custom:?}");
+    assert_eq!(custom[0].0, "tconstruct:player.critical_damage");
+    assert!((custom[0].2 - 0.1).abs() < 1e-6, "{custom:?}");
     // Armor levels add up over the pieces under their key.
     let (a, b) = (piece("tconstruct:magnetic", 1), piece("tconstruct:magnetic", 2));
     let totals = max_armor::totals([&a, &b].iter().flat_map(|tool| armor_levels(&tool.custom_data, &env, "feet")));
@@ -2017,7 +2025,7 @@ fn shipped_soulspeed_is_a_soul_speed_enchantment_and_trim_adds_a_slot_only_witho
 }
 
 #[test]
-fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_stay_unbound() {
+fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_declared_ones_bind_unpublished() {
     use crate::tool_stack::attribute_entries;
     use pluto_lib::Nbt;
     let world = world();
@@ -2035,21 +2043,23 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     let gravity = sky.iter().find(|(kind, _)| kind == "minecraft:gravity").expect("gravity").1;
     assert!((gravity - -0.15).abs() < 1e-6, "{sky:?}");
     assert!(sky.contains(&("minecraft:safe_fall_distance".into(), 1.0)));
-    // Attributes the host has no counterpart for are not published; the modifier keeps them unbound.
+    // Attributes the host has no counterpart for are not published on the stack; the port works
+    // their values out itself, from the modules the attribute now binds.
     assert!(amounts("tconstruct:double_jump", 1, "feet").is_empty());
     let mut registry = Registry::default();
     registry.reload(&files("modifiers"), &conditions());
     let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:reach").is_empty() && unbound("tconstruct:step_up").is_empty() && unbound("tconstruct:skyfall").is_empty());
     assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
-    assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
+    assert!(unbound("tconstruct:double_jump").is_empty(), "double jump's attribute is declared with PlutoLib now");
     // The modules that need host data this port does not receive stay unbound. Gold guard's golden attribute and
     // lightspeed's attribute bind now: the player tick reports the wearer's equipment whole and the light at them,
     // and the tank's capacity boost binds with the tool tank.
     assert!(unbound("tconstruct:gold_guard").is_empty() && unbound("tconstruct:lightspeed").is_empty());
     assert!(unbound("tconstruct:tank").is_empty(), "the tank's capacity boost binds with the tool tank");
-    // Experienced's volatile float is bound now; only its experience multiplier attribute has no counterpart.
-    assert_eq!(unbound("tconstruct:experienced"), vec!["tconstruct:attribute"]);
+    // Experienced binds whole now: its experience multiplier attribute is declared with PlutoLib,
+    // and its value is kept from the player tick.
+    assert!(unbound("tconstruct:experienced").is_empty());
     assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());
 }
 
