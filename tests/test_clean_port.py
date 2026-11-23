@@ -177,6 +177,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/throwing_hook.rs',
                 'mixins/tconstruct_native/api/src/sling_modules.rs',
                 'mixins/tconstruct_native/api/src/sling_hook.rs',
+                'mixins/tconstruct_native/api/src/fireball_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_action_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_actions.rs',
                 'mixins/tconstruct_native/api/src/tool_behavior_hook.rs',

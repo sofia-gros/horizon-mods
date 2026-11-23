@@ -70,6 +70,7 @@
     "api/src/throwing_hook.rs",
     "api/src/sling_modules.rs",
     "api/src/sling_hook.rs",
+    "api/src/fireball_hook.rs",
     "api/src/melee_instrument.rs",
     "api/src/overgrowth.rs",
     "api/src/kinetic_hook.rs",

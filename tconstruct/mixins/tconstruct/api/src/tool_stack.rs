@@ -856,6 +856,20 @@ pub(crate) fn inaccuracy(nbt: &NbtCompound, env: &Environment, entities: &crate:
     3.0 * (1.0 / conditional_stat(nbt, env, Stat::Accuracy, &|_| false, entities) - 1.0)
 }
 
+/// The tool's first fireball module whose condition matches, with its entry and its
+/// modifier's ID (FireballModule: one shot per use, from the first that fires).
+pub(crate) fn fireball_module(nbt: &NbtCompound, env: &Environment) -> Option<(crate::modifier_entries::Entry, Identifier, crate::projectile_modules::Fireball)> {
+    if is_broken(nbt) { return None; }
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                if let Some(fireball) = module.fireball(entry, facts) { return Some((entry.clone(), entry.id.clone(), fireball.clone())); }
+            }
+        }
+        None
+    })
+}
+
 /// The infinity supply of a launcher: the first module in modifier order that fires for this shot (one that
 /// skips standard ammo, or whose count the remaining durability cannot pay for, lets the next try, as the
 /// composed bow ammo hook passes an empty result on), as the stack to fire, the durability one shot costs

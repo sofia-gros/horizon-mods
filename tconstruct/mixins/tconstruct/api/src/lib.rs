@@ -57,6 +57,7 @@ mod flight_hook;
 mod throwing_hook;
 mod sling_modules;
 mod sling_hook;
+mod fireball_hook;
 mod blocking_hook;
 mod walk_hook;
 mod weapon_effect;
@@ -245,6 +246,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     // After throwing: the sling release callback (its use is composed into the throwing
     // hook's registration above).
     sling_hook::register();
+    fireball_hook::register();
     armor_worn::register();
     fancy_gadgets::register();
     advancements::register();

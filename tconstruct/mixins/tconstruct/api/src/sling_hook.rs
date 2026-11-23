@@ -150,7 +150,7 @@ fn charge(ticks_used: u32, drawtime: f32) -> f32 {
 
 /// A gaussian draw (RandomSource.nextGaussian) by Box–Muller over the world's random
 /// floats; zero when the world names no randomness.
-fn gaussian(world: &World) -> f64 {
+pub(crate) fn gaussian(world: &World) -> f64 {
     let u1 = f64::from(world.random_float().unwrap_or(0.5)).max(1e-6);
     let u2 = f64::from(world.random_float().unwrap_or(0.5));
     (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
@@ -171,7 +171,7 @@ fn fail(release: &ReleaseUsing, active: &Identifier, id: &Identifier, sound: &st
 
 /// The wear a landed sling costs the tool (damageAnimated), as an edit of the hand that
 /// held it, and the cooldown (`ReleaseUsing::set_used` for the original's three ticks).
-fn spend(release: &ReleaseUsing, amount: i32, cause: &Identifier) {
+pub(crate) fn spend(release: &ReleaseUsing, amount: i32, cause: &Identifier) {
     let same = |slot: &ItemSlot| slot.item.to_string() == release.stack.item && slot.custom_data == release.stack.custom_data;
     let hand = if release.main_hand.as_ref().is_some_and(|slot| same(slot)) {
         Some((CarriedSlot::Equipment(StackSlot::MainHand), release.main_hand.clone()))
