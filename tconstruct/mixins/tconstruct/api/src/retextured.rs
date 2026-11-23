@@ -105,10 +105,16 @@ fn key_test(ingredient: &KeyIngredient, stack: &StackView<'_>) -> bool {
     match ingredient {
         KeyIngredient::Item(item) => stack.id == item,
         KeyIngredient::Tag(tag) => Identifier::parse(stack.id).is_ok_and(|item| {
-            crate::common::item_snapshot()
-                .as_ref()
-                .and_then(|items| items.get_tag(tag))
-                .is_some_and(|members| members.contains(&item))
+            match crate::common::item_snapshot() {
+                // Tag membership comes from the captured snapshot; with none captured it is
+                // undecidable here, and a request only reaches this provider for a grid the
+                // game's own matcher already accepted against the shipped recipe (whose tag
+                // the game resolved), so defer to that match instead of refusing the cell —
+                // refusing it would also swallow the match_all disagreement verdict, which
+                // is a property of the texture stacks themselves, not of the tag.
+                None => true,
+                Some(items) => items.get_tag(tag).is_some_and(|members| members.contains(&item)),
+            }
         }),
         KeyIngredient::Any(items) => items.iter().any(|item| stack.id == item),
     }
