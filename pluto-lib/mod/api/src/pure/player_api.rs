@@ -385,7 +385,8 @@ impl ServerPlayer {
         if matches!(slot, crate::pure::entity_events_v1::StackSlot::MainHand) {
             return false;
         }
-        self.set_stack(crate::pure::entity_events_v1::carried_slot_number(slot), stack)
+        // The main hand returned above, so the selected slot the numbering reads only for it is moot here.
+        self.set_stack(crate::pure::entity_events_v1::carried_slot_number(slot, 0), stack)
     }
 
     /// The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.

@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use std::sync::RwLock;
 
 /// What a dispenser does with one item.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DispenseBehavior {
     /// Fires the item as a projectile of the entity type `entity` (the item's own thrown form), at `power`
     /// with `inaccuracy` (the original's `ShootProjectileDispenserBehavior` numbers: its Tinkers throwables
@@ -48,7 +48,7 @@ impl DispenseRegistry {
 
     /// The behaviour claimed for `item`, if any.
     pub fn get(item: &str) -> Option<DispenseBehavior> {
-        BEHAVIORS.read().ok()?.get(item).copied()
+        BEHAVIORS.read().ok()?.get(item).cloned()
     }
 }
 
