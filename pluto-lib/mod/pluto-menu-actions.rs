@@ -2,7 +2,7 @@
 pub mod pluto_menu_actions {
     use super::{Env, Input, Kind, Menu};
     use horizon_world::nbt::Compound;
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
     use std::sync::RwLock;
 
     pub struct Context {
@@ -31,6 +31,10 @@ pub mod pluto_menu_actions {
     }
     thread_local! {
         static CURRENT: RefCell<Option<Context>> = const { RefCell::new(None) };
+        // The click session's draw from the game's own random stream, set
+        // by `scope` for the session's clicks (the original reads the
+        // level's random inside a click, for a sound's pitch).
+        static CLICK_RANDOM: Cell<f32> = const { Cell::new(0.0) };
     }
 
     pub fn set_handler(handler: Handler) {
@@ -39,7 +43,7 @@ pub mod pluto_menu_actions {
         }
     }
 
-    pub type StackedHandler = fn(&mut Menu, &Env<'_>, usize, bool) -> bool;
+    pub type StackedHandler = fn(&mut Menu, &Env<'_>, usize, bool, f32) -> bool;
     static STACKED_HANDLER: RwLock<Option<StackedHandler>> = RwLock::new(None);
 
     pub fn set_stacked_handler(handler: StackedHandler) {
@@ -55,7 +59,7 @@ pub mod pluto_menu_actions {
         if menu.carried.is_none() { return false; }
         let handler = STACKED_HANDLER.read().ok().and_then(|installed| *installed);
         let Some(handler) = handler else { return false };
-        handler(menu, env, s, primary)
+        handler(menu, env, s, primary, CLICK_RANDOM.with(|random| random.get()))
     }
 
     /// The clicked slot's own modification gate, for stacked-on-other
@@ -70,17 +74,39 @@ pub mod pluto_menu_actions {
         menu.player_sounds.push(sound);
     }
 
+    /// A menu sound with its own volume and pitch (the original's
+    /// `Player.playSound` arguments), queued beside the menu's own
+    /// sounds: the menu session plays the queue at the player with
+    /// those values and routes it through the guest sound queue, so a
+    /// hosted game broadcasts it with them.
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    pub struct RichSound {
+        pub id: &'static str,
+        pub volume: f32,
+        pub pitch: f32,
+    }
+
+    /// Queue a rich sound for the menu's player.
+    pub fn push_rich_player_sound(menu: &mut Menu, sound: RichSound) {
+        menu.rich_player_sounds.push(sound);
+    }
+
     // A nested scope must not overwrite its caller's staged data, even on unwind.
-    struct Restore(Option<Context>);
+    struct Restore(Option<Context>, f32);
     impl Drop for Restore {
         fn drop(&mut self) {
             CURRENT.with(|current| *current.borrow_mut() = self.0.take());
+            CLICK_RANDOM.with(|random| random.set(self.1));
         }
     }
 
-    pub fn scope<R>(context: Option<Context>, run: impl FnOnce() -> R) -> (R, Option<Context>) {
+    /// Runs `run` with `context` as the current menu context and `random`
+    /// as the click session's draw from the game's own random stream;
+    /// both are restored afterwards, so a nested scope keeps its caller's.
+    pub fn scope<R>(context: Option<Context>, random: f32, run: impl FnOnce() -> R) -> (R, Option<Context>) {
         let previous = CURRENT.with(|current| current.replace(context));
-        let restore = Restore(previous);
+        let previous_random = CLICK_RANDOM.with(|cell| cell.replace(random));
+        let restore = Restore(previous, previous_random);
         let result = run();
         let finished = CURRENT.with(|current| current.take());
         drop(restore);
@@ -106,7 +132,7 @@ pub mod pluto_menu_actions {
         let Some(handler) = handler else { return false };
         // Take the context out before calling external code: no RefCell borrow
         // crosses the callback, and nested menu scopes restore independently.
-        let mut restore = Restore(CURRENT.with(|current| current.take()));
+        let mut restore = Restore(CURRENT.with(|current| current.take()), CLICK_RANDOM.with(|random| random.get()));
         let Some(context) = restore.0.as_mut() else { return false };
         let handled = handler(menu, env, context, slot, button, input);
         context.changed |= handled;

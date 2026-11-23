@@ -96,6 +96,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/fluid_world.rs',
                 'mixins/tconstruct_native/api/src/fluids.rs',
                 'mixins/tconstruct_native/api/src/formula.rs',
+                'mixins/tconstruct_native/api/src/fov_hook.rs',
                 'mixins/tconstruct_native/api/src/gadgets.rs',
                 'mixins/tconstruct_native/api/src/gauge.rs',
                 'mixins/tconstruct_native/api/src/glow_block.rs',

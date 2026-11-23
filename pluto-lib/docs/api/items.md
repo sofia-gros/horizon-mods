@@ -1177,7 +1177,7 @@ assert!(resolve_function_reward("example:unregistered").is_empty());
 
 ## Stacked-on-other clicks
 
-A carried stack can answer clicks onto other stacks itself — the game's `overrideStackedOnOther` shape, as a bundle answers clicks onto items. Register the behaviour for the carried item with `StackedOnOtherRegistry`: the dispatch runs in every menu, including the game's own inventory and container menus, before the game's bundle handling, exactly where the game asks the carried item first. The callback decides from the two stacks: pass (the game's own click handling runs), consume (the click is taken with no stack change), or apply — both stacks are replaced and an optional sound event is played to the player. Menu sounds carry only their event id, so volume and pitch are the game's own.
+A carried stack can answer clicks onto other stacks itself — the game's `overrideStackedOnOther` shape, as a bundle answers clicks onto items. Register the behaviour for the carried item with `StackedOnOtherRegistry`: the dispatch runs in every menu, including the game's own inventory and container menus, before the game's bundle handling, exactly where the game asks the carried item first. The callback decides from the two stacks: pass (the game's own click handling runs), consume (the click is taken with no stack change), or apply — both stacks are replaced and an optional sound event is played to the player. An applied sound carries its own volume and pitch; the menu's own sounds carry only their event id, so theirs are the game's own. The request's `random` is a draw in [0, 1) from the game's own random stream, for an answer that varies by chance.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -1186,13 +1186,13 @@ use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry, Sta
 fn consume(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Consume }
 StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), consume);
 let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 1);
-let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: true, allow_modification: true };
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: true, allow_modification: true, random: 0.5 };
 assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
 ```
 
 ### `StackedOnOtherRequest`
 
-A click of the carried stack onto another stack in a menu: `carried` is the stack in the player's hand (the registered item), `clicked` the stack in the clicked slot (None when the slot is empty), `secondary` is true for the secondary (right) click and false for the primary, and `allow_modification` is whether the clicked slot allows modification by this player (the game's own `Slot.allowModification` answer).
+A click of the carried stack onto another stack in a menu: `carried` is the stack in the player's hand (the registered item), `clicked` the stack in the clicked slot (None when the slot is empty), `secondary` is true for the secondary (right) click and false for the primary, and `allow_modification` is whether the clicked slot allows modification by this player (the game's own `Slot.allowModification` answer), and `random` is a draw in [0, 1) from the game's own random stream for this click, for an answer that varies by chance (the original reads the level's random for its saw pitch).
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -1200,7 +1200,7 @@ use pluto_lib::item_api_v1::StackedOnOtherRequest;
 
 let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 2);
 let clicked = ItemSlot::new(Identifier::new("example", "tool").unwrap(), 1);
-let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: false };
+let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: false, random: 0.5 };
 assert!(request.secondary);
 assert!(!request.allow_modification);
 assert_eq!(request.clicked.map(|slot| slot.count), Some(1));
@@ -1208,15 +1208,28 @@ assert_eq!(request.clicked.map(|slot| slot.count), Some(1));
 
 ### `StackedOnOtherDecision`
 
-What the carried item does with the click: `Pass` leaves the game's own click handling to run; `Consume` takes the click with no stack change; `Apply` takes the click and replaces both stacks — `clicked` is the clicked slot's new stack (None empties it), `carried` the carried stack (None empties the hand), and `sound` a sound event id played to the player.
+What the carried item does with the click: `Pass` leaves the game's own click handling to run; `Consume` takes the click with no stack change; `Apply` takes the click and replaces both stacks — `clicked` is the clicked slot's new stack (None empties it), `carried` the carried stack (None empties the hand), and `sound` a `StackedSound` played to the player with its own volume and pitch.
 
 ```rust
-use pluto_lib::item_api_v1::StackedOnOtherDecision;
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedSound};
 
-let decision = StackedOnOtherDecision::Apply { clicked: None, carried: None, sound: Some("example:saw") };
-assert!(matches!(decision, StackedOnOtherDecision::Apply { sound: Some("example:saw"), .. }));
+let decision = StackedOnOtherDecision::Apply { clicked: None, carried: None, sound: Some(StackedSound { id: "example:saw", volume: 1.0, pitch: 0.9 }) };
+assert!(matches!(decision, StackedOnOtherDecision::Apply { sound: Some(StackedSound { pitch: 0.9, .. }), .. }));
 assert!(matches!(StackedOnOtherDecision::Pass, StackedOnOtherDecision::Pass));
 assert!(matches!(StackedOnOtherDecision::Consume, StackedOnOtherDecision::Consume));
+```
+
+### `StackedSound`
+
+A sound a stacked-on-other click plays for the player, with the volume and pitch the caller chose (the original's `Player.playSound(sound, volume, pitch)`): `id` is the sound event id, `volume` the volume it plays at (1 is the event's own level) and `pitch` the pitch it plays at (1 is the event's own pitch). An `Apply` decision's sound travels on the rich menu-sound queue, which carries both, where the menu's own sounds carry only their event id.
+
+```rust
+use pluto_lib::item_api_v1::StackedSound;
+
+let sound = StackedSound { id: "example:saw", volume: 1.0, pitch: 0.8 + 0.4 * 0.5 };
+assert_eq!(sound.id, "example:saw");
+assert_eq!(sound.volume, 1.0);
+assert!((sound.pitch - 1.0).abs() < 1e-6);
 ```
 
 ### `StackedOnOtherCallback`
@@ -1229,7 +1242,7 @@ use pluto_lib::item_api_v1::{StackedOnOtherCallback, StackedOnOtherDecision, Sta
 fn pass(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Pass }
 let callback: StackedOnOtherCallback = pass;
 let carried = pluto_lib::ItemSlot::new(pluto_lib::Identifier::new("example", "kit").unwrap(), 1);
-let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: false, allow_modification: true };
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: false, allow_modification: true, random: 0.5 };
 assert!(matches!(callback(&request), StackedOnOtherDecision::Pass));
 ```
 
@@ -1243,7 +1256,7 @@ use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry, Sta
 
 StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Consume);
 let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 1);
-let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: true, allow_modification: true };
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, secondary: true, allow_modification: true, random: 0.5 };
 assert!(StackedOnOtherRegistry::get("example:kit").is_some());
 assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
 assert!(StackedOnOtherRegistry::get("example:other").is_none());

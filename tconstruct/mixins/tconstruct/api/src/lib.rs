@@ -163,6 +163,7 @@ mod shaped_materials;
 mod swapping_recipes;
 mod material_render;
 mod crafting_repair;
+mod fov_hook;
 mod commands;
 mod particles;
 mod aoe;
@@ -248,6 +249,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     material_render::register();
     crafting_repair::register();
     recipe_conditions::register();
+    fov_hook::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()

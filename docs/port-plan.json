@@ -181,6 +181,7 @@
     "api/src/swapping_recipes.rs",
     "api/src/material_render.rs",
     "api/src/recipe_conditions.rs",
+    "api/src/fov_hook.rs",
     "LICENSE"
   ],
   "cargo_dependencies": ["serde_json", "toml"],

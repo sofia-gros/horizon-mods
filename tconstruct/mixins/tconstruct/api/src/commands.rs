@@ -36,7 +36,7 @@ use pluto_lib::{CommandContext, CommandRegistrationCallback, I18n, Identifier, N
 use crate::material_stats::Stats;
 use crate::materials;
 use crate::modifier_entries;
-use crate::modifier_modules::{Display, Module};
+use crate::modifier_modules::{Display, Module, ZoomStyle};
 use crate::modifiers::Modifier;
 use crate::tool_materials::{MaterialList, MaterialVariant};
 use crate::tool_stats::Stat;
@@ -1825,6 +1825,17 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         }
         Module::Throwing => {
             out.insert("tconstruct:general_interaction");
+        }
+        Module::Fov { .. } => {
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::Zoom { style } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:equipment_change");
+            if matches!(style, ZoomStyle::Spyglass) {
+                out.insert("tconstruct:armor_interact");
+            }
         }
         Module::Tank => {
             out.insert("tconstruct:volatile_data");

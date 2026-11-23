@@ -24,6 +24,7 @@ pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullMode
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
 pub use crate::pure::dispense_api_v1::{self, DispenseBehavior, DispenseRegistry, dispense_shot};
 pub use crate::pure::fishing_api_v1::{self, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, pull_delta, retrieve_damage};
+pub use crate::pure::fov_api_v1::{self, FovCallback, FovFacts, FovRegistry, FovSlot, FovStack, fov_multiplier};
 pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
@@ -43,7 +44,7 @@ pub use crate::pure::fluid_item_api_v1::{self, Drained, Filled, FluidItemDef, Fl
 pub use crate::pure::fluid_world_api_v1::{self, FluidWorld};
 pub use crate::pure::tool_tank_api_v1::{self};
 pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, LanguageEvents, Translations};
-pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext, ItemEvents, ReleaseUsing};
+pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest, StackedSound, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext, ItemEvents, ReleaseUsing};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
