@@ -384,7 +384,10 @@ fn parts_cast_from_molten_iron_and_copper_build_a_tool_in_the_station_with_their
     let head = cast_part("tconstruct:pick_head_cast", "tconstruct:molten_iron");
     let handle = cast_part("tconstruct:tool_handle_cast", "tconstruct:molten_copper");
     let binding = cast_part("tconstruct:tool_binding_cast", "tconstruct:molten_iron");
-    let world = world();
+    // Copper's trait is the dwarven code modifier, from the ported group the production registry
+    // registers before the first reload; the test world leaves code modifiers to the tests that need them.
+    let mut world = world();
+    for modifier in crate::modifiers::ported_code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
     let tools: Vec<(Identifier, &crate::tool_definitions::Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |_: &Identifier| 1;
     let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };

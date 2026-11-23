@@ -145,7 +145,10 @@ fn casting_only_and_crafting_only_tools_have_no_station_building() {
 
 #[test]
 fn slimesuit_pieces_and_wings_build_from_their_casting_materials() {
-    let world = world_with_overslime();
+    let mut world = world_with_overslime();
+    // Bone's trait is the strong_bones code modifier, from the ported group the production registry
+    // registers alongside overslime; the test world leaves code modifiers to the tests that need them.
+    for modifier in crate::modifiers::ported_code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
     // The materials each piece's casting recipe produces, in slot order: the cast part's material first, the
     // poured slime material second (the wings take the fluid's material alone). The ribcage, shell and laces
     // stats carry repair amounts only, and the skull stat contributes armor alone, so durability is the slime
