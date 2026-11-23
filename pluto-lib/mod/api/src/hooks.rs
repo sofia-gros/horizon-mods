@@ -14,6 +14,7 @@ use horizon_client::mod_api::{
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
     ComputeFovModifierEvent,
+    WorldPrimitivesEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -30,6 +31,7 @@ use crate::pure::entity_api_v1::{self, EntityOps};
 use crate::pure::dispense_api_v1::{self, DispenseBehavior};
 use crate::pure::fishing_api_v1::{self, Fishing, Grapple};
 use crate::pure::fov_api_v1::{self, FovSlot, FovStack};
+use crate::pure::highlight_api_v1;
 use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::item_storage_api_v1::ItemStorage;
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
@@ -2856,6 +2858,23 @@ fn nbt_value_from_json(value: &serde_json::Value) -> Nbt {
 }
 
 /// A stack as an item slot: item, count, damage, max damage and custom data; None for an item id PlutoLib cannot name.
+/// The face of `hit`'s block the view enters it through, as a unit offset: the hit
+/// point lies on that face's plane, so it is the face whose plane is nearest the
+/// point. A point tied between faces (an edge or a corner) reads as the first of
+/// them in west, east, down, up, north, south order.
+fn hit_face(hit: &horizon_client::mod_api::NativeHit) -> [i32; 3] {
+    let rel = [hit.x - f64::from(hit.block_x), hit.y - f64::from(hit.block_y), hit.z - f64::from(hit.block_z)];
+    let faces: [([i32; 3], f64); 6] = [
+        ([-1, 0, 0], rel[0]),
+        ([1, 0, 0], 1.0 - rel[0]),
+        ([0, -1, 0], rel[1]),
+        ([0, 1, 0], 1.0 - rel[1]),
+        ([0, 0, -1], rel[2]),
+        ([0, 0, 1], 1.0 - rel[2]),
+    ];
+    faces.iter().min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)).map(|(face, _)| *face).unwrap_or([0, 1, 0])
+}
+
 fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     let data = read_stack(stack);
     let mut slot = ItemSlot::new(crate::pure::base::Identifier::parse(&stack.item).ok()?, data.count);
@@ -3795,6 +3814,39 @@ impl Hooks for PlutoHooks {
             using_ticks: event.player.using.map(|(_, ticks)| ticks),
         };
         if let Some(factor) = fov_api_v1::fov_multiplier(&facts) { event.modifier *= factor; }
+    }
+    fn world_primitives(&self, host: &dyn Host, event: &mut WorldPrimitivesEvent<'_>) {
+        // The highlight providers read the local player's own view: the stack in the
+        // main hand, the block the view rests on and the blocks around it, read
+        // through the host on the client, as the FOV transport reads equipment.
+        // A frame with no player in a world outlines nothing; the game never asks
+        // on the title screen, and draws the target's own outline itself.
+        let Some(player) = host.player() else { return };
+        let main_hand = host.equipment(EquipmentSlot::MainHand).and_then(|stack| slot_of(&stack));
+        let target = host.view_hit().and_then(|(distance, hit)| {
+            Some(highlight_api_v1::HighlightTarget {
+                pos: [hit.block_x, hit.block_y, hit.block_z],
+                face: hit_face(&hit),
+                block: Identifier::parse(&hit.block).ok()?,
+                distance,
+            })
+        });
+        let block_at = |pos: [i32; 3]| Identifier::parse(&host.block(pos)).ok();
+        let in_tag_at = |pos: [i32; 3], tag: &Identifier| {
+            block_at(pos).is_some_and(|block| host.block_name_in_tag(&block.to_string(), &tag.to_string()).unwrap_or(false))
+        };
+        let facts = highlight_api_v1::HighlightFacts {
+            main_hand: main_hand.as_ref(),
+            target,
+            yaw: player.yaw,
+            pitch: player.pitch,
+            block_at: &block_at,
+            in_tag_at: &in_tag_at,
+        };
+        for pos in highlight_api_v1::highlight_positions(&facts) {
+            let min = [f64::from(pos[0]), f64::from(pos[1]), f64::from(pos[2])];
+            event.primitives.box_outline(min, [min[0] + 1.0, min[1] + 1.0, min[2] + 1.0], highlight_api_v1::OUTLINE_ARGB, highlight_api_v1::OUTLINE_WIDTH);
+        }
     }
     fn net_from_client(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::NetFromClientEvent<'_>) {
         scoped(host, || networking_api_v1::from_client(event.player, event.channel, event.data));

@@ -3,9 +3,11 @@
 //! registration (a stack that can be eaten eats and a blocking stack blocks first, as the original's hook
 //! order runs them; see `throwing_hook`), so this hook only runs the strokes: on a stroke tick it raytraces
 //! the player's view, brushes the hit block and the tool's AOE transform neighbours through the world brush
-//! call, and writes the stroke's wear onto the hand holding the tool. What the strokes cannot do here is
-//! in `brush`'s notes (the release on a missed ray, the highlight, the client-side fallback sound).
+//! call, and writes the stroke's wear onto the hand holding the tool. It also answers the brush's highlight
+//! through PlutoLib's highlight surface (see `highlight`). What the strokes cannot do here is in `brush`'s
+//! notes (the release on a missed ray, the client-side fallback sound).
 use crate::{break_speed_hook::with_held_tool, brush, edible, edible_hook, tool_damage_hook, tool_slot, tool_stack};
+use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry};
 use pluto_lib::{Direction, EntityReach, Identifier, ItemEvents, ItemSlot, Nbt, StackData, StackSlot, UseTick, World};
 
 /// Whether the stack can start being eaten, as the edible registration asks (EdibleModule.onToolUse).
@@ -72,17 +74,24 @@ fn blocked_by_entity(tick: &UseTick, distance: f64) -> bool {
 /// default predicate's other half to the caller — here only air is skipped, as the original
 /// skips it, and the stroke itself tests each candidate for brushability.
 fn neighbours(stack: &StackData, world: &World, origin: [i32; 3], face: [i32; 3], yaw: f32, pitch: f32) -> Vec<[i32; 3]> {
+    let block_at = |pos: [i32; 3]| world.get_block_state(pos).map(|state| state.block.clone());
+    let in_tag_at = |pos: [i32; 3], tag: &Identifier| world.get_block_state(pos).is_some_and(|state| state.is_in_tag(&tag.to_string()));
+    neighbours_with(stack, origin, face, yaw, pitch, &block_at, &in_tag_at)
+}
+
+/// The neighbours over caller-read blocks: the stroke reads them from the tick's world
+/// scope and the highlight from the frame facts' own reads, and both walk the same
+/// iterator over the same origin and face, so the outlined set is the stroke's own set.
+fn neighbours_with(stack: &StackData, origin: [i32; 3], face: [i32; 3], yaw: f32, pitch: f32, block_at: &dyn Fn([i32; 3]) -> Option<Identifier>, in_tag_at: &dyn Fn([i32; 3], &Identifier) -> bool) -> Vec<[i32; 3]> {
     let Ok(positions) = with_held_tool(stack, |env, tool| {
-        let Some(iterator) = env.definition.and_then(|definition| definition.aoe()) else { return Vec::new(); };
+        let Some(iterator) = env.definition.and_then(|definition| definition.aoe()) else { return Vec::new() };
         let expanded = match tool.custom_data.get(tool_stack::TAG_VOLATILE) {
             Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get("tconstruct:expanded")),
             _ => 0,
         };
-        let block_at = |pos: [i32; 3]| world.get_block_state(pos).map(|state| state.block.clone());
-        let in_tag_at = |pos: [i32; 3], tag: &Identifier| world.get_block_state(pos).is_some_and(|state| state.is_in_tag(&tag.to_string()));
-        let positions = iterator.positions(origin, direction(face), yaw, pitch, expanded, &block_at, &in_tag_at);
+        let positions = iterator.positions(origin, direction(face), yaw, pitch, expanded, block_at, in_tag_at);
         if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
-            positions.into_iter().filter(|pos| world.get_block_state(*pos).is_some_and(|state| state.block.to_string() != "minecraft:air")).collect()
+            positions.into_iter().filter(|pos| block_at(*pos).is_some_and(|block| block.to_string() != "minecraft:air")).collect()
         } else {
             positions
         }
@@ -164,8 +173,34 @@ fn on_tick(tick: &UseTick) {
     wear(tick, damage);
 }
 
-/// Registers the use tick callback. Called once from the product's hooks, after the
-/// throwing hook (whose registration composes the brush use itself).
+/// The brush's highlight (BrushModule.shouldHighlight, asked by the original's render
+/// event over the AOE iterator's DISPLAY predicate): while the player holds a brush
+/// tool and aims at a block, the neighbours the stroke would brush — the brushable
+/// ones — are outlined. The aimed block itself is not returned: the game draws its
+/// own outline around the target, as vanilla does, and the original's event adds
+/// only the extra blocks. The frame's view hit is the game's own ray, which runs
+/// far past the brush's reach; a target past the creative reach highlights nothing
+/// (the frame facts carry no game mode to pick between the two reaches).
+fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
+    let Some(stack) = facts.main_hand else { return Vec::new() };
+    let stack = stack_of(stack);
+    if !brush_use(&stack) {
+        return Vec::new();
+    }
+    let Some(target) = &facts.target else { return Vec::new() };
+    if target.distance > brush::reach(true) as f32 {
+        return Vec::new();
+    }
+    neighbours_with(&stack, target.pos, target.face, facts.yaw, facts.pitch, facts.block_at, facts.in_tag_at)
+        .into_iter()
+        .filter(|pos| (facts.block_at)(*pos).is_some_and(|block| brush::brushable(&block.to_string())))
+        .collect()
+}
+
+/// Registers the use tick callback and the highlight provider. Called once from the
+/// product's hooks, after the throwing hook (whose registration composes the brush
+/// use itself).
 pub(crate) fn register() {
     ItemEvents::USE_TICK.register(on_tick);
+    HighlightRegistry::register(highlight);
 }
