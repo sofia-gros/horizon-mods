@@ -1889,6 +1889,13 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::FireWalker { .. } | Module::GlowWalker { .. } | Module::CoverGround { .. } => {
             out.insert("tconstruct:boot_walk");
         }
+        Module::PlaceGlow { .. } => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:remove_block");
+        }
+        Module::BlockItemProvider { .. } => {
+            out.insert("tconstruct:block_item_provider");
+        }
         Module::ArmorHarvestEnchantment { .. } => {
             out.insert("tconstruct:harvest_enchantments");
         }

@@ -241,6 +241,15 @@ impl Modifier {
     pub fn walk_modules(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::modifier_modules::WalkModule)> {
         self.modules.iter().filter_map(|module| module.walk_module(entry, facts)).map(|walk| (entry.id.clone(), walk)).collect()
     }
+    /// The place glow modules of this modifier (PlaceGlowModule), each with the entry's id (the wear cause).
+    pub fn place_glow_modules(&self, entry: &Entry) -> Vec<(Identifier, i32)> {
+        self.modules.iter().filter_map(|module| module.place_glow()).map(|damage| (entry.id.clone(), damage)).collect()
+    }
+    /// BlockItemProviderModifierHook over this modifier's modules: the first block item they provide
+    /// and the wear consuming one costs.
+    pub fn block_item_provider(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Option<(Identifier, i32)> {
+        self.modules.iter().find_map(|module| module.block_item_provider(entry, facts))
+    }
     /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
     pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
         self.modules.iter().any(|module| module.can_perform_action(entry, facts, name))

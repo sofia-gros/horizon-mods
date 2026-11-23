@@ -4,8 +4,15 @@
 //! The campfire extinguish module shares the click: a lit campfire the tool is used on goes out, with the extinguish
 //! sound (ExtinguishCampfireModule.transform; its dowse particles have no world operation here). Like the transforms,
 //! only the clicked block is treated, not the tool's AOE neighbours the original's BlockTransformModule also runs.
+//!
+//! PlaceGlowModule shares the click too: an unbroken tool carrying it places a glow block on the clicked face
+//! (GlowBlock.addGlow, through the same placement the glow ball uses, so a glow that cannot survive where it was
+//! put removes itself a tick later) and the click is consumed whether or not a glow could be placed
+//! (afterBlockUse returns sidedSuccess); the tool wears by the module's damage only when a glow was placed, and
+//! hears the placed state's place sound, the glow block's wool sound. The definition's interaction gate
+//! (InteractionToolModule.canInteract) is not consulted, as nowhere in this port (see tool_definitions).
 use crate::{break_speed_hook::with_held_tool, tool_actions::{replaceable_above, ToolAction}, tool_slot, tool_stack};
-use pluto_lib::{ActionResult, BlockState, Identifier, ItemSlot, StackData, UseItemOnBlockCallback, UseItemOnBlockContext, World};
+use pluto_lib::{ActionResult, BlockState, Direction, Identifier, ItemSlot, StackData, UseItemOnBlockCallback, UseItemOnBlockContext, World};
 
 /// Finds the player's hotbar or inventory slot holding exactly the stack that was used.
 fn find_slot(used: &UseItemOnBlockContext, held: &StackData) -> Option<i32> {
@@ -24,6 +31,10 @@ fn random() -> f32 {
 
 /// The sound of a campfire going out (SoundEvents.GENERIC_EXTINGUISH_FIRE).
 const EXTINGUISH_SOUND: &str = "minecraft:entity.generic.extinguish_fire";
+
+/// The glow block's place sound: its sound type is wool (TinkerCommons), and PlaceGlowModule plays
+/// the placed state's place sound.
+const GLOW_PLACE_SOUND: &str = "minecraft:block.wool.place";
 
 /// Whether the state is a lit campfire, the block ExtinguishCampfireModule.transform acts on.
 fn lit_campfire(state: &BlockState) -> bool {
@@ -61,8 +72,8 @@ static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::ne
 pub(crate) fn register() {
     UseItemOnBlockCallback::EVENT.register(|used| {
         let Some(held) = used.held.as_ref() else { return ActionResult::Pass; };
-        let (actions, extinguish) = match with_held_tool(held, |env, stack| (tool_stack::tool_actions(&stack.custom_data, env), tool_stack::extinguishes_campfires(&stack.custom_data, env))) {
-            Ok(pair) => pair,
+        let (actions, extinguish, glows, broken) = match with_held_tool(held, |env, stack| (tool_stack::tool_actions(&stack.custom_data, env), tool_stack::extinguishes_campfires(&stack.custom_data, env), tool_stack::place_glow(&stack.custom_data, env), tool_stack::is_broken(&stack.custom_data))) {
+            Ok(found) => found,
             Err(reason) => {
                 if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) { eprintln!("Tinkers: tool action click on {} left alone: {reason}", held.item); }
                 return ActionResult::Pass;
@@ -71,13 +82,35 @@ pub(crate) fn register() {
         let performed = if actions.is_empty() && !extinguish { None } else { perform(used, &actions, extinguish) };
         if let Some(sound) = &performed { eprintln!("Tinkers: tool action {sound} at {:?}", used.pos); }
         else if !actions.is_empty() { eprintln!("Tinkers: tool action found no block to transform at {:?} ({} actions)", used.pos, actions.len()); }
-        if performed.is_none() { return ActionResult::Pass; }
-        // The tool wears by one (creative mode keeps it whole), written back to the slot that held it.
-        if !used.creative {
+        // PlaceGlowModule.afterBlockUse: the glow goes in the cell on the clicked face's side, facing
+        // back toward the clicked block (the glow ball's block-hit target), and the click is consumed
+        // whether or not one could be placed; only a placement wears the tool or makes a sound.
+        let mut glow_wear: Option<(i32, Identifier)> = None;
+        if !broken && !glows.is_empty() {
+            let world = World::new(&used.dimension);
+            let face = Direction::from_offset(used.face).unwrap_or(Direction::Up);
+            let target = face.relative(used.pos);
+            let is_glow = |world: &World| world.get_block_state(target).is_some_and(|state| state.block.to_string() == "tconstruct:glow");
+            if !is_glow(&world) {
+                crate::throwables::place_glow(&world, target, face.opposite());
+                if is_glow(&world) {
+                    world.play_sound(GLOW_PLACE_SOUND, [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5], 1.0, 1.0);
+                    let (modifier, damage) = &glows[0];
+                    if *damage > 0 { glow_wear = Some((*damage, modifier.clone())); }
+                }
+            }
+        }
+        if performed.is_none() && (broken || glows.is_empty()) { return ActionResult::Pass; }
+        // The tool wears by one for a transform and by the module's damage for a placed glow
+        // (creative mode keeps it whole), written back to the slot that held it.
+        if !used.creative && (performed.is_some() || glow_wear.is_some()) {
             if let Some(slot) = find_slot(used, held) {
                 let worn = with_held_tool(held, |env, stack| {
                     let mut worn: ItemSlot = stack.clone();
-                    tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).ok().map(|_| worn)
+                    let mut applied = false;
+                    if performed.is_some() { applied |= tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).is_ok(); }
+                    if let Some((amount, cause)) = &glow_wear { applied |= tool_slot::damage_slot(&mut worn, env, *amount, true, true, Some(cause), &mut random).is_ok(); }
+                    applied.then_some(worn)
                 });
                 if let Ok(Some(worn)) = worn {
                     used.player.update_stack(slot, &StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() });

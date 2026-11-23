@@ -239,6 +239,22 @@ pub(crate) fn walk_modules(nbt: &NbtCompound, env: &Environment) -> Vec<(Identif
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.walk_modules(entry, facts)).collect())
 }
 
+/// The place glow modules over every modifier of the tool (PlaceGlowModule), in modifier order:
+/// the modifier's id (the wear cause) and the wear each glow it places costs.
+pub(crate) fn place_glow(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    with_tool_facts(nbt, env, |saved, _facts| saved.iter().flat_map(|(entry, modifier)| modifier.place_glow_modules(entry)).collect())
+}
+
+/// BlockItemProviderCapability over the tool: the block item its provider modules offer, the wear
+/// consuming one costs and the providing modifier (CapabilityImpl runs the tool's entries in order
+/// and takes the first non-empty answer). A broken tool provides nothing. Consuming is the
+/// consumer's half: it wears the tool by the returned wear under the returned modifier
+/// (BlockItemProviderModule.consumeBlockItem).
+pub(crate) fn block_item_provider(nbt: &NbtCompound, env: &Environment) -> Option<(Identifier, Identifier, i32)> {
+    if is_broken(nbt) { return None; }
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().find_map(|(entry, modifier)| modifier.block_item_provider(entry, facts).map(|(item, damage)| (entry.id.clone(), item, damage))))
+}
+
 /// ToolActionModifierHook over every modifier of the tool: whether one of them lets it perform the named tool action
 /// (a tool actions module such as `item_hook`, `drill_attack`, `grapple_hook` or `shield_disable`).
 pub(crate) fn can_perform_action(nbt: &NbtCompound, env: &Environment, name: &str) -> bool {
