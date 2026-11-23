@@ -11,10 +11,12 @@
 //! enchantable tool gives up one enchantment as a modifier crystal and comes back one level poorer.
 //! A stack counts as enchantable here when it is not one of this port's tools (the original's own
 //! tools answer false; no PlutoLib API reports another item's answer, and an unenchanted stack
-//! offers no options either way). What is not ported: the buttons' per-modifier icons — the
-//! original's icon mapping (`tinkering/modifier_icons.json`) and its `gui/modifiers` sprites are
-//! not among the shipped assets, and the modifier definitions carry no icon — and the armor stand
-//! preview (the host draws no entities in a screen; see the station's note).
+//! offers no options either way). The buttons draw each modifier's icon from the original's
+//! mapping (`tinkering/modifier_icons.json`, shipped with its `gui/modifiers` sprites): one or
+//! more atlas sprites layered at 16x16, and the default pages and cover for a modifier with no
+//! entry (the cover is drawn untinted; the original tints it with the modifier's colour, which
+//! the registry here does not carry). What is not ported: the armor stand preview (the host
+//! draws no entities in a screen; see the station's note).
 use crate::{
     common, enchantment_converting, modifier_removal,
     station_menu::take_with,
@@ -85,6 +87,42 @@ fn with_context<R>(read: impl FnOnce(&Context, &Removals, &enchantment_convertin
 /// same registry, so the position names the modifier. (A remote client has no registry yet and shows numbers.)
 fn modifier_order() -> Vec<Identifier> {
     common::server_modifiers().and_then(|registry| registry.read().ok()).map(|registry| registry.all_ids()).unwrap_or_default()
+}
+
+/// The modifier icon map, decoded from the original's `tinkering/modifier_icons.json` (the
+/// original's ModifierIconManager): a modifier's value is one sprite path or a list of sprite
+/// paths drawn layered in order. Anything else (a null, an object) names no icon.
+fn parse_modifier_icons(bytes: &[u8]) -> std::collections::HashMap<String, Vec<String>> {
+    let mut map = std::collections::HashMap::new();
+    let Ok(serde_json::Value::Object(entries)) = serde_json::from_slice::<serde_json::Value>(bytes) else { return map };
+    for (modifier, value) in entries {
+        let paths: Vec<String> = match &value {
+            serde_json::Value::String(path) => vec![path.clone()],
+            serde_json::Value::Array(list) => list.iter().filter_map(serde_json::Value::as_str).map(str::to_owned).collect(),
+            _ => continue,
+        };
+        if !paths.is_empty() { map.insert(modifier, paths); }
+    }
+    map
+}
+
+/// The shipped icon map, read once from the client resources. (The original reloads it with the
+/// resource packs; the shipped content is static, so a reload listener is future work.)
+fn modifier_icons() -> &'static std::collections::HashMap<String, Vec<String>> {
+    static ICONS: std::sync::OnceLock<std::collections::HashMap<String, Vec<String>>> = std::sync::OnceLock::new();
+    ICONS.get_or_init(|| {
+        let id = Identifier::new("tconstruct", "tinkering/modifier_icons.json").expect("valid icon path");
+        pluto_lib::ResourceManagerHelper::read_client_resource(&id).map(|bytes| parse_modifier_icons(&bytes)).unwrap_or_default()
+    })
+}
+
+/// The icon sprites for one modifier: its mapped layers, or the original's default (pages under
+/// a cover) when the map has no entry for it.
+fn icon_sprites<'a>(icons: &'a std::collections::HashMap<String, Vec<String>>, modifier: &Identifier) -> Vec<&'a str> {
+    match icons.get(&modifier.to_string()) {
+        Some(paths) => paths.iter().map(String::as_str).collect(),
+        None => vec!["tconstruct:gui/modifiers/default_pages", "tconstruct:gui/modifiers/default_cover"],
+    }
 }
 
 /// A modifier's display name: its translation (`modifier.<namespace>.<path>`) or, untranslated, its path as words.
@@ -334,6 +372,8 @@ pub(crate) fn register() {
                 }
             }
             let offset = scroll_offset(&scroll_draw, count);
+            let order = modifier_order();
+            let icons = modifier_icons();
             for visible in 0..VISIBLE {
                 let index = offset + visible;
                 if index >= count { break; }
@@ -341,12 +381,17 @@ pub(crate) fn register() {
                 let hovered = draw.mouse[0] >= cell_x && draw.mouse[0] < cell_x + GRID.2 && draw.mouse[1] >= cell_y && draw.mouse[1] < cell_y + GRID.2;
                 let v = if selected == index as i32 { 33.0 } else if hovered { 51.0 } else { 15.0 };
                 draw.canvas.sprite(BACKGROUND, [176.0, v, 18.0, 18.0], [draw.origin[0] + cell_x, draw.origin[1] + cell_y, 18.0, 18.0]);
+                // the modifier's icon over the face, its sprites layered as the original draws them
+                if let Some(modifier) = draw.data.get(HEADER + index).copied().filter(|value| *value > 0).and_then(|value| order.get(value as usize - 1)) {
+                    for path in icon_sprites(icons, modifier) {
+                        draw.canvas.sprite(path, [0.0, 0.0, 16.0, 16.0], [draw.origin[0] + cell_x + 1.0, draw.origin[1] + cell_y + 1.0, 16.0, 16.0]);
+                    }
+                }
             }
             let max = max_offset(count);
             let progress = if max > 0 { offset as f32 / max as f32 } else { 0.0 };
             draw.canvas.sprite(BACKGROUND, [if max > 0 { 176.0 } else { 188.0 }, 0.0, 12.0, 15.0],
                 [draw.origin[0] + SLIDER.0, draw.origin[1] + SLIDER.1 + SLIDER_TRAVEL * progress, 12.0, 15.0]);
-            let order = modifier_order();
             let selected_modifier = (selected >= 0).then(|| draw.data.get(HEADER + selected as usize).copied().filter(|value| *value > 0)
                 .and_then(|value| order.get(value as usize - 1))).flatten();
             let (first, second) = panels(draw.items, selected_modifier);
@@ -426,6 +471,25 @@ mod tests {
     fn unloaded_registries_craft_nothing() {
         let items: Vec<Option<ItemSlot>> = vec![None; SLOT_COUNT];
         assert!(compute(&items, None).is_none());
+    }
+
+    #[test]
+    fn the_icon_map_decodes_the_originals_string_and_layered_forms() {
+        // the shipped file's two shapes, plus entries that name no icon
+        let icons = parse_modifier_icons(br#"{
+            "tconstruct:tank": "tconstruct:gui/modifiers/tank",
+            "tconstruct:overslime": ["minecraft:item/slime_ball", "tconstruct:gui/modifiers/book"],
+            "tconstruct:removed": null,
+            "tconstruct:broken": {"item": "minecraft:stone"}
+        }"#);
+        assert_eq!(icons.len(), 2, "only the string and list forms name icons");
+        let tank = Identifier::new("tconstruct", "tank").expect("valid id");
+        assert_eq!(icon_sprites(&icons, &tank), ["tconstruct:gui/modifiers/tank"]);
+        let overslime = Identifier::new("tconstruct", "overslime").expect("valid id");
+        assert_eq!(icon_sprites(&icons, &overslime), ["minecraft:item/slime_ball", "tconstruct:gui/modifiers/book"], "layers draw in file order");
+        let unlisted = Identifier::new("tconstruct", "unlisted").expect("valid id");
+        assert_eq!(icon_sprites(&icons, &unlisted), ["tconstruct:gui/modifiers/default_pages", "tconstruct:gui/modifiers/default_cover"], "no entry draws the default pages and cover");
+        assert!(parse_modifier_icons(b"not json").is_empty(), "an unreadable file names no icons");
     }
 
     #[test]
