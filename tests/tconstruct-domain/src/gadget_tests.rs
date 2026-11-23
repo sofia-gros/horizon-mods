@@ -14,7 +14,7 @@ fn state(text: &str) -> BlockState {
 }
 
 fn punji(facing: &str) -> BlockState {
-    state(&format!("tconstruct:punji[facing={facing},north=false,east=false,northeast=false,northwest=false]"))
+    state(&format!("tconstruct:punji[facing={facing},north=false,east=false,northeast=false,northwest=false,waterlogged=false]"))
 }
 
 fn view_of(blocks: &[([i32; 3], &str)]) -> MemoryBlockView {
@@ -63,6 +63,19 @@ fn punji_placement_faces_away_from_the_clicked_face() {
     let view = view_of(&[([0, 64, 1], "minecraft:stone")]);
     let Placement::State(placed) = placement(&view, [0, 64, 0], Direction::North) else { panic!("placed") };
     assert_eq!(placed, punji("south"));
+}
+
+#[test]
+fn punji_placement_in_water_is_waterlogged() {
+    registered();
+    let view = view_of(&[([0, 63, 0], "minecraft:stone")]);
+    let context = PlacementContext {
+        state: state("tconstruct:punji"), pos: [0, 64, 0], face: Direction::Up, yaw: 0.0, pitch: 0.0, sneaking: false,
+        in_water: true, item: "tconstruct:punji".to_owned(), replace_clicked: false, view: &view,
+    };
+    let Placement::State(placed) = crate::gadgets::punji_placement(&context) else { panic!("placed") };
+    assert_eq!(placed.property("waterlogged"), Some("true"), "placed in water, the sticks are waterlogged");
+    assert_eq!(placed.property("facing"), Some("down"));
 }
 
 #[test]
