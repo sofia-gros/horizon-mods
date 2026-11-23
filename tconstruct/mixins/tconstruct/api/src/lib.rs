@@ -88,6 +88,7 @@ mod station_layout_order;
 mod tool_actions;
 mod edible;
 mod books;
+mod hud;
 mod edible_hook;
 mod tool_action_hook;
 mod tool_slot;
@@ -226,6 +227,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     armor_interact_hook::register();
     edible_hook::register();
     books::register();
+    hud::register();
     // After the edible hook: the shield items' per-stack use is the combined blocking/eating one.
     blocking_hook::register();
     armor_worn::register();
