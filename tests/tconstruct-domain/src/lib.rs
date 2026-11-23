@@ -215,6 +215,8 @@ mod retextured;
 mod config;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/recipe_conditions.rs"]
 mod recipe_conditions;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/recipe_removal.rs"]
+mod recipe_removal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/monster_melee.rs"]
 mod monster_melee;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_equipment.rs"]

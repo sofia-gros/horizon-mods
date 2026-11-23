@@ -192,6 +192,7 @@
     "api/src/swapping_recipes.rs",
     "api/src/material_render.rs",
     "api/src/recipe_conditions.rs",
+    "api/src/recipe_removal.rs",
     "api/src/fov_hook.rs",
     "api/src/enderporting_hook.rs",
     "api/src/harvest_hook.rs",
