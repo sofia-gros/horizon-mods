@@ -11,6 +11,15 @@
 //! the current actor, native player conditions, progress, rewards and
 //! notifications, and evaluates submissions synchronously.
 //!
+//! A mod may also resolve an advancement's function reward in code. The
+//! game's function store carries only data pack files, so a function a mod
+//! ships as data in its own package never reaches it; registering a
+//! resolver for the function id lets the native adapter grant the
+//! advancements the function stands for to the rewarded player, at the
+//! game's own reward boundary. A function the store does carry keeps the
+//! game's path, and the callback only names the advancements: the adapter
+//! performs the grants.
+//!
 //! Register once during startup, before inventory events or predicate
 //! evaluation. Callbacks must be read-only. No content keys or eligibility
 //! rules live here.
@@ -263,6 +272,87 @@ pub fn tag_snapshots() -> Vec<(String, TagSnapshot)> {
         .collect()
 }
 
+/// Resolves one advancement function reward: called with the function id,
+/// it returns the advancement ids to grant the player the reward belongs
+/// to. An empty return leaves the function unexecuted, exactly as an
+/// unregistered one does. The callback names grants only; the native
+/// adapter performs them against the game's own progress, whose grants
+/// are idempotent, so resolving a reward again never grants twice.
+pub type FunctionRewardCallback = fn(&str) -> Vec<String>;
+
+#[derive(Clone, Copy)]
+pub struct FunctionRewardRegistration {
+    /// Stable unique registration identity, not a function discriminator.
+    pub id: &'static str,
+    /// The function id this registration resolves: the id an advancement's
+    /// `rewards.function` names.
+    pub function: &'static str,
+    pub callback: FunctionRewardCallback,
+}
+
+#[derive(Default)]
+struct FunctionRewardRegistry(
+    RwLock<BTreeMap<&'static str, (&'static str, FunctionRewardCallback)>>,
+);
+
+impl FunctionRewardRegistry {
+    const fn new() -> Self {
+        Self(RwLock::new(BTreeMap::new()))
+    }
+    fn register(&self, entry: FunctionRewardRegistration) -> Result<(), RegistrationError> {
+        if entry.id.is_empty() || entry.function.is_empty() {
+            return Err(RegistrationError::EmptyId);
+        }
+        let mut rewards = self.0.write().unwrap_or_else(|error| error.into_inner());
+        if rewards.contains_key(entry.function)
+            || rewards.values().any(|(id, _)| *id == entry.id)
+        {
+            return Err(RegistrationError::DuplicateId);
+        }
+        rewards.insert(entry.function, (entry.id, entry.callback));
+        Ok(())
+    }
+    fn is_empty(&self) -> bool {
+        self.0.read().unwrap_or_else(|error| error.into_inner()).is_empty()
+    }
+    fn resolve(&self, function: &str) -> Vec<String> {
+        // Never run consumer code while holding a lock, as in the predicate
+        // dispatch. Registration is startup-only by contract; an in-flight
+        // snapshot is stable even if violated.
+        let callback = self
+            .0
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .get(function)
+            .map(|(_, callback)| *callback);
+        callback.map_or_else(Vec::new, |callback| callback(function))
+    }
+}
+
+static FUNCTION_REWARDS: FunctionRewardRegistry = FunctionRewardRegistry::new();
+
+/// Process-lifetime registration; a function id and a registration id are
+/// each claimed once, and duplicates are rejected without replacement.
+/// Call before the first advancement completes, not lazily from a
+/// callback.
+pub fn register_function_reward(
+    entry: FunctionRewardRegistration,
+) -> Result<(), RegistrationError> {
+    FUNCTION_REWARDS.register(entry)
+}
+
+pub fn has_function_rewards() -> bool {
+    !FUNCTION_REWARDS.is_empty()
+}
+
+/// The advancements a registered resolver grants for `function`; empty
+/// when the function is unregistered or its resolver grants none. The
+/// native adapter calls this at the game's reward boundary; pure
+/// consumers only register.
+pub fn resolve_function_reward(function: &str) -> Vec<String> {
+    FUNCTION_REWARDS.resolve(function)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -419,5 +509,78 @@ mod tests {
         assert!(tag_snapshots().contains(&("example:owner-a".to_string(), TagSnapshot::new())));
         publish_tag_snapshot("example:owner-b", TagSnapshot::new());
         assert_eq!(tag_snapshot_generation(), before + 5);
+    }
+
+    fn grant_root(_: &str) -> Vec<String> {
+        vec!["minecraft:story/root".to_string()]
+    }
+    fn grant_none(_: &str) -> Vec<String> {
+        Vec::new()
+    }
+    fn reward(
+        id: &'static str,
+        function: &'static str,
+        callback: FunctionRewardCallback,
+    ) -> FunctionRewardRegistration {
+        FunctionRewardRegistration { id, function, callback }
+    }
+
+    #[test]
+    fn function_rewards_resolve_by_function_id_and_reject_duplicates() {
+        let registry = FunctionRewardRegistry::new();
+        assert!(registry.is_empty());
+        assert_eq!(registry.resolve("example:grant_root"), Vec::<String>::new());
+        registry
+            .register(reward("example:root", "example:grant_root", grant_root))
+            .unwrap();
+        assert!(!registry.is_empty());
+        assert_eq!(
+            registry.resolve("example:grant_root"),
+            vec!["minecraft:story/root".to_string()]
+        );
+        assert_eq!(registry.resolve("example:other"), Vec::<String>::new());
+        // Neither the function nor the registration id can be claimed twice.
+        assert_eq!(
+            registry.register(reward("example:other", "example:grant_root", grant_none)),
+            Err(RegistrationError::DuplicateId)
+        );
+        assert_eq!(
+            registry.register(reward("example:root", "example:other", grant_none)),
+            Err(RegistrationError::DuplicateId)
+        );
+        assert_eq!(
+            registry.register(reward("", "example:other", grant_none)),
+            Err(RegistrationError::EmptyId)
+        );
+        assert_eq!(
+            registry.register(reward("example:other", "", grant_none)),
+            Err(RegistrationError::EmptyId)
+        );
+        // A resolver granting nothing leaves the function unexecuted.
+        registry
+            .register(reward("example:none", "example:grant_none", grant_none))
+            .unwrap();
+        assert_eq!(registry.resolve("example:grant_none"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn public_function_reward_registration_resolves() {
+        // The process registry is shared; this test uses its own function
+        // id and only observes that id.
+        assert_eq!(resolve_function_reward("example:public_grant"), Vec::<String>::new());
+        register_function_reward(reward("example:public", "example:public_grant", grant_root))
+            .unwrap();
+        assert_eq!(
+            resolve_function_reward("example:public_grant"),
+            vec!["minecraft:story/root".to_string()]
+        );
+        assert_eq!(
+            register_function_reward(reward(
+                "example:public-again",
+                "example:public_grant",
+                grant_none
+            )),
+            Err(RegistrationError::DuplicateId)
+        );
     }
 }
