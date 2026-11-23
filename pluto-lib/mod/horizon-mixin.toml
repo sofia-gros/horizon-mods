@@ -113,7 +113,7 @@ bindings = [
 id = "pluto-reload-before-tables-reload"
 target = "horizon_client::game::world_entry::Game<'_>::reload_world_tables"
 kind = "HEAD"
-helper = "pluto-reload-before-tables.rs"
+helper = "pluto-reload-before-tables-reload.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
@@ -181,6 +181,7 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_mob_split"
 kind = "RETURN"
 helper = "pluto-mob-split-head.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "parent", ty = "u32", value = "parent" },
  { name = "kind", ty = "&str", value = "kind" },
@@ -196,6 +197,7 @@ target = "horizon_client::game::creatures::Game<'_>::split_dead_cube"
 kind = "RETURN"
 helper = "pluto-mob-split-children.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "m", ty = "&Mob", value = "&*m" },
 ]
@@ -1130,6 +1132,13 @@ helper = "pluto-block-bonemeal-perform.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
 
 [[injection]]
+id = "pluto-block-fire-odds"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_fire_odds"
+kind = "HEAD"
+helper = "pluto-block-fire-odds.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
+
+[[injection]]
 id = "pluto-block-may-place-on"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_may_place_on"
 kind = "HEAD"
@@ -1695,7 +1704,6 @@ bindings = [{ name = "hurting", ty = "&horizon_client::health::Hurting<'_>", val
 id = "pluto-damage-dragon"
 target = "horizon_client::game::dragon::Dragon::hurt_health"
 kind = "HEAD"
-require = 1
 helper = "pluto-damage-dragon.rs"
 bindings = [{ name = "dragon", ty = "&Dragon", value = "&*self" }]
 # The frame's celestial bodies are built: the mods' dynamic sky layers are asked for their quads
@@ -1855,6 +1863,16 @@ kind = "HEAD"
 cancellable = true
 helper = "pluto-crafting-match-veto-head.rs"
 bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+
+# special-recipe providers; a native match is returned unchanged. Reviewed
+# with the crafting-match pair (crafting-match-boundaries.json).
+[[injection]]
+id = "pluto-crafting-special"
+target = "horizon_client_lib::crafting::Recipes::find_with"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-crafting-special-head.rs"
+bindings = [{ name = "recipes", ty = "&Recipes", value = "self" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }, { name = "map_scale", ty = "&dyn Fn(i32) -> Option<u8>", value = "map_scale" }]
 
 # Queued custom advancement events drain into the native sink each tick.
 [[injection]]
@@ -2041,6 +2059,7 @@ target = "horizon_client::game::frames::Game<'_>::hit_frame"
 kind = "RETURN"
 helper = "pluto-hanging-frame-hit.rs"
 bindings = [
+ { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "i", ty = "usize", value = "i" },
  { name = "by_player", ty = "bool", value = "by_player" },
@@ -2178,4 +2197,40 @@ bindings = [
  { name = "hook", ty = "&mut horizon_client::game::fishing::Hook", value = "&mut *self" },
  { name = "id", ty = "u32", value = "id" },
  { name = "deflects", ty = "bool", value = "deflects" }
+]
+
+# The projectile spawn and flight tellings: the game's entity-tick telling does not cover projectiles (API 146), so
+# PlutoLib reaches into the game's own projectile list. The game-side pass lives in the creatures module; the API side
+# is asked through the entry-point sink.
+[[module]]
+id = "pluto-projectile-flight-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_projectile_flight_access"
+source = "pluto-projectile-flight-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-projectile-flight-game"
+file = "crates/horizon-client/src/game/creatures.rs"
+name = "pluto_projectile_flight_game"
+source = "pluto-projectile-flight-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-projectile-spawn-head"
+target = "horizon_client::game::creatures::Game<'_>::add_projectile"
+kind = "HEAD"
+helper = "pluto-projectile-spawn-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "&mut Projectile", value = "&mut p" }
+]
+
+[[injection]]
+id = "pluto-projectile-flight-return"
+target = "horizon_client::game::creatures::Game<'_>::tick_projectiles"
+kind = "RETURN"
+helper = "pluto-projectile-flight-return.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]

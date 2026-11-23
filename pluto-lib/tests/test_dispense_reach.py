@@ -38,7 +38,7 @@ class DispenseReachTests(unittest.TestCase):
         # The only dispense weaving in the manifest is the armor stand's game-side head; the mod-facing
         # delivery is a plain Hooks trait method and needs no entry of its own.
         manifest = (ROOT / 'mod' / 'horizon-mixin.toml').read_text(encoding='utf-8')
-        self.assertEqual(manifest.count('dispense'), 3)
+        self.assertEqual(manifest.count('dispense'), 4)
         self.assertIn('pluto-hanging-stand-dispense', manifest)
 
 
