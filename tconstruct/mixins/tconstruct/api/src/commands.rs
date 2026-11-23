@@ -1761,6 +1761,12 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::ShieldStrap { .. } | Module::ToolBelt { .. } => {
             out.insert("tconstruct:armor_interact");
         }
+        Module::Minimap => {
+            out.insert("tconstruct:equipment_change");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:inventory_tick");
+            out.insert("tconstruct:remove");
+        }
         Module::ShareDurability { .. } => {
             out.insert("tconstruct:tool_damage");
         }
