@@ -196,6 +196,8 @@ pub struct WeaponHit {
     pub target_state: Option<EntityState>,
     /// Where the mob stands (its feet position), as the game reported it; None when it could not tell.
     pub target_position: Option<[f64; 3]>,
+    /// Where the attacking player stands (their feet position), as the game reported it; None when it could not tell.
+    pub attacker_position: Option<[f64; 3]>,
     /// The armor the attacking player wore as of their last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces
     /// carrying custom data. Empty when the player is not known (with several players online only the named player's armor is known).
     pub armor: Vec<(String, StackData)>,
@@ -296,8 +298,8 @@ pub enum EntityAction {
     /// data pack declares it (`data/<namespace>/damage_type/<name>.json`). Players and mobs; one the host cannot reach is skipped.
     Hurt { target: ActionTarget, amount: f32, damage_type: String },
     /// `Entity.teleportTo`: moves the target to `position`. A mob's navigation stops and its fall distance resets, as the game's own
-    /// teleport does; another entity keeps the way it faces. Reaches mobs and the game's other entities; a player is skipped — the
-    /// host has no call that moves a player (its teleports of players are reported by the teleport events, not ordered).
+    /// teleport does; another entity keeps the way it faces. A player is moved by the host's own player teleport (the `/tp` path:
+    /// they leave their vehicle, lose their motion and fall, and their client is told), keeping the way they face.
     Teleport { target: ActionTarget, position: [f64; 3] },
     /// Sets how many ticks an active effect has left on a player, keeping its level and flags: shortens or lengthens it. An effect the target
     /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
@@ -1440,7 +1442,7 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, target_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
@@ -1455,7 +1457,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
-        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, weapon: None, attacker_state: None, target_state: None, target_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert!(weapon_hit(&hit).is_empty());
         assert_eq!(*seen.lock().unwrap(), vec![1]);
         forget_armor(0xA11CE);
@@ -1491,7 +1493,7 @@ mod tests {
         assert!(take_wearer_actions(41).is_empty(), "the queue is emptied once taken");
         wearer_hit(&hit, None);
         assert!(take_wearer_actions(41).is_empty(), "a hit with no known wearer queues nothing");
-        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, target_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         weapon_hit(&weapon);
         assert_eq!(take_weapon_actions(&weapon), vec![EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }]);
         assert!(take_weapon_actions(&weapon).is_empty());

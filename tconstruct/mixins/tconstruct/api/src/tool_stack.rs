@@ -857,6 +857,9 @@ pub(crate) struct FlightProfile {
     pub magnet: i32,
     /// Whether the fired stack's persistent data carries the fins EFLN mark.
     pub efln: bool,
+    /// Whether the tool carries enderporting (the `tconstruct:enderporting` modifier): where its
+    /// projectile lands, the thrower trades places with what it hit.
+    pub enderporting: bool,
 }
 
 impl FlightProfile {
@@ -864,6 +867,7 @@ impl FlightProfile {
     pub(crate) fn is_empty(&self) -> bool {
         self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
             && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
+            && !self.enderporting
     }
 }
 
@@ -875,6 +879,7 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
             match entry.id.to_string().as_str() {
                 "tconstruct:loyalty" => profile.loyalty = entry.effective_level() as i32,
                 "tconstruct:magnetic" => profile.magnet = entry.effective_level() as i32,
+                "tconstruct:enderporting" => profile.enderporting = true,
                 _ => {}
             }
             for module in modifier.modules() {
@@ -901,6 +906,26 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
 /// Whether the tool is thrown on release of a charged use (ThrowingModule) and is not broken.
 pub(crate) fn throwing(nbt: &NbtCompound, env: &Environment) -> bool {
     !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_throwing())))
+}
+
+/// Whether the tool carries the enderporting module (EnderportingModifier) and is not broken.
+pub(crate) fn enderporting(nbt: &NbtCompound, env: &Environment) -> bool {
+    !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_enderporting())))
+}
+
+/// The stack edits of wearing this tool by `amount` (ToolDamageUtil.damageTool, as the repair and
+/// swap flows apply it directly): the damage value, and the broken mark when the wear breaks it.
+/// Empty when the wear does not land (a broken or unbreakable tool, or nothing to wear).
+pub(crate) fn damage_edits(nbt: &NbtCompound, amount: i32) -> Vec<pluto_lib::StackDataEdit> {
+    let mut work = nbt.clone();
+    let damaged = crate::tool_damage::damage_tool(&mut work, amount, true, true);
+    if damaged.applied <= 0 { return Vec::new(); }
+    let mut edits = vec![pluto_lib::StackDataEdit { path: vec![TAG_DAMAGE.to_string()], value: Some(Nbt::Int(crate::tool_stack::damage_raw(&work))) }];
+    if damaged.broke {
+        crate::tool_damage::break_tool(&mut work);
+        edits.push(pluto_lib::StackDataEdit { path: vec![TAG_BROKEN.to_string()], value: Some(Nbt::Byte(1)) });
+    }
+    edits
 }
 
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one

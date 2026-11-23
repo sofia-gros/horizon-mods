@@ -1895,10 +1895,17 @@ impl EntityOps for HostEntities {
         let Ok(id) = u32::try_from(id) else { return false };
         let host = self.host.get();
         // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
-        // another entity is moved keeping the way it faces. A player is reached by neither call — the
-        // host has no call that moves a player — so a player's teleport answers false here.
+        // another entity is moved keeping the way it faces. A player is reached by neither of those
+        // calls, but the host's own player teleport (the `/tp` path) moves one, keeping the way they face.
         if host.teleport_mob(&self.dimension, id, pos) {
             return true;
+        }
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        if let Some(player) = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)) {
+            if host.teleport_player(player.uuid, &self.dimension, pos, player.yaw, player.pitch) {
+                return true;
+            }
         }
         let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
         host.move_entity(&self.dimension, id, pos, rotation[0], rotation[1])
@@ -2492,9 +2499,15 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             EntityAction::Teleport { target, position } => {
                 // A mob is teleported by the game's own call (its navigation stops, its fall distance
                 // resets); another entity is moved keeping the way it faces. A player is reached by
-                // neither — the host has no call that moves a player — so a player's teleport is skipped.
+                // neither of those calls, but the host's own player teleport (the `/tp` path) moves
+                // one, keeping the way they face.
                 let Ok(id) = u32::try_from(id_of(target)) else { continue };
                 if host.teleport_mob(dimension, id, position) { continue; }
+                let wanted = i32::try_from(id).unwrap_or(-1);
+                if let Some(player) = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)) {
+                    if host.teleport_player(player.uuid, dimension, position, player.yaw, player.pitch) { continue; }
+                }
                 let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
                 host.move_entity(dimension, id, position, rotation[0], rotation[1]);
             }
@@ -4809,10 +4822,15 @@ impl Hooks for PlutoHooks {
         // Where the mob stands, for the callbacks that act on the place of the hit (a teleport of the
         // mob itself, a lightning strike where it stands).
         let target_position = u32::try_from(event.entity).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity));
+        // Where the attacking player stands, named as the player state above names them: their entity
+        // handle where the game has one, the server's player list otherwise.
+        let attacker_position = u32::try_from(event.causing).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity))
+            .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+                .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.position));
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
-            attacker_state, target_state, target_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
+            attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {
