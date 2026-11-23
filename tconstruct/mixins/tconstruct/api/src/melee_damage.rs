@@ -114,8 +114,11 @@ impl TargetCondition {
     /// `role` is `attacker` or `target`: whose state the state conditions ask about; empty for none.
     pub(crate) fn decode_for(role: &str, value: Option<&Value>) -> Result<Option<Self>, String> {
         let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
-        // A bare string is a predicate type with no fields.
-        if let Some(name) = value.as_str() { return Ok(named_state(role, name)?.map(Self::Tag)); }
+        // A bare string is a predicate type with no fields; `mantle:any` is the one that asks nothing.
+        if let Some(name) = value.as_str() {
+            if name == "mantle:any" { return Ok(Some(Self::Any)); }
+            return Ok(named_state(role, name)?.map(Self::Tag));
+        }
         let Some(object) = value.as_object() else { return Ok(None); };
         let kind = object.get("type").and_then(Value::as_str).ok_or("target type missing")?;
         let list = || -> Result<Option<Vec<Self>>, String> {

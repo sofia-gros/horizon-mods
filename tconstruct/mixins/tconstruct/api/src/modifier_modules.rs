@@ -1612,10 +1612,11 @@ impl Module {
         module.grant(entry, condition.matches(entry, facts), usage, rolls)
     }
     /// The effect an armor counter module puts on the mob that hit the wearer, if it lands (`rolls` are uniform values in [0, 1)).
-    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
+    /// `source` is the hit's damage, which a counter module may condition on.
+    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
         match self {
-            Self::CounterEffect { module, condition } => module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.whom(), grant)),
-            Self::LegacyEffect { counter, condition, .. } => counter.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (counter.whom(), grant)),
+            Self::CounterEffect { module, condition } => module.grant_counter(entry, condition.matches(entry, facts), source, in_tag, rolls).map(|grant| (module.whom(), grant)),
+            Self::LegacyEffect { counter, condition, .. } => counter.grant_counter(entry, condition.matches(entry, facts), source, in_tag, rolls).map(|grant| (counter.whom(), grant)),
             _ => None,
         }
     }
