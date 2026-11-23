@@ -390,6 +390,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         horizon_client::entry::pluto_spawn_placement::Provider {
             active:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_registrations,
             evaluate:native_spawn_placement,
+            active_or:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_or_registrations,
+            evaluate_or:native_spawn_placement_or,
+            or_types:native_spawn_placement_or_types,
         }).expect("PlutoLib spawn placement dispatcher installs once");
     horizon_client::entry::pluto_hanging_access::set_provider(
         horizon_client::entry::pluto_hanging_access::Provider {
@@ -1059,16 +1062,27 @@ fn native_split_inherit(host:&mut dyn Host,info:&horizon_client::entry::pluto_mo
     scoped(host,|| crate::pure::mob_split_api::MobSplitCallbacks::inherit(&mut view))
 }
 
-fn native_spawn_placement(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
-    let context=crate::pure::spawn_placement_api::SpawnPlacementContext {
+fn spawn_placement_context(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<crate::pure::spawn_placement_api::SpawnPlacementContext> {
+    Some(crate::pure::spawn_placement_api::SpawnPlacementContext {
         entity_type:Identifier::parse(&facts.entity_type).ok()?,
         dimension:Identifier::parse(&facts.dimension).ok()?,
         position:facts.position,reason:facts.reason.clone(),peaceful:facts.peaceful,
         block_below:Identifier::parse(&facts.block_below).ok()?,
         fluid_at:Identifier::parse(&facts.fluid_at).ok()?,
         fluid_below:Identifier::parse(&facts.fluid_below).ok()?,
-        block_below_valid_spawn:facts.block_below_valid_spawn,dark_enough:facts.dark_enough };
-    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate(&context)
+        block_below_valid_spawn:facts.block_below_valid_spawn,dark_enough:facts.dark_enough })
+}
+
+fn native_spawn_placement(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate(&spawn_placement_context(facts)?)
+}
+
+fn native_spawn_placement_or(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate_or(&spawn_placement_context(facts)?)
+}
+
+fn native_spawn_placement_or_types()->Vec<String> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::or_types().into_iter().map(|id|id.to_string()).collect()
 }
 
 fn native_hanging_frame(facts:&crate::pure::hanging_api_v1::FrameVariant)->horizon_client::entry::pluto_hanging_access::FrameFacts {

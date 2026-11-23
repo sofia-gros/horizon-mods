@@ -231,6 +231,20 @@ bindings = [
  { name = "pending", ty = "&mut Vec<Mob>", value = "&mut *pending" }
 ]
 
+# The spawn placement OR (permit-add) pass: after the game's own natural pass,
+# candidates for the OR-registered types whose predicate accepts are spawned
+# through the game's own preparation and finalization, adding the positions
+# the inherited species rules rejected (the original's Operation.OR).
+[[injection]]
+id = "pluto-spawn-placement-permit"
+target = "horizon_client::game::natural_spawning::Game<'_>::spawn_natural"
+kind = "RETURN"
+helper = "pluto-spawn-placement-permit-head.rs"
+bindings = [
+ { name = "value", ty = "()", value = "$value" },
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
 [[injection]]
 id = "pluto-entity-spawn-add"
 target = "horizon_client::game::natural_spawning::Game<'_>::add_spawned"

@@ -1351,6 +1351,28 @@ let registered: bool = SpawnPlacementRegistry::is_registered(&Identifier::parse(
 let _ = registered;
 ```
 
+### `SpawnPlacementRegistry::register_or`
+
+Registers a type's OR placement predicate (the original's `Operation.OR`): positions the inherited species rules rejected may still spawn when the predicate accepts them. The game's own selection never proposes those positions, so a permit-add pass after the game's natural pass proposes its own candidates around players and spawns the accepted ones through the game's own preparation and finalization. One OR predicate per type, independent of any replacing predicate; a second OR registration for the same type rejects.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+SpawnPlacementRegistry::register_or(Identifier::parse("example:or_slime").unwrap(), |context| {
+    !context.peaceful && context.block_below == Identifier::parse("example:grass").unwrap()
+}).unwrap();
+assert!(SpawnPlacementRegistry::is_or_registered(&Identifier::parse("example:or_slime").unwrap()));
+```
+
+### `SpawnPlacementRegistry::is_or_registered`
+
+Whether an OR placement predicate is registered for the type.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+let registered: bool = SpawnPlacementRegistry::is_or_registered(&Identifier::parse("example:absent").unwrap());
+let _ = registered;
+```
+
 ### `FishingRegistry`
 
 The registry of fishing rods a mod casts with: which items count as rods (a hook stays alive only while its owner holds one — the game's own check names the vanilla rod, and the transport asks this registry for the rest), and how a rod stack's cast profile is computed. The game's fishing is built around its own hook, whose rod use is gated to the vanilla item; a registered rod's use goes through [`Fishing::use_rod`](#fishing) instead.
