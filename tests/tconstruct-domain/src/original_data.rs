@@ -1155,13 +1155,13 @@ fn looting_enchants_a_melee_tool_by_its_level_and_severing_reports_its_level() {
 #[test]
 fn shipped_severing_recipes_load_without_problems_and_the_creeper_gives_its_head() {
     let files = recursive_files("tools/severing", "tools/severing");
-    assert_eq!(files.len(), 31, "the 38 original recipes less the 7 that read the entity's own state");
+    assert_eq!(files.len(), 38, "the 38 original recipes, the 7 stateful ones included");
     let recipes = crate::severing::Recipes::load(&files);
-    assert_eq!((recipes.len(), recipes.problems.len()), (31, 0), "{:?}", recipes.problems);
+    assert_eq!((recipes.len(), recipes.problems.len()), (38, 0), "{:?}", recipes.problems);
     let none = |_: &Identifier| false;
     let creeper = Identifier::parse("minecraft:creeper").unwrap();
     let mut drops = Vec::new();
-    recipes.process(&creeper, &none, false, 1.0, 0.0, &mut drops, &mut || 0.0);
+    recipes.process(&creeper, &none, false, 1.0, 0.0, None, &mut drops, &mut || 0.0);
     assert!(drops.iter().any(|slot| slot.item.to_string() == "minecraft:creeper_head"), "{drops:?}");
 }
 

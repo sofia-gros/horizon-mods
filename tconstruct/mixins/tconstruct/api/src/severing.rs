@@ -495,7 +495,8 @@ mod tests {
         for entity in ["minecraft:chicken", "minecraft:rabbit", "minecraft:turtle", "minecraft:mooshroom", "minecraft:player", "minecraft:sheep", "minecraft:snow_golem"] {
             assert_eq!(loaded.find(&id(entity), &none).count(), 1, "{entity}");
         }
-        let head = loaded.find(&id("minecraft:player"), &none).next().unwrap();
+        let player = id("minecraft:player");
+        let head = loaded.find(&player, &none).next().unwrap();
         assert!((head.chance(1.0, 0.0) - 0.1).abs() < 1e-6, "a beheading's shipped chances are 10% and 2%");
         assert!((head.chance(1.0, 1.0) - 0.12).abs() < 1e-6);
     }

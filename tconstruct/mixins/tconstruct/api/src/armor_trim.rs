@@ -487,7 +487,7 @@ mod tests {
             .expect_err("a failure");
         assert!(failure.starts_with("recipe.tconstruct.modifier.armor_trim.invalid_material"), "{failure}");
         // Duplicates and strays do not match at all.
-        assert!(recipes.craft(&tool, &[Some(template.clone()), Some(template)], &in_tag).is_none());
+        assert!(recipes.craft(&tool, &[Some(template.clone()), Some(template.clone())], &in_tag).is_none());
         assert!(recipes.craft(&tool, &[Some(diamond.clone()), Some(diamond)], &in_tag).is_none());
         assert!(recipes.craft(&tool, &[Some(template), Some(stack("minecraft:dirt"))], &in_tag).is_none());
         // One input missing does not match.
