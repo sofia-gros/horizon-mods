@@ -97,6 +97,8 @@ mod blocking_hook;
 mod brush;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/brush_hook.rs"]
 mod brush_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/bounce.rs"]
+mod bounce;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/walk_hook.rs"]
 mod walk_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/replace_fluid.rs"]

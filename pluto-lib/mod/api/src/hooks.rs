@@ -6,7 +6,7 @@
 use horizon_client::mod_api::{
     AddServerReloadListenersEvent, ServerReloadListenerApplyEvent, NativeReloadListener,
     AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, LootFunctionEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
-    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
+    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
@@ -17,6 +17,7 @@ use horizon_client::mod_api::{
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
+use crate::pure::living_fall_v1::{self, LivingFall};
 #[cfg(feature = "native-inventory-glue")]
 use crate::pure::advancement_api_v1;
 use crate::pure::recipe_api_v1;
@@ -2193,6 +2194,11 @@ impl EntityOps for HostEntities {
     fn leave_ground(&mut self, id: u64) -> bool {
         let Some(id) = self.push_target(id) else { return false };
         horizon_client::game::pluto_entity_push_access::request_leave_ground(&self.dimension, id)
+    }
+
+    fn spin_attack(&mut self, id: u64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_spin_attack(&self.dimension, id)
     }
 }
 
@@ -4833,9 +4839,15 @@ impl Hooks for PlutoHooks {
             let light_pos = [player.position[0].floor() as i32, (player.position[1] + 0.5).floor() as i32, player.position[2].floor() as i32];
             let (block_light, sky_light) = host.light(light_pos);
             let (rain, thunder) = host.weather();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
-            // The world scope is open while the tick runs, so a callback may work on the blocks around the player.
-            for id in scoped(host, || entity_events_v1::player_tick(&tick)) { host.remove_effect(player.uuid, &id); }
+            // Whether the player stands in water, as the wearer state reads it: the block at their feet holds water.
+            let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
+            let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            // The world scope is open while the tick runs, so a callback may work on the blocks around the player;
+            // the entity scope is open too, so a callback may reach the entities around them (a bounce sets a velocity).
+            let handle = HostHandle::new(host);
+            let dimension = player.dimension.to_string();
+            for id in scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || entity_events_v1::player_tick(&tick))) { host.remove_effect(player.uuid, &id); }
             // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
             let own = entity_events_v1::take_tick_actions(&tick);
             if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }
@@ -5272,6 +5284,20 @@ impl Hooks for PlutoHooks {
         if let Some(attacker) = event.attacker {
             entity_events_v1::note_damage_parties(event.victim as i32, attacker as i32, event.attacker_uuid.is_some());
         }
+        Flow::Continue
+    }
+
+    fn living_fall(&self, event: &mut LivingFallEvent<'_>) -> Flow {
+        // A living entity is about to handle a fall, for the local player and for mobs alike: what the
+        // callbacks leave of the distance and the multiplier is what the game goes on with, and a
+        // cancellation stands (the block's own fallOn still runs with zero damage). The event carries no
+        // host and no velocity, so a callback that needs the motion reads what it kept from the entity's
+        // last tick.
+        if !living_fall_v1::fall_heard() { return Flow::Continue; }
+        let fall = LivingFall { entity: event.entity, kind: event.kind.to_owned(), distance: std::cell::Cell::new(event.distance), multiplier: std::cell::Cell::new(event.multiplier) };
+        if !living_fall_v1::fall(&fall) { return Flow::Cancel; }
+        event.distance = fall.distance.get();
+        event.multiplier = fall.multiplier.get();
         Flow::Continue
     }
 

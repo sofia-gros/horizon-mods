@@ -7,10 +7,11 @@
 //! is worked out with PlutoLib's arithmetic. A player's values are recomputed on their tick
 //! and kept by entity id for the flows that read them: the mining speed multiplier in the
 //! break-speed hook, the knockback multiplier on the knockback event, the crouch damage
-//! multiplier in the melee hook, and the effect duration multipliers where the hit hooks put
+//! multiplier in the melee hook, the bouncy value in the fall handler (`crate::bounce`), and
+//! the effect duration multipliers where the hit hooks put
 //! effects on a target. Chrysophilite is read in the loot flow itself, which already worked
 //! the golden amount out from the worn pieces. The rest — jump boost and jump count (read by
-//! the client's jump handling), bouncy (the fall handler), use item speed (the client's item
+//! the client's jump handling), use item speed (the client's item
 //! use slowdown), critical damage (the critical hit event) and the experience multiplier (the
 //! experience drop events) — have no surface in this port yet: their values are computed and
 //! kept here, and nothing reads them until those surfaces exist. The original's percent and

@@ -50,6 +50,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/block_break_hook.rs',
                 'mixins/tconstruct_native/api/src/blocking_hook.rs',
                 'mixins/tconstruct_native/api/src/books.rs',
+                'mixins/tconstruct_native/api/src/bounce.rs',
                 'mixins/tconstruct_native/api/src/break_speed_hook.rs',
                 'mixins/tconstruct_native/api/src/brush.rs',
                 'mixins/tconstruct_native/api/src/brush_hook.rs',

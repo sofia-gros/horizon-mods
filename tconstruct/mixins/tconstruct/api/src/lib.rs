@@ -64,6 +64,7 @@ mod flight_hook;
 mod throwing_hook;
 mod sling_modules;
 mod sling_hook;
+mod bounce;
 mod fireball_hook;
 mod potion_contents;
 mod blocking_hook;
@@ -275,6 +276,8 @@ pub fn hooks() -> pluto_lib::ModHooks {
     // After throwing: the sling release callback (its use is composed into the throwing
     // hook's registration above).
     sling_hook::register();
+    // After the sling: the bounce handler the sling leap adds and the fall handler drives.
+    bounce::register();
     // After throwing: the brush stroke ticks (its use is composed into the throwing hook's
     // registration above, as the sling's is).
     brush_hook::register();

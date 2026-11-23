@@ -30,6 +30,7 @@ pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, Effec
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, CauseFallDamageContext, FallOutcome, EquipmentDropChanceContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
+pub use crate::pure::living_fall_v1::{self, LivingFall, LivingFallEvents};
 pub use crate::pure::mob_split_api::{self, MobSplitContext, MobSplitRandom, MobSplitChild, MobSplitInheritance, MobSplitCallback, MobSplitCallbacks};
 pub use crate::pure::spawn_placement_api::{self, SpawnPlacementContext, SpawnPlacementRegistry};
 pub use crate::pure::hanging_api_v1::{self, FrameVariant, HangingRegistry, StandVariant};

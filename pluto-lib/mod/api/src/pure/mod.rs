@@ -23,6 +23,7 @@ pub mod fishing_api_v1;
 pub mod fov_api_v1;
 pub mod living_entity_drops;
 pub mod living_entity_behavior;
+pub mod living_fall_v1;
 pub mod mob_split_api;
 pub mod spawn_placement_api;
 pub mod hanging_api_v1;

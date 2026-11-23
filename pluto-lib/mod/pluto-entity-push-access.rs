@@ -1,5 +1,5 @@
 // Entity push transport for the entity reach: consumers queue a knockback, a
-// push or a leave-ground lift by entity id, and the game's own knockback and
+// push, a leave-ground lift, or a spin attack by entity id, and the game's own knockback and
 // motion paths apply the queued requests at the head of its rider
 // synchronisation (pluto-entity-drain-head.rs), in the level's own tick
 // context. The queue carries only the numeric id and the dimension: at
@@ -18,7 +18,11 @@
 // guest's requests run inside the game's guest motion path, which sends
 // their motion at once. The leave-ground lift is Entity.move(MoverType.SELF,
 // (0, 1.3, 0)) at the head of a launch: the server's copy of the player rises
-// by 1.3, or to the first ceiling the game's collision boxes name.
+// by 1.3, or to the first ceiling the game's collision boxes name. A
+// player's spin attack sets the trident spin fields (`Player.startAutoSpinAttack(20)`: 20
+// ticks at 8 damage, the spin the game ends on the first hit), as a drill grapple's pull
+// and a drill sling's leap start it. Only a player spins: a mob's spin request is dropped,
+// and a guest's sets the guest player's own fields.
 //
 // Acceptance is a request taken, not a guarantee: a request whose target the
 // game no longer holds, or that is not a living entity or a player, is
@@ -36,6 +40,7 @@ enum PushRequest {
     Knockback { entity: u32, strength: f64, x: f64, z: f64 },
     Push { entity: u32, delta: [f64; 3] },
     LeaveGround { entity: u32 },
+    SpinAttack { entity: u32 },
 }
 
 static QUEUE: Mutex<Vec<(String, PushRequest)>> = Mutex::new(Vec::new());
@@ -77,6 +82,12 @@ pub fn request_leave_ground(dimension: &str, entity: u32) -> bool {
     queue(dimension, PushRequest::LeaveGround { entity })
 }
 
+/// Queues a spin attack of the player `entity` in `dimension` (see the
+/// module header); whether the request was taken.
+pub fn request_spin_attack(dimension: &str, entity: u32) -> bool {
+    queue(dimension, PushRequest::SpinAttack { entity })
+}
+
 /// Applies this game's queued pushes, in request order. Requests for other
 /// dimensions stay queued for their own synchronisation.
 pub fn drain(game: &mut Game<'_>) {
@@ -100,7 +111,7 @@ pub fn drain(game: &mut Game<'_>) {
 
 fn apply(game: &mut Game<'_>, request: PushRequest) {
     let entity = match request {
-        PushRequest::Knockback { entity, .. } | PushRequest::Push { entity, .. } | PushRequest::LeaveGround { entity } => entity,
+        PushRequest::Knockback { entity, .. } | PushRequest::Push { entity, .. } | PushRequest::LeaveGround { entity } | PushRequest::SpinAttack { entity } => entity,
     };
     let Some(target) = game.level_entity(entity as i32) else { return };
     match target {
@@ -118,6 +129,12 @@ fn apply(game: &mut Game<'_>, request: PushRequest) {
                     }
                 }
                 PushRequest::LeaveGround { .. } => lift_player(guest),
+                PushRequest::SpinAttack { .. } => {
+                    if let Some(player) = guest.player.as_mut() {
+                        player.auto_spin_attack_ticks = 20;
+                        player.auto_spin_attack_dmg = 8.0;
+                    }
+                }
             });
             game.lan = Some(host);
         }
@@ -137,6 +154,7 @@ fn apply_to_mob(game: &mut Game<'_>, id: i32, request: PushRequest) {
             mob.needs_sync = true;
         }
         PushRequest::LeaveGround { .. } => {}
+        PushRequest::SpinAttack { .. } => {}
     }
 }
 
@@ -160,6 +178,13 @@ fn apply_to_player(game: &mut Game<'_>, request: PushRequest) {
             }
         }
         PushRequest::LeaveGround { .. } => lift_player(game),
+        PushRequest::SpinAttack { .. } => {
+            // Player.startAutoSpinAttack(20, 8, stack), as the trident's riptide sets it.
+            if let Some(player) = game.player.as_mut() {
+                player.auto_spin_attack_ticks = 20;
+                player.auto_spin_attack_dmg = 8.0;
+            }
+        }
     }
 }
 

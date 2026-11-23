@@ -1,7 +1,7 @@
 //! The entities of a world, reached from a callback that carries them (a block entity ticker): what stands inside a
 //! box, hurting it, taking the items it dropped, who rides whom, and pushing it (Minecraft: `Level.getEntitiesOfClass`,
 //! `LivingEntity.hurt`, `ItemEntity.setItem` and `discard`, `Entity.startRiding` and `stopRiding`,
-//! `LivingEntity.knockback` and `Entity.push`). Like
+//! `LivingEntity.knockback` and `Entity.push`, and a player's spin attack (`Player.startAutoSpinAttack`). Like
 //! [`World`](super::world_api_v1::World), the reach only exists while a host-installed scope is open; outside it
 //! every query answers "nothing there", never a guess.
 use super::{base::Identifier, block_entity_api_v1::ItemSlot};
@@ -128,6 +128,14 @@ pub trait EntityOps {
     fn leave_ground(&mut self, _id: u64) -> bool {
         false
     }
+    /// Starts the player `id`'s spin attack (`Player.startAutoSpinAttack(20)`, the trident spin: 20
+    /// ticks at 8 damage, the spin the game ends on the first hit), as a drill grapple's pull and a
+    /// drill sling's leap do. Only a player spins; any other entity is refused. A host may apply an
+    /// accepted spin at its next rider synchronisation rather than instantly, as
+    /// [`EntityOps::knockback`] describes. Hosts that predate the call answer false.
+    fn spin_attack(&mut self, _id: u64) -> bool {
+        false
+    }
 }
 
 thread_local! {
@@ -251,6 +259,12 @@ impl EntityReach {
     pub fn leave_ground(id: u64) -> bool {
         with_current(false, |ops| ops.leave_ground(id))
     }
+
+    /// Starts the player `id`'s spin attack (see [`EntityOps::spin_attack`]); whether the spin was
+    /// accepted. False outside a scope.
+    pub fn spin_attack(id: u64) -> bool {
+        with_current(false, |ops| ops.spin_attack(id))
+    }
 }
 
 /// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
@@ -273,11 +287,13 @@ pub struct MemoryEntityOps {
     pub pushed: Vec<(u64, [f64; 3])>,
     /// The players lifted off the ground, in order.
     pub lifted: Vec<u64>,
+    /// The players whose spin attack was started, in order.
+    pub spun: Vec<u64>,
 }
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new() }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new(), spun: Vec::new() }
     }
 }
 
@@ -379,6 +395,14 @@ impl EntityOps for MemoryEntityOps {
         self.lifted.push(id);
         true
     }
+
+    fn spin_attack(&mut self, id: u64) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
+            return false;
+        }
+        self.spun.push(id);
+        true
+    }
 }
 
 #[cfg(test)]
@@ -408,6 +432,7 @@ mod tests {
         assert!(!EntityReach::knockback(2, 1.0, 1.0, 0.0));
         assert!(!EntityReach::push(2, [0.0, 1.0, 0.0]));
         assert!(!EntityReach::leave_ground(2));
+        assert!(!EntityReach::spin_attack(2));
     }
 
     #[test]
@@ -470,20 +495,23 @@ mod tests {
     }
 
     #[test]
-    fn a_knockback_a_push_and_a_lift_are_recorded_for_the_living() {
+    fn a_knockback_a_push_a_lift_and_a_spin_are_recorded_for_the_living() {
         let mut ops = world();
         with_entities(&mut ops, || {
             assert!(EntityReach::knockback(2, 1.5, -0.5, 0.25));
             assert!(EntityReach::push(3, [0.1, 0.4, -0.2]));
             assert!(EntityReach::leave_ground(2));
+            assert!(EntityReach::spin_attack(2));
             assert!(!EntityReach::knockback(1, 1.0, 1.0, 0.0), "an item entity cannot be knocked back");
             assert!(!EntityReach::push(1, [0.0, 1.0, 0.0]), "an item entity is not pushed");
             assert!(!EntityReach::leave_ground(1), "an item entity is not lifted");
+            assert!(!EntityReach::spin_attack(1), "an item entity does not spin");
             assert!(!EntityReach::knockback(99, 1.0, 1.0, 0.0), "no such entity");
         });
         assert_eq!(ops.knocked, vec![(2, 1.5, -0.5, 0.25)]);
         assert_eq!(ops.pushed, vec![(3, [0.1, 0.4, -0.2])]);
         assert_eq!(ops.lifted, vec![2]);
+        assert_eq!(ops.spun, vec![2]);
     }
 
     #[test]
