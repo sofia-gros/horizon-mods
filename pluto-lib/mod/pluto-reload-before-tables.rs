@@ -13,7 +13,7 @@
 // stack is that world's datapacks), which the body assigns from the
 // same prepared world a few lines later; assign it first so the early
 // application reads this world's packs, not the previous one's.
-fn pluto_reload_before_tables_open(game: &mut Game<'_>, prepared: &world_loading::PreparedWorld) {
+fn pluto_reload_before_tables_open(game: &mut Game<'_>, prepared: &crate::game::world_loading::PreparedWorld) {
     game.world_root = prepared.save_root.clone();
     game.native_reload_listeners();
 }
