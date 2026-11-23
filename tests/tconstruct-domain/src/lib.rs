@@ -183,6 +183,8 @@ mod station_menu;
 mod chests;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_station.rs"]
 mod crafting_station;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tabbed_tables.rs"]
+mod tabbed_tables;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/worktable_menu.rs"]
 mod worktable_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/part_builder_menu.rs"]
