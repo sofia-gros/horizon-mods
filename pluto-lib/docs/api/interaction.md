@@ -222,7 +222,7 @@ use pluto_lib::{dispense_shot, Direction};
 let (origin, motion) = dispense_shot([10, 64, -3], Direction::East, 1.1);
 assert!((origin[0] - 11.2).abs() < 1e-9 && (origin[1] - 64.5).abs() < 1e-9);
 let length = (motion[0] * motion[0] + motion[1] * motion[1] + motion[2] * motion[2]).sqrt();
-assert!((length - 1.1).abs() < 1e-9, "the shot flies at its power");
+assert!((length - f64::from(1.1f32)).abs() < 1e-9, "the shot flies at its power");
 ```
 
 ### `UseBlockCallback`

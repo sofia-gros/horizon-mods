@@ -84,12 +84,12 @@ mod tests {
     #[test]
     fn a_registered_item_answers_and_an_unregistered_one_does_not() {
         let behavior = DispenseBehavior::Shoot { entity: id("example:glow_ball"), power: 1.1, inaccuracy: 6.0 };
-        DispenseRegistry::register(id("example:glow_ball"), behavior);
+        DispenseRegistry::register(id("example:glow_ball"), behavior.clone());
         assert_eq!(DispenseRegistry::get("example:glow_ball"), Some(behavior));
         assert_eq!(DispenseRegistry::get("example:unclaimed"), None);
         // registering again replaces
         let faster = DispenseBehavior::Shoot { entity: id("example:glow_ball"), power: 2.0, inaccuracy: 6.0 };
-        DispenseRegistry::register(id("example:glow_ball"), faster);
+        DispenseRegistry::register(id("example:glow_ball"), faster.clone());
         assert_eq!(DispenseRegistry::get("example:glow_ball"), Some(faster));
     }
 

@@ -458,7 +458,7 @@ mod tests {
         name(&mut out, "size");
         out.push(3);
         out.extend_from_slice(&3i32.to_be_bytes());
-        for value in [5, 3, 5] {
+        for value in [5i32, 3, 5] {
             out.extend_from_slice(&value.to_be_bytes());
         }
         // palette: list of 1 compound {Name: "minecraft:stone"}
@@ -479,7 +479,7 @@ mod tests {
         name(&mut out, "pos");
         out.push(3);
         out.extend_from_slice(&3i32.to_be_bytes());
-        for value in [0, 0, 0] {
+        for value in [0i32, 0, 0] {
             out.extend_from_slice(&value.to_be_bytes());
         }
         out.push(3);
