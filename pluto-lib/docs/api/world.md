@@ -597,6 +597,27 @@ assert_eq!(ops.explosions.len(), 1);
 assert_eq!(ops.explosions[0].interaction, ExplosionInteraction::Tnt);
 ```
 
+### `World::brush_block`
+
+`fn brush_block(&self, pos: BlockPos, face: BlockPos) -> bool`. One brush stroke on the block at `pos`, on the face `face` (a unit offset): Minecraft's `BrushableBlockEntity.brush`. A brushable block entity (suspicious sand or gravel) advances its archaeology count, its `dusted` state follows, and a completed block drops its item beside the brushed face and turns back into plain sand or gravel; the block entity remembers the first face brushed as the face its item shows from. Returns whether the stroke was accepted (over Horizon, queued for the game's brush seam to apply within the tick — the game has no mod call that brushes, so the request is carried into the game, as an explosion is); it does not say whether the block is brushable, which `World::get_block_state` answers. False outside a callback that carries a world.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` queues the request on `pluto_brush_access`; the game's creature tick seam (`pluto_brush_flush`, in the game's own brush module) plays the brushable block's brush sound, spawns its dust, and calls the game's own `BrushableBlockEntity.brush` port in the dimension named.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.brush_block([0, 64, 0], [0, 1, 0]), "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:suspicious_sand".to_owned());
+with_world(&mut ops, || {
+    assert!(world.brush_block([0, 64, 0], [0, 1, 0]));
+    assert!(!world.brush_block([1, 64, 0], [0, 1, 0]), "plain air is not brushable");
+});
+assert_eq!(ops.brushes.len(), 2);
+assert_eq!(ops.brushes[0].pos, [0, 64, 0]);
+```
+
 ### `ExplosionInteraction`
 
 What an explosion does to the blocks it reaches (Minecraft: `ExplosionInteraction`): `Keep` leaves them (Java: `NONE`), `Block` breaks them by the block-explosion rule (`BLOCK`), and `Tnt` breaks them by the tnt-explosion rule (`TNT`; the original's `DESTROY` is the same rule).

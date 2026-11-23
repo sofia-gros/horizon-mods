@@ -1109,6 +1109,15 @@ kind = "HEAD"
 helper = "pluto-cooking-recipes-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
+# The brush strokes a mod orders land at the same creature tick: the flush in the game's
+# brush module applies the queued strokes to its brushable block entities.
+[[injection]]
+id = "pluto-brush-flush-head"
+target = "horizon_client::game::creatures::Game<'_>::tick_creatures"
+kind = "HEAD"
+helper = "pluto-brush-flush-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
 # A dig is worked out: the level's build range is published for the dig report the mods are
 # about to be asked for (dwarven reads the level's max build height).
 [[injection]]
@@ -1937,6 +1946,22 @@ id = "pluto-explosion-flush"
 file = "crates/horizon-client/src/game/native_explosions.rs"
 name = "pluto_explosion_flush"
 source = "pluto-explosion-flush.rs"
+visibility = "pub(crate)"
+
+# The brush strokes a mod orders (the game has no mod call that brushes a block; its own
+# BrushableBlockEntity.brush lives inside the game, in the brush module the flush joins).
+[[module]]
+id = "pluto-brush-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_brush_access"
+source = "pluto-brush-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-brush-flush"
+file = "crates/horizon-client/src/game/brush.rs"
+name = "pluto_brush_flush"
+source = "pluto-brush-flush.rs"
 visibility = "pub(crate)"
 
 # Native inventory gates for the pure advancement/recipe forwarders in the

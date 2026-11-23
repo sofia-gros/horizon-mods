@@ -127,6 +127,17 @@ pub trait WorldOps {
     fn use_block(&mut self, _dimension: &str, _pos: BlockPos, _face: BlockPos, _hit: [f64; 3], _item: Option<&str>) -> bool {
         false
     }
+    /// Brushes the block entity at `pos` with one stroke (Minecraft: `BrushableBlockEntity.brush`): its archaeology
+    /// count advances, its `dusted` state follows, and a completed block drops its item and turns back into plain
+    /// sand or gravel. `face` (a unit offset) is the face being brushed, which the block entity remembers as the
+    /// face its item shows from. Queued and answered like [`WorldOps::use_block`]: the host adapter queues the
+    /// request and the game's own brush seam applies it in the level in place, so a true answer means the stroke
+    /// is accepted, a tick late at most, not that it has landed when the call returns — and not that the block is
+    /// brushable, which the caller reads from the block itself when it must know (a wear-per-stroke caller
+    /// accepts the stroke as landed, as a re-dispatched use's caller does). The default host cannot brush.
+    fn brush_block(&mut self, _dimension: &str, _pos: BlockPos, _face: BlockPos) -> bool {
+        false
+    }
     /// Sets the block at `pos` to the state given as text at the level's next tick seam, in request order among the queued block
     /// actions (see [`queue_block_action`]): for a write that must land after a queued break of the same block, where the immediate
     /// [`WorldOps::set_block_state`] would be undone by the break. A true answer means the write is accepted. The default host
@@ -341,6 +352,17 @@ impl World {
     /// after its own way, or accepts the use as landed. False outside a callback or when the host cannot re-dispatch.
     pub fn use_block(&self, pos: BlockPos, face: BlockPos, hit: [f64; 3], item: Option<&str>) -> bool {
         with_current(false, |ops| ops.use_block(&self.dimension, pos, face, hit, item))
+    }
+
+    /// Minecraft: `BrushableBlockEntity.brush`. One brush stroke on the block at `pos`, on the face `face`
+    /// (a unit offset): a brushable block entity's archaeology count advances, its `dusted` state follows,
+    /// and a completed block drops its item and turns back into plain sand or gravel. The host adapter queues
+    /// the request and the game's brush seam applies it in the level in place, so true means the stroke is
+    /// accepted, a tick late at most — not that the block is brushable, which [`World::get_block_state`]
+    /// answers when a caller must know. False outside a callback that carries a world, or when the host
+    /// cannot brush.
+    pub fn brush_block(&self, pos: BlockPos, face: BlockPos) -> bool {
+        with_current(false, |ops| ops.brush_block(&self.dimension, pos, face))
     }
 
     /// Minecraft: `setBlockState`, at the level's next tick seam: the write joins the queued block actions (see
@@ -581,6 +603,17 @@ pub struct ParticleRecord {
     pub count: i32,
 }
 
+/// One brush stroke a [`MemoryWorldOps`] was asked for, as it was asked.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BrushRecord {
+    /// The dimension brushed in.
+    pub dimension: String,
+    /// The block brushed.
+    pub pos: BlockPos,
+    /// The face brushed, as a unit offset.
+    pub face: BlockPos,
+}
+
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
 #[derive(Default, Debug)]
 pub struct MemoryWorldOps {
@@ -598,6 +631,8 @@ pub struct MemoryWorldOps {
     pub explosions: Vec<ExplosionRecord>,
     /// The particle sends asked for so far, in order.
     pub particles: Vec<ParticleRecord>,
+    /// The brush strokes asked for so far, in order.
+    pub brushes: Vec<BrushRecord>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -641,6 +676,14 @@ impl WorldOps for MemoryWorldOps {
     fn explode(&mut self, dimension: &str, center: [f64; 3], radius: f32, fire: bool, interaction: ExplosionInteraction) -> bool {
         self.explosions.push(ExplosionRecord { dimension: dimension.to_owned(), center, radius, fire, interaction });
         true
+    }
+
+    fn brush_block(&mut self, dimension: &str, pos: BlockPos, face: BlockPos) -> bool {
+        self.brushes.push(BrushRecord { dimension: dimension.to_owned(), pos, face });
+        // The memory world brushes only what is brushable in it: a suspicious block set there.
+        let state = self.blocks.get(&(dimension.to_owned(), pos)).cloned().unwrap_or_else(|| "minecraft:air".to_owned());
+        let name = state.split('[').next().unwrap_or("");
+        matches!(name, "minecraft:suspicious_sand" | "minecraft:suspicious_gravel")
     }
 
     fn send_particles(&mut self, dimension: &str, particle: &str, data: &ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
@@ -792,6 +835,33 @@ mod tests {
             fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
         }
         with_world(&mut NoExplode, || assert!(!world.explode([0.5, 64.0, 0.5], 4.0, false, ExplosionInteraction::Block)));
+    }
+
+    #[test]
+    fn brush_strokes_reach_the_ops_and_the_memory_world_answers_by_its_blocks() {
+        let world = World::new("minecraft:overworld");
+        assert!(!world.brush_block([0, 64, 0], [0, 1, 0]), "outside a scope nothing is brushed");
+        let mut ops = MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:suspicious_sand".to_owned());
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [1, 64, 0]), "minecraft:suspicious_gravel[dusted=2]".to_owned());
+        with_world(&mut ops, || {
+            assert!(world.brush_block([0, 64, 0], [0, 1, 0]));
+            assert!(world.brush_block([1, 64, 0], [0, 0, -1]), "a state with properties is still its block");
+            assert!(!world.brush_block([2, 64, 0], [0, 1, 0]), "plain air is not brushable");
+        });
+        assert_eq!(ops.brushes, vec![
+            BrushRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0], face: [0, 1, 0] },
+            BrushRecord { dimension: "minecraft:overworld".into(), pos: [1, 64, 0], face: [0, 0, -1] },
+            BrushRecord { dimension: "minecraft:overworld".into(), pos: [2, 64, 0], face: [0, 1, 0] },
+        ], "every stroke asked for is recorded, answered or not");
+        // A host that does not implement brushing keeps the default answer.
+        struct NoBrush;
+        impl WorldOps for NoBrush {
+            fn block_state(&mut self, _: &str, _: BlockPos) -> Option<String> { None }
+            fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
+            fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+        }
+        with_world(&mut NoBrush, || assert!(!world.brush_block([0, 64, 0], [0, 1, 0])));
     }
 
     #[test]

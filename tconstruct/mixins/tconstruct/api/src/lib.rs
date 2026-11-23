@@ -64,6 +64,8 @@ mod sling_hook;
 mod fireball_hook;
 mod potion_contents;
 mod blocking_hook;
+mod brush;
+mod brush_hook;
 mod walk_hook;
 mod weapon_effect;
 mod thorns;
@@ -267,6 +269,9 @@ pub fn hooks() -> pluto_lib::ModHooks {
     // After throwing: the sling release callback (its use is composed into the throwing
     // hook's registration above).
     sling_hook::register();
+    // After throwing: the brush stroke ticks (its use is composed into the throwing hook's
+    // registration above, as the sling's is).
+    brush_hook::register();
     fireball_hook::register();
     armor_worn::register();
     fancy_gadgets::register();

@@ -1830,6 +1830,11 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:general_interact");
             out.insert("tconstruct:tool_action");
         }
+        Module::Brush => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
         Module::WalkTransform { .. } => {
             out.insert("tconstruct:boot_walk");
             out.insert("tconstruct:tool_action");
@@ -2205,6 +2210,13 @@ mod tests {
     use super::*;
     use pluto_lib::{MemoryPlayerOps, Translations, with_ops};
     use serde_json::json;
+
+    #[test]
+    fn brush_reports_exactly_its_three_hooks() {
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::Brush, &mut out);
+        assert_eq!(out, BTreeSet::from(["tconstruct:general_interact", "tconstruct:block_interact", "tconstruct:aoe_highlight"]));
+    }
 
     #[test]
     fn java_float_rendering_matches_float_to_string() {

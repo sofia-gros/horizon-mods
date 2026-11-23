@@ -7,8 +7,9 @@
 //! leaves the hand as a summoned arrow (the only summonable body with a thrown trident's physics and
 //! a native stick; `flight_hook` flies it, lands its melee hit and brings it back for loyalty). The
 //! stack registration here is made after the edible and blocking ones and replaces them for every
-//! usable tool item, composing the three per stack as the original's hook order does: a stack that
-//! can be eaten is eaten, a blocking stack blocks, a throwing stack is thrown.
+//! usable tool item, composing the uses per stack as the original's hook order does: a stack that
+//! can be eaten is eaten, a blocking stack blocks, a brush stack brushes (for the brush module's
+//! 200 ticks, in `brush_hook`), a throwing stack is thrown.
 //!
 //! The shuriken is thrown instantly in the original (no charge): its use is registered with no pose
 //! and the shortest hold, so a click's release throws it at once — the release fires the declared
@@ -33,6 +34,12 @@ const SHURIKEN_ITEM: &str = "shuriken";
 /// Whether the stack is a whole Tinkers tool whose modifiers carry the blocking module.
 fn blocking(stack: &StackData) -> bool {
     with_held_tool(stack, |env, tool| tool_stack::blocking(&tool.custom_data, env)).unwrap_or(false)
+}
+
+/// Whether the stack is a whole Tinkers tool whose modifiers carry the brush module
+/// (BrushModule: the use brushes, for its 200 ticks, in `brush_hook`).
+fn brush(stack: &StackData) -> bool {
+    with_held_tool(stack, |env, tool| tool_stack::brush(&tool.custom_data, env)).unwrap_or(false)
 }
 
 /// Whether the stack can start being eaten, as the edible registration asks.
@@ -169,22 +176,25 @@ fn on_release(release: &ReleaseUsing) {
 
 /// Registers the uses, the thrown shuriken type and the release callback. Called once from the
 /// product's hooks, after the edible and blocking hooks (this registration replaces theirs for the
-/// usable tool items, composing all three).
+/// usable tool items, composing all of them: eat, block, brush, sling, throw, fireball).
 pub(crate) fn register() {
     for path in edible_hook::USE_ITEMS {
         let Ok(item) = Identifier::new("tconstruct", path) else { continue };
         ItemUseRegistry::register_stack(item, StackUse::new(UseAction::None)
-            .can_use(|stack| eatable(stack) || blocking(stack) || throwing(stack) || sling(stack) || fireball(stack))
+            .can_use(|stack| eatable(stack) || blocking(stack) || brush(stack) || throwing(stack) || sling(stack) || fireball(stack))
             .action_for(|stack| {
                 if eatable(stack) { return Some(UseAction::Eat); }
                 if blocking(stack) { return Some(UseAction::Block); }
+                if brush(stack) { return Some(UseAction::Brush); }
                 if sling(stack) { return Some(UseAction::Bow); }
                 if throwing(stack) { return Some(UseAction::Spear); }
                 fireball(stack).then_some(UseAction::None)
             })
             .use_time(|stack| {
                 if eatable(stack) { return edible_hook::eating(stack).map_or(0, |(_, duration)| edible::use_ticks(duration)); }
-                if blocking(stack) || throwing(stack) || sling(stack) || fireball(stack) { THROW_TICKS } else { 0 }
+                if blocking(stack) { return THROW_TICKS; }
+                if brush(stack) { return crate::brush::USE_DURATION; }
+                if throwing(stack) || sling(stack) || fireball(stack) { THROW_TICKS } else { 0 }
             }));
     }
     if let Ok(item) = Identifier::new("tconstruct", SHURIKEN_ITEM) {
