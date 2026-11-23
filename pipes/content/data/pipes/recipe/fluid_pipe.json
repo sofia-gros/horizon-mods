@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "#": "minecraft:copper_ingot",
+    "G": "minecraft:glass"
+  },
+  "pattern": [
+    "# #",
+    " G ",
+    "# #"
+  ],
+  "result": {
+    "id": "pipes:fluid_pipe",
+    "count": 8
+  }
+}
