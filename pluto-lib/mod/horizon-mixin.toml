@@ -707,6 +707,21 @@ bindings = [
  { name = "stack", ty = "&ItemStack", value = "stack" }
 ]
 
+# A dropped stack a mod marks indestructible (the original's indestructible item
+# entity) takes no environmental damage and never ages out: the item entity's
+# environment tick is the one place every environmental hurt of a dropped stack
+# flows through, so a registered true answer stills the tick and pins the age at
+# the host's own unlimited-lifetime value.
+[[injection]]
+id = "pluto-item-indestructible"
+target = "horizon_client::entities::ItemEntity::environment_tick"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-indestructible-head.rs"
+bindings = [
+ { name = "entity", ty = "&mut ItemEntity", value = "self" }
+]
+
 # Shearing a snow golem or bogged asks the stack for SHEARS_HARVEST where vanilla
 # names the shears item; a granted stack runs the original body under the vanilla name.
 [[injection]]
