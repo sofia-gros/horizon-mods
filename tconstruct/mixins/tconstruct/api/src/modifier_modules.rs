@@ -471,7 +471,7 @@ impl LevelFormula {
 
 /// ModifierPredicate over the modifier that caused tool damage (the subset the original ships).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum CausePredicate { Any, Tag(Identifier), Single(Identifier), Not(Box<CausePredicate>) }
+pub(crate) enum CausePredicate { Any, Tag(Identifier), Single(Identifier), Not(Box<CausePredicate>), And(Vec<CausePredicate>), SlotType(String) }
 
 impl CausePredicate {
     pub(crate) fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
@@ -488,16 +488,42 @@ impl CausePredicate {
                 let Some(inner) = Self::typed(object, inner)? else { return Ok(None); };
                 Self::Not(Box::new(inner))
             }
+            "mantle:and" => {
+                let Some(list) = object.get("predicates").and_then(Value::as_array) else { return Ok(None); };
+                let mut parts = Vec::with_capacity(list.len());
+                for part in list {
+                    let Some(part) = Self::decode(Some(part))? else { return Ok(None); };
+                    parts.push(part);
+                }
+                Self::And(parts)
+            }
+            "tconstruct:slot_type" => Self::SlotType(object.get("slot").and_then(Value::as_str).ok_or("slot missing")?.to_owned()),
             _ => return Ok(None),
         }))
     }
     /// `cause` is None for ordinary tool use (ModifierId.EMPTY), which no tag or single match.
+    /// A slot type cannot be decided here (it needs the modifier recipe lookup), so it never
+    /// matches on this path; see `matches_slotted`.
     pub(crate) fn matches(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => cause.is_some_and(|cause| in_tag(cause, tag)),
             Self::Single(modifier) => cause == Some(modifier),
             Self::Not(inner) => !inner.matches(cause, in_tag),
+            Self::And(parts) => parts.iter().all(|part| part.matches(cause, in_tag)),
+            Self::SlotType(_) => false,
+        }
+    }
+
+    /// `matches` with slot types decided by `slot_member` (whether a modifier is added through a
+    /// recipe of the named slot type, ModifierRecipeLookup's answer), as the worktable extraction
+    /// recipes' `tconstruct:slot_type` predicates require.
+    pub(crate) fn matches_slotted(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, slot_member: &dyn Fn(&str, &Identifier) -> bool) -> bool {
+        match self {
+            Self::SlotType(name) => cause.is_some_and(|cause| slot_member(name, cause)),
+            Self::And(parts) => parts.iter().all(|part| part.matches_slotted(cause, in_tag, slot_member)),
+            Self::Not(inner) => !inner.matches_slotted(cause, in_tag, slot_member),
+            _ => self.matches(cause, in_tag),
         }
     }
 }

@@ -16,9 +16,10 @@ pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 ///   attacker and the victim; PlutoLib has no nearby-entity enumeration, no entity action
 ///   that addresses a third entity, and no way to spawn a named particle at an entity
 ///   (ParticleFactoryRegistry only registers item-particle factories).
-/// * Interaction gates (attack/dual_option/toggleable_set interaction): nothing in the tool
-///   system asks a definition which interaction source a modifier may use; there is no
-///   canInteract consumer to bind these to.
+/// * Interaction gates (attack interaction): nothing in the tool system asks a definition
+///   which click an attack uses. The dual_option and toggleable_set gates ARE bound
+///   (`Data::interaction_gate`): the worktable's toggle recipe asks exactly which source a
+///   modifier may use, so those two are decoded below.
 /// * Display names (fixed/unique/material/custom material name): a stack's name comes from
 ///   the host's item name; no code path computes a material-based display name.
 /// * melting_fluid_effective: effectiveness here is one static module baked into the stack's
@@ -27,7 +28,7 @@ pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 ///   the mining paths hold.
 const UNBOUND: &[&str] = &[
     "tconstruct:melee_particle", "tconstruct:sweep_melee", "tconstruct:circle_melee",
-    "tconstruct:attack_interaction", "tconstruct:dual_option_interaction", "tconstruct:toggleable_set_interaction",
+    "tconstruct:attack_interaction",
     "tconstruct:melting_fluid_effective",
     "tconstruct:fixed_material_name", "tconstruct:unique_material_name", "tconstruct:material_name", "tconstruct:custom_material_name",
 ];
@@ -175,6 +176,15 @@ fn random_materials(fields: &serde_json::Map<String, Value>, key: &str) -> Resul
         .iter().map(RandomMaterial::decode).collect()
 }
 
+/// The INTERACTION hook's gate module: DualOptionInteraction, or ToggleableSetInteraction
+/// with its predicate over the modifiers that interact on use. The worktable's toggle recipe
+/// is the consumer: it asks the gate whether a modifier may interact on the right click.
+#[derive(Clone, Debug)]
+pub(crate) enum InteractionGate {
+    DualOption,
+    ToggleableSet(crate::modifier_modules::CausePredicate),
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Data {
     stats: Vec<StatModule>, volatile: Vec<VolatileModule>, actions: BTreeSet<String>,
@@ -190,6 +200,8 @@ pub(crate) struct Data {
     max_tier: Option<Identifier>,
     /// The MISSING_MATERIALS binding, when a module claims the hook.
     missing: Option<MissingModule>,
+    /// The INTERACTION gate binding, when a module claims the hook.
+    interaction: Option<InteractionGate>,
     unbound: Vec<Identifier>,
 }
 impl Data {
@@ -212,6 +224,7 @@ impl Data {
         let mut speed: Vec<(crate::mining_speed::BlockCondition, f32)> = Vec::new();
         let mut max_tier: Option<Identifier> = None;
         let mut missing: Option<MissingModule> = None;
+        let mut interaction: Option<InteractionGate> = None;
         let mut unbound: Vec<Identifier> = Vec::new();
         for module in modules {
             let fields = module.as_object().ok_or("module must be an object")?;
@@ -220,6 +233,14 @@ impl Data {
             let empty = kind.to_string() == "tconstruct:empty";
             if UNBOUND.contains(&kind.to_string().as_str()) {
                 if !unbound.contains(&kind) { unbound.push(kind); }
+                continue;
+            }
+            if kind.to_string() == "tconstruct:dual_option_interaction" || kind.to_string() == "tconstruct:toggleable_set_interaction" {
+                // The interaction gates bind the INTERACTION hook, which has no merger.
+                if interaction.is_some() { return Err("only one module may bind the interaction hook".into()); }
+                interaction = Some(if kind.to_string() == "tconstruct:dual_option_interaction" { InteractionGate::DualOption } else {
+                    InteractionGate::ToggleableSet(crate::modifier_modules::CausePredicate::decode(fields.get("interact_modifiers"))?.ok_or("unsupported interact_modifiers predicate")?)
+                });
                 continue;
             }
             if kind.to_string() == "tconstruct:tool_parts" {
@@ -461,7 +482,7 @@ impl Data {
                 if !stats.iter().any(|previous| same_stat_module(previous, &decoded)) { stats.push(decoded); }
             }
         }
-        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, aoe, speed, max_tier, missing, unbound })
+        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, aoe, speed, max_tier, missing, interaction, unbound })
     }
 
     /// Definition traits in hook order. Resolution happens against the current
@@ -601,6 +622,8 @@ impl Data {
     }
     /// Modules this definition declares that are recorded but not implemented (see `UNBOUND`).
     pub fn unbound_modules(&self) -> &[Identifier] { &self.unbound }
+    /// The definition's interaction gate (DualOptionInteraction / ToggleableSetInteraction), when bound.
+    pub(crate) fn interaction_gate(&self) -> Option<&InteractionGate> { self.interaction.as_ref() }
     /// ToolHooks.AOE_ITERATOR: the definition's area iterator, when it binds one.
     pub fn aoe(&self) -> Option<&crate::aoe::Iterator> { self.aoe.as_ref() }
     /// ToolPartsHook.parts: the part items in slot order (empty for tools without a parts module).

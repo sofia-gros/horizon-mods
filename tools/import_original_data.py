@@ -224,9 +224,66 @@ def copy_modifier_recipes():
         shutil.rmtree(MODIFIER_RECIPE_TARGET)
     count = 0
     for path in sorted(MODIFIER_RECIPE_SOURCE.rglob('*.json')):
-        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting'):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting', 'tconstruct:modifier_repair', 'tconstruct:armor_dyeing_modifier', 'tconstruct:extract_modifier', 'tconstruct:modifier_set_worktable', 'tconstruct:modifier_sorting', 'tconstruct:toggle_interaction'):
             continue
         destination = MODIFIER_RECIPE_TARGET / path.relative_to(MODIFIER_RECIPE_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
+DAMAGING_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tables/tinker_station_damaging'
+DAMAGING_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tables/tinker_station_damaging'
+
+
+def copy_table_recipes():
+    """The fieldless station repair gate and the part swapping recipes live in the tables
+    folder beside the material swapping data, so they are copied file by file."""
+    tables = {"tinker_station_repair", "tinker_station_part_swapping", "ammo_part_swapping", "throwing_axe_part_swapping"}
+    types = {"tconstruct:tinker_station_repair", "tconstruct:tinker_station_part_swapping"}
+    written = 0
+    for name in tables:
+        source = GENERATED / "recipes/tables" / f"{name}.json"
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        if payload.get("type") not in types:
+            continue
+        target = CONTENT / "recipes/tables" / f"{name}.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+        written += 1
+    return written
+
+
+def copy_building_recipes():
+    """Tool building and tipped transform recipes ship from the original building folder."""
+    source_root = GENERATED / "recipes/tools/building"
+    target_root = CONTENT / "recipes/tools/building"
+    if target_root.exists():
+        shutil.rmtree(target_root)
+    written = 0
+    for source in sorted(source_root.rglob("*.json")):
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        if payload.get("type") not in {"tconstruct:tool_building", "tconstruct:tipped_tool_transform"}:
+            continue
+        target = target_root / source.relative_to(source_root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+        written += 1
+    return written
+
+
+
+def copy_damaging_recipes():
+    """The tinker station damaging recipes (`tconstruct:tinker_station_damaging`: tools damaged with
+    lava, blazing blood, magma or venom), byte for byte."""
+    if DAMAGING_TARGET.exists():
+        shutil.rmtree(DAMAGING_TARGET)
+    count = 0
+    for path in sorted(DAMAGING_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:tinker_station_damaging':
+            continue
+        destination = DAMAGING_TARGET / path.relative_to(DAMAGING_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, destination)
         count += 1
@@ -3698,7 +3755,7 @@ def main():
     gameplay_loot = copy_gameplay_loot()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes() + copy_damaging_recipes() + copy_table_recipes() + copy_building_recipes()
     layouts = copy_station_layouts()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table; {sounds} sound files, {mob_equipment} mob equipment files')
 

@@ -364,5 +364,13 @@ mod shaped_materials_tests;
 mod gadget_data;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/particles.rs"]
 mod particles;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/modifier_repair.rs"]
+mod modifier_repair;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/damaging.rs"]
+mod damaging;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/dyeing.rs"]
+mod dyeing;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/table_recipes.rs"]
+mod table_recipes;
 #[cfg(test)]
 mod particle_tests;
