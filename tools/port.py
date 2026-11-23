@@ -58,6 +58,10 @@ CONTENT_PATHS = (
     # particles.rs): the attack sets name their slash frames under textures/particle (the client-assets
     # shape above) and carry the host's horizon:behaviour block; the slime and fluid types ship empty.
     re.compile(r'assets/tconstruct/particles/[a-z0-9_]+\.json'),
+    # The modifier icon manager's overrides (tools/import_original_data.py): the icon and book cover
+    # sprite per modifier, named for the screens that draw modifier buttons; the sprites themselves
+    # live under textures/gui/modifiers (the client-assets shape above).
+    re.compile(r'assets/tconstruct/tinkering/modifier_icons\.json'),
     # Damage types used by armor modules and the smeltery, and their additions to vanilla tags.
     re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:avoids_guardian_thorns|bypasses_armor|bypasses_cooldown|bypasses_effects|bypasses_enchantments|is_explosion|is_fire|is_freezing|is_projectile|witch_resistant_to)\.json'),
     # Trim materials, imported as data only: the entries exist in the trim material registry, but no trim
@@ -509,6 +513,8 @@ def checked_content(root, version):
                 if '/recipes/tools/modifiers/' in name:
                     reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
                 elif '/recipes/tools/parts/builder/' in name:
+                    # part_builder_recipes.rs reads both kinds from this folder: the part recipes
+                    # and the item part recipes (elytra_copying, the building folder's one).
                     reviewed = ('tconstruct:part_builder', 'tconstruct:item_part_builder')
                 elif '/recipes/tools/severing/' in name:
                     reviewed = ('tconstruct:severing',)
