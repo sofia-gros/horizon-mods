@@ -5,6 +5,7 @@ mod damage_vanilla;
 mod instrument_tags;
 mod damage_tags;
 mod damaging;
+mod dyeing;
 mod protection;
 mod protection_hook;
 mod tool_damage_hook;

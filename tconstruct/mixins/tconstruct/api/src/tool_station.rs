@@ -92,6 +92,7 @@ pub(crate) struct ModifierRecipes<'a> {
     pub overslime: Option<&'a crate::overslime::Recipes>,
     pub modifier_repairs: Option<&'a crate::modifier_repair::Recipes>,
     pub damaging: Option<&'a crate::damaging::Recipes>,
+    pub dyeing: Option<&'a crate::dyeing::Recipes>,
     /// Each input slot's item and count (None when empty), independent of how it resolved.
     pub raw: &'a [Option<(Identifier, u32)>],
     /// The slot and modifier of a modifier crystal when it is the only thing on the table.
@@ -167,7 +168,21 @@ fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> 
                 }
             });
         }
-        // Nor overslime: a damaging recipe may still take the tool.
+        // Nor overslime: dyes may recolor dyeable gear.
+        if let Some(recipes) = modifiers.dyeing {
+            if let Some(attempt) = recipes.attempt(tool, &env, modifiers.raw, modifiers.in_tag) {
+                return Ok(match attempt {
+                    Err(message) => Outcome::Failure(message),
+                    Ok((result, consumed)) => Outcome::Crafted(Crafted {
+                        result,
+                        consumed: consumed.into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect(),
+                        tool_shrink: 1,
+                        leftover: Vec::new(),
+                    }),
+                });
+            }
+        }
+        // Nor dyeing: a damaging recipe may still take the tool.
         if let Some(recipes) = modifiers.damaging {
             if let Some(attempt) = recipes.attempt(tool, &env, modifiers.raw, modifiers.in_tag) {
                 return Ok(match attempt {
