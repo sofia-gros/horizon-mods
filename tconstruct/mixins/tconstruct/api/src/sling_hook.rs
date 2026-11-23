@@ -6,17 +6,25 @@
 //! with a real melee attack; SlingLeapModule launches the holder; SlingTeleportModule
 //! moves the holder along the look to the furthest standable block the offset reaches.
 //!
+//! The push lands a tick late, by construction: `EntityReach::knockback`,
+//! `EntityReach::push` and `EntityReach::leave_ground` queue the motion, and the host
+//! applies it at its next rider synchronisation through the game's own knockback and
+//! motion paths — the target's knockback resistance applies as the original's does, and
+//! a pushed player's client is told. The forces and angles are computed here exactly as
+//! the original computes them, and every effect around them (the bonk's damage, sounds,
+//! particles, wear, cooldown) runs in the telling, as it does in the original.
+//!
 //! What has no surface yet, exactly:
-//! - The push itself. `Entity.knockback` and `Entity.push` by a vector are not a PlutoLib
-//!   surface: `EntityAction::Knockback` exists only inside hit and tick event queues, and
-//!   the release telling carries no action queue, and `EntityReach::teleport` answers
-//!   false for a player (the host has no call that moves a player). The knockback and
-//!   leap forces and angles are computed exactly as the original computes them, and
-//!   every effect around them (the bonk's damage, sounds, particles, wear, cooldown)
-//!   runs; applying the velocity waits on that surface, as does the leap's leave-ground
-//!   hop, its slime bounce handler and a drill tool's spin attack. The teleport calls
-//!   the reach and keys its success effects off the answer, so it lands the day the
-//!   player move does.
+//! - The teleport: `EntityReach::teleport` answers false for a player (the host has no
+//!   call that moves a player), so the wiring stands ready and keys its success effects
+//!   off the answer, as they key off the original's teleport event not being cancelled;
+//!   it lands the day the player move does.
+//! - The leap's slime bounce handler and a drill tool's spin attack.
+//!   SlimeBounceHandler is a per-tick momentum preservation, not a one-shot push: it
+//!   re-adds 97.5% of the former horizontal speed on every airborne tick and applies a
+//!   bounce velocity stored by the fall event one tick after landing, and
+//!   `startAutoSpinAttack` is its own call besides; no PlutoLib surface runs either
+//!   yet, so both still wait.
 //! - Exhaustion (0.2 per sling): the player telling reads food, it does not spend it.
 //! - The three-tick item cooldown: `ReleaseUsing::set_used` starts the item's own
 //!   content cooldown instead.
@@ -244,12 +252,15 @@ fn knockback(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCom
     let multiplier = charge * module.force_multiplier(entry);
     let force = tool_stack::sling_force(nbt, env, entities, holder, &target_state, id, tool_stack::sling_power(nbt, env, entities) * multiplier, multiplier);
     if force > 0.0 {
-        // The knockback itself: the original calls `target.knockback(force, angle)` with
-        // the inaccuracy spread (and a motion packet for a player target). No PlutoLib
-        // surface pushes an entity by a vector — see the header — so the force and its
-        // angle are computed exactly as the original computes them and the push waits.
+        // The knockback itself: `target.knockback(force, angle)` with the inaccuracy
+        // spread, through the entity reach — the game's own knockback applies the
+        // target's resistance, and a player target's client is told, as the original's
+        // motion packet tells it. The reach applies it at the next rider
+        // synchronisation. The original counts the bonk whether or not the resistance
+        // eats the push, and so does this.
         let inaccuracy = f64::from(tool_stack::inaccuracy(nbt, env, entities)) * 0.0075;
-        let _angle = [-release.look[0] + gaussian(&world) * inaccuracy, -release.look[2] + gaussian(&world) * inaccuracy];
+        let angle = [-release.look[0] + gaussian(&world) * inaccuracy, -release.look[2] + gaussian(&world) * inaccuracy];
+        EntityReach::knockback(target_id, f64::from(force), angle[0], angle[1]);
         did_bonk = true;
     }
     if !did_bonk {
@@ -279,8 +290,8 @@ fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound
     // The launch angle, exactly as SlingLeapModule builds it: the upward bias joins the
     // look before it is normalized, the height reduction divides the y after, the
     // inaccuracy spreads every axis, and a negative force multiplier flips the whole
-    // angle. The push itself (`entity.push`) has no PlutoLib surface — see the header.
-    let Sling::Leap { height_reduction, bias_upwards, .. } = module else { return };
+    // angle. The push itself lands through the entity reach — see the header.
+    let Sling::Leap { height_reduction, bias_upwards, leave_ground, .. } = module else { return };
     let inaccuracy = f64::from(tool_stack::inaccuracy(nbt, env, entities)) * 0.0075;
     let mut look = release.look;
     if *bias_upwards {
@@ -292,7 +303,17 @@ fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound
         (look[1] / len + gaussian(&world) * inaccuracy) / f64::from(*height_reduction),
         look[2] / len + gaussian(&world) * inaccuracy,
     ];
-    let _push = scale(angle, if computed < 0.0 { -f64::from(force) } else { f64::from(force) });
+    let push = scale(angle, if computed < 0.0 { -f64::from(force) } else { f64::from(force) });
+    // The launch: `entity.push(...)` through the entity reach, and the leave-ground hop
+    // after it (`entity.move(SELF, (0, 1.3, 0))`) when the module asks for it, so the
+    // holder is airborne before the motion meets the ground. Both are queued in this
+    // order and land at the host's next rider synchronisation.
+    if let Some(holder_id) = EntityReach::id_of_uuid(release.player.uuid) {
+        EntityReach::push(holder_id, push);
+        if *leave_ground {
+            EntityReach::leave_ground(holder_id);
+        }
+    }
     world.play_sound("tconstruct:slime_sling", release.position, 1.0, 1.0);
     spend(release, 1, id);
 }
