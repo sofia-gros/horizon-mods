@@ -1,13 +1,19 @@
 {
   "parent": "tconstruct:block/template/pane/post",
+<<<<<<< HEAD
   "connection": {
     "predicate": "pane",
     "textures": {
       "pane": "cornerless_full"
     }
   },
+=======
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
+>>>>>>> 1419225de... DATA-REST DATA-W2: convert the connected glass models to the host's Fusion form
   "textures": {
     "edge": "tconstruct:block/foundry/glass_top",
-    "pane": "tconstruct:block/foundry/glass"
+    "pane": "tconstruct:block/foundry/glass_connected",
+    "particle": "tconstruct:block/foundry/glass"
   }
 }
