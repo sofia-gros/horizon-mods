@@ -65,6 +65,7 @@ mod fireball_hook;
 mod potion_contents;
 mod blocking_hook;
 mod walk_hook;
+mod replace_fluid;
 mod weapon_effect;
 mod thorns;
 mod hit_actions;

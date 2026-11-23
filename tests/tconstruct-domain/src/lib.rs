@@ -95,6 +95,8 @@ mod shoot_hook;
 mod blocking_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/walk_hook.rs"]
 mod walk_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/replace_fluid.rs"]
+mod replace_fluid;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/weapon_effect.rs"]
 mod weapon_effect;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/thorns.rs"]

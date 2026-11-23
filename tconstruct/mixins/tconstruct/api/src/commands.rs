@@ -1931,7 +1931,7 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:tool_using");
             out.insert("tconstruct:edible_effect");
         }
-        Module::FireWalker { .. } | Module::GlowWalker { .. } | Module::CoverGround { .. } => {
+        Module::FireWalker { .. } | Module::GlowWalker { .. } | Module::CoverGround { .. } | Module::ReplaceFluid { .. } => {
             out.insert("tconstruct:boot_walk");
         }
         Module::PlaceGlow { .. } => {
