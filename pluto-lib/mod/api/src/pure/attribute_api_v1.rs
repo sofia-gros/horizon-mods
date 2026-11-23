@@ -119,13 +119,17 @@ pub fn attribute_value(def: &AttributeDef, contributions: &[AttributeContributio
 
 static ATTRIBUTES: RwLock<BTreeMap<String, AttributeDef>> = RwLock::new(BTreeMap::new());
 
-/// The attributes mods have declared, by id. Registration is process-lifetime and registering
-/// an id again replaces its declaration.
+/// The attributes mods have declared, by id. Registration is process-lifetime: declaring an
+/// id again with the same declaration stands as it was, and a different declaration for an id
+/// already declared is refused, so the first declaration for an id is the one that stands.
 pub struct AttributeRegistry;
 
 impl AttributeRegistry {
     /// Declares an attribute. The declaration is validated whole first — the numbers finite and
     /// the default inside the range — so a refused declaration leaves any previous one intact.
+    /// A declaration for an id already declared is refused the same way when it differs from
+    /// the one standing (a different default or range); declaring the same declaration again
+    /// is accepted and changes nothing.
     pub fn register(def: AttributeDef) -> Result<(), String> {
         if !def.default.is_finite() || !def.min.is_finite() || !def.max.is_finite() {
             return Err(format!("attribute {} numbers must be finite", def.id));
@@ -134,7 +138,14 @@ impl AttributeRegistry {
             return Err(format!("attribute {} default {} outside its range {}..={}", def.id, def.default, def.min, def.max));
         }
         let mut attributes = ATTRIBUTES.write().map_err(|_| "attribute registry poisoned")?;
-        attributes.insert(def.id.to_string(), def);
+        let key = def.id.to_string();
+        if let Some(existing) = attributes.get(&key) {
+            if *existing != def {
+                return Err(format!("attribute {} is already declared with a different default or range", def.id));
+            }
+            return Ok(());
+        }
+        attributes.insert(key, def);
         Ok(())
     }
 
