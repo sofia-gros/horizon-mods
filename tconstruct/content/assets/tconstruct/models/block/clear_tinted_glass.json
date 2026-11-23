@@ -1,0 +1,11 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "tconstruct:block/clear_tinted_glass"
+  },
+  "connection": {
+    "textures": {
+      "all": "cornerless_full"
+    }
+  }
+}

@@ -1323,7 +1323,7 @@ def copy_client_assets():
         converted = {}
         for key, value in read(asset_source(f'models/{path}.json')).items():
             # render_type: 26.x derives the render layer from the texture's alpha (its own slime block model has none).
-            if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids', 'connection'):
+            if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids'):
                 continue
             if key == 'parent':
                 value = import_model(value)
@@ -2427,8 +2427,8 @@ def commons_blocks():
     def glass(template, color):
         return {'template': template, 'properties': {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': False, 'occludes': False}, 'item': True}
 
-    blocks = {'clear_glass': glass('minecraft:glass', 'NONE'), 'clear_glass_pane': glass('minecraft:glass_pane', 'NONE')}
-    blocks['clear_tinted_glass'] = glass('minecraft:glass', 'COLOR_GRAY')
+    blocks = {'clear_glass': glass('minecraft:glass', 'NONE'), 'clear_glass_pane': glass('minecraft:glass_pane', 'NONE'),
+              'clear_tinted_glass': glass('minecraft:tinted_glass', 'COLOR_GRAY')}
     for name, color in GLASS_COLORS:
         blocks[f'{name}_clear_stained_glass'] = glass('minecraft:glass', color)
         blocks[f'{name}_clear_stained_glass_pane'] = glass('minecraft:glass_pane', color)
