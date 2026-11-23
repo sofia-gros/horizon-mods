@@ -2066,7 +2066,7 @@ bindings = [
 id = "pluto-hanging-frame-set-item"
 target = "horizon_client::game::frames::Game<'_>::set_frame_item"
 kind = "HEAD"
-helper = "pluto-hanging-frame-hit.rs"
+helper = "pluto-hanging-frame-set-item.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
  { name = "i", ty = "usize", value = "i" },
