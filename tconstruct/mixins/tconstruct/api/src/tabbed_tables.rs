@@ -236,7 +236,7 @@ pub(crate) fn publish(tick: &mut BlockEntityTick, base: usize, side: bool) {
 /// Draws the tab strip above the window: one tab per neighbouring table, its block's item as
 /// the icon, the open table's tab in its active form. `icons` is the icons sheet's texture
 /// name, as each window's own drawing names it.
-pub(crate) fn draw_tabs(canvas: &mut ScreenCanvas, origin: [f32; 2], data: &[i32], base: usize, icons: &str) {
+pub(crate) fn draw_tabs(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32], base: usize, icons: &str) {
     let count = data.get(base + DATA_TAB_COUNT).copied().unwrap_or(0).max(0) as usize;
     let own = data.get(base + DATA_TAB_SELF).copied().unwrap_or(-1);
     for index in 0..count.min(MAX_TABS) {
@@ -255,7 +255,7 @@ pub(crate) fn draw_tabs(canvas: &mut ScreenCanvas, origin: [f32; 2], data: &[i32
 
 /// Draws the side inventory's module: its panel, its title, and a frame per shown slot (the
 /// host's own frames sit under this draw, so the module draws its own).
-pub(crate) fn draw_side_panel(canvas: &mut ScreenCanvas, origin: [f32; 2], data: &[i32], base: usize) {
+pub(crate) fn draw_side_panel(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32], base: usize) {
     let count = data.get(base + DATA_SIDE_COUNT).copied().unwrap_or(0).max(0) as usize;
     if count == 0 { return; }
     let columns = data.get(base + DATA_SIDE_COLUMNS).copied().unwrap_or(3).max(1) as usize;
