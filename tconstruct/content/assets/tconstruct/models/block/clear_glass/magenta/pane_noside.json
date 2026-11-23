@@ -1,5 +1,11 @@
 {
   "parent": "tconstruct:block/template/pane/noside",
+  "connection": {
+    "predicate": "pane",
+    "textures": {
+      "pane": "cornerless_full"
+    }
+  },
   "textures": {
     "pane": "tconstruct:block/clear_stained_glass"
   }

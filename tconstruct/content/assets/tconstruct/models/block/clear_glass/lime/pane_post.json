@@ -1,5 +1,11 @@
 {
   "parent": "tconstruct:block/template/pane/post",
+  "connection": {
+    "predicate": "pane",
+    "textures": {
+      "pane": "cornerless_full"
+    }
+  },
   "textures": {
     "edge": "tconstruct:block/clear_stained_glass_top",
     "pane": "tconstruct:block/clear_stained_glass"

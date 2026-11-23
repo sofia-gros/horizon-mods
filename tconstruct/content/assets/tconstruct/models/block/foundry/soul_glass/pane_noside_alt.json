@@ -1,5 +1,11 @@
 {
   "parent": "tconstruct:block/template/pane/noside_alt",
+  "connection": {
+    "predicate": "pane",
+    "textures": {
+      "pane": "cornerless_full"
+    }
+  },
   "textures": {
     "pane": "tconstruct:block/foundry/soul_glass"
   }

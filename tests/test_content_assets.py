@@ -435,6 +435,20 @@ class ContentAssets(unittest.TestCase):
         # (cinderslime, ichor), which Mantle names from the flowing sprite of a fluid lighter than air.
         used |= {'fluid/liquid/flowing', 'fluid/molten/alloy/cinderslime/flowing_inverted',
                  'fluid/slime/ichor/flowing_inverted'}
+        # Connected-glass sprites are picked by Mantle's connected-texture rule from the folder of a
+        # `connection` model's block texture: the fifteen direction-combination sprites, and, in the two
+        # full-glass folders (foundry glass, seared glass), the `normal` sprite of an unconnected face.
+        edges = ('d', 'dl', 'dlr', 'dr', 'l', 'lr', 'r', 'u', 'ud', 'udl', 'udlr', 'udr', 'ul', 'ulr', 'ur')
+        for path in (ASSETS / 'models').rglob('*.json'):
+            model = load(path)
+            if 'connection' not in model:
+                continue
+            for texture in model.get('textures', {}).values():
+                namespace, name = split(texture)
+                if namespace == 'tconstruct' and not name.endswith('_top'):
+                    used |= {f'{name}/{edge}' for edge in edges}
+                    if name in ('block/foundry/glass', 'block/smeltery/seared_glass'):
+                        used.add(f'{name}/normal')
         # Particle sprites are named by the shipped particle definitions (assets/tconstruct/particles/*.json),
         # whose texture ids are relative to textures/particle/: the host's particle loader reads them from there.
         for path in (ASSETS / 'particles').glob('*.json'):

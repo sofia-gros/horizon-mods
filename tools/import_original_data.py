@@ -1320,8 +1320,9 @@ def copy_client_assets():
         if path in written['models']:
             return reference
         written['models'].add(path)
+        source_model = read(asset_source(f'models/{path}.json'))
         converted = {}
-        for key, value in read(asset_source(f'models/{path}.json')).items():
+        for key, value in source_model.items():
             # render_type: 26.x derives the render layer from the texture's alpha (its own slime block model has none).
             if key in ('loader', 'retextured', '__comment', 'render_type', 'colors', 'fluids'):
                 continue
@@ -1332,6 +1333,18 @@ def copy_client_assets():
             elif key == 'elements':
                 value = [{k: v for k, v in element.items() if k != '__comment'} for element in value]
             converted[key] = value
+        if 'connection' in source_model:
+            # Mantle's connected-texture set of a glass texture: the direction-combination sprites (and the
+            # smeltery and foundry folders' `normal`) in the texture's own folder, picked at render time by
+            # the neighbours' connections; they ship with the model whose connection data names the texture.
+            for texture in source_model.get('textures', {}).values():
+                if texture.startswith('#'):
+                    continue
+                folder_path = qualify(texture).split(':', 1)[1]
+                folder = asset_source(f'textures/{folder_path}')
+                if folder.is_dir():
+                    for sprite in sorted(folder.glob('*.png')):
+                        import_texture(f'tconstruct:{folder_path}/{sprite.stem}')
         write(f'models/{path}.json', converted)
         return reference
 
@@ -2416,7 +2429,7 @@ def commons_blocks():
     """TinkerCommons blocks the plain crafting recipes name: the clear glass family, the obsidian pane and the
     gold bars. Clear glass is the original's `glassBuilder` (strength 0.3, glass sound, no occlusion) on the
     vanilla glass and glass pane templates; its connected textures ride on the models' `connection` data, which
-    the asset import drops, so the glass keeps its plain texture, as the retextured blocks keep theirs. The
+    the asset import keeps with the edge sprites (the connected rendering itself is the world unit's). The
     obsidian pane is Mantle's BetterPaneBlock at obsidian strength (25/400, stone sound, the correct tool) and
     the gold bars the vanilla IronBarsBlock (metal sound, strength 3/6, the correct tool). The platforms are the
     PlatformBlocks (copper sound, the correct tool, no occlusion) with their six connection states; the shapes the

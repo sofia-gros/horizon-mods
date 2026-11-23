@@ -2,5 +2,10 @@
   "parent": "minecraft:block/cube_all",
   "textures": {
     "all": "tconstruct:block/foundry/tinted_glass"
+  },
+  "connection": {
+    "textures": {
+      "all": "cornerless_full"
+    }
   }
 }
