@@ -1315,3 +1315,105 @@ use pluto_lib::{Identifier, SpawnPlacementRegistry};
 let registered: bool = SpawnPlacementRegistry::is_registered(&Identifier::parse("example:absent").unwrap());
 let _ = registered;
 ```
+
+### `FishingRegistry`
+
+The registry of fishing rods a mod casts with: which items count as rods (a hook stays alive only while its owner holds one — the game's own check names the vanilla rod, and the transport asks this registry for the rest), and how a rod stack's cast profile is computed. The game's fishing is built around its own hook, whose rod use is gated to the vanilla item; a registered rod's use goes through [`Fishing::use_rod`](#fishing) instead.
+
+```rust
+use pluto_lib::{FishingProfile, FishingRegistry, Grapple, Identifier, StackData};
+
+FishingRegistry::register(Identifier::parse("example:war_rod").unwrap(), |stack| {
+    (stack.count > 0).then_some(FishingProfile { power: 2.0, grapple: Grapple::Drill, ..FishingProfile::default() })
+});
+assert!(FishingRegistry::is_rod("example:war_rod"));
+let stack = StackData { item: "example:war_rod".into(), count: 1, ..StackData::default() };
+assert_eq!(FishingRegistry::profile(&stack).map(|profile| profile.power), Some(2.0));
+```
+
+### `FishingProfile`
+
+The numbers a rod casts with, computed from the stack used: the `luck` and `lure` the hook fishes with, the `velocity` it flies at, the cast's `inaccuracy` spread, the `power` a hooked entity is hurt by (0 fishes without fighting), the `knockback` bonus on the retrieve pull, whether the hook `grapple`s and collects what it touches.
+
+```rust
+use pluto_lib::{FishingProfile, Grapple};
+
+let plain = FishingProfile::default();
+assert_eq!((plain.velocity, plain.power, plain.grapple), (1.0, 0.0, Grapple::None));
+let war = FishingProfile { luck: 2, lure: 1, power: 2.0, grapple: Grapple::Dash, collecting: true, ..plain };
+assert_eq!((war.luck, war.lure, war.collecting), (2, 1, true));
+```
+
+### `Grapple`
+
+How a grapple hook behaves: `None` only fishes and fights, `Dash` pulls its owner toward the hook when it lands, and `Drill` also pulls when it hooks an entity.
+
+```rust
+use pluto_lib::Grapple;
+
+assert_eq!(Grapple::default(), Grapple::None);
+assert_ne!(Grapple::Dash, Grapple::Drill);
+```
+
+### `Fishing`
+
+Fishing with a mod's rod: the calls a mod makes. `use_rod` queues a use — the game's fishing tick casts with the profile when no hook of this rod is out and retrieves when one is — and `take_wear` drains the rod wear the game side reports (a cast's and a hit's 1, a retrieve's cost), which the mod pays into its own tool at its next use, so the wear lands at most one use late. The reach is the local player's, as the game's fishing simulation is single-hook and local.
+
+```rust
+use pluto_lib::{Fishing, FishingProfile, ServerPlayer};
+
+let player = ServerPlayer { uuid: 7, name: "Alex".into() };
+Fishing::use_rod(&player, FishingProfile::default());
+assert_eq!(Fishing::take_use(), Some((7, FishingProfile::default())));
+Fishing::note_wear(7, 3);
+assert_eq!(Fishing::take_wear(&player), 3);
+assert_eq!(Fishing::take_wear(&player), 0);
+```
+
+### `combat_damage`
+
+The damage a hooked entity takes at retrieve: the impact speed times the power times 15, rounded up to a whole tenth.
+
+```rust
+use pluto_lib::combat_damage;
+
+assert_eq!(combat_damage(2.0, 2.0), 6.0);
+assert_eq!(combat_damage(0.5, 1.0), 0.8);
+assert_eq!(combat_damage(3.0, 0.0), 0.0);
+```
+
+### `pull_delta`
+
+The velocity a hooked entity gains at retrieve: toward the owner, a tenth of the way, plus the knockback bonus `0.25 * knockback / distance` when the rod has knockback.
+
+```rust
+use pluto_lib::pull_delta;
+
+assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 0.0), [-1.0, 0.0, 0.0]);
+assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 4.0), [-2.0, 0.0, 0.0]);
+```
+
+### `grapple_delta`
+
+The velocity the owner gains from a grapple: toward the hook, scaled by `0.58 / sqrt(distance)`.
+
+```rust
+use pluto_lib::grapple_delta;
+
+let pull = grapple_delta([0.0, 64.0, 0.0], [16.0, 64.0, 0.0]);
+assert!((pull[0] - 2.32).abs() < 1e-9);
+assert_eq!(grapple_delta([0.0, 64.0, 0.0], [0.0, 64.0, 0.0]), [0.0; 3]);
+```
+
+### `retrieve_damage`
+
+The rod wear a retrieve costs, over the game's own retrieve number: a grounded hook costs at least 2 and at most 3; anything else costs at most 3.
+
+```rust
+use pluto_lib::retrieve_damage;
+
+assert_eq!(retrieve_damage(5, true), 3);
+assert_eq!(retrieve_damage(0, true), 2);
+assert_eq!(retrieve_damage(5, false), 3);
+assert_eq!(retrieve_damage(1, false), 1);
+```

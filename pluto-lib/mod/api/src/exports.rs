@@ -22,6 +22,7 @@ pub use crate::pure::particle_api_v1::{self, ParticleData, ParticleFactory, Part
 pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullModelRegistry};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
 pub use crate::pure::dispense_api_v1::{self, DispenseBehavior, DispenseRegistry, dispense_shot};
+pub use crate::pure::fishing_api_v1::{self, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, pull_delta, retrieve_damage};
 pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};

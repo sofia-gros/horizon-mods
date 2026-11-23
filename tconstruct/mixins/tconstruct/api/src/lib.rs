@@ -93,6 +93,7 @@ mod edible;
 mod books;
 mod hud;
 mod edible_hook;
+mod fishing_hook;
 mod tool_action_hook;
 mod tool_slot;
 mod tool_station;
@@ -230,6 +231,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     quiver_hook::register();
     armor_interact_hook::register();
     edible_hook::register();
+    fishing_hook::register();
     books::register();
     hud::register();
     // After the edible hook: the shield items' per-stack use is the combined blocking/eating one.

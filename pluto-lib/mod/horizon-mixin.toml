@@ -2111,3 +2111,51 @@ bindings = [
  { name = "damage_type", ty = "&str", value = "damage_type" },
  { name = "causing", ty = "Option<super::commands::Target>", value = "causing" }
 ]
+
+# Fishing with a mod's rod: the shared state lives in the entry (the fishing module is private to
+# the game), the game-side work in the fishing module itself, and three small reaches: the tick
+# head that drains a queued use, the rod check that keeps a combat hook alive, and the hit head
+# that records the impact before the hook's velocity is zeroed.
+[[module]]
+id = "pluto-fishing-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_fishing_access"
+source = "pluto-fishing-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-fishing-game"
+file = "crates/horizon-client/src/game/fishing.rs"
+name = "pluto_fishing_game"
+source = "pluto-fishing-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-fishing-tick-head"
+target = "horizon_client::game::fishing::Game<'_>::tick_fishing"
+kind = "HEAD"
+helper = "pluto-fishing-tick-head.rs"
+bindings = [
+ { name = "game", ty = "&mut horizon_client::game::Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-fishing-holds-rod-head"
+target = "horizon_client::game::fishing::Game<'_>::holds_rod"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-fishing-holds-rod-head.rs"
+bindings = [
+ { name = "game", ty = "&horizon_client::game::Game<'_>", value = "&*self" }
+]
+
+[[injection]]
+id = "pluto-fishing-hit-head"
+target = "horizon_client::game::fishing::Hook::hit_entity"
+kind = "HEAD"
+helper = "pluto-fishing-hit-head.rs"
+bindings = [
+ { name = "hook", ty = "&mut horizon_client::game::fishing::Hook", value = "&mut *self" },
+ { name = "id", ty = "u32", value = "id" },
+ { name = "deflects", ty = "bool", value = "deflects" }
+]

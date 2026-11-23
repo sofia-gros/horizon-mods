@@ -27,6 +27,7 @@ use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
 use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
 use crate::pure::entity_api_v1::{self, EntityOps};
 use crate::pure::dispense_api_v1::{self, DispenseBehavior};
+use crate::pure::fishing_api_v1::{self, Fishing, Grapple};
 use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::item_storage_api_v1::ItemStorage;
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
@@ -393,6 +394,12 @@ pub fn hooks() -> Box<dyn Hooks> {
             frame_tick:native_hanging_frame_tick,
             stand_hidden:native_hanging_stand_hidden,
         }).expect("PlutoLib hanging variant provider installs once");
+    horizon_client::entry::pluto_fishing_access::set_provider(
+        horizon_client::entry::pluto_fishing_access::Provider {
+            take_use:native_fishing_take_use,
+            note_wear:Fishing::note_wear,
+            is_rod:fishing_api_v1::FishingRegistry::is_rod,
+        });
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -1049,6 +1056,16 @@ fn native_hanging_frame(facts:&crate::pure::hanging_api_v1::FrameVariant)->horiz
         rotation_step:facts.rotation_step,winds_down:facts.winds_down,more_rotations:facts.more_rotations,
         fullbright:facts.fullbright,hidden_when_filled:facts.hidden_when_filled,click_through:facts.click_through,
         fire_immune:facts.fire_immune }
+}
+
+/// The queued fishing use, in the access module's plain shape (the pure profile, field for field).
+fn native_fishing_take_use()->Option<(u128,horizon_client::entry::pluto_fishing_access::UseProfile)> {
+    let (uuid,profile)=Fishing::take_use()?;
+    Some((uuid,horizon_client::entry::pluto_fishing_access::UseProfile {
+        luck:profile.luck,lure:profile.lure,velocity:profile.velocity,inaccuracy:profile.inaccuracy,
+        power:profile.power,knockback:profile.knockback,
+        grapple:match profile.grapple { Grapple::None=>0,Grapple::Dash=>1,Grapple::Drill=>2 },
+        collecting:profile.collecting }))
 }
 
 fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::entry::pluto_hanging_access::StandFacts {
