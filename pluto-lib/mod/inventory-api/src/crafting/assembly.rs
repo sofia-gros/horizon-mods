@@ -122,7 +122,7 @@ mod tests {
     use super::*;
     use crate::recipe_book::placement::Form;
     fn recipe() -> RecipeFacts<'static> {
-        RecipeFacts { form: Form::Special, ingredients: None, template: None }
+        RecipeFacts { form: Form::Special, id: None, ingredients: None, template: None }
     }
     fn inspect(_: &RecipeFacts<'_>) -> bool {
         true

@@ -74,10 +74,21 @@ fn with_custom_data(stack: ItemStack, custom_data: ComponentValue) -> ItemStack 
     stack
 }
 
-pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Verdict {
+pub fn evaluate(ctx: &Context, input: &Input<'_>, recipe: &Recipe) -> Verdict {
     if !matching::has_providers() && !assembly::has_providers() {
         return Verdict::Native;
     }
+    // The recipe's loaded id: the tables store it beside the recipe, and
+    // every caller reaches this function with the recipe borrowed from that
+    // table, so the entry whose recipe is this very one names it. A recipe
+    // the table does not hold (never the case from the match call sites)
+    // reports no id, and identity-based admission passes it by.
+    let id = ctx
+        .recipes
+        .crafting
+        .iter()
+        .find(|(_, stored)| std::ptr::eq(stored, recipe))
+        .map(|(name, _)| name.as_str());
     let (form, ingredients, template): (_, Option<Vec<Option<&dyn Ingredient>>>, _) = match recipe {
         Recipe::Shaped {
             width,
@@ -114,6 +125,7 @@ pub fn evaluate(input: &Input<'_>, recipe: &Recipe) -> Verdict {
     };
     let facts = RecipeFacts {
         form,
+        id,
         ingredients: ingredients.as_deref(),
         template: template.map(|t| TemplateFacts {
             item: t.item.as_deref(),

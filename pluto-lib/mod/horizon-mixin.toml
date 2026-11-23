@@ -1862,7 +1862,7 @@ target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
 kind = "HEAD"
 cancellable = true
 helper = "pluto-crafting-match-veto-head.rs"
-bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+bindings = [{ name = "ctx", ty = "&Context<'_>", value = "ctx" }, { name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
 
 # special-recipe providers; a native match is returned unchanged. Reviewed
 # with the crafting-match pair (crafting-match-boundaries.json).

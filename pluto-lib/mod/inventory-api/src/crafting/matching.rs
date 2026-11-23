@@ -1,5 +1,6 @@
 //! Cheap-interest, deny-only admission before native recipe matching/assembly.
-//! No output replacement, inventory write or recipe identity is provided.
+//! No output replacement or inventory write: the recipe's loaded id is
+//! reported so a policy can admit by identity, never to grant a match.
 use crate::{
     advancements::predicates::ItemSnapshot,
     recipe_book::placement::{Form, Ingredient},
@@ -15,6 +16,10 @@ pub struct TemplateFacts<'a> {
 }
 pub struct RecipeFacts<'a> {
     pub form: Form,
+    /// The recipe's id as loaded (`<namespace>:<path>` for a content mod's
+    /// recipe, the bare name for one of vanilla's), when the adapter could
+    /// name it; None when it could not.
+    pub id: Option<&'a str>,
     /// Cell order and holes are retained. None is unavailable (special recipes).
     pub ingredients: Option<&'a [Option<&'a dyn Ingredient>]>,
     /// Fixed result templates only; special assembly results are unavailable.
@@ -131,6 +136,7 @@ mod tests {
     fn recipe() -> RecipeFacts<'static> {
         RecipeFacts {
             form: Form::Special,
+            id: None,
             ingredients: None,
             template: None,
         }
