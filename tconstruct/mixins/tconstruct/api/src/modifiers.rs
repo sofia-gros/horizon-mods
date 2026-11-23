@@ -733,14 +733,14 @@ pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
 /// ambidextrous, parrying, offhand_attack — a second hand's hits and blocks reach no event here;
 /// the dagger definition and the blockade trait name two of them, so their tools must still
 /// build), bursting and wetting (their behaviours run on interactions no surface here reaches),
-/// tank_handler (the tool tank foundation), piercing (the projectile side's), and plague,
+/// piercing (the projectile side's), and plague,
 /// wildfire, breathtaking, firebreath, olympic and energy_handler, which the original itself
 /// gives no grant path — registry parity is all they ask.
 /// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
 /// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
 pub(crate) const CODE_MODIFIERS: &[&str] = &["dwarven", "enderporting", "self_destructive", "strong_bones",
     "sinistral", "exchanging", "bursting", "wetting", "dual_wielding", "ambidextrous", "parrying", "offhand_attack",
-    "tank_handler", "piercing", "plague", "wildfire", "breathtaking", "firebreath", "olympic", "energy_handler"];
+    "piercing", "plague", "wildfire", "breathtaking", "firebreath", "olympic", "energy_handler"];
 
 pub(crate) fn unported_code_modifiers() -> Result<Vec<Modifier>, String> {
     CODE_MODIFIERS.iter().map(|name| {
