@@ -7,9 +7,9 @@ use crate::{
     modifier_entries::List,
     modifier_modules::CausePredicate,
     modifier_recipes::{check_match_facts, Sized},
-    tool_stack::TAG_UPGRADES,
+    tool_stack::{TAG_MODIFIERS, TAG_PERSISTENT, TAG_UPGRADES},
 };
-use pluto_lib::{Identifier, ItemSlot, ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
+use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound, ResourceManagerHelper, ResourceType, ServerLifecycleEvents};
 use serde_json::Value;
 use std::sync::{Arc, RwLock};
 
@@ -230,6 +230,271 @@ pub(crate) fn register_extractions<C: Conditions + 'static>(context: impl Fn() -
     ServerLifecycleEvents::SERVER_STOPPED.register(move |_| *stopped.write().expect("worktable extractions poisoned") = Extractions::default());
     Ok(state)
 }
+
+/// A tool's persistent data compound (ModDataNBT), empty when unset.
+fn persistent_of(tool: &ItemSlot) -> NbtCompound {
+    match tool.custom_data.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() }
+}
+
+/// A string list in the persistent data (ModifierSetWorktableRecipe's LIST_GETTER).
+fn string_list(persistent: &NbtCompound, key: &str) -> Vec<String> {
+    match persistent.get(key) {
+        Some(Nbt::List(values)) => values.iter().filter_map(|value| match value { Nbt::String(text) => Some(text.clone()), _ => None }).collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn nbt_string_list(list: Vec<String>) -> Nbt { Nbt::List(list.into_iter().map(Nbt::String).collect()) }
+
+/// One worktable recipe family's load over the shared folder, shaped like the removals'.
+macro_rules! worktable_family {
+    ($family:ident, $recipe:ident, $kind:literal, $listener:literal, $label:literal) => {
+        #[derive(Clone, Debug, Default)]
+        pub(crate) struct $family { recipes: Vec<$recipe>, pub problems: Vec<String>, pub loaded: bool }
+        impl $family {
+            pub fn load<C: Conditions>(files: &[(Identifier, Value)], conditions: &C) -> Self {
+                let mut result = Self { loaded: true, ..Self::default() };
+                let mut sorted: Vec<&(Identifier, Value)> = files.iter().collect();
+                sorted.sort_by(|a, b| a.0.cmp(&b.0));
+                for (id, value) in sorted {
+                    let outcome = (|| -> Result<Option<$recipe>, String> {
+                        let fields = value.as_object().ok_or("recipe must be an object")?;
+                        if fields.get("type").and_then(Value::as_str) != Some($kind) { return Ok(None); }
+                        if let Some(list) = fields.get("conditions") {
+                            let parsed = list.as_array().ok_or("conditions must be an array")?.iter().map(|c| conditions.decode(c)).collect::<Result<Vec<_>, _>>()?;
+                            for condition in &parsed { if !conditions.test(condition)? { return Ok(None); } }
+                        }
+                        $recipe::decode(id, value).map(Some)
+                    })();
+                    match outcome {
+                        Ok(Some(recipe)) => result.recipes.push(recipe),
+                        Ok(None) => {}
+                        Err(error) => result.problems.push(format!("{id}: {error}")),
+                    }
+                }
+                result
+            }
+            pub fn len(&self) -> usize { self.recipes.len() }
+            /// The first recipe whose tool requirement and inputs match, in id order.
+            pub fn find_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&$recipe> {
+                self.recipes.iter().find(|recipe| recipe.matches_facts(tool, inputs, facts, in_tag))
+            }
+        }
+        pub(crate) fn $listener<C: Conditions + 'static>(context: impl Fn() -> Result<C, String> + Send + Sync + 'static) -> Result<Arc<RwLock<$family>>, String> {
+            let state = Arc::new(RwLock::new($family::default()));
+            let output = state.clone();
+            ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
+                Identifier::new("tconstruct", $label).unwrap(), FOLDER, move |files| {
+                    let context = context();
+                    let mut state = output.write().map_err(|_| "worktable recipes poisoned")?;
+                    match context {
+                        Ok(context) => {
+                            *state = $family::load(files, &context);
+                            for problem in &state.problems { eprintln!("Tinkers: {problem}"); }
+                            Ok(())
+                        }
+                        Err(error) => { *state = $family { problems: vec![error.clone()], ..$family::default() }; Err(error) }
+                    }
+                })?;
+            let stopped = state.clone();
+            ServerLifecycleEvents::SERVER_STOPPED.register(move |_| *stopped.write().expect("worktable recipes poisoned") = $family::default());
+            Ok(state)
+        }
+    };
+}
+
+/// The modifier set recipe (`tconstruct:modifier_set_worktable`), the original's
+/// ModifierSetWorktableRecipe (SlimeKnights, MIT; see LICENSE): adds a modifier to (or removes
+/// it from) a named string set in the tool's persistent data — the invisible ink recipes are
+/// its shipped instances. Options are the tool's upgrades (or every modifier, when traits are
+/// allowed) the predicate allows whose set membership differs from the recipe's direction.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct SetRecipe {
+    pub id: Identifier,
+    pub data_key: Identifier,
+    pub add_to_set: bool,
+    pub allow_traits: bool,
+    pub tools: Ingredient,
+    pub inputs: Vec<Sized>,
+    pub predicate: CausePredicate,
+}
+
+impl SetRecipe {
+    fn decode(id: &Identifier, value: &Value) -> Result<Self, String> {
+        let fields = value.as_object().ok_or("recipe must be an object")?;
+        let data_key = Identifier::parse(fields.get("data_key").and_then(Value::as_str).ok_or("data_key missing")?).map_err(|e| e.to_string())?;
+        let add_to_set = fields.get("add_to_set").and_then(Value::as_bool).ok_or("add_to_set must be a boolean")?;
+        let allow_traits = fields.get("allow_traits").and_then(Value::as_bool).unwrap_or(false);
+        let tools = Ingredient::decode(fields.get("tools").ok_or("tools missing")?)?;
+        let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
+            .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
+        let predicate = CausePredicate::decode(fields.get("modifier_predicate"))?.ok_or("unsupported modifier predicate")?;
+        Ok(Self { id: id.clone(), data_key, add_to_set, allow_traits, tools, inputs, predicate })
+    }
+
+    pub fn matches_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        self.tools.matches(&tool.0, in_tag) && check_match_facts(&self.inputs, inputs, facts, in_tag).is_some()
+    }
+
+    /// getModifierOptions: the predicate's modifiers whose set membership differs from the
+    /// recipe's direction.
+    pub fn options(&self, tool: &ItemSlot, modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Vec<Identifier> {
+        let list = List::from_nbt(tool.custom_data.get(if self.allow_traits { TAG_MODIFIERS } else { TAG_UPGRADES }));
+        let set = string_list(&persistent_of(tool), &self.data_key.to_string());
+        list.entries().iter()
+            .filter(|entry| self.predicate.matches(Some(&entry.id), modifier_in_tag) && set.contains(&entry.id.to_string()) != self.add_to_set)
+            .map(|entry| entry.id.clone()).collect()
+    }
+
+    /// getResult: the tool copy with the set updated; no rebuild, as in the original.
+    pub fn result(&self, tool: &ItemSlot, modifier: &Identifier) -> ItemSlot {
+        let mut result = tool.clone();
+        let mut persistent = persistent_of(tool);
+        let key = self.data_key.to_string();
+        let value = modifier.to_string();
+        let mut list = string_list(&persistent, &key);
+        let found = list.contains(&value);
+        if !self.add_to_set && found { list.retain(|entry| entry != &value); }
+        if !self.add_to_set && list.is_empty() {
+            persistent.remove(&key);
+        } else if !found && self.add_to_set {
+            list.push(value);
+            persistent.insert(key, nbt_string_list(list));
+        } else if !self.add_to_set && found {
+            persistent.insert(key, nbt_string_list(list));
+        }
+        result.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        result
+    }
+}
+
+/// The sorting recipe (`tconstruct:modifier_sorting`), the original's ModifierSortingRecipe
+/// (SlimeKnights, MIT; see LICENSE): swaps the selected upgrade with its neighbor — backwards
+/// when the first input slot is empty, forwards otherwise — and consumes nothing.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Sorting {
+    pub id: Identifier,
+    pub inputs: Vec<Sized>,
+}
+
+impl Sorting {
+    fn decode(id: &Identifier, value: &Value) -> Result<Self, String> {
+        let fields = value.as_object().ok_or("recipe must be an object")?;
+        // The inputs list is compact: a single ingredient object or an array of them.
+        let inputs = match fields.get("inputs") {
+            Some(Value::Array(list)) if !list.is_empty() => list.iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?,
+            Some(single @ Value::Object(_)) => vec![Sized::decode(single)?],
+            _ => return Err("inputs must be an ingredient or a nonempty array".into()),
+        };
+        Ok(Self { id: id.clone(), inputs })
+    }
+
+    pub fn matches_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        let modifiable = Identifier::new("tconstruct", "modifiable").expect("valid tag");
+        in_tag(&tool.0, &modifiable) && check_match_facts(&self.inputs, inputs, facts, in_tag).is_some()
+    }
+
+    /// getModifierOptions: the tool's upgrades, when there are at least two to reorder.
+    pub fn options(&self, tool: &ItemSlot) -> Vec<Identifier> {
+        let list = List::from_nbt(tool.custom_data.get(TAG_UPGRADES));
+        if list.entries().len() < 2 { return Vec::new(); }
+        list.entries().iter().map(|entry| entry.id.clone()).collect()
+    }
+
+    /// getResult: the tool copy with the selected entry swapped toward its neighbor; no
+    /// rebuild or validation, as the modifiers themselves do not change.
+    pub fn result(&self, tool: &ItemSlot, modifier: &Identifier, first_input_empty: bool) -> Option<ItemSlot> {
+        let upgrades = List::from_nbt(tool.custom_data.get(TAG_UPGRADES));
+        let entries = upgrades.entries();
+        let to_move = entries.iter().position(|entry| &entry.id == modifier)?;
+        let target = if first_input_empty {
+            if to_move == 0 { entries.len() - 1 } else { to_move - 1 }
+        } else {
+            if to_move == entries.len() - 1 { 0 } else { to_move + 1 }
+        };
+        let mut result = tool.clone();
+        result.custom_data.insert(TAG_UPGRADES.into(), upgrades.swapped(to_move, target).to_nbt());
+        Some(result)
+    }
+}
+
+/// The toggle interaction recipe (`tconstruct:toggle_interaction`), the original's
+/// ToggleInteractionWorktableRecipe (SlimeKnights, MIT; see LICENSE): moves a dual-interaction
+/// modifier between the tool's attack and interact modifier sets in the persistent data. A
+/// modifier in either set is removed from both; otherwise it joins the attack set when the
+/// tool's interaction gate lets it interact on the right click, and the interact set when not.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Toggle {
+    pub id: Identifier,
+    pub tools: Ingredient,
+    pub inputs: Vec<Sized>,
+}
+
+/// InteractionSource.LEFT_CLICK's persistent key.
+const ATTACK_KEY: &str = "tconstruct:attack_modifiers";
+/// InteractionSource.RIGHT_CLICK's persistent key.
+const INTERACT_KEY: &str = "tconstruct:interact_modifiers";
+
+impl Toggle {
+    fn decode(id: &Identifier, value: &Value) -> Result<Self, String> {
+        let fields = value.as_object().ok_or("recipe must be an object")?;
+        let tools = Ingredient::decode(fields.get("tools").ok_or("tools missing")?)?;
+        let inputs = fields.get("inputs").and_then(Value::as_array).filter(|inputs| !inputs.is_empty()).ok_or("inputs must be a nonempty array")?
+            .iter().map(Sized::decode).collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { id: id.clone(), tools, inputs })
+    }
+
+    pub fn matches_facts(&self, tool: &(Identifier, u32), inputs: &[Option<(Identifier, u32)>], facts: &[crate::material_recipes::StackFacts], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        self.tools.matches(&tool.0, in_tag) && check_match_facts(&self.inputs, inputs, facts, in_tag).is_some()
+    }
+
+    /// getModifierOptions: the tool's modifiers in the dual interaction tag.
+    pub fn options(&self, tool: &ItemSlot, modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Vec<Identifier> {
+        let dual = Identifier::new("tconstruct", "dual_interaction").expect("valid tag");
+        List::from_nbt(tool.custom_data.get(TAG_MODIFIERS)).entries().iter()
+            .filter(|entry| modifier_in_tag(&entry.id, &dual)).map(|entry| entry.id.clone()).collect()
+    }
+
+    /// getResult: the tool copy with the modifier toggled between the two sets. `gate` is the
+    /// tool definition's interaction gate, whose canInteract answers for the right click.
+    pub fn result(&self, tool: &ItemSlot, modifier: &Identifier, gate: Option<&crate::tool_definitions::InteractionGate>, modifier_in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> ItemSlot {
+        let mut result = tool.clone();
+        let mut persistent = persistent_of(tool);
+        let value = modifier.to_string();
+        let mut left = string_list(&persistent, ATTACK_KEY);
+        let mut right = string_list(&persistent, INTERACT_KEY);
+        let in_left = left.contains(&value);
+        let in_right = right.contains(&value);
+        if in_left || in_right {
+            left.retain(|entry| entry != &value);
+            right.retain(|entry| entry != &value);
+            if left.is_empty() { persistent.remove(ATTACK_KEY); } else { persistent.insert(ATTACK_KEY.into(), nbt_string_list(left)); }
+            if right.is_empty() { persistent.remove(INTERACT_KEY); } else { persistent.insert(INTERACT_KEY.into(), nbt_string_list(right)); }
+        } else {
+            // ToolHooks.INTERACTION.canInteract(tool, modifier, RIGHT_CLICK).
+            let can_right = match gate {
+                Some(crate::tool_definitions::InteractionGate::DualOption) => !in_left,
+                Some(crate::tool_definitions::InteractionGate::ToggleableSet(predicate)) => {
+                    if predicate.matches(Some(modifier), modifier_in_tag) { !in_left } else { in_right }
+                }
+                None => false,
+            };
+            if can_right {
+                left.push(value);
+                persistent.insert(ATTACK_KEY.into(), nbt_string_list(left));
+            } else {
+                right.push(value);
+                persistent.insert(INTERACT_KEY.into(), nbt_string_list(right));
+            }
+        }
+        result.custom_data.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        result
+    }
+}
+
+worktable_family!(Sets, SetRecipe, "tconstruct:modifier_set_worktable", register_sets, "worktable_sets");
+worktable_family!(Sortings, Sorting, "tconstruct:modifier_sorting", register_sortings, "worktable_sortings");
+worktable_family!(Toggles, Toggle, "tconstruct:toggle_interaction", register_toggles, "worktable_toggles");
 
 #[cfg(test)]
 mod tests {

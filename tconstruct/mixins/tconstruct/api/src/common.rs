@@ -28,6 +28,12 @@ static REMOVALS: OnceLock<Arc<RwLock<crate::worktable_recipes::Removals>>> = Onc
 pub(crate) fn removals() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Removals>>> { REMOVALS.get() }
 static EXTRACTIONS: OnceLock<Arc<RwLock<crate::worktable_recipes::Extractions>>> = OnceLock::new();
 pub(crate) fn extractions() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Extractions>>> { EXTRACTIONS.get() }
+static SETS: OnceLock<Arc<RwLock<crate::worktable_recipes::Sets>>> = OnceLock::new();
+pub(crate) fn sets() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Sets>>> { SETS.get() }
+static SORTINGS: OnceLock<Arc<RwLock<crate::worktable_recipes::Sortings>>> = OnceLock::new();
+pub(crate) fn sortings() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Sortings>>> { SORTINGS.get() }
+static TOGGLES: OnceLock<Arc<RwLock<crate::worktable_recipes::Toggles>>> = OnceLock::new();
+pub(crate) fn toggles() -> Option<&'static Arc<RwLock<crate::worktable_recipes::Toggles>>> { TOGGLES.get() }
 static CONVERSIONS: OnceLock<Arc<RwLock<crate::enchantment_converting::Conversions>>> = OnceLock::new();
 pub(crate) fn conversions() -> Option<&'static Arc<RwLock<crate::enchantment_converting::Conversions>>> { CONVERSIONS.get() }
 static DAMAGEABLE: OnceLock<Arc<RwLock<crate::damageable_recycling::Recycles>>> = OnceLock::new();
@@ -159,6 +165,24 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items: capture_items(), config })
         }).expect("Tinkers worktable extraction listener registration failed");
         EXTRACTIONS.set(extractions).expect("Tinkers worktable extractions already initialized");
+        let set_config = config.clone();
+        let sets = crate::worktable_recipes::register_sets(move || {
+            let config = set_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers worktable set listener registration failed");
+        SETS.set(sets).expect("Tinkers worktable sets already initialized");
+        let sorting_config = config.clone();
+        let sortings = crate::worktable_recipes::register_sortings(move || {
+            let config = sorting_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers worktable sorting listener registration failed");
+        SORTINGS.set(sortings).expect("Tinkers worktable sortings already initialized");
+        let toggle_config = config.clone();
+        let toggles = crate::worktable_recipes::register_toggles(move || {
+            let config = toggle_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;
+            Ok(Context { items: capture_items(), config })
+        }).expect("Tinkers worktable toggle listener registration failed");
+        TOGGLES.set(toggles).expect("Tinkers worktable toggles already initialized");
         let conversion_config = config.clone();
         let conversions = crate::enchantment_converting::register(move || {
             let config = conversion_config.read().map_err(|_| "Tinkers config lock poisoned")?.clone()?;

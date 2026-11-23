@@ -224,7 +224,7 @@ def copy_modifier_recipes():
         shutil.rmtree(MODIFIER_RECIPE_TARGET)
     count = 0
     for path in sorted(MODIFIER_RECIPE_SOURCE.rglob('*.json')):
-        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting', 'tconstruct:modifier_repair', 'tconstruct:armor_dyeing_modifier', 'tconstruct:extract_modifier'):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') not in ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting', 'tconstruct:modifier_repair', 'tconstruct:armor_dyeing_modifier', 'tconstruct:extract_modifier', 'tconstruct:modifier_set_worktable', 'tconstruct:modifier_sorting', 'tconstruct:toggle_interaction'):
             continue
         destination = MODIFIER_RECIPE_TARGET / path.relative_to(MODIFIER_RECIPE_SOURCE)
         destination.parent.mkdir(parents=True, exist_ok=True)

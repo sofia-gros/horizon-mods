@@ -90,6 +90,12 @@ impl List {
         }).collect())
     }
     pub fn to_nbt(&self) -> Nbt { Nbt::List(self.0.iter().map(|entry| Nbt::Compound(entry.to_nbt())).collect()) }
+    /// The same entries with two positions exchanged (ModifierSortingRecipe's reorder).
+    pub fn swapped(&self, a: usize, b: usize) -> Self {
+        let mut entries = self.0.clone();
+        if a < entries.len() && b < entries.len() { entries.swap(a, b); }
+        Self(entries)
+    }
     /// ModifierNBT.getEntry: the entry for this modifier, or the empty entry.
     pub fn entry(&self, id: &Identifier) -> Entry { self.0.iter().find(|entry| &entry.id == id).cloned().unwrap_or_else(Entry::empty) }
     pub fn level(&self, id: &Identifier) -> i32 {
