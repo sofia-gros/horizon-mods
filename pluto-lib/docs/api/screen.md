@@ -359,7 +359,7 @@ assert_eq!(state.items[0].as_ref().unwrap().count, 1);
 
 ### `ScreenDraw`
 
-What the draw callback receives. `origin` is the window's top left in GUI pixels, `data` the menu's data slots (what the block entity set; empty until the server's first values arrive, so read it with `get`), `canvas` where to draw.
+What the draw callback receives. `origin` is the window's top left in GUI pixels, `data` the menu's data slots (what the block entity set; empty until the server's first values arrive, so read it with `get`), `mouse` the cursor in GUI pixels from the window's top left (negative in a sidebar left of or above the window; how a hover face is drawn), `items` the container items the client last saw synced, in menu-slot order (how a side panel reads the staged stacks), `canvas` where to draw.
 
 ```rust
 use pluto_lib::{ScreenCanvas, ScreenDraw};
@@ -376,8 +376,12 @@ impl ScreenCanvas for Null {
     fn text(&mut self, _: &str, _: [f32; 2], _: u32, _: bool) {}
     fn text_width(&self, _: &str) -> f32 { 0.0 }
 }
-draw_bar(&mut ScreenDraw { origin: [100.0, 50.0], data: &[10], canvas: &mut Null });
+draw_bar(&mut ScreenDraw { origin: [100.0, 50.0], data: &[10], mouse: [0.0, 0.0], items: &[], canvas: &mut Null });
 ```
+
+### `ScreenScroll`, text input
+
+`ScreenHandlerType::on_scroll` hears the mouse wheel over the window: a `ScreenScroll` whose `at` is the cursor from the window's top left, `delta` the roll (`delta[1]` positive is wheel up, the host's own sign) and `data` the menu's data slots; returning true consumes the roll. `on_char` hears each character typed while the window is open and `on_key` each key press (a lower-cased game key name: `backspace`, `delete`, `enter`, `escape`, ...); returning true consumes it. All three are client-side: a scroll offset or a text field's content is the window's own state to keep (a static of the mod's), because a menu button is the only road back to the server.
 
 ### `ScreenClick`
 
@@ -407,7 +411,7 @@ assert_eq!(lines, ["Heat: 42"]);
 
 ### `MenuButton`
 
-What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data, `items` its item slots and `carried` the stack on the pressing player's cursor, which the callback may change.
+What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data, `items` its item slots and `carried` the stack on the pressing player's cursor, which the callback may change. `fluid(index)` reads the block entity's own fluid tank of that index and `set_fluid(index, stack)` writes it (tanks live in the saved data, so no other reach is needed); a tank of another block — a melter's heater below, say — is out of this callback's reach.
 
 ```rust
 use pluto_lib::{MenuButton, Nbt, NbtCompound};

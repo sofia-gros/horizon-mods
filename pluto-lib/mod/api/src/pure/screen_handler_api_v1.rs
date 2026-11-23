@@ -136,8 +136,31 @@ pub struct ScreenDraw<'a> {
     pub origin: [f32; 2],
     /// The menu's data slots (what the block entity set); empty until the server's first values arrive, so read it with `get`.
     pub data: &'a [i32],
+    /// The cursor's position in GUI pixels from the window's top left (outside it too: a sidebar
+    /// left of the window reads negative x). The original's screens draw hover faces and fluid
+    /// highlights from it.
+    pub mouse: [f32; 2],
+    /// The menu's container slots as the client last saw them synced, in slot order (the block
+    /// entity's item slots only, not the player's). Empty until the first sync arrives, and on a
+    /// screen whose menu never synced items; read it with `get`. The window's own server-side
+    /// state stays in the menu data — this is the client's view for drawing (side info panels
+    /// that read the tool in the slots, say), never an authority.
+    pub items: &'a [Option<ItemSlot>],
     /// Where to draw.
     pub canvas: &'a mut dyn ScreenCanvas,
+}
+
+/// What the scroll callback receives: the mouse wheel turned over the window. Scroll state is the
+/// window's own (client-side) business — no scroll reaches the server — so a window whose list
+/// scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
+pub struct ScreenScroll<'a> {
+    /// Where the cursor is, in GUI pixels from the window's top left.
+    pub at: [f32; 2],
+    /// The wheel's movement, in notches: a positive y is a roll up (toward the user at the top
+    /// of the wheel, Minecraft's `mouseScrolled` sign flipped to "up is positive").
+    pub delta: [f32; 2],
+    /// The menu's data slots.
+    pub data: &'a [i32],
 }
 
 /// What the click callback receives: a left or right press on the window over no slot.
@@ -178,6 +201,18 @@ impl MenuButton<'_> {
     /// Sets menu data slot `index` (0..256); the content menu must declare it. Values are clamped to the signed 16-bit wire range.
     pub fn set_data(&mut self, index: usize, value: i32) {
         super::block_entity_api_v1::set_menu_data(self.data, index, value);
+    }
+
+    /// The fluid in the block entity's tank `index`, if it holds any (tanks are declared with
+    /// `BlockEntityType::fluid_tanks`): a tank a player clicked with a held container is filled
+    /// or emptied here, as the original's `clickMenuButton` does.
+    pub fn fluid(&self, index: usize) -> Option<super::block_entity_api_v1::FluidStack> {
+        super::block_entity_api_v1::read_fluid(self.data, index)
+    }
+
+    /// Puts `stack` in the block entity's tank `index`, or empties the tank with `None`.
+    pub fn set_fluid(&mut self, index: usize, stack: Option<super::block_entity_api_v1::FluidStack>) {
+        super::block_entity_api_v1::write_fluid(self.data, index, stack);
     }
 }
 
@@ -280,6 +315,9 @@ pub struct ContainerAccept<'a> {
 type Draw = Arc<dyn Fn(&mut ScreenDraw<'_>) + Send + Sync>;
 type DynamicSlots = Arc<dyn Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync>;
 type Click = Arc<dyn Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync>;
+type Scroll = Arc<dyn Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync>;
+type Char = Arc<dyn Fn(char) -> bool + Send + Sync>;
+type Key = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 type Tooltip = Arc<dyn Fn(&mut ScreenTooltip<'_>) + Send + Sync>;
 type Button = Arc<dyn Fn(&mut MenuButton<'_>) + Send + Sync>;
 type Rule = Arc<dyn Fn(&mut SlotRule<'_>) + Send + Sync>;
@@ -296,6 +334,9 @@ pub struct ScreenHandlerType {
     draw: Option<Draw>,
     dynamic_slots: Option<DynamicSlots>,
     click: Option<Click>,
+    scroll: Option<Scroll>,
+    char_typed: Option<Char>,
+    key_pressed: Option<Key>,
     tooltip: Option<Tooltip>,
     button: Option<Button>,
     rule: Option<Rule>,
@@ -308,7 +349,7 @@ pub struct ScreenHandlerType {
 impl ScreenHandlerType {
     /// A window for `block`'s menu with the given layout and nothing drawn beyond the game's panel.
     pub fn new(block: Identifier, layout: ScreenLayout) -> Self {
-        Self { block, layout, draw: None, dynamic_slots: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
+        Self { block, layout, draw: None, dynamic_slots: None, click: None, scroll: None, char_typed: None, key_pressed: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
     }
 
     /// The same window, `draw` drawing it each frame over the panel and the slot frames and under the items (Fabric: `HandledScreen.drawBackground`).
@@ -334,6 +375,34 @@ impl ScreenHandlerType {
     /// The same window, `tooltip` adding lines when the mouse is over something of the screen's own and no item.
     pub fn on_tooltip(mut self, tooltip: impl Fn(&mut ScreenTooltip<'_>) + Send + Sync + 'static) -> Self {
         self.tooltip = Some(Arc::new(tooltip));
+        self
+    }
+
+    /// The same window, `scroll` hearing the mouse wheel over the window (client-side, while this
+    /// window is the open one). Answer `true` to consume the roll (the game's own scrolling —
+    /// hotbar selection with no screen, recipe book paging — is then skipped). Nothing a scroll
+    /// does reaches the server: a window that scrolls a server-published list keeps the offset
+    /// itself and windows the list in its draw, click and tooltip callbacks.
+    pub fn on_scroll(mut self, scroll: impl Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.scroll = Some(Arc::new(scroll));
+        self
+    }
+
+    /// The same window, `char_typed` hearing each character typed while this window is the open
+    /// one (a text field's input). Answer `true` to consume the character. Key presses that are
+    /// not characters (backspace, arrows, enter, escape) arrive through [`Self::on_key`]. The
+    /// text a field collects is the window's own client-side state; the surface carries input,
+    /// not a channel to the server.
+    pub fn on_char(mut self, char_typed: impl Fn(char) -> bool + Send + Sync + 'static) -> Self {
+        self.char_typed = Some(Arc::new(char_typed));
+        self
+    }
+
+    /// The same window, `key_pressed` hearing each named key press while this window is the open
+    /// one (the game's own key names, lower-cased: `backspace`, `enter`, `escape`, `left`, ...).
+    /// Answer `true` to consume the press. See [`Self::on_char`] for character input.
+    pub fn on_key(mut self, key_pressed: impl Fn(&str) -> bool + Send + Sync + 'static) -> Self {
+        self.key_pressed = Some(Arc::new(key_pressed));
         self
     }
 
@@ -423,13 +492,81 @@ pub(crate) fn layout(block: &str) -> Option<ScreenLayout> {
     ScreenHandlerRegistry::get(block).map(|h| h.layout)
 }
 
-/// Draws the block's window; false if it has none or draws nothing.
-pub(crate) fn draw(block: &str, origin: [f32; 2], data: &[i32], canvas: &mut dyn ScreenCanvas) -> bool {
+/// The state the client last saw synced for each block's open menu: its menu data and its
+/// container items, in slot order. The dynamic-slot refresh (which runs on the client whenever
+/// a menu's slots or data change) records it; the draw and scroll callbacks read it back.
+/// Client-side state only: the server never sees this map, and a menu that never refreshed
+/// simply draws with no items.
+static MENU_STATE: Mutex<Option<HashMap<String, (Vec<i32>, Vec<Option<ItemSlot>>)>>> = Mutex::new(None);
+
+/// Records the state of the menu of `block` the client just saw (see [`MENU_STATE`]).
+pub(crate) fn note_menu_state(block: &str, data: &[i32], items: &[Option<ItemSlot>]) {
+    if let Ok(mut all) = MENU_STATE.lock() {
+        all.get_or_insert_with(HashMap::new).insert(block.to_owned(), (data.to_vec(), items.to_vec()));
+    }
+}
+
+/// Forgets the recorded state of `block`'s menu (its screen closed).
+pub(crate) fn forget_menu_state(block: &str) {
+    if let Ok(mut all) = MENU_STATE.lock() {
+        if let Some(all) = all.as_mut() {
+            all.remove(block);
+        }
+    }
+}
+
+/// The recorded state of `block`'s open menu, if the client has seen a sync of it.
+fn menu_state(block: &str) -> Option<(Vec<i32>, Vec<Option<ItemSlot>>)> {
+    MENU_STATE.lock().ok().and_then(|all| all.as_ref().and_then(|all| all.get(block).cloned()))
+}
+
+/// Draws the block's window; false if it has none or draws nothing. `mouse` is the cursor in GUI
+/// pixels (absolute); the callback receives it from the window's top left.
+pub(crate) fn draw(block: &str, origin: [f32; 2], data: &[i32], mouse: [f32; 2], canvas: &mut dyn ScreenCanvas) -> bool {
     match ScreenHandlerRegistry::get(block).and_then(|h| h.draw) {
         Some(draw) => {
-            draw(&mut ScreenDraw { origin, data, canvas });
+            let items = menu_state(block).map_or_else(Vec::new, |(_, items)| items);
+            draw(&mut ScreenDraw { origin, data, mouse: [mouse[0] - origin[0], mouse[1] - origin[1]], items: &items, canvas });
             true
         }
+        None => false,
+    }
+}
+
+/// Whether the block's window hears the mouse wheel.
+pub(crate) fn has_scroll(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|h| h.scroll.is_some())
+}
+
+/// Offers a wheel roll over the block's window; true when the window consumed it. The menu
+/// data the callback reads is the state the client last saw synced (see [`MENU_STATE`]).
+pub(crate) fn scroll(block: &str, at: [f32; 2], delta: [f32; 2]) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.scroll) {
+        Some(scroll) => {
+            let data = menu_state(block).map_or_else(Vec::new, |(data, _)| data);
+            scroll(&mut ScreenScroll { at, delta, data: &data })
+        }
+        None => false,
+    }
+}
+
+/// Whether the block's window hears typed characters or key presses.
+pub(crate) fn has_text_input(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|h| h.char_typed.is_some() || h.key_pressed.is_some())
+}
+
+/// Offers a typed character to the block's window; true when the window consumed it.
+pub(crate) fn char_typed(block: &str, c: char) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.char_typed) {
+        Some(char_typed) => char_typed(c),
+        None => false,
+    }
+}
+
+/// Offers a key press to the block's window; true when the window consumed it.
+pub(crate) fn key_pressed(block: &str, key: &str) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.key_pressed) {
+        Some(key_pressed) => key_pressed(key),
         None => false,
     }
 }
@@ -614,10 +751,10 @@ mod tests {
         assert!(super::layout("test:none").is_none());
 
         let mut canvas = Recorder::default();
-        assert!(draw("test:oven", [100.0, 50.0], &[30], &mut canvas));
+        assert!(draw("test:oven", [100.0, 50.0], &[30], [100.0, 50.0], &mut canvas));
         assert_eq!(canvas.fills, vec![([110.0, 60.0, 30.0, 4.0], 0xFFFF0000)]);
         assert_eq!(canvas.texts, ["Oven"]);
-        assert!(!draw("test:none", [0.0; 2], &[], &mut canvas));
+        assert!(!draw("test:none", [0.0; 2], &[], [0.0; 2], &mut canvas));
 
         assert_eq!(click("test:oven", [120.0, 10.0], false, &[]), Some(7));
         assert_eq!(click("test:oven", [120.0, 10.0], true, &[]), None);
@@ -658,6 +795,62 @@ mod tests {
         assert!(accepts("test:oven", [0; 3], 0, "test:coal", 1, None));
         assert!(!accepts("test:oven", [0; 3], 0, "test:junk", 1, Some(Direction::Up)));
         assert!(accepts("test:none", [0; 3], 0, "test:junk", 1, None));
+    }
+
+    #[test]
+    fn draw_sees_the_cursor_and_the_synced_items_and_scroll_and_text_input_reach_the_window() {
+        use std::sync::Mutex as StdMutex;
+        let seen: Arc<StdMutex<Vec<String>>> = Arc::new(StdMutex::new(Vec::new()));
+        let record = seen.clone();
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:panel").unwrap(), ScreenLayout::new(176.0, 166.0))
+                .on_draw(move |d| {
+                    record.lock().unwrap().push(format!("mouse {:?} items {}", d.mouse, d.items.len()));
+                })
+                .on_scroll(|s| s.delta[1] > 0.0)
+                .on_char(|c| c == 'a')
+                .on_key(|key| key == "backspace"),
+        );
+        let mut canvas = Recorder::default();
+        // No sync seen yet: the draw runs with no items and the cursor relative to the window.
+        assert!(draw("test:panel", [100.0, 50.0], &[], [130.0, 90.0], &mut canvas));
+        assert_eq!(seen.lock().unwrap().as_slice(), ["mouse [30.0, 40.0] items 0"]);
+        // After a sync the recorded items are what the draw reads; forgetting empties them again.
+        let item = ItemSlot::new(Identifier::parse("test:ingot").unwrap(), 3);
+        note_menu_state("test:panel", &[7], &[Some(item), None]);
+        assert!(draw("test:panel", [100.0, 50.0], &[], [100.0, 50.0], &mut canvas));
+        assert_eq!(seen.lock().unwrap().last().unwrap(), "mouse [0.0, 0.0] items 2");
+        forget_menu_state("test:panel");
+        assert!(draw("test:panel", [100.0, 50.0], &[], [100.0, 50.0], &mut canvas));
+        assert_eq!(seen.lock().unwrap().last().unwrap(), "mouse [0.0, 0.0] items 0");
+
+        assert!(has_scroll("test:panel"));
+        assert!(scroll("test:panel", [0.0; 2], [0.0, 1.0]), "a roll up is consumed");
+        assert!(!scroll("test:panel", [0.0; 2], [0.0, -1.0]), "a roll down is not");
+        assert!(!has_scroll("test:none"));
+        assert!(has_text_input("test:panel"));
+        assert!(char_typed("test:panel", 'a'));
+        assert!(!char_typed("test:panel", 'b'));
+        assert!(key_pressed("test:panel", "backspace"));
+        assert!(!key_pressed("test:panel", "enter"));
+        assert!(!has_text_input("test:none"));
+    }
+
+    #[test]
+    fn a_menu_button_reads_and_writes_the_block_entity_tanks() {
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:tank_button").unwrap(), ScreenLayout::new(176.0, 166.0))
+                .on_button(|b| {
+                    let held = b.fluid(0).map_or(0, |stack| stack.amount);
+                    b.set_fluid(0, Some(crate::pure::block_entity_api_v1::FluidStack::new(Identifier::parse("minecraft:water").unwrap(), held + 250)));
+                }),
+        );
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut carried = None;
+        assert!(press("test:tank_button", [0; 3], 1, &mut data, &mut items, &mut carried));
+        let tank = crate::pure::block_entity_api_v1::read_fluid(&data, 0).expect("the button filled the tank");
+        assert_eq!((tank.fluid.to_string().as_str(), tank.amount), ("minecraft:water", 250));
     }
 
     #[test]

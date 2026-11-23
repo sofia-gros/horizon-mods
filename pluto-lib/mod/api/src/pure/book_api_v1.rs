@@ -105,9 +105,9 @@ pub enum BookRow {
     },
 }
 
-/// One page of a book. Text, image-and-text, crafting and table pages are the kinds this renderer draws in full;
-/// any other Mantle page kind (a smelting page, ...) is kept as [`BookPage::Opaque`] with its data intact, so a
-/// book loses nothing by being registered before its kind has a renderer.
+/// One page of a book. Text, image-and-text, text-image, showcase, crafting and table pages are the kinds this
+/// renderer draws in full; any other Mantle page kind (a smelting page, a structure page, ...) is kept as
+/// [`BookPage::Opaque`] with its data intact, so a book loses nothing by being registered before its kind has a renderer.
 #[derive(Clone, Debug, PartialEq)]
 pub enum BookPage {
     /// Text only (Mantle: `mantle:text`).
@@ -134,8 +134,35 @@ pub enum BookPage {
         recipe: Identifier,
         /// How big the grid is drawn.
         grid_size: GridSize,
+        /// The grid's nine cells (row-major), each the stacks that cell accepts; a cell with no
+        /// stacks is empty. Decoding the page leaves this empty (a page's JSON names the recipe,
+        /// not its contents); the mod that owns the recipe fills it from its own data.
+        ingredients: Vec<Vec<ItemSlot>>,
+        /// The recipe's result, drawn beside the grid; filled the same way as `ingredients`.
+        result: Option<ItemSlot>,
         /// The text under the grid.
         description: Vec<BookText>,
+    },
+    /// Text beside an image (Mantle: `mantle:text_image`): the image in a column at the left,
+    /// the text flowing beside and below it.
+    TextImage {
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// The page's image.
+        image: BookImage,
+        /// The page's text, in order.
+        text: Vec<BookText>,
+    },
+    /// One item shown large with its tooltip lines and a text (Mantle: `mantle:showcase`).
+    Showcase {
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// The item the page shows.
+        item: Option<ItemSlot>,
+        /// The item's tooltip lines, drawn beside it (the page JSON's own lines).
+        tooltip: Vec<String>,
+        /// The page's text, under the item.
+        text: Vec<BookText>,
     },
     /// A table of registry entries (a page a mod generates from its registries: one row per material of a
     /// material page, per tool of an index page, ...). The page keeps the `kind` of the content it stands for
@@ -152,6 +179,10 @@ pub enum BookPage {
         rows: Vec<BookRow>,
         /// Text drawn below the rows.
         text: Vec<BookText>,
+        /// The page's sidebar: display items drawn in a column at the page's right edge (a
+        /// material's built tools, a tool's recipe parts, a modifier's recipe, a fluid's
+        /// bucket). Empty for a page with no sidebar; the rows and text narrow to make room.
+        sidebar: Vec<ItemSlot>,
     },
     /// A page kind this renderer does not draw yet; `data` is the page's own data, converted from its JSON.
     Opaque {
@@ -168,6 +199,8 @@ impl BookPage {
         match self {
             Self::Text { .. } => "mantle:text",
             Self::ImageText { .. } => "mantle:image_text",
+            Self::TextImage { .. } => "mantle:text_image",
+            Self::Showcase { .. } => "mantle:showcase",
             Self::Crafting { .. } => "mantle:crafting",
             Self::Table { kind, .. } => kind,
             Self::Opaque { kind, .. } => kind,
@@ -177,7 +210,7 @@ impl BookPage {
     /// The page's title, if it has one. An opaque page's title is read from its data's `title` string, if it has one.
     pub fn title(&self) -> Option<&str> {
         match self {
-            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } => title.as_deref(),
+            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::TextImage { title, .. } | Self::Showcase { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } => title.as_deref(),
             Self::Opaque { data, .. } => data.get("title").and_then(Nbt::as_str),
         }
     }
@@ -201,6 +234,35 @@ impl BookPage {
                     text: text_list(data.get("text"))?,
                 })
             }
+            "mantle:text_image" => {
+                let image = data.get("image").ok_or("text_image page has no image")?;
+                let file = image.get("file").and_then(serde_json::Value::as_str).ok_or("text_image page's image has no file")?;
+                let width = image.get("width").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                let height = image.get("height").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                Ok(Self::TextImage {
+                    title,
+                    image: BookImage { file: file.to_owned(), width: u32::try_from(width).map_err(|_| "image width out of range")?, height: u32::try_from(height).map_err(|_| "image height out of range")? },
+                    text: text_list(data.get("text"))?,
+                })
+            }
+            "mantle:showcase" | "tconstruct:showcase" => {
+                // The shown item is an ingredient object (`{"type": "forge:nbt", "item": id,
+                // "nbt": {...}}`), which is the flat form the icon decoder reads.
+                let item = data.get("item").and_then(|item| BookIcon::from_json(item).ok()).map(|icon| icon_slot(&icon));
+                let tooltip = match data.get("tooltip") {
+                    Some(serde_json::Value::Array(lines)) => lines
+                        .iter()
+                        .filter_map(|line| match line {
+                            serde_json::Value::String(text) => Some(text.clone()),
+                            serde_json::Value::Object(_) => line.get("text").and_then(serde_json::Value::as_str).map(str::to_owned),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                Ok(Self::Showcase { title, item, tooltip, text: text_list(data.get("text"))? })
+            }
+            "mantle:blank" | "mantle:right_padding" => Ok(Self::Text { title: None, text: Vec::new() }),
             "mantle:crafting" => {
                 // A crafting page either names a recipe or spells out a literal grid and result instead; the grid
                 // form references no recipe, so it is kept whole as an opaque page (its title still reads). A page
@@ -215,6 +277,8 @@ impl BookPage {
                     title,
                     recipe: Identifier::parse(recipe).map_err(|e| format!("crafting page's recipe: {e}"))?,
                     grid_size: GridSize::parse(data.get("grid_size").and_then(serde_json::Value::as_str).unwrap_or("small")),
+                    ingredients: Vec::new(),
+                    result: None,
                     description: text_list(data.get("description"))?,
                 })
             }
@@ -780,10 +844,16 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             if index == current {
                 canvas.fill([rail[0] - 2.0, y - 1.0, rail[2] + 4.0, ROW], CELL);
             }
-            // The rail names its sections; the sections' icons are book data the rail does not draw.
+            // The rail shows each section's icon beside its (localized) name, as the original's
+            // book screen does.
+            let mut label_x = rail[0];
+            if let Some(icon) = &section.icon {
+                canvas.item(&icon_slot(icon), [rail[0], y], 10.0);
+                label_x += 14.0;
+            }
             let label = section.name.as_str();
             let color = if index == current { INK } else { FADED_INK };
-            canvas.text(label, [rail[0], y], color, false);
+            canvas.text(label, [label_x, y], color, false);
         }
     }
     let content = layout.content;
@@ -816,7 +886,36 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             }
             draw_text_block(canvas, text, content[0], y, content[2], bottom, INK);
         }
-        BookPage::Crafting { recipe, grid_size, description, .. } => {
+        BookPage::TextImage { image, text, .. } => {
+            // The image in a column at the left, the text flowing beside it (and below it when
+            // the text runs longer than the image is tall).
+            let mut text_x = content[0];
+            let mut text_width = content[2];
+            if image.width > 0 && image.height > 0 {
+                let width = (content[2] * 0.38).min(image.width as f32);
+                let height = (width * image.height as f32 / image.width as f32).min(bottom - y);
+                if height > 0.0 && canvas.sprite(&image.file, [0.0, 0.0, image.width as f32, image.height as f32], [content[0], y, width, height]) {
+                    text_x += width + 6.0;
+                    text_width -= width + 6.0;
+                }
+            }
+            draw_text_block(canvas, text, text_x, y, text_width, bottom, INK);
+        }
+        BookPage::Showcase { item, tooltip, text, .. } => {
+            // The item large at the left, its tooltip lines beside it, the text below both.
+            let mut text_y = y;
+            if let Some(item) = item {
+                canvas.item(item, [content[0], y], 32.0);
+                let mut line_y = y;
+                for line in tooltip {
+                    canvas.text(line, [content[0] + 38.0, line_y], INK, false);
+                    line_y += LINE;
+                }
+                text_y = (y + 36.0).max(line_y + 2.0);
+            }
+            draw_text_block(canvas, text, content[0], text_y, content[2], bottom, INK);
+        }
+        BookPage::Crafting { recipe, grid_size, ingredients, result, description, .. } => {
             let cell = grid_size.cell();
             let slot = if appearance.slot_color != 0 { appearance.slot_color } else { CELL };
             for row in 0..3 {
@@ -825,15 +924,41 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
                     let yy = y + row as f32 * (cell + 2.0);
                     canvas.fill([x, yy, cell, cell], slot);
                     canvas.fill([x + 1.0, yy + 1.0, cell - 2.0, cell - 2.0], PARCHMENT);
+                    if let Some(stack) = ingredients.get(row * 3 + col).and_then(|cell| cell.first()) {
+                        canvas.item(stack, [x + 1.0, yy + 1.0], cell - 2.0);
+                    }
                 }
+            }
+            // The arrow and the result, at the grid's middle row.
+            let grid_width = 3.0 * (cell + 2.0);
+            let middle = y + cell + 2.0;
+            canvas.text(">", [content[0] + grid_width + 2.0, middle + 2.0], INK, false);
+            if let Some(result) = result {
+                let x = content[0] + grid_width + 14.0;
+                canvas.fill([x, middle, cell, cell], slot);
+                canvas.fill([x + 1.0, middle + 1.0, cell - 2.0, cell - 2.0], PARCHMENT);
+                canvas.item(result, [x + 1.0, middle + 1.0], cell - 2.0);
             }
             y += 3.0 * (cell + 2.0) + 2.0;
             canvas.text(&recipe.to_string(), [content[0], y], FADED_INK, false);
             y += LINE + 2.0;
             draw_text_block(canvas, description, content[0], y, content[2], bottom, INK);
         }
-        BookPage::Table { intro, rows, text, .. } => {
-            y = draw_text_block(canvas, intro, content[0], y, content[2], bottom, INK);
+        BookPage::Table { intro, rows, text, sidebar, .. } => {
+            // The sidebar's items stand in a column at the page's right edge; the rows and text
+            // narrow to make room for it.
+            let width = if sidebar.is_empty() { content[2] } else { content[2] - 22.0 };
+            if !sidebar.is_empty() {
+                let mut item_y = y;
+                for item in sidebar {
+                    if item_y + 18.0 > bottom + 4.0 {
+                        break;
+                    }
+                    canvas.item(item, [content[0] + content[2] - 18.0, item_y], 16.0);
+                    item_y += 18.0;
+                }
+            }
+            y = draw_text_block(canvas, intro, content[0], y, width, bottom, INK);
             let mut links = Vec::new();
             for row in rows {
                 if y + TABLE_ROW > bottom + 4.0 {
@@ -855,18 +980,18 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
                     canvas.fill([x, y + TABLE_ROW - 1.5, width, 1.0], FADED_INK);
                 }
                 if let Some(value) = value {
-                    let value_x = content[0] + content[2] - canvas.text_width(value);
+                    let value_x = content[0] + width - canvas.text_width(value);
                     canvas.text(value, [value_x.max(x), y + 1.0], INK, false);
                 }
                 if let Some(target) = link {
-                    links.push(([content[0], y, content[2], TABLE_ROW], target));
+                    links.push(([content[0], y, width, TABLE_ROW], target));
                 }
                 y += TABLE_ROW;
             }
             if let Ok(mut recorded) = LINK_ROWS.lock() {
                 *recorded = Some((book.id.clone(), view.page, links));
             }
-            draw_text_block(canvas, text, content[0], y + 2.0, content[2], bottom, INK);
+            draw_text_block(canvas, text, content[0], y + 2.0, width, bottom, INK);
         }
         BookPage::Opaque { kind, .. } => {
             canvas.text(kind, [content[0], y], FADED_INK, false);
@@ -1018,6 +1143,8 @@ mod tests {
                         title: Some("Table".into()),
                         recipe: Identifier::parse("minecraft:crafting_table").unwrap(),
                         grid_size: GridSize::Small,
+                        ingredients: vec![vec![ItemSlot::new(Identifier::parse("minecraft:oak_planks").unwrap(), 1)]; 4],
+                        result: Some(ItemSlot::new(Identifier::parse("minecraft:crafting_table").unwrap(), 1)),
                         description: vec![BookText::plain("craft things")],
                     }],
                 },
@@ -1116,6 +1243,35 @@ mod tests {
     }
 
     #[test]
+    fn the_showcase_text_image_and_padding_kinds_decode_to_drawn_pages() {
+        let showcase = BookPage::from_json("mantle:showcase", &serde_json::json!({
+            "title": "Pattern",
+            "item": {"type": "forge:nbt", "item": "tconstruct:pattern", "nbt": {"Material": "tconstruct:wood"}},
+            "tooltip": ["Pattern", "Used to cast parts"],
+            "text": [{"text": "A pattern."}],
+        })).unwrap();
+        match &showcase {
+            BookPage::Showcase { title, item, tooltip, text } => {
+                assert_eq!(title.as_deref(), Some("Pattern"));
+                assert_eq!(item.as_ref().map(|stack| stack.item.to_string()), Some("tconstruct:pattern".to_owned()));
+                assert_eq!(tooltip, &vec!["Pattern".to_owned(), "Used to cast parts".to_owned()]);
+                assert_eq!(text.len(), 1);
+            }
+            other => panic!("a showcase page decodes as a showcase, not {other:?}"),
+        }
+        assert_eq!(showcase.kind(), "mantle:showcase");
+        let text_image = BookPage::from_json("mantle:text_image", &serde_json::json!({
+            "title": "Melting",
+            "image": {"file": "tconstruct:textures/gui/book/melting.png", "width": 100, "height": 50},
+            "text": [{"text": "Melt things."}],
+        })).unwrap();
+        assert!(matches!(text_image, BookPage::TextImage { .. }), "a text_image page decodes as one: {text_image:?}");
+        assert_eq!(text_image.kind(), "mantle:text_image");
+        let blank = BookPage::from_json("mantle:right_padding", &serde_json::json!({})).unwrap();
+        assert!(matches!(blank, BookPage::Text { title: None, ref text } if text.is_empty()), "padding decodes to a blank page: {blank:?}");
+    }
+
+    #[test]
     fn wrapping_measures_with_the_canvas_and_splits_long_words() {
         let canvas = Recorder::default();
         assert_eq!(wrap_text(&canvas, "one two three four", 60.0), vec!["one two", "three four"]);
@@ -1143,7 +1299,7 @@ mod tests {
         view.page = 2;
         let mut canvas = Recorder::default();
         draw_book(&mut canvas, &book, &view, area);
-        assert_eq!(canvas.fills.len(), 1 + 1 + 18, "panel, current-section marker and 9 cells with inners");
+        assert_eq!(canvas.fills.len(), 1 + 1 + 20, "panel, current-section marker, 9 cells with inners and the result cell");
         let drawn: Vec<&str> = canvas.texts.iter().map(|(text, _)| text.as_str()).collect();
         assert!(drawn.contains(&"minecraft:crafting_table") && drawn.contains(&"craft things"));
     }
@@ -1185,6 +1341,7 @@ mod tests {
                             BookRow::Entry { icon: None, label: "Stone".into(), value: None, link: None },
                         ],
                         text: vec![],
+                        sidebar: vec![ItemSlot::new(Identifier::parse("minecraft:iron_block").unwrap(), 1)],
                     },
                     text_page("Iron", "the iron page"),
                 ],

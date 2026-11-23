@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
@@ -37,7 +37,7 @@ use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
-use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
+use crate::pure::{events_interaction_v0, hud_api_v1, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
 struct StructureQueries<'a>(&'a mut dyn horizon_client::entry::pluto_block::structures::PlanningWorld);
 impl crate::pure::worldgen_api_v1::StructureWorld for StructureQueries<'_> {
@@ -724,6 +724,10 @@ fn resolve_dynamic_screen_slots(
             None => Some(None),
         })
         .collect::<Option<Vec<_>>>()?;
+    // The refresh runs for every open mod menu (the resolver is set unconditionally), so this
+    // is also where the client's view of the menu's state is kept for the draw and scroll
+    // callbacks: the items a side panel reads, the data a scroll reads.
+    screen_handler_api_v1::note_menu_state(block, data, &items);
     screen_handler_api_v1::dynamic_slots(block, data, &items)
 }
 
@@ -1375,6 +1379,21 @@ impl BookOps for HostBookOps {
 /// Whether the screen showing is PlutoLib's own mod screen.
 fn book_screen_is_ours(host: &dyn Host, screen_id: &str) -> bool {
     screen_id == "mod" && host.mod_screen() == Some(PLUTO_MOD_ID)
+}
+
+/// The block whose menu a screen event names, when that menu is a mod menu with a window:
+/// every container screen reports the id `inventory` and is told apart by its menu alone.
+fn menu_block(screen: &horizon_client::mod_api::NativeScreenView<'_>) -> Option<String> {
+    if screen.id != "inventory" {
+        return None;
+    }
+    block_entity_api_v1::block_of_menu(screen.menu?)
+}
+
+/// A screen event's cursor position from its window's top left (the event's `rect` is the
+/// container panel itself, so this is the same space the draw callback draws in).
+fn screen_at(screen: &horizon_client::mod_api::NativeScreenView<'_>) -> [f32; 2] {
+    [screen.mouse[0] - screen.rect[0], screen.mouse[1] - screen.rect[1]]
 }
 
 /// The book being read and where the reader is in it, when a book is open.
@@ -3481,15 +3500,16 @@ impl Hooks for PlutoHooks {
         screen.inventory_x = layout.inventory_x;
         screen.own_labels = layout.own_labels;
         screen.own_background = layout.own_background;
-        if screen_handler_api_v1::has_dynamic_slots(event.block) {
-            horizon_client::game::pluto_dynamic_screen_slots::set_resolver(resolve_dynamic_screen_slots);
-        }
+        // The resolver is set for every mod menu, not only the dynamic-slot ones: the refresh
+        // it answers is also what keeps the client's view of the menu's items and data (see
+        // `resolve_dynamic_screen_slots`), which the draw and scroll callbacks read.
+        horizon_client::game::pluto_dynamic_screen_slots::set_resolver(resolve_dynamic_screen_slots);
         Some(screen)
     }
 
     fn screen_draw(&self, host: &dyn Host, event: &mut ScreenDrawEvent<'_>) {
         let mut canvas = HostCanvas { host, batch: &mut *event.batch };
-        screen_handler_api_v1::draw(event.block, event.origin, event.data, &mut canvas);
+        screen_handler_api_v1::draw(event.block, event.origin, event.data, host.cursor(), &mut canvas);
     }
 
     fn screen_click(&self, _host: &dyn Host, event: &mut ScreenClickEvent<'_>) -> Option<i32> {
@@ -3498,6 +3518,33 @@ impl Hooks for PlutoHooks {
 
     fn screen_tooltip(&self, _host: &dyn Host, event: &mut ScreenTooltipEvent<'_>) {
         screen_handler_api_v1::tooltip(event.block, event.at, event.data, event.lines);
+    }
+
+    fn hud(&self, host: &mut dyn Host, event: &mut HudEvent<'_>) {
+        if !hud_api_v1::has_hud() {
+            return;
+        }
+        let size = [event.batch.width, event.batch.height];
+        let inventory: Vec<Option<ItemSlot>> = host
+            .own_inventory()
+            .map(|stacks| stacks.iter().map(|stack| stack.as_ref().and_then(slot_of)).collect())
+            .unwrap_or_default();
+        // The acting player on the client is the local player; without one (a server, a menu
+        // without a world) the equipment simply reads empty and the callbacks draw nothing.
+        let mut equipment = hud_api_v1::HudEquipment { right_handed: true, ..hud_api_v1::HudEquipment::default() };
+        let mut spectator = false;
+        if let Some(player) = host.acting_player() {
+            spectator = player.game_mode == 3;
+            let worn = |slot| host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
+            equipment.head = worn(EquipmentSlot::Head);
+            equipment.chest = worn(EquipmentSlot::Chest);
+            equipment.legs = worn(EquipmentSlot::Legs);
+            equipment.feet = worn(EquipmentSlot::Feet);
+            equipment.offhand = worn(EquipmentSlot::OffHand);
+            equipment.main_hand = worn(EquipmentSlot::MainHand);
+        }
+        let mut canvas = HostCanvas { host, batch: event.batch };
+        hud_api_v1::draw_hud(&mut canvas, size, &inventory, &equipment, spectator);
     }
 
     fn screen_render_post(&self, host: &dyn Host, event: &mut ScreenRenderPostEvent<'_>) {
@@ -3535,6 +3582,15 @@ impl Hooks for PlutoHooks {
     }
 
     fn screen_mouse_scrolled_pre(&self, host: &dyn Host, event: &mut ScreenMouseScrolledPreEvent<'_>) -> Flow {
+        // A mod menu that hears the wheel gets the roll first, over its own scrolling state.
+        if let Some(block) = menu_block(event.screen) {
+            if screen_handler_api_v1::has_scroll(&block)
+                && screen_handler_api_v1::scroll(&block, screen_at(event.screen), [event.scroll[0] as f32, event.scroll[1] as f32])
+            {
+                return Flow::Cancel;
+            }
+            return Flow::Continue;
+        }
         if !book_screen_is_ours(host, event.screen.id) {
             return Flow::Continue;
         }
@@ -3553,7 +3609,30 @@ impl Hooks for PlutoHooks {
         Flow::Cancel
     }
 
+    fn screen_char_typed_pre(&self, host: &dyn Host, event: &mut ScreenCharTypedPreEvent<'_>) -> Flow {
+        // A mod menu with a text field hears the typed characters while it is open.
+        if let Some(block) = menu_block(event.screen) {
+            return if screen_handler_api_v1::has_text_input(&block) && screen_handler_api_v1::char_typed(&block, event.c) {
+                Flow::Cancel
+            } else {
+                Flow::Continue
+            };
+        }
+        let _ = host;
+        Flow::Continue
+    }
+
     fn screen_key_pressed_pre(&self, host: &dyn Host, event: &mut ScreenKeyPressedPreEvent<'_>) -> Flow {
+        // A mod menu with a text field hears key presses (backspace, enter, ...) while open.
+        if let Some(block) = menu_block(event.screen) {
+            return if screen_handler_api_v1::has_text_input(&block)
+                && screen_handler_api_v1::key_pressed(&block, &event.key.to_ascii_lowercase())
+            {
+                Flow::Cancel
+            } else {
+                Flow::Continue
+            };
+        }
         if !book_screen_is_ours(host, event.screen.id) {
             return Flow::Continue;
         }
@@ -3582,6 +3661,11 @@ impl Hooks for PlutoHooks {
     }
 
     fn screen_closing(&self, host: &dyn Host, event: &mut ScreenClosingEvent<'_>) {
+        // A closing container screen forgets the client's view of its menu's state, so a later
+        // menu of the same block never draws with the earlier one's items.
+        if let Some(block) = menu_block(event.screen) {
+            screen_handler_api_v1::forget_menu_state(&block);
+        }
         if event.screen.id != "mod" {
             return;
         }
