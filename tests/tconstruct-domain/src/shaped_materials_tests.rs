@@ -10,8 +10,9 @@ use pluto_lib::{Identifier, JsonResourceStack, Nbt, NbtCompound};
 use serde_json::{Value, json};
 
 use crate::shaped_materials::{
-    Data, KeyIngredient, Predicate, decode_predicate, decode_recipe, find_materials, grid_matches,
-    load_recipes, predicate_matches, value_recipe_matches,
+    Data, KeyIngredient, Predicate, decode_predicate, decode_recipe, decode_shapeless_recipe,
+    find_materials, find_materials_shapeless, grid_matches, load_recipes, load_shapeless_recipes,
+    predicate_matches, value_recipe_matches,
 };
 use crate::tool_materials::MaterialVariant;
 
@@ -252,6 +253,57 @@ fn all_ten_shipped_shaped_materials_recipes_decode() {
             "{stem} keeps a material ingredient",
         );
     }
+}
+
+#[test]
+fn the_shipped_shapeless_materials_recipe_decodes_and_finds_its_material() {
+    // The one shipped shapeless-materials conversion: fake_block_to_ingots.
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/recipe");
+    let path = content.join("tools/parts/fake_block_to_ingots.json");
+    let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|e| panic!("{path:?}: {e}"))).unwrap();
+    let file = (id("tconstruct:tools/parts/fake_block_to_ingots"), value);
+    let registered = load_shapeless_recipes(std::slice::from_ref(&file));
+    let candidates = &registered[&id("tconstruct:fake_ingot")];
+    assert_eq!(candidates.len(), 1, "the conversion registers under its result item");
+    let recipe = &candidates[0];
+    assert_eq!(recipe.part_count, 1);
+    // The shaped loader does not claim it (its parts is a count, not symbols).
+    assert!(load_recipes(&[file.clone()]).is_empty());
+    // The serializer's bounds: parts must be between 1 and the ingredient count.
+    assert!(decode_shapeless_recipe(&json!({"type": "minecraft:crafting_shapeless", "ingredients": [{"item": "minecraft:stone"}], "parts": 0, "result": {"id": "minecraft:stone"}})).is_err());
+    assert!(decode_shapeless_recipe(&json!({"type": "minecraft:crafting_shapeless", "ingredients": [{"item": "minecraft:stone"}], "parts": 2, "result": {"id": "minecraft:stone"}})).is_err());
+
+    // A registry where mythril has a block form (value 9) but no ingot form,
+    // so the fake ingot may stand in for it; iron has both.
+    let mut definitions = crate::materials::Definitions::default();
+    definitions.server_loaded = true;
+    definitions
+        .tags
+        .insert(id("tconstruct:compatibility_metals"), vec![id("tconstruct:mythril"), id("tconstruct:iron")]);
+    let files = vec![
+        (id("tconstruct:tools/materials/mythril_block"), json!({"type": "tconstruct:material", "ingredient": {"item": "tconstruct:mythril_block"}, "material": "tconstruct:mythril", "needed": 1, "value": 9})),
+        (id("tconstruct:tools/materials/iron_ingot"), json!({"type": "tconstruct:material", "ingredient": {"item": "minecraft:iron_ingot"}, "material": "tconstruct:iron", "needed": 1, "value": 1})),
+    ];
+    let material_recipes = crate::material_recipes::Recipes::load(&files, &crate::original_data::conditions());
+    assert!(material_recipes.problems.is_empty(), "{:?}", material_recipes.problems);
+    let loaded = Data { definitions, material_recipes, casting: crate::casting_recipes::MaterialCasting::default(), items: None };
+    let block = |material: &str| {
+        let mut data = NbtCompound::new();
+        data.insert("Material".into(), Nbt::String(material.into()));
+        Nbt::Compound(data)
+    };
+    let mythril = block("tconstruct:mythril");
+    let cells = [Some(stack("tconstruct:fake_storage_block", Some(&mythril))), None, None];
+    assert_eq!(
+        find_materials_shapeless(recipe, &cells, &loaded).unwrap().iter().map(ToString::to_string).collect::<Vec<_>>(),
+        ["tconstruct:mythril"],
+        "the block's material carries into the ingots",
+    );
+    // Iron already has an ingot form, so the fake ingot cannot stand in for
+    // it: the ingredient refuses the stack and the part is never found.
+    let iron = block("tconstruct:iron");
+    let cells = [Some(stack("tconstruct:fake_storage_block", Some(&iron))), None, None];
+    assert!(find_materials_shapeless(recipe, &cells, &loaded).is_none());
 }
 
 #[test]

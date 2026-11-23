@@ -395,6 +395,31 @@ fn decode_key_ingredient(value: &Value) -> Result<KeyIngredient, String> {
     }
 }
 
+fn decode_extra_materials(fields: &serde_json::Map<String, Value>) -> Result<Vec<MaterialVariant>, String> {
+    match fields.get("extra_materials") {
+        None => Ok(Vec::new()),
+        Some(Value::Array(values)) => values
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .and_then(MaterialVariant::parse)
+                    .ok_or_else(|| "extra material must be a material variant string".to_owned())
+            })
+            .collect(),
+        Some(_) => Err("extra_materials must be a list".into()),
+    }
+}
+
+fn decode_result(fields: &serde_json::Map<String, Value>) -> Result<Identifier, String> {
+    let result = fields
+        .get("result")
+        .and_then(|result| result.get("id"))
+        .and_then(Value::as_str)
+        .ok_or("recipe needs a result id")?;
+    Identifier::parse(result).map_err(|_| format!("invalid result id {result}"))
+}
+
 pub(crate) fn decode_recipe(value: &Value) -> Result<ShapedMaterials, String> {
     let fields = value.as_object().ok_or("recipe must be an object")?;
     let parts = fields.get("parts").and_then(Value::as_str).ok_or("recipe needs parts")?;
@@ -415,30 +440,41 @@ pub(crate) fn decode_recipe(value: &Value) -> Result<ShapedMaterials, String> {
             Ok((symbol, decode_key_ingredient(ingredient)?))
         })
         .collect::<Result<BTreeMap<_, _>, String>>()?;
-    let extra_materials = match fields.get("extra_materials") {
-        None => Vec::new(),
-        Some(Value::Array(values)) => values
-            .iter()
-            .map(|value| {
-                value
-                    .as_str()
-                    .and_then(MaterialVariant::parse)
-                    .ok_or_else(|| "extra material must be a material variant string".to_owned())
-            })
-            .collect::<Result<_, _>>()?,
-        Some(_) => return Err("extra_materials must be a list".into()),
-    };
-    let result = fields
-        .get("result")
-        .and_then(|result| result.get("id"))
-        .and_then(Value::as_str)
-        .ok_or("recipe needs a result id")?;
-    Ok(ShapedMaterials {
-        pattern,
-        key,
-        parts: parts.chars().collect(),
-        extra_materials,
-        result: Identifier::parse(result).map_err(|_| format!("invalid result id {result}"))?,
+    let extra_materials = decode_extra_materials(fields)?;
+    let result = decode_result(fields)?;
+    Ok(ShapedMaterials { pattern, key, parts: parts.chars().collect(), extra_materials, result })
+}
+
+/// ShapelessMaterialsRecipe: the converted form carries its ingredients verbatim and a
+/// numeric `parts`: how many of them, from the first, bear materials.
+#[derive(Clone, Debug)]
+pub(crate) struct ShapelessMaterials {
+    pub ingredients: Vec<Value>,
+    pub part_count: usize,
+    pub extra_materials: Vec<MaterialVariant>,
+    pub result: Identifier,
+}
+
+pub(crate) fn decode_shapeless_recipe(value: &Value) -> Result<ShapelessMaterials, String> {
+    let fields = value.as_object().ok_or("recipe must be an object")?;
+    let ingredients: Vec<Value> = fields
+        .get("ingredients")
+        .and_then(Value::as_array)
+        .ok_or("recipe needs ingredients")?
+        .clone();
+    if ingredients.is_empty() {
+        return Err("recipe needs at least one ingredient".into());
+    }
+    // The serializer refuses a part count outside 1..=ingredients.
+    let part_count = fields.get("parts").and_then(Value::as_u64).ok_or("recipe needs a numeric parts")? as usize;
+    if part_count < 1 || part_count > ingredients.len() {
+        return Err("parts must be between 1 and the number of ingredients".into());
+    }
+    Ok(ShapelessMaterials {
+        ingredients,
+        part_count,
+        extra_materials: decode_extra_materials(fields)?,
+        result: decode_result(fields)?,
     })
 }
 
@@ -454,8 +490,8 @@ fn registry() -> &'static RwLock<BTreeMap<Identifier, Vec<ShapedMaterials>>> {
 pub(crate) fn load_recipes(files: &[(Identifier, Value)]) -> BTreeMap<Identifier, Vec<ShapedMaterials>> {
     let mut recipes: BTreeMap<Identifier, Vec<ShapedMaterials>> = BTreeMap::new();
     for (_, value) in files {
-        // Only the shaped-materials conversions carry a `parts` field.
-        if value.get("parts").is_none() {
+        // Only the shaped-materials conversions carry a string `parts` field.
+        if !matches!(value.get("parts"), Some(Value::String(_))) {
             continue;
         }
         match decode_recipe(value) {
@@ -463,6 +499,30 @@ pub(crate) fn load_recipes(files: &[(Identifier, Value)]) -> BTreeMap<Identifier
                 recipes.entry(recipe.result.clone()).or_default().push(recipe);
             }
             Err(error) => eprintln!("Tinkers: shaped materials recipe: {error}"),
+        }
+    }
+    recipes
+}
+
+fn shapeless_registry() -> &'static RwLock<BTreeMap<Identifier, Vec<ShapelessMaterials>>> {
+    static REGISTRY: OnceLock<RwLock<BTreeMap<Identifier, Vec<ShapelessMaterials>>>> = OnceLock::new();
+    REGISTRY.get_or_init(|| RwLock::new(BTreeMap::new()))
+}
+
+pub(crate) fn load_shapeless_recipes(files: &[(Identifier, Value)]) -> BTreeMap<Identifier, Vec<ShapelessMaterials>> {
+    let mut recipes: BTreeMap<Identifier, Vec<ShapelessMaterials>> = BTreeMap::new();
+    for (_, value) in files {
+        // Only the shapeless-materials conversions are shapeless recipes with a numeric `parts`.
+        if value.get("type").and_then(Value::as_str) != Some("minecraft:crafting_shapeless")
+            || !matches!(value.get("parts"), Some(Value::Number(_)))
+        {
+            continue;
+        }
+        match decode_shapeless_recipe(value) {
+            Ok(recipe) => {
+                recipes.entry(recipe.result.clone()).or_default().push(recipe);
+            }
+            Err(error) => eprintln!("Tinkers: shapeless materials recipe: {error}"),
         }
     }
     recipes
@@ -570,17 +630,23 @@ pub(crate) fn grid_matches(recipe: &ShapedMaterials, request: &AssemblyRequest<'
 /// ShapedMaterialsRecipe.assemble: one material and no extras on a
 /// material item sets its material; anything else is a tool stack whose
 /// materials are the parts' materials followed by the extras.
-fn assemble(recipe: &ShapedMaterials, mut materials: Vec<MaterialVariant>) -> Option<NbtCompound> {
-    materials.extend(recipe.extra_materials.iter().cloned());
-    if materials.len() == 1 && recipe.extra_materials.is_empty() {
-        if is_material_item(&recipe.result) {
+fn assemble(recipe: &ShapedMaterials, materials: Vec<MaterialVariant>) -> Option<NbtCompound> {
+    assemble_result(&recipe.result, materials, &recipe.extra_materials)
+}
+
+/// The assemble tail both materials forms share (ShapelessMaterialsRecipe
+/// delegates to the same logic in the original).
+fn assemble_result(result_item: &Identifier, mut materials: Vec<MaterialVariant>, extra_materials: &[MaterialVariant]) -> Option<NbtCompound> {
+    materials.extend(extra_materials.iter().cloned());
+    if materials.len() == 1 && extra_materials.is_empty() {
+        if is_material_item(result_item) {
             let mut data = NbtCompound::new();
             data.insert("Material".into(), Nbt::String(materials[0].to_string()));
             return Some(data);
         }
     }
     let list = MaterialList::from_variants(materials);
-    if let Some(definition) = tool_definition(&recipe.result) {
+    if let Some(definition) = tool_definition(result_item) {
         let definitions = crate::common::register().read().ok()?;
         let modifiers = crate::common::server_modifiers()?.read().ok()?;
         let items = crate::common::item_snapshot();
@@ -590,7 +656,7 @@ fn assemble(recipe: &ShapedMaterials, mut materials: Vec<MaterialVariant>) -> Op
             materials: &definitions,
             modifiers: &modifiers,
             item_tags_loaded: items.is_some(),
-            item: Some(&recipe.result),
+            item: Some(result_item),
             item_tags: items.as_deref(),
         };
         return crate::tool_build::create_tool(&env, &list, false).ok();
@@ -598,6 +664,102 @@ fn assemble(recipe: &ShapedMaterials, mut materials: Vec<MaterialVariant>) -> Op
     let mut data = NbtCompound::new();
     crate::tool_stack::set_materials_raw(&mut data, &list);
     Some(data)
+}
+
+/// One shapeless ingredient against a stack: the two material kinds by their
+/// own tests, anything else as a plain ingredient.
+fn shapeless_test(ingredient: &Value, stack: &StackView<'_>, loaded: &Data) -> bool {
+    if let Some(text) = ingredient.as_str() {
+        return match text.strip_prefix('#') {
+            Some(tag) => Identifier::parse(tag)
+                .is_ok_and(|tag| Identifier::parse(stack.id).is_ok_and(|item| loaded.in_tag(&item, &tag))),
+            None => stack.id == text,
+        };
+    }
+    match ingredient.get("type").and_then(Value::as_str) {
+        Some("tconstruct:material") => material_test_with(ingredient, stack, loaded),
+        Some("tconstruct:material_value") => material_value_test_with(ingredient, stack, loaded),
+        _ => match MaterialIngredient::decode(ingredient) {
+            Ok(parsed) => Identifier::parse(stack.id)
+                .is_ok_and(|item| parsed.matches(&item, &|i, t| loaded.in_tag(i, t))),
+            Err(_) => false,
+        },
+    }
+}
+
+/// The grid against a shapeless recipe: every ingredient takes a distinct
+/// stack and nothing else is on the grid (the game's own shapeless match).
+fn shapeless_grid_matches(recipe: &ShapelessMaterials, cells: &[Option<StackView<'_>>], loaded: &Data) -> bool {
+    let stacks: Vec<&StackView<'_>> = cells.iter().flatten().collect();
+    if stacks.len() != recipe.ingredients.len() {
+        return false;
+    }
+    let mut used = vec![false; stacks.len()];
+    for ingredient in &recipe.ingredients {
+        let Some((slot, _)) = stacks.iter().enumerate().find(|(index, stack)| !used[*index] && shapeless_test(ingredient, stack, loaded)) else {
+            return false;
+        };
+        used[slot] = true;
+    }
+    true
+}
+
+/// findMaterials for the shapeless form (checkRepeats is false there): walk
+/// the grid in slot order; a stack claims the first part it satisfies that
+/// is not yet found. Every part must be found.
+pub(crate) fn find_materials_shapeless(
+    recipe: &ShapelessMaterials,
+    cells: &[Option<StackView<'_>>],
+    loaded: &Data,
+) -> Option<Vec<MaterialVariant>> {
+    let mut found: Vec<Option<MaterialVariant>> = vec![None; recipe.part_count];
+    for stack in cells.iter().flatten() {
+        for index in 0..recipe.part_count {
+            if found[index].is_some() {
+                continue;
+            }
+            if !shapeless_test(&recipe.ingredients[index], stack, loaded) {
+                continue;
+            }
+            found[index] = Some(loaded.stack_material(stack));
+            break;
+        }
+    }
+    found.into_iter().collect()
+}
+
+fn shapeless_interest(request: &pluto_lib::recipe_api_v1::RecipeFacts<'_>) -> bool {
+    matches!(request.form, RecipeForm::Shapeless)
+        && request
+            .result_item
+            .is_some_and(|item| Identifier::parse(item).is_ok_and(|id| shapeless_registry().read().is_ok_and(|recipes| recipes.contains_key(&id))))
+}
+
+fn shapeless_callback(request: &AssemblyRequest<'_>) -> AssemblyDecision {
+    let RecipeForm::Shapeless = request.recipe.form else { return AssemblyDecision::Pass };
+    let Some(result_item) = request.recipe.result_item else { return AssemblyDecision::Pass };
+    let Ok(result) = Identifier::parse(result_item) else { return AssemblyDecision::Pass };
+    let candidates = shapeless_registry()
+        .read()
+        .ok()
+        .and_then(|recipes| recipes.get(&result).cloned());
+    let Some(candidates) = candidates else { return AssemblyDecision::Pass };
+    let Some(loaded) = load_data() else { return AssemblyDecision::Pass };
+    for recipe in &candidates {
+        if !shapeless_grid_matches(recipe, request.grid.cells, &loaded) {
+            continue;
+        }
+        // The grid is this recipe's grid; a part disagreement is a real
+        // non-match (Java's matches returns false), not a plain result.
+        let Some(materials) = find_materials_shapeless(recipe, request.grid.cells, &loaded) else {
+            return AssemblyDecision::Deny;
+        };
+        return match assemble_result(&recipe.result, materials, &recipe.extra_materials) {
+            Some(custom_data) => AssemblyDecision::Assemble { custom_data },
+            None => AssemblyDecision::Deny,
+        };
+    }
+    AssemblyDecision::Pass
 }
 
 fn tool_definition(item: &Identifier) -> Option<crate::tool_definitions::Data> {
@@ -666,6 +828,11 @@ pub(crate) fn register() {
         interest: assembly_interest,
         callback: assembly_callback,
     });
+    let _ = pluto_lib::recipe_api_v1::register_assembly(AssemblyRegistration {
+        id: "tconstruct:shapeless_materials",
+        interest: shapeless_interest,
+        callback: shapeless_callback,
+    });
     let output = registry();
     ResourceManagerHelper::get(ResourceType::ServerData)
         .register_json_reload_listener(
@@ -674,11 +841,14 @@ pub(crate) fn register() {
             move |files| {
                 let mut state = output.write().map_err(|_| "shaped materials recipes poisoned")?;
                 *state = load_recipes(files);
+                let mut shapeless = shapeless_registry().write().map_err(|_| "shapeless materials recipes poisoned")?;
+                *shapeless = load_shapeless_recipes(files);
                 Ok(())
             },
         )
         .expect("Tinkers shaped materials listener registration failed");
     ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
         *registry().write().expect("shaped materials recipes poisoned") = BTreeMap::new();
+        *shapeless_registry().write().expect("shapeless materials recipes poisoned") = BTreeMap::new();
     });
 }

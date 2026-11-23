@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "type": "tconstruct:material",
+      "item": "tconstruct:fake_storage_block",
+      "material": {
+        "type": "tconstruct:has_part",
+        "part": "tconstruct:fake_ingot"
+      }
+    }
+  ],
+  "parts": 1,
+  "result": {
+    "count": 9,
+    "id": "tconstruct:fake_ingot"
+  }
+}
