@@ -299,6 +299,22 @@ pub(crate) fn restores(nbt: &NbtCompound, env: &Environment, source: &crate::pro
     })
 }
 
+/// What the teleport-dodge modules of a worn piece do for `amount` of damage its wearer took: the dodge of each module
+/// whose conditions and chance land, with the modifier it belongs to (the cause of the wear it costs), in modifier
+/// order. `enderference` says whether the wearer already has the effect, which locks the dodge out. The caller
+/// performs the teleport the dodge is named for and prevents the damage. `roll` gives uniform values in [0, 1).
+pub(crate) fn dodges(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, enderference: bool, amount: f32, roll: &mut dyn FnMut() -> f32) -> Vec<(Identifier, crate::teleport_dodge::Dodge)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(dodge) = module.teleport_dodge(entry, facts, source, enderference, amount, roll) { found.push((entry.id.clone(), dodge)); }
+            }
+        }
+        found
+    })
+}
+
 /// What taking a worn piece off does to its wearer besides clearing effects: the hurts (damage type, amount) its damage-on-unequip modules deal
 /// and the shares (category, percent) its reduce-effect modules take off the wearer's effects, in modifier order.
 pub(crate) fn unequip_effects(nbt: &NbtCompound, env: &Environment) -> (Vec<(String, f32)>, Vec<(pluto_lib::EffectCategory, f32)>) {

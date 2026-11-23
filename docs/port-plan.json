@@ -46,6 +46,7 @@
     "api/src/conditional_stat.rs",
     "api/src/protection.rs",
     "api/src/protection_hook.rs",
+    "api/src/teleport_dodge.rs",
     "api/src/tool_damage_hook.rs",
     "api/src/weapon_effect.rs",
     "api/src/thorns.rs",
