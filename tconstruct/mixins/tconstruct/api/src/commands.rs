@@ -24,8 +24,9 @@
 //! - `tconstruct:harvest_tier` is a tool stat the port's stat enum does not carry (tiers live on
 //!   the stats builder, not in the stat map). Bonus-set and reset handle it exactly as the
 //!   original does, but the port's stat-override module reads only numeric overrides, so a
-//!   stored tier override is inert until that module learns tiers. The capacity stats
-//!   (`tank_capacity`, `max_energy`) belong to unported tool systems and do not resolve.
+//!   stored tier override is inert until that module learns tiers. Of the capacity stats,
+//!   `tank_capacity` resolves (the tank system is ported); `max_energy` belongs to an
+//!   unported tool system and does not resolve.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -2207,7 +2208,8 @@ mod tests {
         assert_eq!(read_stat_value(tier, &Nbt::String("obsidian".into())), None);
         // The tier stat is not numeric, and unknown stats do not resolve.
         assert!(resolve_tool_stat("harvest_tier", true).is_err());
-        assert!(resolve_tool_stat("tank_capacity", false).is_err());
+        assert!(resolve_tool_stat("tank_capacity", false).is_ok());
+        assert!(resolve_tool_stat("max_energy", false).is_err());
         assert!(resolve_tool_stat("nonsense", false).is_err());
     }
 
