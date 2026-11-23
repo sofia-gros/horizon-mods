@@ -71,7 +71,6 @@ pub(crate) enum Display {
     Embellished,
 }
 
-#[derive(Clone, Debug, PartialEq)]
 /// What a boot walk module does at each cell it walks over (ArmorWalkRadiusModule.walkOn),
 /// at the entry's effective level.
 #[derive(Clone, Debug, PartialEq)]
