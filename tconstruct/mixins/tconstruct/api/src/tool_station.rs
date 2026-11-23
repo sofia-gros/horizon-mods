@@ -91,6 +91,7 @@ pub(crate) struct ModifierRecipes<'a> {
     pub recipes: &'a crate::modifier_recipes::Recipes,
     pub overslime: Option<&'a crate::overslime::Recipes>,
     pub modifier_repairs: Option<&'a crate::modifier_repair::Recipes>,
+    pub damaging: Option<&'a crate::damaging::Recipes>,
     /// Each input slot's item and count (None when empty), independent of how it resolved.
     pub raw: &'a [Option<(Identifier, u32)>],
     /// The slot and modifier of a modifier crystal when it is the only thing on the table.
@@ -157,14 +158,30 @@ fn add_modifier(ctx: &Context, tool: &ItemSlot, modifiers: &ModifierRecipes) -> 
     }
     let Some(recipe) = modifiers.recipes.find(&tool.item, modifiers.raw, modifiers.in_tag) else {
         // No modifier recipe: slime balls may fill overslime.
-        let Some(recipe) = modifiers.overslime.and_then(|recipes| recipes.find(&tool.item, modifiers.raw, modifiers.in_tag)) else { return Ok(Outcome::NoMatch); };
-        return Ok(match recipe.apply(tool, &env, modifiers.raw, modifiers.in_tag)? {
-            Err(message) => Outcome::Failure(message),
-            Ok(result) => {
-                let consumed = recipe.consumption(tool, &result, &env, modifiers.raw, modifiers.in_tag).into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect();
-                Outcome::Crafted(Crafted { result, consumed, tool_shrink: 16, leftover: Vec::new() })
+        if let Some(recipe) = modifiers.overslime.and_then(|recipes| recipes.find(&tool.item, modifiers.raw, modifiers.in_tag)) {
+            return Ok(match recipe.apply(tool, &env, modifiers.raw, modifiers.in_tag)? {
+                Err(message) => Outcome::Failure(message),
+                Ok(result) => {
+                    let consumed = recipe.consumption(tool, &result, &env, modifiers.raw, modifiers.in_tag).into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect();
+                    Outcome::Crafted(Crafted { result, consumed, tool_shrink: 16, leftover: Vec::new() })
+                }
+            });
+        }
+        // Nor overslime: a damaging recipe may still take the tool.
+        if let Some(recipes) = modifiers.damaging {
+            if let Some(attempt) = recipes.attempt(tool, &env, modifiers.raw, modifiers.in_tag) {
+                return Ok(match attempt {
+                    Err(message) => Outcome::Failure(message),
+                    Ok((result, consumed)) => Outcome::Crafted(Crafted {
+                        result,
+                        consumed: consumed.into_iter().map(|amount| i32::try_from(amount).unwrap_or(i32::MAX)).collect(),
+                        tool_shrink: 1,
+                        leftover: Vec::new(),
+                    }),
+                });
             }
-        });
+        }
+        return Ok(Outcome::NoMatch);
     };
     Ok(match recipe.apply(tool, &env, modifiers.raw, modifiers.in_tag)? {
         Err(message) => Outcome::Failure(message),

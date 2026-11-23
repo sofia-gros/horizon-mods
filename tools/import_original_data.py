@@ -233,6 +233,26 @@ def copy_modifier_recipes():
     return count
 
 
+DAMAGING_SOURCE = ROOT / '.local/tconstruct-source/src/generated/resources/data/tconstruct/recipes/tables/tinker_station_damaging'
+DAMAGING_TARGET = ROOT / 'tconstruct/content/data/tconstruct/recipes/tables/tinker_station_damaging'
+
+
+def copy_damaging_recipes():
+    """The tinker station damaging recipes (`tconstruct:tinker_station_damaging`: tools damaged with
+    lava, blazing blood, magma or venom), byte for byte."""
+    if DAMAGING_TARGET.exists():
+        shutil.rmtree(DAMAGING_TARGET)
+    count = 0
+    for path in sorted(DAMAGING_SOURCE.rglob('*.json')):
+        if json.loads(path.read_text(encoding='utf-8')).get('type') != 'tconstruct:tinker_station_damaging':
+            continue
+        destination = DAMAGING_TARGET / path.relative_to(DAMAGING_SOURCE)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+        count += 1
+    return count
+
+
 def copy_enchantment_data():
     """The enchantment-to-modifier map and the modifier_like enchantment tags its # keys name, byte
     for byte. Every tag entry names another mod's enchantment as optional, so the tags resolve empty
@@ -3630,7 +3650,7 @@ def main():
     gameplay_loot = copy_gameplay_loot()
     models, textures = len(list((ASSET_TARGET / 'models').rglob('*.json'))), len(list((ASSET_TARGET / 'textures').rglob('*.png')))
     unrendered = [name for name in unrendered if name not in part_names + tool_names and not name.endswith('_bucket') and name != 'copper_can']  # fluid buckets and the can are modelled by write_fluid_world and write_copper_can
-    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes()
+    recipes = copy_material_recipes(skipped_materials) + copy_modifier_recipes() + copy_part_builder_recipes() + copy_recycling_recipes() + copy_severing_recipes() + copy_loot_modifiers() + copy_fluid_recipes() + copy_fluid_tags() + copy_fluid_effects() + copy_damageable_recycling_recipes() + copy_damaging_recipes()
     layouts = copy_station_layouts()
     print(f'copied {copied} files, {tags} tags, {languages} language files and {recipes} material recipes from {head}; {layouts} station layouts; {models} models and {textures} textures (left out, need the original tool loader: {len(unrendered)}; tools with no layered item definition: {tools_left_out}); {worn_textures} worn armor textures and {worn_rows} material variants; {len(types)} modifier module types; {fuels} vanilla fuels; {fluid_blocks} world fluids with a bucket; {fluid_textures} fluid textures; {transfers} fluid container transfers; {crafting_written} crafting/smelting/stonecutting recipes (left out for an undeclared ingredient: {crafting_left}); excluded materials: {sorted(skipped_materials)}; {advancements} advancements with {advancement_functions} grant functions and {gameplay_loot} gameplay loot table; {sounds} sound files, {mob_equipment} mob equipment files')
 
