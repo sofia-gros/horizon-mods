@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (53, 28), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (51, 26), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -202,7 +202,13 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("fortune").is_empty(), "fortune is fully bound");
     assert!(unbound_of("silky").is_empty(), "silky is fully bound");
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
+    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects). Autosmelt and smelting
+    // bind over the cooking recipes PlutoLib now publishes from the game's recipe book: autosmelt converts drops on process loot,
+    // and the smelting module cooks its input inventory into its output on the tool's hits, harvests and shots.
+    assert!(!kinds.contains("tconstruct:autosmelt"), "autosmelt should be bound");
+    assert!(!kinds.contains("tconstruct:smelting"), "smelting should be bound");
+    assert!(unbound_of("autosmelt").is_empty(), "autosmelt is fully bound");
+    assert!(unbound_of("smelting").is_empty(), "smelting is fully bound");
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
     for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The special melee consumers are bound: punch and reverse punch over the projectile hooks, the melee instrument, the

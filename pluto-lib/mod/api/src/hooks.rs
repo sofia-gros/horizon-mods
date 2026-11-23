@@ -468,6 +468,11 @@ pub fn hooks() -> Box<dyn Hooks> {
             }
         }
     });
+    recipe_api_v1::set_cooking_lookup(|kind, item| {
+        horizon_client::entry::pluto_cooking_recipes::cook(kind, item).map(|facts| recipe_api_v1::CookingRecipe {
+            result: facts.result, result_count: facts.result_count, experience: facts.experience, time: facts.time,
+        })
+    });
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(

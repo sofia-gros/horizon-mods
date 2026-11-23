@@ -235,6 +235,13 @@ pub(crate) enum Module {
     /// breaks a block with, while it sits in one of the listed slots (the merge runs in the
     /// block-break flow, block_break_hook).
     ArmorHarvestEnchantment { name: String, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
+    /// AutosmeltModule: a drop a cooking recipe of one of the listed types takes becomes its
+    /// cooked result (the conversion runs in the block-break loot flow, block_break_hook).
+    Autosmelt { recipe_types: Vec<String>, extra_drop_chance: f32 },
+    /// SmeltingModule: the tool cooks what its input inventory holds into its output inventory,
+    /// powered by the tool's use (the cooking runs in tool_stack::cook_smelting; the output's key
+    /// is the JSON's `output_key` or, at use, the modifier's ID with an `_output` suffix).
+    Smelting { recipe_type: String, multiplier: f32, input: Box<crate::tool_inventory::Inventory>, output: Box<crate::tool_inventory::Inventory>, condition: Condition },
     /// ClearEffectOnUnequipModule: taking the armor off takes the effect off its wearer.
     ClearEffectOnUnequip { effect: Identifier, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
@@ -950,6 +957,36 @@ impl Module {
                     .collect::<Result<Vec<_>, _>>()?;
                 Self::ArmorHarvestEnchantment { name, flat, each, slots, condition: Condition::decode(fields)? }
             }
+            // AutosmeltModule: drops a cooking recipe takes become their cooked result.
+            "tconstruct:autosmelt" if only("tconstruct:process_loot") => {
+                let recipe_types = match fields.get("recipe_types") {
+                    Some(Value::String(one)) => vec![one.clone()],
+                    Some(Value::Array(many)) => many.iter().map(|kind| kind.as_str().map(str::to_owned).ok_or("recipe_types must name recipe types")).collect::<Result<Vec<_>, _>>()?,
+                    _ => return Err("recipe_types must be a recipe type or a list of them".into()),
+                };
+                Self::Autosmelt { recipe_types, extra_drop_chance: float(fields, "extra_drop_chance")? }
+            }
+            // SmeltingModule: the module's own fields are its input inventory's (InventoryModule.LOADER
+            // is a direct field); the output inventory is built on it, keyed by `output_key` or the
+            // modifier's ID with an `_output` suffix, patterned by `output_pattern`.
+            "tconstruct:smelting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit" | "tconstruct:block_harvest" | "tconstruct:projectile_launch" | "tconstruct:on_attacked" | "tconstruct:plant_harvest" | "tconstruct:shear_entity" | "tconstruct:sling_launch")) => {
+                let Some(input) = crate::tool_inventory::Inventory::decode(fields)? else { return Ok(None) };
+                let optional_id = |key: &str| match fields.get(key).filter(|value| !value.is_null()) {
+                    None => Ok(None),
+                    Some(value) => Identifier::parse(value.as_str().ok_or_else(|| format!("{key} must be an ID string"))?).map(Some).map_err(|e| e.to_string()),
+                };
+                let output_pattern = match optional_id("output_pattern")? {
+                    Some(pattern) => pattern,
+                    None => Identifier::parse("tconstruct:result").expect("valid id"),
+                };
+                Self::Smelting {
+                    recipe_type: identifier(fields, "recipe_type")?.to_string(),
+                    multiplier: float(fields, "multiplier")?,
+                    output: Box::new(input.as_output(optional_id("output_key")?, Some(output_pattern))),
+                    input: Box::new(input),
+                    condition: Condition::decode(fields)?,
+                }
+            }
             "tconstruct:severing" if only("tconstruct:process_loot") => Self::Severing,
             "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::AdjustDamage::decode(fields)? else { return Ok(None); };
@@ -1181,8 +1218,15 @@ impl Module {
                 // ToolInventoryCapability.addSlots, when the module's condition holds.
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
+            Self::Smelting { input, output, condition, .. } => {
+                // The smelting module adds both of its inventories (addModules registers each).
+                if condition.matches(entry, facts) {
+                    crate::tool_inventory::add_slots(data, input.volatile_slots(entry));
+                    crate::tool_inventory::add_slots(data, output.volatile_slots(entry));
+                }
+            }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1247,6 +1291,12 @@ impl Module {
             Self::Display(Display::Trim) => { persistent.remove(&format!("{modifier}_pattern")); persistent.remove(&format!("{modifier}_material")); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
             Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
+            // SmeltingModule: both of its inventories go the same way (the output under its resolved key).
+            Self::Smelting { input, output, .. } => {
+                let _ = crate::tool_inventory::on_removed(input, modifier, persistent);
+                let output = match output.named_key() { Some(_) => (**output).clone(), None => output.with_key(Identifier::parse(&format!("{modifier}_output")).expect("valid id")) };
+                let _ = crate::tool_inventory::on_removed(&output, modifier, persistent);
+            }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -1424,6 +1474,35 @@ impl Module {
             }
             _ => None,
         }
+    }
+    /// Every inventory this module adds to a tool: a smelting module adds its input and its output
+    /// (addModules registers both), in that order; any other module adds its one part or none.
+    pub fn inventory_parts(&self, entry: &Entry, facts: &Facts) -> Vec<crate::tool_inventory::Part> {
+        match self {
+            Self::Smelting { .. } => match self.smelting_parts(entry, facts) { Some((input, output, _, _)) => vec![input, output], None => Vec::new() },
+            _ => self.inventory_part(entry, facts).into_iter().collect(),
+        }
+    }
+    /// AutosmeltModule's terms: the recipe types to try, in order, and the chance of an extra item
+    /// per level past the first; None for another module (the module carries no condition).
+    pub fn autosmelt(&self) -> Option<(&[String], f32)> {
+        let Self::Autosmelt { recipe_types, extra_drop_chance } = self else { return None; };
+        Some((recipe_types, *extra_drop_chance))
+    }
+    /// SmeltingModule's inventories as parts of this tool: the input part, the output part (its key
+    /// resolved: the JSON's `output_key`, else the modifier's ID with an `_output` suffix), the
+    /// recipe type and the multiplier; None for another module.
+    pub fn smelting_parts(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_inventory::Part, crate::tool_inventory::Part, &str, f32)> {
+        let Self::Smelting { recipe_type, multiplier, input, output, condition } = self else { return None; };
+        let active = condition.matches(entry, facts);
+        let tool_matches = condition.tool_matches(facts);
+        let input_part = crate::tool_inventory::Part::new((**input).clone(), entry.clone(), active, tool_matches);
+        let output_inventory = match output.named_key() {
+            Some(_) => (**output).clone(),
+            None => output.with_key(Identifier::parse(&format!("{}_output", entry.id)).ok()?),
+        };
+        let output_part = crate::tool_inventory::Part::new(output_inventory, entry.clone(), active, tool_matches);
+        Some((input_part, output_part, recipe_type, *multiplier))
     }
     /// CraftCountModule.modifyCraftCount: the running count multiplied by the module's value, when its
     /// condition holds (the caller stops the chain at zero, as the composed hook does).

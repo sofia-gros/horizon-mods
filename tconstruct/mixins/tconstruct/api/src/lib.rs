@@ -79,6 +79,7 @@ mod weapon_effect_hook;
 mod block_break_hook;
 mod enderporting_hook;
 mod harvest_hook;
+mod smelting_hook;
 mod severing;
 mod severing_hook;
 mod loot_modifiers;
@@ -224,6 +225,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     walk_hook::register();
     block_break_hook::register();
     enderporting_hook::register();
+    smelting_hook::register();
     severing_hook::register();
     loot_modifier_hook::register();
     effect_immunity_hook::register();

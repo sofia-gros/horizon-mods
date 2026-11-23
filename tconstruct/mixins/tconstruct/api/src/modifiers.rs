@@ -289,7 +289,7 @@ impl Modifier {
     }
     /// The inventory modules, in module order.
     pub fn inventory_parts(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::tool_inventory::Part> {
-        self.modules.iter().filter_map(|module| module.inventory_part(entry, facts)).collect()
+        self.modules.iter().flat_map(|module| module.inventory_parts(entry, facts)).collect()
     }
     /// The keys of the inventory menu modules.
     pub fn inventory_menu_keys(&self) -> Vec<crate::tool_inventory::MenuKey> {

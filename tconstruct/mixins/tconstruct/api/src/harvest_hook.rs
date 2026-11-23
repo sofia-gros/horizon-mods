@@ -66,6 +66,24 @@ fn harvest(world: &World, held_item: &str, pos: [i32; 3], face: [i32; 3]) -> boo
     false
 }
 
+/// SmeltingModule.afterHarvest: the tool cooks by the blocks this click harvested, written back
+/// to the slot that holds it (found by item and data, as the wear may have changed its damage).
+fn cook(used: &UseItemOnBlockContext, held: &StackData, amount: i32) {
+    if amount <= 0 { return; }
+    let slot = (0..36).find(|slot| used.player.stack(*slot).is_some_and(|stack| stack.item == held.item && stack.custom_data == held.custom_data));
+    let Some(slot) = slot else { return; };
+    let Some(mut stack) = used.player.stack(slot) else { return; };
+    let cooked = with_held_tool(&stack, |env, tool| {
+        let mut data = tool.custom_data.clone();
+        tool_stack::cook_smelting(&mut data, env, amount as f32);
+        data
+    });
+    if let Ok(data) = cooked {
+        stack.custom_data = data;
+        used.player.update_stack(slot, &stack);
+    }
+}
+
 /// Wears the used tool by `amount`, written back to the slot that held it (as the tool action
 /// transforms wear theirs).
 fn wear(used: &UseItemOnBlockContext, held: &StackData, amount: i32) {
@@ -105,7 +123,10 @@ pub(crate) fn register() {
         for pos in positions {
             if pos != used.pos && harvest(&world, &held.item, pos, used.face) { harvested += 1; }
         }
-        if harvested > 0 && !used.creative { wear(used, held, harvested); }
+        if harvested > 0 {
+            if !used.creative { wear(used, held, harvested); }
+            cook(used, held, harvested);
+        }
         // The click is consumed whenever the clicked block is harvestable, harvested or not.
         ActionResult::Success
     });

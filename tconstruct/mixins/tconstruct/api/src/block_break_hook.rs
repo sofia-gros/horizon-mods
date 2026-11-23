@@ -1,6 +1,7 @@
 //! Connects the modules that hear a block the player's tool breaks to PlutoLib's block-break and loot events: mining capacity (the bar a
 //! break fills or drains, before the break with `run_before` and after it otherwise: BlockHarvestModifierHook), loot to capacity (the loot of
-//! the block, eaten into a bar: ProcessLootModifierHook), the harvest enchantments the breaker's armor lends the breaking stack
+//! the block, eaten into a bar: ProcessLootModifierHook), autosmelt (drops a cooking recipe takes become their cooked result, on the same
+//! hook), the harvest enchantments the breaker's armor lends the breaking stack
 //! (HarvestEnchantmentsModifierHook: merged into the stack before the break, restored after) and the block-break half of tool usage
 //! effects (MobEffectModule.ToolUsage's afterBlockBreak). The edits land as `EntityAction::EditStackData` on the main hand. An area
 //! tool's extra blocks ride the same before-break callback through `break_extra` (see area_break).
@@ -179,6 +180,16 @@ pub(crate) fn register() {
         if let Ok(edits) = with_held_tool(held, |env, stack| tool_stack::mining_capacity_edits(&stack.custom_data, env, false)) {
             broken.actions.borrow_mut().extend(edit_action(held, edits));
         }
+        // finishHarvest: a harvest tool's smelting modules cook by the one block harvested.
+        if let Some(items) = common::item_snapshot() {
+            let harvest_tag = Identifier::new("tconstruct", "modifiable/harvest").expect("valid id");
+            let is_harvest = Identifier::parse(&held.item).is_ok_and(|item| items.get_tag(&harvest_tag).is_some_and(|members| members.contains(&item)));
+            if is_harvest {
+                if let Ok(edits) = with_held_tool(held, |env, stack| tool_stack::smelting_edits(&stack.custom_data, env, 1.0)) {
+                    broken.actions.borrow_mut().extend(edit_action(held, edits));
+                }
+            }
+        }
         broken.actions.borrow_mut().extend(usage_actions(&[&broken.held], Usage::BlockBreak));
     });
     // processLoot: the loot of a block a player's tool broke. ModifierLootModifier runs it for tools of the loot capable tag that are not broken.
@@ -199,5 +210,7 @@ pub(crate) fn register() {
             tool_stack::melting_loot(&mut stack.custom_data.clone(), env, &mut loot, force, &|slot, module, level| melt_drop(slot, module, level, &in_tag))
         });
         if let Ok(edits) = melted { drops.actions.borrow_mut().extend(edit_action(tool, edits)); }
+        // processLoot's autosmelt half: drops a cooking recipe takes become their cooked result.
+        let _ = with_held_tool(tool, |env, stack| tool_stack::autosmelt_loot(&stack.custom_data, env, &mut loot, &in_tag, &mut tool_damage_hook::random));
     });
 }

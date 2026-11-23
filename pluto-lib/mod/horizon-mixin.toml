@@ -1055,6 +1055,22 @@ kind = "RETURN"
 helper = "pluto-block-facts-return.rs"
 bindings = [{ name = "value", ty = "std::result::Result<GameplayTables, String>", value = "$value" }]
 
+# The game's cooking recipes (the furnace family), published when the recipe book loads so the
+# recipe API's cooking lookup can answer what a furnace does to an item.
+[[module]]
+id = "pluto-cooking-recipes"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_cooking_recipes"
+source = "pluto-cooking-recipes.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-cooking-recipes-return"
+target = "horizon_client_lib::crafting::Recipes::load"
+kind = "RETURN"
+helper = "pluto-cooking-recipes-return.rs"
+bindings = [{ name = "value", ty = "Result<Recipes>", value = "$value" }]
+
 # A dig is worked out: the level's build range is published for the dig report the mods are
 # about to be asked for (dwarven reads the level's max build height).
 [[injection]]

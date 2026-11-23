@@ -150,6 +150,16 @@ impl Inventory {
 
     /// The persistent-data key: the module's, else the modifier's ID.
     pub(crate) fn key(&self, modifier: &Identifier) -> String { self.key.as_ref().unwrap_or(modifier).to_string() }
+    /// The key the module JSON set, when it set one.
+    pub(crate) fn named_key(&self) -> Option<&Identifier> { self.key.as_ref() }
+    /// This inventory with another key.
+    pub(crate) fn with_key(&self, key: Identifier) -> Self { let mut out = self.clone(); out.key = Some(key); out }
+    /// SmeltingModule's output inventory over this (input) inventory: the same slots, limit and
+    /// validation, no filter, and the given key and pattern. The key stays unset when the caller
+    /// resolves the default (the modifier's ID with an `_output` suffix) at use.
+    pub(crate) fn as_output(&self, key: Option<Identifier>, pattern: Option<Identifier>) -> Self {
+        Self { key, slots: self.slots, limit: self.limit, filter: ItemFilter::Any, pattern, validation: self.validation, quiver: false }
+    }
     fn potential_slots(&self, level: f32) -> i32 { self.slots.compute_for_level(level).max(0) }
     /// The slots to add to the volatile total when the module's condition holds (even when that is none).
     pub(crate) fn volatile_slots(&self, entry: &Entry) -> i32 { self.potential_slots(entry.effective_level()) }
@@ -240,7 +250,7 @@ pub(crate) fn read_stack(compound: &NbtCompound) -> Option<ItemSlot> {
 /// ItemStack.isSameItem: only the item counts.
 fn same_item(a: &ItemSlot, b: &ItemSlot) -> bool { a.item == b.item }
 /// ItemStack.isSameItemSameTags: everything but the count.
-fn same_stack(a: &ItemSlot, b: &ItemSlot) -> bool {
+pub(crate) fn same_stack(a: &ItemSlot, b: &ItemSlot) -> bool {
     let mut left = write_stack(a, 0);
     let mut right = write_stack(b, 0);
     left.remove("Count");
@@ -253,6 +263,28 @@ impl Part {
     fn get(&self, persistent: &NbtCompound, slot: usize) -> Option<ItemSlot> {
         if slot >= self.slots() { return None; }
         compound_list(persistent, &self.key())?.into_iter().find(|compound| slot_of(compound) == slot as i64).and_then(read_stack)
+    }
+
+    /// Whether the part is active on its tool (its module's condition held).
+    pub(crate) fn is_active(&self) -> bool { self.active }
+    /// The limit of one of this part's slots.
+    pub(crate) fn slot_limit(&self) -> i32 { self.limit() }
+    /// The part's stored entries, in stored order, as (slot, the entry compound as stored): a
+    /// consumer that keeps its own fields in the entries (a smelting module's cooking times)
+    /// reads and rewrites them here, where the stack accessors would drop those fields.
+    pub(crate) fn entries(&self, persistent: &NbtCompound) -> Vec<(usize, NbtCompound)> {
+        compound_list(persistent, &self.key()).map(|list| list.iter().filter_map(|compound| {
+            let slot = slot_of(compound);
+            (slot >= 0).then(|| (slot as usize, (*compound).clone()))
+        }).collect()).unwrap_or_default()
+    }
+    /// Replaces the part's stored list with `entries`, each compound's slot set from its pair.
+    pub(crate) fn set_entries(&self, persistent: &mut NbtCompound, entries: Vec<(usize, NbtCompound)>) {
+        let list = entries.into_iter().map(|(slot, mut compound)| {
+            compound.insert(TAG_SLOT.into(), Nbt::Int(slot as i32));
+            Nbt::Compound(compound)
+        }).collect();
+        persistent.insert(self.key(), Nbt::List(list));
     }
 
     /// InventoryModule.setStack: replaces the entry for the slot, or adds one after the last smaller slot; an empty stack removes it.
