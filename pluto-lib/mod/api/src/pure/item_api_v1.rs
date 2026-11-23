@@ -398,6 +398,67 @@ pub(crate) fn stack_use_food(stack: &super::player_api::StackData) -> Option<Foo
     behavior.food.as_ref().and_then(|food| food(stack))
 }
 
+/// A player let go of an item they were using, before its use time ran out (vanilla's `Item.releaseUsing`, NeoForge's
+/// `LivingEntityUseItemEvent` release half, the game's `native_release_using`, API 131): the charge-and-release half of a
+/// use. A bow-like item shoots by the charge it gathered; a thrown tool leaves the hand. The stacks in both hands are
+/// given, as a bow shot gives them, so a callback knows which hand's stack it is spending; spending it is an `edits`
+/// entry, as an ammunition callback spends its source. Only a player's release is heard, and only for an item a
+/// [`StackUse`] or [`ItemUse`] registration gave a use time: the game asks nothing for items it uses itself.
+#[derive(Clone, Debug)]
+pub struct ReleaseUsing {
+    /// The stack that was being used (the one let go).
+    pub stack: super::player_api::StackData,
+    /// The player who let go.
+    pub player: super::player_api::ServerPlayer,
+    /// The dimension the player is in, such as `minecraft:overworld`; also available as [`ReleaseUsing::world`].
+    pub dimension: String,
+    /// How many ticks the use was held before the release: the charge. A use that ran its whole time out is finished,
+    /// not released, and is not heard here.
+    pub ticks_used: u32,
+    /// The stacks in the player's main hand and off hand as the use ends; the used stack is one of them.
+    pub main_hand: Option<super::player_api::StackData>,
+    pub off_hand: Option<super::player_api::StackData>,
+    /// Whether the release counts as a use of the item: set it (with [`ReleaseUsing::set_used`]) and the game starts
+    /// the item's cooldown, as a bow's release does. Left alone, no cooldown starts.
+    pub used: std::cell::Cell<bool>,
+    /// Whole new stacks for places the player carries, which callbacks add to: how a callback spends the stack it
+    /// threw. The host writes them after the callbacks ran.
+    pub edits: RefCell<Vec<super::entity_events_v1::CarriedEdit>>,
+}
+
+impl ReleaseUsing {
+    /// Mark the release as a use of the item, so its cooldown starts.
+    pub fn set_used(&self) {
+        self.used.set(true);
+    }
+
+    /// The world the player is in.
+    pub fn world(&self) -> super::world_api_v1::World {
+        super::world_api_v1::World::new(&self.dimension)
+    }
+}
+
+static RELEASE_USING: Event<ReleaseUsing, ()> = Event::void();
+
+/// Events about items.
+pub struct ItemEvents;
+
+impl ItemEvents {
+    /// A player released an item they were using (see [`ReleaseUsing`]). Server only.
+    pub const RELEASE_USING: &'static Event<ReleaseUsing, ()> = &RELEASE_USING;
+}
+
+/// Whether anyone listens to releases, so the host hook answers without building the payload.
+pub(crate) fn release_heard() -> bool {
+    !RELEASE_USING.is_empty()
+}
+
+/// A release the callbacks answered: whether it counts as a use, and the edits to the player's carried stacks.
+pub(crate) fn released(release: &ReleaseUsing) -> (bool, Vec<super::entity_events_v1::CarriedEdit>) {
+    RELEASE_USING.invoke(release);
+    (release.used.get(), release.edits.borrow_mut().drain(..).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -459,6 +520,40 @@ mod tests {
         assert_eq!(stack_use_action(&stack(2)), Some(UseAction::Block));
         assert_eq!(stack_use_action(&stack(1)), Some(UseAction::Eat), "the selector's pose wins over the fixed one");
         assert_eq!(stack_use_action(&stack(0)), None, "a stack the selector declines keeps the game's pose");
+    }
+
+    #[test]
+    fn a_release_reports_the_charge_and_collects_the_spend() {
+        use super::super::entity_events_v1::{CarriedEdit, CarriedSlot, StackSlot};
+        assert!(!release_heard());
+        ItemEvents::RELEASE_USING.register(|release| {
+            if release.stack.item != "test:thrown_tool" { return; }
+            if release.ticks_used > 10 {
+                release.set_used();
+                // The tool leaves the main hand: the hand's place is written back with a count of 0, which empties it.
+                let empty = super::super::block_entity_api_v1::ItemSlot::new(Identifier::parse("test:thrown_tool").unwrap(), 0);
+                release.edits.borrow_mut().push(CarriedEdit { slot: CarriedSlot::Equipment(StackSlot::MainHand), stack: empty });
+            }
+        });
+        assert!(release_heard());
+        let tool = StackData { item: "test:thrown_tool".into(), count: 1, ..Default::default() };
+        let release = |ticks_used: u32| ReleaseUsing {
+            stack: tool.clone(),
+            player: super::super::player_api::ServerPlayer { uuid: 7, name: "thrower".into() },
+            dimension: "minecraft:overworld".into(),
+            ticks_used,
+            main_hand: Some(tool.clone()),
+            off_hand: None,
+            used: std::cell::Cell::new(false),
+            edits: RefCell::new(Vec::new()),
+        };
+        let (used, edits) = released(&release(20));
+        assert!(used, "a charged release counts as a use");
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].stack.count, 0, "the thrown tool is spent from the hand");
+        let (used, edits) = released(&release(5));
+        assert!(!used, "a tap is no throw");
+        assert!(edits.is_empty());
     }
 
     #[test]

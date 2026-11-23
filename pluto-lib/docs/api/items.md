@@ -1102,3 +1102,88 @@ use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snaps
 publish_tag_snapshot("example:docs", TagSnapshot::new());
 assert!(tag_snapshots().iter().any(|(owner, snapshot)| owner == "example:docs" && snapshot.is_empty()));
 ```
+
+### `ItemEvents`
+
+Events about items.
+
+```rust
+use pluto_lib::ItemEvents;
+
+ItemEvents::RELEASE_USING.register(|_| {});
+```
+
+### `ItemEvents::RELEASE_USING`
+
+A player let go of an item they were using, before its use time ran out: the charge-and-release half of a use (a bow-like item shoots by its charge; a thrown tool leaves the hand). Only a player's release is heard, and only for an item a `StackUse` or `ItemUse` registration gave a use time. Server only.
+
+```rust
+use pluto_lib::ItemEvents;
+
+ItemEvents::RELEASE_USING.register(|release| {
+    if release.ticks_used > 10 {
+        release.set_used();
+    }
+});
+```
+
+### `ReleaseUsing`
+
+A player releasing an item they were using. `stack` is the stack that was being used, `player` who let go and `dimension` the dimension they are in. `ticks_used` is how many ticks the use was held — the charge. `main_hand` and `off_hand` are the stacks in the player's hands as the use ends (the used stack is one of them). Set `used` (with `set_used`) to count the release as a use of the item, which starts its cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the player carries, written after the callbacks ran; a count of 0 empties the place, as an ammunition callback spends its source.
+
+```rust
+use pluto_lib::{CarriedEdit, CarriedSlot, ItemSlot, Identifier, ReleaseUsing, ServerPlayer, StackData, StackSlot};
+use std::cell::{Cell, RefCell};
+
+let release = ReleaseUsing {
+    stack: StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() },
+    player: ServerPlayer { uuid: 7, name: "thrower".into() },
+    dimension: "minecraft:overworld".into(),
+    ticks_used: 20,
+    main_hand: Some(StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() }),
+    off_hand: None,
+    used: Cell::new(false),
+    edits: RefCell::new(Vec::new()),
+};
+assert_eq!(release.world().dimension, "minecraft:overworld");
+if release.ticks_used > 10 {
+    release.set_used();
+    release.edits.borrow_mut().push(CarriedEdit {
+        slot: CarriedSlot::Equipment(StackSlot::MainHand),
+        stack: ItemSlot::new(Identifier::parse("example:thrown_tool").unwrap(), 0),
+    });
+}
+assert!(release.used.get());
+assert_eq!(release.edits.borrow().len(), 1);
+```
+
+### `ReleaseUsing::set_used`
+
+`fn set_used(&self)`. Mark the release as a use of the item, so its cooldown starts.
+
+```rust
+use pluto_lib::{ReleaseUsing, ServerPlayer, StackData};
+use std::cell::{Cell, RefCell};
+
+let release = ReleaseUsing {
+    stack: StackData::default(), player: ServerPlayer { uuid: 1, name: "a".into() }, dimension: "minecraft:overworld".into(),
+    ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
+};
+release.set_used();
+assert!(release.used.get());
+```
+
+### `ReleaseUsing::world`
+
+`fn world(&self) -> World`. The world the player is in.
+
+```rust
+use pluto_lib::{ReleaseUsing, ServerPlayer, StackData};
+use std::cell::{Cell, RefCell};
+
+let release = ReleaseUsing {
+    stack: StackData::default(), player: ServerPlayer { uuid: 1, name: "a".into() }, dimension: "minecraft:the_nether".into(),
+    ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
+};
+assert_eq!(release.world().dimension, "minecraft:the_nether");
+```

@@ -2109,3 +2109,39 @@ bindings = [
  { name = "damage_type", ty = "&str", value = "damage_type" },
  { name = "causing", ty = "Option<super::commands::Target>", value = "causing" }
 ]
+
+# The projectile spawn and flight tellings: the game's entity-tick telling does not cover projectiles (API 146), so
+# PlutoLib reaches into the game's own projectile list. The game-side pass lives in the creatures module; the API side
+# is asked through the entry-point sink.
+[[module]]
+id = "pluto-projectile-flight-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_projectile_flight_access"
+source = "pluto-projectile-flight-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-projectile-flight-game"
+file = "crates/horizon-client/src/game/creatures.rs"
+name = "pluto_projectile_flight_game"
+source = "pluto-projectile-flight-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-projectile-spawn-head"
+target = "horizon_client::game::creatures::Game<'_>::add_projectile"
+kind = "HEAD"
+helper = "pluto-projectile-spawn-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "&mut Projectile", value = "&mut p" }
+]
+
+[[injection]]
+id = "pluto-projectile-flight-return"
+target = "horizon_client::game::creatures::Game<'_>::tick_projectiles"
+kind = "RETURN"
+helper = "pluto-projectile-flight-return.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]

@@ -447,3 +447,100 @@ let request = AmmoRequest {
 ProjectileEvents::AMMO.invoke(&request);
 assert_eq!(request.supplied.borrow().as_ref().unwrap().item.to_string(), "minecraft:arrow");
 ```
+
+### `ProjectileEvents::SPAWN`
+
+A projectile joined the flying list, before its first tick: the set-up pass. A callback may still set the shot up — replace its `motion_after`, give an arrow a `pierce` level, lift its gravity (`no_gravity`), or name the `pickup_stack` a stuck arrow hands back. Heard for every projectile the game adds on a server, a callback's own summons included; the projectile's id may still be 0 here (it is numbered as it joins), so bind per-projectile state at `LAUNCH` or on the first `FLIGHT`. Server only.
+
+```rust
+use pluto_lib::ProjectileEvents;
+
+ProjectileEvents::SPAWN.register(|spawn| {
+    if spawn.kind == "minecraft:arrow" {
+        spawn.pierce.set(Some(2));
+    }
+});
+```
+
+### `ProjectileSpawned`
+
+A projectile at the moment it joins the flying list. `dimension` is the dimension id, `projectile` its entity id (0 when not yet numbered), `kind` its type, `owner` the entity that threw or shot it (negative if none), `position` where it enters and `motion` how fast it is moving, in blocks a tick. `arrow` holds the arrow facts when it is an arrow, `stack` the projectile's own stack as data (an arrow's pickup stack, a thrown type's item) and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the motion of its first tick, `pierce` gives an arrow its pierce level, `no_gravity` lifts its gravity, and `pickup_stack` names the stack a stuck arrow hands back when picked up.
+
+```rust
+use pluto_lib::{ArrowFacts, ProjectileSpawned};
+use std::cell::{Cell, RefCell};
+
+let spawn = ProjectileSpawned {
+    dimension: "minecraft:overworld".into(), projectile: 0, kind: "minecraft:arrow".into(), owner: 1,
+    position: [0.5, 64.0, 0.5], motion: [0.0, 0.2, -2.0],
+    arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
+    stack: None, data: Default::default(),
+    motion_after: RefCell::new(None), pierce: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
+};
+spawn.pierce.set(Some(3));
+assert_eq!(spawn.pierce.get(), Some(3));
+assert_eq!(spawn.arrow.unwrap().pierce, 0);
+```
+
+### `ArrowFacts`
+
+What a flying projectile's arrow half keeps: `pierce` how many entities it passes through, `in_ground` whether it rests stuck in a block, `in_ground_time` how many ticks it has been stuck, and `dealt_damage` whether it has dealt its damage (a trident body's flag: it hits no more, and a loyal flight comes home).
+
+```rust
+use pluto_lib::ArrowFacts;
+
+let facts = ArrowFacts { pierce: 2, in_ground: true, in_ground_time: 5, dealt_damage: false };
+assert!(facts.in_ground && facts.in_ground_time > 4 && !facts.dealt_damage);
+```
+
+### `ProjectileEvents::FLIGHT`
+
+A projectile ended a tick it flew (or rested stuck) in: the steering pass. Heard once a tick for every projectile the game flies on a server, stuck arrows included, for as long as it stays in the flying list. A callback may set the motion it flies the next tick with, lift or restore its gravity, free a stuck arrow, discard it, and queue `FlightAction`s around it. A fuse is a callback counting `age`; a magnet is one queueing `FlightAction::PullItems` while its tool rests stuck. Server only.
+
+```rust
+use pluto_lib::ProjectileEvents;
+
+ProjectileEvents::FLIGHT.register(|flight| {
+    if flight.age >= 200 {
+        flight.discard.set(true);
+    }
+});
+```
+
+### `ProjectileFlight`
+
+A projectile at the end of a tick of flight. `dimension` is the dimension id, `projectile` its entity id, `kind` its type and `owner` the entity that threw or shot it (negative if none); `owner_position` is where the owner stands, when the game could reach it — how a callback steers a flight home. `age` is how many ticks it has flown, `position` where it ended the tick and `motion` how fast it is moving, in blocks a tick: the motion it will fly the next tick with, before drag and gravity. `in_ground` says it rests stuck in a block, `no_gravity` whether its flight is without gravity, `arrow` the arrow facts when it is an arrow, and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the next tick's motion, `discard` removes it as the tick settles, `no_gravity_after` lifts or restores its gravity from the next tick, `release_from_ground` frees a stuck arrow so the motion it is given can fly it, and `actions` is the queue of `FlightAction`s to do around it.
+
+```rust
+use pluto_lib::{ArrowFacts, FlightAction, ProjectileFlight};
+use std::cell::{Cell, RefCell};
+
+let flight = ProjectileFlight {
+    dimension: "minecraft:overworld".into(), projectile: 9, kind: "minecraft:arrow".into(), owner: 1,
+    owner_position: Some([0.5, 64.0, 3.5]), age: 25, position: [0.5, 64.0, 0.5], motion: [0.0; 3],
+    in_ground: true, no_gravity: false,
+    arrow: Some(ArrowFacts { pierce: 0, in_ground: true, in_ground_time: 5, dealt_damage: true }),
+    data: Default::default(),
+    motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None),
+    release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
+};
+if flight.in_ground && flight.arrow.is_some_and(|a| a.dealt_damage) {
+    flight.release_from_ground.set(true);
+    flight.actions.borrow_mut().push(FlightAction::PullItems { center: flight.position, radius: 3.0, strength: 0.05 });
+}
+assert!(flight.release_from_ground.get());
+assert_eq!(flight.actions.borrow().len(), 1);
+```
+
+### `FlightAction`
+
+One thing a flight callback asks the game to do around a flying projectile, in plain data, done as the tick settles in the order queued: `Explode` sets off a blast, `Particle` spawns a particle, `PushEntity` adds a motion to an entity, `PullItems` pulls the item entities near a point toward it, `DropStack` drops a stack as an item entity, and `GiveStack` hands a stack to the projectile's owner (into a player owner's inventory, or dropped at their feet when it does not fit or the owner is no player).
+
+```rust
+use pluto_lib::{FlightAction, StackData, ExplosionInteraction};
+
+let boom = FlightAction::Explode { center: [0.5, 64.0, 0.5], radius: 2.0, fire: false, interaction: ExplosionInteraction::Block };
+let back = FlightAction::GiveStack { stack: StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() } };
+assert!(matches!(boom, FlightAction::Explode { radius: 2.0, .. }));
+assert!(matches!(back, FlightAction::GiveStack { .. }));
+```

@@ -39,7 +39,7 @@ pub use crate::pure::fluid_api_v1::{self, FluidAttributes, FluidDef, FluidFlow, 
 pub use crate::pure::fluid_item_api_v1::{self, Drained, Filled, FluidItemDef, FluidItems, FluidTarget, Interaction, TransferDirection};
 pub use crate::pure::fluid_world_api_v1::{self, FluidWorld};
 pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, LanguageEvents, Translations};
-pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext};
+pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext, ItemEvents, ReleaseUsing};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootTableContext, LootTableEvents};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
@@ -48,7 +48,7 @@ pub use crate::pure::screen_handler_api_v1::{
     self, ContainerAccept, MenuButton, MenuAccess, SlotAction, SlotClick, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenTooltip, SlotRule,
 };
 pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, TradeOfferFactory, TradeOfferContext, TradeRandom, TradeWorld};
-pub use crate::pure::projectile_events_v1::{self, AmmoRequest, BowShot, ProjectileEvents, ProjectileImpact, ProjectileLaunch};
+pub use crate::pure::projectile_events_v1::{self, AmmoRequest, ArrowFacts, BowShot, FlightAction, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileLaunch, ProjectileSpawned};
 pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage, MemoryBlockEntities};
 pub use crate::pure::item_storage_api_v1::{self, ItemStorage};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
