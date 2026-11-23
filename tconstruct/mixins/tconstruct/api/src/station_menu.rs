@@ -23,8 +23,11 @@
 //!   original keeps it dormant and take-out-able. Switching back to a layout that shows the slot
 //!   reaches its contents again.
 //! - The original's window also carries the player's armor and offhand slots and the neighbouring
-//!   chests as side inventories; a menu here can reach neither the player's equipment slots (the
-//!   host's menu model has none) nor a neighbour's items.
+//!   chests as side inventories. The armor and offhand slots are declared (at the original's
+//!   places, after the result slot) and drawn from the opening player's live equipment, but they
+//!   take no clicks: the host's menu model binds container slots to the opened block entity or to
+//!   linked block containers only, so swapping a worn piece still happens in the inventory
+//!   window. A neighbour's items are not carried either.
 //! - The armor stand preview does not carry over: the host's scene drawing draws blocks and block
 //!   entities only, never entities, and the stand is an entity.
 //! - The rename field edits on the client, but the name is never applied to the crafted tool: a
@@ -46,7 +49,7 @@ use crate::{
 use std::sync::{Arc, Mutex};
 
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
+    BlockEntityType, BlockEntityTypeRegistry, EquipmentSlotKind, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
     ScreenCanvas, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction, SlotClick,
 };
 
@@ -61,6 +64,13 @@ const DATA_TAB: usize = 0;
 const DATA_POSITIONS: usize = 1;
 /// The result slot's fixed position (`LazyResultSlot` sits at (114, 38) in every station window).
 const RESULT_POSITION: (i32, i32) = (114, 38);
+/// The player's own slots the window carries after the result slot, at the original's places
+/// (`TinkerStationContainerMenu`: an armor slot per `ArmorItem.Type` at (152, 20 + ordinal * 18)
+/// — head, chest, legs, feet — and the offhand at (132, 74)). They are equipment-sourced slots:
+/// drawn from the opening player's live equipment, not the block entity's items.
+const EQUIPMENT_POSITIONS: [[f32; 2]; 5] = [[152.0, 20.0], [152.0, 38.0], [152.0, 56.0], [152.0, 74.0], [132.0, 74.0]];
+/// The equipment pieces at `EQUIPMENT_POSITIONS`, in the same order.
+const EQUIPMENT_KINDS: [EquipmentSlotKind; 5] = [EquipmentSlotKind::Head, EquipmentSlotKind::Chest, EquipmentSlotKind::Legs, EquipmentSlotKind::Feet, EquipmentSlotKind::OffHand];
 /// The selected layout's name in the block entity's data; absent is the main layout.
 const SELECTED: &str = "layout";
 /// The window's textures: the station sheet and the shared icon sheet, both 256x256.
@@ -494,6 +504,11 @@ fn register_station(name: &'static str, input_count: usize) {
     // The tool slot and the inputs are in the menu; the selected layout positions them.
     for _ in 0..input_count + 1 { layout = layout.dynamic_slot(); }
     layout = layout.slot(RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32);
+    // The player's armor and offhand slots follow the result slot, as the original's menu adds
+    // them after it.
+    for (position, kind) in EQUIPMENT_POSITIONS.iter().zip(EQUIPMENT_KINDS) {
+        layout = layout.equipment_slot(position[0], position[1], kind);
+    }
     let draw_field = field.clone();
     let char_field = field.clone();
     let key_field = field.clone();
@@ -503,13 +518,17 @@ fn register_station(name: &'static str, input_count: usize) {
         .on_dynamic_slots(move |state| {
             let main = station_layouts::baked_main(name);
             let fallback: Vec<Option<[f32; 2]>> = main.positions(&main, input_count).into_iter()
-                .map(|position| position.map(|(x, y)| [x as f32, y as f32])).chain([Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32])]).collect();
+                .map(|position| position.map(|(x, y)| [x as f32, y as f32])).chain([Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32])])
+                .chain(EQUIPMENT_POSITIONS.map(Some)).collect();
             if state.data.len() < DATA_POSITIONS + (input_count + 1) * 2 { return Some(fallback); }
             let mut positions: Vec<Option<[f32; 2]>> = (0..=input_count).map(|slot| {
                 let (x, y) = (state.data[DATA_POSITIONS + slot * 2], state.data[DATA_POSITIONS + slot * 2 + 1]);
                 (x >= 0 && y >= 0).then_some([x as f32, y as f32])
             }).collect();
             positions.push(Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32]));
+            // The equipment slots never move: the dynamic answer must cover every declared
+            // slot or the whole answer is refused.
+            positions.extend(EQUIPMENT_POSITIONS.map(Some));
             Some(positions)
         })
         .on_draw(move |draw| {

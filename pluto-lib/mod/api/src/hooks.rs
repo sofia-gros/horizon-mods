@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
@@ -3709,6 +3709,17 @@ impl Hooks for PlutoHooks {
         screen_handler_api_v1::slot_rules(&block, event.slot, &event.stack.item, event.stack.count, &mut event.may_place, &mut event.max_stack);
     }
 
+    /// The containers a window's linked slots show: the neighbour block entities its layout
+    /// declares, in declaration order. The host asks each tick while the menu is open and
+    /// passes by anything that is not a container, so a neighbour slot with nothing behind it
+    /// simply holds nothing and takes nothing.
+    fn menu_links(&self, _host: &mut dyn Host, event: &mut MenuLinksEvent<'_>) {
+        let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
+        for offset in screen_handler_api_v1::neighbour_sources(&block) {
+            event.links.push([event.pos[0] + offset[0], event.pos[1] + offset[1], event.pos[2] + offset[2]]);
+        }
+    }
+
     fn menu_quick_move(&self, _host: &mut dyn Host, event: &mut MenuQuickMoveEvent<'_>) -> Flow {
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return Flow::Continue };
         let (pos, slot, container_slots) = (event.pos, event.slot, event.container_slots);
@@ -3798,6 +3809,29 @@ impl Hooks for PlutoHooks {
     fn screen_draw(&self, host: &dyn Host, event: &mut ScreenDrawEvent<'_>) {
         let mut canvas = HostCanvas { host, batch: &mut *event.batch };
         screen_handler_api_v1::draw(event.block, event.origin, event.data, host.cursor(), &mut canvas);
+        // Equipment-sourced slots are not the block entity's, so the menu's own item sync never
+        // fills them: draw the acting player's worn pieces at their places from the live
+        // equipment, as the HUD draw reads it. (The slots take no clicks — the host's menu
+        // model binds container slots to the block entity or to linked block containers only.)
+        let Some(layout) = screen_handler_api_v1::layout(event.block) else { return };
+        if !layout.sources.iter().any(|source| matches!(source, screen_handler_api_v1::SlotSource::PlayerEquipment(_))) {
+            return;
+        }
+        let Some(player) = host.acting_player() else { return };
+        for (index, source) in layout.sources.iter().enumerate() {
+            let screen_handler_api_v1::SlotSource::PlayerEquipment(kind) = source else { continue };
+            let Some(position) = layout.slots.get(index).copied().flatten() else { continue };
+            let slot = match kind {
+                screen_handler_api_v1::EquipmentSlotKind::Head => EquipmentSlot::Head,
+                screen_handler_api_v1::EquipmentSlotKind::Chest => EquipmentSlot::Chest,
+                screen_handler_api_v1::EquipmentSlotKind::Legs => EquipmentSlot::Legs,
+                screen_handler_api_v1::EquipmentSlotKind::Feet => EquipmentSlot::Feet,
+                screen_handler_api_v1::EquipmentSlotKind::OffHand => EquipmentSlot::OffHand,
+            };
+            if let Some(stack) = host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack)) {
+                canvas.item(&stack, [event.origin[0] + position[0], event.origin[1] + position[1]], 16.0);
+            }
+        }
     }
 
     fn screen_click(&self, _host: &dyn Host, event: &mut ScreenClickEvent<'_>) -> Option<i32> {
