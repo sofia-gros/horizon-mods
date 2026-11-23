@@ -318,9 +318,9 @@ mod tests {
         JsonResourceStack { id: Identifier::parse(id).unwrap(), layers: vec![Ok(value)] }
     }
 
-    const PIGLINS: &str = r#"{"entity":"#tconstruct:spawns_with/battle_sign","equip":{"chance":0.05,"match":{"type":"mantle:set","items":["minecraft:golden_sword","minecraft:golden_axe"]},"materials":[{"type":"tconstruct:ancient"},{"type":"tconstruct:ancient"}],"priority":100,"slot":"mainhand","tool":"tconstruct:battlesign"}}"#;
-    const DROWNED: &str = r#"{"entity":"#tconstruct:spawns_with/swasher/drowned","equip":{"chance":0.05,"fluid":"tconstruct:swasher/drowned","match":{"type":"mantle:set","items":["minecraft:air"]},"materials":[{"type":"tconstruct:ancient"},{"type":"tconstruct:ancient"},{"type":"tconstruct:ancient"}],"priority":100,"slot":"mainhand","tool":"tconstruct:swasher"}}"#;
-    const MINOTAUR: &str = r#"{"conditions":[{"type":"forge:mod_loaded","modid":"twilightforest"}],"entity":"twilightforest:minotaur","equip":{"chance":0.05,"materials":[{"type":"tconstruct:ancient"}],"priority":100,"slot":"mainhand","tool":"tconstruct:minotaur_axe"}}"#;
+    const PIGLINS: &str = r##"{"entity":"#tconstruct:spawns_with/battle_sign","equip":{"chance":0.05,"match":{"type":"mantle:set","items":["minecraft:golden_sword","minecraft:golden_axe"]},"materials":[{"type":"tconstruct:ancient"},{"type":"tconstruct:ancient"}],"priority":100,"slot":"mainhand","tool":"tconstruct:battlesign"}}"##;
+    const DROWNED: &str = r##"{"entity":"#tconstruct:spawns_with/swasher/drowned","equip":{"chance":0.05,"fluid":"tconstruct:swasher/drowned","match":{"type":"mantle:set","items":["minecraft:air"]},"materials":[{"type":"tconstruct:ancient"},{"type":"tconstruct:ancient"},{"type":"tconstruct:ancient"}],"priority":100,"slot":"mainhand","tool":"tconstruct:swasher"}}"##;
+    const MINOTAUR: &str = r##"{"conditions":[{"type":"forge:mod_loaded","modid":"twilightforest"}],"entity":"twilightforest:minotaur","equip":{"chance":0.05,"materials":[{"type":"tconstruct:ancient"}],"priority":100,"slot":"mainhand","tool":"tconstruct:minotaur_axe"}}"##;
 
     #[test]
     fn the_shipped_files_parse_with_the_managers_defaults() {
