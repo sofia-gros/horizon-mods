@@ -2012,7 +2012,7 @@ bindings = [
 id = "pluto-hanging-frame-explosion-return"
 target = "horizon_client::game::frames::Game<'_>::explosion_breaks_frames"
 kind = "RETURN"
-helper = "pluto-hanging-frame-explosion.rs"
+helper = "pluto-hanging-frame-explosion-return.rs"
 bindings = [
  { name = "value", ty = "()", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
