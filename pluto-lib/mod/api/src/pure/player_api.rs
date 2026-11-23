@@ -79,6 +79,16 @@ pub trait PlayerOps {
     fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
         false
     }
+    /// Sets the stack carried in a slot named by the carried numbering (see
+    /// [`crate::pure::entity_events_v1::carried_slot_number`]), creating it in an empty slot, or clearing it
+    /// when `stack` is None. The host reaches a stack this way only in the equipment slots (feet 100, legs
+    /// 101, chest 102, head 103, offhand -106): its carried read names occupied slots only, but its equipment
+    /// write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that equips a copy of
+    /// itself on an entity's chest (the piggyback pack) needs. Any other slot, an unknown player and a client
+    /// answer false. The memory backend keeps no such restriction and answers for every slot.
+    fn set_stack(&mut self, _player: u128, _slot: i32, _stack: Option<&StackData>) -> bool {
+        false
+    }
     /// The player's selected hotbar slot (0 to 8); None if unknown.
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         None
@@ -361,6 +371,23 @@ impl ServerPlayer {
         with_current(false, |ops| ops.update_stack(self.uuid, slot, &new.item, new))
     }
 
+    /// Sets the stack carried in a slot named by the carried numbering, creating it in an empty slot, or
+    /// clearing it with None. The host answers only for the equipment slots (feet 100, legs 101, chest 102,
+    /// head 103, offhand -106); see [`PlayerOps::set_stack`]. False outside a callback or for another slot.
+    pub fn set_stack(&self, slot: i32, stack: Option<&StackData>) -> bool {
+        with_current(false, |ops| ops.set_stack(self.uuid, slot, stack))
+    }
+
+    /// Sets one equipment slot's stack by its [`StackSlot`](crate::pure::entity_events_v1::StackSlot), creating
+    /// it in an empty slot or clearing it with None: the carried-numbering form of [`ServerPlayer::set_stack`].
+    /// The main hand has no equipment write and answers false (use [`ServerPlayer::update_stack`] there).
+    pub fn set_equipment(&self, slot: crate::pure::entity_events_v1::StackSlot, stack: Option<&StackData>) -> bool {
+        if matches!(slot, crate::pure::entity_events_v1::StackSlot::MainHand) {
+            return false;
+        }
+        self.set_stack(crate::pure::entity_events_v1::carried_slot_number(slot), stack)
+    }
+
     /// The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
     pub fn selected_slot(&self) -> Option<i32> {
         with_current(None, |ops| ops.selected_slot(self.uuid))
@@ -477,6 +504,10 @@ pub struct MemoryPlayerOps {
     pub food: Option<FoodStatus>,
     /// The main inventory slots of every player, by player; a missing player has none.
     pub stacks: std::collections::HashMap<u128, Vec<Option<StackData>>>,
+    /// The stacks set through the carried numbering (equipment slots and any other slot `set_stack` was
+    /// given), by `(player, carried slot)`. Kept apart from `stacks`: the main inventory vector is indexed by
+    /// its own numbering, and the memory backend keeps no equipment restriction of its own.
+    pub carried: std::collections::BTreeMap<(u128, i32), StackData>,
     /// The selected hotbar slot of every player (0 to 8).
     pub selected_slot: i32,
 }
@@ -593,6 +624,20 @@ impl PlayerOps for MemoryPlayerOps {
             _ => false,
         }
     }
+    fn set_stack(&mut self, player: u128, slot: i32, stack: Option<&StackData>) -> bool {
+        // The memory backend models the carried slots apart from the main inventory vector and, unlike the
+        // host, refuses nothing: a test that needs the host's equipment-only rule checks the answer against
+        // the slot numbers the trait documents.
+        match stack {
+            Some(stack) if stack.count > 0 => {
+                self.carried.insert((player, slot), stack.clone());
+            }
+            _ => {
+                self.carried.remove(&(player, slot));
+            }
+        }
+        true
+    }
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         Some(self.selected_slot)
     }
@@ -640,6 +685,26 @@ mod stack_tests {
         assert_eq!((read.flags, read.colors, read.floats), (vec![true, false], vec![7], vec![2.0, 3.0]));
         let triple: crate::pure::base::NbtCompound = [("colors".to_owned(), Nbt::List(vec![Nbt::List(vec![Nbt::Float(0.0), Nbt::Float(1.0), Nbt::Float(0.0)])]))].into();
         assert_eq!(CustomModelData::from_nbt(&triple).colors, vec![0x0000_ff00]);
+    }
+
+    #[test]
+    fn a_carried_stack_can_be_created_in_an_empty_equipment_slot_and_cleared() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 7, name: "Alex".into() };
+        let pack = StackData { item: "tconstruct:piggy_backpack".into(), count: 1, ..StackData::default() };
+        with_ops(&mut ops, || {
+            // the chest slot (carried number 102) starts empty; set_stack creates the stack there
+            assert!(player.set_equipment(crate::pure::entity_events_v1::StackSlot::Chest, Some(&pack)));
+            // the main hand has no equipment write
+            assert!(!player.set_equipment(crate::pure::entity_events_v1::StackSlot::MainHand, Some(&pack)));
+        });
+        assert_eq!(ops.carried.get(&(7, 102)), Some(&pack));
+        // growing the carried stack replaces it, and None clears it
+        let grown = StackData { count: 3, ..pack.clone() };
+        with_ops(&mut ops, || assert!(player.set_stack(102, Some(&grown))));
+        assert_eq!(ops.carried.get(&(7, 102)), Some(&grown));
+        with_ops(&mut ops, || assert!(player.set_stack(102, None)));
+        assert!(!ops.carried.contains_key(&(7, 102)));
     }
 
     #[test]

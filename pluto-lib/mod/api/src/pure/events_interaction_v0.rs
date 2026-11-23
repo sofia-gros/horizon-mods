@@ -13,11 +13,17 @@ use super::player_api::{ServerPlayer, StackData};
 use super::world_api_v1::BlockState;
 
 /// A player used an item.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct UseItemContext {
     /// The item id, such as `tconstruct:flint_pickaxe`.
     pub item: String,
     pub count: u32,
+    /// The stack as used, with its damage and custom data: a tool's stats and modifiers live there, which a
+    /// use that depends on them (a fishing module's cast) reads. The host's use event names no hand; the hand
+    /// holding this stack is the one whose carried stack equals it.
+    pub stack: StackData,
+    /// Who used it; None when the host named no acting player and the world has not exactly one player.
+    pub player: Option<ServerPlayer>,
 }
 
 /// A player used (right-clicked) a block.
@@ -350,8 +356,8 @@ fn handled(result: ActionResult) -> bool {
     result != ActionResult::Pass
 }
 
-pub(crate) fn use_item(item: &str, count: u32) -> bool {
-    handled(USE_ITEM.invoke(&UseItemContext { item: item.to_owned(), count }))
+pub(crate) fn use_item(context: &UseItemContext) -> bool {
+    handled(USE_ITEM.invoke(context))
 }
 
 pub(crate) fn use_block(pos: [i32; 3], face: [i32; 3]) -> bool {

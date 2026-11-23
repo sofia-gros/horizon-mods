@@ -495,9 +495,43 @@ with_ops(&mut game, || {
 });
 ```
 
+### `ServerPlayer::set_stack`
+
+`fn set_stack(&self, slot: i32, stack: Option<&StackData>) -> bool`. Sets the stack carried in a slot named by the carried numbering (feet 100, legs 101, chest 102, head 103, offhand -106), creating it in an empty slot, or clearing it with `None`. Unlike `update_stack`, this creates: the host's carried read names occupied slots only, but its equipment write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that equips a copy of itself (a piggyback pack on the chest) needs. The host answers only for the equipment slots; any other slot, and outside a callback, is false. The memory backend keeps no such restriction.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+let pack = StackData { item: "example:pack".into(), count: 1, ..Default::default() };
+with_ops(&mut game, || {
+    assert!(player.set_stack(102, Some(&pack)), "the empty chest slot takes the pack");
+    assert!(player.set_stack(102, None), "and gives it back");
+});
+assert!(game.carried.is_empty());
+```
+
+### `ServerPlayer::set_equipment`
+
+`fn set_equipment(&self, slot: StackSlot, stack: Option<&StackData>) -> bool`. The `set_stack` form that names the slot as a `StackSlot` (from `entity_events_v1`): feet, legs, chest, head and offhand map to their carried numbers. The main hand has no equipment write and answers false; use `update_stack` there.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData, StackSlot};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+let pack = StackData { item: "example:pack".into(), count: 2, ..Default::default() };
+with_ops(&mut game, || {
+    assert!(player.set_equipment(StackSlot::Chest, Some(&pack)));
+    assert!(!player.set_equipment(StackSlot::MainHand, Some(&pack)));
+});
+assert_eq!(game.carried.get(&(1, 102)).map(|stack| stack.count), Some(2));
+```
+
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing) and `update_stack(player, slot, expected_item, &StackData) -> bool`.
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing), `update_stack(player, slot, expected_item, &StackData) -> bool` and `set_stack(player, slot, Option<&StackData>) -> bool` (creates in an empty carried slot; the default sets nothing).
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};

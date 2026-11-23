@@ -159,7 +159,7 @@ assert_eq!(ops.hurt.len(), 1);
 
 ## Riding and Entity Ticks
 
-The entity reach also answers who rides whom, and can change it: `EntityReach::passengers_of(vehicle)`, `EntityReach::vehicle_of(passenger)`, `EntityReach::start_riding(passenger, vehicle)` and `EntityReach::stop_riding(passenger)`. The host refuses what the game refuses — the same entity twice, a passenger that already rides something, a cycle, and the local player as a passenger (boarding the player is the game's own seat logic). An accepted mount or dismount is applied by the game's own rider synchronisation, so it is observable through `vehicle_of` from the next tick, and a refusal there (its mount event, its capacity) is final. The local player can be a *vehicle*: a mob mounted on the player is kept and seated like any other mount.
+The entity reach also answers who rides whom, and can change it: `EntityReach::passengers_of(vehicle)`, `EntityReach::vehicle_of(passenger)`, `EntityReach::start_riding(passenger, vehicle)` and `EntityReach::stop_riding(passenger)`. A callback that names a player (a `ServerPlayer`) finds that player's entity id with `EntityReach::id_of_uuid(player.uuid)`, and an entity's type with `EntityReach::kind_of(id)`. The host refuses what the game refuses — the same entity twice, a passenger that already rides something, a cycle, and the local player as a passenger (boarding the player is the game's own seat logic). An accepted mount or dismount is applied by the game's own rider synchronisation, so it is observable through `vehicle_of` from the next tick, and a refusal there (its mount event, its capacity) is final. The local player can be a *vehicle*: a mob mounted on the player is kept and seated like any other mount.
 
 The reach is open not only while a block entity ticker runs, but also during the entity interaction events (`InteractEntityCallback`, `UseEntityCallback`), the entity tick events below, and player inventory ticks (`PlayerInventoryEvents::TICK`, in the player documentation), each in the dimension the event names.
 
@@ -1058,6 +1058,8 @@ The facade a ticker uses to reach the entities around it. Outside a ticker's sco
 - `fn hurt(id: u64, amount: f32, damage_type: &str) -> bool`: hurts a living entity by `amount` under the damage type named; the host reports whether the damage went through. A mod's own damage type id works once its data pack declares it; until then the host deals a generic kind under that name.
 - `fn position_of(id: u64) -> Option<[f64; 3]>`: where the entity stands (its feet position); `None` when the host cannot reach it.
 - `fn teleport(id: u64, pos: [f64; 3]) -> bool`: moves the entity to `pos` (`Entity.teleportTo`); a mob's navigation stops and its fall distance resets, as the game's own teleport does, and another entity keeps its facing. A player is never moved — the host has no call that moves a player (its teleports of players are reported by the teleport events, not ordered), and the mob and other-entity calls do not reach players either — so a player's teleport answers false.
+- `fn id_of_uuid(uuid: u128) -> Option<u64>`: the entity id of the player whose uuid is `uuid`, resolved through the host's entity-by-uuid call; `None` when no such player is there. This is the bridge from a player a callback names (a `ServerPlayer`) to the entity ids the ride reach and the other queries speak of.
+- `fn kind_of(id: u64) -> Option<Identifier>`: the type of the entity `id`; `None` when there is no such entity.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
@@ -1073,12 +1075,14 @@ ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
 with_entities(&mut ops, || {
     assert_eq!(EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]).len(), 1);
     assert_eq!(EntityReach::position_of(2), Some([1.5, 64.5, 1.5]));
+    assert_eq!(EntityReach::kind_of(2), Identifier::parse("minecraft:zombie").ok());
+    assert_eq!(EntityReach::id_of_uuid(1), None, "the memory world holds no players");
 });
 ```
 
 ### `EntityOps`
 
-`trait EntityOps`. The operations behind [`EntityReach`](#entityreach): `entities_in(min, max)`, `discard(id)`, `set_item(id, stack)`, `hurt(id, amount, damage_type)`, `position_of(id)` (default `None`) and `teleport(id, pos)` (default `false`). An adapter implements it and opens it with `with_entities`.
+`trait EntityOps`. The operations behind [`EntityReach`](#entityreach): `entities_in(min, max)`, `discard(id)`, `set_item(id, stack)`, `hurt(id, amount, damage_type)`, `position_of(id)` (default `None`), `teleport(id, pos)` (default `false`), `id_of_uuid(uuid)` (default `None`) and `kind_of(id)` (default `None`). An adapter implements it and opens it with `with_entities`.
 
 ```rust
 use pluto_lib::{EntityOps, EntityReach, ItemSlot, WorldEntity, with_entities};

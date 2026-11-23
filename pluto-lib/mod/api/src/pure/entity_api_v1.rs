@@ -86,6 +86,17 @@ pub trait EntityOps {
         let _ = passenger;
         false
     }
+    /// The entity id of the player whose uuid is `uuid`, in the level the scope runs in (the host resolves a
+    /// uuid through its entity-by-uuid call, which names players); None when no such player is there. Hosts
+    /// that predate the call answer None, as does the memory backend, whose world holds no players.
+    fn id_of_uuid(&mut self, _uuid: u128) -> Option<u64> {
+        None
+    }
+    /// The type of the entity `id` (its registry id, such as `minecraft:player`); None when there is no such
+    /// entity. Hosts that predate the call answer None.
+    fn kind_of(&mut self, _id: u64) -> Option<Identifier> {
+        None
+    }
 }
 
 thread_local! {
@@ -175,6 +186,16 @@ impl EntityReach {
     /// outside a scope.
     pub fn stop_riding(passenger: u64) -> bool {
         with_current(false, |ops| ops.stop_riding(passenger))
+    }
+
+    /// The entity id of the player whose uuid is `uuid`; None outside a scope or when no such player is there.
+    pub fn id_of_uuid(uuid: u128) -> Option<u64> {
+        with_current(None, |ops| ops.id_of_uuid(uuid))
+    }
+
+    /// The type of the entity `id`; None outside a scope or when there is no such entity.
+    pub fn kind_of(id: u64) -> Option<Identifier> {
+        with_current(None, |ops| ops.kind_of(id))
     }
 }
 
@@ -270,6 +291,10 @@ impl EntityOps for MemoryEntityOps {
         self.mounts.remove(index);
         true
     }
+
+    fn kind_of(&mut self, id: u64) -> Option<Identifier> {
+        self.entities.iter().find(|(_, entity)| entity.id == id).map(|(_, entity)| entity.kind.clone())
+    }
 }
 
 #[cfg(test)]
@@ -343,6 +368,18 @@ mod tests {
         ops.hurts_land = false;
         with_entities(&mut ops, || assert!(!EntityReach::hurt(2, 2.0, "minecraft:magic")));
         assert_eq!(ops.hurt.len(), 1);
+    }
+
+    #[test]
+    fn a_kind_is_named_and_a_uuid_names_nobody_in_the_memory_world() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            assert_eq!(EntityReach::kind_of(2), Some(id("minecraft:zombie")));
+            assert_eq!(EntityReach::kind_of(99), None, "no such entity");
+            assert_eq!(EntityReach::id_of_uuid(0x1234), None, "the memory world holds no players");
+        });
+        assert_eq!(EntityReach::kind_of(2), None, "outside a scope nothing is named");
+        assert_eq!(EntityReach::id_of_uuid(0x1234), None);
     }
 
     #[test]

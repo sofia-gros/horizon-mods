@@ -1887,6 +1887,18 @@ impl EntityOps for HostEntities {
         let Ok(passenger) = u32::try_from(passenger) else { return false };
         horizon_client::game::pluto_entity_ride_access::request_dismount(&self.dimension, passenger)
     }
+
+    fn id_of_uuid(&mut self, uuid: u128) -> Option<u64> {
+        // The host's entity-by-uuid call names the entity a uuid belongs to; its answer for a player is the
+        // id the ride reach and the other entity queries speak of.
+        self.host.get().entity_by_uuid(uuid).map(|(_, id, _)| u64::from(id))
+    }
+
+    fn kind_of(&mut self, id: u64) -> Option<Identifier> {
+        let host = self.host.get();
+        let entity = host.entity(u32::try_from(id).ok()?)?;
+        Identifier::parse(&host.entity_kind(entity)?).ok()
+    }
 }
 
 /// Runs `f` with the player scope and the world scope both open over the host.
@@ -1930,6 +1942,31 @@ impl PlayerOps for HostOps {
             }
             None => false,
         }
+    }
+
+    fn set_stack(&mut self, player: u128, slot: i32, stack: Option<&player_api::StackData>) -> bool {
+        // The carried numbering's equipment slots, and only they, have a host write that creates a stack in
+        // an empty slot: the equipment write behind `/item replace entity` (the carried read names occupied
+        // slots only, which is why update_stack cannot do this). The player is named exactly, through the
+        // host's entity-by-uuid call, not through the acting-player shortcut the inventory reads take.
+        let equipment = match slot {
+            100 => EquipmentSlot::Feet,
+            101 => EquipmentSlot::Legs,
+            102 => EquipmentSlot::Chest,
+            103 => EquipmentSlot::Head,
+            -106 => EquipmentSlot::OffHand,
+            _ => return false,
+        };
+        let host = self.host();
+        let Some((_, id, _)) = host.entity_by_uuid(player) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        let Some(living) = host.living(entity) else { return false };
+        let native = stack.map(|stack| {
+            let mut made = ItemStack::new(&stack.item, stack.count);
+            write_stack(&mut made, stack);
+            made
+        });
+        living.set_equipment(host, equipment, native)
     }
 
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
@@ -4286,7 +4323,20 @@ impl Hooks for PlutoHooks {
     fn use_item(&self, host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
         // Scoped like use_item_on and the finish event: a callback here may reach for the player, the
         // world and the client reaches (a book item opens its book), which only exist inside the scope.
-        cancel_if(scoped(host, || events_interaction_v0::use_item(&event.stack.item, event.stack.count)))
+        // The stack goes along whole: a use that depends on the stack's own data (a tool's fishing cast)
+        // reads its stats from it. The player is named the way use_item_on names them; the host's use
+        // event itself names neither a player nor a hand.
+        let player = match host.acting_player() {
+            Some(player) => Some(player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            None => sole_player().map(|(uuid, name)| player_api::ServerPlayer { uuid, name }),
+        };
+        let context = events_interaction_v0::UseItemContext {
+            item: event.stack.item.to_string(),
+            count: event.stack.count,
+            stack: stack_data_of(host, &event.stack),
+            player,
+        };
+        cancel_if(scoped(host, || events_interaction_v0::use_item(&context)))
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {

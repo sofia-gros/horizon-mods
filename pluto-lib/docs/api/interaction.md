@@ -98,16 +98,16 @@ PlayerBlockBreakEvents::AFTER.register(|broken| {
 
 ### `UseItemContext`
 
-A player used an item in the air. `item` is the item id, `count` the stack size.
+A player used an item in the air. `item` is the item id, `count` the stack size, `stack` the stack as used, with its damage and custom data (a tool's stats and modifiers live there), and `player` who used it (`None` when the host named no acting player and the world has not exactly one player). The host's use event names no hand; the hand holding the stack is the one whose carried stack equals `stack`.
 
 ```rust
-use pluto_lib::{ActionResult, UseItemCallback, UseItemContext};
+use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
 
 UseItemCallback::EVENT.register(|used: &UseItemContext| {
     if used.item == "minecraft:stick" && used.count > 1 { ActionResult::Fail } else { ActionResult::Pass }
 });
-let result = UseItemCallback::EVENT.invoke(&UseItemContext { item: "minecraft:stick".into(), count: 2 });
-assert_eq!(result, ActionResult::Fail);
+let used = UseItemContext { item: "minecraft:stick".into(), count: 2, stack: StackData { item: "minecraft:stick".into(), count: 2, ..StackData::default() }, player: None };
+assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
 ### `UseBlockContext`
@@ -179,10 +179,11 @@ UseItemCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 Runs when a player uses an item. Answer `Fail` to cancel, `Success` / `Consume` to take the action yourself, `Pass` to leave it to the game.
 
 ```rust
-use pluto_lib::{ActionResult, UseItemCallback, UseItemContext};
+use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
 
 UseItemCallback::EVENT.register(|_| ActionResult::Consume);
-assert_eq!(UseItemCallback::EVENT.invoke(&UseItemContext { item: "minecraft:apple".into(), count: 1 }), ActionResult::Consume);
+let used = UseItemContext { item: "minecraft:apple".into(), count: 1, stack: StackData { item: "minecraft:apple".into(), count: 1, ..StackData::default() }, player: None };
+assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Consume);
 ```
 
 ### `UseBlockCallback`
