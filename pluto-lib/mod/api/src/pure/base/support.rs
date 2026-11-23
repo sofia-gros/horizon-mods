@@ -222,6 +222,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "native attachment validation of the bridge send call (the combined build is the first compile of the adapter), then native/game verification of a named send; a host spawn-time data channel for fluid sprites",
     },
     SupportEntry {
+        api: "sky_api_v1::SkyRegistry::{register,layer,registered_worlds} / frame_quads",
+        support: Support::Stub,
+        behaviour: "dynamic sky layers are pure-tested: registration validates whole and replaces per world, the celestial frame mathematics (equatorial directions against the layer's meridian phase, twinkle, horizon extinction, darkening rings) is unit-tested; the transport is source-declared: a return reach on the game's celestial-geometry builder hands the frame's star angle and brightness to the sink the transport installs, appends the layer's quads to the bodies' vertex list on the atlas white texel at the moon's light tier, and drops the vanilla star frame when the layer hides the vanilla stars; no native compile or game check yet",
+        unblocked_by: "native attachment: the combined build is the first compile of the celestial reach, the access module and the sink; then game verification of twinkling bright stars, a darkening over the galactic centre, and the vanilla stars' absence",
+    },
+    SupportEntry {
         api: "color_provider_api_v1::ColorProviderRegistry::{register_item,item_color}",
         support: Support::Stub,
         behaviour: "owned-stack item registration/direct lookup work; shared baked-layer LOAD adapter and merged-component forwarding are source-declared, native-unvalidated; structural helper test covers RGB/ARGB, sparse indices, decline/special/native fallback and shared-geometry isolation, not native rendering; indices above 4095 retain native tint",

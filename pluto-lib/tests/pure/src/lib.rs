@@ -187,6 +187,10 @@ mod item_behavior_adapter_tests;
 #[cfg(test)]
 #[path = "../../../mod/pluto-player-visibility-access.rs"]
 mod player_visibility_access_tests;
+
+#[cfg(test)]
+#[path = "../../../mod/pluto-sky-access.rs"]
+mod sky_access_tests;
 #[cfg(test)]
 #[path = "../../../mod/pluto-player-visibility-tests.rs"]
 mod player_visibility_adapter_tests;
@@ -242,4 +246,5 @@ mod api_pages {
     page!(Config, "config.md");
     page!(Commands, "commands.md");
     page!(Particles, "particles.md");
+    page!(Sky, "sky.md");
 }
