@@ -2268,6 +2268,16 @@ impl PlayerOps for HostOps {
         self.host().acting_player().map(|acting| i32::from(acting.selected_slot))
     }
 
+    fn is_item_on_cooldown(&mut self, _player: u128, item: &str) -> bool {
+        // Inside a callback the host reaches the acting player, who is the one the PlutoLib handle names;
+        // the game the takeover holds answers (false outside a provider call).
+        horizon_client::game::pluto_item_cooldown::is_on_cooldown(item)
+    }
+
+    fn start_item_cooldown(&mut self, _player: u128, item: &str, ticks: i32) {
+        horizon_client::game::pluto_item_cooldown::start_cooldown(item, ticks)
+    }
+
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
         let _ = player; // inside a callback the host reaches the acting player, who is the one the PlutoLib handle names
         (0..36).filter_map(|slot| self.host().carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()

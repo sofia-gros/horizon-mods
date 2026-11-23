@@ -531,7 +531,7 @@ assert_eq!(game.carried.get(&(1, 102)).map(|stack| stack.count), Some(2));
 
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing), `update_stack(player, slot, expected_item, &StackData) -> bool` and `set_stack(player, slot, Option<&StackData>) -> bool` (creates in an empty carried slot; the default sets nothing).
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, `is_item_on_cooldown(player, item) -> bool`, `start_item_cooldown(player, item, ticks)`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing), `update_stack(player, slot, expected_item, &StackData) -> bool` and `set_stack(player, slot, Option<&StackData>) -> bool` (creates in an empty carried slot; the default sets nothing).
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};
@@ -608,7 +608,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 `entity_attachments` stores JSON by `(dimension, callback-local entity ID, attachment ID)`; tests simulating holder removal/ID reuse must clear the old holder themselves. `attachment_policies` records the immutable sync flag per attachment ID across holder kinds. These collections test routing and values, not native UUID ownership, save files or network delivery.
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)` and `selected_slot` the selected hotbar slot of every player (0 to 8).
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)` , `selected_slot` the selected hotbar slot of every player (0 to 8), and `cooldowns` the item cooldowns started for each player by `(player, item id)` to ticks left (the memory backend does not tick them down).
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -650,6 +650,35 @@ let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 assert_eq!(player.selected_slot(), None);
 let mut game = MemoryPlayerOps { selected_slot: 3, ..Default::default() };
 with_ops(&mut game, || assert_eq!(player.selected_slot(), Some(3)));
+```
+
+### `ServerPlayer::is_item_on_cooldown`
+
+`fn is_item_on_cooldown(&self, item: &str) -> bool`. Whether `item` is on the player's item cooldown (the item's own `use_cooldown` component, else the item's default). False for an item with no cooldown, or outside a callback that carries this player.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert!(!player.is_item_on_cooldown("minecraft:ender_pearl"));
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    player.start_item_cooldown("minecraft:ender_pearl", 10);
+    assert!(player.is_item_on_cooldown("minecraft:ender_pearl"));
+});
+```
+
+### `ServerPlayer::start_item_cooldown`
+
+`fn start_item_cooldown(&self, item: &str, ticks: i32)`. Starts the player's cooldown for `item` for `ticks` ticks (the item's own `use_cooldown` component, else the item's default, names the group). Nothing happens outside a callback that carries this player, or for an item with no cooldown.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || player.start_item_cooldown("minecraft:ender_pearl", 10));
+assert_eq!(game.cooldowns[&(1, "minecraft:ender_pearl".to_owned())], 10);
 ```
 
 ### `ServerPlayer::main_hand_stack`
