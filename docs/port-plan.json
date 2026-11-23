@@ -180,6 +180,10 @@
     "api/src/shaped_materials.rs",
     "api/src/swapping_recipes.rs",
     "api/src/material_render.rs",
+    "api/src/enderporting_hook.rs",
+    "api/src/harvest_hook.rs",
+    "api/src/smelting_hook.rs",
+    "api/src/strong_bones_hook.rs",
     "LICENSE"
   ],
   "cargo_dependencies": ["serde_json", "toml"],
