@@ -1,19 +1,9 @@
 {
   "parent": "minecraft:block/cube_all",
-<<<<<<< HEAD
-  "textures": {
-    "all": "tconstruct:block/clear_tinted_glass"
-  },
-  "connection": {
-    "textures": {
-      "all": "cornerless_full"
-    }
-=======
   "loader": "fusion:model",
   "type": "fusion:connecting",
   "textures": {
     "all": "tconstruct:block/clear_tinted_glass_connected",
     "particle": "tconstruct:block/clear_tinted_glass"
->>>>>>> 1419225de... DATA-REST DATA-W2: convert the connected glass models to the host's Fusion form
   }
 }
