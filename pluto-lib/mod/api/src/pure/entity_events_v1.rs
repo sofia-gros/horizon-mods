@@ -207,7 +207,7 @@ pub struct WeaponHit {
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
-/// A server player's tick, heard while the player wears armor or holds a tool that carries custom data.
+/// A server player's tick, heard while the player wears armor or holds a tool that carries custom data, or carries a mob effect.
 #[derive(Clone, Debug)]
 pub struct PlayerTick {
     /// The player's uuid and entity id.

@@ -47,9 +47,48 @@ pub(crate) fn register() {
     ServerLivingEntityEvents::PLAYER_TICK.register(|tick| crate::teleport_dodge::tick_player(tick));
     // Restore lost health is the last of the modify damage modules (priority 10): it works on the damage that is left.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source, false)); });
+    // Conductive and venom are not armor modules: the original multiplies the damage in livingHurt, before the
+    // modify hurt modules run, for any victim that carries the effect, armored or not, so they do not go through
+    // with_source (which only runs for armor).
+    ServerLivingEntityEvents::MODIFY_HURT.register(|hit| conductive_venom(hit));
     // The same module bound to the modify hurt hook runs as the damage arrives, before armor: a share of the damage as it
     // came in comes back as regeneration. (ModifierHooks.MODIFY_HURT follows ALLOW_DAMAGE and precedes MODIFY_DAMAGE.)
     ServerLivingEntityEvents::MODIFY_HURT.register(|hit| { with_source(hit, |source| restore_health(hit, source, true)); });
+}
+
+/// Conductive and venom (the original's `ToolEvents.livingHurt`): a victim that carries conductive takes
+/// twice the damage per level from a damage type in `tconstruct:protection/fire`, and one that carries
+/// venom the same from `tconstruct:protection/magic`. The level is the victim's, from the state of
+/// their last tick when the hit carries one, or from what the effect tick remembered when it does not
+/// (a mob hit by anything but a player's weapon, or a player wearing no armor).
+fn conductive_venom(hit: &DamageModification) {
+    let amount = hit.amount.get();
+    if !(amount > 0.0) {
+        return;
+    }
+    let Ok(damage_type) = Identifier::parse(&hit.damage.damage_type) else { return };
+    let tags = tags();
+    let Ok(fire) = Identifier::new("tconstruct", "protection/fire") else { return };
+    let Ok(magic) = Identifier::new("tconstruct", "protection/magic") else { return };
+    let mut multiplier = 1.0;
+    if tags.contains(&fire, &damage_type) {
+        multiplier *= crate::mob_effect_ticks::conductive_multiplier(victim_level(hit, crate::mob_effect_ticks::CONDUCTIVE));
+    }
+    if tags.contains(&magic, &damage_type) {
+        multiplier *= crate::mob_effect_ticks::conductive_multiplier(victim_level(hit, crate::mob_effect_ticks::VENOM));
+    }
+    if multiplier != 1.0 {
+        hit.amount.set(amount * multiplier);
+    }
+}
+
+/// The level of the effect `effect` on the victim of the hit `hit` (the amplifier plus one), from the
+/// state the hit carries when it has one, or from what the effect tick remembered when it has none.
+fn victim_level(hit: &DamageModification, effect: &str) -> i32 {
+    match hit.target_state.as_ref() {
+        Some(state) => state.effect_level(effect),
+        None => crate::mob_effect_ticks::remembered_level(hit.damage.entity, effect),
+    }
 }
 
 /// RecurrentProtectionModule: the momentum the wearer already has comes off the damage, and a share of what is left

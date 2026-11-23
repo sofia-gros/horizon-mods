@@ -144,6 +144,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/mining_speed.rs',
                 'mixins/tconstruct_native/api/src/mob_disguise.rs',
                 'mixins/tconstruct_native/api/src/mob_disguise_hook.rs',
+                'mixins/tconstruct_native/api/src/mob_effect_ticks.rs',
                 'mixins/tconstruct_native/api/src/mob_equipment.rs',
                 'mixins/tconstruct_native/api/src/model_flags.rs',
                 'mixins/tconstruct_native/api/src/modifier_entries.rs',

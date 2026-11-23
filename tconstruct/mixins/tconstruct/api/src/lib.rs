@@ -10,6 +10,7 @@ mod banner_modifier;
 mod armor_trim;
 mod protection;
 mod protection_hook;
+mod mob_effect_ticks;
 mod teleport_dodge;
 mod tool_damage_hook;
 mod material_traits;
@@ -243,6 +244,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     tool_action_hook::register();
     harvest_hook::register();
     protection_hook::register();
+    mob_effect_ticks::register();
     tool_damage_hook::register();
     weapon_effect_hook::register();
     shoot_hook::register();
