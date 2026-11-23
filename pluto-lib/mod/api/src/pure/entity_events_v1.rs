@@ -217,6 +217,10 @@ pub struct PlayerTick {
     pub dimension: String,
     /// The player's feet position.
     pub position: [f64; 3],
+    /// The direction the player looks, as a unit vector: where a shot from them would go.
+    pub look: [f64; 3],
+    /// Whether the player is in creative mode.
+    pub creative: bool,
     /// Whether the player stands on the ground.
     pub on_ground: bool,
     /// The armor the player wears, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
@@ -238,6 +242,20 @@ pub struct PlayerTick {
     /// The actions to do to the ticking player, as `Attacker`, which callbacks add to; they land at the end of the tick. Only a player the host
     /// can name by entity id is reached (the acting player, or a guest).
     pub actions: RefCell<Vec<EntityAction>>,
+}
+
+/// Where a player is and where they look, as of their last tick: the aim a keybind shot
+/// (a helmet's fireball) fires with, when no telling carries the player at the press.
+#[derive(Clone, Debug)]
+pub struct PlayerAim {
+    /// The dimension the player is in, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The player's feet position.
+    pub position: [f64; 3],
+    /// The direction the player looks, as a unit vector.
+    pub look: [f64; 3],
+    /// Whether the player is in creative mode.
+    pub creative: bool,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -1082,6 +1100,29 @@ pub(crate) fn armor_worn_by(entity: i32) -> Vec<(String, StackData)> {
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
 static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(String, StackData)>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
+/// Where each player is and looks, by entity id, with the player's uuid so a logout can forget it.
+static AIM: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, PlayerAim)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records where the player (`entity`) is and looks, as of their tick; a player whose tick is not
+/// heard keeps the aim their last heard tick left (the armor memory's rule, by entity id).
+pub(crate) fn remember_aim(uuid: u128, entity: i32, aim: PlayerAim) {
+    let Ok(mut aims) = AIM.lock() else { return };
+    aims.insert(entity, (uuid, aim));
+}
+
+/// Where the player `uuid` is and looks as of their last tick, when a tick heard them.
+pub fn aim_of(uuid: u128) -> Option<PlayerAim> {
+    let aims = AIM.lock().ok()?;
+    aims.values().find(|(known, _)| *known == uuid).map(|(_, aim)| aim.clone())
+}
+
+/// Forgets a player who left.
+pub(crate) fn forget_aim(uuid: u128) {
+    if let Ok(mut aims) = AIM.lock() {
+        aims.retain(|_, (known, _)| *known != uuid);
+    }
+}
+
 /// What each player holds in the off hand, by entity id, with the player's uuid: the hand the armor
 /// memory does not cover, where a harvest enchantment may sit on a shield.
 static OFFHAND: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Option<StackData>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
@@ -1583,7 +1624,7 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
@@ -1614,6 +1655,18 @@ mod tests {
         assert!(tick_wanted(32, true));
         assert!(tick_wanted(32, false), "one more tick to let go of what the armor kept");
         assert!(!tick_wanted(32, false));
+    }
+
+    #[test]
+    fn an_aim_is_remembered_until_the_player_leaves() {
+        let aim = PlayerAim { dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], look: [0.0, 0.0, 1.0], creative: false };
+        assert!(aim_of(77).is_none());
+        remember_aim(77, 5, aim.clone());
+        assert_eq!(aim_of(77).map(|known| known.position), Some([1.0, 64.0, 2.0]));
+        remember_aim(77, 5, PlayerAim { look: [1.0, 0.0, 0.0], ..aim });
+        assert_eq!(aim_of(77).map(|known| known.look), Some([1.0, 0.0, 0.0]), "the last tick's aim wins");
+        forget_aim(77);
+        assert!(aim_of(77).is_none());
     }
 
     #[test]
@@ -1850,7 +1903,7 @@ mod tests {
             if tick.entity != 6262 { return; }
             tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
         });
-        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");

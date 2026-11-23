@@ -91,7 +91,8 @@ fn neighbours(stack: &StackData, world: &World, origin: [i32; 3], face: [i32; 3]
 }
 
 /// The item slot view of a stack, for the tool damage pipeline (which works on slots).
-fn slot_of(stack: &StackData) -> Option<ItemSlot> {
+/// Shared with the fireball's helmet wear, which damages a worn piece the same way.
+pub(crate) fn slot_of(stack: &StackData) -> Option<ItemSlot> {
     let mut slot = ItemSlot::new(Identifier::parse(&stack.item).ok()?, stack.count);
     slot.damage = stack.damage;
     slot.max_damage = stack.max_damage;
@@ -105,7 +106,8 @@ fn slot_of(stack: &StackData) -> Option<ItemSlot> {
 
 /// The stack a worn slot view writes back as. The hand writes carry count, damage and custom
 /// data (the main hand's `update_stack` writes exactly those), so nothing else is invented.
-fn stack_of(slot: &ItemSlot) -> StackData {
+/// Shared with the fireball's helmet wear, which writes a worn piece back the same way.
+pub(crate) fn stack_of(slot: &ItemSlot) -> StackData {
     StackData {
         item: slot.item.to_string(),
         count: slot.count,

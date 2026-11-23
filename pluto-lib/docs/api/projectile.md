@@ -54,7 +54,7 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit. `motion` is how fast it was moving when it hit, in blocks a tick, and `data` the projectile's saved data — what its spawn data and the stack that fired it left on it, so a launcher that puts its modifiers in the fired stack's data reads them back here. Two outcomes a callback settles on the projectile itself: set `discard` to have the game remove it as the callbacks return, or set `motion_after` to the motion it flies on with — with a cancelled hit, a bounce. And `actions` is the queue of actions for the hit's parties (`Victim` the entity it hit, `Attacker` the thrower), which the game does after the callbacks answer.
+A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `entity_effects` the mob effects the entity it hit carries, by id (empty for a block, or when the host could not reach the target), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit. `motion` is how fast it was moving when it hit, in blocks a tick, and `data` the projectile's saved data — what its spawn data and the stack that fired it left on it, so a launcher that puts its modifiers in the fired stack's data reads them back here. Two outcomes a callback settles on the projectile itself: set `discard` to have the game remove it as the callbacks return, or set `motion_after` to the motion it flies on with — with a cancelled hit, a bounce. And `actions` is the queue of actions for the hit's parties (`Victim` the entity it hit, `Attacker` the thrower), which the game does after the callbacks answer.
 
 ```rust
 use pluto_lib::ProjectileImpact;
@@ -66,6 +66,7 @@ let hit = ProjectileImpact {
     owner: 1,
     entity: None,
     entity_kind: String::new(),
+    entity_effects: Vec::new(),
     block: [3, 64, 3],
     face: [0, 1, 0],
     at: [3.5, 65.0, 3.5],
@@ -95,7 +96,7 @@ fn dimension_of(hit: &ProjectileImpact) -> String {
 }
 let hit = ProjectileImpact {
     dimension: "minecraft:the_nether".into(), projectile: 1, kind: "minecraft:arrow".into(), owner: 0, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    entity_kind: String::new(), entity_effects: Vec::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
     discard: Default::default(), motion_after: Default::default(), actions: Default::default(),
 };
 assert_eq!(dimension_of(&hit), "minecraft:the_nether");
@@ -121,7 +122,7 @@ use pluto_lib::{ProjectileEvents, ProjectileImpact};
 ProjectileEvents::IMPACT.register(|hit| hit.kind != "minecraft:egg");
 let egg = ProjectileImpact {
     dimension: "minecraft:overworld".into(), projectile: 2, kind: "minecraft:egg".into(), owner: 1, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    entity_kind: String::new(), entity_effects: Vec::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
     discard: Default::default(), motion_after: Default::default(), actions: Default::default(),
 };
 assert!(!ProjectileEvents::IMPACT.invoke(&egg));
