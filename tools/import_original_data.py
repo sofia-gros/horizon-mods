@@ -3174,8 +3174,12 @@ def copy_vanilla_tags():
     declared blocks and to the Tinkers block tags that ship (the host drops unknown ids anyway; this keeps the files to what this
     port registers, and a later unit's blocks join on the next import). Entries of any other namespace stop the import,
     Forge's convention tags are left out (that namespace does not exist here, as in copy_tags). `forge:needs_gold_tool` has no
-    26.3 tag: gold tools are wooden ones there, and no world block needs the tool to drop anyway. Vanilla's item tags (tool
-    families, logs...) wait for the units that register those items."""
+    26.3 tag: gold tools are wooden ones there, and no world block needs the tool to drop anyway. The beacon base
+    tag names its metals through Forge's storage-block tags: a shipped metal's tag stands for its block, as
+    forge_members resolves them for the recipes. The item tags (tool families, logs...) and the entity-type
+    tags join with the same reduction: an entry ships when it names a declared item, a shipped Tinkers tag or
+    a registered entity type; anything else (Forge's namespace, vanilla's own entries, which the base game
+    already carries) is left out."""
     target = CONTENT_DATA / 'minecraft/tags/block'
     declared = {p.stem for p in (HORIZON_DECLARATIONS / 'block').glob('*.json')}
     shipped = {path.relative_to(TAG_TARGET / 'block').with_suffix('').as_posix() for path in (TAG_TARGET / 'block').rglob('*.json')}
@@ -3186,6 +3190,9 @@ def copy_vanilla_tags():
         values = []
         for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
             value = entry if isinstance(entry, str) else entry['id']  # an optional entry is {id, required}
+            if value.startswith('#forge:storage_blocks/') and f"{value[len('#forge:storage_blocks/'):]}_block" in declared:
+                values.append(f"tconstruct:{value[len('#forge:storage_blocks/'):]}_block")
+                continue
             if value.startswith('#tconstruct:'):
                 keep = value[len('#tconstruct:'):] in shipped
             elif value.startswith('tconstruct:'):
@@ -3201,7 +3208,48 @@ def copy_vanilla_tags():
             count += 1
     # SlimeDirtBlock sustains PLAINS. VegetationBlock checks this ground tag in 26.3.
     write_json(target / 'supports_vegetation.json', {'values': [f'tconstruct:{dirt}_slime_dirt' for dirt in DIRT_TYPES]})
-    return count + 1
+    count += 1
+    # The declared items, and the block items with them (a block declaration's `item` flag): the wood
+    # families, the signs and the heads are named by the item tags through their blocks.
+    declared_items = {p.stem for p in (HORIZON_DECLARATIONS / 'item').glob('*.json')}
+    for path in (HORIZON_DECLARATIONS / 'block').glob('*.json'):
+        if json.loads(path.read_text(encoding='utf-8')).get('item'):
+            declared_items.add(path.stem)
+    shipped_item_tags = {path.relative_to(TAG_TARGET / 'item').with_suffix('').as_posix() for path in (TAG_TARGET / 'item').rglob('*.json')}
+    item_target = CONTENT_DATA / 'minecraft/tags/item'
+    shutil.rmtree(item_target, ignore_errors=True)
+    for path in sorted((GENERATED_DATA / 'minecraft/tags/items').rglob('*.json')):
+        values = []
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            value = entry if isinstance(entry, str) else entry['id']
+            if value.startswith('#forge:ingots/') and f"{value[len('#forge:ingots/'):]}_ingot" in declared_items:
+                # the beacon payment tag names its metals through Forge's ingot tags, as the beacon
+                # base tag names them through the storage-block tags
+                values.append(f"tconstruct:{value[len('#forge:ingots/'):]}_ingot")
+                continue
+            if value.startswith('#tconstruct:'):
+                keep = value[len('#tconstruct:'):] in shipped_item_tags
+            elif value.startswith('tconstruct:'):
+                keep = value[len('tconstruct:'):] in declared_items
+            else:
+                keep = False
+            if keep:
+                values.append(entry)
+        if values:
+            write_json(item_target / path.relative_to(GENERATED_DATA / 'minecraft/tags/items'), {'values': values})
+            count += 1
+    entity_target = CONTENT_DATA / 'minecraft/tags/entity_type'
+    shutil.rmtree(entity_target, ignore_errors=True)
+    for path in sorted((GENERATED_DATA / 'minecraft/tags/entity_types').rglob('*.json')):
+        values = []
+        for entry in json.loads(path.read_text(encoding='utf-8')).get('values', []):
+            value = entry if isinstance(entry, str) else entry['id']
+            if value.startswith('tconstruct:') and value[len('tconstruct:'):] in registered_entity_types():
+                values.append(entry)
+        if values:
+            write_json(entity_target / path.relative_to(GENERATED_DATA / 'minecraft/tags/entity_types'), {'values': values})
+            count += 1
+    return count
 
 
 def copy_cobalt_tags():

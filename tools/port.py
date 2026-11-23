@@ -78,7 +78,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/structures/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
     re.compile(r'data/tconstruct/structure/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
     re.compile(r'data/tconstruct/tags/worldgen/biome(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/(?:block|item|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
     # Gameplay advancements and the functions their internal advancements reward, converted by the importer
