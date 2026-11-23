@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tomllib
 
@@ -29,8 +30,9 @@ def prepare(prepared):
     if original.count('members = [\n') != 1:
         raise ValueError('workspace member declaration changed')
     consumer = stage / 'native-api/tconstruct'
+    pipes_consumer = stage / 'native-api/pipes'
     probe = stage / 'native-api/clean-linkage'
-    if consumer.exists() or probe.exists():
+    if consumer.exists() or pipes_consumer.exists() or probe.exists():
         raise ValueError('consumer check already staged; preserve its evidence')
     manifest = files['api/Cargo.toml'].decode('utf-8')
     parsed = tomllib.loads(manifest)
@@ -54,6 +56,24 @@ def prepare(prepared):
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(data)
     (consumer / 'Cargo.toml').write_text(''.join(lines), encoding='utf-8', newline='\n')
+    # Second consumer (build-test composition): the pipes mod's API crate,
+    # staged with the same host rewrite and bundle edge as the tconstruct
+    # consumer. Its manifest carries the same reviewed dependency allowlist.
+    pipes_source = ROOT / 'pipes/mixins/pipes/api'
+    pipes_manifest = (pipes_source / 'Cargo.toml').read_text(encoding='utf-8')
+    pipes_parsed = tomllib.loads(pipes_manifest)
+    if pipes_parsed['package']['name'] != 'mod-pipes':
+        raise ValueError('pipes API package name changed; review launcher projection')
+    if pipes_parsed['dependencies'] != {'horizon-client': expected, 'serde_json': '=1.0.154', 'toml': '=0.8.23'}:
+        raise ValueError('pipes consumer dependencies changed; review launcher projection')
+    pipes_lines = pipes_manifest.splitlines(keepends=True)
+    pipes_indexes = [i for i, line in enumerate(pipes_lines) if line.startswith('horizon-client = ')]
+    if len(pipes_indexes) != 1:
+        raise ValueError('ambiguous pipes consumer host dependency')
+    pipes_lines[pipes_indexes[0]] = ('horizon-client = { path = "../../crates/horizon-client", default-features = false }\n'
+                                     'pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }\n')
+    shutil.copytree(pipes_source, pipes_consumer)
+    (pipes_consumer / 'Cargo.toml').write_text(''.join(pipes_lines), encoding='utf-8', newline='\n')
     (probe / 'src').mkdir(parents=True)
     (probe / 'Cargo.toml').write_text(newline='\n', data='''[package]
 name = "pluto-clean-linkage"
@@ -64,16 +84,17 @@ publish = false
 horizon-client = { path = "../../crates/horizon-client", default-features = false }
 pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }
 tconstruct = { package = "mod-tconstruct", path = "../tconstruct" }
+pipes = { package = "mod-pipes", path = "../pipes" }
 ''', encoding='utf-8')
     (probe / 'src/main.rs').write_text(newline='\n', data='''// Diagnostic type composition only; never launch this as the game.
 fn main() {
     let _mods: horizon_client::mod_api::Mods = vec![
-        pluto_lib::hooks(), tconstruct::hooks(),
+        pluto_lib::hooks(), tconstruct::hooks(), pipes::hooks(),
     ].into();
 }
 ''', encoding='utf-8')
     workspace.write_text(newline='\n', data=original.replace('members = [\n',
-        'members = [\n    "native-api/tconstruct",\n    "native-api/clean-linkage",\n', 1),
+        'members = [\n    "native-api/tconstruct",\n    "native-api/pipes",\n    "native-api/clean-linkage",\n', 1),
         encoding='utf-8')
     return stage, {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
 

@@ -37,6 +37,7 @@ horizon-mods = { path = "../horizon-mods" }
 horizon-official = { path = "../horizon-official", optional = true }
 mod_0 = { package = "mod-pluto_lib", path = "../../native-api/pluto_lib", features = ["native-inventory-glue"] }
 mod_1 = { package = "mod-tconstruct", path = "../../native-api/tconstruct" }
+mod_2 = { package = "mod-pipes", path = "../../native-api/pipes" }
 [features]
 default = ["horizon-client/default", "official"]
 official = ["dep:horizon-official"]
@@ -53,8 +54,8 @@ static ALLOCATOR: horizon_threads::GameAllocator = horizon_threads::GAME_ALLOCAT
 static MOD_API_LEVEL: [u8; horizon_mods::api_level::MARK.len()] = horizon_mods::api_level::MARK;
 fn main() {
     std::hint::black_box(&MOD_API_LEVEL);
-    let mods: horizon_client::mod_api::Mods = vec![mod_0::hooks(), mod_1::hooks()].into();
-    horizon_client::mod_api::name_mods(&["pluto_lib", "tconstruct"]);
+    let mods: horizon_client::mod_api::Mods = vec![mod_0::hooks(), mod_1::hooks(), mod_2::hooks()].into();
+    horizon_client::mod_api::name_mods(&["pluto_lib", "tconstruct", "pipes"]);
     #[cfg(feature = "official")]
     horizon_official::register();
     horizon_client::entry::main_with(mods);
