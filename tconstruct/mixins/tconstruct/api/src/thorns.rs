@@ -110,11 +110,12 @@ mod tests {
             "chance":{"each_level":0.2},"constant_damage":{"flat":2.0},"damage_type":"tconstruct:shock","durability_usage":1,
             "random_damage":{"flat":3.0},"tool":{"type":"mantle:tag","tag":"tconstruct:modifiable/armor"}})).unwrap();
         let state = |eyes_in_water: bool, in_water: bool| pluto_lib::EntityState { eyes_in_water, in_water, ..Default::default() };
-        // A closure factory cannot spell its return type with `impl Trait` (E0562), so the
-        // returned closure is boxed: the box carries the state's lifetime explicitly.
-        let answers = |state: &pluto_lib::EntityState| -> Box<dyn Fn(&Identifier) -> bool + '_> {
+        // A closure factory cannot spell this return: its `'_` stays a fresh lifetime
+        // unrelated to the state's (E0562 forbids `impl Trait` there too), so the
+        // factory is a plain nested fn with the lifetime named.
+        fn answers<'a>(state: &'a pluto_lib::EntityState) -> Box<dyn Fn(&Identifier) -> bool + 'a> {
             Box::new(move |tag: &Identifier| crate::melee_damage::state_in_tag(tag, Some(state), None))
-        };
+        }
         let dry = state(false, false);
         assert!(wet.hurt(&entry(1), true, &answers(&dry), &mut || 0.0).is_none(), "a dry attacker is not shocked");
         let eyes = state(true, false);
