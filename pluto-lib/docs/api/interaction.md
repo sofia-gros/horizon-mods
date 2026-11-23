@@ -864,6 +864,41 @@ with_entities(&mut ops, || {
 });
 ```
 
+### `EntityReach::id_of_uuid`
+
+`fn id_of_uuid(uuid: u128) -> Option<u64>`. The entity id of the player whose uuid is `uuid`, resolved through the host's entity-by-uuid call; `None` outside a scope or when no such player is there. This is the bridge from a player a callback names (a `ServerPlayer`) to the entity ids the ride reach and the other queries speak of.
+
+```rust
+use pluto_lib::{EntityReach, MemoryEntityOps, with_entities};
+
+assert_eq!(EntityReach::id_of_uuid(1), None, "outside a scope");
+let mut ops = MemoryEntityOps::default();
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::id_of_uuid(1), None, "the memory world holds no players");
+});
+```
+
+### `EntityReach::kind_of`
+
+`fn kind_of(id: u64) -> Option<Identifier>`. The type of the entity `id`; `None` outside a scope or when there is no such entity.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+assert_eq!(EntityReach::kind_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::kind_of(2), Identifier::parse("minecraft:zombie").ok());
+    assert_eq!(EntityReach::kind_of(99), None, "no such entity");
+});
+```
+
 ### `EntityReach::passengers_of`
 
 `fn passengers_of(vehicle: u64) -> Vec<u64>`. The direct passengers of `vehicle`, in the order they mounted; empty outside a scope, when the entity carries nobody, or when the host cannot say.

@@ -70,13 +70,13 @@ include!("special-head.rs");
     shutil.copyfile(ROOT/'tests/native/crafting_special.rs',output/'lib.rs')
     adv='crates/horizon-client/src/advancements.rs'
     item=take(adv,'#[derive(Clone, Debug, Default)]\npub struct ItemView','/// An entity as predicates see it.','item-view.rs')
-    (output/'item-view.rs').write_text(item)
+    (output/'item-view.rs').write_text(item, newline="\n")
     manifest=(output/'Cargo.toml').read_text().replace('name="pluto-recipe-placement-tests"','name="'+NAME+'"')
-    (output/'Cargo.toml').write_text(manifest)
+    (output/'Cargo.toml').write_text(manifest, newline="\n")
     evidence['official_sha256'][adv]=common.digest((host/adv).read_bytes())
     evidence['files_sha256']={str(p.relative_to(output)):common.digest(p.read_bytes()) for p in output.rglob('*') if p.is_file() and p.name not in ('Cargo.lock','fixture-sources.json')}
     evidence['scope']='Exact native find_with and assemble_if_matches bodies, cropped Input, Ingredient.test, Template.create and component-view; the HEAD wrapper, special endpoints, external ingredient providers and HEAD wrappers modeled. Not gameplay/consumption proof.'
-    common.metadata(output,False);(output/'fixture-sources.json').write_text(json.dumps(evidence,indent=2)+'\n');verify(output);print(output)
+    common.metadata(output,False);(output/'fixture-sources.json').write_text(json.dumps(evidence,indent=2)+'\n', newline="\n");verify(output);print(output)
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--horizon-source',type=Path);parser.add_argument('--output',type=Path,required=True);parser.add_argument('--verify-lock',action='store_true');args=parser.parse_args()
     if args.verify_lock:verify(args.output);print('Exact crafting sources and dependency identities verified')
