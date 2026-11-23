@@ -2,14 +2,19 @@
 //! ConfigEnabledCondition): the shipped recipes whose availability follows a
 //! common config value. The host evaluates only the `neoforge:conditions`
 //! key with a closed type set, so these gates cannot ride the data files;
-//! they are decided here from the parsed common config and are meant to be
-//! enforced through PlutoLib's crafting-match veto (deny-only admission in
-//! pluto-lib's inventory-api crafting::matching registry).
+//! they are decided here from the parsed common config and are enforced
+//! through PlutoLib's crafting-match veto (deny-only admission in
+//! pluto-lib's inventory-api crafting::matching registry): `register`
+//! installs the one deny policy below.
 //!
 //! Property semantics follow ConfigEnabledCondition exactly, including its
 //! quirk: the `slime_recipe_fix` property reads the glassRecipeFix config
 //! value, the same as `glass_recipe_fix` (there is no separate value behind
 //! the recipe condition in the original).
+
+use pluto_lib::recipe_api_v1::{
+    AdmissionDecision, AdmissionRegistration, AdmissionRequest, RecipeFacts,
+};
 
 use crate::config::Common;
 
@@ -81,6 +86,40 @@ pub fn recipe_enabled(recipe_id: &str, config: &Common) -> bool {
         Some(prop) => prop_enabled(prop, config).unwrap_or(true),
         None => true,
     }
+}
+
+/// The admission interest: only the seven gated recipes can ever be
+/// denied, so every other recipe skips the callback (and the adapter's
+/// grid capture) entirely.
+fn config_gate_interest(facts: &RecipeFacts<'_>) -> bool {
+    facts.id.is_some_and(|id| config_prop(id).is_some())
+}
+
+/// The crafting-match veto for the config gates: a gated recipe whose
+/// condition prop is off does not match this grid. The common config is
+/// read per evaluation from the snapshot `config::register` keeps current
+/// on both LOADING and RELOADING, so a config reload takes effect on the
+/// next craft; an unloaded or invalid config gates at the defaults, the
+/// same stance as `config::ore_rates`.
+fn config_gate_callback(request: &AdmissionRequest<'_>) -> AdmissionDecision {
+    let Some(id) = request.recipe.id else {
+        return AdmissionDecision::Pass;
+    };
+    if recipe_enabled(id, &crate::config::common().unwrap_or_default()) {
+        AdmissionDecision::Pass
+    } else {
+        AdmissionDecision::Deny
+    }
+}
+
+/// Installs the one deny policy that enforces the config gates at match
+/// time, through PlutoLib's crafting-match veto.
+pub(crate) fn register() {
+    let _ = pluto_lib::recipe_api_v1::register_admission(AdmissionRegistration {
+        id: "tconstruct:config_recipe_gate",
+        interest: config_gate_interest,
+        callback: config_gate_callback,
+    });
 }
 
 #[cfg(test)]
@@ -159,6 +198,23 @@ mod tests {
             "tconstruct:common/slime/sticky_piston",
             &config
         ));
+    }
+
+    #[test]
+    fn gate_interest_selects_exactly_the_gated_recipes() {
+        use pluto_lib::recipe_api_v1::{RecipeFacts, RecipeForm};
+        let facts = |id| RecipeFacts {
+            form: RecipeForm::Shapeless,
+            result_item: None,
+            result_count: 1,
+            id,
+        };
+        for gated in GATED_RECIPES {
+            assert!(config_gate_interest(&facts(Some(gated.id))), "{}", gated.id);
+        }
+        assert!(!config_gate_interest(&facts(Some("minecraft:beacon"))));
+        assert!(!config_gate_interest(&facts(Some("tconstruct:common/slime/lead/extra"))));
+        assert!(!config_gate_interest(&facts(None)));
     }
 
     #[test]

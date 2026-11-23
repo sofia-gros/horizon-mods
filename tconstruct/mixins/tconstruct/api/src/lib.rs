@@ -247,6 +247,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     shaped_materials::register();
     material_render::register();
     crafting_repair::register();
+    recipe_conditions::register();
     commands::register();
     particles::register();
     pluto_lib::no_hooks()
