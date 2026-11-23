@@ -2004,7 +2004,7 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-frame-analog"
-target = "horizon_client::game::GameLevel<'_>::item_frame_analog_output"
+target = "horizon_client::game::<GameLevel<'_> as LevelAccess>::item_frame_analog_output"
 kind = "HEAD"
 cancellable = true
 helper = "pluto-hanging-frame-analog.rs"
