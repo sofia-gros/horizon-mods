@@ -386,7 +386,7 @@ fn the_placement_predicates_follow_the_originals_rules() {
 #[test]
 fn teleport_destinations_and_the_civil_calendar_match_their_sources() {
     assert_eq!(teleport_destination([100.0, 70.0, -50.0], "minecraft:overworld", 0.5, 0, 0.5), [100.0, 70.0, -50.0]);
-    assert_eq!(teleport_destination([0.0, 70.0, 0.0], "minecraft:overworld", 0.0, 300, 1.0), [-8.0, 320.0, 8.0], "the vertical clamps to the build range");
+    assert_eq!(teleport_destination([0.0, 70.0, 0.0], "minecraft:overworld", 0.0, 300, 1.0), [-8.0, 319.0, 8.0], "the vertical clamps to the build range");
     assert_eq!(civil_from_days(0), (1970, 1, 1));
     assert_eq!(civil_from_days(19723), (2024, 1, 1));
     assert_eq!(civil_from_days(20089), (2025, 1, 1));
