@@ -186,6 +186,45 @@ let used = UseItemContext { item: "minecraft:apple".into(), count: 1, stack: Sta
 assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Consume);
 ```
 
+### `DispenseRegistry`
+
+The registry of dispenser behaviours, keyed by the item dispensed. The game asks its mods before a dispenser ejects (its dispense hook); PlutoLib answers for the items registered here — spawning the shot, consuming one item and playing the projectile-launch event — and an item nobody claims keeps the game's own dispensing.
+
+```rust
+use pluto_lib::{DispenseBehavior, DispenseRegistry, Identifier};
+
+DispenseRegistry::register(
+    Identifier::parse("example:glow_ball").unwrap(),
+    DispenseBehavior::Shoot { entity: Identifier::parse("example:glow_ball").unwrap(), power: 1.1, inaccuracy: 6.0 },
+);
+assert!(DispenseRegistry::get("example:glow_ball").is_some());
+assert!(DispenseRegistry::get("example:unclaimed").is_none());
+```
+
+### `DispenseBehavior`
+
+What a dispenser does with one item. `Shoot { entity, power, inaccuracy }` fires the item as a projectile of the entity type `entity` (the original's `ShootProjectileDispenserBehavior`): the projectile spawns at the dispenser's mouth carrying the item, flies the shot [`dispense_shot`](#dispense_shot) computes, and one item is consumed.
+
+```rust
+use pluto_lib::{DispenseBehavior, Identifier};
+
+let shoot = DispenseBehavior::Shoot { entity: Identifier::parse("example:efln_ball").unwrap(), power: 1.1, inaccuracy: 6.0 };
+assert!(matches!(shoot, DispenseBehavior::Shoot { power, .. } if power == 1.1));
+```
+
+### `dispense_shot`
+
+`fn dispense_shot(pos: [i32; 3], facing: Direction, power: f32) -> ([f64; 3], [f64; 3])`. Where a shot spawns and the motion it starts with: the dispenser's dispense position (the block's centre stepped 0.7 along the facing) and the facing stepped up by 0.1, normalised and scaled by `power`. The spread the inaccuracy would add needs a random source the dispense hook does not hand over, so the shot is the mean shot and flies true.
+
+```rust
+use pluto_lib::{dispense_shot, Direction};
+
+let (origin, motion) = dispense_shot([10, 64, -3], Direction::East, 1.1);
+assert!((origin[0] - 11.2).abs() < 1e-9 && (origin[1] - 64.5).abs() < 1e-9);
+let length = (motion[0] * motion[0] + motion[1] * motion[1] + motion[2] * motion[2]).sqrt();
+assert!((length - 1.1).abs() < 1e-9, "the shot flies at its power");
+```
+
 ### `UseBlockCallback`
 
 Holder of the use-block event.

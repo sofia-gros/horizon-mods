@@ -41,14 +41,25 @@
 //!   by projectile kind and plays the vanilla snowball throw for thrown types, so the custom
 //!   sounds are not heard — a documented reduction.
 //! - Dispensers: Java registers a `ShootProjectileDispenserBehavior` (power 1.1, inaccuracy
-//!   6.0) for all four items. The host has a `dispense_item` hook (API 67, `DispenseItemEvent`
-//!   → `Option<NativeDispensed>`), but this PlutoLib base dispatches no dispenser hook, so a
-//!   dispenser treats the four as ordinary items — a documented wall for the foundation lane
-//!   that wires the dispenser hook into PlutoLib.
+//!   6.0) for all four items, and they are registered the same way below, in PlutoLib's
+//!   [`DispenseRegistry`]: the host's `dispense_item` hook (API 67) asks its mods before it
+//!   ejects, and PlutoLib answers for a registered item by summoning its projectile at the
+//!   dispenser's mouth with the shot's motion, consuming one item and playing the projectile
+//!   launch sound. One reduction: the dispense callback is handed no random source, so the
+//!   inaccuracy spread is not rolled — the shot flies true (PlutoLib's `dispense_shot`).
+//!   The tool items' dispenser behaviours (the modifiable arrow and shuriken behaviours) are
+//!   a separate matter: they read tool stats at dispense time, which this registration does
+//!   not do.
 //!
 //! There are no recipes for the four in the original (`gadgets/data/GadgetRecipeProvider.java`
 //! has none; the items are deprecated), so none are converted.
-use pluto_lib::{ActionTarget, BlockState, Direction, EntityAction, ExplosionInteraction, Identifier, ItemTooltipCallback, KnockbackDirection, Nbt, NbtCompound, ProjectileEvents, ProjectileImpact, ThrownType, ThrownTypeRegistry, TooltipLine, World};
+use pluto_lib::{ActionTarget, BlockState, Direction, DispenseBehavior, DispenseRegistry, EntityAction, ExplosionInteraction, Identifier, ItemTooltipCallback, KnockbackDirection, Nbt, NbtCompound, ProjectileEvents, ProjectileImpact, ThrownType, ThrownTypeRegistry, TooltipLine, World};
+
+
+/// The dispenser numbers of `ShootProjectileDispenserBehavior` as `TinkerGadgets` registers it for all
+/// four throwables: power 1.1, inaccuracy 6.0.
+pub(crate) const DISPENSE_POWER: f32 = 1.1;
+pub(crate) const DISPENSE_INACCURACY: f32 = 6.0;
 
 /// One throwable of TinkerGadgets, with its entity's numbers from the entity classes:
 /// `damage`/`knockback` are ShurikenEntityBase's `getDamage()`/`getKnockback()` (flint 3.0/0.6,
@@ -76,8 +87,11 @@ pub(crate) fn register() {
     ONCE.call_once(|| {
         for thrown in &THROWABLES {
             let item = id(thrown.name);
-            ThrownTypeRegistry::register(ThrownType::new(item.clone(), item, thrown.damage).expect("a valid thrown type"))
+            ThrownTypeRegistry::register(ThrownType::new(item.clone(), item.clone(), thrown.damage).expect("a valid thrown type"))
                 .expect("Tinkers thrown type registration failed");
+            // The item's own entity type is its projectile, under the same id (TinkerGadgets registers
+            // the ShootProjectileDispenserBehavior with the item's entity for each of the four).
+            DispenseRegistry::register(item.clone(), DispenseBehavior::Shoot { entity: item, power: DISPENSE_POWER, inaccuracy: DISPENSE_INACCURACY });
         }
         ProjectileEvents::IMPACT.register(on_impact);
         // The optional Mantle tooltip of all four items: `item.tconstruct.<name>.tooltip` in
@@ -208,6 +222,22 @@ mod tests {
         }
         assert_eq!(THROWABLES[2].knockback, 0.6, "flint knockback");
         assert_eq!(THROWABLES[3].knockback, 0.4, "quartz knockback");
+    }
+
+    #[test]
+    fn a_dispenser_shoots_each_throwable_as_its_own_projectile() {
+        // register() makes exactly these registrations (it is not called here: its thrown-type
+        // registrations are one-shot and other tests own them).
+        for thrown in &THROWABLES {
+            let item = id(thrown.name);
+            DispenseRegistry::register(item.clone(), DispenseBehavior::Shoot { entity: item, power: DISPENSE_POWER, inaccuracy: DISPENSE_INACCURACY });
+        }
+        for thrown in &THROWABLES {
+            let behavior = DispenseRegistry::get(&id(thrown.name)).expect("the behaviour is registered");
+            let DispenseBehavior::Shoot { entity, power, inaccuracy } = behavior else { panic!("a shot, not another behaviour") };
+            assert_eq!(entity, id(thrown.name), "{} shoots its own entity type", thrown.name);
+            assert_eq!((power, inaccuracy), (1.1, 6.0), "ShootProjectileDispenserBehavior's numbers");
+        }
     }
 
     #[test]

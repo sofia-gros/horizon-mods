@@ -15,6 +15,7 @@ pub mod skull_model_registry;
 pub mod command_api_v2;
 pub mod config_api;
 pub mod data_attachment_api_v1;
+pub mod dispense_api_v1;
 pub mod entity_events_v1;
 pub mod living_entity_drops;
 pub mod living_entity_behavior;

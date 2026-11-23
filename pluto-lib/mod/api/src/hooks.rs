@@ -26,6 +26,7 @@ use crate::pure::base::{Identifier, Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
 use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
 use crate::pure::entity_api_v1::{self, EntityOps};
+use crate::pure::dispense_api_v1::{self, DispenseBehavior};
 use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::item_storage_api_v1::ItemStorage;
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
@@ -1554,6 +1555,11 @@ fn set_book_view(view: BookView) {
 /// The host's face for a PlutoLib one (the same six, in the same order).
 fn host_face(face: block_api_v1::Direction) -> horizon_client::mod_api::Direction {
     horizon_client::mod_api::Direction::ALL[face as usize]
+}
+
+/// A PlutoLib face for the host's one (the same six, in the same order).
+fn pure_face(face: horizon_client::mod_api::Direction) -> block_api_v1::Direction {
+    block_api_v1::Direction::ALL[face as usize]
 }
 
 fn fluid_stack_of(fluid: &str, amount: i32) -> Option<FluidStack> {
@@ -4337,6 +4343,37 @@ impl Hooks for PlutoHooks {
             player,
         };
         cancel_if(scoped(host, || events_interaction_v0::use_item(&context)))
+    }
+
+    fn dispense_item(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::DispenseItemEvent<'_>) -> Option<horizon_client::mod_api::NativeDispensed> {
+        // The game's dispense hook (its native hook 67) asks its mods before it ejects: the first mod that
+        // answers wins, and the answer carries what stays in the slot (nothing empties it) and the level
+        // event played with the smoke. PlutoLib answers for the behaviours in the dispense registry;
+        // anything unclaimed returns None here and keeps the game's own ejection.
+        let stack = read_stack(event.stack);
+        let Some(DispenseBehavior::Shoot { entity, power, .. }) = dispense_api_v1::DispenseRegistry::get(&stack.item) else {
+            return None;
+        };
+        let (origin, motion) = dispense_api_v1::dispense_shot(event.pos, pure_face(event.facing), power);
+        // The projectile carries the item it was shot from, in the layout the game's own thrown items are
+        // summoned with, and starts with the shot's motion.
+        let mut item = NbtCompound::new();
+        item.insert("id".to_owned(), Nbt::String(stack.item.clone()));
+        item.insert("count".to_owned(), Nbt::Int(1));
+        let mut nbt = NbtCompound::new();
+        nbt.insert("Motion".to_owned(), Nbt::List(motion.into_iter().map(Nbt::Double).collect()));
+        nbt.insert("Item".to_owned(), Nbt::Compound(item));
+        host.summon(event.dimension, &entity.to_string(), origin, compound_to_tag(&nbt))?;
+        // One item was shot: what stays is the stack less one (nothing, when it was the last), and the
+        // event played is the game's projectile launch (level event 1002).
+        let rest = if stack.count > 1 {
+            let mut rest = event.stack.clone();
+            rest.count -= 1;
+            Some(rest)
+        } else {
+            None
+        };
+        Some((rest, 1002))
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
