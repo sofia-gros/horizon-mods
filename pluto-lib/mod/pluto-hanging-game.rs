@@ -358,9 +358,12 @@ pub(super) fn interact_fancy_frame(
     true
 }
 
-/// After `tick_item_frames`: the variant registry refresh, the clear
-/// frames' visibility, and the rotation timers (server-side, in entity
-/// ticking chunks, as the original's entity tick).
+/// At the head of `tick_item_frames`: the variant registry refresh, the
+/// clear frames' visibility, and the rotation timers (server-side, in
+/// entity ticking chunks, as the original's entity tick). The head is
+/// the woven seam (a RETURN cannot be woven into the host body), so the
+/// host's survival pass runs right after this: a frame it discards this
+/// tick may have advanced its timer once, which its drops never read.
 pub(super) fn tick_fancy_frames(game: &mut Game<'_>) {
     refresh_frame_facts(game);
     let ticking = game.entity_ticking_area();
@@ -658,10 +661,13 @@ pub(super) fn break_fancy_stand(
 
 /// Around `tick_armor_stands`: every fancy stand is fire immune at the
 /// class level, so its fire ticks never stand (cleared before the tick,
-/// whose environment step would light it, and after, so it never renders
-/// as burning either); the clear stand's invisibility follows its
-/// equipment (`isClearHidden` — the host has the one flag, so an
-/// NBT-invisible clear stand with empty slots reads visible again).
+/// whose environment step would light it, and again in the after-pass —
+/// which rides the head of `tick_cushions`, the call the pinned tick
+/// sequence makes immediately after the stand tick, a RETURN on the
+/// stand tick being unweavable — so it never renders as burning either);
+/// the clear stand's invisibility follows its equipment
+/// (`isClearHidden` — the host has the one flag, so an NBT-invisible
+/// clear stand with empty slots reads visible again).
 pub(super) fn tick_fancy_stands(game: &mut Game<'_>, after: bool) {
     for i in 0..game.armor_stands.len() {
         let Some(facts) = stand_facts(game, &game.armor_stands[i]) else {

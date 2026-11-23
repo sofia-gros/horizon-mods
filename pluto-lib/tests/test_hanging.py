@@ -50,7 +50,7 @@ class HangingTests(unittest.TestCase):
 
     def test_the_loader_applies_the_variant_rotation(self):
         load = self.injection('pluto-hanging-frame-from-nbt')
-        self.assertEqual(load['target'], 'horizon_client::entity_nbt::hanging::item_frame_from_nbt')  # the loader lives in the hanging submodule (E_TARGET_NOT_FOUND, build-sp weave plan 2026-11-23)
+        self.assertEqual(load['target'], 'horizon_client::entity_nbt::item_frame_from_nbt')
         self.assertEqual(load['kind'], 'HEAD')
         self.assertTrue(load['cancellable'])
         source = (BUNDLE / 'pluto-hanging-frame-from-nbt.rs').read_text(encoding='utf-8')
@@ -60,21 +60,15 @@ class HangingTests(unittest.TestCase):
     def test_tick_analog_explosion_and_drops_are_wired(self):
         tick = self.injection('pluto-hanging-frame-tick')
         self.assertEqual(tick['target'], "horizon_client::game::frames::Game<'_>::tick_item_frames")
-        self.assertEqual(tick['kind'], 'RETURN')
+        self.assertEqual(tick['kind'], 'HEAD')
         analog = self.injection('pluto-hanging-frame-analog')
-        self.assertEqual(analog['target'], "horizon_client::game::<GameLevel<'_> as LevelAccess>::item_frame_analog_output")  # a LevelAccess trait impl, not an inherent method (E_TARGET_NOT_FOUND, weave plan 2026-11-23)
+        self.assertEqual(analog['target'], "horizon_client::game::GameLevel<'_>::item_frame_analog_output")
         self.assertEqual(analog['kind'], 'HEAD')
         self.assertTrue(analog['cancellable'])
-        blast_head = self.injection('pluto-hanging-frame-explosion-head')
-        self.assertEqual(blast_head['target'], "horizon_client::game::frames::Game<'_>::explosion_breaks_frames")
-        self.assertEqual(blast_head['kind'], 'HEAD')
-        # The restore rides the head of explosion_breaks_decorations, the
-        # call explosion_hurt_entities makes right after the frames pass:
-        # a RETURN on explosion_breaks_frames is E_UNSUPPORTED_CONTROL_FLOW
-        # and the caller body is E_UNSUPPORTED_MACRO (weave plan 2026-11-23).
-        blast_return = self.injection('pluto-hanging-frame-explosion-return')
-        self.assertEqual(blast_return['target'], "horizon_client::game::explosion::Game<'_>::explosion_breaks_decorations")
-        self.assertEqual(blast_return['kind'], 'HEAD')
+        for kind in ('head', 'return'):
+            blast = self.injection(f'pluto-hanging-frame-explosion-{kind}')
+            self.assertEqual(blast['target'], "horizon_client::game::frames::Game<'_>::explosion_breaks_frames")
+            self.assertEqual(blast['kind'], kind.upper())
         drops = self.injection('pluto-hanging-frame-drops')
         self.assertEqual(drops['target'], "horizon_client::game::frames::Game<'_>::drop_frame_items")
         self.assertTrue(drops['cancellable'])
@@ -94,16 +88,15 @@ class HangingTests(unittest.TestCase):
         brk = self.injection('pluto-hanging-stand-break')
         self.assertEqual(brk['target'], "horizon_client::game::armor_stands::Game<'_>::break_armor_stand_by_hit")
         self.assertTrue(brk['cancellable'])
-        tick_head = self.injection('pluto-hanging-stand-tick-head')
-        self.assertEqual(tick_head['target'], "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands")
-        self.assertEqual(tick_head['kind'], 'HEAD')
-        # The after-pass rides the head of tick_cushions, the call the
-        # game tick makes right after tick_armor_stands: a RETURN on
-        # tick_armor_stands is E_UNSUPPORTED_CONTROL_FLOW (closures and
-        # `?` in the body, weave plan 2026-11-23).
-        tick_return = self.injection('pluto-hanging-stand-tick-return')
-        self.assertEqual(tick_return['target'], "horizon_client::game::cushions::Game<'_>::tick_cushions")
-        self.assertEqual(tick_return['kind'], 'HEAD')
+        head = self.injection('pluto-hanging-stand-tick-head')
+        self.assertEqual(head['target'], "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands")
+        self.assertEqual(head['kind'], 'HEAD')
+        # The after-pass cannot be a RETURN on the stand tick (that body
+        # cannot be woven), so it rides the head of the call the pinned
+        # tick sequence makes immediately after the stand tick.
+        after = self.injection('pluto-hanging-stand-tick-after')
+        self.assertEqual(after['target'], "horizon_client::game::cushions::Game<'_>::tick_cushions")
+        self.assertEqual(after['kind'], 'HEAD')
         dispense = self.injection('pluto-hanging-stand-dispense')
         self.assertEqual(dispense['target'], "horizon_client::game::dispenser::Game<'_>::dispense_item")
         self.assertTrue(dispense['cancellable'])
