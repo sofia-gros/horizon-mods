@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (57, 30), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (50, 25), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -220,6 +220,19 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     for bound in ["bulk_quiver", "trick_quiver", "shield_strap", "tool_belt", "share_durability", "shears", "fishing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     assert!(kinds.contains("tconstruct:harvest"), "harvest is still unbound");
     for name in ["bulk_quiver", "trick_quiver", "sliver", "deciduous", "fishing", "shears", "silky_shears", "silky_aoe_shears", "shield_strap", "tool_belt"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    // The sling family binds over the release telling (which now runs with the entity scope
+    // open, so a bonk can search for its target): the knockback, leap and teleport kinds
+    // themselves, and the sling force formula in its plain form (padded's, over $value and
+    // $level). Knockback keeps exactly one unbound module: its own sling force instance,
+    // whose formula variables read the holder's `tconstruct:generic.knockback_multiplier`
+    // attribute, which the host does not have; the target instance is a plain formula and binds.
+    for bound in ["sling_knockback", "sling_leap", "sling_teleport"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["bonking", "flinging", "springing", "warping", "padded"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    assert_eq!(unbound_of("knockback"), ["tconstruct:sling_force"], "knockback's own sling force reads an attribute the host does not have");
+    // Fireball binds with its entity (a derived type over the game's own fireball body), and
+    // tipped binds over the flight profile and the impact application.
+    for bound in ["fireball", "tipped"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["slimeball", "tipped"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
 }
 
 #[test]
