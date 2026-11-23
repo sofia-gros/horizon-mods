@@ -1944,6 +1944,12 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:block_interact");
             out.insert("tconstruct:remove_block");
         }
+        Module::PlaceFire => {
+            out.insert("tconstruct:entity_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:tool_action");
+            out.insert("tconstruct:remove_block");
+        }
         Module::BlockItemProvider { .. } => {
             out.insert("tconstruct:block_item_provider");
         }
@@ -2218,6 +2224,16 @@ mod tests {
         // projectile hooks the launch half binds (fins, enderference).
         let modifier = Modifier::decode(Identifier::parse("tconstruct:fins").unwrap(), &json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]})).unwrap();
         assert_eq!(modifier_hooks(&modifier), BTreeSet::from(["tconstruct:volatile_data", "tconstruct:projectile_launch", "tconstruct:projectile_shot", "tconstruct:projectile_thrown"]));
+    }
+
+    #[test]
+    fn place_fire_module_hooks_are_its_four_default_hooks() {
+        // The module_hooks set must equal the decode guard set in modifier_modules (the census
+        // counts the kind bound only when the two agree).
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::PlaceFire, &mut out);
+        let expected: BTreeSet<&'static str> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].into_iter().collect();
+        assert_eq!(out, expected);
     }
 
     #[test]
