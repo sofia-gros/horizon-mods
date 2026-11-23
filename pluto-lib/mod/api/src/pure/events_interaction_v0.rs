@@ -237,6 +237,10 @@ pub struct BlockBreakContext {
     /// The stack in the player's main hand: before the break for `BEFORE` and `CANCELED`, at the tick that reports it (with the wear the break caused) for `AFTER`.
     /// None for an empty hand.
     pub held: Option<StackData>,
+    /// The equipment the breaker wears or holds in the off hand, as (slot, stack): `feet`, `legs`, `chest`, `head`, then
+    /// `offhand`, as of their last tick, only the pieces carrying custom data. Empty when the game names no player or the
+    /// player is not known. A module that lends the breaking stack its enchantments (a harvest enchantment on armor) reads it.
+    pub equipment: Vec<(String, StackData)>,
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to. The game does it right after the callbacks ran: for
     /// `BEFORE` even when a callback vetoes the break, for `AFTER` once the break is done. `EditStackData` acts on the main hand as it is then.
     pub actions: RefCell<Vec<EntityAction>>,
@@ -255,7 +259,7 @@ pub struct BlockBreakContext {
 impl BlockBreakContext {
     /// A context with only a position, for a game that reports nothing else (and for callbacks that only read `pos`).
     pub fn at(pos: [i32; 3]) -> Self {
-        Self { pos, dimension: String::new(), state: None, player: None, held: None, actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()) }
+        Self { pos, dimension: String::new(), state: None, player: None, held: None, equipment: Vec::new(), actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()) }
     }
 
     /// Takes the block at `pos` with this break (see `extra_breaks`): the block itself, a duplicate and anything past 64 extra
@@ -597,6 +601,7 @@ mod tests {
             state: Some(BlockState { block: super::super::base::Identifier::parse("test:rock").unwrap(), properties: Default::default() }),
             player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }),
             held: Some(StackData { item: "test:pick".into(), count: 1, damage: 4, ..Default::default() }),
+            equipment: Vec::new(),
             actions: RefCell::new(Vec::new()),
             face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()),
         };

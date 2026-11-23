@@ -1,8 +1,9 @@
 //! Connects the modules that hear a block the player's tool breaks to PlutoLib's block-break and loot events: mining capacity (the bar a
 //! break fills or drains, before the break with `run_before` and after it otherwise: BlockHarvestModifierHook), loot to capacity (the loot of
-//! the block, eaten into a bar: ProcessLootModifierHook) and the block-break half of tool usage effects (MobEffectModule.ToolUsage's
-//! afterBlockBreak). The edits land as `EntityAction::EditStackData` on the main hand. An area tool's extra blocks ride the same
-//! before-break callback through `break_extra` (see area_break).
+//! the block, eaten into a bar: ProcessLootModifierHook), the harvest enchantments the breaker's armor lends the breaking stack
+//! (HarvestEnchantmentsModifierHook: merged into the stack before the break, restored after) and the block-break half of tool usage
+//! effects (MobEffectModule.ToolUsage's afterBlockBreak). The edits land as `EntityAction::EditStackData` on the main hand. An area
+//! tool's extra blocks ride the same before-break callback through `break_extra` (see area_break).
 use crate::{break_speed_hook::with_held_tool, common, melting_recipes::{MeltingKind, OreRate}, tool_damage_hook, tool_mining, tool_stack, weapon_effect::Usage, weapon_effect_hook::usage_actions};
 use pluto_lib::{ActionTarget, BlockBreakContext, EntityAction, FluidStack, Identifier, LootTableEvents, Nbt, PlayerBlockBreakEvents, StackData, StackDataEdit, StackSlot, World};
 use std::sync::Mutex;
@@ -63,6 +64,66 @@ fn edit_action(held: &StackData, edits: Vec<StackDataEdit>) -> Option<EntityActi
     (!edits.is_empty()).then(|| EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: held.item.clone(), edits })
 }
 
+/// The enchantments a breaking stack carried before the harvest merge, for one break at a time
+/// (the breaker, the block, the stack's item and data, and its own enchantments): the after-break
+/// callback puts them back, where the original restores them as soon as the drops have rolled —
+/// here the restore waits for the after-break telling, a tick late at most.
+static HARVEST_MERGED: Mutex<Option<(u128, [i32; 3], String, Nbt, std::collections::BTreeMap<String, i32>)>> = Mutex::new(None);
+
+/// HarvestEnchantmentsModifierHook.updateHarvestEnchantments: before the break, the enchantments
+/// the breaker's worn pieces lend (their armor harvest enchantment modules, in the slots they
+/// name) are merged into the breaking stack's own enchantments, so the block's loot roll sees
+/// them. The merge runs only for a modifiable breaking tool, and a piece that is itself a
+/// harvest tool lends nothing (the original's valid-tool test); levels add, and a total of 0 or
+/// less is no enchantment, as the original's merger drops it.
+fn merge_harvest_enchantments(broken: &BlockBreakContext) {
+    let (Some(player), Some(held)) = (broken.player.as_ref(), broken.held.as_ref()) else { return; };
+    if broken.equipment.is_empty() || with_held_tool(held, |_, _| ()).is_err() { return; }
+    let items = common::item_snapshot();
+    let harvest_tag = Identifier::new("tconstruct", "modifiable/harvest").expect("valid id");
+    let mut merged = held.enchantments.clone();
+    let mut lent = false;
+    for (slot, piece) in &broken.equipment {
+        let piece_item = Identifier::parse(&piece.item).ok();
+        if piece_item.as_ref().is_some_and(|item| items.as_ref().is_some_and(|items| items.get_tag(&harvest_tag).is_some_and(|members| members.contains(item)))) { continue; }
+        let Ok(grants) = with_held_tool(piece, |env, stack| tool_stack::armor_harvest_enchantments(&stack.custom_data, env, slot)) else { continue; };
+        for (name, level) in grants {
+            *merged.entry(name).or_insert(0) += level;
+            lent = true;
+        }
+    }
+    if !lent { return; }
+    merged.retain(|_, level| *level > 0);
+    if merged == held.enchantments { return; }
+    let Some(slot) = player.selected_slot() else { return; };
+    let mut stack = held.clone();
+    stack.enchantments = merged;
+    if player.update_stack(slot, &stack) {
+        if let Ok(mut noted) = HARVEST_MERGED.lock() {
+            *noted = Some((player.uuid, broken.pos, held.item.clone(), held.custom_data.clone(), held.enchantments.clone()));
+        }
+    }
+}
+
+/// Puts the breaking stack's own enchantments back after a merge (see HARVEST_MERGED): only the
+/// enchantments change, on the stack as the break left it, and only when the main hand still
+/// holds the tool that was merged.
+fn restore_harvest_enchantments(broken: &BlockBreakContext) {
+    let Some(player) = broken.player.as_ref() else { return; };
+    let taken = HARVEST_MERGED.lock().ok().and_then(|mut noted| {
+        let matches = matches!(&*noted, Some((uuid, pos, _, _, _)) if *uuid == player.uuid && *pos == broken.pos);
+        if matches { noted.take() } else { None }
+    });
+    let Some((_, _, item, custom_data, original)) = taken else { return; };
+    let Some(held) = broken.held.as_ref() else { return; };
+    if held.item != item || held.custom_data != custom_data { return; }
+    let slot = (0..36).find(|slot| player.stack(*slot).is_some_and(|stack| stack.item == item && stack.custom_data == custom_data));
+    let Some(slot) = slot else { return; };
+    let mut stack = held.clone();
+    stack.enchantments = original;
+    player.update_stack(slot, &stack);
+}
+
 /// ToolHarvestLogic.runBlockBreak's area half: when the tool is effective on the block being broken, its
 /// definition's AOE iterator (computed now, before the break, as the original computes it) selects the
 /// extra blocks and the break takes them with it. Box and circle candidates still owe the effectiveness
@@ -107,11 +168,13 @@ pub(crate) fn register() {
         }
         area_break(broken);
         note_melt_effectiveness(broken);
+        merge_harvest_enchantments(broken);
         true
     });
     // finishHarvest (one block harvested) and afterBlockBreak: the capacity modules that run after the break and the effects the tool puts on
     // its holder. The tool is read as the break left it.
     PlayerBlockBreakEvents::AFTER.register(|broken| {
+        restore_harvest_enchantments(broken);
         let Some(held) = broken.held.as_ref() else { return };
         if let Ok(edits) = with_held_tool(held, |env, stack| tool_stack::mining_capacity_edits(&stack.custom_data, env, false)) {
             broken.actions.borrow_mut().extend(edit_action(held, edits));

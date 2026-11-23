@@ -137,7 +137,7 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (56, 29), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    assert_eq!((unbound, kinds.len()), (53, 28), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -190,17 +190,17 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     assert!(unbound_of("revitalizing").is_empty(), "revitalizing is fully bound: the tick reports held tools as it does armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
     // Armor looting is bound: a worn piece's modules add into the looting total the severing flow captures from the killer's hit
-    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments stay unbound: no break
-    // flow reports the breaker's worn equipment or lets a module change the enchantments a block's drops roll with, so the merge
-    // the original performs on the breaking stack before the roll has no consumer here.
+    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments bind with it: the break
+    // context reports the breaker's worn equipment, and the break flow merges the lent enchantments into the breaking stack
+    // before the drops roll and restores them after (block_break_hook), so luck, fortune and silky are fully bound.
     assert!(!kinds.contains("tconstruct:armor_looting"), "armor_looting should be bound");
-    assert!(kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment is still unbound");
+    assert!(!kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment should be bound");
     assert!(unbound_of("fortunate").is_empty(), "fortunate is fully bound");
     assert!(unbound_of("looting").is_empty(), "looting is fully bound");
     assert_eq!(unbound_of("looter"), ["tconstruct:attribute"], "only looter's experience multiplier attribute stays unbound");
-    assert_eq!(unbound_of("luck"), ["tconstruct:armor_harvest_enchantment"], "luck keeps only its armor harvest enchantment unbound");
-    assert_eq!(unbound_of("fortune"), ["tconstruct:armor_harvest_enchantment"]);
-    assert_eq!(unbound_of("silky"), ["tconstruct:armor_harvest_enchantment"]);
+    assert!(unbound_of("luck").is_empty(), "luck is fully bound");
+    assert!(unbound_of("fortune").is_empty(), "fortune is fully bound");
+    assert!(unbound_of("silky").is_empty(), "silky is fully bound");
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
     // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
     // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).

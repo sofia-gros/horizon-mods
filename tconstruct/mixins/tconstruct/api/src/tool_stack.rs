@@ -217,6 +217,12 @@ pub(crate) fn armor_looting(nbt: &NbtCompound, env: &Environment, slot: &str) ->
     with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.armor_looting(entry, facts, slot)).sum())
 }
 
+/// HarvestEnchantmentsModifierHook over one worn piece: the enchantments its modifiers lend the
+/// stack its wearer breaks a block with, while the piece sits in `slot`.
+pub(crate) fn armor_harvest_enchantments(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(String, i32)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.armor_harvest_enchantments(entry, facts, slot)).collect())
+}
+
 /// The tool actions the tool's modifiers perform on a right click, in modifier order.
 pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())

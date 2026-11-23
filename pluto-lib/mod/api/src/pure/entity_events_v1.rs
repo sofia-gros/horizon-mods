@@ -1082,6 +1082,37 @@ pub(crate) fn armor_worn_by(entity: i32) -> Vec<(String, StackData)> {
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
 static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(String, StackData)>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
+/// What each player holds in the off hand, by entity id, with the player's uuid: the hand the armor
+/// memory does not cover, where a harvest enchantment may sit on a shield.
+static OFFHAND: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Option<StackData>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records what the player (`entity`) holds in the off hand; a stack with no custom data is
+/// recorded as none, as the tick that reports it only names stacks carrying some.
+pub(crate) fn remember_offhand(uuid: u128, entity: i32, stack: Option<StackData>) {
+    let Ok(mut hands) = OFFHAND.lock() else { return };
+    hands.insert(entity, (uuid, stack));
+}
+
+/// The equipment of the player `uuid`, as (slot, stack): the armor the armor memory kept for them
+/// (in `feet`, `legs`, `chest`, `head` order), then the off hand it kept, under the name `offhand`.
+/// Only pieces carrying custom data are ever recorded. Empty when the player is not known.
+pub(crate) fn equipment_of(uuid: u128) -> Vec<(String, StackData)> {
+    let mut out = Vec::new();
+    if let Ok(worn) = ARMOR.lock() {
+        for (owner, pieces) in worn.values() {
+            if *owner == uuid { out.extend(pieces.iter().cloned()); }
+        }
+    }
+    if let Ok(hands) = OFFHAND.lock() {
+        for (owner, stack) in hands.values() {
+            if *owner == uuid {
+                if let Some(stack) = stack { out.push(("offhand".to_string(), stack.clone())); }
+            }
+        }
+    }
+    out
+}
+
 /// Records what the player (`entity`) wears; an empty list forgets it.
 pub(crate) fn remember_armor(uuid: u128, entity: i32, armor: Vec<(String, StackData)>) {
     let Ok(mut worn) = ARMOR.lock() else { return };

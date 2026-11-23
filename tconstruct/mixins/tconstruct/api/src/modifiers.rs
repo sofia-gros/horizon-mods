@@ -225,6 +225,10 @@ impl Modifier {
     pub fn armor_looting(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str) -> i32 {
         self.modules.iter().map(|module| module.armor_looting(entry, facts, slot)).sum()
     }
+    /// HarvestEnchantmentsModifierHook over this modifier's modules for a piece worn in `slot`: the enchantments they lend the breaking stack.
+    pub fn armor_harvest_enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str) -> Vec<(String, i32)> {
+        self.modules.iter().filter_map(|module| module.armor_harvest_enchantment(entry, facts, slot)).collect()
+    }
     /// The tool actions this modifier's transform modules perform on a right click.
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
