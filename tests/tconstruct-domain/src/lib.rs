@@ -197,6 +197,8 @@ mod creative_fluids;
 mod convention_tags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/creative.rs"]
 mod creative;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/retextured.rs"]
+mod retextured;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/config.rs"]
 mod config;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/monster_melee.rs"]
