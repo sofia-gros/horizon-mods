@@ -414,7 +414,7 @@ pub(crate) fn overburn_tick(nbt: &mut NbtCompound, env: &Environment, entry: &En
         // Restore rate/10 per interval; the remainder is a chance of one more.
         let mut restore = info.rate / 10;
         let remainder = info.rate % 10;
-        if remainder > 0 && (rolls() * 10.0) as i32 < remainder { restore += 1; }
+        if remainder > 0 && ((rolls() * 10.0) as i32) < remainder { restore += 1; }
         overslime::add_amount(nbt, env, restore);
     }
     *nbt != before
