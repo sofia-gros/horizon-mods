@@ -94,10 +94,16 @@ class HangingTests(unittest.TestCase):
         brk = self.injection('pluto-hanging-stand-break')
         self.assertEqual(brk['target'], "horizon_client::game::armor_stands::Game<'_>::break_armor_stand_by_hit")
         self.assertTrue(brk['cancellable'])
-        for kind in ('head', 'return'):
-            tick = self.injection(f'pluto-hanging-stand-tick-{kind}')
-            self.assertEqual(tick['target'], "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands")
-            self.assertEqual(tick['kind'], kind.upper())
+        tick_head = self.injection('pluto-hanging-stand-tick-head')
+        self.assertEqual(tick_head['target'], "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands")
+        self.assertEqual(tick_head['kind'], 'HEAD')
+        # The after-pass rides the head of tick_cushions, the call the
+        # game tick makes right after tick_armor_stands: a RETURN on
+        # tick_armor_stands is E_UNSUPPORTED_CONTROL_FLOW (closures and
+        # `?` in the body, weave plan 2026-11-23).
+        tick_return = self.injection('pluto-hanging-stand-tick-return')
+        self.assertEqual(tick_return['target'], "horizon_client::game::cushions::Game<'_>::tick_cushions")
+        self.assertEqual(tick_return['kind'], 'HEAD')
         dispense = self.injection('pluto-hanging-stand-dispense')
         self.assertEqual(dispense['target'], "horizon_client::game::dispenser::Game<'_>::dispense_item")
         self.assertTrue(dispense['cancellable'])

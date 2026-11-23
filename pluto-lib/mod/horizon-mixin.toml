@@ -2092,11 +2092,10 @@ bindings = [
 
 [[injection]]
 id = "pluto-hanging-stand-tick-return"
-target = "horizon_client::game::armor_stands::Game<'_>::tick_armor_stands"
-kind = "RETURN"
+target = "horizon_client::game::cushions::Game<'_>::tick_cushions"
+kind = "HEAD"
 helper = "pluto-hanging-stand-tick-return.rs"
 bindings = [
- { name = "value", ty = "Result<()>", value = "$value" },
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
 ]
 
