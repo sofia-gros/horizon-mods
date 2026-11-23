@@ -260,6 +260,8 @@ pub(crate) enum Module {
     ReversePunch { module: Box<crate::punch::ReversePunch> },
     /// DamageOnShootModule: firing the tool hurts its holder.
     DamageOnShoot { module: crate::projectile_modules::DamageOnShoot, condition: Condition },
+    /// SlingForceModule: reshapes a sling's force through its formula (sling_modules).
+    SlingForce { module: crate::sling_modules::SlingForce, condition: Condition },
     /// ExtinguishCampfireModule: a right click that puts out lit campfires.
     CampfireExtinguish { condition: Condition },
     /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
@@ -1057,6 +1059,12 @@ impl Module {
             "tconstruct:damage_on_shoot" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:sling_launch")) => {
                 Self::DamageOnShoot { module: crate::projectile_modules::DamageOnShoot::decode(fields)?, condition: Condition::decode(fields)? }
             }
+            // SlingForceModule: a formula over the force of a sling, filtered on the sling,
+            // the holder and the target (sling_modules).
+            "tconstruct:sling_force" if only("tconstruct:sling_force") => {
+                let Some(module) = crate::sling_modules::SlingForce::decode(fields)? else { return Ok(None); };
+                Self::SlingForce { module, condition: Condition::decode(fields)? }
+            }
             // InfinityModule: the bow ammo half binds on the ammo event; the removal half is run by the remove paths.
             "tconstruct:infinity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:remove")) => {
                 let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
@@ -1151,7 +1159,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1603,6 +1611,13 @@ impl Module {
     pub fn damage_on_shoot(&self, entry: &Entry, facts: &Facts) -> Option<(String, f32)> {
         let Self::DamageOnShoot { module, condition } = self else { return None; };
         if condition.matches(entry, facts) { module.hurt(entry) } else { None }
+    }
+    /// SlingForceModifierHook.modifySlingForce for this module: the force reshaped by its
+    /// formula, or the force unchanged when this is no sling force module or its condition
+    /// or predicates do not match.
+    pub fn sling_force(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, holder: &crate::sling_modules::LivingState, target: &crate::sling_modules::LivingState, sling: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, force: f32, multiplier: f32) -> f32 {
+        let Self::SlingForce { module, condition } = self else { return force; };
+        module.apply(entry, condition.matches(entry, facts), tool, holder, target, sling, in_tag, force, multiplier)
     }
     /// The infinity module, if this is one.
     pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {

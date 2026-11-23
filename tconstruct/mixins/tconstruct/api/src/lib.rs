@@ -55,6 +55,7 @@ mod projectile_modules;
 mod shoot_hook;
 mod flight_hook;
 mod throwing_hook;
+mod sling_modules;
 mod blocking_hook;
 mod walk_hook;
 mod weapon_effect;
