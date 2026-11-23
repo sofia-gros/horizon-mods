@@ -118,7 +118,7 @@ DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_mes
 TRIM_MATERIAL_KEYS = {'asset_name', 'description', 'ingredient', 'item_model_index'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light', 'default_state', 'shapes', 'collision_shapes'}
-MENU_KEYS = {'slots', 'data_slots', 'results'}
+MENU_KEYS = {'slots', 'data_slots', 'results', 'links'}
 ENTITY_TYPE_KEYS = {'template', 'item', 'damage'}
 MOB_EFFECT_KEYS = {'category', 'color'}
 
@@ -634,6 +634,9 @@ def checked_content(root, version):
                     raise ValueError(f'menu declaration needs a slot count and only reviewed keys: {name}')
                 if not all(isinstance(slot, int) and 0 <= slot < item['slots'] for slot in item.get('results', [])):
                     raise ValueError(f'menu result slots must exist: {name}')
+                links = item.get('links')
+                if links is not None and (not isinstance(links, dict) or set(links) - {'from', 'count'} or not isinstance(links.get('from'), int) or not isinstance(links.get('count'), int) or not 0 <= links['from'] or not 1 <= links['count'] or links['from'] + links['count'] > item['slots']):
+                    raise ValueError(f'menu links must name a slot range with an integer from and count: {name}')
                 continue
             if '/entity_type/' in name:
                 if not isinstance(item, dict) or set(item) - ENTITY_TYPE_KEYS or not str(item.get('template', '')).startswith('minecraft:') or not isinstance(item.get('item'), str) or not isinstance(item.get('damage'), (int, float)):

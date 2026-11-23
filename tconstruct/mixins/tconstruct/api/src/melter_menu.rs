@@ -1,10 +1,12 @@
 //! The melter and heater block entities, their windows and slot rules over PlutoLib's public API
 //! (SlimeKnights MelterBlockEntity, HeaterBlockEntity, MelterContainerMenu, SingleItemContainerMenu, MelterScreen and
 //! the GuiMeltingModule/GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The melter menu holds its three melting
-//! slots; the original's fourth slot there is the heater's own and lives in the heater's window — this window frames
-//! the slot (the FUEL_SLOT background) when a heater is below, but the slot itself is not mirrored: a mirrored slot
-//! would hold the heater's fuel in this block entity's inventory, where the burn cycle (which reads the block below)
-//! cannot see it, and PlutoLib's neighbour reach moves items rather than sharing an inventory. The tank is drawn as
+//! slots and, as its fourth slot, the fuel slot of the block below: the original adds it at (151, 32) when the block
+//! below is a fuel tank (`MelterContainerMenu`), and here it is a neighbour-sourced slot — the menu type declares it
+//! under `links` and PlutoLib answers the host's menu-links question with the block below, so the slot shows and edits
+//! the heater's own inventory in place (the burn cycle, which reads the block below, sees every change in the same
+//! step). With no container below, the linked slot holds nothing and takes nothing. This window frames the slot (the
+//! FUEL_SLOT background) when a heater is below, from the same menu-data flag the ticker publishes. The tank is drawn as
 //! the fluid's still texture tiled over a flat fill of its colour (the fill is what shows where the host's atlas
 //! holds no sprite for the texture); clicking it trades the held container with the tank, and its tooltip names the
 //! fluid over the fluid and the capacity over the empty part. The fuel gauge draws the fuel tank below's fluid; its
@@ -240,9 +242,14 @@ fn melter_press(button: &mut MenuButton<'_>) {
 
 pub(crate) fn register() {
     let melter_id = Identifier::new("tconstruct", MELTER).expect("valid melter id");
-    let layout = (0..SLOTS).fold(ScreenLayout::new(176.0, 166.0).with_own_background(), |layout, slot| layout.slot(SLOT_X, SLOT_Y + 18.0 * slot as f32));
+    // The fuel slot follows the melting slots, at the original's (151, 32), backed by the block
+    // below (the heater's own slot 0): the menu type's `links` cover it (see melter.json).
+    let layout = (0..SLOTS).fold(ScreenLayout::new(176.0, 166.0).with_own_background(), |layout, slot| layout.slot(SLOT_X, SLOT_Y + 18.0 * slot as f32))
+        .neighbour_slot(151.0, 32.0, [0, -1, 0]);
     let window = ScreenHandlerType::new(melter_id.clone(), layout)
-        .on_slot_rule(|rule| { rule.max_stack = 1; })
+        // The melting slots hold one item; the fuel slot (the neighbour's own) stacks as its
+        // container allows.
+        .on_slot_rule(|rule| { if rule.slot < SLOTS { rule.max_stack = 1; } })
         .on_draw(|draw| draw_melter(draw.canvas, draw.origin, draw.data, draw.mouse))
         .on_click(|press| melter_click(press.at))
         .on_tooltip(|tip| melter_tooltip(tip.at, tip.data, tip.lines))
@@ -360,8 +367,10 @@ mod tests {
         let heater = BlockEntityTypeRegistry::get("tconstruct:seared_heater").expect("heater registered");
         assert_eq!(heater.id.to_string(), "tconstruct:seared_heater");
         let window = ScreenHandlerRegistry::get("tconstruct:seared_melter").expect("melter window");
-        assert_eq!(window.layout.slots.len(), 3);
+        assert_eq!(window.layout.slots.len(), 4);
         assert_eq!(window.layout.slots[2], Some([22.0, 52.0]));
+        assert_eq!(window.layout.slots[3], Some([151.0, 32.0]), "the fuel slot at the original's place");
+        assert_eq!(window.layout.source(3), pluto_lib::SlotSource::NeighbourBlockEntity([0, -1, 0]), "backed by the block below");
         assert_eq!(ScreenHandlerRegistry::get("tconstruct:seared_heater").unwrap().layout.slots, vec![Some([80.0, 20.0])]);
     }
 }

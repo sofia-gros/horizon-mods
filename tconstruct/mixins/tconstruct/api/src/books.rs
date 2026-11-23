@@ -15,14 +15,16 @@
 //! is open keeps the copy it opened with. The one section condition the original ships (an armor section, shown when its
 //! book armor tag is not empty) is evaluated against the captured item registry when there is one.
 //!
-//! What still differs from the original, and why: Mantle's padding transformer (blank pages so a section starts on a left
-//! page of a two-page spread) has no counterpart in the single-page view — the `mantle:blank` and `mantle:right_padding`
-//! entries of the section files become blank pages where they sit. A file section's own `mantle:index` page becomes a
+//! What still differs from the original, and why: the books open as two-page spreads, and the
+//! `mantle:blank` and `mantle:right_padding` entries of the section files ride as padding
+//! markers that the spread pairing consumes (Mantle's padding transformer, kept in the data
+//! instead of being applied to it), so a section starts on a left page as in the original. A file section's own `mantle:index` page becomes a
 //! listing of the section's pages (the index transformer below); no index page is added to a file section that does not
 //! carry one, and the generated sections lead with their index page, the shape of the original's own first page there.
 //! A generated page's sidebar of display items rides its first page: a material's parts in that material, a tool page's
-//! tool and parts, a fluid page's buckets. A modifier page's sidebar (its recipe's items) is not drawn: the modifier
-//! definitions carry no recipe, and the modifier recipes are not among the snapshots the client holds. A crafting
+//! tool and parts, a fluid page's buckets, a modifier page's recipe items — the modifier recipes are captured at the
+//! same data reload as the crafting recipes, so a modifier page's sidebar draws where that capture ran, and a
+//! modifier with several recipes shows the first of them in the reload's order. A crafting
 //! page's grid fills from the crafting recipes captured at the server's data reload, so it draws in full where that
 //! capture ran (a local world); a reader on a remote server sees the grid the page decoded with, which is empty.
 //! Sort-free tag injections (the armor and staff sections) take their order from the captured registry snapshot, whose
@@ -394,9 +396,11 @@ fn tool_pages(item: &Identifier, json: Option<&Value>) -> Vec<BookPage> {
 }
 
 /// Builds a modifier page's content: the modifier's name as title, the page's text, and its effects under
-/// their header. Without a data file the text is the modifier's own description (ContentModifier's
-/// fallback). None when the modifier does not resolve, the case the original drops in a grouped section.
-fn modifier_pages(modifiers: &crate::modifiers::Registry, id: &Identifier, json: Option<&Value>) -> Option<Vec<BookPage>> {
+/// their header, with the sidebar of its recipe's items (from the modifier recipes captured at the data
+/// reload, as a crafting page's grid fills from its capture). Without a data file the text is the
+/// modifier's own description (ContentModifier's fallback). None when the modifier does not resolve,
+/// the case the original drops in a grouped section.
+fn modifier_pages(modifiers: &crate::modifiers::Registry, id: &Identifier, json: Option<&Value>, data: &GenData) -> Option<Vec<BookPage>> {
     if is_default_modifier(modifiers, id) { return None; }
     let modifier = modifiers.get(id)?;
     let (text, effects) = match json {
@@ -408,7 +412,7 @@ fn modifier_pages(modifiers: &crate::modifiers::Registry, id: &Identifier, json:
         rows.push(BookRow::Header { icon: None, text: tr("book.tconstruct.modifiers.effect") });
         rows.extend(effects.into_iter().map(|effect| book_row(None, format!("● {effect}"), None, None)));
     }
-    Some(paginate("tconstruct:modifier", Some(modifier_name(modifier)), text, rows, Vec::new()))
+    Some(with_sidebar(paginate("tconstruct:modifier", Some(modifier_name(modifier)), text, rows, Vec::new()), modifier_recipe_items(id, data)))
 }
 
 /* The tag injectors (ToolTagInjector / ModifierTagInjector over AbstractTagInjectingTransformer) */
@@ -470,7 +474,7 @@ fn inject(read: &Read<'_>, book: &str, language: &str, key: &str, spec: &LoadSpe
         for id in members {
             let json = generated_json(read, book, language, &spec.path, id);
             let modifier = json.as_ref().and_then(|json| json.get("modifier_id")).and_then(Value::as_str).and_then(|modifier| Identifier::parse(modifier).ok()).unwrap_or_else(|| id.clone());
-            let Some(pages) = modifier_pages(modifiers, &modifier, json.as_ref()) else { continue };
+            let Some(pages) = modifier_pages(modifiers, &modifier, json.as_ref(), data) else { continue };
             injected.push(RawPage {
                 name: Some(page_name(spec, id)),
                 kind: Some("tconstruct:modifier".to_owned()),
@@ -1302,6 +1306,57 @@ fn capture_crafting_recipes(files: &[(Identifier, Value)]) {
     if let Ok(mut held) = book_recipes().write() { *held = captured; }
 }
 
+/// The modifier recipes the modifier pages' sidebars show, captured from the same data reload:
+/// modifier id to its recipe's inputs, each a list of options and a count. A modifier with
+/// several recipes keeps the first in the reload's order.
+static BOOK_MODIFIER_RECIPES: std::sync::OnceLock<std::sync::RwLock<std::collections::HashMap<String, Vec<(Vec<BookIngredient>, u32)>>>> = std::sync::OnceLock::new();
+
+fn book_modifier_recipes() -> &'static std::sync::RwLock<std::collections::HashMap<String, Vec<(Vec<BookIngredient>, u32)>>> {
+    BOOK_MODIFIER_RECIPES.get_or_init(|| std::sync::RwLock::new(std::collections::HashMap::new()))
+}
+
+/// Captures the modifier recipes of a data reload for the modifier pages' sidebars: the four
+/// recipe types whose result is a modifier (a plain or swappable modifier names it directly,
+/// the incremental kinds take a single input instead of a list). An input entry wraps its
+/// ingredient as `{"ingredient": ..., "amount_needed": n}` or stands as the ingredient itself,
+/// the reading the recipe decoders themselves give it.
+fn capture_modifier_recipes(files: &[(Identifier, Value)]) {
+    let mut captured: std::collections::HashMap<String, Vec<(Vec<BookIngredient>, u32)>> = std::collections::HashMap::new();
+    for (_id, value) in files {
+        let Some(kind) = value.get("type").and_then(Value::as_str) else { continue };
+        if !matches!(kind, "tconstruct:modifier" | "tconstruct:swappable_modifier" | "tconstruct:incremental_modifier" | "tconstruct:multilevel_incremental_modifier") { continue; }
+        let Some(modifier) = value.get("result").and_then(|result| match result {
+            Value::String(id) => Some(id.clone()),
+            Value::Object(_) => result.get("name").and_then(Value::as_str).map(str::to_owned),
+            _ => None,
+        }) else { continue };
+        if captured.contains_key(&modifier) { continue; }
+        let entries: Vec<&Value> = match value.get("inputs") {
+            Some(Value::Array(list)) => list.iter().collect(),
+            _ => value.get("input").into_iter().collect(),
+        };
+        let parsed: Vec<(Vec<BookIngredient>, u32)> = entries.iter().map(|entry| {
+            let ingredient = entry.get("ingredient").unwrap_or(entry);
+            let count = entry.get("amount_needed").and_then(Value::as_u64).unwrap_or(1);
+            (book_ingredient(ingredient), u32::try_from(count).unwrap_or(1))
+        }).collect();
+        if !parsed.is_empty() { captured.insert(modifier, parsed); }
+    }
+    if let Ok(mut held) = book_modifier_recipes().write() { *held = captured; }
+}
+
+/// A modifier's sidebar items from the captured recipes: each input's first resolvable option
+/// (a tag resolves to its first member in the item snapshot, as a crafting page's cells do),
+/// at the input's count. Empty when no recipe was captured for the modifier.
+fn modifier_recipe_items(id: &Identifier, data: &GenData) -> Vec<pluto_lib::ItemSlot> {
+    let Ok(held) = book_modifier_recipes().read() else { return Vec::new() };
+    let Some(entries) = held.get(&id.to_string()) else { return Vec::new() };
+    entries.iter().filter_map(|(options, count)| options.iter().filter_map(|option| match option {
+        BookIngredient::Item(item) => Some(pluto_lib::ItemSlot::new(item.clone(), *count)),
+        BookIngredient::Tag(tag) => data.items.as_ref().and_then(|items| items.get_tag(tag)).and_then(|members| members.iter().next()).map(|item| pluto_lib::ItemSlot::new(item.clone(), *count)),
+    }).next()).collect()
+}
+
 /// Fills a decoded crafting page's grid and result from the captured recipes, when the capture
 /// has the page's recipe (tag ingredients resolve to the tag's first member in the item snapshot).
 fn fill_crafting(page: &mut BookPage, data: &GenData) {
@@ -1315,16 +1370,17 @@ fn fill_crafting(page: &mut BookPage, data: &GenData) {
     *result = captured_result.as_ref().map(|(item, count)| pluto_lib::ItemSlot::new(item.clone(), *count));
 }
 
-/// Builds one page entry of a section file: blanks and padding markers become blank pages; a data
-/// file's generated kinds (tool, modifier, the material contents) build their content when their
-/// registry is at hand and ride as their decoded form otherwise; every other kind decodes as before.
-/// A page whose file is in neither the reader's language nor English is left out (Mantle logs and
-/// skips it too).
+/// Builds one page entry of a section file: blanks and padding markers stay padding markers
+/// (PlutoLib's spread pairing consumes them, so a section starts on a left page as Mantle's
+/// padding transformer arranges); a data file's generated kinds (tool, modifier, the material
+/// contents) build their content when their registry is at hand and ride as their decoded form
+/// otherwise; every other kind decodes as before. A page whose file is in neither the reader's
+/// language nor English is left out (Mantle logs and skips it too).
 fn build_raw_page(read: &Read<'_>, book: &str, language: &str, entry: &Value, data: &GenData) -> RawPage {
     let mut raw = RawPage::new(entry);
     let Some(kind) = raw.kind.clone() else { return raw };
     if kind == "mantle:blank" || kind == "mantle:right_padding" {
-        raw.pages.push(BookPage::Text { title: None, text: Vec::new() });
+        raw.pages.push(BookPage::Padding { right: kind == "mantle:right_padding" });
         return raw;
     }
     let Some(path) = raw.data.clone() else { return raw };
@@ -1363,7 +1419,7 @@ fn build_raw_page(read: &Read<'_>, book: &str, language: &str, entry: &Value, da
             match (id, &data.modifiers) {
                 (Some(id), Some(modifiers)) => {
                     raw.content = Some(GenPage::Modifier(id.clone()));
-                    raw.pages = modifier_pages(modifiers, &id, Some(&json)).unwrap_or_else(|| opaque(&kind, &json));
+                    raw.pages = modifier_pages(modifiers, &id, Some(&json), data).unwrap_or_else(|| opaque(&kind, &json));
                 }
                 _ => raw.pages = opaque(&kind, &json),
             }
@@ -1485,10 +1541,11 @@ pub(crate) fn register() {
     ResourceManagerHelper::get(ResourceType::ClientResources)
         .register_reload_listener(Identifier::new("tconstruct", "books").expect("valid listener id"), load_books);
     // The crafting pages' grids come from the crafting recipes themselves, captured at the data
-    // reload; the books rebuild afterwards through the same triggers as the other registries.
+    // reload, and the modifier pages' sidebars from the modifier recipes of the same reload;
+    // the books rebuild afterwards through the same triggers as the other registries.
     let _ = ResourceManagerHelper::get(ResourceType::ServerData).register_json_reload_listener(
         Identifier::new("tconstruct", "book_recipes").expect("valid listener id"), "recipe",
-        |files| { capture_crafting_recipes(files); Ok(()) });
+        |files| { capture_crafting_recipes(files); capture_modifier_recipes(files); Ok(()) });
     // The generated pages come from the registries; when the materials land (a local load or a remote
     // snapshot), the books rebuild with them.
     crate::materials::MATERIALS_LOADED.register(|_| rebuild_books());
@@ -1539,10 +1596,10 @@ mod tests {
         let intro = &book.sections[0];
         assert_eq!(intro.name, "Introduction", "the section list shows the language table's title");
         assert_eq!(intro.icon.as_ref().map(|icon| icon.item().to_string()), Some("tconstruct:pattern".to_owned()));
-        assert_eq!(intro.pages.len(), 3, "two file pages and the blank page");
+        assert_eq!(intro.pages.len(), 3, "two file pages and the blank entry");
         assert_eq!(intro.pages[0].title(), Some("Materials & You"));
         assert_eq!(intro.pages[1].kind(), "mantle:crafting");
-        assert_eq!(intro.pages[2], BookPage::Text { title: None, text: Vec::new() }, "a blank entry is a blank page");
+        assert_eq!(intro.pages[2], BookPage::Padding { right: false }, "a blank entry stays a padding marker for the spread pairing");
         let materials = &book.sections[1];
         assert_eq!(materials.name, "Tier 1 Materials");
         assert_eq!(materials.icon.as_ref().map(|icon| icon.item().to_string()), Some("tconstruct:tool_binding".to_owned()),
@@ -1670,6 +1727,36 @@ mod tests {
         let BookPage::Table { kind, rows, .. } = &section.pages[2] else { panic!("a modifier page is a table") };
         assert_eq!(kind, "tconstruct:modifier");
         assert!(rows.iter().any(|row| matches!(row, BookRow::Entry { label, .. } if label == "● Cuts deeper")), "its effects list, bulleted");
+    }
+
+    #[test]
+    fn modifier_recipe_items_come_from_the_captured_modifier_recipes() {
+        let files: Vec<(Identifier, Value)> = vec![
+            (id("tconstruct:tools/modifiers/sharp"), json!({"type": "tconstruct:modifier",
+                "inputs": [{"item": "minecraft:flint"}, {"ingredient": {"tag": "forge:gems/diamond"}, "amount_needed": 2}],
+                "result": "tconstruct:sharp"})),
+            (id("tconstruct:tools/modifiers/sharp_from_quartz"), json!({"type": "tconstruct:modifier",
+                "inputs": [{"item": "minecraft:quartz"}], "result": "tconstruct:sharp"})),
+            (id("tconstruct:tools/modifiers/haste"), json!({"type": "tconstruct:incremental_modifier",
+                "input": {"item": "minecraft:redstone"}, "result": "tconstruct:haste"})),
+            (id("tconstruct:tools/modifiers/swappable"), json!({"type": "tconstruct:swappable_modifier",
+                "inputs": [{"item": "minecraft:book"}], "result": {"name": "tconstruct:swappable", "value": 1}})),
+            (id("tconstruct:tools/modifiers/not_a_modifier_recipe"), json!({"type": "minecraft:crafting_shaped",
+                "result": "tconstruct:sharp"})),
+        ];
+        capture_modifier_recipes(&files);
+        let data = GenData::default();
+        let sharp = modifier_recipe_items(&id("tconstruct:sharp"), &data);
+        assert_eq!(sharp.len(), 1, "the first recipe for a modifier wins; its tag input resolves to nothing without an item snapshot");
+        assert_eq!(sharp[0].item, id("minecraft:flint"));
+        assert_eq!(sharp[0].count, 1);
+        let haste = modifier_recipe_items(&id("tconstruct:haste"), &data);
+        assert_eq!(haste.len(), 1);
+        assert_eq!(haste[0].item, id("minecraft:redstone"), "an incremental recipe's single input");
+        let swappable = modifier_recipe_items(&id("tconstruct:swappable"), &data);
+        assert_eq!(swappable.len(), 1);
+        assert_eq!(swappable[0].item, id("minecraft:book"), "a swappable recipe's result names its modifier in an object");
+        assert!(modifier_recipe_items(&id("tconstruct:unknown"), &data).is_empty());
     }
 
     #[test]

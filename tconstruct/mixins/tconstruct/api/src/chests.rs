@@ -3,7 +3,9 @@
 //! are scaling chests — 256 slots behind a display size that grows as they fill, one kind of item
 //! per slot (parts: items of `tconstruct:chest_parts`, 8 per slot; casts: items of `tconstruct:casts`,
 //! 4 per slot). Right-clicking a scaling chest with a valid item deposits it (ChestBlock.use with
-//! canInsert); the tinkers chest always opens its window instead (its canInsert is false).
+//! canInsert); the tinkers chest always opens its window instead (its canInsert is false). All
+//! three chests share the one tabbed menu in the original, so their windows carry the
+//! neighbouring tables' tabs (see `tabbed_tables`).
 //!
 //! What does not carry over, and why:
 //! - The one-kind-per-slot rule spans slots; PlutoLib's slot rule sees one stack at a time, so tag
@@ -35,6 +37,11 @@ const TINKERS_SLOTS: usize = 64;
 const ROW_KEY: &str = "row";
 /// The slider: its track's left, top, width and height (right of the grid).
 const SLIDER: (f32, f32, f32, f32) = (154.0, 18.0, 12.0, 144.0);
+/// The icons sheet, as the station windows name it (the tab strip's texture).
+const ICONS: &str = "tconstruct:gui/icons";
+/// The menu-data base of the tabbed tables' words: the chest's own words are 0 (the display
+/// size) and 1 (the scroll row), so the strip's follow at 2 (see `tabbed_tables`).
+const TABBED_AT: usize = 2;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
@@ -165,6 +172,8 @@ fn register_chest(name: &'static str, kind: Kind) {
             Some((0..slots).map(|slot| slot_position(slot, visual, row)).collect())
         })
         .on_draw(|draw| {
+            // The neighbouring tables' tabs above the window (see `tabbed_tables`).
+            crate::tabbed_tables::draw_tabs(draw.canvas, draw.origin, draw.data, TABBED_AT, ICONS);
             let visual = draw.data.first().copied().unwrap_or(0).max(0) as usize;
             if max_row(visual) == 0 { return; }
             let row = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
@@ -175,6 +184,9 @@ fn register_chest(name: &'static str, kind: Kind) {
             draw.canvas.fill([x, draw.origin[1] + top, SLIDER.2, 1.0], 0xFF55_5555);
         })
         .on_click(|press| {
+            if !press.right {
+                if let Some(id) = crate::tabbed_tables::tab_click(press.at, press.data, TABBED_AT) { return Some(id); }
+            }
             let visual = press.data.first().copied().unwrap_or(0).max(0) as usize;
             if press.right || max_row(visual) == 0 { return None; }
             if press.at[0] < SLIDER.0 || press.at[0] >= SLIDER.0 + SLIDER.2 || press.at[1] < SLIDER.1 || press.at[1] >= SLIDER.1 + SLIDER.3 { return None; }
@@ -182,7 +194,13 @@ fn register_chest(name: &'static str, kind: Kind) {
             let (height, top) = handle(visual, row);
             if press.at[1] < top { Some(1) } else if press.at[1] >= top + height { Some(2) } else { None }
         })
+        .on_tooltip(|tip| {
+            if let Some(name) = crate::tabbed_tables::tab_tooltip(tip.at, tip.data, TABBED_AT) {
+                tip.lines.push(name);
+            }
+        })
         .on_button(move |press| {
+            if crate::tabbed_tables::press_tab(press) { return; }
             let visual = visual_size(kind, press.items);
             let row = row_of(press.data);
             let next = match press.id { 1 => row.saturating_sub(ROWS), 2 => (row + ROWS).min(max_row(visual)), _ => return };
@@ -196,6 +214,8 @@ fn register_chest(name: &'static str, kind: Kind) {
             if row_of(tick.data) != row { tick.data.insert(ROW_KEY.to_owned(), Nbt::Int(row as i32)); }
             tick.set_menu_data(0, visual as i32);
             tick.set_menu_data(1, row as i32);
+            // The neighbouring tables' strip (tabs only; a chest shows no side inventory).
+            crate::tabbed_tables::publish(tick, TABBED_AT, false);
         });
     if kind == Kind::Tinkers {
         // TinkersChestBlockItem.updateCustomBlockEntityTag: a chest item carrying a dye colour in its

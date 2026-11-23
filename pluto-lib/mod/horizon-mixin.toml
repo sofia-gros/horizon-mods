@@ -1682,6 +1682,77 @@ kind = "RETURN"
 helper = "dynamic-screen-slots-data-update.rs"
 bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
+# Living-entity previews in mod screens: a screen's draw queues them (it holds only the
+# frame's batch), and the flush after the draw renders them with the game at hand.
+[[module]]
+id = "pluto-living-preview-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_living_preview"
+source = "pluto-living-preview-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-living-preview"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_living_preview"
+source = "pluto-living-preview.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-living-preview-flush"
+target = "horizon_client::game::native_hooks::Game<'_>::native_screen_draw"
+kind = "RETURN"
+helper = "pluto-living-preview-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "batch" }]
+
+# Menu switches a mod's menu button asked for (a tabbed table's tab): the press queues them
+# through the mod API, and the flush at the end of the press applies them with the game at
+# hand, opening the named block's menu for the player whose menu was pressed.
+[[module]]
+id = "pluto-menu-switch-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_menu_switch"
+source = "pluto-menu-switch-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-menu-switch"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_menu_switch"
+source = "pluto-menu-switch.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-menu-switch-flush"
+target = "horizon_client::game::native_hooks::Game<'_>::mod_menu_button"
+kind = "RETURN"
+helper = "pluto-menu-switch-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" }]
+
+# Map faces a mod's HUD drawing asked for (a minimap's map): the draw queues them through
+# the mod API's canvas, and the flush at the end of the HUD's draw renders each from its map
+# texture with the game at hand.
+[[module]]
+id = "pluto-map-face-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_map_face"
+source = "pluto-map-face-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-map-face"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_map_face"
+source = "pluto-map-face.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-map-face-flush"
+target = "horizon_client::game::native_hooks::Game<'_>::native_hud"
+kind = "RETURN"
+helper = "pluto-map-face-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "batch" }]
+
 # Pinned Persistent::worker installs saved structure starts in every dimension.
 # Keep make_streaming native; the former dimension replacement is not attached.
 

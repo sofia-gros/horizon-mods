@@ -50,6 +50,54 @@ pub trait ScreenCanvas {
     fn scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView) {
         let _ = (rect, blocks, view);
     }
+    /// Draws a living entity's preview into `rect` (`[x0, y0, x1, y1]` corner coordinates, as
+    /// [`ScreenCanvas::scene`] takes): the figure [`LivingPreview`] names, wearing or holding
+    /// its item, as the smithing screen draws its preview stand. The default draws nothing: a
+    /// canvas with no living reach (a test's recording canvas, a server) simply skips it.
+    fn living(&mut self, rect: [f32; 4], preview: &LivingPreview) {
+        let _ = (rect, preview);
+    }
+    /// Draws the face of the filled map `stack` carries into `rect` (`[x, y, width, height]`,
+    /// as [`ScreenCanvas::fill`] takes): the map's own colours at the rect's size, as a HUD
+    /// minimap shows them. The map's decorations (player markers, banners) are not drawn.
+    /// The default draws nothing: a canvas with no map reach (a test's recording canvas, a
+    /// server) simply skips it.
+    fn map(&mut self, rect: [f32; 4], stack: &ItemSlot) {
+        let _ = (rect, stack);
+    }
+}
+
+/// A living entity drawn as a screen preview (the station windows' armor stand, wearing the
+/// piece being made): which entity it is, the one item it wears or holds, and how the figure
+/// stands. The host places the item by the item's own equipment slot, exactly as its smithing
+/// screen's preview does — a worn piece on its part of the figure, anything else in the left
+/// hand. Today the host has a renderer for the armor stand only; another `kind` draws nothing.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LivingPreview {
+    /// The entity type drawn, such as `minecraft:armor_stand`.
+    pub kind: Identifier,
+    /// The item the figure wears or holds, if any.
+    pub item: Option<ItemSlot>,
+    /// The figure's turn, in degrees.
+    pub yaw: f32,
+    /// Whether an armor stand figure shows its arms.
+    pub arms: bool,
+    /// Whether an armor stand figure shows its base plate.
+    pub base_plate: bool,
+}
+
+impl LivingPreview {
+    /// An armor stand preview holding or wearing `item`, standing as the smithing screen's
+    /// preview stand stands: turned to 210 degrees, arms shown, no base plate.
+    pub fn armor_stand(item: ItemSlot) -> Self {
+        Self {
+            kind: Identifier::parse("minecraft:armor_stand").expect("valid entity id"),
+            item: Some(item),
+            yaw: 210.0,
+            arms: true,
+            base_plate: false,
+        }
+    }
 }
 
 /// One block of a scene drawn by [`ScreenCanvas::scene`]: its state, where it stands in the scene's own
@@ -101,13 +149,81 @@ impl Default for SceneView {
     }
 }
 
+/// A piece of the opening player's own equipment, as a slot of a window can show it. The station
+/// windows of the original carry the player's armor and offhand slots beside the block's own slots
+/// (`TinkerStationContainerMenu`: "add armor and offhand slots, for convenience").
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum EquipmentSlotKind {
+    /// The head's armor piece.
+    Head,
+    /// The chest's armor piece.
+    Chest,
+    /// The legs' armor piece.
+    Legs,
+    /// The feet's armor piece.
+    Feet,
+    /// The off hand.
+    OffHand,
+}
+
+impl EquipmentSlotKind {
+    /// The host's equipment index of this piece (the entity equipment numbering the host's own
+    /// equipment access reads and writes: feet 100, legs 101, chest 102, head 103, offhand -106).
+    pub fn host_slot(self) -> i32 {
+        match self {
+            Self::Feet => 100,
+            Self::Legs => 101,
+            Self::Chest => 102,
+            Self::Head => 103,
+            Self::OffHand => -106,
+        }
+    }
+}
+
+/// What a container slot of a window is backed by. Most slots are backed by the opened block
+/// entity's own item slots; a slot can instead show a piece of the opening player's equipment
+/// ([`SlotSource::PlayerEquipment`]), a slot of a neighbouring block entity
+/// ([`SlotSource::NeighbourBlockEntity`]) or a slot of the containers the window's menu-links
+/// callback names ([`SlotSource::LinkedContainer`]) — the extra inventories the original's
+/// station and melter windows carry. A neighbour slot rides the host's linked slots (its menu
+/// type declares `links` over the neighbour slots, in order, and PlutoLib answers the host's
+/// menu-links question with the declared neighbours' positions), so what a player takes out of
+/// it leaves the neighbour in the same step. A linked-container slot rides the same linked
+/// slots, but the containers are the callback's answer rather than fixed offsets: the window
+/// declares a range of them and the host fills the range from the named containers in order,
+/// which is how a window shows an inventory it has to look for first (a station's neighbouring
+/// chest, whose side varies). An equipment slot is drawn from the opening player's live
+/// equipment; the host's menu model binds container slots to the opened block entity or to
+/// linked block containers only, so an equipment slot takes no clicks yet.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SlotSource {
+    /// The opened block entity's own item slot of the same index.
+    BlockEntity,
+    /// A piece of the opening player's equipment.
+    PlayerEquipment(EquipmentSlotKind),
+    /// A slot of the block entity at this offset from the opened block's position, in slot order
+    /// among the layout's neighbour slots (the host fills the menu type's linked slots from the
+    /// answered containers in order).
+    NeighbourBlockEntity([i32; 3]),
+    /// A slot of the window's linked range: it shows the containers the window's menu-links
+    /// callback (`ScreenHandlerType::on_menu_links`) names, in order (the host fills the menu
+    /// type's linked slots from the answered containers in order).
+    LinkedContainer,
+}
+
+impl Default for SlotSource {
+    fn default() -> Self {
+        Self::BlockEntity
+    }
+}
+
 /// Where things are in a window, in GUI pixels from its top left (Minecraft: `Slot.x`, `Slot.y`).
 ///
 /// A container slot is in the menu in one of two ways: at the position `slots` gives it, or — when
 /// the matching entry of `dynamic` is set — at the position the window's dynamic-slot callback
 /// (`ScreenHandlerType::on_dynamic_slots`) gives it for the menu's current state. A slot that is
 /// neither is hidden: it is not in the menu at all, on the server either, so no click reaches it and
-/// shift-clicks skip it.
+/// shift-clicks skip it. What backs each slot is the matching entry of `sources`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScreenLayout {
     /// The window's width; vanilla container windows are 176.
@@ -119,6 +235,8 @@ pub struct ScreenLayout {
     /// Which slots the dynamic-slot callback positions: such a slot is in the menu though the static
     /// layout has no position for it. Parallel to `slots`, one entry per slot.
     pub dynamic: Vec<bool>,
+    /// What backs each container slot. Parallel to `slots`, one entry per slot.
+    pub sources: Vec<SlotSource>,
     /// The left column of the player's inventory (vanilla's is 8).
     pub inventory_x: f32,
     /// The top row of the player's inventory (vanilla's is 84; the hotbar is 58 below it).
@@ -132,13 +250,14 @@ pub struct ScreenLayout {
 impl ScreenLayout {
     /// A window `width` by `height` with no slots, the inventory at vanilla's place and the game drawing the panel and the labels.
     pub fn new(width: f32, height: f32) -> Self {
-        Self { width, height, slots: Vec::new(), dynamic: Vec::new(), inventory_x: 8.0, inventory_y: 84.0, own_labels: false, own_background: false }
+        Self { width, height, slots: Vec::new(), dynamic: Vec::new(), sources: Vec::new(), inventory_x: 8.0, inventory_y: 84.0, own_labels: false, own_background: false }
     }
 
     /// The same layout with one more container slot at `(x, y)`.
     pub fn slot(mut self, x: f32, y: f32) -> Self {
         self.slots.push(Some([x, y]));
         self.dynamic.push(false);
+        self.sources.push(SlotSource::BlockEntity);
         self
     }
 
@@ -148,6 +267,7 @@ impl ScreenLayout {
     pub fn hidden_slot(mut self) -> Self {
         self.slots.push(None);
         self.dynamic.push(false);
+        self.sources.push(SlotSource::BlockEntity);
         self
     }
 
@@ -159,7 +279,50 @@ impl ScreenLayout {
     pub fn dynamic_slot(mut self) -> Self {
         self.slots.push(None);
         self.dynamic.push(true);
+        self.sources.push(SlotSource::BlockEntity);
         self
+    }
+
+    /// The same layout with one more slot at `(x, y)` showing a piece of the opening player's own
+    /// equipment (the original station windows' armor and offhand slots). The slot is drawn from
+    /// the player's live equipment; it is not one of the block entity's slots, so the menu's item
+    /// sync and clicks do not reach it (see [`SlotSource::PlayerEquipment`]).
+    pub fn equipment_slot(mut self, x: f32, y: f32, kind: EquipmentSlotKind) -> Self {
+        self.slots.push(Some([x, y]));
+        self.dynamic.push(false);
+        self.sources.push(SlotSource::PlayerEquipment(kind));
+        self
+    }
+
+    /// The same layout with one more slot at `(x, y)` backed by the block entity at `offset` from
+    /// the opened block (a melter's fuel slot, which is the heater below's own slot). The window's
+    /// menu type must declare `links` over its neighbour slots in the order they are declared
+    /// here; the slot then is a real slot of the menu, filled from the neighbour's container (see
+    /// [`SlotSource::NeighbourBlockEntity`]).
+    pub fn neighbour_slot(mut self, x: f32, y: f32, offset: [i32; 3]) -> Self {
+        self.slots.push(Some([x, y]));
+        self.dynamic.push(false);
+        self.sources.push(SlotSource::NeighbourBlockEntity(offset));
+        self
+    }
+
+    /// The same layout with one more slot of the window's linked range: a slot the dynamic-slot
+    /// callback positions, backed by the containers the window's menu-links callback names (see
+    /// [`SlotSource::LinkedContainer`]). The window's menu type must declare `links` over the
+    /// linked slots in the order they are declared here; a linked slot the callback positions
+    /// nowhere (it answers `None` for it) is hidden, which is how a window shows only as many of
+    /// them as the named containers hold.
+    pub fn linked_slot(mut self) -> Self {
+        self.slots.push(None);
+        self.dynamic.push(true);
+        self.sources.push(SlotSource::LinkedContainer);
+        self
+    }
+
+    /// What backs container slot `slot`; the block entity's own slots back any slot the layout
+    /// does not declare a source for.
+    pub fn source(&self, slot: usize) -> SlotSource {
+        self.sources.get(slot).copied().unwrap_or_default()
     }
 
     /// The same layout with the player's inventory at `(x, y)`.
@@ -256,9 +419,19 @@ pub struct MenuButton<'a> {
     pub items: &'a mut Vec<Option<ItemSlot>>,
     /// The stack on the pressing player's cursor, which the callback may change (Minecraft: `Player.containerMenu.getCarried`).
     pub carried: &'a mut Option<ItemSlot>,
+    /// The menu switch the callback asked for with [`MenuButton::open_menu`], if any: read back
+    /// by the transport once the callback returns.
+    pub switch: Option<BlockPos>,
 }
 
 impl MenuButton<'_> {
+    /// Asks for the pressing player's menu to be switched to the menu of the block at `pos`:
+    /// this menu closes and that block's opens in its place, keeping what the player carries
+    /// (the original's `StationTabPacket`, which a tabbed table's tab sends). The switch is
+    /// carried out after the callback returns; asking twice keeps the last position.
+    pub fn open_menu(&mut self, pos: BlockPos) {
+        self.switch = Some(pos);
+    }
     /// Sets menu data slot `index` (0..256); the content menu must declare it. Values are clamped to the signed 16-bit wire range.
     pub fn set_data(&mut self, index: usize, value: i32) {
         super::block_entity_api_v1::set_menu_data(self.data, index, value);
@@ -373,7 +546,16 @@ pub struct ContainerAccept<'a> {
     pub face: Option<Direction>,
 }
 
+/// What the menu-links callback receives: the opened block entity's position. The containers
+/// around it are read through [`Neighbours`](super::neighbour_api_v1::Neighbours), whose scope
+/// the host holds open for the call, exactly as for a ticking block entity.
+pub struct MenuLinkContext {
+    /// The opened block entity's position.
+    pub pos: BlockPos,
+}
+
 type Draw = Arc<dyn Fn(&mut ScreenDraw<'_>) + Send + Sync>;
+type Links = Arc<dyn Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync>;
 type DynamicSlots = Arc<dyn Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync>;
 type Click = Arc<dyn Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync>;
 type Scroll = Arc<dyn Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync>;
@@ -393,6 +575,7 @@ pub struct ScreenHandlerType {
     /// The window's layout.
     pub layout: ScreenLayout,
     draw: Option<Draw>,
+    links: Option<Links>,
     dynamic_slots: Option<DynamicSlots>,
     click: Option<Click>,
     scroll: Option<Scroll>,
@@ -410,12 +593,25 @@ pub struct ScreenHandlerType {
 impl ScreenHandlerType {
     /// A window for `block`'s menu with the given layout and nothing drawn beyond the game's panel.
     pub fn new(block: Identifier, layout: ScreenLayout) -> Self {
-        Self { block, layout, draw: None, dynamic_slots: None, click: None, scroll: None, char_typed: None, key_pressed: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
+        Self { block, layout, draw: None, links: None, dynamic_slots: None, click: None, scroll: None, char_typed: None, key_pressed: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
     }
 
     /// The same window, `draw` drawing it each frame over the panel and the slot frames and under the items (Fabric: `HandledScreen.drawBackground`).
     pub fn on_draw(mut self, draw: impl Fn(&mut ScreenDraw<'_>) + Send + Sync + 'static) -> Self {
         self.draw = Some(Arc::new(draw));
+        self
+    }
+
+    /// The same window, `links` naming the containers its linked slots show: the positions of
+    /// the block entities whose slots fill the menu type's linked range, in fill order. The
+    /// host asks while the menu is open (each tick), with the neighbours' reach open, and
+    /// passes by anything that is not a container, so a named position with nothing behind it
+    /// simply holds nothing. A window with a links callback answers the host's question with
+    /// the callback's positions alone; its declared neighbour slots (if any) are not also
+    /// answered. Use it for a linked inventory the window has to look for (a station's
+    /// neighbouring chest); a fixed neighbour (a melter's heater) is a neighbour slot instead.
+    pub fn on_menu_links(mut self, links: impl Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync + 'static) -> Self {
+        self.links = Some(Arc::new(links));
         self
     }
 
@@ -553,6 +749,38 @@ pub(crate) fn layout(block: &str) -> Option<ScreenLayout> {
     ScreenHandlerRegistry::get(block).map(|h| h.layout)
 }
 
+/// What backs each container slot of a block's window, in slot order; empty if it has no window.
+pub(crate) fn slot_sources(block: &str) -> Vec<SlotSource> {
+    layout(block).map(|layout| (0..layout.slots.len()).map(|slot| layout.source(slot)).collect()).unwrap_or_default()
+}
+
+/// The neighbour offsets a block's window declares, in the order its neighbour slots are
+/// declared: the containers the host's menu-links question is answered with, whose slots fill
+/// the menu type's linked slots in order.
+pub(crate) fn neighbour_sources(block: &str) -> Vec<[i32; 3]> {
+    slot_sources(block)
+        .into_iter()
+        .filter_map(|source| match source {
+            SlotSource::NeighbourBlockEntity(offset) => Some(offset),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Whether a block's window names its linked containers through a callback.
+pub(crate) fn has_menu_links(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|handler| handler.links.is_some())
+}
+
+/// The containers a block's window's linked slots show, as its menu-links callback names them
+/// for the menu open at `pos`; `None` if it has no callback (the declared neighbour slots are
+/// the answer then, see [`neighbour_sources`]).
+pub(crate) fn menu_links(block: &str, pos: BlockPos) -> Option<Vec<BlockPos>> {
+    let handler = ScreenHandlerRegistry::get(block)?;
+    let links = handler.links?;
+    Some(links(&MenuLinkContext { pos }))
+}
+
 /// The state the client last saw synced for each block's open menu: its menu data and its
 /// container items, in slot order. The dynamic-slot refresh (which runs on the client whenever
 /// a menu's slots or data change) records it; the draw and scroll callbacks read it back.
@@ -644,11 +872,14 @@ pub(crate) fn tooltip(block: &str, at: [f32; 2], data: &[i32], lines: &mut Vec<S
     }
 }
 
-/// Runs the button callback of the window of the block entity type whose block is `block`.
-pub(crate) fn press(block: &str, pos: BlockPos, id: i32, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, carried: &mut Option<ItemSlot>) -> bool {
+/// Runs the button callback of the window of the block entity type whose block is `block`;
+/// a menu switch the callback asked for is written to `switch`.
+pub(crate) fn press(block: &str, pos: BlockPos, id: i32, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, carried: &mut Option<ItemSlot>, switch: &mut Option<BlockPos>) -> bool {
     match ScreenHandlerRegistry::get(block).and_then(|h| h.button) {
         Some(button) => {
-            button(&mut MenuButton { pos, id, data, items, carried });
+            let mut press = MenuButton { pos, id, data, items, carried, switch: None };
+            button(&mut press);
+            *switch = press.switch;
             true
         }
         None => false,
@@ -728,6 +959,17 @@ mod tests {
         assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
         let view = SceneView::default();
         assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45.0, 30.0, 16.0));
+    }
+
+    #[test]
+    fn a_canvas_without_a_living_reach_skips_a_living_preview() {
+        let mut canvas = Recorder::default();
+        let preview = LivingPreview::armor_stand(ItemSlot::new(Identifier::parse("minecraft:iron_chestplate").unwrap(), 1));
+        assert_eq!(preview.kind.to_string(), "minecraft:armor_stand");
+        assert_eq!((preview.yaw, preview.arms, preview.base_plate), (210.0, true, false), "the smithing preview stand's stance");
+        // The default living draw is a no-op: nothing is recorded and nothing panics.
+        canvas.living([0.0, 0.0, 50.0, 70.0], &preview);
+        assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
     }
 
     #[test]
@@ -843,12 +1085,14 @@ mod tests {
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
         let mut carried = Some(ItemSlot::new(Identifier::parse("test:fuel").unwrap(), 3));
-        assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried));
+        let mut switch = None;
+        assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried, &mut switch));
+        assert_eq!(switch, None, "the oven button asks for no switch");
         assert_eq!(data.get_int("pressed", 0), 7);
         assert_eq!(data.get("pluto:menu_data"), Some(&Nbt::IntArray(vec![7, 32767])));
         assert_eq!(items.len(), 1);
         assert_eq!(carried, None, "the button took what was on the cursor");
-        assert!(!press("test:none", [0; 3], 1, &mut data, &mut items, &mut carried));
+        assert!(!press("test:none", [0; 3], 1, &mut data, &mut items, &mut carried, &mut switch));
 
         let (mut may, mut max) = (true, 99);
         slot_rules("test:oven", 2, "test:coal", 1, &mut may, &mut max);
@@ -924,7 +1168,7 @@ mod tests {
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
         let mut carried = None;
-        assert!(press("test:tank_button", [0; 3], 1, &mut data, &mut items, &mut carried));
+        assert!(press("test:tank_button", [0; 3], 1, &mut data, &mut items, &mut carried, &mut None));
         let tank = crate::pure::block_entity_api_v1::read_fluid(&data, 0).expect("the button filled the tank");
         assert_eq!((tank.fluid.to_string().as_str(), tank.amount), ("minecraft:water", 250));
     }
@@ -937,5 +1181,54 @@ mod tests {
         ScreenHandlerRegistry::register(ScreenHandlerType::new(Identifier::parse("test:dynamic_layout").unwrap(), declared));
         let layout = layout("test:dynamic_layout").unwrap();
         assert_eq!(layout.dynamic, vec![false, true, false], "the registry hands the declaration back whole");
+    }
+
+    #[test]
+    fn slot_sources_name_what_backs_each_slot_and_neighbours_answer_in_declaration_order() {
+        let declared = ScreenLayout::new(176.0, 184.0)
+            .slot(8.0, 8.0)
+            .equipment_slot(152.0, 20.0, EquipmentSlotKind::Head)
+            .neighbour_slot(151.0, 32.0, [0, -1, 0])
+            .dynamic_slot()
+            .neighbour_slot(24.0, 8.0, [1, 0, 0]);
+        assert_eq!(declared.source(0), SlotSource::BlockEntity);
+        assert_eq!(declared.source(1), SlotSource::PlayerEquipment(EquipmentSlotKind::Head));
+        assert_eq!(declared.source(2), SlotSource::NeighbourBlockEntity([0, -1, 0]));
+        assert_eq!(declared.source(3), SlotSource::BlockEntity, "a dynamic slot is the block entity's own");
+        assert_eq!(declared.source(9), SlotSource::BlockEntity, "an undeclared slot defaults to the block entity");
+        ScreenHandlerRegistry::register(ScreenHandlerType::new(Identifier::parse("test:sourced_layout").unwrap(), declared));
+        assert_eq!(slot_sources("test:sourced_layout").len(), 5);
+        assert_eq!(neighbour_sources("test:sourced_layout"), vec![[0, -1, 0], [1, 0, 0]], "declaration order is the linked slots' fill order");
+        assert_eq!(neighbour_sources("test:none"), Vec::<[i32; 3]>::new());
+        // The host's equipment numbering, as its own equipment access spells it.
+        assert_eq!(
+            [EquipmentSlotKind::Feet, EquipmentSlotKind::Legs, EquipmentSlotKind::Chest, EquipmentSlotKind::Head, EquipmentSlotKind::OffHand].map(|kind| kind.host_slot()),
+            [100, 101, 102, 103, -106],
+        );
+    }
+
+    #[test]
+    fn linked_slots_ride_the_menu_links_callback_and_a_button_can_ask_for_a_switch() {
+        let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).linked_slot().linked_slot();
+        assert_eq!(declared.source(1), SlotSource::LinkedContainer);
+        assert_eq!(declared.source(2), SlotSource::LinkedContainer);
+        assert!(declared.dynamic[1] && declared.dynamic[2], "a linked slot's place is the dynamic callback's to give");
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:linked_window").unwrap(), declared)
+                .on_menu_links(|context| vec![[context.pos[0] + 1, context.pos[1], context.pos[2]]])
+                .on_button(|b| b.open_menu([b.pos[0], b.pos[1] + 1, b.pos[2]])),
+        );
+        assert!(has_menu_links("test:linked_window"));
+        assert!(!has_menu_links("test:none"));
+        assert_eq!(menu_links("test:linked_window", [10, 64, -3]), Some(vec![[11, 64, -3]]));
+        assert_eq!(menu_links("test:none", [0; 3]), None);
+        // Linked slots are not neighbour slots: the declared offsets stay the melter's answer alone.
+        assert_eq!(neighbour_sources("test:linked_window"), Vec::<[i32; 3]>::new());
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut carried = None;
+        let mut switch = None;
+        assert!(press("test:linked_window", [4, 5, 6], 1, &mut data, &mut items, &mut carried, &mut switch));
+        assert_eq!(switch, Some([4, 6, 6]), "the button's switch request reaches the transport");
     }
 }

@@ -1362,13 +1362,16 @@ pub(crate) fn draw_quiver_ammo(nbt: &mut NbtCompound, env: &Environment, vanilla
     None
 }
 
-/// One step of an armor keybind interact (ArmorInteractModifierHook), in the merger's order: the strap and
-/// belt modules of every entry in modifier order first (their module priority is the default), then the
-/// inventory menu modules (InventoryMenuModule.getPriority is 75, so a menu opens only when no strap or
-/// belt module answered the key).
+/// One step of an armor keybind interact (ArmorInteractModifierHook), in the merger's order: the strap,
+/// belt and minimap modules of every entry in modifier order first (their module priority is the
+/// default), then the inventory menu modules (InventoryMenuModule.getPriority is 75, so a menu opens
+/// only when no strap, belt or minimap module answered the key).
 pub(crate) enum InteractPlan {
     Strap { keys: Vec<crate::tool_inventory::MenuKey>, inventory: crate::tool_inventory::ToolInventory },
     Belt { keys: Vec<crate::tool_inventory::MenuKey>, inventory: crate::tool_inventory::ToolInventory },
+    /// MinimapModule: the keybind cycles the minimap inventory's selected map (its own keys are the
+    /// tooltip keys it answers, decided in armor_interact_hook's `interact`).
+    MinimapSelect { inventory: crate::tool_inventory::ToolInventory },
     Menu { key: crate::tool_inventory::MenuKey },
 }
 
@@ -1383,6 +1386,7 @@ pub(crate) fn armor_interact_plan(nbt: &NbtCompound, env: &Environment) -> Vec<I
                 let step = match module {
                     crate::modifier_modules::Module::ShieldStrap { keys } => Some(InteractPlan::Strap { keys: keys.clone(), inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
                     crate::modifier_modules::Module::ToolBelt { keys } => Some(InteractPlan::Belt { keys: keys.clone(), inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
+                    crate::modifier_modules::Module::Minimap => Some(InteractPlan::MinimapSelect { inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
                     _ => None,
                 };
                 if let Some(step) = step { plan.push(step); }

@@ -2,14 +2,15 @@
 //! TinkerControlPacket in the original): pressing the helmet key (default `key.keyboard.z`) or the
 //! leggings key (default `key.keyboard.i`) runs the worn piece's armor-interact modules with the tooltip
 //! key held at the time — a shield strap rotates its inventory through the off hand, a tool belt swaps
-//! its inventory with the main inventory, and an inventory menu module opens the piece's screen.
-//! SlimeKnights (MIT; see LICENSE).
+//! its inventory with the main inventory, a minimap cycles its selected map, and an inventory menu
+//! module opens the piece's screen. SlimeKnights (MIT; see LICENSE).
 //!
 //! What is bound here: the client half in full (the key event, the tooltip key from the held modifier
 //! keys, the packet on the original's keys — the original's keys are rebindable key bindings, which this
 //! host has no mod key bindings for, so the defaults are read directly) and the server logic in full
-//! (`interact`: the merger's order, both swaps, the blacklist rules, the sound conditions), unit-tested
-//! below.
+//! (`interact`: the merger's order, both swaps, the minimap's selection cycle, the blacklist rules, the
+//! sound conditions), unit-tested below. The minimap's selection write-back rides the same walled
+//! surface as the swaps (it changes the worn piece's own data, which no event offers a write for).
 //!
 //! What cannot run yet, with the evidence: executing a swap on the server needs to replace stacks in
 //! places whose item changes — the off hand takes the strap inventory's first stack, hotbar slots take
@@ -29,7 +30,7 @@
 //! (SelfDestructiveModifier.onUnequip). The primed sound plays on the effect's first tick,
 //! where the tick reports the wearer's place.
 use crate::{break_speed_hook::with_held_tool, tool_inventory::{MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
-use pluto_lib::{ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
+use pluto_lib::{ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -96,6 +97,24 @@ fn belt_swap(inventory: &ToolInventory, persistent: &mut NbtCompound, main: &mut
     did_change
 }
 
+/// MinimapModule.startInteract's selection cycle (InventorySelectionModule.selectNext): the selection
+/// moves to the next slot holding a stack, wrapping around the inventory, and the new selection is
+/// written to the persistent data. None when no other slot holds a stack — the selection then stays
+/// where it was, and the module does not answer.
+fn select_next(inventory: &ToolInventory, persistent: &mut NbtCompound) -> Option<usize> {
+    let slots = inventory.slots();
+    if slots == 0 { return None; }
+    let current = persistent.get("tconstruct:minimap_selected").and_then(Nbt::as_i64).unwrap_or(0).max(0) as usize % slots;
+    for step in 1..slots {
+        let next = (current + step) % slots;
+        if inventory.stack(persistent, next).is_some() {
+            persistent.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(next as i32));
+            return Some(next);
+        }
+    }
+    None
+}
+
 /// What an armor interact did, in the original's terms.
 pub(crate) enum Outcome {
     /// No module answered the key (or the piece is not a built Tinkers armor tool).
@@ -104,6 +123,9 @@ pub(crate) enum Outcome {
     Strap { piece: StackData, offhand: Option<ItemSlot>, sound: bool },
     /// A tool belt swapped: the piece, the main inventory's changed slots, and the sound condition.
     Belt { piece: StackData, main: Vec<(usize, Option<ItemSlot>)>, sound: bool },
+    /// A minimap cycled its selection: the piece with the new selection in its data, and the slot now
+    /// selected (MinimapModule.onInventorySelect shows the selection message for it).
+    Select { piece: StackData, selected: usize },
     /// An inventory menu module answered the key: the piece's inventory screen is what would open.
     Menu,
 }
@@ -137,6 +159,15 @@ pub(crate) fn interact(piece: &StackData, key: MenuKey, offhand: Option<ItemSlot
                     let mut piece = piece.clone();
                     piece.custom_data = data;
                     return Outcome::Belt { piece, main: changed, sound };
+                }
+                InteractPlan::MinimapSelect { inventory } if matches!(key, MenuKey::Normal | MenuKey::Control) => {
+                    // MinimapModule.startInteract answers the normal and control tooltip keys.
+                    let selected = tool_stack::with_persistent(&mut data, |persistent| select_next(&inventory, persistent));
+                    if let Some(selected) = selected {
+                        let mut piece = piece.clone();
+                        piece.custom_data = data;
+                        return Outcome::Select { piece, selected };
+                    }
                 }
                 InteractPlan::Menu { key: menu_key } if menu_key.opens_on_keybind(key) => return Outcome::Menu,
                 _ => {}
@@ -313,5 +344,25 @@ mod tests {
         assert_eq!(inventory.stack(&persistent, 1), None, "and its belt slot is untouched");
         assert_eq!(main[2], Some(stack("tconstruct:sword", 1)), "an empty slot takes the belt's stack");
         assert_eq!(inventory.stack(&persistent, 2), None);
+    }
+
+    #[test]
+    fn the_minimap_selection_cycles_to_the_next_stored_map_and_wraps() {
+        let module = Inventory::decode(json!({"slots": {"flat": 3}}).as_object().unwrap()).unwrap().unwrap();
+        let part = Part::new(module, Entry::new(id("tconstruct:minimap"), 1), true, true);
+        let inventory = ToolInventory::new(vec![part]);
+        let mut persistent = NbtCompound::new();
+        inventory.set_stack(&mut persistent, 0, Some(&stack("minecraft:filled_map", 1)));
+        inventory.set_stack(&mut persistent, 2, Some(&stack("minecraft:filled_map", 1)));
+        assert_eq!(select_next(&inventory, &mut persistent), Some(2), "from the first map to the next stored one");
+        assert_eq!(persistent.get("tconstruct:minimap_selected").and_then(Nbt::as_i64), Some(2), "the selection is written");
+        assert_eq!(select_next(&inventory, &mut persistent), Some(0), "and around again");
+        // A single stored map leaves the selection where it is: the module does not answer.
+        let mut single = NbtCompound::new();
+        inventory.set_stack(&mut single, 1, Some(&stack("minecraft:filled_map", 1)));
+        single.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(1));
+        assert_eq!(select_next(&inventory, &mut single), None);
+        // An empty inventory answers nothing either.
+        assert_eq!(select_next(&inventory, &mut NbtCompound::new()), None);
     }
 }

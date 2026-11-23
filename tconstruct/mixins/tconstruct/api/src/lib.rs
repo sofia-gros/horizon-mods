@@ -111,6 +111,7 @@ mod tool_action_hook;
 mod tool_slot;
 mod tool_station;
 mod station_menu;
+mod tabbed_tables;
 mod chests;
 mod crafting_station;
 mod break_speed_hook;

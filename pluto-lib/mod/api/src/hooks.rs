@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
@@ -3203,6 +3203,36 @@ impl ScreenCanvas for HostCanvas<'_> {
             scale: view.scale,
         });
     }
+
+    fn living(&mut self, rect: [f32; 4], preview: &screen_handler_api_v1::LivingPreview) {
+        // The batch a screen draws into has no living-entity reach of its own: the request is
+        // queued with the host module, whose flush at the end of the screen's draw renders it
+        // with the game's own preview path (the smithing screen's stand) while the game, not
+        // just the batch, is at hand.
+        let item = preview.item.as_ref().map(|slot| {
+            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+            write_slot(&mut stack, slot);
+            stack
+        });
+        horizon_client::game::pluto_living_preview::queue(horizon_client::game::pluto_living_preview::QueuedPreview {
+            rect,
+            kind: preview.kind.to_string(),
+            item,
+            yaw: preview.yaw,
+            arms: preview.arms,
+            base_plate: preview.base_plate,
+        });
+    }
+
+    fn map(&mut self, rect: [f32; 4], stack: &ItemSlot) {
+        // As with the living preview, the batch has no map reach of its own: the request is
+        // queued with the host module, whose flush at the end of the HUD's draw renders the
+        // map's face from its texture while the game is at hand. The stack is rebuilt whole,
+        // so the map id it carries in its data reaches the flush with it.
+        let mut native = ItemStack::new(&stack.item.to_string(), stack.count);
+        write_slot(&mut native, stack);
+        horizon_client::game::pluto_map_face::queue(horizon_client::game::pluto_map_face::QueuedMapFace { rect, stack: native });
+    }
 }
 
 fn model_config(file: &NativeConfigFile) -> ModConfig {
@@ -3927,7 +3957,13 @@ impl Hooks for PlutoHooks {
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
         let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(slot_of);
         let before = carried.clone();
-        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried));
+        let mut switch: Option<[i32; 3]> = None;
+        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried, &mut switch));
+        // A menu switch the button asked for (a tabbed table's tab): the game-side module
+        // applies it at the end of this press, where the game is at hand (pluto-menu-switch).
+        if let Some(target) = switch {
+            horizon_client::game::pluto_menu_switch::queue(pos, target);
+        }
         if carried != before {
             *event.carried = carried.filter(|s| s.count > 0).map(|s| {
                 let mut stack = ItemStack::new(&s.item.to_string(), s.count);
@@ -3974,6 +4010,30 @@ impl Hooks for PlutoHooks {
     fn menu_slot_rules(&self, event: &mut MenuSlotRulesEvent<'_>) {
         let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
         screen_handler_api_v1::slot_rules(&block, event.slot, &event.stack.item, event.stack.count, &mut event.may_place, &mut event.max_stack);
+    }
+
+    /// The containers a window's linked slots show: the neighbour block entities its layout
+    /// declares, in declaration order, or — for a window with a menu-links callback — the
+    /// containers the callback names for this menu (it looks for them with the neighbours'
+    /// reach open, as a ticker reads them). The host asks each tick while the menu is open and
+    /// passes by anything that is not a container, so a neighbour slot with nothing behind it
+    /// simply holds nothing and takes nothing.
+    fn menu_links(&self, host: &mut dyn Host, event: &mut MenuLinksEvent<'_>) {
+        let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
+        if screen_handler_api_v1::has_menu_links(&block) {
+            let dimension = host.dimension().to_owned();
+            let handle = HostHandle::new(host);
+            let named = neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension }, || {
+                screen_handler_api_v1::menu_links(&block, event.pos)
+            });
+            if let Some(positions) = named {
+                event.links.extend(positions);
+                return;
+            }
+        }
+        for offset in screen_handler_api_v1::neighbour_sources(&block) {
+            event.links.push([event.pos[0] + offset[0], event.pos[1] + offset[1], event.pos[2] + offset[2]]);
+        }
     }
 
     fn menu_quick_move(&self, _host: &mut dyn Host, event: &mut MenuQuickMoveEvent<'_>) -> Flow {
@@ -4065,6 +4125,29 @@ impl Hooks for PlutoHooks {
     fn screen_draw(&self, host: &dyn Host, event: &mut ScreenDrawEvent<'_>) {
         let mut canvas = HostCanvas { host, batch: &mut *event.batch };
         screen_handler_api_v1::draw(event.block, event.origin, event.data, host.cursor(), &mut canvas);
+        // Equipment-sourced slots are not the block entity's, so the menu's own item sync never
+        // fills them: draw the acting player's worn pieces at their places from the live
+        // equipment, as the HUD draw reads it. (The slots take no clicks — the host's menu
+        // model binds container slots to the block entity or to linked block containers only.)
+        let Some(layout) = screen_handler_api_v1::layout(event.block) else { return };
+        if !layout.sources.iter().any(|source| matches!(source, screen_handler_api_v1::SlotSource::PlayerEquipment(_))) {
+            return;
+        }
+        let Some(player) = host.acting_player() else { return };
+        for (index, source) in layout.sources.iter().enumerate() {
+            let screen_handler_api_v1::SlotSource::PlayerEquipment(kind) = source else { continue };
+            let Some(position) = layout.slots.get(index).copied().flatten() else { continue };
+            let slot = match kind {
+                screen_handler_api_v1::EquipmentSlotKind::Head => EquipmentSlot::Head,
+                screen_handler_api_v1::EquipmentSlotKind::Chest => EquipmentSlot::Chest,
+                screen_handler_api_v1::EquipmentSlotKind::Legs => EquipmentSlot::Legs,
+                screen_handler_api_v1::EquipmentSlotKind::Feet => EquipmentSlot::Feet,
+                screen_handler_api_v1::EquipmentSlotKind::OffHand => EquipmentSlot::OffHand,
+            };
+            if let Some(stack) = host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack)) {
+                canvas.item(&stack, [event.origin[0] + position[0], event.origin[1] + position[1]], 16.0);
+            }
+        }
     }
 
     fn screen_click(&self, _host: &dyn Host, event: &mut ScreenClickEvent<'_>) -> Option<i32> {

@@ -101,6 +101,7 @@
     "api/src/tool_slot.rs",
     "api/src/tool_station.rs",
     "api/src/station_menu.rs",
+    "api/src/tabbed_tables.rs",
     "api/src/station_layouts.rs",
     "api/src/station_layout_order.rs",
     "api/src/crafting_station.rs",

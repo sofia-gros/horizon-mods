@@ -284,6 +284,16 @@ pub enum BookPage {
         /// The page's data (its localized JSON, as NBT).
         data: NbtCompound,
     },
+    /// A padding marker, which draws nothing itself: Mantle's page-list filler that exists only
+    /// to place the pages around it on the right halves of a two-page spread. `mantle:blank`
+    /// (`right` false) takes the next free half of a spread, left or right; `mantle:right_padding`
+    /// (`right` true) must occupy a right half, so a spread whose left is still free closes
+    /// without it. The spread pairing ([`spreads`]) consumes the markers; a book is never
+    /// rendered one marker to a view.
+    Padding {
+        /// Whether the marker must sit on a spread's right half (`mantle:right_padding`).
+        right: bool,
+    },
 }
 
 impl BookPage {
@@ -298,6 +308,7 @@ impl BookPage {
             Self::Table { kind, .. } => kind,
             Self::Structure { .. } => "mantle:structure",
             Self::Opaque { kind, .. } => kind,
+            Self::Padding { right } => if *right { "mantle:right_padding" } else { "mantle:blank" },
         }
     }
 
@@ -306,6 +317,7 @@ impl BookPage {
         match self {
             Self::Text { title, .. } | Self::ImageText { title, .. } | Self::TextImage { title, .. } | Self::Showcase { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } | Self::Structure { title, .. } => title.as_deref(),
             Self::Opaque { data, .. } => data.get("title").and_then(Nbt::as_str),
+            Self::Padding { .. } => None,
         }
     }
 
@@ -356,7 +368,7 @@ impl BookPage {
                 };
                 Ok(Self::Showcase { title, item, tooltip, text: text_list(data.get("text"))? })
             }
-            "mantle:blank" | "mantle:right_padding" => Ok(Self::Text { title: None, text: Vec::new() }),
+            "mantle:blank" | "mantle:right_padding" => Ok(Self::Padding { right: kind == "mantle:right_padding" }),
             "mantle:crafting" => {
                 // A crafting page either names a recipe or spells out a literal grid and result instead; the grid
                 // form references no recipe, so it is kept whole as an opaque page (its title still reads). A page
@@ -607,6 +619,62 @@ impl Book {
     }
 }
 
+/// One two-page spread of a book: the flat page indices on its left and right halves. A half is
+/// `None` when the spread ends the book or a padding marker leaves it blank; a half naming a
+/// [`BookPage::Padding`] page draws blank (a `mantle:blank` page that took the half).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BookSpread {
+    /// The flat index of the left half's page, if any.
+    pub left: Option<usize>,
+    /// The flat index of the right half's page, if any.
+    pub right: Option<usize>,
+}
+
+impl BookSpread {
+    /// Whether this spread is the one a reader of flat page `page` is looking at.
+    pub fn contains(&self, page: usize) -> bool {
+        self.left == Some(page) || self.right == Some(page)
+    }
+
+    /// Whether either half shows a real page (a spread of padding alone shows nothing and is
+    /// not a stop a reader turns to).
+    fn shows_a_page(&self, book: &Book) -> bool {
+        [self.left, self.right].into_iter().flatten().any(|page| book.page(page).is_some_and(|page| !matches!(page, BookPage::Padding { .. })))
+    }
+}
+
+/// Pairs a book's flat pages into the two-page spreads a reader turns through, consuming its
+/// padding markers as Mantle's book layout does: pages fill a spread's left half, then its
+/// right; a `mantle:blank` page takes whichever half comes next (and draws blank there); a
+/// `mantle:right_padding` page must take a right half, so with no left half pending it is
+/// dropped (the next page starts a fresh spread's left, which is all the marker exists to
+/// arrange). Spreads that would show nothing at all — padding alone — are left out.
+pub fn spreads(book: &Book) -> Vec<BookSpread> {
+    let mut paired = Vec::new();
+    let mut left: Option<usize> = None;
+    for page in 0..book.page_count() {
+        let is_right_padding = matches!(book.page(page), Some(BookPage::Padding { right: true }));
+        if is_right_padding {
+            if left.is_some() {
+                paired.push(BookSpread { left, right: Some(page) });
+                left = None;
+            }
+            continue;
+        }
+        if left.is_none() {
+            left = Some(page);
+        } else {
+            paired.push(BookSpread { left, right: Some(page) });
+            left = None;
+        }
+    }
+    if left.is_some() {
+        paired.push(BookSpread { left, right: None });
+    }
+    paired.retain(|spread| spread.shows_a_page(book));
+    paired
+}
+
 #[derive(Default)]
 struct Registry {
     books: BTreeMap<String, Book>,
@@ -687,13 +755,14 @@ impl BookRegistry {
     }
 }
 
-/// Where a reader is in a book: the book and the flat index of the page showing. The host keeps one
-/// while the book screen is open; the turning rules are here so they can be tested without the game.
+/// Where a reader is in a book: the book and the flat index of the page the current spread
+/// starts at (its left half's page). The host keeps one while the book screen is open; the
+/// turning rules are here so they can be tested without the game.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BookView {
     /// The book being read.
     pub book: Identifier,
-    /// The flat index of the page showing.
+    /// The flat index of the current spread's left page.
     pub page: usize,
 }
 
@@ -703,31 +772,55 @@ impl BookView {
         Self { book, page: 0 }
     }
 
-    /// Turns to the next page; false when already on the last.
+    /// The spreads a reader turns through, and the index of the one this view is on (the first
+    /// spread at or after the view's page, so a view left on a consumed padding marker still
+    /// lands on a real spread).
+    fn spread_at(&self, book: &Book) -> (Vec<BookSpread>, usize) {
+        let all = spreads(book);
+        let at = all.iter().position(|spread| spread.contains(self.page)).unwrap_or_else(|| {
+            all.iter().position(|spread| spread.left.is_some_and(|left| left > self.page)).unwrap_or(all.len().saturating_sub(1))
+        });
+        (all, at)
+    }
+
+    /// Turns to the next spread; false when already on the last.
     pub fn next_page(&mut self, book: &Book) -> bool {
-        if self.page + 1 < book.page_count() {
-            self.page += 1;
-            true
-        } else {
-            false
+        let (all, at) = self.spread_at(book);
+        match all.get(at + 1) {
+            Some(spread) => {
+                self.page = spread.left.or(spread.right).unwrap_or(self.page);
+                true
+            }
+            None => false,
         }
     }
 
-    /// Turns to the previous page; false when already on the first.
+    /// Turns to the previous spread; false when already on the first.
     pub fn prev_page(&mut self, book: &Book) -> bool {
-        if self.page > 0 {
-            self.page -= 1;
-            true
-        } else {
-            false
+        let (all, at) = self.spread_at(book);
+        if at == 0 {
+            return false;
+        }
+        match all.get(at - 1) {
+            Some(spread) => {
+                self.page = spread.left.or(spread.right).unwrap_or(self.page);
+                true
+            }
+            None => false,
         }
     }
 
-    /// Jumps to a section's first page; false for a section the book does not have.
+    /// Jumps to the spread a section starts on; false for a section the book does not have.
+    /// (The book's own padding places a section's first page on a left half; should one land on
+    /// a right half anyway, the spread showing it is what opens.)
     pub fn goto_section(&mut self, book: &Book, section: usize) -> bool {
         match book.flat_index(section, 0) {
             Some(page) => {
-                self.page = page;
+                let all = spreads(book);
+                match all.iter().find(|spread| spread.contains(page)) {
+                    Some(spread) => self.page = spread.left.or(spread.right).unwrap_or(page),
+                    None => self.page = page,
+                }
                 true
             }
             None => false,
@@ -810,10 +903,11 @@ fn inside(rect: [f32; 4], at: [f32; 2]) -> bool {
 /// What a click at `at` (GUI pixels, in the same space as `area`) means for the book in `view`.
 pub fn book_click(book: &Book, view: &BookView, area: [f32; 4], at: [f32; 2]) -> BookClick {
     let layout = layout(area, book);
-    if view.page + 1 < book.page_count() && inside(layout.next_arrow, at) {
+    let (all, spread) = view.spread_at(book);
+    if spread + 1 < all.len() && inside(layout.next_arrow, at) {
         return BookClick::NextPage;
     }
-    if view.page > 0 && inside(layout.prev_arrow, at) {
+    if spread > 0 && inside(layout.prev_arrow, at) {
         return BookClick::PrevPage;
     }
     if let Some(rail) = layout.rail {
@@ -917,8 +1011,8 @@ fn draw_text_block(canvas: &mut dyn ScreenCanvas, text: &[BookText], x: f32, mut
     y
 }
 
-/// Draws the page `view` shows of `book` into `area` (the mod screen's panel rect, GUI pixels): the
-/// panel, the section rail, the page's title and content, and the page arrows. The canvas's one text
+/// Draws the spread `view` shows of `book` into `area` (the mod screen's panel rect, GUI pixels): the
+/// panel, the section rail, the two pages of the spread side by side, and the page arrows. The canvas's one text
 /// size means `large_page_titles` cannot scale a title, and a crafting page draws its grid and recipe
 /// id but not the recipe's items (resolving a recipe to its items is the consumer's side of the
 /// screen); both are renderer limits, not data limits — the book keeps everything. A table page's
@@ -960,8 +1054,34 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
     }
     let content = layout.content;
     let bottom = content[1] + content[3] - 16.0;
+    // The spread the view is on, drawn as two pages side by side with a gutter between them.
+    let (all, at) = view.spread_at(book);
+    let Some(spread) = all.get(at) else { return };
+    let half = ((content[2] - SPREAD_GUTTER) / 2.0).max(0.0);
+    if let Some(page) = spread.left.and_then(|index| book.page(index)) {
+        draw_page(&mut *canvas, book, page, view.page, [content[0], content[1], half, content[3]], bottom, appearance);
+    }
+    if let Some(page) = spread.right.and_then(|index| book.page(index)) {
+        draw_page(canvas, book, page, view.page, [content[0] + half + SPREAD_GUTTER, content[1], half, content[3]], bottom, appearance);
+    }
+    let arrow_color = if appearance.arrow_color != 0 { appearance.arrow_color } else { INK };
+    if at > 0 {
+        canvas.text("<", [layout.prev_arrow[0] + 3.0, layout.prev_arrow[1]], arrow_color, false);
+    }
+    if at + 1 < all.len() {
+        canvas.text(">", [layout.next_arrow[0] + 3.0, layout.next_arrow[1]], arrow_color, false);
+    }
+}
+
+/// The gutter between a spread's two pages, in GUI pixels.
+const SPREAD_GUTTER: f32 = 8.0;
+
+/// Draws one page of a spread into its half: `content` is the half's rect and `bottom` the y
+/// its content stops above. `link_key` is the view's page, under which a table page's link
+/// rows are recorded, so a click reads the spread that was drawn whichever half the table
+/// stood on (two table pages in one spread share the record; the right one's rows win).
+fn draw_page(canvas: &mut dyn ScreenCanvas, book: &Book, page: &BookPage, link_key: usize, content: [f32; 4], bottom: f32, appearance: &BookAppearance) {
     let mut y = content[1];
-    let Some(page) = book.page(view.page) else { return };
     if let Some(title) = page.title() {
         let x = if appearance.center_page_titles {
             content[0] + ((content[2] - canvas.text_width(title)) / 2.0).max(0.0)
@@ -1091,7 +1211,7 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
                 y += TABLE_ROW;
             }
             if let Ok(mut recorded) = LINK_ROWS.lock() {
-                *recorded = Some((book.id.clone(), view.page, links));
+                *recorded = Some((book.id.clone(), link_key, links));
             }
             draw_text_block(canvas, text, content[0], y + 2.0, width, bottom, INK);
         }
@@ -1118,13 +1238,9 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
         BookPage::Opaque { kind, .. } => {
             canvas.text(kind, [content[0], y], FADED_INK, false);
         }
-    }
-    let arrow_color = if appearance.arrow_color != 0 { appearance.arrow_color } else { INK };
-    if view.page > 0 {
-        canvas.text("<", [layout.prev_arrow[0] + 3.0, layout.prev_arrow[1]], arrow_color, false);
-    }
-    if view.page + 1 < book.page_count() {
-        canvas.text(">", [layout.next_arrow[0] + 3.0, layout.next_arrow[1]], arrow_color, false);
+        BookPage::Padding { .. } => {
+            // A padding marker that took a half (a `mantle:blank` page) draws nothing there.
+        }
     }
 }
 
@@ -1307,12 +1423,61 @@ mod tests {
         let mut view = BookView::new(book.id.clone());
         assert!(!view.prev_page(&book));
         assert!(view.next_page(&book));
-        assert!(view.next_page(&book));
-        assert!(!view.next_page(&book), "the last page does not turn");
+        assert_eq!(view.page, 2, "a turn moves a whole spread: the first two pages show together");
+        assert!(!view.next_page(&book), "the last spread does not turn");
         assert_eq!(view.section(&book), 1);
         assert!(view.goto_section(&book, 0));
         assert_eq!(view.page, 0);
         assert!(!view.goto_section(&book, 5));
+    }
+
+    #[test]
+    fn spreads_pair_pages_and_consume_the_padding_markers() {
+        let text = |title: &str| BookPage::Text { title: Some(title.into()), text: Vec::new() };
+        let book = Book::new(
+            Identifier::parse("test:spreads").unwrap(),
+            vec![
+                BookSection { name: "One".into(), icon: None, pages: vec![text("a"), BookPage::Padding { right: false }, text("b")] },
+                BookSection { name: "Two".into(), icon: None, pages: vec![BookPage::Padding { right: true }, text("c"), text("d"), BookPage::Padding { right: true }] },
+            ],
+        );
+        // Flat pages: 0 a, 1 blank, 2 b | 3 right_padding, 4 c, 5 d, 6 right_padding.
+        // The blank takes the right half beside a; the first right_padding closes b's spread;
+        // the last one closes d's, and no spread of padding alone survives.
+        assert_eq!(
+            spreads(&book),
+            vec![
+                BookSpread { left: Some(0), right: Some(1) },
+                BookSpread { left: Some(2), right: Some(3) },
+                BookSpread { left: Some(4), right: Some(5) },
+            ],
+        );
+        // A right_padding with no left pending is dropped, not a spread of its own.
+        let book = Book::new(
+            Identifier::parse("test:spreads_lead").unwrap(),
+            vec![BookSection { name: "One".into(), icon: None, pages: vec![BookPage::Padding { right: true }, text("a")] }],
+        );
+        assert_eq!(spreads(&book), vec![BookSpread { left: Some(1), right: None }]);
+        // Turning walks the spreads, and a section jump lands on its spread's left.
+        let mut view = BookView::new(book.id.clone());
+        assert!(!view.next_page(&book));
+        let book = Book::new(
+            Identifier::parse("test:spreads").unwrap(),
+            vec![
+                BookSection { name: "One".into(), icon: None, pages: vec![text("a"), BookPage::Padding { right: false }, text("b")] },
+                BookSection { name: "Two".into(), icon: None, pages: vec![BookPage::Padding { right: true }, text("c"), text("d"), BookPage::Padding { right: true }] },
+            ],
+        );
+        let mut view = BookView::new(book.id.clone());
+        assert!(view.next_page(&book));
+        assert_eq!(view.page, 2);
+        assert!(view.next_page(&book));
+        assert_eq!(view.page, 4);
+        assert!(!view.next_page(&book));
+        assert!(view.prev_page(&book));
+        assert_eq!(view.page, 2);
+        assert!(view.goto_section(&book, 1));
+        assert_eq!(view.page, 2, "section two's first page (flat 3) is a consumed marker; its spread starts at flat 2");
     }
 
     #[test]
@@ -1487,7 +1652,9 @@ mod tests {
         assert!(matches!(text_image, BookPage::TextImage { .. }), "a text_image page decodes as one: {text_image:?}");
         assert_eq!(text_image.kind(), "mantle:text_image");
         let blank = BookPage::from_json("mantle:right_padding", &serde_json::json!({})).unwrap();
-        assert!(matches!(blank, BookPage::Text { title: None, ref text } if text.is_empty()), "padding decodes to a blank page: {blank:?}");
+        assert!(matches!(blank, BookPage::Padding { right: true }), "right padding decodes to a padding marker: {blank:?}");
+        let blank = BookPage::from_json("mantle:blank", &serde_json::json!({})).unwrap();
+        assert!(matches!(blank, BookPage::Padding { right: false }), "a blank decodes to a padding marker: {blank:?}");
     }
 
     #[test]

@@ -182,6 +182,12 @@ pub(crate) enum Module {
     /// ToolBeltModule (ArmorInteractModifierHook): the armor keybind on one of these keys swaps the piece's
     /// inventory with the wearer's main inventory, slot for slot.
     ToolBelt { keys: Vec<crate::tool_inventory::MenuKey> },
+    /// MinimapModule (EquipmentChange/ArmorInteract/InventoryTick hooks): the piece's minimap inventory's
+    /// selected map is the player's current map, which the HUD draws at its configured corner (hud.rs derives
+    /// it from the worn piece directly, so no player-data key is kept), and the armor keybind cycles the
+    /// selection (armor_interact_hook's). The map is not ticked while it is stored: PlutoLib has no map-tick
+    /// verb (see hud.rs).
+    Minimap,
     /// ShareDurabilityModule (ToolDamageModifierHook): wear on this tool also damages it directly by the consume
     /// amount, and charges the shield bar of a random other carried tool by the grant amount per point.
     ShareDurability { shield: Identifier, grant: (i32, i32), consume: (i32, i32) },
@@ -885,6 +891,7 @@ impl Module {
             "tconstruct:trick_quiver" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:general_interact" | "tconstruct:remove")) => Self::TrickQuiver,
             "tconstruct:shield_strap" if only("tconstruct:armor_interact") => Self::ShieldStrap { keys: key_list(fields)? },
             "tconstruct:tool_belt" if only("tconstruct:armor_interact") => Self::ToolBelt { keys: key_list(fields)? },
+            "tconstruct:minimap" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:armor_interact" | "tconstruct:inventory_tick" | "tconstruct:remove")) => Self::Minimap,
             "tconstruct:share_durability" if only("tconstruct:tool_damage") => Self::ShareDurability {
                 shield: identifier(fields, "shield")?,
                 grant: leveling_int_keyed(fields, "grant")?,
@@ -1433,7 +1440,7 @@ impl Module {
                     crate::tool_inventory::add_slots(data, output.volatile_slots(entry));
                 }
             }
-            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
+            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
             Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
@@ -1491,6 +1498,8 @@ impl Module {
             Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
             // TrickQuiverModule.onRemoved forgets the selected slot.
             Self::TrickQuiver => { persistent.remove("tconstruct:trick_quiver_selected"); }
+            // MinimapModule.onRemoved forgets the selected slot.
+            Self::Minimap => { persistent.remove("tconstruct:minimap_selected"); }
             // InfinityModule.onRemoved forgets the stored variant.
             Self::Infinity { module } => { if let Some(key) = module.variant_key(modifier) { persistent.remove(&key); } }
             // DyeModule.onRemoved forgets the dye colour, stored under the modifier's own ID.

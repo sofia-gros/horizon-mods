@@ -22,11 +22,18 @@
 //! - A slot a layout leaves out is hidden here (its item shows in the still-filled row); the
 //!   original keeps it dormant and take-out-able. Switching back to a layout that shows the slot
 //!   reaches its contents again.
-//! - The original's window also carries the player's armor and offhand slots and the neighbouring
-//!   chests as side inventories; a menu here can reach neither the player's equipment slots (the
-//!   host's menu model has none) nor a neighbour's items.
-//! - The armor stand preview does not carry over: the host's scene drawing draws blocks and block
-//!   entities only, never entities, and the stand is an entity.
+//! - The original's window also carries the player's armor and offhand slots. They are declared
+//!   (at the original's places, after the result slot) and drawn from the opening player's live
+//!   equipment, but they take no clicks: the host's menu model binds container slots to the
+//!   opened block entity or to linked block containers only, so swapping a worn piece still
+//!   happens in the inventory window.
+//! - The neighbouring tables' tabs above the window are carried (see `tabbed_tables`): a tab
+//!   switches the open menu to that table. The station family shows no side inventory in the
+//!   original, and none here. A LAN guest's tab press does not switch (see `tabbed_tables`).
+//! - The armor stand preview is drawn through PlutoLib's living preview (the host's own
+//!   screen-preview path for a stand, the smithing screen's), wearing or holding the staged
+//!   result. It stands at the original's anchor; the original turns it with the mouse and
+//!   drops it when the layout list grows past six rows, neither of which is carried here.
 //! - The rename field edits on the client, but the name is never applied to the crafted tool: a
 //!   screen has no channel that carries text to the block entity (menu buttons carry an id alone,
 //!   and a stack's name is not a field a slot carries), where the original's field writes the
@@ -46,7 +53,7 @@ use crate::{
 use std::sync::{Arc, Mutex};
 
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, I18n, Identifier, ItemSlot, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
+    BlockEntityType, BlockEntityTypeRegistry, EquipmentSlotKind, I18n, Identifier, ItemSlot, LivingPreview, MenuAccess, Nbt, NbtCompound, NbtCompoundExt,
     ScreenCanvas, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, SlotAction, SlotClick,
 };
 
@@ -61,6 +68,13 @@ const DATA_TAB: usize = 0;
 const DATA_POSITIONS: usize = 1;
 /// The result slot's fixed position (`LazyResultSlot` sits at (114, 38) in every station window).
 const RESULT_POSITION: (i32, i32) = (114, 38);
+/// The player's own slots the window carries after the result slot, at the original's places
+/// (`TinkerStationContainerMenu`: an armor slot per `ArmorItem.Type` at (152, 20 + ordinal * 18)
+/// — head, chest, legs, feet — and the offhand at (132, 74)). They are equipment-sourced slots:
+/// drawn from the opening player's live equipment, not the block entity's items.
+const EQUIPMENT_POSITIONS: [[f32; 2]; 5] = [[152.0, 20.0], [152.0, 38.0], [152.0, 56.0], [152.0, 74.0], [132.0, 74.0]];
+/// The equipment pieces at `EQUIPMENT_POSITIONS`, in the same order.
+const EQUIPMENT_KINDS: [EquipmentSlotKind; 5] = [EquipmentSlotKind::Head, EquipmentSlotKind::Chest, EquipmentSlotKind::Legs, EquipmentSlotKind::Feet, EquipmentSlotKind::OffHand];
 /// The selected layout's name in the block entity's data; absent is the main layout.
 const SELECTED: &str = "layout";
 /// The window's textures: the station sheet and the shared icon sheet, both 256x256.
@@ -295,13 +309,15 @@ fn draw_icon(canvas: &mut dyn ScreenCanvas, icon: &TabIcon, at: [f32; 2], size: 
 /// face), and the two side info panels. `metal` is the anvils' style; the tinker station's is
 /// wood (the original picks by input count: metal above three).
 #[allow(clippy::too_many_arguments)]
-fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icons_at: usize, filled_at: usize, tabs_at: usize, map_at: usize, dormant_at: usize, name: &str) {
+fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icons_at: usize, filled_at: usize, tabs_at: usize, map_at: usize, dormant_at: usize, tabbed_at: usize, name: &str) {
     let canvas = &mut *draw.canvas;
     let (ox, oy) = (draw.origin[0], draw.origin[1]);
     let data = draw.data;
     let active = data.get(DATA_TAB).copied().unwrap_or(0);
     let active_full = data.get(map_at + active as usize).copied().unwrap_or(0);
     canvas.sprite(TINKER, [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
+    // The neighbouring tables' tabs above the window (see `tabbed_tables`).
+    crate::tabbed_tables::draw_tabs(canvas, [ox, oy], data, tabbed_at, ICONS);
     // The rename field (its text is the client's own; see the header for why it goes no further).
     canvas.sprite(TINKER, [0.0, 244.0, 90.0, 12.0], [ox + TEXT_BOX_AT.0, oy + TEXT_BOX_AT.1, 90.0, 12.0]);
     if !name.is_empty() {
@@ -357,6 +373,14 @@ fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icon
     let ((caption, lines), (caption2, lines2)) = panel_content(draw.items, input_count + 1, active_full as usize);
     draw_info_panel(canvas, [ox + 178.0, oy + 15.0], &caption, &lines);
     draw_info_panel(canvas, [ox + 178.0, oy + 15.0 + PANEL_SIZE.1 + 4.0], &caption2, &lines2);
+    // The armor stand preview left of the window, wearing or holding what the station would
+    // produce (the staged result, else the tool in the tool slot), as the original's screen
+    // draws it (TinkerStationScreen: setupArmorStandPreview(-55, 195, 35); the box's foot
+    // stands at the anchor's y, its head 70 above it).
+    let shown = draw.items.get(input_count + 1).cloned().flatten().or_else(|| draw.items.first().cloned().flatten());
+    if let Some(item) = shown {
+        canvas.living([ox - 55.0, oy + 125.0, ox - 5.0, oy + 195.0], &LivingPreview::armor_stand(item));
+    }
 }
 
 /// An item's display name: its `item.` (or `block.`) translation, else its path as words.
@@ -492,6 +516,8 @@ fn register_station(name: &'static str, input_count: usize) {
     let tabs_at = filled_at + 1;
     let map_at = tabs_at + 1;
     let dormant_at = map_at + TAB_ICONS.len();
+    // The tabbed tables' words (the neighbouring-table strip) follow the still-filled row.
+    let tabbed_at = dormant_at + (input_count + 1) * 2;
     let metal = input_count > 3;
     // The rename field's text: the window's own client-side state, shared by its draw and its
     // text-input callbacks (see the header for why it never leaves the client).
@@ -500,6 +526,11 @@ fn register_station(name: &'static str, input_count: usize) {
     // The tool slot and the inputs are in the menu; the selected layout positions them.
     for _ in 0..input_count + 1 { layout = layout.dynamic_slot(); }
     layout = layout.slot(RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32);
+    // The player's armor and offhand slots follow the result slot, as the original's menu adds
+    // them after it.
+    for (position, kind) in EQUIPMENT_POSITIONS.iter().zip(EQUIPMENT_KINDS) {
+        layout = layout.equipment_slot(position[0], position[1], kind);
+    }
     let draw_field = field.clone();
     let char_field = field.clone();
     let key_field = field.clone();
@@ -509,18 +540,22 @@ fn register_station(name: &'static str, input_count: usize) {
         .on_dynamic_slots(move |state| {
             let main = station_layouts::baked_main(name);
             let fallback: Vec<Option<[f32; 2]>> = main.positions(&main, input_count).into_iter()
-                .map(|position| position.map(|(x, y)| [x as f32, y as f32])).chain([Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32])]).collect();
+                .map(|position| position.map(|(x, y)| [x as f32, y as f32])).chain([Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32])])
+                .chain(EQUIPMENT_POSITIONS.map(Some)).collect();
             if state.data.len() < DATA_POSITIONS + (input_count + 1) * 2 { return Some(fallback); }
             let mut positions: Vec<Option<[f32; 2]>> = (0..=input_count).map(|slot| {
                 let (x, y) = (state.data[DATA_POSITIONS + slot * 2], state.data[DATA_POSITIONS + slot * 2 + 1]);
                 (x >= 0 && y >= 0).then_some([x as f32, y as f32])
             }).collect();
             positions.push(Some([RESULT_POSITION.0 as f32, RESULT_POSITION.1 as f32]));
+            // The equipment slots never move: the dynamic answer must cover every declared
+            // slot or the whole answer is refused.
+            positions.extend(EQUIPMENT_POSITIONS.map(Some));
             Some(positions)
         })
         .on_draw(move |draw| {
             let name = draw_field.lock().map(|text| text.clone()).unwrap_or_default();
-            draw_station(draw, metal, input_count, icons_at, filled_at, tabs_at, map_at, dormant_at, &name);
+            draw_station(draw, metal, input_count, icons_at, filled_at, tabs_at, map_at, dormant_at, tabbed_at, &name);
         })
         .on_char(move |c| {
             if c.is_control() { return false; }
@@ -541,13 +576,22 @@ fn register_station(name: &'static str, input_count: usize) {
                 _ => false,
             }
         })
-        .on_click(move |press| (!press.right).then(|| tab_at(press.at, press.data, tabs_at, map_at)).flatten())
+        .on_click(move |press| {
+            if press.right { return None; }
+            crate::tabbed_tables::tab_click(press.at, press.data, tabbed_at)
+                .or_else(|| tab_at(press.at, press.data, tabs_at, map_at))
+        })
         .on_tooltip(move |tip| {
+            if let Some(name) = crate::tabbed_tables::tab_tooltip(tip.at, tip.data, tabbed_at) {
+                tip.lines.push(name);
+                return;
+            }
             if let Some(button) = tab_at(tip.at, tip.data, tabs_at, map_at) {
                 tip.lines.push(tab_name((button - MAIN_BUTTON) as usize));
             }
         })
         .on_button(move |press| {
+            if crate::tabbed_tables::press_tab(press) { return; }
             if press.id == MAIN_BUTTON { press.data.remove(SELECTED); return; }
             if let Some(name) = TAB_ORDER.get((press.id - MAIN_BUTTON - 1) as usize) {
                 press.data.insert(SELECTED.to_owned(), Nbt::String(format!("tconstruct:{name}")));
@@ -622,6 +666,9 @@ fn register_station(name: &'static str, input_count: usize) {
                 tick.set_menu_data(dormant_at + slot * 2, x);
                 tick.set_menu_data(dormant_at + slot * 2 + 1, y);
             }
+            // The neighbouring tables' strip (tabs only; the station family has no side
+            // inventory in the original).
+            crate::tabbed_tables::publish(tick, tabbed_at, false);
         }),
     );
 }
