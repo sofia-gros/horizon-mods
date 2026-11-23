@@ -2217,8 +2217,8 @@ target = "horizon_client::game::creatures::Game<'_>::add_projectile"
 kind = "HEAD"
 helper = "pluto-projectile-spawn-head.rs"
 bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
- { name = "projectile", ty = "&mut Projectile", value = "&mut p" }
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "&mut crate::projectiles::Projectile", value = "&mut p" }
 ]
 
 [[injection]]
