@@ -1,27 +1,24 @@
 //! MaxArmorAttributeModule and ArmorLevelModule, from SlimeKnights (MIT; see LICENSE). A max armor attribute gives the wearer an attribute
 //! value worked from the LARGEST level of its modifier among the worn pieces, never a sum; an armor level adds up the level of its modifier
-//! over the worn pieces under a key other modules read. Only a vanilla attribute with the `addition` operation is honored (the host can
-//! only move a player's base value, which is exact for an addition); a held tool (`held_tag`) is not counted, as the player tick lists
+//! over the worn pieces under a key other modules read. A vanilla attribute is honored only with the `addition` operation (the host can
+//! only move a player's base value, which is exact for an addition); an attribute a mod declared with PlutoLib's attribute registry
+//! (attribute_api_v1) is honored under any operation, because the port works its value out from the claim itself (see
+//! [`strongest_custom`]) rather than moving a base value. A held tool (`held_tag`) is not counted, as the player tick lists
 //! worn armor only. Both skip a broken piece unless `allow_broken`. A golden attribute, whose amount is a leveling value computed over
 //! how many of the wearer's armor pieces have gold, binds on the same terms (see [`GoldenAttribute`]).
-//! The shipped forms that stay unbound fail on one of those two limits, each named by the module that carries it: a Tinkers
-//! attribute (`tconstruct:player.critical_damage` on dragonborn, `tconstruct:generic.bad_effect_duration_multiplier` on
-//! magic_protection, `tconstruct:player.use_item_speed` on melee_protection, `tconstruct:generic.crouch_damage_multiplier`
-//! on shulking) or a Forge one (`forge:swim_speed` on turtle_shell) does not exist in the host — PlutoLib cannot register
-//! attributes, and their readers (critical hits, effect durations, using an item, crouching into a hit, swimming) are game
-//! systems it does not report; and `multiply_base`/`multiply_total` (magic_protection, shulking, turtle_shell) cannot be
-//! expressed by moving a base value even for a vanilla attribute. Binding them waits on attribute registration.
+//! The shipped forms that stay unbound are the ones naming a Forge attribute (`forge:swim_speed` on turtle_shell), which no mod
+//! declares here.
 use crate::modifier_entries::Entry;
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct MaxArmorAttribute { attribute: String, flat: f32, each: f32, allow_broken: bool }
+pub(crate) struct MaxArmorAttribute { attribute: String, operation: pluto_lib::AttributeOperation, flat: f32, each: f32, allow_broken: bool }
 
 /// One worn piece's claim on an attribute: its level, keyed by the module that makes it so pieces of the same modifier compete.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Candidate { key: String, attribute: String, level: f32, flat: f32, each: f32 }
+pub(crate) struct Candidate { key: String, attribute: String, operation: pluto_lib::AttributeOperation, level: f32, flat: f32, each: f32 }
 
 fn allow_broken(fields: &Map<String, Value>) -> Result<bool, String> {
     match fields.get("allow_broken").filter(|value| !value.is_null()) {
@@ -32,24 +29,31 @@ fn allow_broken(fields: &Map<String, Value>) -> Result<bool, String> {
 }
 
 impl MaxArmorAttribute {
-    /// `None` for an attribute the host lacks (a Tinkers or Forge one) or an operation other than `addition`.
+    /// `None` for an attribute nobody declared and the host lacks (a Forge one), or for a vanilla
+    /// attribute under an operation other than `addition`.
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
         let operation = fields.get("operation").and_then(Value::as_str).ok_or("operation missing")?;
-        let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
-        if operation != "addition" { return Ok(None); }
-        let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+        let Some(operation) = pluto_lib::AttributeOperation::from_name(operation) else { return Ok(None); };
         let number = |key: &str| match fields.get(key).filter(|value| !value.is_null()) {
             None => Ok(0.0),
             Some(value) => value.as_f64().map(|value| value as f32).ok_or_else(|| format!("{key} must be a number")),
         };
-        Ok(Some(Self { attribute: format!("minecraft:{path}"), flat: number("flat")?, each: number("each_level")?, allow_broken: allow_broken(fields)? }))
+        // An attribute a mod declared with PlutoLib binds under any operation: the port works
+        // the value out from the claim (strongest_custom), it does not move a base value.
+        if crate::custom_attributes::is_declared(name) {
+            return Ok(Some(Self { attribute: name.to_owned(), operation, flat: number("flat")?, each: number("each_level")?, allow_broken: allow_broken(fields)? }));
+        }
+        let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
+        if operation != pluto_lib::AttributeOperation::Addition { return Ok(None); }
+        let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+        Ok(Some(Self { attribute: format!("minecraft:{path}"), operation, flat: number("flat")?, each: number("each_level")?, allow_broken: allow_broken(fields)? }))
     }
 
     /// The claim a worn piece makes, when the modifier's conditions hold and the piece is not broken (or the module allows it).
     pub(crate) fn candidate(&self, entry: &Entry, condition: bool, broken: bool) -> Option<Candidate> {
         (condition && (!broken || self.allow_broken)).then(|| Candidate {
-            key: format!("{}/{}", entry.id, self.attribute), attribute: self.attribute.clone(), level: entry.effective_level(), flat: self.flat, each: self.each,
+            key: format!("{}/{}", entry.id, self.attribute), attribute: self.attribute.clone(), operation: self.operation, level: entry.effective_level(), flat: self.flat, each: self.each,
         })
     }
 }
@@ -59,26 +63,33 @@ impl MaxArmorAttribute {
 /// count spans the whole worn equipment, so the claim is worked out by the player tick, which reads the wearer's
 /// armor whole, and it is not scaled by the modifier's own level. The flat part is granted with no gold at all.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct GoldenAttribute { attribute: String, flat: f32, each: f32 }
+pub(crate) struct GoldenAttribute { attribute: String, operation: pluto_lib::AttributeOperation, flat: f32, each: f32 }
 
 impl GoldenAttribute {
-    /// `None` for an attribute the host lacks (a Tinkers or Forge one) or an operation other than `addition`.
+    /// `None` for an attribute nobody declared and the host lacks (a Forge one), or for a vanilla
+    /// attribute under an operation other than `addition`.
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
         let operation = fields.get("operation").and_then(Value::as_str).ok_or("operation missing")?;
-        let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
-        if operation != "addition" { return Ok(None); }
-        let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+        let Some(operation) = pluto_lib::AttributeOperation::from_name(operation) else { return Ok(None); };
         let number = |key: &str| match fields.get(key).filter(|value| !value.is_null()) {
             None => Ok(0.0),
             Some(value) => value.as_f64().map(|value| value as f32).ok_or_else(|| format!("{key} must be a number")),
         };
-        Ok(Some(Self { attribute: format!("minecraft:{path}"), flat: number("flat")?, each: number("each_level")? }))
+        // An attribute a mod declared with PlutoLib binds under any operation, as in
+        // MaxArmorAttribute: its amounts are worked out by golden_custom, not by a base move.
+        if crate::custom_attributes::is_declared(name) {
+            return Ok(Some(Self { attribute: name.to_owned(), operation, flat: number("flat")?, each: number("each_level")? }));
+        }
+        let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
+        if operation != pluto_lib::AttributeOperation::Addition { return Ok(None); }
+        let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+        Ok(Some(Self { attribute: format!("minecraft:{path}"), operation, flat: number("flat")?, each: number("each_level")? }))
     }
 
-    /// The (attribute, amount) a wearer with `total_gold` golden pieces gets, when the module's condition holds.
-    pub(crate) fn amount(&self, condition: bool, total_gold: i32) -> Option<(String, f64)> {
-        condition.then(|| (self.attribute.clone(), f64::from(self.flat + self.each * total_gold as f32)))
+    /// The (attribute, operation, amount) a wearer with `total_gold` golden pieces gets, when the module's condition holds.
+    pub(crate) fn amount(&self, condition: bool, total_gold: i32) -> Option<(String, pluto_lib::AttributeOperation, f64)> {
+        condition.then(|| (self.attribute.clone(), self.operation, f64::from(self.flat + self.each * total_gold as f32)))
     }
 }
 
@@ -98,18 +109,33 @@ pub(crate) fn gold_count(pieces: &[pluto_lib::StackData]) -> i32 {
 /// What the wearer gets for the golden claims of every worn piece, as (attribute, amount) with the amounts of
 /// one attribute added up: a claim is keyed by its modifier, so the same modifier carried by two pieces counts
 /// once (the original keeps one tracker and one attribute modifier per modifier). A zero amount is not applied.
-pub(crate) fn golden_totals(claims: impl IntoIterator<Item = (Identifier, String, f64)>) -> Vec<(String, f64)> {
+/// Claims on an attribute a mod declared with PlutoLib are not here (a base move cannot carry them); they are
+/// worked out by [`golden_custom`].
+pub(crate) fn golden_totals(claims: impl IntoIterator<Item = (Identifier, String, pluto_lib::AttributeOperation, f64)>) -> Vec<(String, f64)> {
     let mut seen: std::collections::BTreeSet<(Identifier, String)> = std::collections::BTreeSet::new();
     let mut totals: BTreeMap<String, f64> = BTreeMap::new();
-    for (modifier, attribute, amount) in claims {
-        if amount == 0.0 || !seen.insert((modifier, attribute.clone())) { continue; }
+    for (modifier, attribute, _, amount) in claims {
+        if amount == 0.0 || crate::custom_attributes::is_declared(&attribute) || !seen.insert((modifier, attribute.clone())) { continue; }
         *totals.entry(attribute).or_insert(0.0) += amount;
     }
     totals.into_iter().collect()
 }
 
+/// The golden claims on declared attributes, as (attribute, operation, amount) with the amounts of one
+/// attribute under one operation added up; the once-per-modifier rule of [`golden_totals`] holds here too.
+pub(crate) fn golden_custom(claims: impl IntoIterator<Item = (Identifier, String, pluto_lib::AttributeOperation, f64)>) -> Vec<(String, pluto_lib::AttributeOperation, f64)> {
+    let mut seen: std::collections::BTreeSet<(Identifier, String)> = std::collections::BTreeSet::new();
+    let mut totals: BTreeMap<(String, pluto_lib::AttributeOperation), f64> = BTreeMap::new();
+    for (modifier, attribute, operation, amount) in claims {
+        if amount == 0.0 || !crate::custom_attributes::is_declared(&attribute) || !seen.insert((modifier, attribute.clone())) { continue; }
+        *totals.entry((attribute, operation)).or_insert(0.0) += amount;
+    }
+    totals.into_iter().map(|((attribute, operation), amount)| (attribute, operation, amount)).collect()
+}
+
 /// What the wearer gets for the claims of every worn piece, as (attribute, amount) with the amounts of one attribute added up: for each
-/// key the largest level counts once. A zero amount is not applied (the original adds no modifier for it).
+/// key the largest level counts once. A zero amount is not applied (the original adds no modifier for it). Claims on an attribute a
+/// mod declared with PlutoLib are not here (a base move cannot carry them); they are worked out by [`strongest_custom`].
 pub(crate) fn strongest(pieces: impl IntoIterator<Item = Candidate>) -> Vec<(String, f64)> {
     let mut best: BTreeMap<String, Candidate> = BTreeMap::new();
     for piece in pieces {
@@ -117,11 +143,29 @@ pub(crate) fn strongest(pieces: impl IntoIterator<Item = Candidate>) -> Vec<(Str
     }
     let mut totals: BTreeMap<String, f64> = BTreeMap::new();
     for piece in best.into_values() {
-        if piece.level <= 0.0 { continue; }
+        if piece.level <= 0.0 || crate::custom_attributes::is_declared(&piece.attribute) { continue; }
         let amount = f64::from(piece.flat + piece.each * piece.level);
         if amount != 0.0 { *totals.entry(piece.attribute).or_insert(0.0) += amount; }
     }
     totals.into_iter().collect()
+}
+
+/// The claims on declared attributes, as (attribute, operation, amount) with the amounts of one attribute under
+/// one operation added up: for each key the largest level counts once, as in [`strongest`], but the claim keeps
+/// its operation, for the port to work the attribute's value out from (custom_attributes).
+pub(crate) fn strongest_custom(pieces: impl IntoIterator<Item = Candidate>) -> Vec<(String, pluto_lib::AttributeOperation, f64)> {
+    let mut best: BTreeMap<String, Candidate> = BTreeMap::new();
+    for piece in pieces {
+        if !crate::custom_attributes::is_declared(&piece.attribute) { continue; }
+        match best.get(&piece.key) { Some(held) if held.level >= piece.level => {} _ => { best.insert(piece.key.clone(), piece); } }
+    }
+    let mut totals: BTreeMap<(String, pluto_lib::AttributeOperation), f64> = BTreeMap::new();
+    for piece in best.into_values() {
+        if piece.level <= 0.0 { continue; }
+        let amount = f64::from(piece.flat + piece.each * piece.level);
+        if amount != 0.0 { *totals.entry((piece.attribute, piece.operation)).or_insert(0.0) += amount; }
+    }
+    totals.into_iter().map(|((attribute, operation), amount)| (attribute, operation, amount)).collect()
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -187,10 +231,22 @@ mod tests {
     }
 
     #[test]
-    fn only_a_vanilla_addition_is_honored() {
+    fn a_vanilla_attribute_binds_only_under_addition_and_a_declared_one_under_any_operation() {
         let decode = |value: Value| MaxArmorAttribute::decode(value.as_object().unwrap()).unwrap();
-        assert!(decode(json!({"attribute":"tconstruct:player.use_item_speed","operation":"addition","each_level":0.05})).is_none());
+        // Melee protection's shipped form: a declared attribute under addition binds now.
+        assert!(decode(json!({"attribute":"tconstruct:player.use_item_speed","operation":"addition","each_level":0.05})).is_some());
+        // Magic protection's shipped form: a declared attribute under multiply_base binds too,
+        // and its claim is worked out by strongest_custom, not by strongest.
+        let magic = decode(json!({"attribute":"tconstruct:generic.bad_effect_duration_multiplier","operation":"multiply_base","each_level":0.05})).unwrap();
+        let claim = magic.candidate(&entry(2), true, false).unwrap();
+        assert!(strongest([claim.clone()]).is_empty(), "a declared attribute is no base addition");
+        let custom = strongest_custom([claim]);
+        assert_eq!(custom.len(), 1, "{custom:?}");
+        assert_eq!(custom[0].0, "tconstruct:generic.bad_effect_duration_multiplier");
+        assert_eq!(custom[0].1, pluto_lib::AttributeOperation::MultiplyBase);
+        assert!((custom[0].2 - 0.1).abs() < 1e-6, "{custom:?}");
         assert!(decode(json!({"attribute":"minecraft:generic.knockback_resistance","operation":"multiply_base","each_level":0.05})).is_none());
+        assert!(decode(json!({"attribute":"forge:swim_speed","operation":"addition","each_level":0.05})).is_none(), "a Forge attribute stays unbound");
     }
 
     #[test]
@@ -219,13 +275,18 @@ mod tests {
     fn golden_counts_flagged_and_vanilla_gold_pieces_and_scales_the_amount_with_the_count() {
         // The shipped gold guard: 4 flat and 4 per golden piece on max health.
         let module = GoldenAttribute::decode(json!({"attribute":"minecraft:generic.max_health","operation":"addition","flat":4.0,"each_level":4.0}).as_object().unwrap()).unwrap().unwrap();
-        assert_eq!(module.amount(true, 0), Some(("minecraft:max_health".to_owned(), 4.0)), "the flat part is granted with no gold at all");
-        assert_eq!(module.amount(true, 3), Some(("minecraft:max_health".to_owned(), 16.0)));
+        assert_eq!(module.amount(true, 0), Some(("minecraft:max_health".to_owned(), pluto_lib::AttributeOperation::Addition, 4.0)), "the flat part is granted with no gold at all");
+        assert_eq!(module.amount(true, 3), Some(("minecraft:max_health".to_owned(), pluto_lib::AttributeOperation::Addition, 16.0)));
         assert_eq!(module.amount(false, 3), None, "a failed condition grants nothing");
         let pieces = [piece("tconstruct:plate_helmet", true), piece("minecraft:golden_chestplate", false), piece("tconstruct:plate_leggings", false), piece("minecraft:iron_boots", false)];
         assert_eq!(gold_count(&pieces), 2, "a flagged built piece and a vanilla gold piece; plain pieces do not count");
-        // Chrysophilite's attribute is Tinkers' own, which the host does not have: it stays unbound.
-        assert!(GoldenAttribute::decode(json!({"attribute":"tconstruct:generic.chrysophilite","operation":"addition","flat":1.0,"each_level":1.0}).as_object().unwrap()).unwrap().is_none());
+        // Chrysophilite's attribute is Tinkers' own, declared with PlutoLib: its golden module
+        // binds now, and its amounts are worked out by golden_custom, not golden_totals.
+        let chrysophilite = GoldenAttribute::decode(json!({"attribute":"tconstruct:generic.chrysophilite","operation":"addition","flat":1.0,"each_level":1.0}).as_object().unwrap()).unwrap().unwrap();
+        let claim = chrysophilite.amount(true, 2).map(|(attribute, operation, amount)| (Identifier::parse("tconstruct:chrysophilite").unwrap(), attribute, operation, amount)).unwrap();
+        assert_eq!(claim.3, 3.0, "1 flat and 1 per golden piece, over two golden pieces");
+        assert!(golden_totals([claim.clone()]).is_empty(), "a declared attribute is no base addition");
+        assert_eq!(golden_custom([claim]), vec![("tconstruct:generic.chrysophilite".to_owned(), pluto_lib::AttributeOperation::Addition, 3.0)]);
         assert!(GoldenAttribute::decode(json!({"attribute":"minecraft:generic.max_health","operation":"multiply_total","flat":4.0,"each_level":4.0}).as_object().unwrap()).unwrap().is_none());
     }
 
@@ -234,10 +295,10 @@ mod tests {
         let guard = Identifier::parse("tconstruct:gold_guard").unwrap();
         let other = Identifier::parse("tconstruct:other").unwrap();
         let claims = vec![
-            (guard.clone(), "minecraft:max_health".to_owned(), 16.0),
-            (guard.clone(), "minecraft:max_health".to_owned(), 16.0),
-            (other.clone(), "minecraft:max_health".to_owned(), 4.0),
-            (other, "minecraft:armor".to_owned(), 0.0),
+            (guard.clone(), "minecraft:max_health".to_owned(), pluto_lib::AttributeOperation::Addition, 16.0),
+            (guard.clone(), "minecraft:max_health".to_owned(), pluto_lib::AttributeOperation::Addition, 16.0),
+            (other.clone(), "minecraft:max_health".to_owned(), pluto_lib::AttributeOperation::Addition, 4.0),
+            (other, "minecraft:armor".to_owned(), pluto_lib::AttributeOperation::Addition, 0.0),
         ];
         assert_eq!(golden_totals(claims), vec![("minecraft:max_health".to_owned(), 20.0)], "one modifier once, the other adds, a zero is not applied");
     }

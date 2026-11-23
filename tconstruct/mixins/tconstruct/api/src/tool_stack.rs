@@ -297,6 +297,13 @@ pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())
 }
 
+/// The contributions the tool's modifiers make to declared attributes for the stack's `slot`, as
+/// (attribute, operation, amount) in modifier order: the custom attribute modules only, whose amounts
+/// are worked out by the port (custom_attributes) rather than published on the stack.
+pub(crate) fn custom_attribute_amounts(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(String, pluto_lib::AttributeOperation, f64)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.custom_attribute_amount(entry, facts, nbt, slot))).collect())
+}
+
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
 /// priority order (highest first, ties in modifier order), starting from `damage`. `entities` are the attacker and target as PlutoLib
 /// reported them, for the modules that read their health, temperature or effects.
@@ -471,11 +478,11 @@ pub(crate) fn has_golden_modules(nbt: &NbtCompound, env: &Environment) -> bool {
     saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.golden_attribute_modules().next().is_some())
 }
 
-/// The (modifier, attribute, amount) claims a worn armor piece makes through golden attribute modules for a
+/// The (modifier, attribute, operation, amount) claims a worn armor piece makes through golden attribute modules for a
 /// wearer with `total_gold` golden pieces, in modifier order.
-pub(crate) fn golden_amounts(nbt: &NbtCompound, env: &Environment, total_gold: i32) -> Vec<(Identifier, String, f64)> {
+pub(crate) fn golden_amounts(nbt: &NbtCompound, env: &Environment, total_gold: i32) -> Vec<(Identifier, String, pluto_lib::AttributeOperation, f64)> {
     with_tool_facts(nbt, env, |saved, facts| {
-        saved.iter().flat_map(|(entry, modifier)| modifier.golden_attribute_modules().filter_map(move |module| module.golden_amount(entry, facts, total_gold).map(|(attribute, amount)| (entry.id.clone(), attribute, amount))).collect::<Vec<_>>()).collect()
+        saved.iter().flat_map(|(entry, modifier)| modifier.golden_attribute_modules().filter_map(move |module| module.golden_amount(entry, facts, total_gold).map(|(attribute, operation, amount)| (entry.id.clone(), attribute, operation, amount))).collect::<Vec<_>>()).collect()
     })
 }
 

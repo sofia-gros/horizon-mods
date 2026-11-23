@@ -256,6 +256,10 @@ pub(crate) enum Module {
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
+    /// AttributeModule naming an attribute a mod declared with PlutoLib (attribute_api_v1) that the host does not
+    /// have: nothing is published on the stack (the host would not apply it); the port works the value out from
+    /// the module's amounts where the original reads the attribute (custom_attributes).
+    CustomAttribute { attribute: String, operation: pluto_lib::AttributeOperation, formula: StatFormula, slots: Vec<String>, condition: Condition },
     Punch { module: Box<crate::punch::Punch>, condition: Condition },
     ReversePunch { module: Box<crate::punch::ReversePunch> },
     /// DamageOnShootModule: firing the tool hurts its holder.
@@ -966,16 +970,13 @@ impl Module {
                 Self::ClearEffectOnUnequip { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
-                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound. The Tinkers ones
-                // (TinkerAttributes: generic.bouncy, generic.jump_boost, generic.knockback_multiplier, the good and bad effect
-                // duration multipliers, generic.crouch_damage_multiplier, generic.chrysophilite, player.use_item_speed,
-                // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier)
-                // cannot bind yet for two reasons: PlutoLib has no way to register an attribute the game does not have, so a
-                // stack entry naming one would be data nothing applies, and every reader of those attributes in the original
-                // is a Tinkers event handler over a game system PlutoLib does not report (experience gains, jumps and falls,
-                // knockback taken, critical hits, effect applications, using an item, swimming). The two with a reader in
-                // this port are the exceptions above and below: the protection cap is the port's own protection math, and
-                // chrysophilite is worked out in the loot flow itself. Binding the rest waits on attribute registration.
+                // The Tinkers attributes (TinkerAttributes: generic.bouncy, generic.jump_boost, generic.knockback_multiplier, the good and
+                // bad effect duration multipliers, generic.crouch_damage_multiplier, generic.chrysophilite, player.use_item_speed,
+                // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier) bind as
+                // custom attribute modules below, now that PlutoLib can register an attribute the game does not have
+                // (attribute_api_v1): their amounts are not published on the stack but worked out by the port where the
+                // original reads the attribute. The protection cap is the port's own protection math, and a Forge attribute
+                // nobody declared (swim speed) stays unbound.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
                 if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
                     let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
@@ -988,6 +989,16 @@ impl Module {
                     "forge:entity_reach" => "minecraft:entity_interaction_range", "forge:step_height_addition" => "minecraft:step_height",
                     "tconstruct:generic.safe_fall_distance" => "minecraft:safe_fall_distance", other => other,
                 };
+                // An attribute a mod declared with PlutoLib (the twelve of TinkerAttributes, declared in
+                // custom_attributes) binds as a custom attribute module, under any of the three operations.
+                if crate::custom_attributes::is_declared(name) {
+                    let Some(operation) = fields.get("operation").and_then(Value::as_str).and_then(pluto_lib::AttributeOperation::from_name) else { return Ok(None); };
+                    let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
+                    let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                        .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    return Ok(Some(Self::CustomAttribute { attribute: name.to_owned(), operation, formula, slots, condition: Condition::decode(fields)? }));
+                }
                 let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
                 let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
                 let operation = match fields.get("operation").and_then(Value::as_str) {
@@ -1151,7 +1162,7 @@ impl Module {
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1442,8 +1453,8 @@ impl Module {
             _ => None,
         }
     }
-    /// The (attribute, amount) a golden attribute module grants a wearer with `total_gold` golden pieces.
-    pub fn golden_amount(&self, entry: &Entry, facts: &Facts, total_gold: i32) -> Option<(String, f64)> {
+    /// The (attribute, operation, amount) a golden attribute module grants a wearer with `total_gold` golden pieces.
+    pub fn golden_amount(&self, entry: &Entry, facts: &Facts, total_gold: i32) -> Option<(String, pluto_lib::AttributeOperation, f64)> {
         let Self::GoldenAttribute { module, condition } = self else { return None; };
         module.amount(condition.matches(entry, facts), total_gold)
     }
@@ -1767,6 +1778,15 @@ impl Module {
             modifier.insert("slot".into(), Nbt::String(slot.clone()));
             modifier
         }).collect()
+    }
+    /// The contribution this custom attribute module makes for `slot`, as (attribute, operation, amount): the
+    /// same formula evaluation as attribute_entries, without the stack entry (the host has no such attribute to
+    /// publish to). None when the module is not a custom attribute module, the slot is not one of its slots, or
+    /// its condition fails.
+    pub fn custom_attribute_amount(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, slot: &str) -> Option<(String, pluto_lib::AttributeOperation, f64)> {
+        let Self::CustomAttribute { attribute, operation, formula, slots, condition } = self else { return None; };
+        if !slots.iter().any(|wanted| wanted == slot) || !condition.matches(entry, facts) { return None; }
+        Some((attribute.clone(), *operation, f64::from(formula.eval(entry, &crate::mining_speed::ToolView::of(nbt), 0.0, 1.0, 0.0))))
     }
     /// Whether this is a percent melee damage module (None for other modules).
     pub fn melee_percent(&self) -> Option<bool> {
@@ -2385,10 +2405,14 @@ mod tests {
 
     #[test]
     fn golden_attribute_and_lightspeed_bind_in_their_shipped_forms() {
-        // The shipped gold guard (a vanilla attribute, addition) binds; chrysophilite's own attribute does not
-        // exist in the host, so its golden module stays unbound.
+        // The shipped gold guard (a vanilla attribute, addition) binds, and chrysophilite's own
+        // attribute binds now that it is declared with PlutoLib.
         assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"minecraft:generic.max_health","each_level":4.0,"flat":4.0,"operation":"addition"})).is_some());
-        assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"tconstruct:generic.chrysophilite","each_level":1.0,"flat":1.0,"operation":"addition"})).is_none());
+        assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"tconstruct:generic.chrysophilite","each_level":1.0,"flat":1.0,"operation":"addition"})).is_some());
+        // The shipped double jump attribute module binds the same way; a Forge attribute nobody
+        // declared (turtles' grace's swim speed) stays unbound.
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"tconstruct:player.jump_count","each_level":1.0,"operation":"addition","slots":["feet","legs","chest","head"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.25,"operation":"addition","slots":["feet","legs","chest","head"]})).is_none());
         // The shipped lightspeed attribute binds; a foreign hook binding stays unbound.
         assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4})).is_some());
         assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4,"hooks":["tconstruct:melee_hit"]})).is_none());

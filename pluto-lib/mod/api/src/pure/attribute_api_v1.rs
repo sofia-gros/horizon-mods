@@ -23,7 +23,7 @@ use super::base::Identifier;
 /// modifier operations). The order the operations apply in is fixed by [`attribute_value`]:
 /// every addition first, then every multiply-base against the added value, then each
 /// multiply-total in turn.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AttributeOperation {
     /// The amount is added to the value (`addition`).
     Addition,
