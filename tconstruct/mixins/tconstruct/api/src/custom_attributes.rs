@@ -4,8 +4,8 @@
 //! The original registers twelve attributes of its own and reads them in its event handlers.
 //! Here each is declared with its original default and range, the equipment, tool and effect
 //! contributions to it are collected from the stacks an entity wears and holds, and the value
-//! is worked out with PlutoLib's arithmetic. A player's values are recomputed on their tick
-//! and kept by entity id for the flows that read them: the mining speed multiplier in the
+//! is worked out with PlutoLib's arithmetic. A player's values are recomputed on their tick,
+//! and a mob's on its mob tick, and kept by entity id for the flows that read them: the mining speed multiplier in the
 //! break-speed hook, the knockback multiplier on the knockback event, the crouch damage
 //! multiplier in the melee hook, the bouncy value in the fall handler (`crate::bounce`), and
 //! the effect duration multipliers where the hit hooks put
@@ -27,7 +27,7 @@
 //! self-destructing's movement speed) cannot be expressed by moving a base value and are not
 //! applied. SlimeKnights (MIT; see LICENSE).
 use crate::{break_speed_hook::with_held_tool, max_armor, tool_stack};
-use pluto_lib::{AttributeContribution, AttributeOperation, AttributeRegistry, Identifier, ServerLivingEntityEvents, ServerPlayer, StackData};
+use pluto_lib::{AttributeContribution, AttributeOperation, AttributeRegistry, Identifier, ServerEntityEvents, ServerLivingEntityEvents, ServerPlayer, StackData};
 use std::{collections::BTreeMap, sync::Mutex};
 
 pub(crate) const BOUNCY: &str = "tconstruct:generic.bouncy";
@@ -195,16 +195,29 @@ pub(crate) fn scaled_duration(duration: i32, multiplier: f64) -> i32 {
     (f64::from(duration) * multiplier).round().max(1.0) as i32
 }
 
-/// The players' custom attribute values as of their last tick, by entity id: only the values
+/// The entities' custom attribute values as of their last tick, by entity id: only the values
 /// that differ from their default are kept.
 static VALUES: Mutex<BTreeMap<i32, BTreeMap<String, f64>>> = Mutex::new(BTreeMap::new());
 
-/// A player's custom attribute value as of their last tick, or the declared default when the
-/// tick kept none (the reader's entity is not a player the tick covers, or nothing bends the
-/// attribute). 0 for an attribute nobody declared.
+/// An entity's custom attribute value as of its last tick (a player's or a mob's), or the
+/// declared default when the tick kept none (the entity is not one the ticks cover, or
+/// nothing bends the attribute). 0 for an attribute nobody declared.
 pub(crate) fn value(entity: i32, attribute: &str) -> f64 {
     if let Some(stored) = VALUES.lock().ok().and_then(|values| values.get(&entity).and_then(|attributes| attributes.get(attribute).copied())) { return stored; }
     AttributeRegistry::get(attribute).map(|def| def.default).unwrap_or(0.0)
+}
+
+/// Keeps the values the `contributions` work out to for `entity`, as of this tick: only the
+/// values that differ from their default are kept, and an entity nothing bends is forgotten.
+fn store_values(entity: i32, contributions: &BTreeMap<String, Vec<AttributeContribution>>) {
+    let mut stored = BTreeMap::new();
+    for def in AttributeRegistry::registered() {
+        let value = pluto_lib::attribute_value(&def, contributions.get(&def.id.to_string()).map(Vec::as_slice).unwrap_or(&[]));
+        if value != def.default { stored.insert(def.id.to_string(), value); }
+    }
+    if let Ok(mut values) = VALUES.lock() {
+        if stored.is_empty() { values.remove(&entity); } else { values.insert(entity, stored); }
+    }
 }
 
 /// Registers the callbacks. Called once from the product's hooks, after the melee hook (the
@@ -221,15 +234,23 @@ pub(crate) fn register() {
         } else { None };
         let effects: Vec<(String, i32)> = tick.effects.iter().map(|(id, amplifier, _)| (id.clone(), amplifier + 1)).collect();
         let contributions = collect(&tick.armor, &tick.hands, &effects, total_gold);
-        let mut stored = BTreeMap::new();
-        for def in AttributeRegistry::registered() {
-            let value = pluto_lib::attribute_value(&def, contributions.get(&def.id.to_string()).map(Vec::as_slice).unwrap_or(&[]));
-            if value != def.default { stored.insert(def.id.to_string(), value); }
-        }
-        if let Ok(mut values) = VALUES.lock() {
-            if stored.is_empty() { values.remove(&tick.entity); } else { values.insert(tick.entity, stored); }
-        }
+        store_values(tick.entity, &contributions);
         tick.attribute_additions.borrow_mut().extend(vanilla_effect_additions(&effects));
+    });
+    // A mob's values are recomputed on its tick the same way, from the pieces its report
+    // carries: the report lists every piece worn (not only those carrying custom data), so the
+    // golden amounts count the golden pieces among them directly.
+    ServerLivingEntityEvents::MOB_TICK.register(|tick| {
+        let effects: Vec<(String, i32)> = tick.effects.iter().map(|(id, amplifier, _)| (id.clone(), amplifier + 1)).collect();
+        let contributions = collect(&tick.armor, &tick.hands, &effects, golden_total(&tick.armor));
+        store_values(tick.entity, &contributions);
+    });
+    // A mob's kept values go with it when it leaves the world (its entity id is not reused by
+    // the same mob); a player's live for the session.
+    ServerEntityEvents::ENTITY_UNLOAD.register(|info| {
+        if info.kind != "minecraft:player" {
+            if let Ok(mut values) = VALUES.lock() { values.remove(&(info.id as i32)); }
+        }
     });
     // LivingKnockBackEvent: the strength is scaled by the victim's knockback multiplier.
     ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {

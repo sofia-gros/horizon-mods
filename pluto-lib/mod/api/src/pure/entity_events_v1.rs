@@ -227,6 +227,9 @@ pub struct PlayerTick {
     pub spectator: bool,
     /// Whether the player stands in water (the block at their feet holds water).
     pub in_water: bool,
+    /// Whether the player is on a climbable block (`LivingEntity.onClimbable`: the block at their feet is in
+    /// `#minecraft:climbable`, or an open trapdoor over a ladder facing the same way). A spectator never counts.
+    pub on_climbable: bool,
     /// The armor the player wears, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
     pub armor: Vec<(String, StackData)>,
     /// The stacks the player holds, as (slot, stack): `mainhand`, `offhand`, only the pieces carrying custom data.
@@ -246,6 +249,37 @@ pub struct PlayerTick {
     /// The actions to do to the ticking player, as `Attacker`, which callbacks add to; they land at the end of the tick. Only a player the host
     /// can name by entity id is reached (the acting player, or a guest).
     pub actions: RefCell<Vec<EntityAction>>,
+}
+
+/// A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player. The world and
+/// entity scopes are open while it runs, so callbacks may read and change the world around the mob and act on entities.
+#[derive(Clone, Debug)]
+pub struct MobTick {
+    /// The mob's entity id.
+    pub entity: i32,
+    /// The mob's type, such as `minecraft:zombie`.
+    pub kind: String,
+    /// The dimension the mob is in, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The mob's feet position.
+    pub position: [f64; 3],
+    /// The motion the mob moves with, as the game reported it after its tick.
+    pub velocity: [f64; 3],
+    /// Whether the mob stands on the ground.
+    pub on_ground: bool,
+    /// Whether the mob is in water.
+    pub in_water: bool,
+    /// Whether the mob is on a climbable block (`LivingEntity.onClimbable`: the block at its feet is in `#minecraft:climbable`,
+    /// or an open trapdoor over a ladder facing the same way). Kinds that never climb (horses and their kin, ghasts, phantoms)
+    /// always read false.
+    pub on_climbable: bool,
+    /// The armor the mob wears, as (slot, stack): `feet`, `legs`, `chest`, `head`. Unlike a player's tick report this lists
+    /// every piece worn, not only those carrying custom data: a mob's attribute values are worked out from this report alone.
+    pub armor: Vec<(String, StackData)>,
+    /// The stacks the mob holds, as (slot, stack): `mainhand`, `offhand`.
+    pub hands: Vec<(String, StackData)>,
+    /// The effects on the mob, as (effect id, amplifier, ticks left).
+    pub effects: Vec<(String, i32, i32)>,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -600,6 +634,7 @@ pub struct VisibilityModification {
 static MODIFY_VISIBILITY: Event<VisibilityModification, ()> = Event::void();
 static SHEAR: Event<ShearAttempt, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
+static MOB_TICK: Event<MobTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
@@ -627,6 +662,10 @@ impl ServerLivingEntityEvents {
     /// A server player's tick, heard while they wear armor or hold a tool carrying custom data: take effects off them with `remove_effects`.
     /// The world scope is open while it runs, so callbacks may read and change blocks around the player.
     pub const PLAYER_TICK: &'static Event<PlayerTick, ()> = &PLAYER_TICK;
+    /// A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player: it carries
+    /// the mob's position, motion and state, every piece it wears and holds, and its effects. The world and entity scopes are
+    /// open while it runs.
+    pub const MOB_TICK: &'static Event<MobTick, ()> = &MOB_TICK;
     /// A mob hurting the player, as the hit starts: push status effects on the mob with `effects`. Server only.
     pub const WEARER_HIT: &'static Event<WearerHit, ()> = &WEARER_HIT;
     /// A player's weapon hit on a mob, before its damage lands: push status effects on the mob with `effects`. Server only.
@@ -643,6 +682,16 @@ impl ServerLivingEntityEvents {
 pub(crate) fn player_tick(tick: &PlayerTick) -> Vec<String> {
     PLAYER_TICK.invoke(tick);
     tick.remove_effects.borrow_mut().drain(..).collect()
+}
+
+/// A mob's tick, heard by the callbacks.
+pub(crate) fn mob_tick(tick: &MobTick) {
+    MOB_TICK.invoke(tick);
+}
+
+/// Whether any callback hears a mob's tick, so the host adapter builds the report only then.
+pub(crate) fn mob_tick_heard() -> bool {
+    !MOB_TICK.is_empty()
 }
 
 /// The actions the callbacks queued on the player's tick, taken after `player_tick`.
@@ -1591,7 +1640,7 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
@@ -1858,7 +1907,7 @@ mod tests {
             if tick.entity != 6262 { return; }
             tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
         });
-        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");
@@ -1877,5 +1926,18 @@ mod tests {
         assert!(entity_tick_before(&moving));
         entity_tick_after(&moving);
         assert_eq!(POSTED.lock().unwrap().clone(), vec![72], "only the tick that ran is reported");
+    }
+
+    #[test]
+    fn a_mob_tick_reaches_its_callbacks_with_the_mobs_state() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<(i32, bool, usize)>> = Mutex::new(Vec::new());
+        ServerLivingEntityEvents::MOB_TICK.register(|tick| {
+            if tick.entity == 7171 { SEEN.lock().unwrap().push((tick.entity, tick.on_climbable, tick.effects.len())); }
+        });
+        assert!(mob_tick_heard());
+        let tick = MobTick { entity: 7171, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: true, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
+        mob_tick(&tick);
+        assert_eq!(SEEN.lock().unwrap().clone(), vec![(7171, true, 1)]);
     }
 }

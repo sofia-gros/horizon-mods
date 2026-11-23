@@ -1076,6 +1076,59 @@ fn stack_data_of(_host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
     read_stack(stack)
 }
 
+/// Whether the entity of kind `kind` standing at block position `pos` is on a climbable block, as the game's own
+/// `Mob::on_climbable` works it out: kinds that never climb (the equine kinds, ghasts and phantoms) read false; the
+/// block at the entity's feet in the `minecraft:climbable` tag reads true; an open trapdoor over a ladder facing the
+/// same way reads true. Two of the game's own checks have no host read and are not reproduced: a climbing kind's own
+/// climbing flag (a spider against a wall face; the block rule still covers one standing in a ladder or vine block),
+/// and a fall-flying entity passing a block it can glide through.
+fn entity_on_climbable(host: &dyn Host, kind: &str, pos: [i32; 3]) -> bool {
+    if matches!(kind, "minecraft:horse" | "minecraft:donkey" | "minecraft:mule" | "minecraft:skeleton_horse" | "minecraft:zombie_horse" | "minecraft:llama" | "minecraft:trader_llama" | "minecraft:camel" | "minecraft:camel_husk" | "minecraft:ghast" | "minecraft:phantom" | "minecraft:happy_ghast") {
+        return false;
+    }
+    let block = host.block(pos);
+    if host.block_name_in_tag(&block, "minecraft:climbable").unwrap_or(false) {
+        return true;
+    }
+    // An open trapdoor over a ladder, the trapdoor facing the way the ladder faces (the trapdoor kind is told by
+    // its name's suffix: every trapdoor block id ends in `trapdoor`).
+    let below = [pos[0], pos[1] - 1, pos[2]];
+    block.rsplit(':').next().is_some_and(|name| name.ends_with("trapdoor"))
+        && host.block_property(pos, "open").as_deref() == Some("true")
+        && host.block(below) == "minecraft:ladder"
+        && host.block_property(pos, "facing") == host.block_property(below, "facing")
+}
+
+/// A mob's tick report for the entity the tick event names, or None when it is not a living entity the host can
+/// reach. Every piece the mob wears and holds is reported (a mob's attribute values are worked out from the report
+/// alone), and its effects are reordered to (id, amplifier, ticks left), the order a tick report uses.
+fn build_mob_tick(host: &dyn Host, entity_id: u32, kind: &str, dimension: &str) -> Option<entity_events_v1::MobTick> {
+    let entity = host.entity(entity_id)?;
+    let living = host.living(entity)?;
+    let position = host.entity_position(entity).unwrap_or([0.0; 3]);
+    let feet = host.entity_block_position(entity).unwrap_or([position[0].floor() as i32, position[1].floor() as i32, position[2].floor() as i32]);
+    let mut armor = Vec::new();
+    for (name, slot) in [("feet", EquipmentSlot::Feet), ("legs", EquipmentSlot::Legs), ("chest", EquipmentSlot::Chest), ("head", EquipmentSlot::Head)] {
+        let Some(stack) = host.living_equipment(living, slot) else { continue };
+        if stack.count > 0 { armor.push((name.to_string(), stack_data_of(host, &stack))); }
+    }
+    let mut hands = Vec::new();
+    for (name, hand) in [("mainhand", Hand::Main), ("offhand", Hand::Off)] {
+        let Some(stack) = host.living_hand_item(living, hand) else { continue };
+        if stack.count > 0 { hands.push((name.to_string(), stack_data_of(host, &stack))); }
+    }
+    // A mob's effects come as (id, ticks left, amplifier); the report carries (id, amplifier, ticks left).
+    let effects = host.entity_effects(entity).unwrap_or_default().into_iter().map(|(effect, ticks_left, amplifier)| (effect, amplifier, ticks_left)).collect();
+    Some(entity_events_v1::MobTick {
+        entity: entity_id as i32, kind: kind.to_owned(), dimension: dimension.to_owned(), position,
+        velocity: host.entity_velocity(entity).unwrap_or([0.0; 3]),
+        on_ground: host.entity_on_ground(entity).unwrap_or(false),
+        in_water: host.entity_is_in_water(entity).unwrap_or(false),
+        on_climbable: entity_on_climbable(host, kind, feet),
+        armor, hands, effects,
+    })
+}
+
 fn sky_frame(star_angle: f32, star_brightness: f32, out: &mut Vec<horizon_client::entry::pluto_sky_access::SkyQuad>) -> bool {
     use crate::pure::sky_api_v1::{SkyRegistry, VanillaStars};
     // The celestial reach runs only on the overworld sky path, so it serves the overworld's layer.
@@ -2189,6 +2242,14 @@ impl EntityOps for HostEntities {
     fn push(&mut self, id: u64, delta: [f64; 3]) -> bool {
         let Some(id) = self.push_target(id) else { return false };
         horizon_client::game::pluto_entity_push_access::request_push(&self.dimension, id, delta)
+    }
+
+    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
+        // The host sets the motion of an item entity or a mob directly; a player is refused (its
+        // client moves it), and a player is pushed instead.
+        let host = self.host.get();
+        let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) else { return false };
+        host.entity_set_velocity(entity, velocity)
     }
 
     fn leave_ground(&mut self, id: u64) -> bool {
@@ -4666,6 +4727,14 @@ impl Hooks for PlutoHooks {
         for (attacker, victim, action) in entity_events_v1::take_late_actions(event.entity as i32) {
             apply_entity_actions(host, event.dimension, attacker, victim, vec![action]);
         }
+        // A mob's tick is heard here, on the entity's own tick, for every living entity that is not a player; the
+        // report is built only when a callback hears it. The world and entity scopes are open while it runs.
+        if entity_events_v1::mob_tick_heard() && event.kind != "minecraft:player" {
+            if let Some(tick) = build_mob_tick(host, event.entity, event.kind, event.dimension) {
+                let handle = HostHandle::new(host);
+                scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: event.dimension.to_owned() }, || entity_events_v1::mob_tick(&tick)));
+            }
+        }
         if !entity_events_v1::entity_tick_heard() {
             return;
         }
@@ -4842,7 +4911,9 @@ impl Hooks for PlutoHooks {
             // Whether the player stands in water, as the wearer state reads it: the block at their feet holds water.
             let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
             let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            // Whether the player is on a climbable block, as the game's own check works it out; a spectator never counts.
+            let on_climbable = player.game_mode != 3 && entity_on_climbable(host, "minecraft:player", feet);
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             // The world scope is open while the tick runs, so a callback may work on the blocks around the player;
             // the entity scope is open too, so a callback may reach the entities around them (a bounce sets a velocity).
             let handle = HostHandle::new(host);

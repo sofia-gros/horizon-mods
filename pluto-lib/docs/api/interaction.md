@@ -1062,6 +1062,44 @@ ServerEntityEvents::ENTITY_TICK_POST.register(|entity: &EntityInfo| {
 ServerEntityEvents::ENTITY_TICK_POST.invoke(&EntityInfo { id: 9, kind: "minecraft:cow".into(), dimension: "minecraft:overworld".into() });
 ```
 
+### `MobTick`
+
+A mob's tick, heard after the mob's own tick ran, for every living entity that is not a player: `entity` is the entity id, `kind` its type, `dimension` the dimension it is in, `position` its feet position, `velocity` the motion it moves with, `on_ground` whether it stands on the ground, `in_water` whether it is in water, `on_climbable` whether it is on a climbable block (the game's own check; kinds that never climb read false), `armor` every piece worn (as (slot, stack): `feet`, `legs`, `chest`, `head`), `hands` the stacks held (as (slot, stack): `mainhand`, `offhand`) and `effects` its effects as (effect id, amplifier, ticks left). Unlike a player's report the armor lists every piece, not only those carrying custom data: a mob's attribute values are worked out from this report alone. The world and entity scopes are open while it runs.
+
+```rust
+use pluto_lib::MobTick;
+
+let tick = MobTick { entity: 7, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [0.0; 3], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
+assert_eq!(tick.effects.len(), 1);
+```
+
+### `ServerLivingEntityEvents::MOB_TICK`
+
+A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player. It carries the mob's position, motion and state, every piece it wears and holds, and its effects (see [`MobTick`](#mobtick)); a mob's attribute values are worked out from the report.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::MOB_TICK.register(|tick| {
+    if tick.kind == "minecraft:zombie" && !tick.on_ground {
+        // The mob is airborne this tick.
+    }
+});
+```
+
+### `EntityReach::set_velocity`
+
+`fn set_velocity(id: u64, velocity: [f64; 3]) -> bool`. Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced, not added. A player is not set (its client moves it); an item entity or a mob is. False when the host cannot (no such entity, a player, an entity the game does not simulate, or a value that is not finite), and outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([0.0, 64.0, 0.0], WorldEntity { id: 2, kind: Identifier::parse("minecraft:zombie").unwrap(), item: None, living: None }));
+with_entities(&mut ops, || assert!(EntityReach::set_velocity(2, [0.1, 2.7, -0.2])));
+assert_eq!(ops.velocities, vec![(2, [0.1, 2.7, -0.2])]);
+```
+
 ### `CarriedSlot`
 
 One place a player carries a stack, as the wider events that report a player's whole carrying name them: `Equipment(StackSlot)` is a hand or an armor slot, and `Inventory(u32)` is a main-inventory slot, 0 to 35, the hotbar first.

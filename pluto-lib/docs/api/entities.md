@@ -167,7 +167,7 @@ An entity's own tick is heard through `ServerEntityEvents::ENTITY_TICK_PRE` and 
 
 ## Knocking Back, Pushing and Lifting
 
-The reach can also move a living entity the way the game itself moves one: `EntityReach::knockback(id, strength, x, z)` is `LivingEntity.knockback`, `EntityReach::push(id, delta)` is `Entity.push`, and `EntityReach::leave_ground(id)` is the launch hop of the original's sling leap. A player is reached by all three, and their client is told the new motion. A true answer means the request was taken: the host applies it at its next rider synchronisation, so the motion is observable from the next tick; an entity that is gone, or not living, by then is simply not moved. The reference sections below give each call's exact terms.
+The reach can also move a living entity the way the game itself moves one: `EntityReach::knockback(id, strength, x, z)` is `LivingEntity.knockback`, `EntityReach::push(id, delta)` is `Entity.push`, `EntityReach::leave_ground(id)` is the launch hop of the original's sling leap, and `EntityReach::set_velocity(id, velocity)` is `Entity.setDeltaMovement` (documented with the mob tick, on the interaction page). A player is reached by all three, and their client is told the new motion. A true answer means the request was taken: the host applies it at its next rider synchronisation, so the motion is observable from the next tick; an entity that is gone, or not living, by then is simply not moved. The reference sections below give each call's exact terms.
 
 > **Use with Caution.** The pure rules and the in-memory world are tested (the requests are recorded). The host side is written, not yet compiled or game-verified: the adapter queues the requests, and a drain woven at the head of the game's rider synchronisation applies a mob's knockback through `Mob::knockback` with a sourceless damage source (the original's bare `knockback` call carries none), a player's through the game's own player knockback with the velocity marked for their client, and a guest's through the game's guest motion path. Armor stands and other non-living kinds are not reached.
 
@@ -652,13 +652,13 @@ assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_n
 
 ### `PlayerTick`
 
-A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `on_ground` whether they stand on the ground, `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
+A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `on_ground` whether they stand on the ground, `sneaking` whether they hold sneak, `gliding` whether they glide, `spectator` whether they spectate, `in_water` whether their feet block holds water, `on_climbable` whether on a climbable block, `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
 
 ```rust
 use pluto_lib::PlayerTick;
 use std::cell::RefCell;
 
-let tick = PlayerTick { player: 1, entity: 4, dimension: "minecraft:overworld".into(), position: [0.0; 3], on_ground: true, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 15, sky_darken: 0, effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let tick = PlayerTick { player: 1, entity: 4, dimension: "minecraft:overworld".into(), position: [0.0; 3], on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 15, sky_darken: 0, effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 tick.remove_effects.borrow_mut().push("minecraft:poison".into());
 tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".into(), 0.1));
 assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
@@ -852,7 +852,7 @@ assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effe
 
 ### `EntityState`
 
-What a living entity was doing when a player's weapon hit it, and the facts a condition may ask: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it; `effect_levels` the same effects as (id, amplifier), the amplifier being the level less one (see [`EntityState::effect_level`](#entitystateeffect_level)); `health` and `max_health` its health and maximum (the `minecraft:max_health` attribute), `None` when not reported; `biome` the biome it stands in, `biome_temperature` that biome's temperature at its height (`Biome.getTemperature`), `None` for a biome PlutoLib has no temperature for; `eyes_in_water` whether its eyes are in water, where `in_water` is a touch of it; `rain_exposed` whether rain falls on it; `thundering` whether it is thundering where it stands; `enchantments` the ids of the enchantments on its equipment (presence only, not levels); `armor_coverage` the share of its four armor slots holding armor, 0.0 to 1.0, `None` when not reported; `equipment` the names of the equipment slots holding an item (`mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`), `None` when not reported; `armor_stacks` its worn armor as (slot, stack) pairs (custom-data pieces only); `crouching` whether it crouches (a player holding sneak; a mob never does); `y` the height of its feet, `None` when not reported; `block_light` and `sky_light` the two light layers at the block it stands in, each 0 to 15 (`Level.getBrightness`), `None` when not reported; `sky_darken` how much the time of day and the weather take off the sky light, 0 to 11 (see [`sky_darken`](#sky_darken)). Every field has a default, so build one with `..EntityState::default()`.
+What a living entity was doing when a player's weapon hit it, and the facts a condition may ask: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it; `effect_levels` the same effects as (id, amplifier), the amplifier being the level less one (see [`EntityState::effect_level`](#entitystateeffect_level)); `health` and `max_health` its health and maximum (the `minecraft:max_health` attribute), `None` when not reported; `biome` the biome it stands in, `biome_temperature` that biome's temperature at its height (`Biome.getTemperature`), `None` for a biome PlutoLib has no temperature for; `eyes_in_water` whether its eyes are in water, where `in_water` is a touch of it; `rain_exposed` whether rain falls on it; `thundering` whether it is thundering where it stands; `enchantments` the ids of the enchantments on its equipment (presence only, not levels); `armor_coverage` the share of its four armor slots holding armor, 0.0 to 1.0, `None` when not reported; `equipment` the names of the equipment slots holding an item (`mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`), `None` when not reported; `armor_stacks` its worn armor as (slot, stack) pairs (custom-data pieces only); `crouching` whether it crouches (a player holding sneak; a mob never does); `y` the height of its feet, `None` when not reported; `block_light` and `sky_light` the two light layers at the block it stands in, each 0 to 15 (`Level.getBrightness`), `None` when not reported; `sky_darken` how much the time of day and the weather take off the sky light, 0 to 11 (see `sky_darken` on the sky page). Every field has a default, so build one with `..EntityState::default()`.
 
 ```rust
 use pluto_lib::EntityState;
@@ -878,18 +878,6 @@ assert_eq!(state.effect_level("minecraft:poison"), 2);
 assert_eq!(state.effect_level("minecraft:speed"), 0);
 ```
 
-
-### `sky_darken`
-
-`sky_darken(rain, thunder, day_time)` is `Level.getSkyDarken`: how much sky light the weather and time take off, from 0 (clear noon) to 11 (midnight in a thunderstorm). `rain` and `thunder` are the levels, 0.0 to 1.0, and `day_time` the world's time of day in ticks (it may run past 24000).
-
-```rust
-use pluto_lib::sky_darken;
-
-assert_eq!(sky_darken(0.0, 0.0, 6000), 0);
-assert_eq!(sky_darken(0.0, 0.0, 18000), 11);
-assert!(sky_darken(1.0, 1.0, 6000) > sky_darken(1.0, 0.0, 6000));
-```
 
 ### `EffectCategory`
 
@@ -1201,7 +1189,7 @@ assert!(facts.fire_immune && !facts.invulnerable && !facts.fire_resistant);
 
 ### `MemoryEntityOps`
 
-An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed` and `lifted` recording the knockbacks, pushes and lifts asked for.
+An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed`, `lifted`, `velocities` and `spun` recording the knockbacks, pushes, lifts, velocity sets and spins asked for.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
