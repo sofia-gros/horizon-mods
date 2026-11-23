@@ -1,19 +1,27 @@
 //! The melter and heater block entities, their windows and slot rules over PlutoLib's public API
 //! (SlimeKnights MelterBlockEntity, HeaterBlockEntity, MelterContainerMenu, SingleItemContainerMenu, MelterScreen and
 //! the GuiMeltingModule/GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The melter menu holds its three melting
-//! slots; the original's fourth slot there is the heater's own and lives in the heater's window. The tank is drawn as the
-//! fluid's still texture tiled over a flat fill of its colour (the fill is what shows where the host's atlas holds no
-//! sprite for the texture) and its tooltip names the amount; putting fluid in and out with a held item needs fluid
-//! items, which come with the casting unit.
+//! slots; the original's fourth slot there is the heater's own and lives in the heater's window — this window frames
+//! the slot (the FUEL_SLOT background) when a heater is below, but the slot itself is not mirrored: a mirrored slot
+//! would hold the heater's fuel in this block entity's inventory, where the burn cycle (which reads the block below)
+//! cannot see it, and PlutoLib's neighbour reach moves items rather than sharing an inventory. The tank is drawn as
+//! the fluid's still texture tiled over a flat fill of its colour (the fill is what shows where the host's atlas
+//! holds no sprite for the texture); clicking it trades the held container with the tank, and its tooltip names the
+//! fluid over the fluid and the capacity over the empty part. The fuel gauge draws the fuel tank below's fluid; its
+//! own fill and empty clicks are the heater's or tank's, below, out of a menu button's reach.
 use crate::{
     common,
-    melter::{self, slot_data, Live, State, Tank, DATA_SLOTS, DATA_TANK_AMOUNT, DATA_TANK_FLUID, SLOTS},
+    melter::{self, slot_data, Live, State, Tank, DATA_FUEL_AMOUNT, DATA_FUEL_CAPACITY, DATA_FUEL_FLUID, DATA_HEATER, DATA_SLOTS, DATA_TANK_AMOUNT, DATA_TANK_FLUID, SLOTS},
     heating::MELTER_CAPACITY,
 };
 use pluto_lib::{
-    BlockEntityType, BlockEntityTypeRegistry, FluidRegistry, I18n, Identifier, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType,
-    ScreenLayout,
+    BlockEntityType, BlockEntityTypeRegistry, FluidItems, FluidRegistry, I18n, Identifier, MenuButton, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType,
+    ScreenLayout, TransferDirection,
 };
+
+/// A menu value too large for one 16 bit slot, in two: the high half and the low half.
+pub(crate) fn split_pair(value: i32) -> (i32, i32) { (value >> 15, value & 0x7FFF) }
+pub(crate) fn join_pair(data: &[i32], index: usize) -> i32 { (data.get(index).copied().unwrap_or(0) << 15) | data.get(index + 1).copied().unwrap_or(0) }
 
 pub(crate) const MELTER: &str = "seared_melter";
 pub(crate) const HEATER: &str = "seared_heater";
@@ -74,27 +82,47 @@ fn tank_fluid(data: &[i32]) -> Option<Identifier> {
 }
 
 /// Draws the melter window: background, fuel gauge and flame, tank fill and scale, and the heat bar of every occupied slot.
-pub(crate) fn draw_melter(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32]) {
+pub(crate) fn draw_melter(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32], mouse: [f32; 2]) {
     let get = |index: usize| data.get(index).copied().unwrap_or(0);
     let [x, y] = origin;
     canvas.sprite(MELTER_BACKGROUND, [0.0, 0.0, 176.0, 166.0], [x, y, 176.0, 166.0]);
-    // no fuel slot in this window: the gauge's own background (FUEL_TANK)
-    canvas.sprite(MELTER_BACKGROUND, [194.0, 52.0, 14.0, 38.0], [x + 152.0, y + 31.0, 14.0, 38.0]);
+    // with a heater below, the fuel slot's frame (FUEL_SLOT); otherwise the gauge's own background (FUEL_TANK)
+    if get(DATA_HEATER) != 0 {
+        canvas.sprite(MELTER_BACKGROUND, [176.0, 52.0, 18.0, 36.0], [x + 150.0, y + 31.0, 18.0, 36.0]);
+    } else {
+        canvas.sprite(MELTER_BACKGROUND, [194.0, 52.0, 14.0, 38.0], [x + 152.0, y + 31.0, 14.0, 38.0]);
+    }
     let (fuel, quality) = (get(0), get(1));
     if fuel > 0 && quality > 0 {
         let height = (14 * fuel / quality).clamp(0, 14) as f32;
         canvas.sprite(MELTER_BACKGROUND, [176.0, 136.0 + 14.0 - height, 14.0, height], [x + FLAME_AT[0], y + FLAME_AT[1] + 14.0 - height, 14.0, height]);
     }
+    // the fuel gauge's fluid, the fuel tank below's own
+    let (fuel_amount, fuel_capacity) = (join_pair(data, DATA_FUEL_AMOUNT), join_pair(data, DATA_FUEL_CAPACITY));
+    if fuel_amount > 0 && fuel_capacity > 0 {
+        let height = (FUEL_AT[3] * (fuel_amount.min(fuel_capacity) as f32) / fuel_capacity as f32).floor();
+        let fluid = (get(DATA_FUEL_FLUID) > 0).then(|| melter::fluid_order().get(get(DATA_FUEL_FLUID) as usize - 1).cloned()).flatten();
+        let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+        let rect = [x + FUEL_AT[0], y + FUEL_AT[1] + FUEL_AT[3] - height, FUEL_AT[2], height];
+        canvas.fill(rect, color);
+        if let Some(fluid) = &fluid { draw_tiled_fluid(canvas, fluid, rect, color); }
+    }
     let amount = get(DATA_TANK_AMOUNT);
+    let tank_height = if amount > 0 { (TANK[3] * (amount.min(MELTER_CAPACITY) as f32) / MELTER_CAPACITY as f32).floor() } else { 0.0 };
     if amount > 0 {
-        let height = (TANK[3] * (amount.min(MELTER_CAPACITY) as f32) / MELTER_CAPACITY as f32).floor();
         let fluid = tank_fluid(data);
         let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
-        let rect = [x + TANK[0], y + TANK[1] + TANK[3] - height, TANK[2], height];
+        let rect = [x + TANK[0], y + TANK[1] + TANK[3] - tank_height, TANK[2], tank_height];
         canvas.fill(rect, color);
         if let Some(fluid) = &fluid { draw_tiled_fluid(canvas, fluid, rect, color); }
     }
     canvas.sprite(MELTER_BACKGROUND, [176.0, 0.0, 52.0, 52.0], [x + TANK[0], y + TANK[1], 52.0, 52.0]);
+    // the hovered part of the tank lights up, split at the fluid's surface
+    if inside(mouse, TANK) {
+        let surface = TANK[1] + TANK[3] - tank_height;
+        let rect = if mouse[1] >= surface { [x + TANK[0], y + surface, TANK[2], tank_height] } else { [x + TANK[0], y + TANK[1], TANK[2], surface - TANK[1]] };
+        if rect[3] > 0.0 { canvas.fill(rect, 0x59_FF_FF_FF); }
+    }
     let temperature = get(2);
     for slot in (0..SLOTS).filter(|slot| get(slot_data(*slot) + 3) != 0) {
         let base = slot_data(slot);
@@ -111,21 +139,54 @@ pub(crate) fn draw_melter(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data:
 
 fn inside(at: [f32; 2], rect: [f32; 4]) -> bool { at[0] >= rect[0] && at[0] < rect[0] + rect[2] && at[1] >= rect[1] && at[1] < rect[1] + rect[3] }
 
+/// The tank's fluid surface, in window pixels: hovering below it is the fluid's own tooltip,
+/// above it the capacity's (`GuiTankModule` splits the two at the surface).
+fn tank_surface(data: &[i32]) -> f32 {
+    let amount = data.get(DATA_TANK_AMOUNT).copied().unwrap_or(0);
+    if amount <= 0 { return TANK[1] + TANK[3]; }
+    TANK[1] + TANK[3] - (TANK[3] * (amount.min(MELTER_CAPACITY) as f32) / MELTER_CAPACITY as f32).floor()
+}
+
 /// Tooltip lines for a point of the melter window (GuiTankModule, GuiFuelModule, GuiMeltingModule.drawHeatTooltips).
 pub(crate) fn melter_tooltip(at: [f32; 2], data: &[i32], lines: &mut Vec<String>) {
     let get = |index: usize| data.get(index).copied().unwrap_or(0);
     if inside(at, [TANK[0] - 1.0, TANK[1] - 1.0, TANK[2] + 2.0, TANK[3] + 2.0]) {
-        if let Some(fluid) = tank_fluid(data) {
-            lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
+        let amount = get(DATA_TANK_AMOUNT);
+        if amount > 0 && at[1] >= tank_surface(data) {
+            if let Some(fluid) = tank_fluid(data) {
+                lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
+            }
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&amount.to_string()]));
+        } else {
+            lines.push(I18n::translate("gui.tconstruct.melting.capacity"));
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&MELTER_CAPACITY.to_string()]));
+            if MELTER_CAPACITY - amount > 0 {
+                lines.push(I18n::translate("gui.tconstruct.melting.capacity.available"));
+                lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&(MELTER_CAPACITY - amount).to_string()]));
+            }
         }
-        lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&get(DATA_TANK_AMOUNT).to_string()]));
     } else if inside(at, [FUEL_AT[0] - 1.0, FUEL_AT[1] - 1.0, FUEL_AT[2] + 2.0, FUEL_AT[3] + 2.0]) {
         let temperature = get(2);
-        if get(0) > 0 && temperature > 0 {
+        let fuel_amount = join_pair(data, DATA_FUEL_AMOUNT);
+        if fuel_amount > 0 {
+            // liquid fuel: its name and amount, then its temperature — or, at no temperature, the
+            // word that it cannot burn
+            if let Some(fluid) = (get(DATA_FUEL_FLUID) > 0).then(|| melter::fluid_order().get(get(DATA_FUEL_FLUID) as usize - 1).cloned()).flatten() {
+                lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
+            }
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&fuel_amount.to_string()]));
+            if temperature == 0 {
+                lines.push(format!("§c{}", I18n::translate("gui.tconstruct.melting.fuel.invalid")));
+            } else {
+                lines.push(format!("§7§o{}", I18n::translate_args("gui.tconstruct.melting.fuel.temperature", &[&temperature.to_string()])));
+            }
+        } else if get(0) > 0 && temperature > 0 {
             lines.push(I18n::translate("gui.tconstruct.melting.fuel.solid"));
             lines.push(format!("§7§o{}", I18n::translate_args("gui.tconstruct.melting.fuel.temperature", &[&temperature.to_string()])));
-        } else {
+        } else if join_pair(data, DATA_FUEL_CAPACITY) > 0 || get(DATA_HEATER) != 0 {
             lines.push(I18n::translate("gui.tconstruct.melting.fuel.empty"));
+        } else {
+            lines.push(I18n::translate("gui.tconstruct.melting.fuel.no_tank"));
         }
     } else {
         for slot in 0..SLOTS {
@@ -156,7 +217,25 @@ fn tick_melter(tick: &mut pluto_lib::BlockEntityTick<'_>) {
     state.step(tick.items, &mut tank, &mut world);
     state.save(tick.data);
     tank.write(tick);
-    state.publish(tick, &tank);
+    let gauge = world.fuel_tank();
+    let heater = world.below_is_heater();
+    state.publish(tick, &tank, gauge.as_ref(), heater);
+}
+
+/// A click in the tank trades the held container with it (the tank module's click; the fuel
+/// gauge's clicks belong to the block below and are not sent).
+fn melter_click(at: [f32; 2]) -> Option<i32> { inside(at, TANK).then_some(0) }
+
+/// `clickMenuButton` 0: the held container trades with this block entity's tank. A trade whose
+/// result would not fit back in the hand does not happen, as on the smeltery's tank.
+fn melter_press(button: &mut MenuButton<'_>) {
+    if button.id != 0 { return; }
+    let Some(held) = button.carried.clone() else { return };
+    let mut target = crate::fluid_items::TankTarget { fluid: button.fluid(0), capacity: MELTER_CAPACITY as u32 };
+    let Some(done) = FluidItems::interact(Some(&held), &mut target, TransferDirection::Auto) else { return };
+    if !done.give.is_empty() { return; }
+    button.set_fluid(0, target.fluid);
+    *button.carried = done.held;
 }
 
 pub(crate) fn register() {
@@ -164,8 +243,10 @@ pub(crate) fn register() {
     let layout = (0..SLOTS).fold(ScreenLayout::new(176.0, 166.0).with_own_background(), |layout, slot| layout.slot(SLOT_X, SLOT_Y + 18.0 * slot as f32));
     let window = ScreenHandlerType::new(melter_id.clone(), layout)
         .on_slot_rule(|rule| { rule.max_stack = 1; })
-        .on_draw(|draw| draw_melter(draw.canvas, draw.origin, draw.data))
-        .on_tooltip(|tip| melter_tooltip(tip.at, tip.data, tip.lines));
+        .on_draw(|draw| draw_melter(draw.canvas, draw.origin, draw.data, draw.mouse))
+        .on_click(|press| melter_click(press.at))
+        .on_tooltip(|tip| melter_tooltip(tip.at, tip.data, tip.lines))
+        .on_button(|button| melter_press(button));
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(melter_id).item_slots(SLOTS as u32).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").sync_data().ticker(tick_melter)
@@ -218,7 +299,7 @@ mod tests {
         // half the fuel left (flame 7 high), a half full tank, slot 1 halfway through an ingot, slot 2 empty
         let values = data(&[(0, 200), (1, 400), (2, 800), (DATA_TANK_AMOUNT, MELTER_CAPACITY / 2),
             (slot_data(1), 300), (slot_data(1) + 1, 600), (slot_data(1) + 2, 800), (slot_data(1) + 3, 1), (slot_data(2) + 1, 600)]);
-        draw_melter(&mut canvas, [10.0, 20.0], &values);
+        draw_melter(&mut canvas, [10.0, 20.0], &values, [-1.0, -1.0]);
         let flame = canvas.sprites.iter().find(|s| s.1[0] == 176.0 && s.1[2] == 14.0).expect("flame");
         assert_eq!((flame.1[3], flame.2), (7.0, [162.0, 42.0, 14.0, 7.0]), "the flame grows upward from its base");
         assert_eq!(canvas.fills, vec![([100.0, 62.0, 52.0, 26.0], 0xFFFF_FFFF)], "half the 52 pixel scale, white for a fluid no mod defined");
@@ -256,8 +337,12 @@ mod tests {
         ]);
         let values = data(&[(0, 100), (2, 800), (DATA_TANK_AMOUNT, 90), (slot_data(0), 0), (slot_data(0) + 1, 600), (slot_data(0) + 2, 900), (slot_data(0) + 3, 1)]);
         let mut lines = Vec::new();
+        melter_tooltip([100.0, 67.0], &values, &mut lines);
+        assert_eq!(lines, vec!["90 mb".to_owned()], "over the fluid: an undefined fluid has no name line, just the amount");
+        lines.clear();
         melter_tooltip([100.0, 30.0], &values, &mut lines);
-        assert_eq!(lines, vec!["90 mb".to_owned()], "an undefined fluid has no name line, just the amount");
+        assert_eq!(lines.len(), 4, "over the empty part: the capacity and the room left, each with its amount: {lines:?}");
+        assert!(lines[1].contains(&MELTER_CAPACITY.to_string()));
         lines.clear();
         melter_tooltip([158.0, 40.0], &values, &mut lines);
         assert_eq!(lines.len(), 2, "solid fuel and its temperature");
