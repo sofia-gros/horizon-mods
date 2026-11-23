@@ -4,7 +4,10 @@
 //! original's TriggeringBaseContainerMenu and TriggeringMultiModuleContainerMenu when a player
 //! opens a block entity menu). The advancement data itself ships in the content package and
 //! the game owns the tree, progress and rewards; this module owns only the Tinkers-shaped
-//! evaluation, registered through PlutoLib's advancement API. Forms the original's loaders
+//! evaluation, registered through PlutoLib's advancement API. It also resolves the internal
+//! advancements' function rewards: the original ships each as a one-line data pack function
+//! granting a vanilla advancement, and the game's function store never sees a mod package's
+//! files, so the grants are registered here in code instead. Forms the original's loaders
 //! accept but this port does not implement are rejected at decode, never treated as true.
 use crate::{common, modifier_entries::List, tool_definitions, tool_materials::{MaterialList, MaterialVariant}, tool_stack};
 use pluto_lib::advancement_api_v1::{PredicateRequest, PredicateResult, TagLookup};
@@ -19,13 +22,51 @@ pub(crate) const BLOCK_CONTAINER_OPENED: &str = "tconstruct:block_container_open
 /// so a stack that is not a modifiable tool never has its data read as a tool.
 const MODIFIABLE: &str = "tconstruct:modifiable";
 
-/// Registers the tool_stack item predicate. Called once from the product's hooks.
+/// Registers the tool_stack item predicate and the internal advancements'
+/// function rewards. Called once from the product's hooks.
 pub(crate) fn register() {
     let _ = pluto_lib::advancement_api_v1::register_item_predicate(pluto_lib::advancement_api_v1::PredicateRegistration {
         id: "tconstruct:advancements",
         callback: tool_stack_predicate,
         inventory_components: true,
     });
+    for (function, _) in FUNCTION_REWARD_GRANTS {
+        let _ = pluto_lib::advancement_api_v1::register_function_reward(pluto_lib::advancement_api_v1::FunctionRewardRegistration {
+            id: function,
+            function,
+            callback: function_reward_grants,
+        });
+    }
+}
+
+/// The function rewards of the shipped internal advancements
+/// (`data/tconstruct/advancement/internal/*.json`): each names a
+/// `tconstruct:grant_advancement/<name>` function whose data form ships
+/// beside it (`data/tconstruct/function/grant_advancement/<name>.mcfunction`,
+/// one line: `advancement grant @s only <target>`). The game's function
+/// store is built from data pack files only, so the shipped files never
+/// execute; the grants are resolved in code through PlutoLib's function
+/// reward registry instead, with the same targets the files name.
+const FUNCTION_REWARD_GRANTS: [(&str, &str); 8] = [
+    ("tconstruct:grant_advancement/adventure_walk_on_powder_snow_with_leather_boots", "minecraft:adventure/walk_on_powder_snow_with_leather_boots"),
+    ("tconstruct:grant_advancement/husbandry_obtain_netherite_hoe", "minecraft:husbandry/obtain_netherite_hoe"),
+    ("tconstruct:grant_advancement/nether_netherite_armor", "minecraft:nether/netherite_armor"),
+    ("tconstruct:grant_advancement/story_iron_tools", "minecraft:story/iron_tools"),
+    ("tconstruct:grant_advancement/story_obtain_armor", "minecraft:story/obtain_armor"),
+    ("tconstruct:grant_advancement/story_root", "minecraft:story/root"),
+    ("tconstruct:grant_advancement/story_shiny_gear", "minecraft:story/shiny_gear"),
+    ("tconstruct:grant_advancement/story_upgrade_tools", "minecraft:story/upgrade_tools"),
+];
+
+/// The function reward callback of every FUNCTION_REWARD_GRANTS entry:
+/// the one vanilla advancement the named function grants, or none when
+/// the function is not one of the eight.
+fn function_reward_grants(function: &str) -> Vec<String> {
+    FUNCTION_REWARD_GRANTS
+        .iter()
+        .find(|(name, _)| *name == function)
+        .map(|(_, grant)| vec![(*grant).to_string()])
+        .unwrap_or_default()
 }
 
 fn tool_stack_predicate(request: &PredicateRequest<'_>) -> PredicateResult {
@@ -464,6 +505,30 @@ mod tests {
         let snapshot = ItemSnapshot { id: "tconstruct:pickaxe", count: 1, damage: 0, enchantments: &[], potion: None, custom_name: false, components: Some(&components) };
         let request = PredicateRequest { predicate: &predicate, item: snapshot, tags: &Tags };
         assert_eq!(tool_stack_predicate(&request), PredicateResult::Handled(false));
+    }
+
+    #[test]
+    fn the_grant_functions_resolve_to_the_vanilla_advancements_their_files_name() {
+        assert_eq!(FUNCTION_REWARD_GRANTS.len(), 8, "one entry per shipped grant function");
+        let mut functions: Vec<&str> = FUNCTION_REWARD_GRANTS.iter().map(|(function, _)| *function).collect();
+        functions.sort_unstable();
+        functions.dedup();
+        assert_eq!(functions.len(), 8, "the eight function ids are distinct");
+        for (function, grant) in FUNCTION_REWARD_GRANTS {
+            assert!(function.starts_with("tconstruct:grant_advancement/"), "{function}");
+            assert!(grant.starts_with("minecraft:"), "{grant}");
+            assert_eq!(function_reward_grants(function), vec![grant.to_string()], "{function}");
+        }
+        assert_eq!(
+            function_reward_grants("tconstruct:grant_advancement/story_root"),
+            vec!["minecraft:story/root".to_string()]
+        );
+        assert_eq!(
+            function_reward_grants("tconstruct:grant_advancement/adventure_walk_on_powder_snow_with_leather_boots"),
+            vec!["minecraft:adventure/walk_on_powder_snow_with_leather_boots".to_string()]
+        );
+        assert!(function_reward_grants("tconstruct:grant_advancement/not_shipped").is_empty());
+        assert!(function_reward_grants("minecraft:load").is_empty());
     }
 
     #[test]

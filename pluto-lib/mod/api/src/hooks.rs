@@ -499,6 +499,10 @@ fn install_native_inventory_forwarders() {
         },
     )
     .expect("PlutoLib advancement tag source installs once");
+    horizon_client::game::pluto_advancement_function_source::set_function_resolver(
+        advancement_function_resolver,
+    )
+    .expect("PlutoLib advancement function resolver installs once");
     horizon_client::pluto_inventory::crafting::assembly::register(
         horizon_client::pluto_inventory::crafting::assembly::Registration {
             id: "pluto_lib:recipe_api_v1",
@@ -659,6 +663,15 @@ fn advancement_tag_snapshots(
             tags,
         })
         .collect()
+}
+
+/// The native reward-function hook's resolver: the pure advancement API's
+/// function reward registry, forwarded unchanged (both sides speak in
+/// advancement ids). An unregistered function resolves to no grants and
+/// keeps the game's data pack path.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_function_resolver(id: &str) -> Vec<String> {
+    advancement_api_v1::resolve_function_reward(id)
 }
 
 #[cfg(feature = "native-inventory-glue")]

@@ -789,7 +789,7 @@ assert_eq!(leftover.count, 41, "the slot filled to 64");
 
 ## Advancement item predicates and trigger events
 
-Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions. A mod also publishes its resolved item-tag snapshots, so criteria naming its tags resolve against the world data the mod itself loaded.
+Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions. A mod also publishes its resolved item-tag snapshots, so criteria naming its tags resolve against the world data the mod itself loaded. A mod may also resolve an advancement's function reward in code — the game's function store carries only data pack files, so a function shipped in a mod's own package never reaches it — by registering the advancements the function grants to the rewarded player.
 
 ### `ItemSnapshot`
 
@@ -1101,6 +1101,78 @@ use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snaps
 
 publish_tag_snapshot("example:docs", TagSnapshot::new());
 assert!(tag_snapshots().iter().any(|(owner, snapshot)| owner == "example:docs" && snapshot.is_empty()));
+```
+
+### `FunctionRewardCallback`
+
+`FunctionRewardCallback` is the callback type `fn(&str) -> Vec<String>`: called with a function id, it returns the advancement ids to grant the player the reward belongs to. An empty return leaves the function unexecuted, exactly as an unregistered one does; the callback names grants only and the native adapter performs them, against progress whose grants are idempotent.
+
+```rust
+use pluto_lib::advancement_api_v1::FunctionRewardCallback;
+
+fn root(function: &str) -> Vec<String> {
+    if function == "example:grant_root" { vec!["minecraft:story/root".to_string()] } else { Vec::new() }
+}
+let callback: FunctionRewardCallback = root;
+assert_eq!(callback("example:grant_root"), vec!["minecraft:story/root".to_string()]);
+assert!(callback("example:other").is_empty());
+```
+
+### `FunctionRewardRegistration`
+
+One registration: `id` the stable unique registration identity (not a function discriminator), `function` the function id it resolves (the id an advancement's `rewards.function` names) and `callback` the `FunctionRewardCallback`.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardCallback, FunctionRewardRegistration};
+
+fn none(_: &str) -> Vec<String> { Vec::new() }
+let entry = FunctionRewardRegistration { id: "example:root", function: "example:grant_root", callback: none };
+assert_eq!(entry.id, "example:root");
+assert_eq!(entry.function, "example:grant_root");
+let _: FunctionRewardCallback = entry.callback;
+```
+
+### `register_function_reward`
+
+`fn register_function_reward(entry: FunctionRewardRegistration) -> Result<(), RegistrationError>`. Process-lifetime registration, once during startup before the first advancement completes; a function id and a registration id are each claimed once, and duplicates are rejected without replacement.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, RegistrationError, register_function_reward, resolve_function_reward};
+
+fn root(_: &str) -> Vec<String> { vec!["minecraft:story/root".to_string()] }
+let entry = FunctionRewardRegistration { id: "example:root", function: "example:grant_root", callback: root };
+register_function_reward(entry).unwrap();
+assert_eq!(register_function_reward(entry), Err(RegistrationError::DuplicateId));
+assert_eq!(register_function_reward(FunctionRewardRegistration { id: "", function: "example:other", callback: root }), Err(RegistrationError::EmptyId));
+assert_eq!(register_function_reward(FunctionRewardRegistration { id: "example:other", function: "", callback: root }), Err(RegistrationError::EmptyId));
+assert_eq!(resolve_function_reward("example:grant_root"), vec!["minecraft:story/root".to_string()]);
+```
+
+### `has_function_rewards`
+
+`fn has_function_rewards() -> bool`. Whether any function reward is registered.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, has_function_rewards, register_function_reward};
+
+fn none(_: &str) -> Vec<String> { Vec::new() }
+assert!(!has_function_rewards());
+register_function_reward(FunctionRewardRegistration { id: "example:present", function: "example:grant_none", callback: none }).unwrap();
+assert!(has_function_rewards());
+```
+
+### `resolve_function_reward`
+
+`fn resolve_function_reward(function: &str) -> Vec<String>`. The advancements a registered resolver grants for `function`; empty when the function is unregistered or its resolver grants none. The native adapter calls this at the game's reward boundary; pure consumers only register.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, register_function_reward, resolve_function_reward};
+
+fn root(_: &str) -> Vec<String> { vec!["minecraft:story/root".to_string()] }
+assert!(resolve_function_reward("example:grant_root").is_empty());
+register_function_reward(FunctionRewardRegistration { id: "example:root", function: "example:grant_root", callback: root }).unwrap();
+assert_eq!(resolve_function_reward("example:grant_root"), vec!["minecraft:story/root".to_string()]);
+assert!(resolve_function_reward("example:unregistered").is_empty());
 ```
 
 ## Stacked-on-other clicks
