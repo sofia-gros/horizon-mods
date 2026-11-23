@@ -963,8 +963,15 @@ pub(crate) struct FlightProfile {
     pub loyalty: i32,
     /// The tool's magnetic level (the `tconstruct:magnetic` modifier), for a thrown tool's item pull.
     pub magnet: i32,
-    /// Whether the fired stack's persistent data carries the fins EFLN mark.
+    /// Whether the projectile carries the fins EFLN mark: set by a projectile-bound volatile
+    /// flag on the fired stack (fins), or already present in its persistent data.
     pub efln: bool,
+    /// Whether the projectile carries the enderference mark: set by a projectile-bound volatile
+    /// flag on the fired stack (enderference). The original reads it on an entity hit to let the
+    /// shot's hit hooks run on an enderman the enderference effect does not protect
+    /// (ToolEvents.projectileHit); the impact telling carries neither the target's kind nor its
+    /// effects, so the mark is carried and readable here but gates nothing yet.
+    pub enderference: bool,
     /// Whether the tool carries enderporting (the `tconstruct:enderporting` modifier): where its
     /// projectile lands, the thrower trades places with what it hit.
     pub enderporting: bool,
@@ -979,13 +986,13 @@ impl FlightProfile {
     pub(crate) fn is_empty(&self) -> bool {
         self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
             && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
-            && !self.enderporting && self.tipped.is_none()
+            && !self.enderporting && !self.enderference && self.tipped.is_none()
     }
 }
 
 /// The flight profile of the tool in `nbt`, from its saved modifiers.
 pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProfile {
-    let mut profile = with_tool_facts(nbt, env, |saved, _facts| {
+    let mut profile = with_tool_facts(nbt, env, |saved, facts| {
         let mut profile = FlightProfile::default();
         for (entry, modifier) in saved {
             match entry.id.to_string().as_str() {
@@ -1005,6 +1012,16 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
                 if let Some(module) = module.projectile_attract() { profile.attracts.push((module.radius(entry), module.strength(entry))); }
                 if let Some(module) = module.projectile_glow() { profile.glows.push((module.blocks(), module.entities(), module.tool_damage())); }
                 if let Some(module) = module.restrict_angle() { profile.angle_directions = Some(module.directions(entry)); }
+                // VolatileFlagModule's launch half: a flag bound to a projectile hook is written
+                // into the launched projectile's persistent data, which the profile stands in for
+                // here; the explosion form and the enderference mark are the two readers.
+                if let Some(flag) = module.projectile_flag(entry, facts) {
+                    match flag.to_string().as_str() {
+                        "tconstruct:efln" => profile.efln = true,
+                        "tconstruct:enderference" => profile.enderference = true,
+                        _ => {}
+                    }
+                }
                 // TippedModule: the potion is read from the persistent data below; the
                 // modifier's ID stands in as the key until then.
                 if module.is_tipped() { profile.tipped = Some((entry.id.to_string(), entry.int_effective_level())); }
@@ -1581,6 +1598,39 @@ mod tests {
         // Healing below durability clears the broken flag.
         set_damage(&mut nbt, 10);
         assert!(!is_broken(&nbt));
+    }
+    #[test]
+    fn flight_profile_carries_the_projectile_bound_flags() {
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:fins").unwrap(), json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]})),
+            (Identifier::parse("test:enderference").unwrap(), json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]}]})),
+            (Identifier::parse("test:explosive").unwrap(), json!({"modules":[{"type":"tconstruct:projectile_explosion","block_interaction":"destroy","efln_bonus":0.5,"knockback":{"flat":1.0},"place_fire":false,"radius":{"each_level":1.0,"flat":1.0},"hooks":["tconstruct:projectile_hit"]}]})),
+            (Identifier::parse("test:plain").unwrap(), json!({})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let mut nbt = NbtCompound::new();
+        let list = List::default()
+            .with_modifier(Identifier::parse("test:fins").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("test:enderference").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("test:explosive").unwrap(), 1).unwrap();
+        nbt.insert(TAG_MODIFIERS.into(), list.to_nbt());
+        let profile = flight_profile(&nbt, &env);
+        // Launching with fins bound marks the projectile efln: the explosion consumer adds the
+        // module's efln bonus to the radius for a marked projectile (the EFLN form). The
+        // enderference mark rides the profile the same way.
+        assert!(profile.efln, "fins marks the launched projectile");
+        assert!(profile.enderference, "enderference marks the launched projectile");
+        assert_eq!(profile.explosions.len(), 1);
+        assert_eq!(profile.explosions[0].3, 0.5, "the efln bonus the marked form adds");
+        assert!(!profile.is_empty());
+        // A stack with none of them carries neither mark.
+        let mut bare = NbtCompound::new();
+        bare.insert(TAG_MODIFIERS.into(), List::default().with_modifier(Identifier::parse("test:plain").unwrap(), 1).unwrap().to_nbt());
+        let profile = flight_profile(&bare, &env);
+        assert!(!profile.efln && !profile.enderference);
     }
     #[test]
     fn ensure_materials_fills_missing_materials_but_rebuild_alone_does_not() {

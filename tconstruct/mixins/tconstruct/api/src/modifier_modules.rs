@@ -85,7 +85,12 @@ pub(crate) enum WalkModule {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Module {
-    Flag { id: Identifier, condition: Condition },
+    /// VolatileFlagModule: a boolean flag the entry sets. Bound to the volatile data hook (its
+    /// default binding) it lands in the tool's volatile data; bound to a projectile hook it is
+    /// written into the launched projectile's persistent data instead (fins' `tconstruct:efln`,
+    /// enderference's `tconstruct:enderference`). The two booleans record the binding: `volatile`
+    /// for the data half, `projectile` for the launch half; a record may carry either or both.
+    Flag { id: Identifier, condition: Condition, volatile: bool, projectile: bool },
     Rarity(i32),
     /// SweepingEdgeModule: a leveling value (no condition) added onto the volatile float `tconstruct:sweep_percent`.
     Sweep { flat: f32, each: f32 },
@@ -659,13 +664,21 @@ impl Module {
                     _ => return Err("rarity must be common, uncommon, rare or epic".into()),
                 })
             }
-            "tconstruct:volatile_flag" if only("tconstruct:volatile_data") => Self::Flag { id: identifier(fields, "flag")?, condition: Condition::decode(fields)? },
+            // VolatileFlagModule: the volatile data hook is the default binding (an absent hooks
+            // list means it alone); the projectile hooks bind the launch half, which marks the
+            // launched projectile's persistent data. Any other hook in the list stays unbound.
+            "tconstruct:volatile_flag" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown")) => Self::Flag {
+                id: identifier(fields, "flag")?,
+                condition: Condition::decode(fields)?,
+                volatile: hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:volatile_data"),
+                projectile: hooks.iter().any(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown")),
+            },
             "tconstruct:volatile_int" if only("tconstruct:volatile_data") => Self::Int {
                 id: identifier(fields, "flag")?, flat: short(fields, "flat")?, each: short(fields, "each_level")?, condition: Condition::decode(fields)?,
             },
             // The float binds on its volatile data hook, like the flag and the int; a binding of nothing but the
-            // projectile launch hook stays unbound (a flag bound that way is unbound too), as the launched
-            // projectile's persistent data has no consumer yet.
+            // projectile launch hook stays unbound, as the float's own launch half has no consumer yet (the
+            // flag's launch half does: it marks the launched projectile, see the flag arm above).
             "tconstruct:volatile_float" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:projectile_launch"))
                 && (hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:volatile_data")) => Self::Float {
                 id: identifier(fields, "flag")?, flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)?,
@@ -1382,7 +1395,7 @@ impl Module {
     /// The volatile-data hook. Modules of other hooks do nothing here.
     pub fn apply_volatile(&self, entry: &Entry, facts: &Facts, data: &mut NbtCompound) {
         match self {
-            Self::Flag { id, condition } => { if condition.matches(entry, facts) { data.insert(id.to_string(), Nbt::Byte(1)); } }
+            Self::Flag { id, condition, volatile, .. } => { if *volatile && condition.matches(entry, facts) { data.insert(id.to_string(), Nbt::Byte(1)); } }
             Self::Rarity(ordinal) => {
                 let current = nbt_int(data.get("tconstruct:rarity"));
                 if *ordinal > current { data.insert("tconstruct:rarity".into(), Nbt::Int(*ordinal)); }
@@ -1990,6 +2003,13 @@ impl Module {
     /// The infinity module, if this is one.
     pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
         match self { Self::Infinity { module } => Some(module), _ => None }
+    }
+    /// The flag a launched projectile carries in its persistent data, when this is a volatile
+    /// flag bound to a projectile hook and its condition matches (VolatileFlagModule's launch
+    /// half: fins sets `tconstruct:efln`, enderference sets `tconstruct:enderference`).
+    pub fn projectile_flag(&self, entry: &Entry, facts: &Facts) -> Option<&Identifier> {
+        let Self::Flag { id, condition, projectile, .. } = self else { return None; };
+        (*projectile && condition.matches(entry, facts)).then_some(id)
     }
     /// The arrow pierce module, if this is one.
     pub fn arrow_pierce(&self) -> Option<&crate::projectile_modules::ArrowPierce> {
@@ -2724,7 +2744,13 @@ mod tests {
     #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_some(), "the tank capacity stat binds since the tool tank was ported (tool_tank)");
-        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
+        // A volatile flag binds on the volatile data hook and on the projectile hooks (the shipped
+        // fins and enderference modules); any other hook in the binding leaves it unbound.
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]})).is_some(), "the shipped fins flag binds");
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]})).is_some(), "the shipped enderference flag binds");
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:melee_hit"]})).is_none(), "a flag bound only to an unrelated hook stays unbound");
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:volatile_data","tconstruct:melee_hit"]})).is_none(), "one foreign hook in the binding is enough");
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_some(), "an attacker state condition is bound");
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":"mantle:on_fire","each_level":2.0})).is_some(), "a target state condition is bound");
@@ -2739,6 +2765,32 @@ mod tests {
         }
         // A well-formed predicate of a type this port lacks leaves just that module unbound.
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","tool":{"type":"tconstruct:has_hook","hook":"x:y"}})).is_none());
+    }
+
+    #[test]
+    fn volatile_flag_bound_to_projectile_hooks_marks_the_projectile_not_the_tool() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("tconstruct:fins"), 1);
+        // The shipped fins module: the efln flag, bound to launch and shot. It marks the launched
+        // projectile and writes nothing into the tool's own volatile data.
+        let fins = decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]})).unwrap();
+        assert_eq!(fins.projectile_flag(&entry, &f), Some(&id("tconstruct:efln")));
+        let mut data = NbtCompound::new();
+        fins.apply_volatile(&entry, &f, &mut data);
+        assert!(data.is_empty(), "a projectile-bound flag writes no volatile data");
+        // The shipped enderference module: launch, shot and thrown.
+        let enderference = decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]})).unwrap();
+        assert_eq!(enderference.projectile_flag(&entry, &f), Some(&id("tconstruct:enderference")));
+        // A flag on the default (volatile data) binding still writes the tool's data and marks no projectile.
+        let volatile = decode(json!({"type":"tconstruct:volatile_flag","flag":"test:f"})).unwrap();
+        assert_eq!(volatile.projectile_flag(&entry, &f), None);
+        volatile.apply_volatile(&entry, &f, &mut data);
+        assert_eq!(data["test:f"], Nbt::Byte(1));
+        // A condition that fails keeps the mark off the projectile; meeting it sets the mark.
+        let gated = decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","modifier_level":{"min":2},"hooks":["tconstruct:projectile_launch"]})).unwrap();
+        assert_eq!(gated.projectile_flag(&entry, &f), None);
+        assert_eq!(gated.projectile_flag(&Entry::new(id("tconstruct:fins"), 2), &f), Some(&id("tconstruct:efln")));
     }
 
     #[test]

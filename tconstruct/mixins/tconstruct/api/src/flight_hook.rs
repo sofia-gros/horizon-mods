@@ -125,6 +125,7 @@ fn merge(ammo: tool_stack::FlightProfile, weapon: tool_stack::FlightProfile) -> 
         loyalty: weapon.loyalty.max(ammo.loyalty),
         magnet: weapon.magnet.max(ammo.magnet),
         efln: ammo.efln || weapon.efln,
+        enderference: ammo.enderference || weapon.enderference,
         enderporting: ammo.enderporting || weapon.enderporting,
         tipped: weapon.tipped.or(ammo.tipped),
     }
@@ -275,6 +276,13 @@ fn thrown_tool_flight(flight: &ProjectileFlight, thrown: &mut ThrownTool, profil
 fn on_impact(hit: &ProjectileImpact) -> bool {
     let Some(mut state) = take_flight(&hit.dimension, hit.projectile) else { return true };
     let profile = state.profile.clone();
+    // ToolEvents.projectileHit's enderference gate is the one read of the enderference mark
+    // with no port application yet: in the original, an entity hit runs the projectile's hit
+    // hooks only when the target can be hit with a projectile (not an enderman, or an enderman
+    // carrying the enderference effect) or when the projectile itself carries the mark
+    // (profile.enderference). The impact telling carries neither the target's kind nor its
+    // effects, and whether an enderman dodges a shot at all is the game's own behaviour, so
+    // the mark is carried and readable here but gates nothing.
     // A shuriken's own hit replaces the game's (its damage is the tool's stat, not the type's).
     if let Some(shuriken) = &state.shuriken {
         let stack = shuriken.stack.clone();
@@ -412,5 +420,17 @@ mod tests {
         assert_eq!(merged.pierce, Some(3));
         assert_eq!(merged.gravity_delay, Some(20));
         assert_eq!(merged.bounces.len(), 1);
+    }
+
+    #[test]
+    fn profiles_merge_carrying_either_side_projectile_marks() {
+        // The volatile flags' marks (fins' efln, enderference's) ride the merged profile from
+        // whichever stack carries them, as the shot hooks run over both.
+        let ammo = tool_stack::FlightProfile { efln: true, ..Default::default() };
+        let weapon = tool_stack::FlightProfile { enderference: true, ..Default::default() };
+        let merged = merge(ammo, weapon);
+        assert!(merged.efln);
+        assert!(merged.enderference);
+        assert!(!merged.is_empty(), "a lone enderference mark still binds a flight");
     }
 }
