@@ -1441,6 +1441,24 @@ kind = "HEAD"
 helper = "pluto-entity-ride-drain-head.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
 
+# Entity push transport for the entity reach: a queue of knockbacks, pushes
+# and leave-ground lifts, applied by the game's own knockback and motion
+# paths at the head of its rider synchronisation (the passenger transport's
+# drain point).
+[[module]]
+id = "pluto-entity-push-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_entity_push_access"
+source = "pluto-entity-push-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-entity-push-drain"
+target = "horizon_client::game::passengers::Game<'_>::sync_riders"
+kind = "HEAD"
+helper = "pluto-entity-push-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
 [[injection]]
 id = "pluto-entity-seat-player"
 target = "horizon_client::game::seats::Game<'_>::seat"
