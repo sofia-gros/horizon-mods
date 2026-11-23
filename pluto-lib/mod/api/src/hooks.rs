@@ -1951,6 +1951,27 @@ struct HostEntities {
     dimension: String,
 }
 
+impl HostEntities {
+    /// The numeric id to queue a push for, when the entity can be named: the host's entity call names
+    /// it, or it is a player the player list names (the entity call does not name every player; see
+    /// `position_of`). The push is queued either way, and the game's own resolution at its rider
+    /// synchronisation has the last word.
+    fn push_target(&mut self, id: u64) -> Option<u32> {
+        let id32 = u32::try_from(id).ok()?;
+        let host = self.host.get();
+        if host.entity(id32).is_some() {
+            return Some(id32);
+        }
+        let wanted = id32 as i32;
+        if host.acting_player().is_some_and(|player| player.entity_id == wanted)
+            || host.server_players().iter().any(|player| player.entity_id == wanted)
+        {
+            return Some(id32);
+        }
+        None
+    }
+}
+
 impl EntityOps for HostEntities {
     fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<entity_api_v1::WorldEntity> {
         let host = self.host.get();
@@ -2099,6 +2120,21 @@ impl EntityOps for HostEntities {
         let host = self.host.get();
         let entity = host.entity(u32::try_from(id).ok()?)?;
         Identifier::parse(&host.entity_kind(entity)?).ok()
+    }
+
+    fn knockback(&mut self, id: u64, strength: f64, x: f64, z: f64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_knockback(&self.dimension, id, strength, x, z)
+    }
+
+    fn push(&mut self, id: u64, delta: [f64; 3]) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_push(&self.dimension, id, delta)
+    }
+
+    fn leave_ground(&mut self, id: u64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_leave_ground(&self.dimension, id)
     }
 }
 
@@ -3639,7 +3675,11 @@ impl Hooks for PlutoHooks {
             used: std::cell::Cell::new(false),
             edits: std::cell::RefCell::new(Vec::new()),
         };
-        let (used, edits) = scoped(host, || item_api_v1::released(&release));
+        // The callbacks see the world and the entities around the player, as a projectile
+        // impact's do: a release can search for what it acts on (a sling's bonk target).
+        let handle = HostHandle::new(host);
+        let dimension = release.dimension.clone();
+        let (used, edits) = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || item_api_v1::released(&release)));
         if used { event.used = true; }
         if !edits.is_empty() { apply_carried_edits(host, player.uuid, edits); }
     }

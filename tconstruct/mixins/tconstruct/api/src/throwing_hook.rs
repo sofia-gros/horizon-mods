@@ -45,6 +45,19 @@ fn throwing(stack: &StackData) -> bool {
     with_held_tool(stack, |env, tool| tool_stack::throwing(&tool.custom_data, env)).unwrap_or(false)
 }
 
+/// Whether the stack is a whole Tinkers tool carrying a sling module (SlingModule: the
+/// use charges like a bow and the release spends the charge, in `sling_hook`).
+fn sling(stack: &StackData) -> bool {
+    with_held_tool(stack, |env, tool| !tool_stack::sling_modules(&tool.custom_data, env).is_empty()).unwrap_or(false)
+}
+
+/// Whether the stack is a whole Tinkers tool carrying a fireball module (FireballModule:
+/// the use fires a fireball, in `fireball_hook`; the long use time here means a click
+/// and a hold both end in the release that fires it).
+fn fireball(stack: &StackData) -> bool {
+    with_held_tool(stack, |env, tool| tool_stack::fireball_module(&tool.custom_data, env).is_some()).unwrap_or(false)
+}
+
 /// Whether the stack is the shuriken tool, whole enough to throw (its data initialized, not broken).
 fn shuriken(stack: &StackData) -> bool {
     stack.item == format!("tconstruct:{SHURIKEN_ITEM}")
@@ -161,15 +174,17 @@ pub(crate) fn register() {
     for path in edible_hook::USE_ITEMS {
         let Ok(item) = Identifier::new("tconstruct", path) else { continue };
         ItemUseRegistry::register_stack(item, StackUse::new(UseAction::None)
-            .can_use(|stack| eatable(stack) || blocking(stack) || throwing(stack))
+            .can_use(|stack| eatable(stack) || blocking(stack) || throwing(stack) || sling(stack) || fireball(stack))
             .action_for(|stack| {
                 if eatable(stack) { return Some(UseAction::Eat); }
                 if blocking(stack) { return Some(UseAction::Block); }
-                throwing(stack).then_some(UseAction::Spear)
+                if sling(stack) { return Some(UseAction::Bow); }
+                if throwing(stack) { return Some(UseAction::Spear); }
+                fireball(stack).then_some(UseAction::None)
             })
             .use_time(|stack| {
                 if eatable(stack) { return edible_hook::eating(stack).map_or(0, |(_, duration)| edible::use_ticks(duration)); }
-                if blocking(stack) || throwing(stack) { THROW_TICKS } else { 0 }
+                if blocking(stack) || throwing(stack) || sling(stack) || fireball(stack) { THROW_TICKS } else { 0 }
             }));
     }
     if let Ok(item) = Identifier::new("tconstruct", SHURIKEN_ITEM) {

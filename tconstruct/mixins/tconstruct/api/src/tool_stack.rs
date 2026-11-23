@@ -854,6 +854,68 @@ pub(crate) fn damage_on_shoot(nbt: &NbtCompound, env: &Environment) -> Vec<(Stri
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.damage_on_shoot(entry, facts))).collect())
 }
 
+/// The tool's sling modules in modifier order, each with its entry and its modifier's ID:
+/// the release computation runs them in order, as the original's hook iteration does.
+pub(crate) fn sling_modules(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::modifier_entries::Entry, Identifier, crate::sling_modules::Sling)> {
+    if is_broken(nbt) { return Vec::new(); }
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                if let Some(sling) = module.sling(entry, facts) { found.push((entry.clone(), entry.id.clone(), sling.clone())); }
+            }
+        }
+        found
+    })
+}
+
+/// SlingForceModifierHook over the tool: each of the tool's sling force modules reshapes
+/// the force in modifier order, filtered on its predicates against the modifier doing the
+/// slinging (`sling`), the holder and the target.
+pub(crate) fn sling_force(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, holder: &crate::sling_modules::LivingState, target: &crate::sling_modules::LivingState, sling: &Identifier, force: f32, multiplier: f32) -> f32 {
+    let in_tag = |modifier: &Identifier, tag: &Identifier| env.modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
+    let view = crate::mining_speed::ToolView::with(nbt, *entities);
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut force = force;
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                force = module.sling_force(entry, facts, &view, holder, target, sling, &in_tag, force, multiplier);
+            }
+        }
+        force
+    })
+}
+
+/// The power a sling spends (SlingModule.getPower): half the tool's conditional
+/// projectile damage times its conditional velocity, for the holder `entities`.
+pub(crate) fn sling_power(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat(nbt, env, Stat::ProjectileDamage, &|_| false, entities) / 2.0 * conditional_stat(nbt, env, Stat::Velocity, &|_| false, entities)
+}
+
+/// The draw speed a sling charges by (the conditional stat in SlingModule.getDrawtime).
+pub(crate) fn draw_speed(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat(nbt, env, Stat::DrawSpeed, &|_| false, entities)
+}
+
+/// ModifierUtil.getInaccuracy: `3 * (1 / accuracy - 1)` over the conditional accuracy.
+pub(crate) fn inaccuracy(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    3.0 * (1.0 / conditional_stat(nbt, env, Stat::Accuracy, &|_| false, entities) - 1.0)
+}
+
+/// The tool's first fireball module whose condition matches, with its entry and its
+/// modifier's ID (FireballModule: one shot per use, from the first that fires).
+pub(crate) fn fireball_module(nbt: &NbtCompound, env: &Environment) -> Option<(crate::modifier_entries::Entry, Identifier, crate::projectile_modules::Fireball)> {
+    if is_broken(nbt) { return None; }
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                if let Some(fireball) = module.fireball(entry, facts) { return Some((entry.clone(), entry.id.clone(), fireball.clone())); }
+            }
+        }
+        None
+    })
+}
+
 /// The infinity supply of a launcher: the first module in modifier order that fires for this shot (one that
 /// skips standard ammo, or whose count the remaining durability cannot pay for, lets the next try, as the
 /// composed bow ammo hook passes an empty result on), as the stack to fire, the durability one shot costs
@@ -906,6 +968,10 @@ pub(crate) struct FlightProfile {
     /// Whether the tool carries enderporting (the `tconstruct:enderporting` modifier): where its
     /// projectile lands, the thrower trades places with what it hit.
     pub enderporting: bool,
+    /// TippedModule: the potion the fired stack was tipped with (its persistent string
+    /// under the modifier's ID, copied at the shot as onProjectileShoot copies it) and
+    /// the entry's int effective level, which sets the hit's divisor.
+    pub tipped: Option<(String, i32)>,
 }
 
 impl FlightProfile {
@@ -913,7 +979,7 @@ impl FlightProfile {
     pub(crate) fn is_empty(&self) -> bool {
         self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
             && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
-            && !self.enderporting
+            && !self.enderporting && self.tipped.is_none()
     }
 }
 
@@ -939,12 +1005,23 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
                 if let Some(module) = module.projectile_attract() { profile.attracts.push((module.radius(entry), module.strength(entry))); }
                 if let Some(module) = module.projectile_glow() { profile.glows.push((module.blocks(), module.entities(), module.tool_damage())); }
                 if let Some(module) = module.restrict_angle() { profile.angle_directions = Some(module.directions(entry)); }
+                // TippedModule: the potion is read from the persistent data below; the
+                // modifier's ID stands in as the key until then.
+                if module.is_tipped() { profile.tipped = Some((entry.id.to_string(), entry.int_effective_level())); }
             }
         }
         profile
     });
     if let Some(Nbt::Compound(persistent)) = nbt.get(TAG_PERSISTENT) {
         profile.efln = matches!(persistent.get("tconstruct:efln"), Some(Nbt::Byte(1)) | Some(Nbt::Int(1)));
+        // The tipped potion: the persistent string under the modifier's own ID, as the
+        // tipping casting recipes leave it; no string, no tip.
+        if let Some((key, level)) = profile.tipped.take() {
+            profile.tipped = match persistent.get(&key) {
+                Some(Nbt::String(potion)) if !potion.is_empty() => Some((potion.clone(), level)),
+                _ => None,
+            };
+        }
     }
     profile
 }

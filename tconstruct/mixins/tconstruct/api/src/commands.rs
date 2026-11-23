@@ -1787,6 +1787,29 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:projectile_thrown");
             out.insert("tconstruct:sling_launch");
         }
+        Module::SlingForce { .. } => {
+            out.insert("tconstruct:sling_force");
+        }
+        Module::Sling { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:melee_damage");
+        }
+        Module::Fireball { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:armor_interact");
+        }
+        Module::Tipped => {
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_thrown");
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:display_name");
+            out.insert("tconstruct:tooltip");
+            out.insert("tconstruct:remove");
+        }
         Module::Infinity { .. } => {
             out.insert("tconstruct:bow_ammo");
             out.insert("tconstruct:projectile_launch");

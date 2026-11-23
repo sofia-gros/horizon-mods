@@ -301,6 +301,17 @@ pub(crate) enum Module {
     ReversePunch { module: Box<crate::punch::ReversePunch> },
     /// DamageOnShootModule: firing the tool hurts its holder.
     DamageOnShoot { module: crate::projectile_modules::DamageOnShoot, condition: Condition },
+    /// SlingForceModule: reshapes a sling's force through its formula (sling_modules).
+    SlingForce { module: crate::sling_modules::SlingForce, condition: Condition },
+    /// A SlingModule (SlingKnockbackModule, SlingLeapModule, SlingTeleportModule): charges
+    /// and spends the charge as a force on release (sling_modules, sling_hook).
+    Sling { module: crate::sling_modules::Sling, condition: Condition },
+    /// FireballModule: using the tool shoots a fireball carrying a matched ammo
+    /// (projectile_modules, fireball_hook).
+    Fireball { module: crate::projectile_modules::Fireball, condition: Condition },
+    /// TippedModule: a projectile fired from the tool carries the potion stored on the
+    /// tool to the entity it hits (potion_contents, flight_hook).
+    Tipped,
     /// ExtinguishCampfireModule: a right click that puts out lit campfires.
     CampfireExtinguish { condition: Condition },
     /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
@@ -1273,6 +1284,35 @@ impl Module {
             "tconstruct:damage_on_shoot" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:sling_launch")) => {
                 Self::DamageOnShoot { module: crate::projectile_modules::DamageOnShoot::decode(fields)?, condition: Condition::decode(fields)? }
             }
+            // SlingForceModule: a formula over the force of a sling, filtered on the sling,
+            // the holder and the target (sling_modules).
+            "tconstruct:sling_force" if only("tconstruct:sling_force") => {
+                let Some(module) = crate::sling_modules::SlingForce::decode(fields)? else { return Ok(None); };
+                Self::SlingForce { module, condition: Condition::decode(fields)? }
+            }
+            // The SlingModule family: charge on use, spend the charge as a force on release
+            // (sling_hook). SlingKnockbackModule's defaults add the melee hooks, as a bonk is
+            // a melee attack wearing a sling.
+            "tconstruct:sling_knockback" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact" | "tconstruct:melee_hit" | "tconstruct:melee_damage")) => {
+                let Some(module) = crate::sling_modules::Sling::decode_knockback(fields)? else { return Ok(None); };
+                Self::Sling { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:sling_leap" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact")) => {
+                let Some(module) = crate::sling_modules::Sling::decode_leap(fields)? else { return Ok(None); };
+                Self::Sling { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:sling_teleport" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact")) => {
+                let Some(module) = crate::sling_modules::Sling::decode_teleport(fields)? else { return Ok(None); };
+                Self::Sling { module, condition: Condition::decode(fields)? }
+            }
+            // FireballModule: shoots a fireball carrying a matched ammo on use.
+            "tconstruct:fireball" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:armor_interact")) => {
+                let Some(module) = crate::projectile_modules::Fireball::decode(fields)? else { return Ok(None); };
+                Self::Fireball { module, condition: Condition::decode(fields)? }
+            }
+            // TippedModule: no fields and no condition; the potion rides the tool's
+            // persistent data under the modifier's own ID.
+            "tconstruct:tipped" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:projectile_hit" | "tconstruct:display_name" | "tconstruct:tooltip" | "tconstruct:remove")) => Self::Tipped,
             // InfinityModule: the bow ammo half binds on the ammo event; the removal half is run by the remove paths.
             "tconstruct:infinity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:remove")) => {
                 let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
@@ -1394,7 +1434,7 @@ impl Module {
                 }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1440,6 +1480,8 @@ impl Module {
             Self::Tank => { persistent.remove(crate::tool_tank::FLUID_KEY); }
             // OverburnModule.onRemoved: forget the burn in progress.
             Self::Overburn => { persistent.remove(&modifier.to_string()); }
+            // TippedModule.onRemoved: the stored potion leaves with the modifier.
+            Self::Tipped => { persistent.remove(&modifier.to_string()); }
             // SmashingModule.onRemoved: clear the stored fluid and its validation level.
             Self::Smashing => { crate::tool_tank::smashing_clear(persistent); }
             // Only a module that matches a stored value owns it.
@@ -1915,6 +1957,25 @@ impl Module {
         let Self::DamageOnShoot { module, condition } = self else { return None; };
         if condition.matches(entry, facts) { module.hurt(entry) } else { None }
     }
+    /// SlingForceModifierHook.modifySlingForce for this module: the force reshaped by its
+    /// formula, or the force unchanged when this is no sling force module or its condition
+    /// or predicates do not match.
+    pub fn sling_force(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, holder: &crate::sling_modules::LivingState, target: &crate::sling_modules::LivingState, sling: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, force: f32, multiplier: f32) -> f32 {
+        let Self::SlingForce { module, condition } = self else { return force; };
+        module.apply(entry, condition.matches(entry, facts), tool, holder, target, sling, in_tag, force, multiplier)
+    }
+    /// The sling module this is, when its condition matches (the release computation).
+    pub fn sling(&self, entry: &Entry, facts: &Facts) -> Option<&crate::sling_modules::Sling> {
+        let Self::Sling { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(module)
+    }
+    /// The fireball module this is, when its condition matches (the firing).
+    pub fn fireball(&self, entry: &Entry, facts: &Facts) -> Option<&crate::projectile_modules::Fireball> {
+        let Self::Fireball { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(module)
+    }
+    /// Whether this is the tipped module (TippedModule).
+    pub fn is_tipped(&self) -> bool { matches!(self, Self::Tipped) }
     /// The infinity module, if this is one.
     pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
         match self { Self::Infinity { module } => Some(module), _ => None }

@@ -1,6 +1,7 @@
 //! The entities of a world, reached from a callback that carries them (a block entity ticker): what stands inside a
-//! box, hurting it, taking the items it dropped, and who rides whom (Minecraft: `Level.getEntitiesOfClass`,
-//! `LivingEntity.hurt`, `ItemEntity.setItem` and `discard`, `Entity.startRiding` and `stopRiding`). Like
+//! box, hurting it, taking the items it dropped, who rides whom, and pushing it (Minecraft: `Level.getEntitiesOfClass`,
+//! `LivingEntity.hurt`, `ItemEntity.setItem` and `discard`, `Entity.startRiding` and `stopRiding`,
+//! `LivingEntity.knockback` and `Entity.push`). Like
 //! [`World`](super::world_api_v1::World), the reach only exists while a host-installed scope is open; outside it
 //! every query answers "nothing there", never a guess.
 use super::{base::Identifier, block_entity_api_v1::ItemSlot};
@@ -95,6 +96,34 @@ pub trait EntityOps {
     /// entity. Hosts that predate the call answer None.
     fn kind_of(&mut self, _id: u64) -> Option<Identifier> {
         None
+    }
+    /// Knocks entity `id` back with `strength` along the horizontal direction (`x`, `z`), as
+    /// `LivingEntity.knockback(strength, x, z)` does: the entity's own knockback resistance scales the
+    /// strength, its horizontal motion is halved against the push, and it rises by the strength (at most
+    /// 0.4) when it stands on the ground. A player is knocked back the same way, and their client is told
+    /// the new motion, as the game's own knockback of a player tells it. Only a living entity or a player
+    /// can be knocked back. A host may apply an accepted knockback at its next rider synchronisation
+    /// rather than instantly; the motion is then observable from the next tick, and a refusal there (the
+    /// entity is gone, or not living) is final. Hosts that predate the call answer false.
+    fn knockback(&mut self, _id: u64, _strength: f64, _x: f64, _z: f64) -> bool {
+        false
+    }
+    /// Adds `delta` to entity `id`'s velocity, as `Entity.push` does: no resistance and no halving, the
+    /// motion simply grows by the vector. A player is pushed the same way, and their client is told. Only
+    /// a living entity or a player is pushed. A host may apply an accepted push at its next rider
+    /// synchronisation rather than instantly, as [`EntityOps::knockback`] describes. Hosts that predate
+    /// the call answer false.
+    fn push(&mut self, _id: u64, _delta: [f64; 3]) -> bool {
+        false
+    }
+    /// Lifts the player `id` off the ground for a launch, as `Entity.move(MoverType.SELF, (0, 1.3, 0))`
+    /// does at the head of one: standing on the ground, they rise by 1.3, or to the first ceiling the
+    /// move would stop at. Only a player is lifted (the move's caller in the original launches the tool's
+    /// user), and only while they stand on the ground. A host may apply an accepted lift at its next
+    /// rider synchronisation rather than instantly, as [`EntityOps::knockback`] describes. Hosts that
+    /// predate the call answer false.
+    fn leave_ground(&mut self, _id: u64) -> bool {
+        false
     }
 }
 
@@ -196,6 +225,25 @@ impl EntityReach {
     pub fn kind_of(id: u64) -> Option<Identifier> {
         with_current(None, |ops| ops.kind_of(id))
     }
+
+    /// Knocks entity `id` back with `strength` along the horizontal direction (`x`, `z`), as
+    /// `LivingEntity.knockback` does (see [`EntityOps::knockback`] for exactly what lands, and when);
+    /// whether the knockback was accepted. False outside a scope.
+    pub fn knockback(id: u64, strength: f64, x: f64, z: f64) -> bool {
+        with_current(false, |ops| ops.knockback(id, strength, x, z))
+    }
+
+    /// Adds `delta` to entity `id`'s velocity, as `Entity.push` does (see [`EntityOps::push`]); whether
+    /// the push was accepted. False outside a scope.
+    pub fn push(id: u64, delta: [f64; 3]) -> bool {
+        with_current(false, |ops| ops.push(id, delta))
+    }
+
+    /// Lifts the player `id` off the ground for a launch (see [`EntityOps::leave_ground`]); whether the
+    /// lift was accepted. False outside a scope.
+    pub fn leave_ground(id: u64) -> bool {
+        with_current(false, |ops| ops.leave_ground(id))
+    }
 }
 
 /// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
@@ -212,11 +260,17 @@ pub struct MemoryEntityOps {
     pub hurts_land: bool,
     /// Who rides whom: `(passenger, vehicle)` pairs, in the order they mounted.
     pub mounts: Vec<(u64, u64)>,
+    /// The knockbacks asked for: the id, the strength and the horizontal direction.
+    pub knocked: Vec<(u64, f64, f64, f64)>,
+    /// The pushes asked for: the id and the velocity added.
+    pub pushed: Vec<(u64, [f64; 3])>,
+    /// The players lifted off the ground, in order.
+    pub lifted: Vec<u64>,
 }
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new() }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new() }
     }
 }
 
@@ -294,6 +348,30 @@ impl EntityOps for MemoryEntityOps {
     fn kind_of(&mut self, id: u64) -> Option<Identifier> {
         self.entities.iter().find(|(_, entity)| entity.id == id).map(|(_, entity)| entity.kind.clone())
     }
+
+    fn knockback(&mut self, id: u64, strength: f64, x: f64, z: f64) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
+            return false;
+        }
+        self.knocked.push((id, strength, x, z));
+        true
+    }
+
+    fn push(&mut self, id: u64, delta: [f64; 3]) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
+            return false;
+        }
+        self.pushed.push((id, delta));
+        true
+    }
+
+    fn leave_ground(&mut self, id: u64) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
+            return false;
+        }
+        self.lifted.push(id);
+        true
+    }
 }
 
 #[cfg(test)]
@@ -320,6 +398,9 @@ mod tests {
         assert!(!EntityReach::set_item(1, &ItemSlot::new(id("minecraft:iron_ingot"), 1)));
         assert_eq!(EntityReach::position_of(2), None);
         assert!(!EntityReach::teleport(2, [0.0, 64.0, 0.0]));
+        assert!(!EntityReach::knockback(2, 1.0, 1.0, 0.0));
+        assert!(!EntityReach::push(2, [0.0, 1.0, 0.0]));
+        assert!(!EntityReach::leave_ground(2));
     }
 
     #[test]
@@ -379,6 +460,23 @@ mod tests {
         });
         assert_eq!(EntityReach::kind_of(2), None, "outside a scope nothing is named");
         assert_eq!(EntityReach::id_of_uuid(0x1234), None);
+    }
+
+    #[test]
+    fn a_knockback_a_push_and_a_lift_are_recorded_for_the_living() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            assert!(EntityReach::knockback(2, 1.5, -0.5, 0.25));
+            assert!(EntityReach::push(3, [0.1, 0.4, -0.2]));
+            assert!(EntityReach::leave_ground(2));
+            assert!(!EntityReach::knockback(1, 1.0, 1.0, 0.0), "an item entity cannot be knocked back");
+            assert!(!EntityReach::push(1, [0.0, 1.0, 0.0]), "an item entity is not pushed");
+            assert!(!EntityReach::leave_ground(1), "an item entity is not lifted");
+            assert!(!EntityReach::knockback(99, 1.0, 1.0, 0.0), "no such entity");
+        });
+        assert_eq!(ops.knocked, vec![(2, 1.5, -0.5, 0.25)]);
+        assert_eq!(ops.pushed, vec![(3, [0.1, 0.4, -0.2])]);
+        assert_eq!(ops.lifted, vec![2]);
     }
 
     #[test]

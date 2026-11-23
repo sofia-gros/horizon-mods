@@ -311,6 +311,174 @@ pub(crate) fn clamp_to(directions: u32, motion: [f64; 3]) -> [f64; 3] {
     [-snapped.sin() * horizontal, motion[1], snapped.cos() * horizontal]
 }
 
+/// What a fireball option matches in the shooter's inventory (the match half of a
+/// FireballType): one item, or an item tag. Another ingredient form leaves the module
+/// unbound.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum AmmoMatch {
+    Item(Identifier),
+    Tag(Identifier),
+}
+
+impl AmmoMatch {
+    fn decode(value: &Value) -> Result<Option<Self>, String> {
+        let Value::Object(object) = value else { return Err("fireball match must be an object".into()) };
+        if object.contains_key("item") {
+            return Ok(Some(Self::Item(identifier(object, "item")?)));
+        }
+        if object.contains_key("tag") {
+            return Ok(Some(Self::Tag(identifier(object, "tag")?)));
+        }
+        Ok(None)
+    }
+
+    /// Whether a carried stack is this ammo; `in_tag` answers item tag membership.
+    pub(crate) fn matches(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
+        match self {
+            Self::Item(wanted) => wanted == item,
+            Self::Tag(tag) => in_tag(item, tag),
+        }
+    }
+}
+
+/// A damage multiplier field, 1 when absent (the fireball loaders' default).
+fn defaulted_multiplier(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
+    match fields.get(key).filter(|value| !value.is_null()) {
+        None => Ok(1.0),
+        Some(_) => number(fields, key),
+    }
+}
+
+/// A damage type pair (ranged, melee); the melee half doubles as the fireball's
+/// enderference override type (CustomFireball.setDamageType's quirk).
+fn damage_pair(value: &Value) -> Result<Option<(Identifier, Identifier)>, String> {
+    let Value::Object(object) = value else { return Err("damage_type must be an object".into()) };
+    Ok(Some((identifier(object, "ranged")?, identifier(object, "melee")?)))
+}
+
+/// A list of modifier entries (`{name, level}`), as the ammo modifier lists carry them.
+fn modifier_list(fields: &Map<String, Value>, key: &str) -> Result<Vec<(Identifier, i32)>, String> {
+    match fields.get(key).filter(|value| !value.is_null()) {
+        None => Ok(Vec::new()),
+        Some(Value::Array(list)) => list
+            .iter()
+            .map(|entry| {
+                let object = entry.as_object().ok_or("modifier entry must be an object")?;
+                let level = match object.get("level") {
+                    Some(Value::Number(number)) => crate::materials::number_int(&number.to_string()),
+                    _ => return Err("modifier entry level must be an integer".into()),
+                };
+                Ok((identifier(object, "name")?, level))
+            })
+            .collect(),
+        Some(_) => Err(format!("{key} must be a list")),
+    }
+}
+
+/// One FireballType: the ammo it matches, the modifiers it adds to the shot, and its own
+/// damage type pair and damage multiplier where they override the module's.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct FireballType {
+    pub matches: AmmoMatch,
+    pub ammo_modifiers: Vec<(Identifier, i32)>,
+    /// The (ranged, melee) pair, when this type names its own.
+    pub damage_type: Option<(Identifier, Identifier)>,
+    pub damage_multiplier: f32,
+}
+
+impl FireballType {
+    fn decode(value: &Value) -> Result<Option<Self>, String> {
+        let Value::Object(object) = value else { return Err("fireball option must be an object".into()) };
+        let Some(matches) = (match object.get("match") {
+            Some(match_value) => AmmoMatch::decode(match_value)?,
+            None => return Err("fireball option match is required".into()),
+        }) else {
+            return Ok(None);
+        };
+        let damage_type = match object.get("damage_type").filter(|value| !value.is_null()) {
+            None => None,
+            Some(value) => damage_pair(value)?,
+        };
+        Ok(Some(Self {
+            matches,
+            ammo_modifiers: modifier_list(object, "ammo_modifiers")?,
+            damage_type,
+            damage_multiplier: defaulted_multiplier(object, "damage_multiplier")?,
+        }))
+    }
+}
+
+/// FireballModule: using the tool shoots a fireball carrying one of the option ammos the
+/// shooter carries (the firing itself is `fireball_hook`'s). The durability is a
+/// LevelingInt, (flat, each_level).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Fireball {
+    pub options: Vec<FireballType>,
+    /// The module's (ranged, melee) damage type pair.
+    pub damage_type: (Identifier, Identifier),
+    pub damage_multiplier: f32,
+    pub ammo_modifiers: Vec<(Identifier, i32)>,
+    pub durability: (i32, i32),
+    pub sound: Identifier,
+}
+
+impl Fireball {
+    /// `None` when an option matches an ingredient form this port cannot honor.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let options = match fields.get("options").filter(|value| !value.is_null()) {
+            Some(Value::Array(list)) => {
+                let mut options = Vec::with_capacity(list.len());
+                for option in list {
+                    match FireballType::decode(option)? {
+                        Some(option) => options.push(option),
+                        None => return Ok(None),
+                    }
+                }
+                options
+            }
+            _ => return Err("options must be a list".into()),
+        };
+        let damage_type = match fields.get("damage_type").filter(|value| !value.is_null()) {
+            Some(value) => damage_pair(value)?.ok_or("damage_type must name ranged and melee")?,
+            None => return Err("damage_type is required".into()),
+        };
+        let durability = match fields.get("durability").filter(|value| !value.is_null()) {
+            Some(Value::Object(object)) => {
+                let part = |key: &str| match object.get(key).filter(|value| !value.is_null()) {
+                    None => Ok(0),
+                    Some(Value::Number(number)) => Ok(crate::materials::number_int(&number.to_string())),
+                    Some(_) => Err("durability must be a leveling int".to_string()),
+                };
+                (part("flat")?, part("each_level")?)
+            }
+            Some(Value::Number(number)) => (0, crate::materials::number_int(&number.to_string())),
+            _ => return Err("durability is required".into()),
+        };
+        let sound = match fields.get("sound").filter(|value| !value.is_null()) {
+            None => Identifier::parse("minecraft:entity.blaze.shoot").map_err(|e| e.to_string())?,
+            Some(_) => identifier(fields, "sound")?,
+        };
+        Ok(Some(Self {
+            options,
+            damage_type,
+            damage_multiplier: defaulted_multiplier(fields, "damage_multiplier")?,
+            ammo_modifiers: modifier_list(fields, "ammo_modifiers")?,
+            durability,
+            sound,
+        }))
+    }
+
+    /// The first option matching a carried stack (getFireballType over the found ammo).
+    pub(crate) fn option_for(&self, item: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> Option<&FireballType> {
+        self.options.iter().find(|option| option.matches.matches(item, in_tag))
+    }
+
+    /// The durability one shot costs at the entry's level (LevelingInt.compute).
+    pub(crate) fn usage(&self, entry: &Entry) -> i32 {
+        crate::modifier_modules::leveling_compute(self.durability, entry.effective_level())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -318,6 +486,32 @@ mod tests {
 
     fn fields(value: Value) -> Map<String, Value> { value.as_object().unwrap().clone() }
     fn entry(level: i32) -> Entry { Entry::new(Identifier::parse("tconstruct:spiny").unwrap(), level) }
+
+    #[test]
+    fn fireball_decodes_the_shipped_slimeball_module() {
+        // The shipped slimeball module, cut down to two of its five options.
+        let module = Fireball::decode(&fields(json!({
+            "ammo_modifiers": [{"level": 1, "name": "tconstruct:bounce"}],
+            "damage_multiplier": 1.5,
+            "damage_type": {"melee": "tconstruct:fluid_impact_melee", "ranged": "tconstruct:fluid_impact_ranged"},
+            "durability": {"flat": 1},
+            "options": [
+                {"ammo_modifiers": [{"level": 2, "name": "tconstruct:drawback"}], "damage_multiplier": 0.67, "match": {"tag": "forge:slimeball/earth"}},
+                {"ammo_modifiers": [{"level": 1, "name": "tconstruct:explosive"}], "damage_type": {"melee": "tconstruct:mob_explosion_melee", "ranged": "tconstruct:mob_explosion_ranged"}, "match": {"item": "minecraft:magma_cream"}}
+            ],
+            "sound": "tconstruct:slimy_bounce"
+        }))).unwrap().unwrap();
+        assert_eq!(module.damage_multiplier, 1.5);
+        assert_eq!(module.usage(&entry(1)), 1);
+        assert_eq!(module.sound.to_string(), "tconstruct:slimy_bounce");
+        let magma = Identifier::parse("minecraft:magma_cream").unwrap();
+        let option = module.option_for(&magma, &|_, _| false).unwrap();
+        assert_eq!(option.damage_multiplier, 1.0, "an option without a multiplier defaults to 1");
+        assert_eq!(option.damage_type.as_ref().unwrap().0.to_string(), "tconstruct:mob_explosion_ranged");
+        let earth = Identifier::parse("tconstruct:earth_slimeball").unwrap();
+        let in_tag = |item: &Identifier, tag: &Identifier| item == &earth && tag.to_string() == "forge:slimeball/earth";
+        assert_eq!(module.option_for(&earth, &in_tag).unwrap().damage_multiplier, 0.67);
+    }
 
     #[test]
     fn damage_on_shoot_hurts_the_holder_by_the_damage_times_the_level() {
