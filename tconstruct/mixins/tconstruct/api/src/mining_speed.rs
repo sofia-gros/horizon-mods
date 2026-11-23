@@ -407,7 +407,7 @@ mod tests {
     fn block_variables_read_the_facts_of_the_dig() {
         let nbt = NbtCompound::new();
         let mut view = ToolView::of(&nbt);
-        view.facts = BlockFacts { block_light: Some(9), sky_light: Some(15), sky_darken: 11, biome_temperature: Some(0.8) };
+        view.facts = BlockFacts { block_light: Some(9), sky_light: Some(15), sky_darken: 11, biome_temperature: Some(0.8), blast_resistance: None, requires_tool: None };
         let read = |value: &Value| Variable::decode_in(value, EntityScope::None).unwrap().unwrap().value(&view);
         assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"})), 9.0);
         assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "sky"})), 4.0, "15 less the 11 the night takes");
