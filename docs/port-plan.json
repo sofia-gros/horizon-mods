@@ -183,6 +183,7 @@
     "api/src/aoe.rs",
     "api/src/armor_interact_hook.rs",
     "api/src/quiver_hook.rs",
+    "api/src/sleeves_hook.rs",
     "api/src/tool_behavior_hook.rs",
     "api/src/shaped_materials.rs",
     "api/src/retextured.rs",

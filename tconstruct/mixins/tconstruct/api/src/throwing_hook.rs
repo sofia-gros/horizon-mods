@@ -20,7 +20,7 @@
 use crate::{break_speed_hook::with_held_tool, edible, edible_hook, flight_hook, tool_stack, tool_stats::Stat};
 use pluto_lib::{
     CarriedEdit, CarriedSlot, Identifier, ItemEvents, ItemSlot, ItemUseRegistry, Nbt, ProjectileSpawn,
-    ReleaseUsing, StackData, StackSlot, StackUse, ThrownType, ThrownTypeRegistry, UseAction, spawn_projectile,
+    ReleaseUsing, ServerPlayer, StackData, StackSlot, StackUse, ThrownType, ThrownTypeRegistry, UseAction, World, spawn_projectile,
 };
 
 /// ThrowingModule.getUseDuration.
@@ -125,14 +125,13 @@ fn throw_tool(release: &ReleaseUsing) {
     release.set_used();
 }
 
-/// Throws one shuriken (ModifiableShurikenItem.use: instant, the stack shrinks by one).
-fn throw_shuriken(release: &ReleaseUsing) {
-    let stack = &release.stack;
+/// Fires one shuriken of `stack` from `eye` along `look` and binds its flight (the spawn half of
+/// ModifiableShurikenItem.use); false when the thrown type could not be summoned.
+fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3], owner: u128, stack: &StackData) -> bool {
     let velocity = f64::from(stat(stack, Stat::Velocity));
-    let motion = [release.look[0] * velocity, release.look[1] * velocity, release.look[2] * velocity];
-    let world = release.world();
+    let motion = [look[0] * velocity, look[1] * velocity, look[2] * velocity];
     let thrown = Identifier::parse(&format!("tconstruct:{SHURIKEN_ENTITY}")).expect("valid thrown type");
-    let Some(id) = pluto_lib::spawn_thrown(&world, &thrown, release.eye, motion, Some(release.player.uuid), pluto_lib::NbtCompound::new()) else { return };
+    let Some(id) = pluto_lib::spawn_thrown(world, &thrown, eye, motion, Some(owner), pluto_lib::NbtCompound::new()) else { return false };
     let mut carried = stack.clone();
     carried.count = 1;
     // The knockback a shot's modules added rides the fired stack's persistent data, when present.
@@ -140,7 +139,30 @@ fn throw_shuriken(release: &ReleaseUsing) {
         .and_then(|data| if let Nbt::Compound(data) = data { data.get("tconstruct:knockback").and_then(Nbt::as_f64) } else { None })
         .unwrap_or(0.0) as f32;
     let profile = flight_hook::profile_of(stack);
-    flight_hook::bind(&release.dimension, id, flight_hook::shuriken_flight(profile, carried, stat(stack, Stat::ProjectileDamage), knockback));
+    flight_hook::bind(dimension, id, flight_hook::shuriken_flight(profile, carried, stat(stack, Stat::ProjectileDamage), knockback));
+    true
+}
+
+/// Throws one shuriken from a stored stack (SleevesModule's use of the selected stack in a worn
+/// piece's inventory): the same spawn the release fires, aimed by the caller's eye and look. The
+/// stack is in no hand, so there is no release to spend from or to mark used: the caller stores
+/// the spent remainder itself, and the cooldown the release's `used` mark starts has no surface
+/// here (see sleeves_hook's notes). False when the stack is not this port's shuriken tool, whole
+/// and unbroken, or the thrown type could not be summoned.
+pub(crate) fn throw_stored_shuriken(player: &ServerPlayer, dimension: &str, eye: [f64; 3], look: [f64; 3], thrown: &ItemSlot) -> bool {
+    let stack = StackData {
+        item: thrown.item.to_string(), count: thrown.count, damage: thrown.damage, max_damage: thrown.max_damage,
+        custom_data: thrown.custom_data.clone(), custom_model_data: thrown.custom_model_data.clone(),
+        enchantments: thrown.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(),
+    };
+    if !shuriken(&stack) { return false; }
+    spawn_shuriken(&World::new(dimension), dimension, eye, look, player.uuid, &stack)
+}
+
+/// Throws one shuriken (ModifiableShurikenItem.use: instant, the stack shrinks by one).
+fn throw_shuriken(release: &ReleaseUsing) {
+    let stack = &release.stack;
+    if !spawn_shuriken(&release.world(), &release.dimension, release.eye, release.look, release.player.uuid, stack) { return; }
     if !release.creative {
         // Spend one from the hand the shuriken was thrown from.
         let same = |slot: &ItemSlot| slot.item.to_string() == release.stack.item && slot.custom_data == release.stack.custom_data;

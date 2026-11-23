@@ -1769,6 +1769,9 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:general_interact");
             out.insert("tconstruct:remove");
         }
+        Module::Sleeves => {
+            out.insert("tconstruct:general_interact");
+        }
         Module::ShieldStrap { .. } | Module::ToolBelt { .. } => {
             out.insert("tconstruct:armor_interact");
         }

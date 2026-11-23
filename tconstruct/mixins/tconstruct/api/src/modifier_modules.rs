@@ -184,6 +184,10 @@ pub(crate) enum Module {
     BulkQuiver { check_standard_arrows: bool },
     /// TrickQuiverModule (BowAmmoModifierHook): the tool fires the stack in the selected slot of its own inventory.
     TrickQuiver,
+    /// SleevesModule (GeneralInteractionModifierHook): an empty-hand use of the worn chest piece throws the
+    /// selected stack of the modifier's own inventory (the sibling inventory module's), or cycles the
+    /// selection when crouching or when nothing usable is selected. The use itself is sleeves_hook's.
+    Sleeves,
     /// ShieldStrapModule (ArmorInteractModifierHook): the armor keybind on one of these keys rotates the piece's
     /// inventory through the off hand. The swap itself is armor_interact_hook's; see there for the server surface.
     ShieldStrap { keys: Vec<crate::tool_inventory::MenuKey> },
@@ -917,6 +921,8 @@ impl Module {
                 Self::BulkQuiver { check_standard_arrows: check }
             }
             "tconstruct:trick_quiver" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:general_interact" | "tconstruct:remove")) => Self::TrickQuiver,
+            // SleevesModule: a singleton with no fields; it declares only the general interact hook.
+            "tconstruct:sleeves" if only("tconstruct:general_interact") => Self::Sleeves,
             "tconstruct:shield_strap" if only("tconstruct:armor_interact") => Self::ShieldStrap { keys: key_list(fields)? },
             "tconstruct:tool_belt" if only("tconstruct:armor_interact") => Self::ToolBelt { keys: key_list(fields)? },
             "tconstruct:minimap" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:armor_interact" | "tconstruct:inventory_tick" | "tconstruct:remove")) => Self::Minimap,
@@ -1493,7 +1499,7 @@ impl Module {
                     crate::tool_inventory::add_slots(data, output.volatile_slots(entry));
                 }
             }
-            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
+            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::Sleeves | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
             Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
@@ -2427,6 +2433,15 @@ mod tests {
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
         Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false }
+    }
+    #[test]
+    fn sleeves_binds_as_a_unit_on_the_general_interact_hook() {
+        // The shipped form (sleeves.json): a bare type, no fields, no hooks named.
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves"})), Some(Module::Sleeves));
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:general_interact"]})), Some(Module::Sleeves));
+        // Any other hook in the binding leaves the kind unbound, as the guard set is the decode set.
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:general_interact", "tconstruct:remove"]})), None);
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:armor_interact"]})), None);
     }
     #[test]
     fn the_one_probe_marks_held_tools_and_helmets_in_the_raw_data() {

@@ -289,6 +289,8 @@ mod aoe;
 mod armor_interact_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/quiver_hook.rs"]
 mod quiver_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/sleeves_hook.rs"]
+mod sleeves_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_behavior_hook.rs"]
 mod tool_behavior_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
