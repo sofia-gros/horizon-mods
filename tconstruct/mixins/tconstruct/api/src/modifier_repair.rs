@@ -119,7 +119,7 @@ impl Recipe {
         let level = tool_stack::saved_modifiers(data, env.modifiers)
             .iter()
             .filter(|(entry, _)| entry.id == self.modifier)
-            .fold(0, |sum, (entry, _)| sum.wrapping_add(entry.level));
+            .fold(0i32, |sum, (entry, _)| sum.wrapping_add(entry.level));
         if level <= 0 {
             return None;
         }
