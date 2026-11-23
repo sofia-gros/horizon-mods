@@ -34,7 +34,7 @@ pub use crate::pure::mob_split_api::{self, MobSplitContext, MobSplitRandom, MobS
 pub use crate::pure::spawn_placement_api::{self, SpawnPlacementContext, SpawnPlacementRegistry};
 pub use crate::pure::hanging_api_v1::{self, FrameVariant, HangingRegistry, StandVariant};
 pub use crate::pure::events_interaction_v0::{
-    self, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, FishingContext, PlayerBlockBreakEvents, PlayerFishEvents, UseBlockCallback, UseBlockContext,
+    self, AfterUseCallback, AfterUseContext, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, FishingContext, PlayerBlockBreakEvents, PlayerFishEvents, UseBlockCallback, UseBlockContext,
     UseEntityCallback, InteractEntityCallback, InteractEntityContext, UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext, UseItemOnEntityContext, Hand, FISHING_BITE, FISHING_CAST,
 };
 pub use crate::pure::lifecycle_events_v1::{

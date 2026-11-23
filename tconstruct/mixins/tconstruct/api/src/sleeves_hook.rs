@@ -7,25 +7,21 @@
 //! cycling skips empty slots. The display half already exists: hud.rs draws the selected stored
 //! item beside the offhand slot from the same keys.
 //!
-//! The logic is complete here (`on_tool_use`, over the pure `use_stored` the tests drive) and the
-//! execution is complete too (`execute`: the throw through the port's own throwing flow, the piece
-//! written back to the chest slot, the selection message sent). What cannot run yet is the
-//! trigger, with the evidence: the original fires from InteractionHandler's chestplate takeover —
-//! a right click on a block or an entity with an empty hand that the world interaction did not
-//! consume (LOWEST priority, after it), for a non-spectator wearing a piece of the
-//! `tconstruct:interactable_armor` tag whose item is off cooldown. PlutoLib's interaction events
-//! fire before the interaction they name (the first non-Pass answer takes the click), and none of
-//! them carries what the takeover needs: the block event names no player at all, and the entity
-//! and item-on-block events name neither the player's crouch state nor their eye and look (which
-//! the throw aims by). So no callback is registered; `execute` is ready to be called by such a
-//! surface unchanged, as armor_interact_hook's `interact` is ready for its exchange surface.
+//! The trigger exists now: PlutoLib's `AfterUseCallback` fires when a use finished without the
+//! game consuming it (an empty-hand right click the world interaction did not take), carrying
+//! the crouch state and the eye and look the throw aims by. `register` answers it for a
+//! non-spectator wearing a chest piece with the sleeves modifier, with the selected item's
+//! cooldown as the gate (the host seam already excluded spectators and consumed uses). The
+//! entity-click path of the original's takeover is not covered: the hand's use seam reports
+//! block and air uses only, so an empty-hand click on an entity still does nothing here.
 //!
 //! Reductions kept honest:
 //! - Cooldowns: the original checks the selected item's cooldown before using it (and the
-//!   takeover checks the piece's own item). PlutoLib exposes no item-cooldown read, and the
-//!   cooldown a held shuriken's use starts rides its release's `used` mark, which a stored stack
-//!   has no release to set — so a sleeves throw neither checks nor starts a cooldown. The core
-//!   takes the cooldown as an input, so the gate lands unchanged when a surface reports it.
+//!   takeover checks the piece's own item). The selected item's gate is wired now:
+//!   `register` reads it through `ServerPlayer::is_item_on_cooldown`, and `execute` starts
+//!   it for a thrown stack (`THROW_COOLDOWN_TICKS`, the held shuriken's half-second
+//!   `use_cooldown`). The piece's own item is not checked: a chest piece has no use that
+//!   starts a cooldown, so the original's piece check always passes for it.
 //! - Only this port's own throwables are thrown: the sibling inventory's filter admits any
 //!   `tconstruct:throwable`-tagged stack, and the original swaps it into the hand and calls its
 //!   use, whatever it is. A generic "use any stack as if held" verb is deliberately not built
@@ -34,14 +30,18 @@
 //! - The selection messages go as chat lines in the player's language (see `message_text`),
 //!   where the original shows them on the action bar; the HUD already reflects the selection
 //!   either way.
-//! - The interaction gate (ToolHooks.INTERACTION.canInteract) and the takeover's preconditions
-//!   belong to the caller, which owns the player; the piece must be a whole, unbroken Tinkers
+//! - The interaction gate (ToolHooks.INTERACTION.canInteract) belongs to the caller, which
+//!   owns the player; the takeover's preconditions (an unconsumed use, an empty hand, a
+//!   non-spectator) are the host seam's, and the piece must be a whole, unbroken Tinkers
 //!   tool, as every consumer through `with_held_tool` requires.
 use crate::{break_speed_hook::with_held_tool, throwing_hook, tool_inventory::ToolInventory, tool_stack};
-use pluto_lib::{I18n, ItemSlot, Nbt, NbtCompound, ServerPlayer, StackData, StackSlot};
+use pluto_lib::{ActionResult, AfterUseCallback, I18n, ItemSlot, Nbt, NbtCompound, ServerPlayer, StackData, StackSlot};
 
 /// SleevesModule.SELECTED_SLOT: the selected slot in the piece's persistent data.
 const SELECTED: &str = "tconstruct:sleeves_selected";
+/// The cooldown a sleeves throw starts on the thrown item (the held shuriken's
+/// `use_cooldown`: half a second).
+const THROW_COOLDOWN_TICKS: i32 = 10;
 /// The action-bar message keys (SleevesModule.DISABLED and SELECTED).
 const DISABLED_KEY: &str = "modifier.tconstruct.sleeves.disabled";
 const SELECTED_KEY: &str = "modifier.tconstruct.sleeves.selected";
@@ -92,8 +92,8 @@ fn select_next(inventory: &ToolInventory, persistent: &mut NbtCompound) -> Optio
 
 /// SleevesModule.onToolUse over the modifier's inventory in a piece's persistent data.
 /// `crouching` is the player's sneak state (the original's isCrouching branch); `cooling_down`
-/// whether the selected stack's item is on the player's cooldown, which no PlutoLib surface
-/// reports today, so the caller passes false (see the module notes).
+/// whether the selected stack's item is on the player's cooldown, which the caller reads
+/// through `ServerPlayer::is_item_on_cooldown`.
 fn use_stored(inventory: &ToolInventory, persistent: &mut NbtCompound, crouching: bool, cooling_down: bool) -> Stored {
     let slots = inventory.slots();
     if !crouching {
@@ -138,12 +138,35 @@ pub(crate) fn on_tool_use(piece: &StackData, crouching: bool, cooling_down: bool
     outcome
 }
 
+/// The stack the piece's selection names, if any: the selected slot's stack, or None for an
+/// empty slot or the disabled position. Pure over the inventory and the persistent data, so
+/// the cooldown gate can read it without touching the game.
+pub(crate) fn selected_stack_item(inventory: &ToolInventory, persistent: &NbtCompound) -> Option<ItemSlot> {
+    let slots = inventory.slots();
+    let selected = selected(persistent);
+    if selected >= slots {
+        return None;
+    }
+    inventory.stack(persistent, selected)
+}
+
+/// The selected stack of a worn piece, if the piece is a whole, unbroken Tinkers tool with a
+/// sleeves inventory (None otherwise).
+fn selected_item(piece: &StackData) -> Option<ItemSlot> {
+    let Ok(selected) = with_held_tool(piece, |env, tool| {
+        let Some(inventory) = tool_stack::sleeves_inventory(&tool.custom_data, env) else { return None };
+        let mut data = tool.custom_data.clone();
+        tool_stack::with_persistent(&mut data, |persistent| selected_stack_item(&inventory, persistent))
+    }) else { return None };
+    selected
+}
+
 /// One sleeves use by a player wearing `piece` in the chest slot, end to end: the core above,
 /// the thrown stack through the port's throwing flow, the piece written back to the chest slot
 /// and the selection message sent. False when nothing was used or cycled, or when the throw
 /// could not be summoned — the piece is then left as it was, rather than eating the stored stack.
-pub(crate) fn execute(player: &ServerPlayer, dimension: &str, eye: [f64; 3], look: [f64; 3], piece: &StackData, crouching: bool, creative: bool) -> bool {
-    match on_tool_use(piece, crouching, false) {
+pub(crate) fn execute(player: &ServerPlayer, dimension: &str, eye: [f64; 3], look: [f64; 3], piece: &StackData, crouching: bool, creative: bool, cooling_down: bool) -> bool {
+    match on_tool_use(piece, crouching, cooling_down) {
         Outcome::Nothing => false,
         Outcome::Cycled { piece, message } => {
             if !player.set_equipment(StackSlot::Chest, Some(&piece)) { return false; }
@@ -154,9 +177,39 @@ pub(crate) fn execute(player: &ServerPlayer, dimension: &str, eye: [f64; 3], loo
             if !throwing_hook::throw_stored_shuriken(player, dimension, eye, look, &thrown) { return false; }
             // A creative use spends nothing, as the held flow keeps its stack (throwing_hook).
             if !creative { player.set_equipment(StackSlot::Chest, Some(&piece)); }
+            // The throw starts the selected item's cooldown, even in creative: the held
+            // shuriken's release starts the same cooldown through its `used` mark.
+            player.start_item_cooldown(&thrown.item.to_string(), THROW_COOLDOWN_TICKS);
             true
         }
     }
+}
+
+/// Registers the sleeves answer on the finished use: a player wearing a chest piece with the
+/// sleeves modifier uses the selected stack (or cycles the selection crouching), gated on
+/// the selected item's cooldown. Spectators and consumed uses never reach here: the host
+/// seam gates both. The piece must carry the sleeves modifier — `on_tool_use` answers
+/// nothing without it — and the chest piece is the one the tick memory last saw worn (see
+/// `equipment_of`).
+pub(crate) fn register() {
+    AfterUseCallback::EVENT.register(|context| {
+        let Some(piece) = chest_piece(&context.player) else { return ActionResult::Pass };
+        let cooling_down = selected_item(&piece)
+            .is_some_and(|selected| context.player.is_item_on_cooldown(&selected.item.to_string()));
+        if execute(&context.player, &context.dimension, context.eye, context.look, &piece, context.crouching, context.creative, cooling_down) {
+            ActionResult::Success
+        } else {
+            ActionResult::Pass
+        }
+    });
+}
+
+/// The chest piece the player wears, as of their last tick, if any.
+fn chest_piece(player: &ServerPlayer) -> Option<StackData> {
+    pluto_lib::entity_events_v1::equipment_of(player.uuid)
+        .into_iter()
+        .find(|(slot, _)| slot == "chest")
+        .map(|(_, stack)| stack)
 }
 
 /// The action-bar texts of the original, in the player's language, for the chat line
@@ -278,5 +331,22 @@ mod tests {
         assert!(matches!(use_stored(&inventory, &mut persistent, false, true), Stored::Nothing));
         assert_eq!(inventory.stack(&persistent, 0), Some(stack("tconstruct:shuriken", 2)), "nothing was thrown");
         assert_eq!(selected(&persistent), 0, "and the selection did not toggle");
+    }
+
+    #[test]
+    fn the_selected_stack_item_is_the_cooldown_gate_item() {
+        let (inventory, mut persistent) = stocked();
+        // The default selection names the first stocked slot.
+        assert_eq!(selected_stack_item(&inventory, &persistent), Some(stack("tconstruct:shuriken", 2)));
+        // After cycling, the selection names the next stocked slot.
+        let Stored::Cycled(_) = use_stored(&inventory, &mut persistent, true, false) else { panic!("a cycle") };
+        assert_eq!(selected_stack_item(&inventory, &persistent), Some(stack("tconstruct:shuriken", 1)));
+        // A selected slot that holds nothing names nothing, as does the disabled position.
+        let bare = sleeves_inventory();
+        let mut persistent = NbtCompound::new();
+        bare.set_stack(&mut persistent, 2, Some(&stack("tconstruct:shuriken", 1)));
+        assert_eq!(selected_stack_item(&bare, &persistent), None, "slot 0 is empty");
+        persistent.insert(SELECTED.to_owned(), Nbt::Int(3));
+        assert_eq!(selected_stack_item(&bare, &persistent), None, "the disabled position names nothing");
     }
 }

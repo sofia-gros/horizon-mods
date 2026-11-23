@@ -444,6 +444,8 @@ pub fn hooks() -> Box<dyn Hooks> {
             note_wear:Fishing::note_wear,
             is_rod:fishing_api_v1::FishingRegistry::is_rod,
         });
+    horizon_client::entry::pluto_sleeves_takeover_access::set_provider(
+        horizon_client::entry::pluto_sleeves_takeover_access::Provider { post_use: native_post_use });
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -1258,6 +1260,21 @@ fn native_fishing_take_use()->Option<(u128,horizon_client::entry::pluto_fishing_
         power:profile.power,knockback:profile.knockback,
         grapple:match profile.grapple { Grapple::None=>0,Grapple::Dash=>1,Grapple::Drill=>2 },
         collecting:profile.collecting }))
+}
+
+/// The finished use, in the access module's plain shape: the pure takeover answers it, with
+/// the player and world scopes open (the sleeves throw summons through them).
+fn native_post_use(host: &mut dyn Host, post: &horizon_client::entry::pluto_sleeves_takeover_access::PostUse) -> bool {
+    let context = events_interaction_v0::AfterUseContext {
+        player: player_api::ServerPlayer { uuid: post.uuid, name: post.name.clone() },
+        dimension: post.dimension.clone(),
+        eye: post.eye,
+        look: post.look,
+        crouching: post.crouching,
+        creative: post.creative,
+        consumed: post.consumed,
+    };
+    scoped(host, || events_interaction_v0::after_use(&context))
 }
 
 fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::entry::pluto_hanging_access::StandFacts {
@@ -2266,6 +2283,16 @@ impl PlayerOps for HostOps {
 
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         self.host().acting_player().map(|acting| i32::from(acting.selected_slot))
+    }
+
+    fn is_item_on_cooldown(&mut self, _player: u128, item: &str) -> bool {
+        // Inside a callback the host reaches the acting player, who is the one the PlutoLib handle names;
+        // the game the takeover holds answers (false outside a provider call).
+        horizon_client::game::pluto_item_cooldown::is_on_cooldown(item)
+    }
+
+    fn start_item_cooldown(&mut self, _player: u128, item: &str, ticks: i32) {
+        horizon_client::game::pluto_item_cooldown::start_cooldown(item, ticks)
     }
 
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
