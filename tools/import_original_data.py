@@ -3274,14 +3274,32 @@ def copy_vanilla_tags():
     write_json(target / 'supports_vegetation.json', {'values': [f'tconstruct:{dirt}_slime_dirt' for dirt in DIRT_TYPES]})
     count += 1
     # The gold tier (forge:needs_gold_tool): 26.3 has no needs_* tag for it, but the tier survives in the
-    # tool components — a wooden tool refuses what minecraft:incorrect_for_wooden_tool names, a gold tool
+    # tool components - a wooden tool refuses what minecraft:incorrect_for_wooden_tool names, a gold tool
     # what minecraft:incorrect_for_gold_tool names. Naming the gold-tier blocks that require a correct
-    # tool for drops (the sky slime grass of TinkerWorld, the skyroot log and wood) under the wooden tag
-    # alone reproduces the tier exactly: wooden tools fail, gold and better still harvest. sky_slime_dirt
-    # stays out on purpose: SlimeDirtBlock sets no requiresCorrectToolForDrops, so its membership would
-    # be inert here as it is in the original. The seared and scorched gold-tier blocks follow the same
-    # rule; they join when the smeltery units are checked against it.
-    write_json(target / 'incorrect_for_wooden_tool.json', {'values': ['tconstruct:blood_sky_slime_grass', 'tconstruct:sky_sky_slime_grass', 'tconstruct:sky_vanilla_slime_grass', 'tconstruct:skyroot_log', 'tconstruct:skyroot_wood']})
+    # tool for drops under the wooden tag alone reproduces the tier exactly: wooden tools fail, gold and
+    # better still harvest. The members are the original's needs_gold_tool tag minus sky_slime_dirt,
+    # which stays out on purpose: SlimeDirtBlock sets no requiresCorrectToolForDrops, so its membership
+    # would be inert here as it is in the original. The sky members are TinkerWorld's (the sky slime
+    # grass, the skyroot log and wood); the seared and scorched members are TinkerSmeltery's building
+    # blocks, tanks, gauges and devices, whose block suppliers all carry requiresCorrectToolForDrops.
+    write_json(target / 'incorrect_for_wooden_tool.json', {'values': [
+        'tconstruct:blood_sky_slime_grass', 'tconstruct:sky_sky_slime_grass', 'tconstruct:sky_vanilla_slime_grass', 'tconstruct:skyroot_log',
+        'tconstruct:skyroot_wood', 'tconstruct:seared_stone', 'tconstruct:seared_stone_slab', 'tconstruct:seared_stone_stairs',
+        'tconstruct:seared_paver', 'tconstruct:seared_paver_slab', 'tconstruct:seared_paver_stairs', 'tconstruct:seared_cobble',
+        'tconstruct:seared_cobble_slab', 'tconstruct:seared_cobble_stairs', 'tconstruct:seared_cobble_wall', 'tconstruct:seared_bricks',
+        'tconstruct:seared_bricks_slab', 'tconstruct:seared_bricks_stairs', 'tconstruct:seared_bricks_wall', 'tconstruct:seared_cracked_bricks',
+        'tconstruct:seared_fancy_bricks', 'tconstruct:seared_triangle_bricks', 'tconstruct:seared_ladder', 'tconstruct:seared_lamp',
+        'tconstruct:seared_glass', 'tconstruct:seared_soul_glass', 'tconstruct:seared_tinted_glass', 'tconstruct:seared_glass_pane',
+        'tconstruct:seared_soul_glass_pane', 'tconstruct:scorched_bricks', 'tconstruct:scorched_bricks_slab', 'tconstruct:scorched_bricks_stairs',
+        'tconstruct:scorched_bricks_fence', 'tconstruct:scorched_road', 'tconstruct:scorched_road_slab', 'tconstruct:scorched_road_stairs',
+        'tconstruct:scorched_stone', 'tconstruct:polished_scorched_stone', 'tconstruct:chiseled_scorched_bricks', 'tconstruct:scorched_ladder',
+        'tconstruct:scorched_lamp', 'tconstruct:scorched_glass', 'tconstruct:scorched_soul_glass', 'tconstruct:scorched_tinted_glass',
+        'tconstruct:scorched_glass_pane', 'tconstruct:scorched_soul_glass_pane', 'tconstruct:seared_fuel_tank', 'tconstruct:seared_fuel_gauge',
+        'tconstruct:seared_ingot_tank', 'tconstruct:seared_ingot_gauge', 'tconstruct:scorched_fuel_tank', 'tconstruct:scorched_fuel_gauge',
+        'tconstruct:scorched_ingot_tank', 'tconstruct:scorched_ingot_gauge', 'tconstruct:seared_lantern', 'tconstruct:seared_faucet',
+        'tconstruct:seared_channel', 'tconstruct:seared_basin', 'tconstruct:seared_table', 'tconstruct:seared_casting_tank',
+        'tconstruct:scorched_lantern', 'tconstruct:scorched_faucet', 'tconstruct:scorched_channel', 'tconstruct:scorched_basin',
+        'tconstruct:scorched_table', 'tconstruct:seared_heater', 'tconstruct:seared_melter', 'tconstruct:scorched_alloyer']})
     count += 1
     # The declared items, and the block items with them (a block declaration's `item` flag): the wood
     # families, the signs and the heads are named by the item tags through their blocks.
