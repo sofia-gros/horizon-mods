@@ -19,7 +19,19 @@ RULES = [
             # The carried stack's stacked-on-other override is asked before
             # the bundle handling inside a pickup, as the game asks the
             # carried item first; a consumed click skips both.
-            ('''        if !self.bundle_click(env, s, primary) {''', '''        if !pluto_menu_actions::stacked_on_other(self, env, s, primary) && !self.bundle_click(env, s, primary) {''')],
+            ('''        if !self.bundle_click(env, s, primary) {''', '''        if !pluto_menu_actions::stacked_on_other(self, env, s, primary) && !self.bundle_click(env, s, primary) {'''),
+            # The rich menu sounds ride beside the menu's own sounds: a queue
+            # that carries volume and pitch, which `player_sounds` cannot.
+            ('''    /// Sounds the player makes (a bundle's insert and remove), for the
+    /// caller to play at the player as `Entity.playSound`.
+    pub player_sounds: Vec<&'static str>,''', '''    /// Sounds the player makes (a bundle's insert and remove), for the
+    /// caller to play at the player as `Entity.playSound`.
+    pub player_sounds: Vec<&'static str>,
+    /// PlutoLib's rich menu sounds: a sound event with its own volume
+    /// and pitch, for the caller to play at the player with them.
+    pub rich_player_sounds: Vec<pluto_menu_actions::RichSound>,'''),
+            ('''            player_sounds: Vec::new(),''', '''            player_sounds: Vec::new(),
+            rich_player_sounds: Vec::new(),''')],
     },
     {
         'id': 'pluto-menu-actions-local',
@@ -45,7 +57,7 @@ RULES = [
         let env = Env {
             items: self.items(),'''),
             ('''        let outcome = run(&mut menu, &env, &to_menu);''', '''        let (outcome, pluto_context) = horizon_client::menu::pluto_menu_actions::scope(
-            pluto_context, || run(&mut menu, &env, &to_menu));'''),
+            pluto_context, self.world.random.next_float(), || run(&mut menu, &env, &to_menu));'''),
             ('''        self.carried = carried;
         if !offhand_mapped {''', '''        self.carried = carried;
         if let Some(context) = pluto_context {
@@ -57,6 +69,26 @@ RULES = [
             if changed && context.authoritative { self.container_changed((x, y, z)); }
         }
         if !offhand_mapped {'''),
+            ('''        // A bundle's sounds are the player's own (`Entity.playSound`): the
+        // client plays them as it clicks, predicting or not.
+        for sound in std::mem::take(&mut menu.player_sounds) {
+            self.player_menu_sound(sound);
+        }''', '''        // A bundle's sounds are the player's own (`Entity.playSound`): the
+        // client plays them as it clicks, predicting or not.
+        for sound in std::mem::take(&mut menu.player_sounds) {
+            self.player_menu_sound(sound);
+        }
+        // PlutoLib's rich menu sounds carry the caller's own volume and
+        // pitch (the original's `Player.playSound` arguments): play each
+        // at the player with them, and route it through the guest sound
+        // queue so a hosted game broadcasts it with them.
+        for sound in std::mem::take(&mut menu.rich_player_sounds) {
+            if let Some(p) = self.player.as_ref() {
+                let at = [p.position.x, p.position.y, p.position.z];
+                self.audio.play(sound.id, Some(at), sound.volume, sound.pitch);
+                self.guest_player_sounds.push((sound.id.to_owned(), at, sound.volume, sound.pitch));
+            }
+        }'''),
         ],
     },
     {
@@ -77,7 +109,7 @@ RULES = [
             _ => None,
         };
         let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
-            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), || {
+            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), self.world.random.next_float(), || {
             if matches!(kind, Kind::Mod(_)) {'''),
             ('''                .collect::<Vec<_>>()
         });

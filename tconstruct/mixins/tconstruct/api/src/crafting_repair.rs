@@ -14,16 +14,17 @@
 //! consumed, and repairs (consuming one kit and playing the saw sound)
 //! only when the tool is damaged and the amount is positive.
 //!
-//! Documented reductions: the grid surface reports the cropped grid, so
+//! Documented reduction: the grid surface reports the cropped grid, so
 //! the recipe's `canCraftInDimensions` (grid area at least 2, true of
-//! every real crafting grid) is not re-checked; and the menu sound carries
-//! only its event id, so the original's volume 1 and randomized pitch
-//! (0.8 + 0.4 * random) become the menu sound's own level.
+//! every real crafting grid) is not re-checked. The menu sound plays as
+//! the original plays it: volume 1 and pitch 0.8 + 0.4 * random, the
+//! random drawn by the transport from the game's own stream.
 
 use std::sync::Arc;
 
 use pluto_lib::item_api_v1::{
     StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest,
+    StackedSound,
 };
 use pluto_lib::recipe_api_v1::{
     GridFacts, SpecialRecipeRegistration, SpecialResult, StackView,
@@ -230,7 +231,7 @@ fn stacked_repair(
         rest.count -= 1;
         Some(rest)
     };
-    Decision::Apply { clicked: Some(repaired), carried, sound: Some(SAW_SOUND) }
+    Decision::Apply { clicked: Some(repaired), carried, sound: Some(StackedSound { id: SAW_SOUND, volume: 1.0, pitch: 0.8 + 0.4 * request.random }) }
 }
 
 fn special_callback(grid: &GridFacts<'_>) -> Option<SpecialResult> {
@@ -445,7 +446,7 @@ mod tests {
             secondary: bool,
             allow: bool,
         ) -> StackedOnOtherRequest<'a> {
-            StackedOnOtherRequest { carried, clicked, secondary, allow_modification: allow }
+            StackedOnOtherRequest { carried, clicked, secondary, allow_modification: allow, random: 0.5 }
         }
         // A repairing click: tool fixed, one kit taken, saw sound queued.
         let Decision::Apply { clicked, carried, sound: played } = stacked_repair(
@@ -455,7 +456,7 @@ mod tests {
         };
         assert_eq!(tool_stack::damage(&clicked.unwrap().custom_data), 0);
         assert_eq!(carried.map(|slot| slot.count), Some(1), "one of the two kits is taken");
-        assert_eq!(played, Some(SAW_SOUND));
+        assert_eq!(played, Some(StackedSound { id: SAW_SOUND, volume: 1.0, pitch: 1.0 }));
         // The last kit is taken whole.
         let one_kit = kit("test:wood", 1);
         let Decision::Apply { carried, .. } = stacked_repair(

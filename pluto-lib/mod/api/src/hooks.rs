@@ -1326,7 +1326,7 @@ fn staged_menu_click(menu: &mut horizon_client::menu::Menu, env: &horizon_client
 /// callback decides from borrowed stack views, and an Apply decision is
 /// written back through the same slot conversions as menu clicks.
 fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_client::menu::Env<'_>,
-    slot: usize, primary: bool) -> bool {
+    slot: usize, primary: bool, random: f32) -> bool {
     use item_api_v1::{StackedOnOtherDecision, StackedOnOtherRequest};
     if !item_api_v1::has_stacked_on_other() { return false; }
     let Some(carried_stack) = menu.carried.as_ref() else { return false };
@@ -1338,6 +1338,7 @@ fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_
         clicked: clicked.as_ref(),
         secondary: !primary,
         allow_modification: horizon_client::menu::pluto_menu_actions::allow_modification(menu, env, slot),
+        random,
     };
     match callback(&request) {
         StackedOnOtherDecision::Pass => false,
@@ -1346,7 +1347,8 @@ fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_
             menu.set_slot(env, slot, native_slot(clicked));
             menu.carried = native_slot(carried);
             if let Some(sound) = sound {
-                horizon_client::menu::pluto_menu_actions::push_player_sound(menu, sound);
+                horizon_client::menu::pluto_menu_actions::push_rich_player_sound(menu,
+                    horizon_client::menu::pluto_menu_actions::RichSound { id: sound.id, volume: sound.volume, pitch: sound.pitch });
             }
             true
         }

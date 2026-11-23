@@ -411,6 +411,26 @@ pub struct StackedOnOtherRequest<'a> {
     /// Whether the clicked slot allows modification by this player
     /// (the game's own `Slot.allowModification` answer).
     pub allow_modification: bool,
+    /// A draw in [0, 1) from the game's own random stream for this
+    /// click, for a callback whose answer varies by chance (the
+    /// original reads the level's random for its saw pitch): the pure
+    /// side owns no random source, so the transport draws it.
+    pub random: f32,
+}
+
+/// A sound a stacked-on-other click plays for the player, with the
+/// volume and pitch the caller chose (the original's
+/// `Player.playSound(sound, volume, pitch)`). An [`StackedOnOtherDecision::Apply`]
+/// decision's sound travels on the rich menu-sound queue, which carries
+/// both, where the menu's own sounds carry only their event id.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StackedSound {
+    /// The sound event id (such as `tconstruct:little_saw`).
+    pub id: &'static str,
+    /// The volume the sound plays at (1 is the event's own level).
+    pub volume: f32,
+    /// The pitch the sound plays at (1 is the event's own pitch).
+    pub pitch: f32,
 }
 
 /// What the carried item does with the click.
@@ -423,13 +443,12 @@ pub enum StackedOnOtherDecision {
     Consume,
     /// The click is consumed and both stacks are replaced: the clicked
     /// slot's new stack (None empties it) and the carried stack (None
-    /// empties the hand). `sound` is a sound event id played to the
-    /// player; menu sounds carry no volume or pitch, so the game's own
-    /// level applies.
+    /// empties the hand). `sound` is played to the player with its own
+    /// volume and pitch.
     Apply {
         clicked: Option<super::block_entity_api_v1::ItemSlot>,
         carried: Option<super::block_entity_api_v1::ItemSlot>,
-        sound: Option<&'static str>,
+        sound: Option<StackedSound>,
     },
 }
 
@@ -616,7 +635,7 @@ mod tests {
         assert!(has_stacked_on_other());
         let carried = ItemSlot::new(Identifier::new("test", "kit").unwrap(), 2);
         let clicked = ItemSlot::new(Identifier::new("test", "tool").unwrap(), 1);
-        let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: true };
+        let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: true, random: 0.25 };
         assert!(matches!(stacked_on_other("test:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
         assert!(stacked_on_other("test:other").is_none(), "other carried items keep the game's click");
         StackedOnOtherRegistry::register(Identifier::new("test", "kit").unwrap(), pass);
