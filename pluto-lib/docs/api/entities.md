@@ -99,37 +99,7 @@ assert_eq!(LivingEntityBehaviors::jump_power(&query), Some(0.25));
 
 ## Transient Class Attributes
 
-A class can declare server-side attribute modifiers with `transient_attribute_modifier`. These are instance modifiers, not multiplied final damage/armor values or permanent saved modifiers. Use `AddMultipliedTotal` with amount `3.0` for a fourfold multiplier.
-
-```rust
-use pluto_lib::{Identifier, LivingEntityBehavior, LivingEntityBehaviors,
-    TransientAttributeModifier, AttributeModifierOperation};
-let kind = Identifier::parse("example:armored_class").unwrap();
-LivingEntityBehaviors::register(LivingEntityBehavior::new(kind.clone())
-    .transient_attribute_modifier(TransientAttributeModifier {
-        attribute: Identifier::parse("minecraft:armor").unwrap(),
-        id: Identifier::parse("example:class_armor").unwrap(), amount: 3.0,
-        operation: AttributeModifierOperation::AddMultipliedTotal,
-    })).unwrap();
-assert_eq!(LivingEntityBehaviors::transient_attribute_modifiers(&kind).unwrap()[0].amount, 3.0);
-```
-
-> **Use with Caution.** The source backend supports armor, armor toughness and knockback resistance for native Mob instances only; other consumers explicitly reject instead of inventing a working effect. A server-only pre-join attachment applies defaults before other join callbacks to fresh and restored mobs, but is **not** a general constructor callback: pre-finalization timing remains different/unverified. Missing attributes are skipped, missing suppliers/services reject, and existing same-ID modifiers are retained. Scalar resistance uses a conditional entry hook: without additional class operations it retains the original function; otherwise its pinned-source calculation inserts class operations after permanent modifiers and before native transient/effect/extra operations, retaining native arithmetic order, NaN handling and clamping, and preserves permanent replacements without restoring a removed class modifier. Unsupported initialization rejects the join rather than publishing a falsely initialized mob. Pure tests check declarations, adapter control/data flow and scalar helper arithmetic through storage facades — not native host execution, observers, cached gear interaction, save/reopen, packet synchronization, role/constructor/lifecycle timing or native types/sites, which remain native attachment validation gates. Load-time class callbacks can restore bases as described next; subsequent mod-controlled metal/size changes and arbitrary attribute mutation APIs remain separate.
-
-## Restore Class Bases on Load
-
-Use `attribute_bases_on_load` when saved class data determines an attribute base. The server callback runs before ordinary entity-load observers, after transient defaults, with the normal attachment-capable scope. The source adapter also reruns the base callback after a successful in-place native `Entity.load` (`/data` and spawn-egg data), using the newly loaded size while preserving transient modifiers; it does not reinstall removed class modifiers. Native failures and non-mob targets retain their original result without a callback.
-
-```rust
-use pluto_lib::{AttributeBaseValue, Identifier, LivingEntityBehavior, LivingEntityBehaviors};
-LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("example:load_bases").unwrap())
-    .attribute_bases_on_load(|context| {
-        let size = context.slime_size.ok_or("size unavailable")?;
-        Ok(vec![AttributeBaseValue { attribute: Identifier::parse("minecraft:armor").unwrap(), value: f64::from(size) }])
-    })).unwrap();
-```
-
-> **Use with Caution.** This source-only backend writes armor/toughness bases through their native instance observers, retaining modifiers; other base consumers reject and missing entity attributes are skipped. Duplicate or unsupported entries reject the batch before any base write. The adapter forwards the join event's dimension (rejecting a mismatch before mutation, rechecking after dispatch); an already-cancelled join skips initialization, and errors reject the join without rolling back attachment or world side effects. Native Host forwarding, application/order, save/sync and gameplay remain unverified behind the native attachment gate.
+The class-attribute prose and reference sections moved to [attributes.md](attributes.md): see `Transient Class Attributes` and `Restore Class Bases on Load` there, with the reference sections for `AttributeBaseValue`, `LivingEntityLoadContext`, `AttributeModifierOperation`, `TransientAttributeModifier` and the `LivingEntityBehavior(s)` load/transient methods.
 
 ## Reaching the Entities Around a Ticker
 
@@ -172,93 +142,6 @@ The reach can also move a living entity the way the game itself moves one: `Enti
 > **Use with Caution.** The pure rules and the in-memory world are tested (the requests are recorded). The host side is written, not yet compiled or game-verified: the adapter queues the requests, and a drain woven at the head of the game's rider synchronisation applies a mob's knockback through `Mob::knockback` with a sourceless damage source (the original's bare `knockback` call carries none), a player's through the game's own player knockback with the velocity marked for their client, and a guest's through the game's guest motion path. Armor stands and other non-living kinds are not reached.
 
 ## Reference
-
-### `AttributeBaseValue`
-
-`AttributeBaseValue { attribute: Identifier, value: f64 }` is an owned explicit base write. Zero is a value, not a fallback.
-
-```rust
-use pluto_lib::{AttributeBaseValue, Identifier};
-let base = AttributeBaseValue { attribute: Identifier::parse("minecraft:armor").unwrap(), value: 0.0 };
-assert_eq!(base.value, 0.0);
-```
-
-### `LivingEntityLoadContext`
-
-`LivingEntityLoadContext { entity: EntityInfo, slime_size: Option<i32> }` carries callback-local entity identity/dimension and a native cube/slime size, absent for other implementations. The entity's typed attachment methods use the current host scope.
-
-```rust
-use pluto_lib::{EntityInfo, LivingEntityLoadContext};
-let context = LivingEntityLoadContext { entity: EntityInfo { id: 7, kind: "example:slime".into(), dimension: "minecraft:overworld".into() }, slime_size: Some(4) };
-assert_eq!(context.slime_size, Some(4));
-```
-
-### `LivingEntityBehavior::attribute_bases_on_load`
-
-`attribute_bases_on_load(self, callback: impl Fn(&LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String> + Send + Sync + 'static) -> Self` installs the class's load-time base callback. Empty output leaves bases unchanged. The callback executes outside registration locks and may read existing attachments.
-
-```rust
-use pluto_lib::{Identifier, LivingEntityBehavior};
-let behavior = LivingEntityBehavior::new(Identifier::parse("example:load_policy").unwrap())
-    .attribute_bases_on_load(|_| Ok(Vec::new()));
-```
-
-### `LivingEntityBehaviors::attribute_bases_on_load`
-
-`attribute_bases_on_load(context: &LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String>` dispatches and validates duplicate attribute IDs. An unregistered class returns an empty vector.
-
-```rust
-use pluto_lib::{EntityInfo, LivingEntityLoadContext, LivingEntityBehaviors};
-let context = LivingEntityLoadContext { entity: EntityInfo { id: 7, kind: "example:no_load_policy".into(), dimension: "minecraft:overworld".into() }, slime_size: None };
-assert!(LivingEntityBehaviors::attribute_bases_on_load(&context).unwrap().is_empty());
-```
-
-### `AttributeModifierOperation`
-
-The three Minecraft operations: `AddValue` adds to the base; `AddMultipliedBase` adds a proportion of that additive-phase base; `AddMultipliedTotal` multiplies the accumulated result by `1 + amount`, before effective-value sanitization. This enum describes operations, not a standalone calculator.
-
-```rust
-use pluto_lib::AttributeModifierOperation;
-let operation = AttributeModifierOperation::AddMultipliedTotal;
-assert_ne!(operation, AttributeModifierOperation::AddMultipliedBase);
-assert_ne!(operation, AttributeModifierOperation::AddValue);
-```
-
-### `TransientAttributeModifier`
-
-Declaration fields: `attribute: Identifier`, modifier `id: Identifier`, `amount: f64` and `operation: AttributeModifierOperation`. IDs are native identifier keys (not the source era's display-name/random-UUID representation); declarations contain no live entity handles.
-
-```rust
-use pluto_lib::{Identifier, TransientAttributeModifier, AttributeModifierOperation};
-let modifier = TransientAttributeModifier { attribute: Identifier::parse("minecraft:armor_toughness").unwrap(),
-    id: Identifier::parse("example:toughness").unwrap(), amount: 3.0,
-    operation: AttributeModifierOperation::AddMultipliedTotal };
-assert_eq!(modifier.clone(), modifier);
-```
-
-### `LivingEntityBehavior::transient_attribute_modifier`
-
-`transient_attribute_modifier(self, modifier: TransientAttributeModifier) -> Self` adds a class declaration. Registration rejects duplicate attribute/ID pairs; the same modifier ID on different attributes is permitted. Register one complete behavior per type.
-
-```rust
-use pluto_lib::{Identifier, LivingEntityBehavior, TransientAttributeModifier, AttributeModifierOperation};
-let _behavior = LivingEntityBehavior::new(Identifier::parse("example:resistant").unwrap())
-    .transient_attribute_modifier(TransientAttributeModifier {
-        attribute: Identifier::parse("minecraft:knockback_resistance").unwrap(),
-        id: Identifier::parse("example:resistance").unwrap(), amount: 3.0,
-        operation: AttributeModifierOperation::AddMultipliedTotal,
-    });
-```
-
-### `LivingEntityBehaviors::transient_attribute_modifiers`
-
-`transient_attribute_modifiers(entity_type: &Identifier) -> Result<Vec<TransientAttributeModifier>, String>` returns an owned declaration snapshot, empty for an unregistered type. Poisoned registration returns an error, not an empty policy; mutating the returned vector does not alter registrations or a live mob.
-
-```rust
-use pluto_lib::{Identifier, LivingEntityBehaviors};
-assert!(LivingEntityBehaviors::transient_attribute_modifiers(
-    &Identifier::parse("example:no_attribute_policy").unwrap()).unwrap().is_empty());
-```
 
 ### `CalculateFallDamageContext`
 
@@ -651,32 +534,7 @@ wear.amount.set(wear.amount.get() - 1);
 assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_none()), (2, false, true));
 ```
 
-### `PlayerTick`
-
-A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `look` the direction the player faces (a unit vector), `creative` whether they are in creative mode, `on_ground` whether they stand on the ground, `sneaking` whether they hold sneak, `gliding` whether they glide, `spectator` whether they spectate, `in_water` whether their feet block holds water, `on_climbable` whether on a climbable block (a gliding player passing a block it can glide through never counts), `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go, and while the player carries a mob effect, so an effect's per-tick behaviour runs even with no gear. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
-
-```rust
-use pluto_lib::PlayerTick;
-use std::cell::RefCell;
-
-let tick = PlayerTick { player: 1, entity: 4, dimension: "minecraft:overworld".into(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 15, sky_darken: 0, effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
-tick.remove_effects.borrow_mut().push("minecraft:poison".into());
-tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".into(), 0.1));
-assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
-```
-
-### `MovementInput`
-
-The local player's movement input, after the game read it and before it applies it (client only). `entity` is the local player's entity id, or -1 when the game names no acting player; `forward` and `strafe` are the impulses now (each a `Cell`: change it with `set`); `jump` and `sneak` whether the keys are held (each a `Cell`); `using_item` whether the player is using an item; `using` the stack being used, the held (main-hand) stack, `None` when nothing is used or no player is named — an off-hand use reads as the main hand's stack, as the native hook names no hand. A callback may scale the impulses (an item's use slowdown) or read the jump key state (a double jump); it may not reach the player themselves, so a motion change is deferred to the player's next tick.
-
-```rust
-use pluto_lib::MovementInput;
-use std::cell::Cell;
-
-let input = MovementInput { entity: 4, forward: Cell::new(1.0), strafe: Cell::new(0.4), jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: None };
-input.forward.set(input.forward.get() * 0.5);
-assert_eq!((input.forward.get(), input.using.is_none()), (0.5, true));
-```
+The player tick sections — `PlayerTick`, `MovementInput` and `ServerLivingEntityEvents::PLAYER_TICK` — live in [player.md](player.md).
 
 ### `VisibilityModification`
 
@@ -926,20 +784,6 @@ use std::cell::Cell;
 let damage = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
 let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new(), attacker_state: None, target_state: None, attacker_kind: "".into(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position: None, target_position: None, actions: Default::default() };
 hit.amount.set(hit.amount.get() + 2.0);
-```
-
-### `ServerLivingEntityEvents::PLAYER_TICK`
-
-A server player's tick, heard while they wear armor or hold a tool carrying custom data (a mod's own armor keeps its state there). It carries the armor, the held stacks, the light where the player stands and the effects on the player; take effects off them with `remove_effects`. It is how a mod grants immunity to an effect the game gives no call to refuse: the effect is gone by the next tick.
-
-```rust
-use pluto_lib::ServerLivingEntityEvents;
-
-ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
-    if tick.armor.iter().any(|(_, piece)| piece.item == "example:antidote_helmet") && tick.effects.iter().any(|(id, _, _)| id == "minecraft:poison") {
-        tick.remove_effects.borrow_mut().push("minecraft:poison".into());
-    }
-});
 ```
 
 ### `ServerLivingEntityEvents::WEARER_HIT`

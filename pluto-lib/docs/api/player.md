@@ -889,3 +889,44 @@ use pluto_lib::entity_events_v1::PlayerAim;
 let aim = PlayerAim { dimension: "minecraft:overworld".into(), position: [0.0, 64.0, 0.0], look: [0.0, 0.0, 1.0], creative: false };
 assert_eq!((aim.dimension.as_str(), aim.position[1], aim.look[2], aim.creative), ("minecraft:overworld", 64.0, 1.0, false));
 ```
+
+### `PlayerTick`
+
+A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `look` the direction the player faces (a unit vector), `creative` whether they are in creative mode, `on_ground` whether they stand on the ground, `sneaking` whether they hold sneak, `gliding` whether they glide, `spectator` whether they spectate, `in_water` whether their feet block holds water, `on_climbable` whether on a climbable block (a gliding player passing a block it can glide through never counts), `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go, and while the player carries a mob effect, so an effect's per-tick behaviour runs even with no gear. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
+
+```rust
+use pluto_lib::PlayerTick;
+use std::cell::RefCell;
+
+let tick = PlayerTick { player: 1, entity: 4, dimension: "minecraft:overworld".into(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 15, sky_darken: 0, effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+tick.remove_effects.borrow_mut().push("minecraft:poison".into());
+tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".into(), 0.1));
+assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
+```
+
+### `MovementInput`
+
+The local player's movement input, after the game read it and before it applies it (client only). `entity` is the local player's entity id, or -1 when the game names no acting player; `forward` and `strafe` are the impulses now (each a `Cell`: change it with `set`); `jump` and `sneak` whether the keys are held (each a `Cell`); `using_item` whether the player is using an item; `using` the stack being used, the held (main-hand) stack, `None` when nothing is used or no player is named — an off-hand use reads as the main hand's stack, as the native hook names no hand. A callback may scale the impulses (an item's use slowdown) or read the jump key state (a double jump); it may not reach the player themselves, so a motion change is deferred to the player's next tick.
+
+```rust
+use pluto_lib::MovementInput;
+use std::cell::Cell;
+
+let input = MovementInput { entity: 4, forward: Cell::new(1.0), strafe: Cell::new(0.4), jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: None };
+input.forward.set(input.forward.get() * 0.5);
+assert_eq!((input.forward.get(), input.using.is_none()), (0.5, true));
+```
+
+### `ServerLivingEntityEvents::PLAYER_TICK`
+
+A server player's tick, heard while they wear armor or hold a tool carrying custom data (a mod's own armor keeps its state there). It carries the armor, the held stacks, the light where the player stands and the effects on the player; take effects off them with `remove_effects`. It is how a mod grants immunity to an effect the game gives no call to refuse: the effect is gone by the next tick.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+    if tick.armor.iter().any(|(_, piece)| piece.item == "example:antidote_helmet") && tick.effects.iter().any(|(id, _, _)| id == "minecraft:poison") {
+        tick.remove_effects.borrow_mut().push("minecraft:poison".into());
+    }
+});
+```

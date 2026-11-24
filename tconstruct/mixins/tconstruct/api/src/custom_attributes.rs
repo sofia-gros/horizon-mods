@@ -18,9 +18,9 @@
 //! entity id, alongside the attribute values. A guest client has no server tick, so the tick
 //! publishes the changed values over a control packet (`tconstruct:attributes/v1`, in
 //! attribute_sync) and the guest reads the synced copy instead.
-//! The experience multiplier still has no surface: the host has no hook for the experience
-//! a block break or a death drops, so its value is computed and kept here and nothing reads
-//! it until that reach exists. The original's percent and multiplier registrations do not
+//! The experience multiplier is read by the experience hook (`crate::experience_hook`),
+//! which scales the experience a block break drops and the experience a mob drops on
+//! death by the responsible player's value kept here. The original's percent and multiplier registrations do not
 //! state their ranges in the source this port follows, so the declared ranges use the widest
 //! bounds the original's own registrations use (0 to 100); no shipped content comes near them.
 //!

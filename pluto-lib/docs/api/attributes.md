@@ -153,3 +153,124 @@ let bonus = [AttributeContribution { operation: AttributeOperation::Addition, am
 assert_eq!(AttributeRegistry::value("example:valued", &bonus), Some(2.0));
 assert_eq!(AttributeRegistry::value("example:missing", &[]), None);
 ```
+
+## Transient Class Attributes
+
+A class can declare server-side attribute modifiers with `transient_attribute_modifier`. These are instance modifiers, not multiplied final damage/armor values or permanent saved modifiers. Use `AddMultipliedTotal` with amount `3.0` for a fourfold multiplier.
+
+```rust
+use pluto_lib::{Identifier, LivingEntityBehavior, LivingEntityBehaviors,
+    TransientAttributeModifier, AttributeModifierOperation};
+let kind = Identifier::parse("example:armored_class").unwrap();
+LivingEntityBehaviors::register(LivingEntityBehavior::new(kind.clone())
+    .transient_attribute_modifier(TransientAttributeModifier {
+        attribute: Identifier::parse("minecraft:armor").unwrap(),
+        id: Identifier::parse("example:class_armor").unwrap(), amount: 3.0,
+        operation: AttributeModifierOperation::AddMultipliedTotal,
+    })).unwrap();
+assert_eq!(LivingEntityBehaviors::transient_attribute_modifiers(&kind).unwrap()[0].amount, 3.0);
+```
+
+> **Use with Caution.** The source backend supports armor, armor toughness and knockback resistance for native Mob instances only; other consumers explicitly reject instead of inventing a working effect. A server-only pre-join attachment applies defaults before other join callbacks to fresh and restored mobs, but is **not** a general constructor callback: pre-finalization timing remains different/unverified. Missing attributes are skipped, missing suppliers/services reject, and existing same-ID modifiers are retained. Scalar resistance uses a conditional entry hook: without additional class operations it retains the original function; otherwise its pinned-source calculation inserts class operations after permanent modifiers and before native transient/effect/extra operations, retaining native arithmetic order, NaN handling and clamping, and preserves permanent replacements without restoring a removed class modifier. Unsupported initialization rejects the join rather than publishing a falsely initialized mob. Pure tests check declarations, adapter control/data flow and scalar helper arithmetic through storage facades — not native host execution, observers, cached gear interaction, save/reopen, packet synchronization, role/constructor/lifecycle timing or native types/sites, which remain native attachment validation gates. Load-time class callbacks can restore bases as described next; subsequent mod-controlled metal/size changes and arbitrary attribute mutation APIs remain separate.
+
+## Restore Class Bases on Load
+
+Use `attribute_bases_on_load` when saved class data determines an attribute base. The server callback runs before ordinary entity-load observers, after transient defaults, with the normal attachment-capable scope. The source adapter also reruns the base callback after a successful in-place native `Entity.load` (`/data` and spawn-egg data), using the newly loaded size while preserving transient modifiers; it does not reinstall removed class modifiers. Native failures and non-mob targets retain their original result without a callback.
+
+```rust
+use pluto_lib::{AttributeBaseValue, Identifier, LivingEntityBehavior, LivingEntityBehaviors};
+LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("example:load_bases").unwrap())
+    .attribute_bases_on_load(|context| {
+        let size = context.slime_size.ok_or("size unavailable")?;
+        Ok(vec![AttributeBaseValue { attribute: Identifier::parse("minecraft:armor").unwrap(), value: f64::from(size) }])
+    })).unwrap();
+```
+
+> **Use with Caution.** This source-only backend writes armor/toughness bases through their native instance observers, retaining modifiers; other base consumers reject and missing entity attributes are skipped. Duplicate or unsupported entries reject the batch before any base write. The adapter forwards the join event's dimension (rejecting a mismatch before mutation, rechecking after dispatch); an already-cancelled join skips initialization, and errors reject the join without rolling back attachment or world side effects. Native Host forwarding, application/order, save/sync and gameplay remain unverified behind the native attachment gate.
+
+### `AttributeBaseValue`
+
+`AttributeBaseValue { attribute: Identifier, value: f64 }` is an owned explicit base write. Zero is a value, not a fallback.
+
+```rust
+use pluto_lib::{AttributeBaseValue, Identifier};
+let base = AttributeBaseValue { attribute: Identifier::parse("minecraft:armor").unwrap(), value: 0.0 };
+assert_eq!(base.value, 0.0);
+```
+
+### `LivingEntityLoadContext`
+
+`LivingEntityLoadContext { entity: EntityInfo, slime_size: Option<i32> }` carries callback-local entity identity/dimension and a native cube/slime size, absent for other implementations. The entity's typed attachment methods use the current host scope.
+
+```rust
+use pluto_lib::{EntityInfo, LivingEntityLoadContext};
+let context = LivingEntityLoadContext { entity: EntityInfo { id: 7, kind: "example:slime".into(), dimension: "minecraft:overworld".into() }, slime_size: Some(4) };
+assert_eq!(context.slime_size, Some(4));
+```
+
+### `LivingEntityBehavior::attribute_bases_on_load`
+
+`attribute_bases_on_load(self, callback: impl Fn(&LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String> + Send + Sync + 'static) -> Self` installs the class's load-time base callback. Empty output leaves bases unchanged. The callback executes outside registration locks and may read existing attachments.
+
+```rust
+use pluto_lib::{Identifier, LivingEntityBehavior};
+let behavior = LivingEntityBehavior::new(Identifier::parse("example:load_policy").unwrap())
+    .attribute_bases_on_load(|_| Ok(Vec::new()));
+```
+
+### `LivingEntityBehaviors::attribute_bases_on_load`
+
+`attribute_bases_on_load(context: &LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String>` dispatches and validates duplicate attribute IDs. An unregistered class returns an empty vector.
+
+```rust
+use pluto_lib::{EntityInfo, LivingEntityLoadContext, LivingEntityBehaviors};
+let context = LivingEntityLoadContext { entity: EntityInfo { id: 7, kind: "example:no_load_policy".into(), dimension: "minecraft:overworld".into() }, slime_size: None };
+assert!(LivingEntityBehaviors::attribute_bases_on_load(&context).unwrap().is_empty());
+```
+
+### `AttributeModifierOperation`
+
+The three Minecraft operations: `AddValue` adds to the base; `AddMultipliedBase` adds a proportion of that additive-phase base; `AddMultipliedTotal` multiplies the accumulated result by `1 + amount`, before effective-value sanitization. This enum describes operations, not a standalone calculator.
+
+```rust
+use pluto_lib::AttributeModifierOperation;
+let operation = AttributeModifierOperation::AddMultipliedTotal;
+assert_ne!(operation, AttributeModifierOperation::AddMultipliedBase);
+assert_ne!(operation, AttributeModifierOperation::AddValue);
+```
+
+### `TransientAttributeModifier`
+
+Declaration fields: `attribute: Identifier`, modifier `id: Identifier`, `amount: f64` and `operation: AttributeModifierOperation`. IDs are native identifier keys (not the source era's display-name/random-UUID representation); declarations contain no live entity handles.
+
+```rust
+use pluto_lib::{Identifier, TransientAttributeModifier, AttributeModifierOperation};
+let modifier = TransientAttributeModifier { attribute: Identifier::parse("minecraft:armor_toughness").unwrap(),
+    id: Identifier::parse("example:toughness").unwrap(), amount: 3.0,
+    operation: AttributeModifierOperation::AddMultipliedTotal };
+assert_eq!(modifier.clone(), modifier);
+```
+
+### `LivingEntityBehavior::transient_attribute_modifier`
+
+`transient_attribute_modifier(self, modifier: TransientAttributeModifier) -> Self` adds a class declaration. Registration rejects duplicate attribute/ID pairs; the same modifier ID on different attributes is permitted. Register one complete behavior per type.
+
+```rust
+use pluto_lib::{Identifier, LivingEntityBehavior, TransientAttributeModifier, AttributeModifierOperation};
+let _behavior = LivingEntityBehavior::new(Identifier::parse("example:resistant").unwrap())
+    .transient_attribute_modifier(TransientAttributeModifier {
+        attribute: Identifier::parse("minecraft:knockback_resistance").unwrap(),
+        id: Identifier::parse("example:resistance").unwrap(), amount: 3.0,
+        operation: AttributeModifierOperation::AddMultipliedTotal,
+    });
+```
+
+### `LivingEntityBehaviors::transient_attribute_modifiers`
+
+`transient_attribute_modifiers(entity_type: &Identifier) -> Result<Vec<TransientAttributeModifier>, String>` returns an owned declaration snapshot, empty for an unregistered type. Poisoned registration returns an error, not an empty policy; mutating the returned vector does not alter registrations or a live mob.
+
+```rust
+use pluto_lib::{Identifier, LivingEntityBehaviors};
+assert!(LivingEntityBehaviors::transient_attribute_modifiers(
+    &Identifier::parse("example:no_attribute_policy").unwrap()).unwrap().is_empty());
+```

@@ -848,3 +848,415 @@ with_world(&mut ops, || {
     assert!(view.is_air([0, 64, 0]));
 });
 ```
+
+## Mob splits
+
+### `MobSplitContext`
+
+The dying parent and the split the game is about to perform: `parent` is the parent entity, `position` its position, `size` its size and `child_size` the children's size (half of it).
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitContext};
+let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
+    position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
+assert_eq!(context.child_size, 2);
+assert_eq!(context.parent.id, 7);
+```
+
+### `MobSplitRandom`
+
+Random draws for inheritance decisions, from the parent's own stream.
+
+```rust
+use pluto_lib::MobSplitRandom;
+struct Fixed;
+impl MobSplitRandom for Fixed {
+    fn next_float(&mut self) -> f32 { 0.25 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> { Ok(bound - 1) }
+}
+let mut random = Fixed;
+assert_eq!(random.next_float(), 0.25);
+assert_eq!(random.next_int(3), Ok(2));
+```
+
+### `MobSplitChild`
+
+One spawned child, dressed before it joins the world; its `EntityInfo` carries the child's real id, so attachment writes land on the child.
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitChild, StackData};
+struct Child { info: EntityInfo }
+impl MobSplitChild for Child {
+    fn info(&self) -> EntityInfo { self.info.clone() }
+    fn set_equipment(&mut self, _: &str, _: StackData) -> Result<(), String> { Ok(()) }
+    fn set_custom_name(&mut self, _: Option<String>) -> Result<(), String> { Ok(()) }
+    fn set_no_ai(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+    fn set_invulnerable(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+}
+let child = Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } };
+assert_eq!(child.info().id, 8);
+```
+
+### `MobSplitInheritance`
+
+The inheritance view handed to split callbacks after the game spawned the children: `context` is the split, `head` is the parent's head stack (children receive copies), `head_drop_chance` is the parent's recorded head drop chance, `custom_name`, `no_ai` and `invulnerable` are the parent's flags, `random` draws from the parent's stream, and `children` are the spawned children in the game's spawn order.
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitChild, MobSplitContext, MobSplitInheritance, MobSplitRandom, StackData};
+struct Fixed;
+impl MobSplitRandom for Fixed {
+    fn next_float(&mut self) -> f32 { 0.5 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> { Ok(bound - 1) }
+}
+struct Child { info: EntityInfo }
+impl MobSplitChild for Child {
+    fn info(&self) -> EntityInfo { self.info.clone() }
+    fn set_equipment(&mut self, _: &str, _: StackData) -> Result<(), String> { Ok(()) }
+    fn set_custom_name(&mut self, _: Option<String>) -> Result<(), String> { Ok(()) }
+    fn set_no_ai(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+    fn set_invulnerable(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+}
+let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
+    position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
+let mut random = Fixed;
+let mut children: Vec<Box<dyn MobSplitChild>> = vec![Box::new(Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } })];
+let view = MobSplitInheritance { context: &context, head: None, head_drop_chance: 0.085,
+    custom_name: None, no_ai: false, invulnerable: false, random: &mut random, children: &mut children };
+assert_eq!(view.children.len(), 1);
+assert_eq!(view.head_drop_chance, 0.085);
+```
+
+### `MobSplitCallback`
+
+A split observer with two phases, both defaulting to keeping the game's split: `prepare` tunes the child count or cancels the split; `inherit` dresses the spawned children.
+
+```rust
+use pluto_lib::MobSplitCallback;
+struct Observer;
+impl MobSplitCallback for Observer {}
+let _observer = Observer;
+```
+
+### `MobSplitCallbacks`
+
+The registration-order split dispatch: preparation callbacks run in order before the game spawns, inheritance callbacks in order after.
+
+```rust
+use pluto_lib::MobSplitCallbacks;
+let _registry = MobSplitCallbacks;
+```
+
+### `MobSplitCallbacks::register`
+
+Registers a split callback under a unique name; duplicate names reject.
+
+```rust
+use pluto_lib::{MobSplitCallback, MobSplitCallbacks};
+struct Observer;
+impl MobSplitCallback for Observer {}
+MobSplitCallbacks::register("example:observer", Observer).unwrap();
+assert!(MobSplitCallbacks::has_callbacks());
+```
+
+### `MobSplitCallbacks::has_callbacks`
+
+Whether any split callback is registered; the native split hooks stay inert while none is.
+
+```rust
+use pluto_lib::MobSplitCallbacks;
+let active: bool = MobSplitCallbacks::has_callbacks();
+let _ = active;
+```
+
+## Spawn placements
+
+### `SpawnPlacementContext`
+
+The facts of one candidate spawn position: `entity_type` and `dimension` name the spawn, `position` is the block position of the mob's feet, `reason` is the backend reason, `peaceful` reports a peaceful level, `block_below` is the block below the candidate, `fluid_at` and `fluid_below` are the fluids at and below it (`minecraft:empty` when none), `block_below_valid_spawn` says the block below is a valid spawn block for the type's base, and `dark_enough` says a monster would be dark enough to spawn there.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementContext};
+let context = SpawnPlacementContext { entity_type: Identifier::parse("example:slime").unwrap(),
+    dimension: Identifier::parse("minecraft:overworld").unwrap(), position: [0, 64, 0], reason: "natural".into(),
+    peaceful: false, block_below: Identifier::parse("example:grass").unwrap(),
+    fluid_at: Identifier::parse("minecraft:empty").unwrap(), fluid_below: Identifier::parse("minecraft:empty").unwrap(),
+    block_below_valid_spawn: true, dark_enough: true };
+assert_eq!(context.position[1], 64);
+```
+
+### `SpawnPlacementRegistry`
+
+Per-type spawn placement registration: one predicate per type, whose verdict replaces the inherited species rules for that type where the game consults placements.
+
+```rust
+use pluto_lib::SpawnPlacementRegistry;
+let _registry = SpawnPlacementRegistry;
+```
+
+### `SpawnPlacementRegistry::register`
+
+Registers a type's placement predicate; a second registration for the same type rejects.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+SpawnPlacementRegistry::register(Identifier::parse("example:slime").unwrap(), |context| {
+    !context.peaceful && context.block_below == Identifier::parse("example:grass").unwrap()
+}).unwrap();
+assert!(SpawnPlacementRegistry::is_registered(&Identifier::parse("example:slime").unwrap()));
+```
+
+### `SpawnPlacementRegistry::is_registered`
+
+Whether a placement predicate is registered for the type.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+let registered: bool = SpawnPlacementRegistry::is_registered(&Identifier::parse("example:absent").unwrap());
+let _ = registered;
+```
+
+### `SpawnPlacementRegistry::register_or`
+
+Registers a type's OR placement predicate (the original's `Operation.OR`): positions the inherited species rules rejected may still spawn when the predicate accepts them. The game's own selection never proposes those positions, so a permit-add pass after the game's natural pass proposes its own candidates around players and spawns the accepted ones through the game's own preparation and finalization. One OR predicate per type, independent of any replacing predicate; a second OR registration for the same type rejects.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+SpawnPlacementRegistry::register_or(Identifier::parse("example:or_slime").unwrap(), |context| {
+    !context.peaceful && context.block_below == Identifier::parse("example:grass").unwrap()
+}).unwrap();
+assert!(SpawnPlacementRegistry::is_or_registered(&Identifier::parse("example:or_slime").unwrap()));
+```
+
+### `SpawnPlacementRegistry::is_or_registered`
+
+Whether an OR placement predicate is registered for the type.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+let registered: bool = SpawnPlacementRegistry::is_or_registered(&Identifier::parse("example:absent").unwrap());
+let _ = registered;
+```
+
+### `FishingRegistry`
+
+The registry of fishing rods a mod casts with: which items count as rods (a hook stays alive only while its owner holds one — the game's own check names the vanilla rod, and the transport asks this registry for the rest), and how a rod stack's cast profile is computed. The game's fishing is built around its own hook, whose rod use is gated to the vanilla item; a registered rod's use goes through [`Fishing::use_rod`](#fishing) instead.
+
+```rust
+use pluto_lib::{FishingProfile, FishingRegistry, Grapple, Identifier, StackData};
+
+FishingRegistry::register(Identifier::parse("example:war_rod").unwrap(), |stack| {
+    (stack.count > 0).then_some(FishingProfile { power: 2.0, grapple: Grapple::Drill, ..FishingProfile::default() })
+});
+assert!(FishingRegistry::is_rod("example:war_rod"));
+let stack = StackData { item: "example:war_rod".into(), count: 1, ..StackData::default() };
+assert_eq!(FishingRegistry::profile(&stack).map(|profile| profile.power), Some(2.0));
+```
+
+### `FishingProfile`
+
+The numbers a rod casts with, computed from the stack used: the `luck` and `lure` the hook fishes with, the `velocity` it flies at, the cast's `inaccuracy` spread, the `power` a hooked entity is hurt by (0 fishes without fighting), the `knockback` bonus on the retrieve pull, whether the hook `grapple`s and collects what it touches.
+
+```rust
+use pluto_lib::{FishingProfile, Grapple};
+
+let plain = FishingProfile::default();
+assert_eq!((plain.velocity, plain.power, plain.grapple), (1.0, 0.0, Grapple::None));
+let war = FishingProfile { luck: 2, lure: 1, power: 2.0, grapple: Grapple::Dash, collecting: true, ..plain };
+assert_eq!((war.luck, war.lure, war.collecting), (2, 1, true));
+```
+
+### `Grapple`
+
+How a grapple hook behaves: `None` only fishes and fights, `Dash` pulls its owner toward the hook when it lands, and `Drill` also pulls when it hooks an entity.
+
+```rust
+use pluto_lib::Grapple;
+
+assert_eq!(Grapple::default(), Grapple::None);
+assert_ne!(Grapple::Dash, Grapple::Drill);
+```
+
+### `Fishing`
+
+Fishing with a mod's rod: the calls a mod makes. `use_rod` queues a use — the game's fishing tick casts with the profile when no hook of this rod is out and retrieves when one is — and `take_wear` drains the rod wear the game side reports (a cast's and a hit's 1, a retrieve's cost), which the mod pays into its own tool at its next use, so the wear lands at most one use late. The reach is the local player's, as the game's fishing simulation is single-hook and local.
+
+```rust
+use pluto_lib::{Fishing, FishingProfile, ServerPlayer};
+
+let player = ServerPlayer { uuid: 7, name: "Alex".into() };
+Fishing::use_rod(&player, FishingProfile::default());
+assert_eq!(Fishing::take_use(), Some((7, FishingProfile::default())));
+Fishing::note_wear(7, 3);
+assert_eq!(Fishing::take_wear(&player), 3);
+assert_eq!(Fishing::take_wear(&player), 0);
+```
+
+### `combat_damage`
+
+The damage a hooked entity takes at retrieve: the impact speed times the power times 15, rounded up to a whole tenth.
+
+```rust
+use pluto_lib::combat_damage;
+
+assert_eq!(combat_damage(2.0, 2.0), 6.0);
+assert_eq!(combat_damage(0.5, 1.0), 0.8);
+assert_eq!(combat_damage(3.0, 0.0), 0.0);
+```
+
+### `hook_damage_type`
+
+The damage type a combat hook's retrieve hurt is dealt as: the ranged `tconstruct:fishing_hook`, or the melee `tconstruct:melee_fishing_hook` when the hooked target is an enderman carrying the enderference effect (the enderference override), so the hurt lands on a mob that dodges projectiles.
+
+```rust
+use pluto_lib::hook_damage_type;
+
+assert_eq!(hook_damage_type(true), "tconstruct:melee_fishing_hook");
+assert_eq!(hook_damage_type(false), "tconstruct:fishing_hook");
+```
+
+### `pull_delta`
+
+The velocity a hooked entity gains at retrieve: toward the owner, a tenth of the way, plus the knockback bonus `0.25 * knockback / distance` when the rod has knockback.
+
+```rust
+use pluto_lib::pull_delta;
+
+assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 0.0), [-1.0, 0.0, 0.0]);
+assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 4.0), [-2.0, 0.0, 0.0]);
+```
+
+### `grapple_delta`
+
+The velocity the owner gains from a grapple: toward the hook, scaled by `0.58 / sqrt(distance)`.
+
+```rust
+use pluto_lib::grapple_delta;
+
+let pull = grapple_delta([0.0, 64.0, 0.0], [16.0, 64.0, 0.0]);
+assert!((pull[0] - 2.32).abs() < 1e-9);
+assert_eq!(grapple_delta([0.0, 64.0, 0.0], [0.0, 64.0, 0.0]), [0.0; 3]);
+```
+
+### `retrieve_damage`
+
+The rod wear a retrieve costs, over the game's own retrieve number: a grounded hook costs at least 2 and at most 3; anything else costs at most 3.
+
+```rust
+use pluto_lib::retrieve_damage;
+
+assert_eq!(retrieve_damage(5, true), 3);
+assert_eq!(retrieve_damage(0, true), 2);
+assert_eq!(retrieve_damage(5, false), 3);
+assert_eq!(retrieve_damage(1, false), 1);
+```
+
+### `DispenseRegistry::register`
+
+Registers the behaviour for an item, replacing any earlier one for it.
+
+```rust
+use pluto_lib::{DispenseBehavior, DispenseRegistry, Identifier};
+
+DispenseRegistry::register(
+    Identifier::parse("example:ball").unwrap(),
+    DispenseBehavior::Shoot { entity: Identifier::parse("example:ball").unwrap(), power: 1.1, inaccuracy: 6.0 },
+);
+assert!(DispenseRegistry::get("example:ball").is_some());
+```
+
+### `DispenseRegistry::get`
+
+The behaviour registered for the item named, if any.
+
+```rust
+use pluto_lib::DispenseRegistry;
+
+assert!(DispenseRegistry::get("example:never_registered").is_none());
+```
+
+### `FishingRegistry::register`
+
+Registers a rod item and its cast profile computation: when the item is used, the computation reads the stack and answers the profile to cast with, or None to leave the use to the game.
+
+```rust
+use pluto_lib::{FishingProfile, FishingRegistry, Identifier};
+
+FishingRegistry::register(Identifier::parse("example:rod").unwrap(), |_| Some(FishingProfile::default()));
+assert!(FishingRegistry::is_rod("example:rod"));
+```
+
+### `FishingRegistry::register_rod`
+
+Names an item a fishing rod for the hook's lifetime check, without a cast computation of its own.
+
+```rust
+use pluto_lib::{FishingRegistry, Identifier};
+
+FishingRegistry::register_rod(Identifier::parse("example:plain_rod").unwrap());
+assert!(FishingRegistry::is_rod("example:plain_rod"));
+```
+
+### `FishingRegistry::is_rod`
+
+Whether the item named is a registered rod.
+
+```rust
+use pluto_lib::FishingRegistry;
+
+assert!(!FishingRegistry::is_rod("example:not_a_rod"));
+```
+
+### `FishingRegistry::profile`
+
+The profile a stack casts with, when its item registered a computation and the computation answers one.
+
+```rust
+use pluto_lib::{FishingRegistry, StackData};
+
+assert_eq!(FishingRegistry::profile(&StackData::default()), None);
+```
+
+### `Fishing::use_rod`
+
+Queues a use of a fishing rod by the player with the profile: the game's fishing tick casts with it when no hook of this rod is out, and retrieves when one is.
+
+```rust
+use pluto_lib::{Fishing, FishingProfile, ServerPlayer};
+
+let player = ServerPlayer { uuid: 3, name: "Sam".into() };
+Fishing::use_rod(&player, FishingProfile::default());
+assert!(Fishing::take_use().is_some());
+```
+
+### `Fishing::take_use`
+
+Takes the queued use, if any; the transport calls this.
+
+```rust
+use pluto_lib::Fishing;
+
+assert_eq!(Fishing::take_use(), None);
+```
+
+### `Fishing::note_wear`
+
+Records rod wear the game side reports; the transport calls this.
+
+```rust
+use pluto_lib::{Fishing, ServerPlayer};
+
+Fishing::note_wear(5, 2);
+let player = ServerPlayer { uuid: 5, name: "Sam".into() };
+assert_eq!(Fishing::take_wear(&player), 2);
+```
+
+### `Fishing::take_wear`
+
+The rod wear waiting for the player, drained: the total the game side has reported since the last call.
+
+```rust
+use pluto_lib::{Fishing, ServerPlayer};
+
+let player = ServerPlayer { uuid: 6, name: "Sam".into() };
+assert_eq!(Fishing::take_wear(&player), 0);
+```
