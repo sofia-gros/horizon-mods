@@ -35,17 +35,18 @@ pub(crate) fn register() {
         // A melee hit cooks the attacker's held tool by the damage it dealt.
         if hit.damage.damage_type == PLAYER_ATTACK {
             if let Some(held) = hit.attacker_stack.as_ref() {
-                cook_held(hit, held, dealt(hit));
+                cook_held(hit, StackSlot::MainHand, held, dealt(hit));
             }
         }
-        // A launcher's hit cooks the launcher by the damage its arrow or trident dealt. The
-        // launcher is the attacker's main hand (the hand the shot telling reads first); a bow
-        // shot from the off hand cooks the main hand's tool instead, the only hand this event
-        // reports. Fireballs and other projectiles carry other damage types, so their launchers
-        // are not cooked here.
+        // A launcher's hit cooks the launcher by the damage its arrow or trident dealt: the hand
+        // the shot telling names (the telling reads the weapon the ammunition event named and
+        // matches it against the hands the hit's opening reported). Without a telling — a
+        // trident, whose shot names no weapon, or a weapon swapped away after the shot — the
+        // main hand stands in, as before. Fireballs and other projectiles carry other damage
+        // types, so their launchers are not cooked here.
         if matches!(hit.damage.damage_type.as_str(), ARROW | TRIDENT) && hit.attacker_is_player == Some(true) {
-            if let Some(held) = hit.attacker_main_hand.as_ref() {
-                cook_held(hit, held, dealt(hit));
+            if let Some((slot, held)) = launcher_of(hit) {
+                cook_held(hit, slot, held, dealt(hit));
             }
         }
     });
@@ -97,12 +98,23 @@ fn is_armor(env: &tool_stack::Environment) -> bool {
     Identifier::new("tconstruct", ARMOR_TAG).ok().and_then(|tag| tags.get_tag(&tag)).is_some_and(|members| members.contains(item))
 }
 
-/// Cook the attacker's held stack `held` by `amount`, as an edit of the attacker's main hand.
-fn cook_held(hit: &DamageModification, held: &pluto_lib::StackData, amount: f32) {
+/// The launcher of a hit and the hand that fired it: the telling's hand and stack when the hit
+/// names them, else the main hand's stack when the hit reports one (a trident's shot names no
+/// weapon, and a weapon swapped away after the shot names no hand). The telling's stack is the
+/// launcher as the hit landed; the fallback's is the main hand as the hit landed.
+fn launcher_of(hit: &DamageModification) -> Option<(StackSlot, &pluto_lib::StackData)> {
+    if let (Some(hand), Some(stack)) = (hit.attacker_launcher_hand, hit.attacker_launcher_stack.as_ref()) {
+        return Some((hand, stack));
+    }
+    hit.attacker_main_hand.as_ref().map(|stack| (StackSlot::MainHand, stack))
+}
+
+/// Cook the attacker's stack `held` in `slot` by `amount`, as an edit of that slot.
+fn cook_held(hit: &DamageModification, slot: StackSlot, held: &pluto_lib::StackData, amount: f32) {
     if amount <= 0.0 { return; }
     let Ok(edits) = with_held_tool(held, |env, stack| tool_stack::smelting_edits(&stack.custom_data, env, amount)) else { return; };
     if edits.is_empty() { return; }
-    hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: held.item.clone(), edits });
+    hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot, item: held.item.clone(), edits });
 }
 
 /// SmeltingModule.afterSlingLaunch: cook the released tool by `amount` (the sling's force doubled
@@ -144,7 +156,8 @@ mod tests {
         DamageModification {
             damage, amount: Cell::new(amount), attacker_stack: None, armor: Vec::new(),
             attacker_state: None, target_state: health.map(|health| pluto_lib::EntityState { health: Some(health), ..Default::default() }),
-            attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None,
+            attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None,
+            attacker_launcher_stack: None, attacker_chest: None,
             attacker_attack_damage: None, target_health: None, target_attack_damage: None,
             attacker_position: None, target_position: None, actions: Default::default(),
         }
@@ -171,6 +184,24 @@ mod tests {
         cook_release(&release, 0.0);
         cook_release(&release, f32::INFINITY);
         assert!(release.edits.borrow().is_empty());
+    }
+
+    #[test]
+    fn launcher_of_names_the_tellings_hand_and_falls_back_to_the_main_hand() {
+        let bow = pluto_lib::StackData { item: "tconstruct:longbow".into(), count: 1, ..Default::default() };
+        let sword = pluto_lib::StackData { item: "tconstruct:sword".into(), count: 1, ..Default::default() };
+        // The telling names the off hand: the off-hand bow is the launcher, not the main hand's sword.
+        let mut telling = hit(4.0, None);
+        telling.attacker_launcher_hand = Some(StackSlot::OffHand);
+        telling.attacker_launcher_stack = Some(bow.clone());
+        telling.attacker_main_hand = Some(sword.clone());
+        assert_eq!(launcher_of(&telling), Some((StackSlot::OffHand, &bow)));
+        // No telling, a main hand reported: the main hand stands in (a trident's hit).
+        let mut fallback = hit(4.0, None);
+        fallback.attacker_main_hand = Some(sword.clone());
+        assert_eq!(launcher_of(&fallback), Some((StackSlot::MainHand, &sword)));
+        // Neither: no launcher is named.
+        assert_eq!(launcher_of(&hit(4.0, None)), None);
     }
 
     #[test]

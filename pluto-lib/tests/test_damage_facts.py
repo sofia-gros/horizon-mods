@@ -81,7 +81,8 @@ class DamageFactsTests(unittest.TestCase):
     def test_the_pure_event_carries_the_facts_and_the_drop_action(self):
         pure = (API / 'pure' / 'entity_events_v1.rs').read_text(encoding='utf-8')
         for field in ('attacker_kind', 'attacker_is_player', 'attacker_main_hand', 'attacker_chest',
-                      'attacker_attack_damage', 'target_health', 'target_attack_damage'):
+                      'attacker_attack_damage', 'target_health', 'target_attack_damage',
+                      'attacker_launcher_hand', 'attacker_launcher_stack'):
             self.assertIn(field, pure)
         self.assertIn('DropItem { target: ActionTarget, stack: StackData }', pure)
         self.assertIn('fn note_attacker_facts', pure)
@@ -89,6 +90,25 @@ class DamageFactsTests(unittest.TestCase):
         self.assertIn('fn note_damage_parties', pure)
         self.assertIn('fn take_drop_actions', pure)
         self.assertIn('fn take_late_actions', pure)
+
+    def test_the_launcher_telling_names_the_hand_that_shot(self):
+        # No new injection: the telling rides the knockback scope's opening (the
+        # player's own hit, entity id 0) and the ammunition event's weapon note.
+        ids = [row['id'] for row in self.manifest()['injection']]
+        self.assertNotIn('pluto-damage-launcher', ids)
+        reach = self.injection('pluto-player-hurt')
+        self.assertEqual(reach['target'], "horizon_client::game::native_hooks::Game<'_>::knockback_scope")
+        self.assertEqual(reach['kind'], 'HEAD')
+        self.assertEqual(reach['helper'], 'pluto-player-hurt.rs')
+        helper = self.source('pluto-player-hurt.rs')
+        self.assertIn('game.held()', helper)
+        self.assertIn('game.offhand', helper)
+        self.assertIn('"minecraft:player"', helper)
+        access = self.source('pluto-damage-facts-access.rs')
+        self.assertIn('pub off_hand', access)
+        projectile = (API / 'pure' / 'projectile_events_v1.rs').read_text(encoding='utf-8')
+        self.assertIn('fn launcher_for', projectile)
+        self.assertIn('PLAYER_WEAPON', projectile)
 
     def test_the_transport_installs_the_sink_and_drains_the_queues(self):
         hooks = (API / 'hooks.rs').read_text(encoding='utf-8')

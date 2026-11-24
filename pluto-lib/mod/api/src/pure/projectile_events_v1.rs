@@ -16,7 +16,7 @@ use std::cell::{Cell, RefCell};
 
 use super::base::{Event, NbtCompound};
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
-use super::entity_events_v1::{CarriedEdit, CarriedStack, EntityAction};
+use super::entity_events_v1::{CarriedEdit, CarriedStack, EntityAction, StackSlot};
 use super::player_api::StackData;
 use super::world_api_v1::{ExplosionInteraction, World};
 
@@ -325,7 +325,8 @@ impl ProjectileEvents {
     /// of its three). Queue `actions` for the player. Server only.
     pub const SHOOT_BOW: &'static Event<BowShot, ()> = &SHOOT_BOW;
     /// A living entity is about to shoot and the game asks what projectile it fires (see [`AmmoRequest`]): the surface a quiver
-    /// modifier answers from. Server only.
+    /// modifier answers from. A player's request also notes the weapon, so the damage event of the shot can name the hand that
+    /// launched. Server only.
     pub const AMMO: &'static Event<AmmoRequest, ()> = &AMMO;
     /// A projectile joined the flying list, before its first tick: the set-up pass (see [`ProjectileSpawned`]). Server only.
     pub const SPAWN: &'static Event<ProjectileSpawned, ()> = &SPAWN;
@@ -341,10 +342,36 @@ pub(crate) fn ammo_heard() -> bool {
 
 /// The ammunition the callbacks settled on: what they set in `supplied` (None when they left it alone, so the host keeps the
 /// game's own pick and its own consumption; a set stack of count 0 means no projectile) and the edits to the shooter's
-/// carried stacks.
+/// carried stacks. A player's request also notes the weapon being shot (see [`PLAYER_WEAPON`]).
 pub(crate) fn ammo(request: &AmmoRequest) -> (Option<ItemSlot>, Vec<CarriedEdit>) {
+    if request.player.is_some() {
+        PLAYER_WEAPON.with(|weapon| *weapon.borrow_mut() = Some(request.weapon.clone()));
+    }
     AMMO.invoke(request);
     (request.supplied.borrow_mut().take(), request.edits.borrow_mut().drain(..).collect())
+}
+
+thread_local! {
+    /// The weapon a player's last ammunition request was about (the bow or crossbow being shot), as the game asked
+    /// about it: the damage event of the shot's hit matches it against the shooter's hands as the hit lands, which
+    /// names the hand that launched. A mob's request leaves it alone (a mob's hit never reads it); a later shot
+    /// overwrites it. Read, never taken, so one piercing arrow names its launcher on every hit it lands.
+    static PLAYER_WEAPON: RefCell<Option<StackData>> = const { RefCell::new(None) };
+}
+
+/// The hand that launched the hit, and the launcher's stack as the hit landed, when the shooter's last weapon is
+/// still held in one of their hands: the main hand when both hold it (the game tries the main hand first). None
+/// when no weapon was noted, or when neither hand holds it any more (the shooter swapped it away after the shot).
+pub(crate) fn launcher_for(main_hand: &Option<StackData>, off_hand: &Option<StackData>) -> Option<(StackSlot, StackData)> {
+    let weapon = PLAYER_WEAPON.with(|weapon| weapon.borrow().clone())?;
+    let is_weapon = |stack: &StackData| stack.item == weapon.item && stack.custom_data == weapon.custom_data;
+    if let Some(stack) = main_hand.as_ref().filter(|stack| is_weapon(stack)) {
+        Some((StackSlot::MainHand, stack.clone()))
+    } else if let Some(stack) = off_hand.as_ref().filter(|stack| is_weapon(stack)) {
+        Some((StackSlot::OffHand, stack.clone()))
+    } else {
+        None
+    }
 }
 
 /// Whether anyone listens, so the game only keeps the copies it needs when someone does.
@@ -458,6 +485,33 @@ mod tests {
         // A request nobody answers keeps the game's pick: no supplied stack, no edits.
         let plain = AmmoRequest { name: "plain".into(), ..request };
         assert_eq!(ammo(&plain), (None, Vec::new()));
+    }
+
+    #[test]
+    fn a_players_shot_weapon_names_the_hand_that_launched_and_a_mobs_does_not() {
+        use crate::pure::base::{Nbt, NbtCompound};
+        let mut bow_data = NbtCompound::new();
+        bow_data.insert("tic_level".into(), Nbt::Int(2));
+        let bow = StackData { item: "example:longbow".into(), count: 1, custom_data: bow_data, ..StackData::default() };
+        let sword = StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
+        let request = |player: Option<u128>, weapon: StackData| AmmoRequest {
+            player, name: "archer".into(), entity: None, kind: "minecraft:player".into(), weapon,
+            vanilla: None, carried: Vec::new(), supplied: RefCell::new(None), edits: RefCell::new(Vec::new()),
+        };
+        // No weapon noted yet: no hand is named.
+        assert_eq!(launcher_for(&Some(bow.clone()), &None), None);
+        // A mob's request leaves the note alone (a skeleton's bow never names a player's hand).
+        ammo(&request(None, bow.clone()));
+        assert_eq!(launcher_for(&Some(bow.clone()), &None), None);
+        // A player's request notes the weapon: the hand holding it is the launcher, main first on a tie.
+        ammo(&request(Some(7), bow.clone()));
+        assert_eq!(launcher_for(&Some(sword.clone()), &Some(bow.clone())), Some((StackSlot::OffHand, bow.clone())));
+        assert_eq!(launcher_for(&Some(bow.clone()), &Some(bow.clone())), Some((StackSlot::MainHand, bow.clone())));
+        assert_eq!(launcher_for(&Some(sword.clone()), &None), None, "the weapon left the hands");
+        // A later shot overwrites the note.
+        let other = StackData { item: "example:crossbow".into(), count: 1, ..StackData::default() };
+        ammo(&request(Some(7), other.clone()));
+        assert_eq!(launcher_for(&Some(bow), &Some(other.clone())), Some((StackSlot::OffHand, other)));
     }
 
     #[test]

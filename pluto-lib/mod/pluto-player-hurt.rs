@@ -5,10 +5,36 @@
 // reported as empty and 0. The scope only reads the game, so the effects are queued and land at the next player tick (pluto-mob-effect-apply-tick).
 // The same opening names the attacker for the damage events: what the mob holds in its main hand and wears on its chest, its attack attribute
 // and its state are noted for the hit that follows, for a victim of any kind and at any distance, which the wearer report above does not cover.
+// A player's own opening is noted too, with both hands, so a shot's damage event can name the hand that launched.
 fn pluto_player_hurt(game:&crate::game::Game<'_>,attacker:i32) {
     use std::sync::atomic::{AtomicI32,AtomicI64,Ordering};
     static LAST_TICK:AtomicI64=AtomicI64::new(i64::MIN);
     static LAST_ATTACKER:AtomicI32=AtomicI32::new(0);
+    if attacker==0 {
+        // The player's own hit: the scope opens with the player's entity id, which the host writes as 0.
+        // The damage events read only the hands from this note: the shot's weapon says which of them
+        // launched. The rest stays neutral (no attack attribute, chest piece or effects a mob's note
+        // carries), and the player is never heard as hurt by their own hit.
+        if let Some(facts_sink)=crate::entry::pluto_damage_facts_access::sink() {
+            if let Some(player)=game.player.as_ref() {
+                let facts=crate::entry::pluto_damage_facts_access::AttackerFacts {
+                    attacker,
+                    kind:"minecraft:player".to_string(),
+                    main_hand:game.held().cloned(),
+                    off_hand:game.offhand.clone(),
+                    chest:None,
+                    attack_damage:0.0,
+                    on_ground:player.ground.on_ground,
+                    in_water:player.swimming,
+                    fire_ticks:player.fire_ticks,
+                    fire_immune:false,
+                    effects:Vec::new(),
+                };
+                (facts_sink.attacker)(&facts);
+            }
+        }
+        return;
+    }
     if attacker<=0 {return;}
     let Some(mob)=game.mobs.iter().find(|candidate| candidate.id as i32==attacker) else {return};
     if let Some(facts_sink)=crate::entry::pluto_damage_facts_access::sink() {
