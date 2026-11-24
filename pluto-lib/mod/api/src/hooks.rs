@@ -5393,6 +5393,8 @@ impl Hooks for PlutoHooks {
     fn loot_function(&self, event: &mut LootFunctionEvent<'_>) {
         // A loot table named a function kind outside the game's own: the callbacks answer the
         // kinds they own (Mantle's `fill_retextured_block` is the first) and change the stack.
+        // The seed is the roll's own random, drawn for a mod's draws and handed through so a
+        // function that rolls (a random tool material) need not touch shared random state.
         if !loot_api_v2::functions_heard() { return; }
         let Some(slot) = loot_slot_of(event.stack) else { return };
         let place = event.ctx.place.as_deref();
@@ -5401,6 +5403,7 @@ impl Hooks for PlutoHooks {
             data: event.data.clone(),
             origin: place.and_then(|place| place.origin),
             dimension: place.and_then(|place| place.level.as_ref()).map(|level| level.dimension.clone()),
+            seed: event.ctx.seed,
             block_entity: place.and_then(|place| place.block_entity.as_ref()).and_then(nbt_from_tag).and_then(|tag| match tag { Nbt::Compound(data) => Some(data), _ => None }),
             stack: std::cell::RefCell::new(slot.clone()),
         };

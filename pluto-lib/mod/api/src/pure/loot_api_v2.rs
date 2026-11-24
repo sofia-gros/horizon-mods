@@ -109,6 +109,9 @@ pub struct LootFunctionContext {
     pub origin: Option<[f64; 3]>,
     /// The dimension the table rolled in, such as `minecraft:overworld`; None away from a place.
     pub dimension: Option<String>,
+    /// A seed from the roll's random, for a mod's own draws (the game draws it only when a
+    /// mod's kind is in the table, so a table without one rolls bit-for-bit as before).
+    pub seed: i64,
     /// The block entity the broken block had, saved with its id and position before the break
     /// (Minecraft: `LootContextParams.BLOCK_ENTITY`): a mod's block entity carries its own data in
     /// it, which is what functions like `mantle:fill_retextured_block` read. None when the block
@@ -237,7 +240,7 @@ mod tests {
         let mut block_entity = NbtCompound::new();
         block_entity.insert("marker".to_owned(), Nbt::String("example:stone".to_owned()));
         let context = |kind: &str| LootFunctionContext {
-            kind: kind.into(), data: json!({}), origin: Some([0.5; 3]), dimension: Some("minecraft:overworld".into()),
+            kind: kind.into(), data: json!({}), origin: Some([0.5; 3]), dimension: Some("minecraft:overworld".into()), seed: 0,
             block_entity: Some(block_entity.clone()), stack: RefCell::new(ItemSlot::new(Identifier::parse("example:rock").unwrap(), 1)),
         };
         let filled = apply_function(&context("example:fill_marker"));
