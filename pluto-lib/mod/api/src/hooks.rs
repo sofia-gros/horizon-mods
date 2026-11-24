@@ -1077,16 +1077,23 @@ fn stack_data_of(_host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
 }
 
 /// Whether the entity of kind `kind` standing at block position `pos` is on a climbable block, as the game's own
-/// `Mob::on_climbable` works it out: kinds that never climb (the equine kinds, ghasts and phantoms) read false; the
-/// block at the entity's feet in the `minecraft:climbable` tag reads true; an open trapdoor over a ladder facing the
-/// same way reads true. Two of the game's own checks have no host read and are not reproduced: a climbing kind's own
-/// climbing flag (a spider against a wall face; the block rule still covers one standing in a ladder or vine block),
-/// and a fall-flying entity passing a block it can glide through.
-fn entity_on_climbable(host: &dyn Host, kind: &str, pos: [i32; 3]) -> bool {
+/// `Mob::on_climbable` works it out: a climbing kind (a spider or cave spider) reads its own climbing flag instead
+/// of the block; kinds that never climb (the equine kinds, ghasts and phantoms) read false; a fall-flying entity
+/// passing a block in `minecraft:can_glide_through` reads false, before the tag is even read; the block at the
+/// entity's feet in the `minecraft:climbable` tag reads true; an open trapdoor over a ladder facing the same way
+/// reads true. The climbing flag comes from the mob's own tick (`pluto_entity_climb_access`, recorded after the
+/// tick); the fall-flying state is the report's `gliding`, which a player's own tick carries too.
+fn entity_on_climbable(host: &dyn Host, kind: &str, pos: [i32; 3], climbing: bool, gliding: bool) -> bool {
+    if matches!(kind, "minecraft:spider" | "minecraft:cave_spider") {
+        return climbing;
+    }
     if matches!(kind, "minecraft:horse" | "minecraft:donkey" | "minecraft:mule" | "minecraft:skeleton_horse" | "minecraft:zombie_horse" | "minecraft:llama" | "minecraft:trader_llama" | "minecraft:camel" | "minecraft:camel_husk" | "minecraft:ghast" | "minecraft:phantom" | "minecraft:happy_ghast") {
         return false;
     }
     let block = host.block(pos);
+    if gliding && host.block_name_in_tag(&block, "minecraft:can_glide_through").unwrap_or(false) {
+        return false;
+    }
     if host.block_name_in_tag(&block, "minecraft:climbable").unwrap_or(false) {
         return true;
     }
@@ -1119,12 +1126,16 @@ fn build_mob_tick(host: &dyn Host, entity_id: u32, kind: &str, dimension: &str) 
     }
     // A mob's effects come as (id, ticks left, amplifier); the report carries (id, amplifier, ticks left).
     let effects = host.entity_effects(entity).unwrap_or_default().into_iter().map(|(effect, ticks_left, amplifier)| (effect, amplifier, ticks_left)).collect();
+    // The climb state the mob's own tick recorded (its climbing flag and whether it glides); an entity with no
+    // record reads false for both, as the report read before.
+    let (climbing, gliding) = horizon_client::game::pluto_entity_climb_access::state(entity_id);
     Some(entity_events_v1::MobTick {
         entity: entity_id as i32, kind: kind.to_owned(), dimension: dimension.to_owned(), position,
         velocity: host.entity_velocity(entity).unwrap_or([0.0; 3]),
         on_ground: host.entity_on_ground(entity).unwrap_or(false),
         in_water: host.entity_is_in_water(entity).unwrap_or(false),
-        on_climbable: entity_on_climbable(host, kind, feet),
+        on_climbable: entity_on_climbable(host, kind, feet, climbing, gliding),
+        climbing, gliding,
         armor, hands, effects,
     })
 }
@@ -4912,7 +4923,7 @@ impl Hooks for PlutoHooks {
             let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
             let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
             // Whether the player is on a climbable block, as the game's own check works it out; a spectator never counts.
-            let on_climbable = player.game_mode != 3 && entity_on_climbable(host, "minecraft:player", feet);
+            let on_climbable = player.game_mode != 3 && entity_on_climbable(host, "minecraft:player", feet, false, player.gliding);
             let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             // The world scope is open while the tick runs, so a callback may work on the blocks around the player;
             // the entity scope is open too, so a callback may reach the entities around them (a bounce sets a velocity).
@@ -4971,6 +4982,7 @@ impl Hooks for PlutoHooks {
     }
 
     fn entity_leave_level(&self, host: &mut dyn Host, event: &mut EntityLeaveLevelEvent<'_>) {
+        horizon_client::game::pluto_entity_climb_access::forget(event.entity);
         scoped(host, || entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension));
     }
 
