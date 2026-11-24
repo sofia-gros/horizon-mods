@@ -57,6 +57,22 @@ impl Registry {
     fn has_providers(&self) -> bool {
         !self.0.read().unwrap_or_else(|e| e.into_inner()).is_empty()
     }
+    fn ids(&self) -> Vec<&'static str> {
+        self.0
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .keys()
+            .copied()
+            .collect()
+    }
+    fn evaluate_for(&self, id: &str, input: &InputFacts<'_>) -> Option<StackSpec> {
+        let callback = {
+            let guard = self.0.read().unwrap_or_else(|e| e.into_inner());
+            *guard.get(id)?
+        };
+        let (name, spec) = callback(input)?;
+        (name == id).then_some(spec)
+    }
     fn evaluate(&self, input: &InputFacts<'_>) -> Option<(&'static str, StackSpec)> {
         let callbacks: Vec<_> = self
             .0
@@ -85,6 +101,22 @@ pub fn has_providers() -> bool {
 /// The first answering provider's identity and result stack, if any.
 pub fn evaluate(input: &InputFacts<'_>) -> Option<(&'static str, StackSpec)> {
     PROVIDERS.evaluate(input)
+}
+/// Ids of every registered provider, in lexical order. The bundle
+/// glue plants one marker recipe entry per id in the host's recipe
+/// tables (see the crafting-match adapter), so a provider is
+/// resolved under its own recipe name.
+pub fn provider_ids() -> Vec<&'static str> {
+    PROVIDERS.ids()
+}
+/// The stack the provider registered as `id` builds for `input`, or
+/// None when it does not answer. The provider's callback runs and
+/// its answer is kept only when it names `id` itself: a callback
+/// that answers for another recipe (the bundle glue registers one
+/// shared forwarder under every provider id, and it reports the
+/// winning provider's name) leaves this provider unanswered.
+pub fn evaluate_provider(id: &str, input: &InputFacts<'_>) -> Option<StackSpec> {
+    PROVIDERS.evaluate_for(id, input)
 }
 
 #[cfg(test)]
@@ -194,5 +226,34 @@ mod tests {
         R.register(Registration { id: "first", callback }).unwrap();
         assert_eq!(R.evaluate(&grid(&[])), None, "a registration made mid-evaluation is not in the snapshot");
         assert_eq!(R.evaluate(&grid(&[])), Some(("later", spec("example:any"))));
+    }
+
+    fn answer_misattributed(_: &InputFacts<'_>) -> Option<(&'static str, StackSpec)> {
+        Some(("other", spec("example:any")))
+    }
+
+    #[test]
+    fn provider_ids_list_registrations_in_lexical_order() {
+        let r = Registry::new();
+        assert_eq!(r.ids(), Vec::<&'static str>::new());
+        r.register(Registration { id: "z-any", callback: answer_any }).unwrap();
+        r.register(Registration { id: "a-apple", callback: answer_apple }).unwrap();
+        assert_eq!(r.ids(), vec!["a-apple", "z-any"]);
+    }
+
+    #[test]
+    fn targeted_evaluation_keeps_only_answers_under_the_queried_id() {
+        let r = Registry::new();
+        r.register(Registration { id: "one", callback: answer_one }).unwrap();
+        r.register(Registration { id: "mine", callback: answer_misattributed }).unwrap();
+        r.register(Registration { id: "pass", callback: pass }).unwrap();
+        assert_eq!(r.evaluate_for("one", &grid(&[])), Some(spec("example:any")));
+        assert_eq!(
+            r.evaluate_for("mine", &grid(&[])),
+            None,
+            "an answer naming another recipe is not this provider's"
+        );
+        assert_eq!(r.evaluate_for("pass", &grid(&[])), None);
+        assert_eq!(r.evaluate_for("missing", &grid(&[])), None);
     }
 }

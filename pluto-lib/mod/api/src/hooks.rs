@@ -643,13 +643,16 @@ fn install_native_inventory_forwarders() {
         },
     )
     .expect("PlutoLib recipe assembly forwarder installs once");
-    horizon_client::pluto_inventory::crafting::special::register(
-        horizon_client::pluto_inventory::crafting::special::Registration {
-            id: "pluto_lib:recipe_api_v1",
-            callback: recipe_special_forward,
-        },
-    )
-    .expect("PlutoLib special recipe forwarder installs once");
+    // Special recipes mirror per provider id, not under one registry
+    // id: the host's tables carry one marker entry per provider id
+    // (see pluto_crafting_match), and the crafting gate resolves a
+    // marker through the provider registered under the entry's own
+    // name. The sink mirrors later registrations as they happen; the
+    // enumeration covers registrations from before this install.
+    recipe_api_v1::set_special_recipe_sink(recipe_special_forward_for);
+    for id in recipe_api_v1::special_recipe_ids() {
+        recipe_special_forward_for(id);
+    }
 }
 
 /// Without the native inventory gates (a standalone API build) there is
@@ -1035,6 +1038,22 @@ fn recipe_special_forward(
             custom_data: result.custom_data.map(|data| nbt_component(&Nbt::Compound(data))),
         },
     ))
+}
+
+/// Mirror one pure special-recipe provider into the native registry
+/// under its own id. Every mirrored callback is
+/// [`recipe_special_forward`], so provider evaluation is unchanged;
+/// only the registration names differ. A duplicate is ignored: the
+/// registration sink can fire for an id the install enumeration
+/// already mirrored.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_special_forward_for(id: &'static str) {
+    let _ = horizon_client::pluto_inventory::crafting::special::register(
+        horizon_client::pluto_inventory::crafting::special::Registration {
+            id,
+            callback: recipe_special_forward,
+        },
+    );
 }
 
 /// Pure NBT as the native component tree (the reverse of

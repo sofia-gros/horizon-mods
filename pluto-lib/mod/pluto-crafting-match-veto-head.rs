@@ -9,6 +9,9 @@ fn pluto_crafting_match_veto(
         crate::crafting::pluto_matching::Verdict::Denied => {
             std::ops::ControlFlow::Break(None)
         }
+        crate::crafting::pluto_matching::Verdict::Unmatched => {
+            std::ops::ControlFlow::Break(None)
+        }
         crate::crafting::pluto_matching::Verdict::Assembled(stack) => {
             std::ops::ControlFlow::Break(Some(Some(stack)))
         }
