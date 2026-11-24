@@ -111,6 +111,17 @@ pub fn hooks() -> Box<dyn Hooks> {
     horizon_client::mesher::pluto_retexture::set_matcher(
         crate::pure::retexture_api_v1::is_retextured_face,
     );
+    horizon_client::item_render::pluto_retexture_item::set_provider(
+        |components| {
+            let value = components.get("minecraft:custom_data")?;
+            match horizon_client::scoreboard::json_to_tag(value) {
+                Tag::Compound(data) => crate::pure::retexture_api_v1::texture_of(&compound_from_tag(&data)),
+                _ => None,
+            }
+        },
+        crate::pure::retexture_api_v1::is_retextured_face,
+    )
+    .expect("PlutoLib retexture item provider installs once");
     horizon_client::item_render::pluto_item_colors::set_provider(
         crate::pure::color_provider_api_v1::has_item_provider,
         |item,count,components,tint_index| {

@@ -1662,6 +1662,16 @@ name = "pluto_item_colors"
 source = "pluto-item-colors.rs"
 visibility = "pub"
 
+# Retextured items: the item-side half of the retexture seam. It shares the
+# one return place on `resolve_with_rule` with the tint seam above (one
+# injection per place), running on the layers the tint pass hands over.
+[[module]]
+id = "pluto-retexture-item"
+file = "crates/horizon-client/src/item_render.rs"
+name = "pluto_retexture_item"
+source = "pluto-retexture-item.rs"
+visibility = "pub"
+
 [[module]]
 id = "pluto-armor-layers"
 file = "crates/horizon-client/src/item_render.rs"
@@ -1717,6 +1727,7 @@ bindings = [
     { name = "value", ty = "ItemRenderState", value = "$value" },
     { name = "renderer", ty = "&ItemRenderer", value = "&*self" },
     { name = "stack", ty = "&StackView", value = "stack" },
+    { name = "env", ty = "&dyn ItemEnv", value = "env" },
 ]
 
 # Successful server teardown, after the final save and networking cleanup.

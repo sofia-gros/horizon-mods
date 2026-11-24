@@ -27,8 +27,12 @@
 //! resolution is unverified from source; the in-game smoke check — a
 //! retextured drain in seared bricks against one in seared stone — decides
 //! whether the particle sprite matches the original's look.) The pure side
-//! only answers "is this face a retextured slot"; the woven mesh seam owns
-//! the position-to-texture cache and the layer lookup.
+//! answers "is this face a retextured slot" and reads the texture record
+//! out of a stack's custom data; the woven seams own the caches and the
+//! sprite lookups — the mesh seam for placed blocks, the item-resolution
+//! seam for stacks in a hand or a chest.
+
+use super::base::{Nbt, NbtCompound};
 
 /// One retextured texture slot of a block's model: the faces whose baked
 /// sprite and UVs it names take the block entity's texture instead.
@@ -87,6 +91,22 @@ pub fn slots_for(block: &str) -> &'static [RetextureSlot] {
             RetextureSlot { sprite: "tconstruct:block/storage/fallback", uv: ANY_UV },
         ],
         _ => &[],
+    }
+}
+
+/// The key the texture item's id is kept under, in a stack's custom data
+/// and in a block entity's data alike (Mantle's `RetexturedHelper.TAG_TEXTURE`).
+const TEXTURE_KEY: &str = "texture";
+
+/// The texture a stack's custom data names, if it names one: the item id
+/// of the material a retextured recipe made the stack from (the drop of a
+/// broken retextured block carries the same record, restored from its
+/// block entity). The block side reads the record out of the block
+/// entity; the item side reads it here, out of the stack.
+pub fn texture_of(data: &NbtCompound) -> Option<String> {
+    match data.get(TEXTURE_KEY) {
+        Some(Nbt::String(item)) => Some(item.clone()),
+        _ => None,
     }
 }
 
@@ -187,6 +207,17 @@ mod tests {
             "tconstruct:block/table/anvil_base",
             any
         ));
+    }
+
+    #[test]
+    fn a_stack_texture_reads_out_of_its_custom_data() {
+        let mut data = NbtCompound::new();
+        assert_eq!(texture_of(&data), None);
+        data.insert("texture".to_owned(), Nbt::String("minecraft:oak_log".to_owned()));
+        assert_eq!(texture_of(&data), Some("minecraft:oak_log".to_owned()));
+        // A record of any other kind names no texture.
+        data.insert("texture".to_owned(), Nbt::Int(3));
+        assert_eq!(texture_of(&data), None);
     }
 
     #[test]

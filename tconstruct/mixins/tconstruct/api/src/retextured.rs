@@ -6,18 +6,20 @@
 //! it drops the item with the texture restored by the `mantle:fill_retextured_block` loot
 //! function, which reads the block entity the block had.
 //!
-//! The data path is complete, and the world-block picture now exists too.
+//! The data path is complete, and the picture now exists on both sides.
 //! PlutoLib's retexture surface carries the texture from the block entity to
 //! the mesh: `pluto_lib::retexture_api_v1` names which baked faces of a
 //! block's model belong to its retextured slots (sprite + UV rectangle, read
 //! off the original model JSONs), the client block-entity tick pass feeds a
 //! position-to-texture cache, and the `pluto-retexture-layer` expression
 //! injection on `Mesher::face` swaps a slot face's sprite layer for its
-//! texture block's particle layer. The item side is still open: neither the
-//! host's item models nor its item renderer read a stack's `texture`, and the
-//! host bakes item models once per item with no per-stack model data to swap
-//! on — a retextured block held in the hand or sitting in a chest renders
-//! with its model's fixed textures.
+//! texture block's particle layer. The item side runs on the item
+//! resolution seam instead: the host bakes item models once per item, but
+//! it resolves a stack's layers per stack, and PlutoLib's retexture pass
+//! on that resolution rebuilds a retextured stack's layers with the
+//! texture item's particle sprite on the same slots — so a retextured
+//! block held in the hand or sitting in a chest draws with its texture,
+//! as the placed block does.
 
 use std::collections::BTreeMap;
 use std::sync::{OnceLock, RwLock};
