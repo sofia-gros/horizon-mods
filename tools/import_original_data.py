@@ -2762,8 +2762,9 @@ def firewood_blocks():
         blocks[f'{name}_fence'] = declare('minecraft:nether_brick_fence', color, light)
         blocks[f'{name}_slab'] = declare('minecraft:stone_slab', color, light)
         blocks[f'{name}_stairs'] = declare('minecraft:stone_stairs', color, light)
-    # The original's data ships a fence gate for nahuatl only; blazewood has none.
-    blocks['nahuatl_fence_gate'] = declare('minecraft:oak_fence_gate', 'COLOR_PURPLE')
+    # Neither family has a fence gate: FenceBuildingBlockObject registers no gate (the wood objects'
+    # gates come from addWood), and the original's stale nahuatl_fence_gate blockstate/model resources
+    # name a block that is never registered, with no loot table and no lang name.
     return blocks
 
 
