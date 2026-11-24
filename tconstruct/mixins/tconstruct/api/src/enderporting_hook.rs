@@ -19,9 +19,7 @@
 //! the damage event in monster_melee. The plant harvest teleports through the same queue, keyed by
 //! the player's uuid (the use telling carries no entity id).
 //!
-//! Not wired: the draw-speed cooldown the fishing rod's wear carries (updateFishingRod's
-//! applyCooldown: the cooldown surface is the sleeves item cooldown, not yet merged — the wear
-//! lands, the cooldown waits); a thrown tool's enderporting hit (the flight's
+//! Not wired: a thrown tool's enderporting hit (the flight's
 //! thrown-tool branch answers the hit itself before the enderporting block runs). The monster-held
 //! swap's wear by 2 rides the mob-stack-write surface (an `EntityAction::EditStackData` on the
 //! attacker's main hand, queued with the swap).
@@ -139,11 +137,14 @@ fn drain_tick(tick: &PlayerTick) {
     // enderporting: the original's updateFishingRod finds the rod the same way.
     for (name, stack) in &tick.hands {
         let slot = match name.as_str() { "mainhand" => StackSlot::MainHand, "offhand" => StackSlot::OffHand, _ => continue };
-        let Ok(edits) = with_held_tool(stack, |env, tool| {
-            if !tool_stack::can_perform_action(&tool.custom_data, env, "fishing_rod_cast") || !tool_stack::enderporting(&tool.custom_data, env) { return Vec::new(); }
-            tool_stack::damage_edits(&tool.custom_data, i32::try_from(amount).unwrap_or(i32::MAX))
+        let Ok((edits, cooldown)) = with_held_tool(stack, |env, tool| {
+            if !tool_stack::can_perform_action(&tool.custom_data, env, "fishing_rod_cast") || !tool_stack::enderporting(&tool.custom_data, env) { return (Vec::new(), 0); }
+            // updateFishingRod's applyCooldown: (int)(20 / draw speed) on the rod's item.
+            let cooldown = (20.0 / tool_stack::draw_speed(&tool.custom_data, env, &crate::entity_facts::Entities::default())) as i32;
+            (tool_stack::damage_edits(&tool.custom_data, i32::try_from(amount).unwrap_or(i32::MAX)), cooldown)
         }) else { continue; };
         if edits.is_empty() { continue; }
+        if cooldown > 0 { pluto_lib::ServerPlayer { uuid: tick.player, name: String::new() }.start_item_cooldown(&stack.item, cooldown); }
         tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot, item: stack.item.clone(), edits });
         return;
     }

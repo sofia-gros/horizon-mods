@@ -475,8 +475,8 @@ fn on_flight(flight: &ProjectileFlight) {
             // projectile. The reach cannot move a player (the host has no call for it), so a
             // player owner is queued for the next player tick (see enderporting_hook); a mob
             // owner moves at once. A fishing rod's bobber wears its rod by 10 here too
-            // (updateFishingRod with the draw-speed cooldown, whose surface is the sleeves
-            // cooldown — not yet merged — so the wear alone is queued, the cooldown waits).
+            // (updateFishingRod: the wear is queued here and lands on the owner's next
+            // tick, which starts the draw-speed cooldown as it lands).
             if profile.enderporting && !state.secondary && flight.owner >= 0 {
                 let owner = flight.owner as u64;
                 if !EntityReach::teleport(owner, flight.position) {
@@ -600,8 +600,8 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
     // the thrower on the block beyond the face. The hit itself still lands. A projectile that is
     // not an arrow or a trident is spent by the move, as the original discards it. A secondary
     // arrow of a multishot volley never swaps (the launch pass marks it), and a fishing rod's
-    // bobber wears its rod by 10 on a swap that lands (updateFishingRod; the draw-speed cooldown
-    // waits for the sleeves surface — see the fuse branch above).
+    // bobber wears its rod by 10 on a swap that lands (updateFishingRod; the queued wear
+    // starts the draw-speed cooldown when it lands — see the fuse branch above).
     if profile.enderporting && !state.secondary && hit.owner >= 0 {
         let owner = hit.owner as u64;
         let world = hit.world();

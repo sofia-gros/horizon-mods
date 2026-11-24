@@ -39,10 +39,10 @@
 //! the incoming damage before armor takes its share, so a hit the armor absorbs whole still
 //! counts as dealt (the telling reports no post-armor amount); a creative holder's tank is spent
 //! like a survival one's where a telling does not name the game mode (the capacity write-backs
-//! accept the same); the splashing item cooldown (20 / draw speed) rides the item-cooldown
-//! surface the sleeves lane built in PlutoLib (`ServerPlayer::start_item_cooldown`, on its branch
-//! at the time of writing) and is called out at the two splash sites for the merge that lands
-//! it; the bucket module has no cauldron (`LiquidBlockContainer`) half — no such block exists in
+//! accept the same); the splashing item cooldown (20 / draw speed) is started at both
+//! splash sites through the item-cooldown surface the sleeves lane built in PlutoLib
+//! (`ServerPlayer::start_item_cooldown`); the bucket module has no cauldron
+//! (`LiquidBlockContainer`) half — no such block exists in
 //! the port — and no `mayInteract` re-check, as the host already gates the block use; a mob
 //! wearer's piece is never spent (the stack-edit actions reach players only); the helmet spit's
 //! aim is the wearer's last look a use telling reported (the aim stash below), as no telling
@@ -834,9 +834,9 @@ fn apply_block(dimension: &str, fluid: &FluidStack, level: f32, holder: Holder, 
 
 /// SplashingModule.beforeEntityUse: the tank's fluid over the entity the tool is used on and
 /// the living entities around it. The module's item cooldown — (int)(20 / draw speed) on the
-/// tool's item, applied first in the original as a recursion guard — rides the item-cooldown
-/// surface the sleeves lane built (`ServerPlayer::start_item_cooldown`); it is the one call
-/// this consumer still owes once that surface merges (see the module note). Marker armor
+/// tool's item, applied first in the original as a recursion guard — is started through
+/// the item-cooldown surface the sleeves lane built (`ServerPlayer::start_item_cooldown`)
+/// once the module's gates pass. Marker armor
 /// stands are splashed with the rest: no telling names a stand's marker flag.
 fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
     let (Some(player), Some(held)) = (&click.player, &click.held) else { return ActionResult::Pass };
@@ -846,6 +846,7 @@ fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
         if modules.splashing.is_empty() || tool_stack::is_broken(&tool.custom_data) { return ActionResult::Pass; }
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return ActionResult::Pass };
         if !describe(&fluid).map_or(false, |(_, has_entity, _)| has_entity) { return ActionResult::Pass; }
+        player.start_item_cooldown(&held.item, tool_tank::Splashing::cooldown(tool_stack::draw_speed(&tool.custom_data, env, &crate::entity_facts::Entities::default())));
         let Some(target_position) = EntityReach::position_of(click.entity as u64) else { return ActionResult::Pass };
         let player_entity = EntityReach::id_of_uuid(player.uuid).map_or(0, |id| id as i32);
         let player_position = if player_entity > 0 { EntityReach::position_of(player_entity as u64).unwrap_or(target_position) } else { target_position };
@@ -959,10 +960,11 @@ fn tank_trade(
 }
 
 /// SplashingModule.afterBlockUse: the tank's fluid on the clicked block and the tool's area
-/// around it. The item cooldown is owed the same surface as the entity form's.
+/// around it. The item cooldown starts the same way as the entity form's, once the gates pass.
 fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_stack::Environment, modules: &tool_stack::TankModules) -> bool {
     let Some(fluid) = tool_tank::fluid(&stack.custom_data) else { return false };
     if !describe(&fluid).map_or(false, |(has_block, _, _)| has_block) { return false; }
+    click.player.start_item_cooldown(&stack.item, tool_tank::Splashing::cooldown(tool_stack::draw_speed(&stack.custom_data, env, &crate::entity_facts::Entities::default())));
     let player_entity = EntityReach::id_of_uuid(click.player.uuid).map_or(0, |id| id as i32);
     let player_position = if player_entity > 0 { EntityReach::position_of(player_entity as u64).unwrap_or([0.0, 0.0, 0.0]) } else { [0.0, 0.0, 0.0] };
     let face = direction(click.face);
