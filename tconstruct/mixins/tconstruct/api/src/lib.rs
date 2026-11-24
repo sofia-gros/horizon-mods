@@ -230,6 +230,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     smeltery_io::register();
     rendering::register();
     throwables::register();
+    sleeves_hook::register();
     glow_block::register();
     piggyback::register();
     creative::register();

@@ -1112,6 +1112,38 @@ kind = "HEAD"
 helper = "pluto-cooking-recipes-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
+# The hand's use finished: the chestplate takeover runs the worn sleeves module when the
+# game did not consume the use (Tinkers' InteractionHandler, at its LOWEST priority). The
+# takeover reads the acting player, their aim and their crouch state; the cooldown module
+# carries the game's item cooldowns for the provider call. One injection per place.
+[[module]]
+id = "pluto-sleeves-takeover-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_sleeves_takeover_access"
+source = "pluto-sleeves-takeover-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-sleeves-takeover"
+file = "crates/horizon-client/src/game/use_hand.rs"
+name = "pluto_sleeves_takeover"
+source = "pluto-sleeves-takeover.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-item-cooldown"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_item_cooldown"
+source = "pluto-item-cooldown.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-sleeves-takeover-return"
+target = "horizon_client::game::use_hand::Game<'_>::use_hand"
+kind = "RETURN"
+helper = "pluto-sleeves-takeover-return.rs"
+bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
 # A dig is worked out: the level's build range is published for the dig report the mods are
 # about to be asked for (dwarven reads the level's max build height).
 [[injection]]

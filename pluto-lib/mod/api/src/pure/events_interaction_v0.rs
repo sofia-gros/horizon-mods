@@ -55,6 +55,29 @@ pub struct UseItemOnBlockContext {
     pub held: Option<super::player_api::StackData>,
 }
 
+/// A player's use finished without the game consuming it: the hand is empty, the player is
+/// not a spectator, and nothing the game did took the click. The takeover a chestplate
+/// module runs on (Tinkers' sleeves) answers here, with the aim the throw uses and the
+/// crouch state the module branches on. `consumed` is false at the only seam that reports a
+/// use today; a later seam may report a consumed use the same way.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AfterUseContext {
+    /// The player; its methods work inside the callback.
+    pub player: ServerPlayer,
+    /// The dimension, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// Where the player's eyes are, in block coordinates.
+    pub eye: [f64; 3],
+    /// Where the player looks, a unit vector.
+    pub look: [f64; 3],
+    /// Whether the player is sneaking.
+    pub crouching: bool,
+    /// Whether the player is in creative mode (nothing is used up).
+    pub creative: bool,
+    /// Whether the game's own handling consumed the use.
+    pub consumed: bool,
+}
+
 /// How fast the player digs a block (NeoForge: `PlayerEvent.BreakSpeed`).
 #[derive(Debug)]
 pub struct BreakSpeedContext {
@@ -299,6 +322,7 @@ static FISHING: Event<FishingContext, ()> = Event::void();
 static BEFORE_BLOCK_BREAK: Event<BlockBreakContext, bool> = Event::allow_all();
 static AFTER_BLOCK_BREAK: Event<BlockBreakContext, ()> = Event::void();
 static BLOCK_BREAK_CANCELED: Event<BlockBreakContext, ()> = Event::void();
+static AFTER_USE: Event<AfterUseContext, ActionResult> = Event::first_not_pass();
 
 /// Fabric: `UseItemCallback.EVENT`.
 pub struct UseItemCallback;
@@ -359,6 +383,15 @@ pub struct InteractEntityCallback;
 
 impl InteractEntityCallback {
     pub const EVENT: &'static Event<InteractEntityContext, ActionResult> = &INTERACT_ENTITY;
+}
+
+/// A player's use finished unconsumed (see [`AfterUseContext`]): the chestplate takeover a
+/// worn piece answers on. Answer `Success` after doing the job, and the game does nothing
+/// more with the click.
+pub struct AfterUseCallback;
+
+impl AfterUseCallback {
+    pub const EVENT: &'static Event<AfterUseContext, ActionResult> = &AFTER_USE;
 }
 
 /// A player's fishing rod changed state (see [`FishingContext`]).
@@ -431,6 +464,11 @@ pub(crate) fn use_item_on_entity_heard() -> bool {
 /// True when a callback took the generic interaction with the entity.
 pub(crate) fn entity_interact(context: &InteractEntityContext) -> bool {
     handled(INTERACT_ENTITY.invoke(context))
+}
+
+/// True when a callback took the finished use.
+pub(crate) fn after_use(context: &AfterUseContext) -> bool {
+    handled(AFTER_USE.invoke(context))
 }
 
 /// Whether anyone listens to generic entity interactions, so the game only reads the player and the stack when
@@ -661,6 +699,19 @@ mod tests {
             actions: RefCell::new(Vec::new()),
         };
         assert!(!use_item_on_entity(&click));
+    }
+
+    #[test]
+    fn a_finished_use_is_taken_by_the_first_callback_that_does_not_pass() {
+        AfterUseCallback::EVENT.register(|used| {
+            if used.crouching { ActionResult::Success } else { ActionResult::Pass }
+        });
+        let used = |crouching: bool| AfterUseContext {
+            player: ServerPlayer { uuid: 9, name: "Alex".into() }, dimension: "minecraft:overworld".into(),
+            eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching, creative: false, consumed: false,
+        };
+        assert!(after_use(&used(true)), "a crouching use is taken");
+        assert!(!after_use(&used(false)), "a standing use leaves the click to the game");
     }
 
     #[test]

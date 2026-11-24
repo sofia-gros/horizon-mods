@@ -93,6 +93,16 @@ pub trait PlayerOps {
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         None
     }
+    /// Whether `item` is on the player's item cooldown (the item's own `use_cooldown`
+    /// component, else the item's default); false for an item with no cooldown, or when the
+    /// game does not report cooldowns. The default answers false.
+    fn is_item_on_cooldown(&mut self, _player: u128, _item: &str) -> bool {
+        false
+    }
+    /// Starts the player's cooldown for `item` for `ticks` ticks (the item's own
+    /// `use_cooldown` component, else the item's default, names the group); nothing happens
+    /// for an item with no cooldown, or when the game does not report cooldowns.
+    fn start_item_cooldown(&mut self, _player: u128, _item: &str, _ticks: i32) {}
 }
 
 /// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
@@ -394,6 +404,20 @@ impl ServerPlayer {
         with_current(None, |ops| ops.selected_slot(self.uuid))
     }
 
+    /// Whether `item` is on the player's item cooldown (the item's own `use_cooldown`
+    /// component, else the item's default). False for an item with no cooldown, or outside a
+    /// callback that carries this player.
+    pub fn is_item_on_cooldown(&self, item: &str) -> bool {
+        with_current(false, |ops| ops.is_item_on_cooldown(self.uuid, item))
+    }
+
+    /// Starts the player's cooldown for `item` for `ticks` ticks (the item's own
+    /// `use_cooldown` component, else the item's default, names the group). Nothing happens
+    /// outside a callback that carries this player, or for an item with no cooldown.
+    pub fn start_item_cooldown(&self, item: &str, ticks: i32) {
+        with_current((), |ops| ops.start_item_cooldown(self.uuid, item, ticks))
+    }
+
     /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
     pub fn main_hand_stack(&self) -> Option<StackData> {
         self.selected_slot().and_then(|slot| self.stack(slot))
@@ -511,6 +535,10 @@ pub struct MemoryPlayerOps {
     pub carried: std::collections::BTreeMap<(u128, i32), StackData>,
     /// The selected hotbar slot of every player (0 to 8).
     pub selected_slot: i32,
+    /// The item cooldowns started for each player, by `(player, item id)` to ticks left.
+    /// The memory backend does not tick them down; a started cooldown stays on until a test
+    /// clears it.
+    pub cooldowns: std::collections::HashMap<(u128, String), i32>,
 }
 
 impl MemoryPlayerOps {
@@ -642,6 +670,12 @@ impl PlayerOps for MemoryPlayerOps {
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         Some(self.selected_slot)
     }
+    fn is_item_on_cooldown(&mut self, player: u128, item: &str) -> bool {
+        self.cooldowns.get(&(player, item.to_owned())).is_some_and(|ticks| *ticks > 0)
+    }
+    fn start_item_cooldown(&mut self, player: u128, item: &str, ticks: i32) {
+        self.cooldowns.insert((player, item.to_owned()), ticks);
+    }
 }
 
 #[cfg(test)]
@@ -665,6 +699,25 @@ mod stack_tests {
         ops.stacks.insert(1, vec![Some(pickaxe(0)); 36]);
         assert_eq!(with_ops(&mut ops, || player.give_stack(pickaxe(1))), Some(pickaxe(1)));
         assert_eq!(player.give_stack(pickaxe(2)), Some(pickaxe(2)), "outside a callback nothing is given");
+    }
+
+    #[test]
+    fn an_item_cooldown_starts_and_reads_back_until_cleared() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        assert!(!player.is_item_on_cooldown("minecraft:ender_pearl"));
+        with_ops(&mut ops, || {
+            assert!(!player.is_item_on_cooldown("minecraft:ender_pearl"));
+            player.start_item_cooldown("minecraft:ender_pearl", 10);
+            assert!(player.is_item_on_cooldown("minecraft:ender_pearl"));
+            assert!(!player.is_item_on_cooldown("minecraft:chorus_fruit"), "another item is not cooling down");
+        });
+        assert_eq!(ops.cooldowns[&(1, "minecraft:ender_pearl".to_owned())], 10);
+        // Outside a callback nothing starts, and a cleared entry reads as off cooldown.
+        player.start_item_cooldown("minecraft:chorus_fruit", 10);
+        assert!(!ops.cooldowns.contains_key(&(1, "minecraft:chorus_fruit".to_owned())));
+        ops.cooldowns.remove(&(1, "minecraft:ender_pearl".to_owned()));
+        assert!(!with_ops(&mut ops, || player.is_item_on_cooldown("minecraft:ender_pearl")));
     }
 
     #[test]
