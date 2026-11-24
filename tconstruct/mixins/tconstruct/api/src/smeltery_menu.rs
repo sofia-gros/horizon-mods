@@ -275,8 +275,8 @@ impl FluidTarget for MainTankTarget<'_> {
     }
     fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
         let out = match wanted.or(self.only.as_ref()) {
-            Some(wanted) => self.tank.drain_fluid(wanted, amount as i32, execute),
-            None => self.tank.drain(amount as i32, execute),
+            Some(wanted) => self.tank.drain_fluid(wanted, amount.min(i32::MAX as u32) as i32, execute),
+            None => self.tank.drain(amount.min(i32::MAX as u32) as i32, execute),
         }?;
         Some(FluidStack { fluid: out.fluid, amount: out.amount as u32, tag: None })
     }
