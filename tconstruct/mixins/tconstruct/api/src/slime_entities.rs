@@ -418,7 +418,7 @@ pub(crate) fn finalize_spawn(view: &mut dyn MobSpawnPreparation) -> Result<Optio
 /// the game's own split work, as in the original.
 pub(crate) struct SlimeSplit;
 impl MobSplitCallback for SlimeSplit {
-    fn inherit(&self, view: &mut MobSplitInheritance<'_>) -> Result<(), String> {
+    fn inherit(&self, view: &mut MobSplitInheritance<'_, '_>) -> Result<(), String> {
         if !matches!(view.context.parent.kind.as_str(), "tconstruct:sky_slime" | "tconstruct:ender_slime" | "tconstruct:terracube") { return Ok(()); }
         let metal = view.context.parent.get_attached(metal_attachment());
         let helmet_index = if view.head.is_some() { view.random.next_int(view.children.len() as i32)? } else { -1 };
