@@ -60,7 +60,7 @@ pub use crate::pure::potion_api_v1::{self, PotionEffectFact, Potions};
 pub use crate::pure::screen_handler_api_v1::{
     self, ContainerAccept, EquipmentSlotKind, LivingPreview, MenuButton, MenuAccess, NativeMenuClicked, NativeMenuClosed, NativeMenuEvents, NativeMenuInputClosed, SceneBlock, SceneEntity, SceneView, SlotAction, SlotClick, SlotSource, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenScroll, ScreenTooltip, SlotRule,
 };
-pub use crate::pure::hud_api_v1::{self, HudDraw, HudEquipment, HudRegistry};
+pub use crate::pure::hud_api_v1::{self, HudDraw, HudEffect, HudEquipment, HudRegistry};
 pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, TradeOfferFactory, TradeOfferContext, TradeRandom, TradeWorld};
 pub use crate::pure::projectile_events_v1::{self, AmmoRequest, ArrowFacts, ArrowPickup, BowShot, FlightAction, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileLaunch, ProjectileSpawned};
 pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage, MemoryBlockEntities};

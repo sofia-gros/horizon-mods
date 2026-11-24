@@ -141,7 +141,7 @@ fn grid_repair(loaded: &Loaded, grid: &GridFacts<'_>) -> Option<SpecialResult> {
     if amount <= 0.0 {
         return None;
     }
-    let mut result = ItemSlot::new(tool_item, tool.count);
+    let mut result = ItemSlot::new(tool_item.clone(), tool.count);
     result.damage = tool.damage;
     result.custom_data = tool_data.clone();
     tool_slot::repair_slot(&mut result, &env, amount as i32).ok()?;

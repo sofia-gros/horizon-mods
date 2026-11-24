@@ -35,6 +35,16 @@ def stage_api_check(stage, bundle):
     if dest.exists():
         raise ValueError('API check input already exists')
     shutil.copytree(source, dest)
+    # The API package re-exports the movement registry crate as
+    # `pluto_lib::movement` through a path dependency
+    # (../../mixins/pluto_movement/api from the package). Stage that crate at
+    # the same relative place from the staged package so the path resolves
+    # exactly as it does in the repository tree.
+    movement_dest = stage / 'mixins/pluto_movement/api'
+    if movement_dest.exists():
+        raise ValueError('movement API staging already exists')
+    shutil.copytree(Path(__file__).resolve().parents[1] / 'mixins/pluto_movement/api',
+                    movement_dest)
     (dest / 'Cargo.toml').write_text(''.join(lines), encoding='utf-8', newline='\n')
     workspace.write_text(newline='\n', data=root.replace('members = [\n', 'members = [\n    "native-api/pluto_lib",\n', 1),
                          encoding='utf-8')
