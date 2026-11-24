@@ -157,11 +157,12 @@ jobs:
       - name: Cache Rust toolchain 1.95.0
         id: rust-toolchain-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
           key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
@@ -171,6 +172,18 @@ jobs:
             rustup component add rustfmt --toolchain 1.95.0
           fi
           rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -241,11 +254,12 @@ jobs:
       - name: Cache Rust toolchain 1.95.0
         id: rust-toolchain-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
           key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
@@ -255,6 +269,18 @@ jobs:
             rustup component add rustfmt --toolchain 1.95.0
           fi
           rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -299,11 +325,12 @@ jobs:
       - name: Cache Rust toolchain 1.95.0
         id: rust-toolchain-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
           key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
@@ -313,6 +340,18 @@ jobs:
             rustup component add rustfmt --toolchain 1.95.0
           fi
           rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -355,11 +394,12 @@ jobs:
       - name: Cache Rust toolchain 1.95.0
         id: rust-toolchain-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
           key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
@@ -369,6 +409,18 @@ jobs:
             rustup component add rustfmt --toolchain 1.95.0
           fi
           rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -413,11 +465,12 @@ jobs:
       - name: Cache Rust toolchain 1.95.0
         id: rust-toolchain-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
           key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
@@ -427,6 +480,18 @@ jobs:
             rustup component add rustfmt --toolchain 1.95.0
           fi
           rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -471,11 +536,12 @@ jobs:
       - name: Cache Rust toolchain 1.95.0
         id: rust-toolchain-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
           key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
@@ -485,6 +551,18 @@ jobs:
             rustup component add rustfmt --toolchain 1.95.0
           fi
           rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -524,13 +602,28 @@ jobs:
       - name: Cache pinned Mixins CLI build
         id: mixins-cli-cache
         if: steps.scope.outputs.docs_only != 'true'
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: target/mixins-cli-build/release/horizon-mixins
           key: ${{ runner.os }}-${{ runner.arch }}-mixins-cli-rust-1.95.0-${{ steps.pins.outputs.mixins_revision }}-v1
       - name: Build pinned official Mixins CLI
+        id: mixins-cli-build
         if: steps.scope.outputs.docs_only != 'true' && steps.mixins-cli-cache.outputs.cache-hit != 'true'
         run: cargo +1.95.0 build --locked --release --manifest-path ../horizon-mixins/Cargo.toml -p horizon-mixins-cli --target-dir target/mixins-cli-build
+      # Split restore/save, as with the toolchain cache above: the
+      # combined actions/cache saved in a post step gated on success(),
+      # and this job is exactly the one that may fail (the guarded build
+      # below), so the cache could never be populated (CI rounds 6-7:
+      # post step skipped, the 60 s build re-ran). This save runs under
+      # always() once the build itself has succeeded; continue-on-error
+      # keeps a cache-service failure from changing the job's conclusion.
+      - name: Save pinned Mixins CLI build
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.mixins-cli-cache.outputs.cache-hit != 'true' && steps.mixins-cli-build.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: target/mixins-cli-build/release/horizon-mixins
+          key: ${{ runner.os }}-${{ runner.arch }}-mixins-cli-rust-1.95.0-${{ steps.pins.outputs.mixins_revision }}-v1
       - name: Fetch locked host dependencies
         if: steps.scope.outputs.docs_only != 'true'
         run: cargo +1.95.0 fetch --locked --manifest-path ../horizon-official/Cargo.toml
