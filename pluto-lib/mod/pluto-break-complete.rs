@@ -12,6 +12,6 @@ pub(crate) fn dispatch(game: &mut Game<'_>, pos: [i32; 3]) {
         return;
     };
     let completed =
-        crate::entry::pluto_break_complete_access::BreakCompleted { dimension: game.dim.id(), pos };
+        crate::entry::pluto_break_complete_access::BreakCompleted { dimension: game.dim.id().to_owned(), pos };
     (sink.completed)(game, completed);
 }

@@ -2717,7 +2717,7 @@ cancellable = true
 helper = "pluto-hanging-stand-place.rs"
 bindings = [
  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
- { name = "hit", ty = "&Hit", value = "hit" },
+ { name = "hit", ty = "&super::Hit", value = "hit" },
  { name = "stack", ty = "&ItemStack", value = "stack" }
 ]
 

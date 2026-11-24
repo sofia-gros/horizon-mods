@@ -109,7 +109,7 @@ RULES = [
             _ => None,
         };
         let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
-            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), self.world.random.next_float(), || {
+            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), horizon_core::random::RandomSource::next_float(&mut self.world.random), || {
             if matches!(kind, Kind::Mod(_)) {'''),
             ('''                .collect::<Vec<_>>()
         });

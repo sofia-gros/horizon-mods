@@ -3,7 +3,7 @@
 // runs the host's vanilla placement.
 fn pluto_hanging_stand_place(
     game: &mut Game<'_>,
-    hit: &Hit,
+    hit: &super::Hit,
     stack: &ItemStack,
 ) -> std::ops::ControlFlow<bool> {
     let Some(facts) = crate::pluto_hanging_access::stand_for_item(&stack.item) else {

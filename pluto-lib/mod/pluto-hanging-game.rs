@@ -43,7 +43,7 @@ fn raw_int(game: &Game<'_>, id: u32, key: &str) -> Option<i32> {
     let Some(Tag::Compound(map)) = game.persist.raw.get(&id) else {
         return None;
     };
-    match map.get(key) {
+    match map.get(&horizon_world::nbt::JavaString::from(key)) {
         Some(Tag::Int(value)) => Some(*value),
         Some(Tag::Byte(value)) => Some(i32::from(*value)),
         _ => None,
