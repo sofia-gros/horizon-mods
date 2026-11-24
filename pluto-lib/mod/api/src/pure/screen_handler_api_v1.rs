@@ -1277,6 +1277,31 @@ mod tests {
     }
 
     #[test]
+    fn linked_slots_ride_the_menu_links_callback_and_a_button_can_ask_for_a_switch() {
+        let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).linked_slot().linked_slot();
+        assert_eq!(declared.source(1), SlotSource::LinkedContainer);
+        assert_eq!(declared.source(2), SlotSource::LinkedContainer);
+        assert!(declared.dynamic[1] && declared.dynamic[2], "a linked slot's place is the dynamic callback's to give");
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:linked_window").unwrap(), declared)
+                .on_menu_links(|context| vec![[context.pos[0] + 1, context.pos[1], context.pos[2]]])
+                .on_button(|b| b.open_menu([b.pos[0], b.pos[1] + 1, b.pos[2]])),
+        );
+        assert!(has_menu_links("test:linked_window"));
+        assert!(!has_menu_links("test:none"));
+        assert_eq!(menu_links("test:linked_window", [10, 64, -3]), Some(vec![[11, 64, -3]]));
+        assert_eq!(menu_links("test:none", [0; 3]), None);
+        // Linked slots are not neighbour slots: the declared offsets stay the melter's answer alone.
+        assert_eq!(neighbour_sources("test:linked_window"), Vec::<[i32; 3]>::new());
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut carried = None;
+        let mut switch = None;
+        assert!(press("test:linked_window", [4, 5, 6], 1, &mut data, &mut items, &mut carried, &mut switch));
+        assert_eq!(switch, Some([4, 6, 6]), "the button's switch request reaches the transport");
+    }
+
+    #[test]
     fn a_menu_button_reads_and_writes_the_block_entity_tanks() {
         ScreenHandlerRegistry::register(
             ScreenHandlerType::new(Identifier::parse("test:tank_button").unwrap(), ScreenLayout::new(176.0, 166.0))
@@ -1349,30 +1374,5 @@ mod tests {
         menu_input_closed(9, 7, &mut kept);
         assert_eq!(kept.len(), 1);
         assert!(kept[0].is_some(), "another window's close takes nothing");
-    }
-}
-
-
-        let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).linked_slot().linked_slot();
-        assert_eq!(declared.source(1), SlotSource::LinkedContainer);
-        assert_eq!(declared.source(2), SlotSource::LinkedContainer);
-        assert!(declared.dynamic[1] && declared.dynamic[2], "a linked slot's place is the dynamic callback's to give");
-        ScreenHandlerRegistry::register(
-            ScreenHandlerType::new(Identifier::parse("test:linked_window").unwrap(), declared)
-                .on_menu_links(|context| vec![[context.pos[0] + 1, context.pos[1], context.pos[2]]])
-                .on_button(|b| b.open_menu([b.pos[0], b.pos[1] + 1, b.pos[2]])),
-        );
-        assert!(has_menu_links("test:linked_window"));
-        assert!(!has_menu_links("test:none"));
-        assert_eq!(menu_links("test:linked_window", [10, 64, -3]), Some(vec![[11, 64, -3]]));
-        assert_eq!(menu_links("test:none", [0; 3]), None);
-        // Linked slots are not neighbour slots: the declared offsets stay the melter's answer alone.
-        assert_eq!(neighbour_sources("test:linked_window"), Vec::<[i32; 3]>::new());
-        let mut data = NbtCompound::new();
-        let mut items = Vec::new();
-        let mut carried = None;
-        let mut switch = None;
-        assert!(press("test:linked_window", [4, 5, 6], 1, &mut data, &mut items, &mut carried, &mut switch));
-        assert_eq!(switch, Some([4, 6, 6]), "the button's switch request reaches the transport");
     }
 }
