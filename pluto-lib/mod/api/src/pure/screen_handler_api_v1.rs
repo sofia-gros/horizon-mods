@@ -1037,7 +1037,7 @@ pub(crate) fn menu_input_closed(player: u128, window: i32, slots: &mut [Option<I
     NATIVE_MENU_INPUT_CLOSED.invoke(&event);
     if let Ok(kept) = event.slots.try_borrow() {
         slots.clone_from_slice(&kept);
-    }
+    };
 }
 
 #[cfg(test)]
