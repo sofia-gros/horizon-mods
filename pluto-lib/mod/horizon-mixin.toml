@@ -2910,6 +2910,8 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 # Java plays the type's own sound (tconstruct:throw.throwball / throw.shuriken, NEUTRAL, 0.5, pitch
 # 0.4 / (random * 0.4 + 0.8)). The game's volume and pitch already are Java's, so only the event id is swapped:
 # the store of `sound` in throw_item is replaced with the thrown type's registered throw sound, when it has one.
+# A binding may name only a target parameter (no locals), so the reach binds the thrown stack and the game
+# side recovers the type with the host's own thrown_by_item - the same lookup throw_item built the kind from.
 [[module]]
 id = "pluto-throw-sound-access"
 file = "crates/horizon-client/src/entry.rs"
@@ -2934,5 +2936,5 @@ ordinal = 0
 helper = "pluto-throw-sound.rs"
 bindings = [
  { name = "value", ty = "&'static str", value = "$value" },
- { name = "kind", ty = "&crate::projectiles::ProjectileKind", value = "&kind" }
+ { name = "stack", ty = "&crate::items::ItemStack", value = "stack" }
 ]
