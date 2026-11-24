@@ -318,7 +318,7 @@ use pluto_lib::{ActionResult, ServerPlayer, UseItemOnBlockCallback, UseItemOnBlo
 UseItemOnBlockCallback::EVENT.register(|used| if used.item == "example:probe_item" { ActionResult::Fail } else { ActionResult::Pass });
 let used = UseItemOnBlockContext {
     item: "example:probe_item".into(), count: 1, pos: [0, 0, 0], face: [0, 1, 0], dimension: "minecraft:overworld".into(),
-    player: ServerPlayer { uuid: 1, name: "Alex".into() }, creative: true, held: None,
+    player: ServerPlayer { uuid: 1, name: "Alex".into() }, creative: true, sneaking: false, held: None,
 };
 assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
@@ -546,7 +546,7 @@ assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light:
 
 ### `UseItemOnEntityContext`
 
-A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none), `dimension` the dimension the player is in and `creative` whether the player is in creative mode, and `actions` the `EntityAction`s a callback queues for the player.
+A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none), `dimension` the dimension the interaction happens in, `player_dimension` the dimension the player is in, and `creative` whether the player is in creative mode, and `actions` the `EntityAction`s a callback queues for the player.
 
 ```rust
 use std::cell::RefCell;
@@ -555,14 +555,15 @@ use pluto_lib::{Hand, ServerPlayer, StackData, UseItemOnEntityContext};
 let click = UseItemOnEntityContext {
     entity: 5, kind: "minecraft:sheep".into(), dimension: String::new(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
-    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false,
     actions: RefCell::new(Vec::new()),
 };
 assert_eq!((click.entity, click.hand), (5, Hand::Main));
 assert_eq!(click.kind, "minecraft:sheep");
 assert_eq!(click.held.as_ref().map(|held| held.item.as_str()), Some("test:kama"));
 assert_eq!(click.player.as_ref().map(|player| player.uuid), Some(9));
-assert_eq!(click.dimension, "minecraft:overworld");
+assert!(click.dimension.is_empty());
+assert_eq!(click.player_dimension, "minecraft:overworld");
 assert!(!click.creative);
 assert!(click.actions.borrow().is_empty());
 ```
@@ -676,7 +677,7 @@ UseEntityCallback::EVENT.register(|click| {
 let click = UseItemOnEntityContext {
     entity: 5, kind: "minecraft:sheep".into(), dimension: String::new(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
-    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false,
     actions: RefCell::new(Vec::new()),
 };
 assert_eq!(UseEntityCallback::EVENT.invoke(&click), ActionResult::Success);

@@ -1592,7 +1592,7 @@ fn action_target(action: &EntityAction) -> ActionTarget {
         EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
         | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
         | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } | EntityAction::DropItem { target, .. }
-        | EntityAction::Summon { target, .. } => *target,
+        | EntityAction::Summon { target, .. } | EntityAction::MultiplyAttribute { target, .. } => *target,
     }
 }
 

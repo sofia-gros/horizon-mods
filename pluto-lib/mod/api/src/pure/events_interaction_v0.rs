@@ -205,7 +205,7 @@ pub struct UseItemOnEntityContext {
     /// The player; None when the game names none.
     pub player: Option<ServerPlayer>,
     /// The dimension the player is in, such as `minecraft:overworld`; empty when the game does not name it.
-    pub dimension: String,
+    pub player_dimension: String,
     /// Whether the player is in creative mode (nothing is used up).
     pub creative: bool,
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to; the game does it right after the callbacks ran.
@@ -716,7 +716,7 @@ mod tests {
         let click = |kind: &str, item: &str| UseItemOnEntityContext {
             entity: 5, kind: kind.into(), dimension: String::new(), hand: Hand::Main,
             held: Some(StackData { item: item.into(), count: 1, ..Default::default() }),
-            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
+            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false,
             actions: RefCell::new(Vec::new()),
         };
         assert!(use_item_on_entity_heard());
@@ -730,13 +730,14 @@ mod tests {
         UseEntityCallback::EVENT.register(|click| {
             if click.kind == "minecraft:creeper" {
                 assert_eq!(click.dimension, "minecraft:overworld");
+                assert_eq!(click.player_dimension, "minecraft:overworld");
                 assert!(click.creative, "the click names a creative player");
             }
             ActionResult::Pass
         });
         let click = UseItemOnEntityContext {
             entity: 5, kind: "minecraft:creeper".into(), hand: Hand::Main,
-            held: None, player: None, dimension: "minecraft:overworld".into(), creative: true,
+            held: None, player: None, dimension: "minecraft:overworld".into(), player_dimension: "minecraft:overworld".into(), creative: true,
             actions: RefCell::new(Vec::new()),
         };
         assert!(!use_item_on_entity(&click));

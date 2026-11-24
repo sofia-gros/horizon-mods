@@ -4989,6 +4989,7 @@ impl Hooks for PlutoHooks {
             hand: match event.hand { Hand::Off => events_interaction_v0::Hand::Off, _ => events_interaction_v0::Hand::Main },
             held: event.stack.map(read_stack),
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            player_dimension: dimension.clone(),
             creative,
             actions: std::cell::RefCell::new(Vec::new()),
         };

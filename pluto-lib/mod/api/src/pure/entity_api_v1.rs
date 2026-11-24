@@ -143,13 +143,6 @@ pub trait EntityOps {
     fn push(&mut self, _id: u64, _delta: [f64; 3]) -> bool {
         false
     }
-    /// Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced,
-    /// not added. A player is not set (its client moves it); an item entity or a mob is. False when
-    /// the host cannot (no such entity, a player, an entity the game does not simulate, or a value
-    /// that is not finite). Hosts that predate the call answer false.
-    fn set_velocity(&mut self, _id: u64, _velocity: [f64; 3]) -> bool {
-        false
-    }
     /// Lifts the player `id` off the ground for a launch, as `Entity.move(MoverType.SELF, (0, 1.3, 0))`
     /// does at the head of one: standing on the ground, they rise by 1.3, or to the first ceiling the
     /// move would stop at. Only a player is lifted (the move's caller in the original launches the tool's
@@ -321,12 +314,6 @@ impl EntityReach {
     /// the push was accepted. False outside a scope.
     pub fn push(id: u64, delta: [f64; 3]) -> bool {
         with_current(false, |ops| ops.push(id, delta))
-    }
-
-    /// Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`); false outside a scope
-    /// or when the host cannot.
-    pub fn set_velocity(id: u64, velocity: [f64; 3]) -> bool {
-        with_current(false, |ops| ops.set_velocity(id, velocity))
     }
 
     /// Lifts the player `id` off the ground for a launch (see [`EntityOps::leave_ground`]); whether the
@@ -504,17 +491,6 @@ impl EntityOps for MemoryEntityOps {
             return false;
         }
         self.pushed.push((id, delta));
-        true
-    }
-
-    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
-        if !velocity.iter().all(|v| v.is_finite()) || !self.entities.iter().any(|(_, entity)| entity.id == id) {
-            return false;
-        }
-        match self.velocities.iter_mut().find(|(held, _)| *held == id) {
-            Some((_, held)) => *held = velocity,
-            None => self.velocities.push((id, velocity)),
-        }
         true
     }
 
@@ -763,6 +739,9 @@ mod tests {
         struct Bare;
         impl EntityOps for Bare {
             fn entities_in(&mut self, _min: [f64; 3], _max: [f64; 3]) -> Vec<WorldEntity> { Vec::new() }
+            fn discard(&mut self, _id: u64) -> bool { false }
+            fn set_item(&mut self, _id: u64, _stack: &ItemSlot) -> bool { false }
+            fn hurt(&mut self, _id: u64, _amount: f32, _damage_type: &str) -> bool { false }
         }
         let mut bare = Bare;
         with_entities(&mut bare, || assert!(!EntityReach::add_effect(2, "minecraft:poison", 100, 0)));

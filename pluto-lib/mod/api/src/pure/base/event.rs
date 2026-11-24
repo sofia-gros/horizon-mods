@@ -62,7 +62,12 @@ pub struct FirstSome;
 
 impl<T> Combiner<Option<T>> for FirstSome {
     fn combine(&self, results: &mut dyn Iterator<Item = Option<T>>) -> Option<T> {
-        results.find_map(|result| result)
+        for result in results {
+            if result.is_some() {
+                return result;
+            }
+        }
+        None
     }
 }
 
