@@ -119,6 +119,13 @@ pub trait EntityOps {
     fn push(&mut self, _id: u64, _delta: [f64; 3]) -> bool {
         false
     }
+    /// Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced,
+    /// not added. A player is not set (its client moves it); an item entity or a mob is. False when
+    /// the host cannot (no such entity, a player, an entity the game does not simulate, or a value
+    /// that is not finite). Hosts that predate the call answer false.
+    fn set_velocity(&mut self, _id: u64, _velocity: [f64; 3]) -> bool {
+        false
+    }
     /// Lifts the player `id` off the ground for a launch, as `Entity.move(MoverType.SELF, (0, 1.3, 0))`
     /// does at the head of one: standing on the ground, they rise by 1.3, or to the first ceiling the
     /// move would stop at. Only a player is lifted (the move's caller in the original launches the tool's
@@ -263,6 +270,12 @@ impl EntityReach {
         with_current(false, |ops| ops.push(id, delta))
     }
 
+    /// Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`); false outside a scope
+    /// or when the host cannot.
+    pub fn set_velocity(id: u64, velocity: [f64; 3]) -> bool {
+        with_current(false, |ops| ops.set_velocity(id, velocity))
+    }
+
     /// Lifts the player `id` off the ground for a launch (see [`EntityOps::leave_ground`]); whether the
     /// lift was accepted. False outside a scope.
     pub fn leave_ground(id: u64) -> bool {
@@ -300,6 +313,8 @@ pub struct MemoryEntityOps {
     pub knocked: Vec<(u64, f64, f64, f64)>,
     /// The pushes asked for: the id and the velocity added.
     pub pushed: Vec<(u64, [f64; 3])>,
+    /// The velocity each entity moves with: its id and the motion.
+    pub velocities: Vec<(u64, [f64; 3])>,
     /// The players lifted off the ground, in order.
     pub lifted: Vec<u64>,
     /// The creepers ignited, in order.
@@ -310,7 +325,7 @@ pub struct MemoryEntityOps {
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new(), spun: Vec::new() }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), velocities: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new(), spun: Vec::new() }
     }
 }
 
@@ -405,6 +420,17 @@ impl EntityOps for MemoryEntityOps {
         true
     }
 
+    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
+        if !velocity.iter().all(|v| v.is_finite()) || !self.entities.iter().any(|(_, entity)| entity.id == id) {
+            return false;
+        }
+        match self.velocities.iter_mut().find(|(held, _)| *held == id) {
+            Some((_, held)) => *held = velocity,
+            None => self.velocities.push((id, velocity)),
+        }
+        true
+    }
+
     fn leave_ground(&mut self, id: u64) -> bool {
         if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
             return false;
@@ -459,6 +485,20 @@ mod tests {
         assert!(!EntityReach::leave_ground(2));
         assert!(!EntityReach::ignite_creeper(2));
         assert!(!EntityReach::spin_attack(2));
+        assert!(!EntityReach::set_velocity(2, [0.0, 1.0, 0.0]));
+    }
+
+    #[test]
+    fn a_set_velocity_replaces_a_mobs_motion_and_refuses_the_unknown() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            assert!(EntityReach::set_velocity(2, [0.1, 2.7, 0.0]), "a mob's motion is set");
+            assert!(EntityReach::set_velocity(2, [0.2, 2.8, 0.0]), "and set again");
+            assert!(!EntityReach::set_velocity(99, [0.0, 0.0, 0.0]), "no such entity");
+            assert!(!EntityReach::set_velocity(2, [f64::NAN, 0.0, 0.0]), "a motion that is not finite is refused");
+        });
+        assert_eq!(ops.velocities, vec![(2, [0.2, 2.8, 0.0])], "the second set replaced the first, not added to it");
+        assert!(!EntityReach::set_velocity(2, [0.0, 0.0, 0.0]), "outside a scope nothing is set");
     }
 
     #[test]

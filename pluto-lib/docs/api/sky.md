@@ -281,3 +281,15 @@ assert!(quads[1].rgba[3] < quads[4].rgba[3]); // rings deepen toward the centre
 let day = SkyFrame { star_brightness: 0.0, ..midnight };
 assert!(frame_quads(&layer, &day).is_empty());
 ```
+
+### `sky_darken`
+
+`sky_darken(rain, thunder, day_time)` is `Level.getSkyDarken`: how much sky light the weather and time take off, from 0 (clear noon) to 11 (midnight in a thunderstorm). `rain` and `thunder` are the levels, 0.0 to 1.0, and `day_time` the world's time of day in ticks (it may run past 24000).
+
+```rust
+use pluto_lib::sky_darken;
+
+assert_eq!(sky_darken(0.0, 0.0, 6000), 0);
+assert_eq!(sky_darken(0.0, 0.0, 18000), 11);
+assert!(sky_darken(1.0, 1.0, 6000) > sky_darken(1.0, 0.0, 6000));
+```
