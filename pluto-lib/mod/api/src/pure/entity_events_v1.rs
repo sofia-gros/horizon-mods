@@ -48,6 +48,7 @@ impl LivingDamage {
     /// Whether the damage type is in the vanilla damage-type tag `tag` (`minecraft:<name>`), from
     /// `DAMAGE_TYPE_TAGS`; false for a tag the table does not name.
     pub fn in_damage_type_tag(&self, tag: &str) -> bool {
+        let tag = tag.strip_prefix("minecraft:").unwrap_or(tag);
         DAMAGE_TYPE_TAGS.iter().find(|(name, _)| *name == tag)
             .is_some_and(|(_, members)| members.contains(&self.damage_type.as_str()))
     }
