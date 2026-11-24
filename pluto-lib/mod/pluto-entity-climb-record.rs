@@ -2,8 +2,9 @@
 // the tick report built on the entity's post-tick event reads this tick's
 // climbing flag and fall-flying state. A tick that did not run (the mob is
 // gone) records nothing.
-fn pluto_entity_climb_record(value: bool, m: &mut Mob) {
+fn pluto_entity_climb_record(value: bool, m: &mut Mob) -> bool {
     if value {
         crate::game::pluto_entity_climb_access::record(m);
     }
+    value
 }
