@@ -120,6 +120,7 @@ pub(crate) fn after_entity_use(game: &mut Game<'_>, value: Result<bool>) {
         // The gate above already established the interaction was not consumed.
         consumed: false,
     };
-    let _held = crate::game::pluto_item_cooldown::hold(game);
+    let held = crate::game::pluto_item_cooldown::hold(game);
     crate::entry::pluto_sleeves_takeover_access::on_post_use(game, &post);
+    held.settle(game);
 }
