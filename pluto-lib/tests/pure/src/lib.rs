@@ -247,4 +247,5 @@ mod api_pages {
     page!(Commands, "commands.md");
     page!(Particles, "particles.md");
     page!(Sky, "sky.md");
+    page!(Map, "map.md");
 }

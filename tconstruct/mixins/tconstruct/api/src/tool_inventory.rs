@@ -218,6 +218,8 @@ pub(crate) fn write_stack(stack: &ItemSlot, slot: usize) -> NbtCompound {
     if let Some(enchantments) = &stack.enchantments {
         extra.insert("enchantments".into(), Nbt::Compound(enchantments.iter().map(|(name, level)| (name.clone(), Nbt::Int(*level))).collect()));
     }
+    // A filled map's id: the map a minimap inventory stores keeps its explored data through it.
+    if let Some(id) = stack.map_id { extra.insert("map_id".into(), Nbt::Int(id)); }
     if !extra.is_empty() { compound.insert(COMPONENTS.into(), Nbt::Compound(extra)); }
     compound.insert(TAG_SLOT.into(), Nbt::Int(slot as i32));
     compound
@@ -241,6 +243,7 @@ pub(crate) fn read_stack(compound: &NbtCompound) -> Option<ItemSlot> {
         if let Some(Nbt::Compound(map)) = extra.get("enchantments") {
             stack.enchantments = Some(map.iter().filter_map(|(name, level)| level.as_i64().map(|level| (name.clone(), level as i32))).collect());
         }
+        stack.map_id = extra.get("map_id").and_then(Nbt::as_i64).map(|value| value as i32);
     }
     // The model selection is derived from the material data, not saved.
     crate::tool_materials::sync_model(&mut stack);
@@ -664,6 +667,16 @@ mod tests {
         let mut empty = write_stack(&stack("minecraft:stick", 1), 0);
         empty.insert("Count".into(), Nbt::Byte(0));
         assert_eq!(read_stack(&empty), None, "a count of zero is no stack");
+    }
+
+    #[test]
+    fn a_stored_map_keeps_its_id_and_a_plain_map_keeps_none() {
+        let mut map = stack("minecraft:filled_map", 1);
+        map.map_id = Some(12);
+        assert_eq!(read_stack(&write_stack(&map, 0)), Some(map), "the id survives the persistent round-trip");
+        let plain = write_stack(&stack("minecraft:filled_map", 1), 0);
+        assert_eq!(read_stack(&plain).unwrap().map_id, None, "a map with no id reads back none");
+        assert!(plain.get(COMPONENTS).is_none(), "a plain map writes no components compound at all");
     }
 
     #[test]

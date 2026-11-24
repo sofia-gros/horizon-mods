@@ -444,6 +444,11 @@ pub fn hooks() -> Box<dyn Hooks> {
             note_wear:Fishing::note_wear,
             is_rod:fishing_api_v1::FishingRegistry::is_rod,
         });
+    horizon_client::entry::pluto_map_tick_access::set_provider(
+        horizon_client::entry::pluto_map_tick_access::Provider {
+            enabled:crate::pure::map_api_v1::map_tick_heard,
+            map_tick:native_map_tick,
+        });
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -1258,6 +1263,11 @@ fn native_fishing_take_use()->Option<(u128,horizon_client::entry::pluto_fishing_
         power:profile.power,knockback:profile.knockback,
         grapple:match profile.grapple { Grapple::None=>0,Grapple::Dash=>1,Grapple::Drill=>2 },
         collecting:profile.collecting }))
+}
+
+fn native_map_tick(_host:&mut dyn horizon_client::mod_api::Host,head:&ItemStack)->Option<i32> {
+    let slot=slot_of(head)?;
+    crate::pure::map_api_v1::map_tick(&crate::pure::map_api_v1::MapTickRequest { head:slot })
 }
 
 fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::entry::pluto_hanging_access::StandFacts {
@@ -2867,6 +2877,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.enchantments = read_enchantments(stack);
     slot.custom_model_data = data.custom_model_data;
     slot.profile = read_profile(stack);
+    slot.map_id = stack.data().and_then(|d| d.map_id);
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -2980,6 +2991,10 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     // The stack's own profile: a player head's owner, whose skin the head shows.
     if slot.profile != read_profile(stack) {
         stack.data_mut().set_other("minecraft:profile", slot.profile.as_ref().map(|profile| Tag::Compound(compound_to_tag(profile))));
+    }
+    // The stack's own map id: a filled map's identity, which the map tick and the map face read.
+    if slot.map_id != stack.data().and_then(|d| d.map_id) {
+        stack.data_mut().map_id = slot.map_id;
     }
     stack.tidy();
 }

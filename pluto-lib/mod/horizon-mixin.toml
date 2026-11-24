@@ -2478,3 +2478,35 @@ helper = "pluto-projectile-flight-return.rs"
 bindings = [
  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }
 ]
+
+# The stored map in a worn piece ticks while it is worn (Tinkers' minimap module): the head
+# and return halves bracket the maps tick itself, so the swap is in place for the exploration
+# sweep on the local player and on a LAN guest alike, and the offhand is restored before
+# anything else runs.
+[[module]]
+id = "pluto-map-tick-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_map_tick_access"
+source = "pluto-map-tick-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-map-tick"
+file = "crates/horizon-client/src/game/maps.rs"
+name = "pluto_map_tick"
+source = "pluto-map-tick.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-map-tick-head"
+target = "horizon_client::game::maps::Game<'_>::tick_maps"
+kind = "HEAD"
+helper = "pluto-map-tick-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-map-tick-return"
+target = "horizon_client::game::maps::Game<'_>::tick_maps"
+kind = "RETURN"
+helper = "pluto-map-tick-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
