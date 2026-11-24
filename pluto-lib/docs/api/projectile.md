@@ -66,6 +66,7 @@ let hit = ProjectileImpact {
     owner: 1,
     entity: None,
     entity_kind: String::new(),
+    entity_effects: Vec::new(),
     block: [3, 64, 3],
     face: [0, 1, 0],
     at: [3.5, 65.0, 3.5],
@@ -95,7 +96,7 @@ fn dimension_of(hit: &ProjectileImpact) -> String {
 }
 let hit = ProjectileImpact {
     dimension: "minecraft:the_nether".into(), projectile: 1, kind: "minecraft:arrow".into(), owner: 0, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    entity_kind: String::new(), entity_effects: Vec::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
     discard: Default::default(), motion_after: Default::default(), actions: Default::default(),
 };
 assert_eq!(dimension_of(&hit), "minecraft:the_nether");
@@ -121,7 +122,7 @@ use pluto_lib::{ProjectileEvents, ProjectileImpact};
 ProjectileEvents::IMPACT.register(|hit| hit.kind != "minecraft:egg");
 let egg = ProjectileImpact {
     dimension: "minecraft:overworld".into(), projectile: 2, kind: "minecraft:egg".into(), owner: 1, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    entity_kind: String::new(), entity_effects: Vec::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
     discard: Default::default(), motion_after: Default::default(), actions: Default::default(),
 };
 assert!(!ProjectileEvents::IMPACT.invoke(&egg));

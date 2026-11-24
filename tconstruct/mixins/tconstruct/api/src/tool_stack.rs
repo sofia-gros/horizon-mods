@@ -926,6 +926,18 @@ pub(crate) fn draw_speed(nbt: &NbtCompound, env: &Environment, entities: &crate:
     conditional_stat(nbt, env, Stat::DrawSpeed, &|_| false, entities)
 }
 
+/// GeneralInteractionModifierHook.getDrawtime, as ticks: the charge a use at `speed_factor`
+/// takes at `draw_speed` — `ceil(20 * speed_factor / draw_speed)`, at least 1 tick (a zero
+/// or negative drawtime would leave no gate at all).
+pub(crate) fn drawtime_ticks(draw_speed: f32, speed_factor: f32) -> i32 {
+    ((20.0 * speed_factor / draw_speed).ceil() as i32).max(1)
+}
+
+/// The drawtime of the tool in `nbt` at `speed_factor` (GeneralInteractionModifierHook.getDrawtime).
+pub(crate) fn drawtime(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, speed_factor: f32) -> i32 {
+    drawtime_ticks(draw_speed(nbt, env, entities), speed_factor)
+}
+
 /// ModifierUtil.getInaccuracy: `3 * (1 / accuracy - 1)` over the conditional accuracy.
 pub(crate) fn inaccuracy(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
     3.0 * (1.0 / conditional_stat(nbt, env, Stat::Accuracy, &|_| false, entities) - 1.0)
@@ -1786,5 +1798,17 @@ mod tests {
         // A fresh registry has not loaded dynamic modifiers, which is also a gate.
         env.item_tags_loaded = true;
         assert!(!rebuild_stats(&mut nbt, &env).unwrap());
+    }
+
+    #[test]
+    fn drawtime_is_the_ceiling_of_twenty_over_draw_speed() {
+        assert_eq!(drawtime_ticks(1.0, 1.0), 20);
+        assert_eq!(drawtime_ticks(2.0, 1.0), 10);
+        assert_eq!(drawtime_ticks(0.5, 1.0), 40);
+        assert_eq!(drawtime_ticks(3.0, 1.0), 7, "a partial tick still takes a whole one");
+        assert_eq!(drawtime_ticks(1.0, 2.0), 40, "the speed factor scales the drawtime");
+        assert_eq!(drawtime_ticks(0.0, 1.0), i32::MAX, "no draw speed means no end to the gate");
+        assert_eq!(drawtime_ticks(-1.0, 1.0), 1, "a negative drawtime is floored to one tick");
+        assert_eq!(drawtime_ticks(1.0, 0.0), 1, "a zero factor still gates one tick");
     }
 }

@@ -5012,6 +5012,16 @@ impl Hooks for PlutoHooks {
         entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
         entity_events_v1::remember_offhand(player.uuid, player.entity_id, hands.iter().find(|(name, _)| name == "offhand").map(|(_, stack)| stack.clone()));
+        // The aim a keybind shot fires with: the player's place and look as of this tick, kept
+        // whether or not the tick is wanted (the armor memory's rule, so a helmet's fireball
+        // has something to aim with even when no worn piece carries custom data).
+        let look = {
+            let yaw = f64::from(player.yaw).to_radians();
+            let pitch = f64::from(player.pitch).to_radians();
+            [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
+        };
+        let creative = player.game_mode == 1;
+        entity_events_v1::remember_aim(player.uuid, player.entity_id, entity_events_v1::PlayerAim { dimension: player.dimension.to_string(), position: player.position, look, creative });
         if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty())) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
             // The light where the player stands, sampled half a block up, the point the original's walk modules read.
@@ -5023,7 +5033,7 @@ impl Hooks for PlutoHooks {
             let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
             // Whether the player is on a climbable block, as the game's own check works it out; a spectator never counts.
             let on_climbable = player.game_mode != 3 && entity_on_climbable(host, "minecraft:player", feet);
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, look, creative, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             // The world scope is open while the tick runs, so a callback may work on the blocks around the player;
             // the entity scope is open too, so a callback may reach the entities around them (a bounce sets a velocity).
             let handle = HostHandle::new(host);
@@ -5068,6 +5078,7 @@ impl Hooks for PlutoHooks {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
         entity_events_v1::forget_armor(uuid);
+        entity_events_v1::forget_aim(uuid);
         // The base values are saved with the player, so what the armor added is taken off before they go (best effort: the host may no longer reach them).
         for (attribute, held) in entity_events_v1::forget_attributes(uuid) {
             if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base - held); }

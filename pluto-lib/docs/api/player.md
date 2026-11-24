@@ -788,3 +788,24 @@ PlayerInventoryEvents::TICK.invoke(&InventoryTick {
     stack: Some(StackData { item: "minecraft:torch".into(), count: 12, ..Default::default() }),
 });
 ```
+
+### `aim_of`
+
+Where the player `uuid` is and looks as of their last tick, for a keybind shot to fire with: the dimension, their feet position, the direction they look and whether they are in creative mode. `None` when no tick has heard them.
+
+```rust
+use pluto_lib::entity_events_v1::aim_of;
+
+assert!(aim_of(0).is_none());
+```
+
+### `PlayerAim`
+
+Where a player is and where they look, as of their last tick: `dimension` the dimension they are in, `position` their feet position, `look` the direction they look (a unit vector) and `creative` whether they are in creative mode.
+
+```rust
+use pluto_lib::entity_events_v1::PlayerAim;
+
+let aim = PlayerAim { dimension: "minecraft:overworld".into(), position: [0.0, 64.0, 0.0], look: [0.0, 0.0, 1.0], creative: false };
+assert_eq!((aim.dimension.as_str(), aim.position[1], aim.look[2], aim.creative), ("minecraft:overworld", 64.0, 1.0, false));
+```

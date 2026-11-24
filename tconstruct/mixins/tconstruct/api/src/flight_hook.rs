@@ -93,6 +93,18 @@ pub(crate) fn shuriken_flight(profile: tool_stack::FlightProfile, stack: StackDa
     InFlight { profile, shuriken: Some(ThrownShuriken { stack, power, knockback }), ..Default::default() }
 }
 
+/// A flight bound to a profile alone: a summoned projectile (a fireball) carries no thrown
+/// tool or shuriken, so no magnet or loyalty runs for it — the profile's own hooks do.
+pub(crate) fn profile_flight(profile: tool_stack::FlightProfile) -> InFlight {
+    InFlight { profile, ..Default::default() }
+}
+
+/// Drops the flight bound to a projectile that ended: the flight pass puts the state back
+/// after every tick, so a discard on its own would leave it behind.
+pub(crate) fn unbind(dimension: &str, projectile: u32) {
+    with_flights(|flights| { flights.remove(&(dimension.to_owned(), projectile)); });
+}
+
 /// The profile of a stack that was fired, when it is a whole Tinkers tool.
 pub(crate) fn profile_of(stack: &StackData) -> tool_stack::FlightProfile {
     with_held_tool(stack, |env, tool| tool_stack::flight_profile(&tool.custom_data, env)).unwrap_or_default()

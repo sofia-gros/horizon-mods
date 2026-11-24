@@ -236,6 +236,11 @@ pub(crate) fn register() {
             self_destructive_start(player);
             return;
         }
+        // FireballModule.startInteract runs on the packet too: the helmet key with the normal
+        // tooltip key shoots a fireball from the worn helmet (see fireball_hook).
+        if slot == SLOT_HEAD && key == MenuKey::Normal && crate::fireball_hook::on_armor_interact(player) {
+            return;
+        }
         // The exchange the packet asks for has no server surface yet (see the module notes).
         static LOGGED: AtomicBool = AtomicBool::new(false);
         if !LOGGED.swap(true, Ordering::Relaxed) {
