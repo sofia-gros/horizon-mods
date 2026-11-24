@@ -194,8 +194,8 @@ mod tests {
         // A position outside the world border is never outlined, and does not
         // spend one of the sixty slots (the original counts only drawn blocks).
         let border = |pos: [i32; 3]| pos[0] <= 1;
-        let facts = HighlightFacts { in_world_border: &border, ..facts(None, None) };
-        assert_eq!(highlight_positions(&facts), vec![[1, 64, -3], [0, 64, 0], [1, 64, 0]],
+        let bordered = HighlightFacts { in_world_border: &border, ..facts(None, None) };
+        assert_eq!(highlight_positions(&bordered), vec![[1, 64, -3], [0, 64, 0], [1, 64, 0]],
             "the border lets only the flood's first two blocks through");
         let border = |pos: [i32; 3]| pos[0] >= 2;
         let facts2 = HighlightFacts { in_world_border: &border, ..facts(None, None) };
