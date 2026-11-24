@@ -743,7 +743,7 @@ pub(crate) fn block_experience(context: &BlockExperienceContext) -> u32 {
 /// first sampling site that runs for the break, so a break is bonused once at most; a break the
 /// game never samples (a creative break, a break whose block drops no experience) leaves a note
 /// that is dropped unread once it is this old.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BlockBreaker {
     pub uuid: u128,
     pub name: String,
