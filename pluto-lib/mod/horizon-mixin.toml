@@ -1693,9 +1693,22 @@ name = "pluto_entity_ignite_access"
 source = "pluto-entity-ignite-access.rs"
 visibility = "pub"
 
-# One drain for the four entity transports above: PlutoLib hooks each place
+# Mob off-hand stack edit transport for the entity reach: a queue of
+# custom-data edits of the stack in a mob's off hand, applied against the
+# mob itself through the host's own whole-stack read and write for that
+# slot at the head of its rider synchronisation (the passenger transport's
+# drain point), because the living handle's equipment read builds that
+# slot from the item id alone.
+[[module]]
+id = "pluto-mob-offhand-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_mob_offhand_access"
+source = "pluto-mob-offhand-access.rs"
+visibility = "pub"
+
+# One drain for the five entity transports above: PlutoLib hooks each place
 # once, so a single head injection on the rider synchronisation applies the
-# passenger, push, teleport and ignite queues, in that order.
+# passenger, push, teleport, ignite and off-hand edit queues, in that order.
 [[injection]]
 id = "pluto-entity-drain"
 target = "horizon_client::game::passengers::Game<'_>::sync_riders"

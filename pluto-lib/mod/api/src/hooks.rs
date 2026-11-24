@@ -3004,15 +3004,21 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 // A mob's stack is written through the living handle's equipment write (API 382, the `/item replace entity` path):
                 // read the slot as it is when the action lands, edit its custom data, and put the whole stack back, so wear that
                 // happened in between stays. A player that is not the acting one (a LAN guest) is not reached here — their tick
-                // applies their own actions. A mob's off hand keeps only the item, not the stack's count and components, so an
-                // off-hand edit could never land and is skipped.
+                // applies their own actions. The off hand is the one slot that path cannot carry: the handle's read builds it
+                // from the item id alone (one item, no damage, no components), while the host keeps the whole stack a mob
+                // holds there in its gear store, so an off-hand edit queues for the off-hand transport instead, which applies
+                // it against the mob itself through the host's own whole-stack read and write for that slot at the rider
+                // synchronisation.
                 let Ok(mob) = u32::try_from(id) else { continue };
                 let Some(entity) = host.entity(mob) else { continue };
                 if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
                 let Some(living) = host.living(entity) else { continue };
                 let native = match slot {
                     entity_events_v1::StackSlot::MainHand => EquipmentSlot::MainHand,
-                    entity_events_v1::StackSlot::OffHand => continue,
+                    entity_events_v1::StackSlot::OffHand => {
+                        horizon_client::game::pluto_mob_offhand_access::push_edit(dimension, mob, item.clone(), edits.iter().map(|edit| (edit.path.clone(), edit.value.as_ref().map(tag_from_nbt))).collect());
+                        continue;
+                    }
                     entity_events_v1::StackSlot::Feet => EquipmentSlot::Feet,
                     entity_events_v1::StackSlot::Legs => EquipmentSlot::Legs,
                     entity_events_v1::StackSlot::Chest => EquipmentSlot::Chest,
