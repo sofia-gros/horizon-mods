@@ -161,6 +161,17 @@ pub trait PlayerOps {
     ) -> bool {
         false
     }
+    /// The value of the host attribute `attribute` for `player` with every modifier on it
+    /// (armour, effects, `/attribute`), as `LivingEntity.getAttributeValue` answers it:
+    /// `minecraft:block_interaction_range` is the range a use that aims traces over,
+    /// `minecraft:max_health` the health cap. None when the game cannot answer — the
+    /// attribute is not one players have, or the player is not reached or between bodies
+    /// (just respawned, not yet ticked) — or when this backend cannot read attributes
+    /// (the default). The caller falls back to the attribute's base value then, as the
+    /// game's own range reads do.
+    fn attribute_value(&mut self, _player: u128, _attribute: &str) -> Option<f64> {
+        None
+    }
 }
 
 /// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
@@ -531,6 +542,12 @@ impl ServerPlayer {
     ) -> bool {
         with_current(false, |ops| ops.broadcast_item_break(self.uuid, slot, stack))
     }
+    /// The value of the host attribute `attribute` for this player with every modifier on it,
+    /// as `LivingEntity.getAttributeValue` answers it (see [`PlayerOps::attribute_value`]).
+    /// None outside a callback that carries the player, or when the game cannot answer.
+    pub fn attribute_value(&self, attribute: &str) -> Option<f64> {
+        with_current(None, |ops| ops.attribute_value(self.uuid, attribute))
+    }
 
     /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
     pub fn main_hand_stack(&self) -> Option<StackData> {
@@ -695,6 +712,10 @@ pub struct MemoryPlayerOps {
     pub stopped_uses: Vec<u128>,
     /// The item menus opened, in order, as (player, menu type, title, items, extra data).
     pub opened_item_menus: Vec<OpenedItemMenu>,
+    /// The host attribute values a test set for a player, by `(player, attribute)`: what
+    /// `attribute_value` answers. A player with nothing set answers None, as a player the
+    /// game cannot reach does.
+    pub attributes: std::collections::BTreeMap<(u128, String), f64>,
 }
 
 /// An item menu opened through the memory backend, as [`MemoryPlayerOps::opened_item_menus`] records it.
@@ -867,6 +888,9 @@ impl PlayerOps for MemoryPlayerOps {
     fn stop_use(&mut self, player: u128) -> bool {
         self.stopped_uses.push(player);
         true
+    }
+    fn attribute_value(&mut self, player: u128, attribute: &str) -> Option<f64> {
+        self.attributes.get(&(player, attribute.to_owned())).copied()
     }
 }
 
@@ -1225,5 +1249,17 @@ mod tests {
         });
         assert_eq!(game.released_uses, [7u128, 7u128], "every release is recorded, in order");
         assert_eq!(game.stopped_uses, [7u128]);
+    }
+
+    #[test]
+    fn attribute_values_are_read_from_the_memory_game_and_unheard_outside_a_scope() {
+        let player = player();
+        assert_eq!(player.attribute_value("minecraft:block_interaction_range"), None, "outside a scope nothing is read");
+        let mut game = MemoryPlayerOps::default();
+        game.attributes.insert((7, "minecraft:block_interaction_range".to_owned()), 6.0);
+        with_ops(&mut game, || {
+            assert_eq!(player.attribute_value("minecraft:block_interaction_range"), Some(6.0));
+            assert_eq!(player.attribute_value("minecraft:entity_interaction_range"), None, "an attribute nothing set stays unread");
+        });
     }
 }

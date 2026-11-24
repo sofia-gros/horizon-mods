@@ -569,7 +569,7 @@ assert_eq!(game.carried.get(&(1, 102)).map(|stack| stack.count), Some(2));
 
 ### `PlayerOps`
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, `is_item_on_cooldown(player, item) -> bool`, `start_item_cooldown(player, item, ticks)`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing), `update_stack(player, slot, expected_item, &StackData) -> bool` and `set_stack(player, slot, Option<&StackData>) -> bool` (creates in an empty carried slot; the default sets nothing), `release_use(player) -> bool` and `stop_use(player) -> bool` (the release and the plain end of the player's item use in progress; the defaults end nothing).
+What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, `is_item_on_cooldown(player, item) -> bool`, `start_item_cooldown(player, item, ticks)`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing), `update_stack(player, slot, expected_item, &StackData) -> bool` and `set_stack(player, slot, Option<&StackData>) -> bool` (creates in an empty carried slot; the default sets nothing), `release_use(player) -> bool` and `stop_use(player) -> bool` (the release and the plain end of the player's item use in progress; the defaults end nothing), and `attribute_value(player, attribute) -> Option<f64>` (the value of one of the player's host attributes with every modifier on it; None when the game cannot answer).
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};
@@ -646,7 +646,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 `entity_attachments` stores JSON by `(dimension, callback-local entity ID, attachment ID)`; tests simulating holder removal/ID reuse must clear the old holder themselves. `attachment_policies` records the immutable sync flag per attachment ID across holder kinds. These collections test routing and values, not native UUID ownership, save files or network delivery.
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)`, `selected_slot` the selected hotbar slot of every player (0 to 8), and `cooldowns` the item cooldowns started for each player by `(player, item id)` to ticks left (the memory backend does not tick them down), `released_uses` every player whose use a `release_use` ended and `stopped_uses` every player whose use a `stop_use` ended, both in order.
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)`, `selected_slot` the selected hotbar slot of every player (0 to 8), and `cooldowns` the item cooldowns started for each player by `(player, item id)` to ticks left (the memory backend does not tick them down), `released_uses` every player whose use a `release_use` ended and `stopped_uses` every player whose use a `stop_use` ended, both in order, and `attributes` the host attribute values set for a player by `(player, attribute)`.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -762,6 +762,20 @@ assert!(!player.stop_use()); // outside a callback
 let mut game = MemoryPlayerOps::default();
 with_ops(&mut game, || assert!(player.stop_use()));
 assert_eq!(game.stopped_uses, vec![1]);
+```
+
+### `ServerPlayer::attribute_value`
+
+`fn attribute_value(&self, attribute: &str) -> Option<f64>`. The value of the host attribute `attribute` for this player with every modifier on it (armour, effects, `/attribute`), as `LivingEntity.getAttributeValue` answers it: `minecraft:block_interaction_range` is the range a use that aims traces over, `minecraft:max_health` the health cap. None outside a callback that carries the player, when the attribute is not one players have, or when the player is not reached or between bodies (just respawned, not yet ticked) — the caller falls back to the attribute's base value then, as the game's own range reads do.
+
+```rust
+use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert_eq!(player.attribute_value("minecraft:block_interaction_range"), None); // outside a callback
+let mut game = MemoryPlayerOps::default();
+game.attributes.insert((1, "minecraft:block_interaction_range".into()), 6.0);
+with_ops(&mut game, || assert_eq!(player.attribute_value("minecraft:block_interaction_range"), Some(6.0)));
 ```
 
 ### `KeyPress`

@@ -1854,6 +1854,13 @@ impl WorldOps for HostWorld {
         horizon_client::entry::pluto_brush_access::push(dimension, pos, face)
     }
 
+    fn brush_fallback_sound(&mut self, dimension: &str, pos: [i32; 3]) -> bool {
+        // The generic brush sound of a stroke that brushed nothing rides the same queue as
+        // the strokes: the game's brush seam plays it in that dimension, for the acting
+        // player alone (see pluto_brush_access).
+        horizon_client::entry::pluto_brush_access::push_fallback(dimension, pos)
+    }
+
     fn send_particles(&mut self, _dimension: &str, particle: &str, data: &crate::pure::particle_api_v1::ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
         use horizon_client::mod_api::{ParticleOptions, ParticleType};
         // A vanilla name resolves to the host's own type; any other namespaced name is a mod's own
@@ -2596,6 +2603,12 @@ impl PlayerOps for HostOps {
         let mut native = ItemStack::new(&stack.item, stack.count);
         write_stack(&mut native, stack);
         horizon_client::entry::pluto_player_animate_access::push_break(player, native_slot, native)
+    }
+    fn attribute_value(&mut self, player: u128, attribute: &str) -> Option<f64> {
+        // The game's own attribute read (native_attribute): the base and the value with
+        // every modifier on it — armour, effects, `/attribute` — of which the caller
+        // wants the value, as `LivingEntity.getAttributeValue` answers it.
+        self.host().attribute(player, attribute).map(|(_, computed)| computed)
     }
 
     fn count_item(&mut self, player: u128, item: &str) -> u32 {

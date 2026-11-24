@@ -35,3 +35,36 @@ pub fn take_for(dimension: &str) -> Vec<Queued> {
     *queue = rest;
     mine
 }
+
+/// One queued generic brush sound, in plain data: the dimension and the block a stroke
+/// aimed at and brushed nothing on.
+#[derive(Clone, Debug)]
+pub struct QueuedFallback {
+    pub dimension: String,
+    pub pos: [i32; 3],
+}
+
+static FALLBACKS: Mutex<Vec<QueuedFallback>> = Mutex::new(Vec::new());
+
+/// Queues the generic brush sound for a stroke that brushed nothing at `pos`, for the
+/// seam in its dimension; false when the queue is full (4096), as the stroke queue
+/// refuses past its bound rather than growing without limit.
+pub fn push_fallback(dimension: &str, pos: [i32; 3]) -> bool {
+    let Ok(mut fallbacks) = FALLBACKS.lock() else { return false };
+    if fallbacks.len() >= 4096 { return false; }
+    fallbacks.push(QueuedFallback { dimension: dimension.to_owned(), pos });
+    true
+}
+
+/// Takes the queued generic brush sounds for `dimension` (the level in place), leaving
+/// the others queued.
+pub fn take_fallbacks(dimension: &str) -> Vec<QueuedFallback> {
+    let Ok(mut fallbacks) = FALLBACKS.lock() else { return Vec::new() };
+    let mut mine = Vec::new();
+    let mut rest = Vec::new();
+    for queued in std::mem::take(&mut *fallbacks) {
+        if queued.dimension == dimension { mine.push(queued); } else { rest.push(queued); }
+    }
+    *fallbacks = rest;
+    mine
+}
