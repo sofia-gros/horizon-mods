@@ -162,7 +162,7 @@ fn launch(player: &ServerPlayer, dimension: &str, position: [f64; 3], look: [f64
     // power above keeps the holder-less entities it always had.
     let holder = pluto_lib::EntityState { y: Some(release.position[1]), ..Default::default() };
     let velocity_entities = crate::entity_facts::Entities { attacker: Some(&holder), target: None };
-    let build_height = Some(crate::mining_speed::build_height_for(&release.dimension));
+    let build_height = Some(crate::mining_speed::level_build_height(&release.dimension));
     let velocity = f64::from(tool_stack::conditional_stat_at(nbt, env, Stat::Velocity, &|_| false, &velocity_entities, build_height));
     let inaccuracy = f64::from(tool_stack::inaccuracy(nbt, env, &entities)) / 16.0;
     // The look scaled by two, jittered on x and z only, the whole scaled by the velocity.
@@ -248,22 +248,16 @@ fn wear_helmet(player: &ServerPlayer, head: &StackData, env: &tool_stack::Enviro
     player.set_equipment(StackSlot::Head, Some(&brush_hook::stack_of(&slot)));
 }
 
-/// The build range [min, max) of a dimension, as the game's own Level.getMinBuildHeight and
-/// getMaxBuildHeight give it for its three dimensions; a custom dimension falls back to the
-/// overworld's. A flight callback has no world scope, so the range is read from this table
-/// instead of the level (see the module notes).
-fn build_height(dimension: &str) -> [i32; 2] {
-    match dimension {
-        "minecraft:the_nether" => [0, 128],
-        "minecraft:the_end" => [0, 256],
-        _ => [-64, 320],
-    }
-}
-
-/// CustomFireball.checkBelowWorld: the flight ends 64 past either build limit.
+/// CustomFireball.checkBelowWorld: the flight ends 64 past either build limit, read from
+/// the host for the flight's dimension (a level publishes its range on every tick, so the
+/// flight telling — which runs in no world callback — reads it all the same). When the host
+/// has not published the range, the flight is not ended on height; only the 2400-tick half
+/// of the tick runs.
 fn below_build_height(dimension: &str, y: f64) -> bool {
-    let [min, max] = build_height(dimension);
-    y < f64::from(min - 64) || y > f64::from(max + 64)
+    match World::new(dimension).build_height() {
+        Some([min, max]) => y < f64::from(min) - 64.0 || y > f64::from(max) + 64.0,
+        None => false,
+    }
 }
 
 /// CustomFireball.tick: the flight ends after 2400 ticks, or past the build height.
@@ -336,6 +330,7 @@ fn on_impact(impact: &ProjectileImpact) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pluto_lib::{with_world, MemoryWorldOps};
     use std::cell::{Cell, RefCell};
 
     fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
@@ -348,6 +343,29 @@ mod tests {
         let mut nbt = NbtCompound::new();
         nbt.insert(tool_stack::TAG_MODIFIERS.into(), list.to_nbt());
         nbt
+    }
+
+
+    fn flight(dimension: &str, age: u32, y: f64) -> ProjectileFlight {
+        ProjectileFlight {
+            dimension: dimension.to_owned(),
+            projectile: 1,
+            kind: FIREBALL.to_owned(),
+            owner: -1,
+            owner_position: None,
+            age,
+            position: [0.0, y, 0.0],
+            motion: [0.0; 3],
+            in_ground: false,
+            no_gravity: false,
+            arrow: None,
+            data: NbtCompound::new(),
+            motion_after: RefCell::new(None),
+            discard: Cell::new(false),
+            no_gravity_after: Cell::new(None),
+            release_from_ground: Cell::new(false),
+            actions: RefCell::new(Vec::new()),
+        }
     }
 
     fn fireball_module(json: serde_json::Value) -> Fireball {
@@ -407,16 +425,48 @@ mod tests {
     }
 
     #[test]
-    fn the_flight_ends_sixty_four_past_either_build_limit() {
-        assert!(!below_build_height("minecraft:overworld", -128.0));
-        assert!(below_build_height("minecraft:overworld", -128.5));
-        assert!(!below_build_height("minecraft:overworld", 384.0));
-        assert!(below_build_height("minecraft:overworld", 384.5));
-        assert_eq!(build_height("minecraft:the_nether"), [0, 128]);
-        assert_eq!(build_height("minecraft:the_end"), [0, 256]);
-        assert_eq!(build_height("example:custom"), [-64, 320], "an unknown dimension falls back to the overworld's range");
-        assert!(below_build_height("minecraft:the_nether", -64.5));
-        assert!(below_build_height("minecraft:the_end", 320.5));
+    fn a_fireball_discards_past_the_build_height_and_not_inside_it() {
+        // The overworld's range, and a custom dimension's own range, as the host publishes them.
+        let mut ops = MemoryWorldOps::default();
+        ops.build_heights.insert("minecraft:overworld".into(), [-64, 320]);
+        ops.build_heights.insert("example:custom".into(), [-32, 128]);
+        with_world(&mut ops, || {
+            // Inside the overworld's range and its 64-block margin it flies on.
+            let flying = flight("minecraft:overworld", 10, 383.0);
+            on_flight(&flying);
+            assert!(!flying.discard.get(), "384 is the top of the margin, 383 still flies");
+            // Past the top margin it ends: max 320 + 64 = 384.
+            let high = flight("minecraft:overworld", 10, 384.5);
+            on_flight(&high);
+            assert!(high.discard.get());
+            // Below the bottom margin it ends too: min -64 - 64 = -128.
+            let low = flight("minecraft:overworld", 10, -128.5);
+            on_flight(&low);
+            assert!(low.discard.get());
+            // A custom dimension reads its own range: its top margin is 128 + 64 = 192.
+            let custom_inside = flight("example:custom", 10, 191.0);
+            on_flight(&custom_inside);
+            assert!(!custom_inside.discard.get());
+            let custom_past = flight("example:custom", 10, 192.5);
+            on_flight(&custom_past);
+            assert!(custom_past.discard.get());
+            // The 2400-tick half still ends a flight inside the range.
+            let old = flight("minecraft:overworld", 2401, 64.0);
+            on_flight(&old);
+            assert!(old.discard.get());
+        });
+        // With no range published for the dimension, only the 2400-tick half runs.
+        let unknown = flight("example:unpublished", 10, 9999.0);
+        on_flight(&unknown);
+        assert!(!unknown.discard.get(), "no host range: a high flight is not discarded");
+        let unknown_old = flight("example:unpublished", 2401, 64.0);
+        on_flight(&unknown_old);
+        assert!(unknown_old.discard.get());
+        // Another kind is not a fireball: the flight is left alone.
+        let mut other = flight("minecraft:overworld", 10, 9999.0);
+        other.kind = "minecraft:arrow".into();
+        on_flight(&other);
+        assert!(!other.discard.get());
     }
 
     #[test]

@@ -40,6 +40,7 @@ use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
 use crate::pure::book_api_v1::{self, BookOps, BookView};
+use crate::pure::projectile_api_v1;
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
@@ -238,6 +239,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         horizon_client::entry::pluto_break_complete_access::BreakCompleteSink { completed: break_complete_sink },
     )
     .expect("PlutoLib break completion sink installs once");
+    horizon_client::entry::pluto_throw_sound_access::set_sink(horizon_client::entry::pluto_throw_sound_access::Sink {
+        throw_sound: projectile_api_v1::throw_sound_for,
+    }).expect("PlutoLib throw sound sink installs once");
     horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
         .expect("PlutoLib block entity predicate installs once before native initialization");
     horizon_client::entry::pluto_block_entity_access::set_cache_generation_provider(crate::pure::render_cache::generation)
@@ -1732,6 +1736,15 @@ impl WorldOps for HostWorld {
     fn random_float(&mut self, dimension: &str) -> Option<f32> {
         use horizon_client::mod_api::RandomSource;
         self.0.get().level_random(dimension).map(|random| random.next_float())
+    }
+
+    fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> {
+        // The host's level handles read any loaded level (API 381): the lowest y and the
+        // height of the level, so the range is [min, min + height).
+        let host = self.0.get();
+        let level = host.level(dimension)?;
+        let (min_y, height) = host.level_height(level)?;
+        Some([min_y, min_y + height])
     }
 
     fn block_state(&mut self, dimension: &str, pos: [i32; 3]) -> Option<String> {
@@ -5493,7 +5506,14 @@ impl Hooks for PlutoHooks {
         });
     }
 
-    fn level_tick_pre(&self, _host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
+    fn level_tick_pre(&self, host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
+        // Every loaded level ticks, so its build range stays published for the readers that run
+        // outside a world callback (a projectile's flight telling): the level's own [min, max).
+        if let Some(level) = host.level(&event.dimension) {
+            if let Some((min_y, height)) = host.level_height(level) {
+                world_api_v1::publish_level_height(&event.dimension, [min_y, min_y + height]);
+            }
+        }
         lifecycle_events_v1::world_tick(true, event.dimension);
     }
 

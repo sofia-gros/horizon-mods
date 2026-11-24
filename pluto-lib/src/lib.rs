@@ -700,3 +700,6 @@ pub use pluto_api::creative as native_creative;
 
 /// Host-independent item behavior contracts.
 pub use pluto_item_api as item;
+
+/// Block movement factors (speed and jump) for mod blocks.
+pub use pluto_movement_api as movement;

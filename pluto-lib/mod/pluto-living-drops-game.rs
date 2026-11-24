@@ -11,15 +11,18 @@ fn killer_id(m:&Mob)->Option<u32> {
 }
 /// The killing blow's Looting level (`EnchantmentHelper.getMobLooting`):
 /// the attacker's main-hand Looting. A mob attacker's hand is read from its
-/// equipment; a player attacker's is the local player's held stack (a LAN
-/// guest's hand is not resolved in this scope and reads 0).
-fn killer_looting(game:&Game<'_>,m:&Mob)->i32 {
-    let stack=match m.last_damage.and_then(|(damage,_)|damage.attacker) {
-        Some(Who::Mob(id))=>game.mobs.iter().find(|other|other.id==id).and_then(|mob|mob.extra.main_hand_stack()),
-        Some(Who::Player)=>game.held(),
-        _=>None,
-    };
-    stack.map_or(0,|stack|stack.enchantment_level("minecraft:looting") as i32)
+/// equipment; a player attacker's is the main hand the host already resolved
+/// into the killer `LootEntity` (`Game::killer_loot_entity` in the pinned
+/// host: the local player's hand for a local kill, the guest's own hand —
+/// read through `as_guest` — for a LAN guest's kill), so the drop-chance
+/// context sees the guest's Looting instead of the host's.
+fn killer_looting(game:&Game<'_>,killer:&horizon_world::loot::LootEntity,m:&Mob)->i32 {
+    match m.last_damage.and_then(|(damage,_)|damage.attacker) {
+        Some(Who::Mob(id))=>game.mobs.iter().find(|other|other.id==id).and_then(|mob|mob.extra.main_hand_stack())
+            .map_or(0,|stack|stack.enchantment_level("minecraft:looting") as i32),
+        Some(Who::Player)=>access::killer_mainhand_looting(killer),
+        _=>0,
+    }
 }
 /// The class-adjusted equipment drop chances for this death, when a living
 /// behaviour overrides any slot's chance for this kind. Built from the
@@ -125,7 +128,7 @@ impl Game<'_> {
         // A class drop-chance override (e.g. the armored slime head cap)
         // replaces the recorded chances for this death's rolls only; the
         // mob's own record is restored untouched afterwards.
-        let chance_override=pluto_drop_chance_override(m,killer_looting(self,m));
+        let chance_override=pluto_drop_chance_override(m,killer_looting(self,&killer,m));
         let saved_chances=chance_override.map(|adjusted| {
             let saved=m.extra.drop_chances.clone();
             m.extra.drop_chances=Some(adjusted);

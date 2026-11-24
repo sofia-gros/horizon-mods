@@ -105,6 +105,14 @@ pub trait WorldOps {
     fn random_float(&mut self, _dimension: &str) -> Option<f32> {
         None
     }
+    /// The build range of the dimension's level, [lowest buildable y, first y above the build limit]
+    /// (Minecraft: `Level.getMinBuildHeight`, `Level.getMaxBuildHeight`). None when the host cannot
+    /// answer for the dimension — an unloaded dimension, a client, or outside a callback that carries
+    /// a world. The default host cannot answer; a level's own tick publishes its range (see
+    /// `published_level_height`), so a reader outside a callback still sees it.
+    fn build_height(&mut self, _dimension: &str) -> Option<[i32; 2]> {
+        None
+    }
     /// Whether the block (`minecraft:stone`) is in the block tag (`minecraft:mineable/pickaxe`); false for an unknown tag.
     fn block_in_tag(&mut self, _block: &str, _tag: &str) -> bool {
         false
@@ -249,6 +257,26 @@ pub fn placement_facts(block: &str) -> Option<PlacementFacts> {
     lookup(block)
 }
 
+/// The build range each level last published on its tick, by dimension: what a reader outside a
+/// world callback reads the level's range from (a projectile's flight telling runs in none). A
+/// level publishes its range every tick it runs, so the entry for a loaded dimension is its own
+/// range; a dimension that never ticked has no entry. The range is a property of the level, so a
+/// stale entry still names the dimension's range.
+static LEVEL_HEIGHTS: RwLock<BTreeMap<String, [i32; 2]>> = RwLock::new(BTreeMap::new());
+
+/// Publishes the build range of `dimension`'s level, [min, max). Called by the host adapter on
+/// every level tick.
+pub(crate) fn publish_level_height(dimension: &str, height: [i32; 2]) {
+    if let Ok(mut heights) = LEVEL_HEIGHTS.write() {
+        heights.insert(dimension.to_owned(), height);
+    }
+}
+
+/// The build range `dimension`'s level last published on its tick, if any.
+pub(crate) fn published_level_height(dimension: &str) -> Option<[i32; 2]> {
+    LEVEL_HEIGHTS.read().ok()?.get(dimension).copied()
+}
+
 thread_local! {
     static OPS: Cell<Option<*mut dyn WorldOps>> = const { Cell::new(None) };
 }
@@ -368,6 +396,18 @@ impl World {
     /// dimension. A draw advances the same stream later native operations use.
     pub fn random_float(&self) -> Option<f32> {
         with_current(None, |ops| ops.random_float(&self.dimension))
+    }
+
+    /// Minecraft: `Level.getMinBuildHeight` and `Level.getMaxBuildHeight`: the build range of this
+    /// dimension's level, [lowest buildable y, first y above the build limit]. The host answers
+    /// inside a callback that carries a world; outside one, the range the level last published on
+    /// its tick answers (a level publishes every tick it runs); None when neither has answered for
+    /// the dimension — an unloaded dimension, a client, or a level that never ticked.
+    pub fn build_height(&self) -> Option<[i32; 2]> {
+        if let Some(height) = with_current(None, |ops| ops.build_height(&self.dimension)) {
+            return Some(height);
+        }
+        published_level_height(&self.dimension)
     }
 
     /// Minecraft: `setBlockState`. False if it could not be set (chunk not loaded, unknown block, outside a callback).
@@ -875,6 +915,8 @@ pub struct MemoryWorldOps {
     pub brushes: Vec<BrushRecord>,
     /// The generic brush sounds asked for so far, in order: one per stroke that brushed nothing.
     pub brush_fallbacks: Vec<BrushFallbackRecord>,
+    /// The build ranges published per dimension, for [`World::build_height`] in tests.
+    pub build_heights: BTreeMap<String, [i32; 2]>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -937,6 +979,10 @@ impl WorldOps for MemoryWorldOps {
         self.particles.push(ParticleRecord { dimension: dimension.to_owned(), particle: particle.to_owned(), data: data.clone(), at, spread, speed, count });
         true
     }
+
+    fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> {
+        self.build_heights.get(dimension).copied()
+    }
 }
 
 #[cfg(test)]
@@ -967,6 +1013,44 @@ mod tests {
         assert!(ops.draws.is_empty());
         assert_eq!(world.random_float(), None);
         with_world(&mut MemoryWorldOps::default(), || assert_eq!(world.random_float(), None));
+    }
+
+    #[test]
+    fn build_height_reads_the_host_level_for_the_dimension() {
+        struct Levels { heights: BTreeMap<String, [i32; 2]> }
+        impl WorldOps for Levels {
+            fn block_state(&mut self, _: &str, _: BlockPos) -> Option<String> { None }
+            fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
+            fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+            fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> { self.heights.get(dimension).copied() }
+        }
+        let world = World::new("example:custom");
+        assert_eq!(world.build_height(), None, "outside a scope nothing is published");
+        let mut ops = Levels { heights: [("example:custom".to_owned(), [-32, 128]), ("minecraft:overworld".to_owned(), [-64, 320])].into_iter().collect() };
+        with_world(&mut ops, || {
+            assert_eq!(world.build_height(), Some([-32, 128]), "a custom dimension reads its own range, not the table's");
+            assert_eq!(World::new("minecraft:overworld").build_height(), Some([-64, 320]));
+            assert_eq!(World::new("minecraft:the_end").build_height(), None, "an unanswered dimension stays unanswered");
+        });
+        assert_eq!(world.build_height(), None, "the scope is closed again");
+        // The memory world answers what it was told, and nothing for the rest.
+        let mut memory = MemoryWorldOps::default();
+        assert_eq!(memory.build_height("example:custom"), None);
+        memory.build_heights.insert("example:custom".into(), [-32, 128]);
+        with_world(&mut memory, || assert_eq!(world.build_height(), Some([-32, 128])));
+    }
+
+    #[test]
+    fn a_level_tick_publishes_its_range_for_readers_without_a_scope() {
+        // A fresh dimension id: the publication is per dimension, so no other test's
+        // entry can answer for it.
+        let dimension = "example:published";
+        assert_eq!(published_level_height(dimension), None);
+        publish_level_height(dimension, [-16, 96]);
+        assert_eq!(published_level_height(dimension), Some([-16, 96]));
+        assert_eq!(World::new(dimension).build_height(), Some([-16, 96]), "no scope, yet the tick's publication answers");
+        publish_level_height(dimension, [-16, 112]);
+        assert_eq!(World::new(dimension).build_height(), Some([-16, 112]), "a later tick republishes");
     }
 
     #[test]

@@ -700,8 +700,18 @@ def write_fluid_defs():
 
 RENDER_MODEL = ROOT / '.local/tconstruct-source/src/generated/resources/assets/tconstruct/mantle/model'
 RENDER_MODEL_MAIN = ROOT / '.local/tconstruct-source/src/main/resources/assets/tconstruct/mantle/model'
+RENDER_FAUCET_FLUID_MAIN = RENDER_MODEL_MAIN / 'faucet_fluid'
 RENDER_DATA_TARGET = ROOT / 'tconstruct/mixins/tconstruct/api/src/render_data.rs'
 RENDER_DIRECTIONS = ('down', 'up', 'north', 'south', 'west', 'east')
+
+# Mantle's own default faucet fluid (`mantle/model/faucet_fluid/_default.json`, Mantle 1.11.x for Minecraft 1.20.1):
+# Mantle is not a pinned checkout in this repo, so the default is a literal here rather than read from the Tinkers
+# checkout. The Tinkers entries below are read from the pinned original and resolved against it, as
+# FaucetFluid.fromJson resolves a `bottom` value or a missing side or center against the default.
+FAUCET_FLUID_DEFAULT = {
+    'side': {'from': [6, 1, 6], 'to': [10, 16, 8], 'faces': {'down': {'flowing': False}, 'north': {'flowing': True}, 'east': {'flowing': True}, 'south': {'flowing': True}, 'west': {'flowing': True}}},
+    'center': {'from': [6, 1, 6], 'to': [10, 16, 10], 'faces': {'down': {'flowing': False}, 'north': {'flowing': True}, 'east': {'flowing': True}, 'south': {'flowing': True}, 'west': {'flowing': True}}},
+}
 
 
 def _render_float(value):
@@ -741,18 +751,56 @@ def _render_variants(kind, name, render_one):
     return variants
 
 
+def _render_faucet_fluid(data, default=FAUCET_FLUID_DEFAULT):
+    """One Mantle FaucetFluid as Rust: the side and center cuboids and whether the stream continues into the next
+    block below. A `bottom` value lifts the default's cuboids to that height, and a missing side or center keeps the
+    default's, as FaucetFluid.fromJson does; a bottom of 16 or more draws nothing in the block."""
+    def cuboids(tag):
+        if tag in data:
+            entry = data[tag]
+            entries = entry if isinstance(entry, list) else [entry]
+            return [_render_cuboid(cuboid) for cuboid in entries]
+        bottom = data.get('bottom')
+        if isinstance(bottom, int) and not isinstance(bottom, bool):
+            if bottom >= 16:
+                return []
+            entry = default[tag]
+            defaults = entry if isinstance(entry, list) else [entry]
+            return [_render_cuboid({**cuboid, 'from': [cuboid['from'][0], bottom, cuboid['from'][2]]}) for cuboid in defaults]
+        entry = default[tag]
+        defaults = entry if isinstance(entry, list) else [entry]
+        return [_render_cuboid(cuboid) for cuboid in defaults]
+    continued = str(bool(data.get('continue', False))).lower()
+    return (f"FaucetFluid {{ side: &[{', '.join(cuboids('side'))}], "
+            f"center: &[{', '.join(cuboids('center'))}], continued: {continued} }}")
+
+
+def _render_faucet_fluid_variants(name):
+    """The variants of one block's entry in `mantle/model/faucet_fluid`: a variant value is one FaucetFluid."""
+    data = json.loads((RENDER_FAUCET_FLUID_MAIN / f'{name}.json').read_text(encoding='utf-8'))
+    variants = []
+    for key, value in data['variants'].items():
+        when = ', '.join(f'("{prop}", "{wanted}")' for prop, wanted in (pair.split('=', 1) for pair in key.split(','))) if key else ''
+        variants.append(f"Variant {{ when: &[{when}], data: &[{_render_faucet_fluid(value)}] }}")
+    return variants
+
+
 def write_render_data():
     """render_data.rs: what the block entity renderers draw, from Mantle's model data (the fluid cuboids of
     `mantle/model/block_fluids`, the item placements of `mantle/model/item_lists`, the channel's cuboids of
-    `mantle/model/channel_fluids`) and each fluid's still and flowing textures (`mantle/fluid_texture`).
+    `mantle/model/channel_fluids`, the faucet fluid of `mantle/model/faucet_fluid`) and each fluid's still and flowing
+    textures (`mantle/fluid_texture`).
 
     The generated block_fluids and item_lists are the data the original's datagen wrote for the resource reload; the
-    channel cuboids are hand-written resources, so they are read from the source resources instead. A cuboid with no
-    faces in the data draws every face; a variant key is the block state properties it asks for (empty: the default)."""
+    channel cuboids and the faucet fluid entries are hand-written resources, so they are read from the source resources
+    instead (the faucet fluid's default is Mantle's own `_default`, a literal here: Mantle is not a pinned checkout).
+    A cuboid with no faces in the data draws every face; a variant key is the block state properties it asks for (empty: the default)."""
     lines = ["//! The original's block entity render data (SlimeKnights, MIT; see LICENSE): the fluid cuboids and item placements",
              '//! the block entity renderers draw, from Mantle\'s model data (`assets/tconstruct/mantle/model`), the channel\'s',
-             '//! cuboids, and each fluid\'s still and flowing textures (`assets/tconstruct/mantle/fluid_texture`).',
+             '//! cuboids, the faucet fluid of the blocks below a pour, and each fluid\'s still and flowing textures',
+             '//! (`assets/tconstruct/mantle/fluid_texture`).',
              '//! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.', '',
+             'use pluto_lib::BlockState;', '',
              '/// One face of a fluid cuboid: its direction, whether it uses the flowing texture, and the texture rotation in degrees.',
              "pub(crate) struct Face { pub dir: &'static str, pub flowing: bool, pub rotation: u16 }", '',
              '/// A fluid cuboid in sixteenths (Mantle\'s FluidCuboid): the box, and the faces it draws.',
@@ -786,6 +834,40 @@ def write_render_data():
               f"    down: {_render_cuboid(channel['down'])}, side_still: {_render_cuboid(channel['side']['still'])},",
               f"    side_in: {_render_cuboid(channel['side']['in'])}, side_out: {_render_cuboid(channel['side']['out'])},",
               f"    side_edge: {_render_cuboid(channel['side']['edge'])} }};", '']
+    lines += ['/// One block\'s faucet fluid (Mantle\'s FaucetFluid, `mantle/model/faucet_fluid`): the cuboids the stream',
+              '/// draws in the block below a faucet or a channel\'s down side, in its side form (a side-facing pour) and its',
+              '/// center form (a pour straight down), and whether the stream continues into the next block below.',
+              'pub(crate) struct FaucetFluid { pub side: &\'static [Cuboid], pub center: &\'static [Cuboid], pub continued: bool }',
+              '',
+              '/// The faucet fluid of a block with no entry of its own (Mantle\'s `_default`): a full column in the block',
+              '/// below, stopping there.',
+              f"pub(crate) const FAUCET_FLUID_DEFAULT: FaucetFluid = {_render_faucet_fluid(FAUCET_FLUID_DEFAULT)};",
+              '',
+              '/// The faucet fluid of a block (`mantle/model/faucet_fluid`), by block id.',
+              'pub(crate) fn faucet_fluids(block: &str) -> Option<&\'static [Variant<FaucetFluid>]> {',
+              '    Some(match block {']
+    for name in sorted(path.stem for path in RENDER_FAUCET_FLUID_MAIN.glob('*.json')):
+        variants = _render_faucet_fluid_variants(name)
+        lines.append(f"        \"tconstruct:{name}\" => &[")
+        lines += [f'            {variant},' for variant in variants]
+        lines.append('        ],')
+    lines += ['        _ => return None,',
+              '    })',
+              '}',
+              '',
+              '/// The faucet fluid of a block state: its entry when it has one, else the default (Mantle\'s',
+              '/// `FaucetFluid.Loader.get`, which answers the default for any state without an entry).',
+              'pub(crate) fn faucet_fluid(state: &BlockState) -> &\'static FaucetFluid {',
+              '    faucet_fluids(&state.block.to_string())',
+              '        .and_then(|variants| {',
+              '            variants.iter()',
+              '                .find(|variant| !variant.when.is_empty() && variant.when.iter().all(|(name, wanted)| state.property(name) == Some(*wanted)))',
+              '                .or_else(|| variants.iter().find(|variant| variant.when.is_empty()))',
+              '        })',
+              '        .and_then(|variant| variant.data.first())',
+              '        .unwrap_or(&FAUCET_FLUID_DEFAULT)',
+              '}',
+              '']
     lines += ['/// A fluid\'s still and flowing textures (Mantle\'s fluid texture data, `mantle/fluid_texture`).',
               "pub(crate) struct FluidTexture { pub still: &'static str, pub flowing: &'static str }", '',
               '/// The textures of a fluid, by fluid id.',
@@ -2505,7 +2587,8 @@ def smeltery_u6c_blocks():
     light) over searedNonSolidProps(SoundType.LANTERN); they are no SearedBlock, so they carry no `in_structure`.
     Soul glass is the glass of its unit with noCollission and a speed factor (0.1 the smeltery pair, 0.2 the commons
     pair, whose glassBuilder is strength 0.3, no tool): the host's block declarations have no speed factor key, so
-    that part is not declared; the missing collision is `collision_shapes` of no boxes, as the fluid blocks declare
+    the factors ride in PlutoLib's movement registry (`pluto_lib::movement`) and the `pluto_movement` mixin applies
+    them to the host's movement table at load. The missing collision is `collision_shapes` of no boxes, as the fluid blocks declare
     theirs. The commons pane keeps its collision (only its speed factor differs)."""
     light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
     in_structure = {'type': 'boolean'}
@@ -2618,7 +2701,8 @@ def commons_blocks():
     connections make and the waterlogging are not carried, as the pouring blocks leave waterlogging out, and the
     copper ones' weathering and waxing are block class behaviour, which is not carried, as the metal blocks'
     classes are not. The cheese block is the cheese pair's HalfTransparentBlock (honey sound, strength 1.5/3, no
-    occlusion); its speed and jump factors have no key in a block declaration, as the soul glass's speed factor has none."""
+    occlusion); its speed (0.4) and jump (0.5) factors ride in PlutoLib's movement registry with the soul glass's,
+    applied by the `pluto_movement` mixin, as the block declarations have no key for them."""
     def glass(template, color):
         return {'template': template, 'properties': {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': False, 'occludes': False}, 'item': True}
 

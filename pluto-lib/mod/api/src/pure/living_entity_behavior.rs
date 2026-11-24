@@ -91,7 +91,8 @@ pub struct EquipmentDropChanceContext {
     pub chance:f32,
     /// The killing blow's Looting level (`dropCustomDeathLoot`'s `looting`
     /// argument: the attacker's main-hand Looting, 0 when there is no
-    /// looting attacker).
+    /// looting attacker). A LAN guest killer's level is read from the
+    /// guest's own hand, as the host resolved it for the kill.
     pub looting:i32,
 }
 /// Current server load context. Attachment methods on entity use the normal
