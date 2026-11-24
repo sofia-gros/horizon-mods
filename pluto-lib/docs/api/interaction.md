@@ -1246,12 +1246,12 @@ ServerEntityEvents::ENTITY_TICK_POST.invoke(&EntityInfo { id: 9, kind: "minecraf
 
 ### `MobTick`
 
-A mob's tick, heard after the mob's own tick ran, for every living entity that is not a player: `entity` is the entity id, `kind` its type, `dimension` the dimension it is in, `position` its feet position, `velocity` the motion it moves with, `on_ground` whether it stands on the ground, `in_water` whether it is in water, `on_climbable` whether it is on a climbable block (the game's own check; kinds that never climb read false), `armor` every piece worn (as (slot, stack): `feet`, `legs`, `chest`, `head`), `hands` the stacks held (as (slot, stack): `mainhand`, `offhand`) and `effects` its effects as (effect id, amplifier, ticks left). Unlike a player's report the armor lists every piece, not only those carrying custom data: a mob's attribute values are worked out from this report alone. The world and entity scopes are open while it runs.
+A mob's tick, heard after the mob's own tick ran, for every living entity that is not a player: `entity` is the entity id, `kind` its type, `dimension` the dimension it is in, `position` its feet position, `velocity` the motion it moves with, `on_ground` whether it stands on the ground, `in_water` whether it is in water, `on_climbable` whether it is on a climbable block (the game's own check: a climbing kind reads its own climbing flag, a gliding mob passing a block it can glide through never counts, kinds that never climb read false), `climbing` whether it climbs a wall (a spider or cave spider pressed against one), `gliding` whether it glides with an elytra, `armor` every piece worn (as (slot, stack): `feet`, `legs`, `chest`, `head`), `hands` the stacks held (as (slot, stack): `mainhand`, `offhand`) and `effects` its effects as (effect id, amplifier, ticks left). Unlike a player's report the armor lists every piece, not only those carrying custom data: a mob's attribute values are worked out from this report alone. The world and entity scopes are open while it runs.
 
 ```rust
 use pluto_lib::MobTick;
 
-let tick = MobTick { entity: 7, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [0.0; 3], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
+let tick = MobTick { entity: 7, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [0.0; 3], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: false, climbing: false, gliding: false, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
 assert_eq!(tick.effects.len(), 1);
 ```
 

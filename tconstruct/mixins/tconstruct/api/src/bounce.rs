@@ -332,8 +332,9 @@ fn on_player_tick(tick: &PlayerTick) {
 
 /// A mob's tick: the kept facts take the motion the report itself carries (a mob's velocity
 /// is read from the host, not from successive positions), and the bounce machine runs with
-/// the report's facts. A mob never sneaks, so it never suppresses its bounce, and it neither
-/// glides nor spectates for the handler's end conditions.
+/// the report's facts. A mob never sneaks, so it never suppresses its bounce, and it never
+/// spectates for the handler's end conditions; a mob that glides ends its bounce as a
+/// gliding player does.
 fn on_mob_tick(tick: &MobTick) {
     let (velocity, now) = {
         let mut kept = KEPT.lock().expect("the bounce facts are never poisoned");
@@ -348,7 +349,7 @@ fn on_mob_tick(tick: &MobTick) {
     let step = {
         let mut bounces = BOUNCES.lock().expect("the bounce state is never poisoned");
         let Some(info) = bounces.get_mut(&tick.entity) else { return };
-        info.tick(now, velocity, tick.on_ground, tick.in_water, tick.on_climbable, false, false)
+        info.tick(now, velocity, tick.on_ground, tick.in_water, tick.on_climbable, tick.gliding, false)
     };
     match step {
         TickStep::Set { velocity: set, sound } => {
@@ -560,7 +561,7 @@ mod tests {
         assert!((info.last_mag_sq - 4.0).abs() < 1e-9, "the preserved speed is the leap's motion");
     }
 
-    fn mob_tick_for(entity: i32, position: [f64; 3], velocity: [f64; 3], bouncy: bool) -> MobTick {
+    fn mob_tick_for(entity: i32, position: [f64; 3], velocity: [f64; 3], bouncy: bool, gliding: bool) -> MobTick {
         MobTick {
             entity,
             kind: "minecraft:zombie".to_owned(),
@@ -570,6 +571,8 @@ mod tests {
             on_ground: false,
             in_water: false,
             on_climbable: false,
+            climbing: false,
+            gliding,
             armor: Vec::new(),
             hands: Vec::new(),
             effects: if bouncy { vec![("tconstruct:bouncy".to_owned(), 0, 100)] } else { Vec::new() },
@@ -580,7 +583,7 @@ mod tests {
     fn a_bouncy_mobs_fall_bounces_and_the_next_tick_sets_its_velocity() {
         register();
         custom_attributes::register();
-        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_101, [0.0, 64.0, 0.0], [0.5, -3.0, 0.0], true));
+        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_101, [0.0, 64.0, 0.0], [0.5, -3.0, 0.0], true, false));
         assert!((custom_attributes::value(710_101, BOUNCY) - 1.0).abs() < 1e-9, "the mob's bouncy effect is read from its tick report");
         let fall = LivingFall { entity: 710_101, kind: "minecraft:zombie".to_owned(), distance: Cell::new(9.0), multiplier: Cell::new(1.0) };
         let mut world = MemoryWorldOps::default();
@@ -592,7 +595,7 @@ mod tests {
         let mut ops = MemoryEntityOps::default();
         ops.entities = vec![([0.5, 64.5, 0.0], WorldEntity { id: 710_101, kind: Identifier::parse("minecraft:zombie").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) })];
         with_entities(&mut ops, || {
-            ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_101, [0.5, 64.5, 0.0], [0.5, -3.0, 0.0], true));
+            ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_101, [0.5, 64.5, 0.0], [0.5, -3.0, 0.0], true, false));
         });
         assert_eq!(ops.velocities.len(), 1, "the bounce sets the mob's velocity outright");
         assert_eq!(ops.velocities[0].0, 710_101);
@@ -604,18 +607,27 @@ mod tests {
     fn a_mob_without_bouncy_falls_and_an_unloaded_mobs_handler_is_forgotten() {
         register();
         custom_attributes::register();
-        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_102, [0.0, 64.0, 0.0], [0.0, -3.0, 0.0], false));
+        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_102, [0.0, 64.0, 0.0], [0.0, -3.0, 0.0], false, false));
         let plain = LivingFall { entity: 710_102, kind: "minecraft:zombie".to_owned(), distance: Cell::new(9.0), multiplier: Cell::new(1.0) };
         assert!(LivingFallEvents::FALL.invoke(&plain), "no bouncy, no bounce");
         assert_eq!(plain.distance.get(), 9.0);
         assert_eq!(plain.multiplier.get(), 1.0);
         // A bouncy mob that unloads leaves neither facts nor a handler behind.
-        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_103, [0.0, 64.0, 0.0], [0.0, -3.0, 0.0], true));
+        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_103, [0.0, 64.0, 0.0], [0.0, -3.0, 0.0], true, false));
         let fall = LivingFall { entity: 710_103, kind: "minecraft:zombie".to_owned(), distance: Cell::new(9.0), multiplier: Cell::new(1.0) };
         assert!(!LivingFallEvents::FALL.invoke(&fall), "the bouncy mob's fall is cancelled");
         assert!(BOUNCES.lock().expect("the bounce state is never poisoned").contains_key(&710_103), "the handler is kept");
         ServerEntityEvents::ENTITY_UNLOAD.invoke(&EntityInfo { id: 710_103, kind: "minecraft:zombie".to_owned(), dimension: "minecraft:overworld".to_owned() });
         assert!(!BOUNCES.lock().expect("the bounce state is never poisoned").contains_key(&710_103), "the handler goes with the mob");
         assert!(!KEPT.lock().expect("the bounce facts are never poisoned").contains_key(&710_103), "the facts go with the mob");
+    }
+
+    #[test]
+    fn a_gliding_mobs_bounce_ends_at_once() {
+        register();
+        add_bounce_handler(710_104);
+        assert!(BOUNCES.lock().expect("the bounce state is never poisoned").contains_key(&710_104), "the handler is kept");
+        ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_104, [0.0, 64.0, 0.0], [0.0, -3.0, 0.0], true, true));
+        assert!(!BOUNCES.lock().expect("the bounce state is never poisoned").contains_key(&710_104), "gliding ends the handler at once");
     }
 }

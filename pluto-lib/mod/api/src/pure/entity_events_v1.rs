@@ -292,7 +292,8 @@ pub struct PlayerTick {
     /// Whether the player stands in water (the block at their feet holds water).
     pub in_water: bool,
     /// Whether the player is on a climbable block (`LivingEntity.onClimbable`: the block at their feet is in
-    /// `#minecraft:climbable`, or an open trapdoor over a ladder facing the same way). A spectator never counts.
+    /// `#minecraft:climbable`, or an open trapdoor over a ladder facing the same way; a gliding player passing a
+    /// block it can glide through never counts). A spectator never counts.
     pub on_climbable: bool,
     /// The armor the player wears, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
     pub armor: Vec<(String, StackData)>,
@@ -333,10 +334,16 @@ pub struct MobTick {
     pub on_ground: bool,
     /// Whether the mob is in water.
     pub in_water: bool,
-    /// Whether the mob is on a climbable block (`LivingEntity.onClimbable`: the block at its feet is in `#minecraft:climbable`,
-    /// or an open trapdoor over a ladder facing the same way). Kinds that never climb (horses and their kin, ghasts, phantoms)
-    /// always read false.
+    /// Whether the mob is on a climbable block (`LivingEntity.onClimbable`: a climbing kind reads its own climbing
+    /// flag instead of the block; a gliding mob passing a block it can glide through never counts; the block at its
+    /// feet is in `#minecraft:climbable`, or an open trapdoor over a ladder facing the same way). Kinds that never
+    /// climb (horses and their kin, ghasts, phantoms) always read false.
     pub on_climbable: bool,
+    /// Whether the mob climbs a wall (`Spider.onClimbable`'s own flag: a spider or cave spider pressed against a
+    /// wall sets it from horizontal collision; any other kind never reads true).
+    pub climbing: bool,
+    /// Whether the mob glides with an elytra (`isFallFlying`), as the player's tick report names it.
+    pub gliding: bool,
     /// The armor the mob wears, as (slot, stack): `feet`, `legs`, `chest`, `head`. Unlike a player's tick report this lists
     /// every piece worn, not only those carrying custom data: a mob's attribute values are worked out from this report alone.
     pub armor: Vec<(String, StackData)>,
@@ -2735,14 +2742,14 @@ mod tests {
     #[test]
     fn a_mob_tick_reaches_its_callbacks_with_the_mobs_state() {
         use std::sync::Mutex;
-        static SEEN: Mutex<Vec<(i32, bool, usize)>> = Mutex::new(Vec::new());
+        static SEEN: Mutex<Vec<(i32, bool, bool, bool, usize)>> = Mutex::new(Vec::new());
         ServerLivingEntityEvents::MOB_TICK.register(|tick| {
-            if tick.entity == 7171 { SEEN.lock().unwrap().push((tick.entity, tick.on_climbable, tick.effects.len())); }
+            if tick.entity == 7171 { SEEN.lock().unwrap().push((tick.entity, tick.on_climbable, tick.climbing, tick.gliding, tick.effects.len())); }
         });
         assert!(mob_tick_heard());
-        let tick = MobTick { entity: 7171, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: true, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
+        let tick = MobTick { entity: 7171, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: true, climbing: false, gliding: true, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
         mob_tick(&tick);
-        assert_eq!(SEEN.lock().unwrap().clone(), vec![(7171, true, 1)]);
+        assert_eq!(SEEN.lock().unwrap().clone(), vec![(7171, true, false, true, 1)]);
     }
 
     #[test]

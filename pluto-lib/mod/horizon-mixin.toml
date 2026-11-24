@@ -1673,6 +1673,16 @@ name = "pluto_entity_push_access"
 source = "pluto-entity-push-access.rs"
 visibility = "pub"
 
+# The climb state a mob's tick settles, for the tick reports: the mob's
+# climbing flag and its fall-flying state, recorded after its own tick and
+# read when the transport builds the report (see pluto-entity-climb-record).
+[[module]]
+id = "pluto-entity-climb-access"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_entity_climb_access"
+source = "pluto-entity-climb-access.rs"
+visibility = "pub"
+
 # Player teleport transport for the entity reach: a queue of player teleports,
 # applied by the game's own server teleport call at the head of its rider
 # synchronisation (the passenger transport's drain point).
@@ -1716,6 +1726,20 @@ target = "horizon_client::game::passengers::Game<'_>::sync_riders"
 kind = "HEAD"
 helper = "pluto-entity-drain-head.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# After a mob's own tick: record the climb state the tick settled, so the
+# tick report reads this tick's climbing flag and fall-flying state. A tick
+# that did not run (the mob is gone) records nothing: the return value is
+# true only for a mob whose tick ran through.
+[[injection]]
+id = "pluto-entity-climb-record"
+target = "horizon_client::mobs::ai::tick"
+kind = "RETURN"
+helper = "pluto-entity-climb-record.rs"
+bindings = [
+ { name = "value", ty = "bool", value = "$value" },
+ { name = "m", ty = "&mut Mob", value = "&mut *m" },
+]
 
 [[injection]]
 id = "pluto-entity-seat-player"
