@@ -577,16 +577,40 @@ jobs:
             ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
       - name: Fetch upstream sources
         if: steps.scope.outputs.docs_only != 'true'
+        env:
+          # A failed fetch must surface as a clean error, never as an
+          # interactive credential prompt (CI rounds 10/10b died with
+          # exit 128, "could not read Username", when an anonymous
+          # fetch was answered with a GitHub 401 auth challenge).
+          GIT_TERMINAL_PROMPT: "0"
         run: |
+          # Authenticate with the workflow token: anonymous git
+          # fetches from shared runner IPs intermittently draw a 401
+          # challenge even for these public repos (rounds 10/10b).
+          # Each fetch retries up to 3 times so a single blip does not
+          # kill the job. What is fetched is unchanged: the pinned
+          # revisions from tconstruct/compatibility.json, depth 1,
+          # detached checkout.
+          fetch_pinned() {
+            for attempt in 1 2 3; do
+              if git -C "$1" fetch --depth 1 origin "$2"; then
+                return 0
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                sleep 10
+              fi
+            done
+            return 1
+          }
           git init ../horizon-official
-          git -C ../horizon-official remote add origin https://github.com/horizon-rust/horizon.git
+          git -C ../horizon-official remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/horizon-rust/horizon.git"
           HORIZON_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')"
-          git -C ../horizon-official fetch --depth 1 origin "$HORIZON_REVISION"
+          fetch_pinned ../horizon-official "$HORIZON_REVISION"
           git -C ../horizon-official checkout --detach FETCH_HEAD
           git init ../horizon-mixins
-          git -C ../horizon-mixins remote add origin https://github.com/horizon-rust/horizon-mixins.git
+          git -C ../horizon-mixins remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/horizon-rust/horizon-mixins.git"
           MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
-          git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
+          fetch_pinned ../horizon-mixins "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
       - name: Read pinned revisions
         id: pins
