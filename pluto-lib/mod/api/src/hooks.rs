@@ -488,8 +488,8 @@ pub fn hooks() -> Box<dyn Hooks> {
             evaluate_or:native_spawn_placement_or,
             or_types:native_spawn_placement_or_types,
         }).expect("PlutoLib spawn placement dispatcher installs once");
-    horizon_client::entry::pluto_hanging_access::set_provider(
-        horizon_client::entry::pluto_hanging_access::Provider {
+    horizon_client::pluto_hanging_access::set_provider(
+        horizon_client::pluto_hanging_access::Provider {
             frame_for_item:native_hanging_frame_for_item,
             frame_for_variant:native_hanging_frame_for_variant,
             stand_for_item:native_hanging_stand_for_item,
@@ -1383,8 +1383,8 @@ fn native_spawn_placement_or_types()->Vec<String> {
     crate::pure::spawn_placement_api::SpawnPlacementRegistry::or_types().into_iter().map(|id|id.to_string()).collect()
 }
 
-fn native_hanging_frame(facts:&crate::pure::hanging_api_v1::FrameVariant)->horizon_client::entry::pluto_hanging_access::FrameFacts {
-    horizon_client::entry::pluto_hanging_access::FrameFacts {
+fn native_hanging_frame(facts:&crate::pure::hanging_api_v1::FrameVariant)->horizon_client::pluto_hanging_access::FrameFacts {
+    horizon_client::pluto_hanging_access::FrameFacts {
         item:facts.item.to_string(),entity_type:facts.entity_type.to_string(),variant:facts.variant,
         rotation_step:facts.rotation_step,winds_down:facts.winds_down,more_rotations:facts.more_rotations,
         fullbright:facts.fullbright,hidden_when_filled:facts.hidden_when_filled,click_through:facts.click_through,
@@ -1421,46 +1421,46 @@ fn native_map_tick(_host:&mut dyn horizon_client::mod_api::Host,head:&ItemStack)
     crate::pure::map_api_v1::map_tick(&crate::pure::map_api_v1::MapTickRequest { head:slot })
 }
 
-fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::entry::pluto_hanging_access::StandFacts {
-    horizon_client::entry::pluto_hanging_access::StandFacts {
+fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::pluto_hanging_access::StandFacts {
+    horizon_client::pluto_hanging_access::StandFacts {
         item:facts.item.to_string(),entity_type:facts.entity_type.to_string(),variant:facts.variant,
         small:facts.small,arms:facts.arms,fullbright:facts.fullbright,hidden_when_equipped:facts.hidden_when_equipped }
 }
 
-fn native_hanging_frame_for_item(item:&str)->Option<horizon_client::entry::pluto_hanging_access::FrameFacts> {
+fn native_hanging_frame_for_item(item:&str)->Option<horizon_client::pluto_hanging_access::FrameFacts> {
     let id=Identifier::parse(item).ok()?;
     crate::pure::hanging_api_v1::HangingRegistry::frame_for_item(&id).map(|variant|native_hanging_frame(&variant))
 }
 
-fn native_hanging_frame_for_variant(variant:i32)->Option<horizon_client::entry::pluto_hanging_access::FrameFacts> {
+fn native_hanging_frame_for_variant(variant:i32)->Option<horizon_client::pluto_hanging_access::FrameFacts> {
     crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(variant).map(|variant|native_hanging_frame(&variant))
 }
 
-fn native_hanging_stand_for_item(item:&str)->Option<horizon_client::entry::pluto_hanging_access::StandFacts> {
+fn native_hanging_stand_for_item(item:&str)->Option<horizon_client::pluto_hanging_access::StandFacts> {
     let id=Identifier::parse(item).ok()?;
     crate::pure::hanging_api_v1::HangingRegistry::stand_for_item(&id).map(|variant|native_hanging_stand(&variant))
 }
 
-fn native_hanging_stand_for_variant(variant:i32)->Option<horizon_client::entry::pluto_hanging_access::StandFacts> {
+fn native_hanging_stand_for_variant(variant:i32)->Option<horizon_client::pluto_hanging_access::StandFacts> {
     crate::pure::hanging_api_v1::HangingRegistry::stand_for_variant(variant).map(|variant|native_hanging_stand(&variant))
 }
 
-fn native_hanging_frame_rotation(facts:&horizon_client::entry::pluto_hanging_access::FrameFacts,rotation_in:i32)->i32 {
+fn native_hanging_frame_rotation(facts:&horizon_client::pluto_hanging_access::FrameFacts,rotation_in:i32)->i32 {
     crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(facts.variant)
         .map_or(rotation_in,|variant|variant.set_rotation(rotation_in))
 }
 
-fn native_hanging_frame_analog(facts:&horizon_client::entry::pluto_hanging_access::FrameFacts,filled:bool,rotation:i32)->i32 {
+fn native_hanging_frame_analog(facts:&horizon_client::pluto_hanging_access::FrameFacts,filled:bool,rotation:i32)->i32 {
     crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(facts.variant)
         .map_or(0,|variant|variant.analog_output(filled,rotation))
 }
 
-fn native_hanging_frame_tick(facts:&horizon_client::entry::pluto_hanging_access::FrameFacts,timer:i32,rotation:i32)->(i32,Option<i32>,bool) {
+fn native_hanging_frame_tick(facts:&horizon_client::pluto_hanging_access::FrameFacts,timer:i32,rotation:i32)->(i32,Option<i32>,bool) {
     crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(facts.variant)
         .map_or((timer,None,false),|variant|variant.tick_rotation(timer,rotation))
 }
 
-fn native_hanging_stand_hidden(facts:&horizon_client::entry::pluto_hanging_access::StandFacts,any_equipment:bool)->bool {
+fn native_hanging_stand_hidden(facts:&horizon_client::pluto_hanging_access::StandFacts,any_equipment:bool)->bool {
     crate::pure::hanging_api_v1::HangingRegistry::stand_for_variant(facts.variant)
         .map_or(false,|variant|variant.hidden(any_equipment))
 }

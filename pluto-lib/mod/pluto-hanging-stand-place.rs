@@ -6,7 +6,7 @@ fn pluto_hanging_stand_place(
     hit: &Hit,
     stack: &ItemStack,
 ) -> std::ops::ControlFlow<bool> {
-    let Some(facts) = horizon_client::entry::pluto_hanging_access::stand_for_item(&stack.item) else {
+    let Some(facts) = crate::pluto_hanging_access::stand_for_item(&stack.item) else {
         return std::ops::ControlFlow::Continue(());
     };
     std::ops::ControlFlow::Break(crate::game::pluto_hanging_game::place_fancy_stand(game, hit, stack, &facts))

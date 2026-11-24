@@ -8,7 +8,7 @@ fn pluto_hanging_stand_dispense(
     facing: Direction,
     stack: &ItemStack,
 ) -> std::ops::ControlFlow<Result<Option<ItemStack>>> {
-    let Some(facts) = horizon_client::entry::pluto_hanging_access::stand_for_item(&stack.item) else {
+    let Some(facts) = crate::pluto_hanging_access::stand_for_item(&stack.item) else {
         return std::ops::ControlFlow::Continue(());
     };
     match crate::game::pluto_hanging_game::dispense_fancy_stand(game, pos, facing, stack, &facts) {
