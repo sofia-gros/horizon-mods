@@ -90,6 +90,7 @@ mod max_armor;
 mod max_armor_hook;
 mod custom_attributes;
 mod attribute_hooks;
+mod experience_hook;
 mod wearer_modules;
 mod mob_disguise;
 mod mob_disguise_hook;
@@ -268,6 +269,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     custom_attributes::register();
     // After the custom attributes: the attribute hooks read the values that tick keeps.
     attribute_hooks::register();
+    experience_hook::register();
     mob_disguise_hook::register();
     tool_behavior_hook::register();
     quiver_hook::register();

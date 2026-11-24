@@ -390,6 +390,8 @@ mod crafting_repair;
 mod custom_attributes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/attribute_hooks.rs"]
 mod attribute_hooks;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/experience_hook.rs"]
+mod experience_hook;
 #[cfg(test)]
 mod shaped_materials_tests;
 #[cfg(test)]

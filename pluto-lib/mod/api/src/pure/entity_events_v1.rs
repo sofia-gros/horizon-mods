@@ -714,7 +714,30 @@ pub struct VisibilityModification {
     pub multiplier: Cell<f64>,
 }
 
+/// Experience a mob killed by a player is about to drop, before the game splits the total into
+/// orbs (NeoForge: `LivingExperienceDropEvent`). Heard on a server for a mob the game drops
+/// experience for when a player killed it; a mob that drops none is not heard. The sculk
+/// catalyst's spread is not a drop and is not heard either.
+#[derive(Clone, Debug)]
+pub struct ExperienceDrop {
+    /// The dying mob's entity id.
+    pub entity: i32,
+    /// The mob's type id, such as `minecraft:zombie`.
+    pub kind: String,
+    /// The player who killed the mob, as (uuid, entity id): the uuid names them for the player
+    /// reads, the entity id for the reads keyed by it (0 when the game does not know it; such
+    /// reads see the declared defaults). None when the game names no player: the drop is then
+    /// heard for the mob's own terms only.
+    pub player: Option<(u128, i32)>,
+    /// The dying mob's effects as of the drop, as (id, amplifier).
+    pub effects: Vec<(String, i32)>,
+    /// The experience now, which callbacks may change with `set` (0 or less drops no orbs);
+    /// each callback sees the last one's.
+    pub experience: Cell<i32>,
+}
+
 static MODIFY_VISIBILITY: Event<VisibilityModification, ()> = Event::void();
+static EXPERIENCE_DROP: Event<ExperienceDrop, ()> = Event::void();
 static SHEAR: Event<ShearAttempt, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
 static MOB_TICK: Event<MobTick, ()> = Event::void();
@@ -770,6 +793,9 @@ impl ServerLivingEntityEvents {
     /// NeoForge: `MovementInputUpdateEvent`. The local player's movement input: scale the impulses with `forward.set` / `strafe.set`, or
     /// read the jump key state. Client only; the entity reach is not open here, so a motion change is deferred to the next tick.
     pub const MOVEMENT_INPUT: &'static Event<MovementInput, ()> = &MOVEMENT_INPUT;
+    /// NeoForge: `LivingExperienceDropEvent`. The experience a mob killed by a player is about to drop: change the total with
+    /// `experience.set`. Server only.
+    pub const EXPERIENCE_DROP: &'static Event<ExperienceDrop, ()> = &EXPERIENCE_DROP;
 }
 
 /// The effects the callbacks take off the player on their tick.
@@ -806,6 +832,45 @@ pub(crate) fn living_jump(jump: &LivingJump) {
 /// The local player's movement input, after the game read it and before it applies it.
 pub(crate) fn movement_input(input: &MovementInput) {
     MOVEMENT_INPUT.invoke(input);
+}
+
+/// Whether anyone listens to experience drops, so the game only reads the mob's effects when someone does.
+pub(crate) fn experience_drop_heard() -> bool {
+    !EXPERIENCE_DROP.is_empty()
+}
+
+/// The experience after every callback has had its say.
+pub(crate) fn experience_drop(drop: &ExperienceDrop) -> i32 {
+    EXPERIENCE_DROP.invoke(drop);
+    drop.experience.get()
+}
+
+thread_local! {
+    /// The player a dying mob's death loot names as its killer, remembered for the experience
+    /// drop the game works out in the same call: its experience report names no player, so the
+    /// loot report (which runs first, in the same call) leaves the name here.
+    static EXPERIENCE_ATTACKER: RefCell<Option<(i32, u128, std::time::Instant)>> = const { RefCell::new(None) };
+}
+
+/// How long a killer's name waits for its drop; a loot report whose drop never comes (the mob
+/// dropped no experience) leaves a name that is dropped unread once it is this old.
+const EXPERIENCE_ATTACKER_LIFETIME: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Names the player a dying mob's loot is credited to, for the experience drop that follows.
+pub(crate) fn note_experience_attacker(entity: i32, player: u128) {
+    EXPERIENCE_ATTACKER.with(|pending| *pending.borrow_mut() = Some((entity, player, std::time::Instant::now())));
+}
+
+/// The killer `note_experience_attacker` named for this mob, taken; a stale name is dropped.
+pub(crate) fn take_experience_attacker(entity: i32) -> Option<u128> {
+    EXPERIENCE_ATTACKER.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match *pending {
+            Some((who, player, at)) if who == entity && at.elapsed() < EXPERIENCE_ATTACKER_LIFETIME => { *pending = None; Some(player) }
+            Some((_, _, at)) if at.elapsed() >= EXPERIENCE_ATTACKER_LIFETIME => { *pending = None; None }
+            _ => None,
+        }
+    })
 }
 
 static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());

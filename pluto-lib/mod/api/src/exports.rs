@@ -27,7 +27,7 @@ pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, Attachme
 pub use crate::pure::dispense_api_v1::{self, DispenseBehavior, DispenseRegistry, dispense_shot};
 pub use crate::pure::fishing_api_v1::{self, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, hook_damage_type, pull_delta, retrieve_damage};
 pub use crate::pure::fov_api_v1::{self, FovCallback, FovFacts, FovRegistry, FovSlot, FovStack, fov_multiplier};
-pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, CriticalHit, LivingJump, MovementInput, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, MobTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
+pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, CriticalHit, LivingJump, MovementInput, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, MobTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ExperienceDrop, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, CauseFallDamageContext, FallOutcome, EquipmentDropChanceContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
@@ -36,7 +36,7 @@ pub use crate::pure::mob_split_api::{self, MobSplitContext, MobSplitRandom, MobS
 pub use crate::pure::spawn_placement_api::{self, SpawnPlacementContext, SpawnPlacementRegistry};
 pub use crate::pure::hanging_api_v1::{self, FrameVariant, HangingRegistry, StandVariant};
 pub use crate::pure::events_interaction_v0::{
-    self, AfterUseCallback, AfterUseContext, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, FishingContext, PlayerBlockBreakEvents, PlayerFishEvents, UseBlockCallback, UseBlockContext,
+    self, AfterUseCallback, AfterUseContext, AttackEntityCallback, AttackEntityContext, BreakSpeedCallback, BreakSpeedContext, DiggingPlayer, BlockBreakContext, BlockExperienceContext, FishingContext, PlayerBlockBreakEvents, PlayerFishEvents, UseBlockCallback, UseBlockContext,
     UseEntityCallback, InteractEntityCallback, InteractEntityContext, UseItemCallback, UseItemContext, UseItemFinishCallback, UseItemFinishContext, UseItemOnBlockCallback, UseItemOnBlockContext, UseItemOnEntityContext, Hand, FISHING_BITE, FISHING_CAST,
 };
 pub use crate::pure::lifecycle_events_v1::{

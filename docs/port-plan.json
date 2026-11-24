@@ -199,6 +199,7 @@
     "api/src/recipe_removal.rs",
     "api/src/fov_hook.rs",
     "api/src/enderporting_hook.rs",
+    "api/src/experience_hook.rs",
     "api/src/harvest_hook.rs",
     "api/src/smelting_hook.rs",
     "api/src/strong_bones_hook.rs",

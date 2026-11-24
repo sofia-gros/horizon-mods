@@ -998,6 +998,10 @@ ServerLivingEntityEvents::MODIFY_VISIBILITY.register(|look| {
 });
 ```
 
+### `ServerLivingEntityEvents::EXPERIENCE_DROP`
+
+NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`.
+
 ### `ServerLivingEntityEvents::MODIFY_DAMAGE`
 
 NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount with `amount.set`. For a player's attack on the server it carries the stack used.

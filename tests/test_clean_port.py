@@ -92,6 +92,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/enchantment_map.rs',
                 'mixins/tconstruct_native/api/src/enderporting_hook.rs',
                 'mixins/tconstruct_native/api/src/entity_facts.rs',
+                'mixins/tconstruct_native/api/src/experience_hook.rs',
                 'mixins/tconstruct_native/api/src/fancy_gadgets.rs',
                 'mixins/tconstruct_native/api/src/faucet.rs',
                 'mixins/tconstruct_native/api/src/fishing_hook.rs',

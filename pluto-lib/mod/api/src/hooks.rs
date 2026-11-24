@@ -263,6 +263,21 @@ pub fn hooks() -> Box<dyn Hooks> {
                 horizon_client::entry::pluto_living_load_access::AttributeBase {attribute:base.attribute.to_string(),value:base.value}).collect())
         })
     }}).expect("PlutoLib living load provider installs once");
+    horizon_client::game::pluto_block_exp_access::set_provider(horizon_client::game::pluto_block_exp_access::Provider {
+        adjust: |host, pos, value| {
+            if !events_interaction_v0::block_experience_heard() { return value; }
+            let acting = host.acting_player();
+            let context = events_interaction_v0::BlockExperienceContext {
+                pos,
+                dimension: acting.as_ref().map(|player| player.dimension.clone()).unwrap_or_default(),
+                player: acting.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+                player_entity: acting.as_ref().map(|player| player.entity_id).unwrap_or(0),
+                held: acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack)),
+                experience: std::cell::Cell::new(value),
+            };
+            scoped(host, || events_interaction_v0::block_experience(&context))
+        },
+    }).expect("PlutoLib block experience provider installs once");
     horizon_client::entry::pluto_player_hurt_access::set_sink(horizon_client::entry::pluto_player_hurt_access::Sink {
         hurt: |hurt| {
             let hit = entity_events_v1::WearerHit {
@@ -4932,6 +4947,11 @@ impl Hooks for PlutoHooks {
     fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_>) {
         // The game's own death-loot path (pluto-living-drops-game) calls the hook for a mob's table drops; heads claimed through the living-drops
         // callbacks are appended outside it, so this hook only sees and changes the stacks the game passes here.
+        // The experience report that follows in the same call names no player; the killer this
+        // context names is remembered for it (see entity_events_v1::take_experience_attacker).
+        if let (Some((id, _)), Some(player)) = (event.context.entity, event.context.player) {
+            entity_events_v1::note_experience_attacker(id as i32, player);
+        }
         if !loot_api_v2::drops_heard() { return; }
         let Some(slots) = event.drops.iter().map(slot_of).collect::<Option<Vec<ItemSlot>>>() else { return };
         let before = slots.clone();
@@ -4951,6 +4971,20 @@ impl Hooks for PlutoHooks {
         if after != before {
             *event.drops = after.into_iter().filter_map(|slot| native_slot(Some(slot))).collect();
         }
+    }
+
+    fn living_experience_drop(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingExperienceDropEvent<'_>) {
+        // The game's experience report names no player: the killer is the one the death loot
+        // report in the same call named (see the note in `loot_drops`).
+        let attacker = entity_events_v1::take_experience_attacker(event.entity as i32);
+        if !entity_events_v1::experience_drop_heard() { return; }
+        let player = attacker.and_then(|uuid| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (uuid, player.entity_id)));
+        let effects = host.entity_effects(event.entity).unwrap_or_default().into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect();
+        let drop = entity_events_v1::ExperienceDrop {
+            entity: event.entity as i32, kind: event.kind.to_owned(), player, effects,
+            experience: std::cell::Cell::new(event.xp),
+        };
+        event.xp = scoped(host, || entity_events_v1::experience_drop(&drop));
     }
 
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
