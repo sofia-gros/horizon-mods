@@ -12,3 +12,6 @@ pub mod pure;
 pub use crate::exports::*;
 pub use crate::hooks::hooks;
 pub use crate::hooks::{no_hooks, ModHooks};
+
+/// Block movement factors (speed and jump) for mod blocks.
+pub use pluto_movement_api as movement;

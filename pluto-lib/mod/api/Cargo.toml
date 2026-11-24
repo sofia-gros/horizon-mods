@@ -8,6 +8,9 @@ license = "MIT"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
+# The block movement-factor registry, re-exported as `pluto_lib::movement`
+# (the same crate the pluto_movement bundle's table injection reads).
+pluto-movement-api = { path = "../../mixins/pluto_movement/api" }
 # The launcher points this at the Horizon source it builds the game from.
 horizon-client = { git = "https://github.com/horizon-rust/horizon", rev = "441f49d57e344bd56b90fd4af5c4e443ff3937c9", default-features = false }
 # The native inventory gates the advancement/recipe forwarders in

@@ -143,14 +143,14 @@ fn grid_refill(loaded: &Loaded, recipe: &Recipe, grid: &GridFacts<'_>) -> Option
     let level = tool_stack::saved_modifiers(tool_data, &loaded.modifiers)
         .iter()
         .filter(|(entry, _)| entry.id == overslime::id())
-        .fold(0, |sum, (entry, _)| sum.wrapping_add(entry.level));
+        .fold(0i32, |sum, (entry, _)| sum.wrapping_add(entry.level));
     if level <= 0 && overslime::amount(tool_data) >= overslime::capacity(tool_data) {
         return None;
     }
     let tool_item = Identifier::parse(tool.id).ok()?;
     let definition = tool_definition(&tool_item)?;
     let env = loaded.environment(&tool_item, &definition);
-    let mut result = ItemSlot::new(tool_item, tool.count);
+    let mut result = ItemSlot::new(tool_item.clone(), tool.count);
     result.damage = tool.damage;
     result.custom_data = tool_data.clone();
     overslime::add_amount(&mut result.custom_data, &env, items_found * recipe.restore);
