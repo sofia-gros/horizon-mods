@@ -300,6 +300,63 @@ pub struct PlayerAim {
     pub creative: bool,
 }
 
+/// A player's melee hit about to be a critical hit, or not (NeoForge: `CriticalHitEvent`).
+/// Heard on the game that runs the attack, for a living target only: `critical` starts as
+/// vanilla's answer and `damage_multiplier` at 1.5 for a vanilla critical, 1.0 otherwise;
+/// a callback may force or deny the critical and change the multiplier, which scales the
+/// damage only while `critical` ends true.
+#[derive(Clone, Debug)]
+pub struct CriticalHit {
+    /// The attacking player's entity id, or -1 when the game names no acting player
+    /// (a guest's hit on a LAN world, where the attack runs on another game).
+    pub attacker_entity: i32,
+    /// Whether the attacker stands on the ground.
+    pub attacker_on_ground: bool,
+    /// Whether the attacker stands in water (the block at their feet holds water).
+    pub attacker_in_water: bool,
+    /// The entity type id of the target, such as `minecraft:zombie`.
+    pub target_kind: String,
+    /// Vanilla's answer: whether the hit would be critical without a mod.
+    pub vanilla_critical: bool,
+    /// Whether the hit is critical now; change it with `set`.
+    pub critical: Cell<bool>,
+    /// The damage multiplier now; change it with `set`. Only applies while `critical` is true.
+    pub damage_multiplier: Cell<f32>,
+}
+
+/// A living entity jumped (NeoForge: `LivingEvent.LivingJumpEvent`). Heard on both
+/// games; the event carries no host and no velocity, so a callback that needs to move
+/// the entity defers the push to the entity's next tick (a player has no set-velocity:
+/// the push lands as the set velocity minus the motion the tick measured).
+#[derive(Clone, Debug)]
+pub struct LivingJump {
+    /// The entity's numeric id.
+    pub entity: i32,
+    /// The entity type id, such as `minecraft:player`.
+    pub kind: String,
+}
+
+/// The local player's movement input, after the game read it and before it applies it
+/// (NeoForge: `MovementInputUpdateEvent`). Client only. A callback may scale the
+/// impulses (an item's use slowdown) or read the jump key state (a double jump);
+/// it may not reach the player themselves — the entity reach is not open here, so
+/// a motion change is deferred to the player's next tick.
+#[derive(Clone, Debug)]
+pub struct MovementInput {
+    /// The local player's entity id, or -1 when the game names no acting player.
+    pub entity: i32,
+    /// The forward impulse now; change it with `set`.
+    pub forward: Cell<f32>,
+    /// The strafe impulse now; change it with `set`.
+    pub strafe: Cell<f32>,
+    /// Whether the jump key is held.
+    pub jump: Cell<bool>,
+    /// Whether the sneak key is held.
+    pub sneak: Cell<bool>,
+    /// Whether the player is using an item (eating, drawing a bow, blocking).
+    pub using_item: bool,
+}
+
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
 #[derive(Clone, Debug, PartialEq)]
 pub struct CounterDamage {
@@ -365,6 +422,14 @@ pub enum EntityAction {
     /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
     /// the game's own rules for giving an effect apply.
     SetEffectDuration { target: ActionTarget, effect: String, duration: i32 },
+    /// Folds a multiply-total payload into the base value of the target's `attribute`: the base becomes `factor` times what it is,
+    /// applied as a ratio against the factor already folded in, so repeating the action with the same factor changes nothing, and a
+    /// factor of 1.0 unfolds it. This is how a multiply-total effect payload on a host attribute is carried (a base move cannot
+    /// express it): the self-destructing effect's movement speed, 0.1 while primed. Players only; a mob target and a factor that is
+    /// not a positive finite number are skipped. An attribute the host does not know is skipped. The fold is kept apart from the
+    /// additions on the same attribute (a lightspeed addition landing on a folded base is unfolded with it), and it is unfolded when
+    /// the player leaves, after the additions are taken off (they sat on top of the folded base).
+    MultiplyAttribute { target: ActionTarget, attribute: String, factor: f64 },
     /// `LivingEntity.spawnAtLocation` / `ModifierUtil.dropItem`: drops `stack` as an item at the target entity, at the
     /// entity's position as the drop lands (the game's own item spawn, with its pickup delay). Reaches any living
     /// entity the game can name, mobs and the ender dragon included; a target that has left the world drops nothing.
@@ -661,6 +726,9 @@ static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
 static MODIFY_HURT: Event<DamageModification, ()> = Event::void();
 static ALLOW_DAMAGE: Event<LivingDamage, bool> = Event::allow_all();
 static AFTER_DEATH: Event<LivingDamage, ()> = Event::void();
+static CRITICAL_HIT: Event<CriticalHit, ()> = Event::void();
+static LIVING_JUMP: Event<LivingJump, ()> = Event::void();
+static MOVEMENT_INPUT: Event<MovementInput, ()> = Event::void();
 
 /// Fabric: `ServerLivingEntityEvents`.
 pub struct ServerLivingEntityEvents;
@@ -694,6 +762,14 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
     /// NeoForge: `LivingVisibilityEvent`. How far a mob sees a player in armor carrying custom data: scale it with `multiplier.set`. Server only.
     pub const MODIFY_VISIBILITY: &'static Event<VisibilityModification, ()> = &MODIFY_VISIBILITY;
+    /// NeoForge: `CriticalHitEvent`. A player's melee hit on a living target: force or deny the critical with `critical.set` and change the
+    /// damage multiplier with `damage_multiplier.set`. The attacker is the acting player, or -1 when the game names none (a guest's hit).
+    pub const CRITICAL_HIT: &'static Event<CriticalHit, ()> = &CRITICAL_HIT;
+    /// NeoForge: `LivingEvent.LivingJumpEvent`. A living entity jumped: a callback that needs to move it defers the push to its next tick.
+    pub const LIVING_JUMP: &'static Event<LivingJump, ()> = &LIVING_JUMP;
+    /// NeoForge: `MovementInputUpdateEvent`. The local player's movement input: scale the impulses with `forward.set` / `strafe.set`, or
+    /// read the jump key state. Client only; the entity reach is not open here, so a motion change is deferred to the next tick.
+    pub const MOVEMENT_INPUT: &'static Event<MovementInput, ()> = &MOVEMENT_INPUT;
 }
 
 /// The effects the callbacks take off the player on their tick.
@@ -715,6 +791,21 @@ pub(crate) fn mob_tick_heard() -> bool {
 /// The actions the callbacks queued on the player's tick, taken after `player_tick`.
 pub(crate) fn take_tick_actions(tick: &PlayerTick) -> Vec<EntityAction> {
     tick.actions.borrow_mut().drain(..).collect()
+}
+
+/// A player's melee hit about to be critical, or not: what the callbacks leave of `critical` and `damage_multiplier` is what the game goes on with.
+pub(crate) fn critical_hit(hit: &CriticalHit) {
+    CRITICAL_HIT.invoke(hit);
+}
+
+/// A living entity jumped.
+pub(crate) fn living_jump(jump: &LivingJump) {
+    LIVING_JUMP.invoke(jump);
+}
+
+/// The local player's movement input, after the game read it and before it applies it.
+pub(crate) fn movement_input(input: &MovementInput) {
+    MOVEMENT_INPUT.invoke(input);
 }
 
 static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
@@ -751,10 +842,54 @@ pub(crate) fn attribute_applied(player: u128, attribute: &str, total: f64) {
     }
 }
 
+/// The total a player's attribute base currently holds from the additions, or 0.0 when none: what a fold must work around, so that an
+/// addition landing on a folded base is unfolded with it instead of being multiplied by the unfold.
+pub(crate) fn attribute_applied_total(player: u128, attribute: &str) -> f64 {
+    ATTRIBUTES.lock().ok().and_then(|applied| applied.get(&(player, attribute.to_owned())).copied()).unwrap_or(0.0)
+}
+
 /// What a player who leaves holds on their attributes (to take off), forgotten.
 pub(crate) fn forget_attributes(player: u128) -> Vec<(String, f64)> {
     if let Ok(mut ticking) = TICKING.lock() { ticking.remove(&player); }
     let Ok(mut applied) = ATTRIBUTES.lock() else { return Vec::new() };
+    let held: Vec<(String, f64)> = applied.iter().filter(|((who, _), _)| *who == player).map(|((_, attribute), held)| (attribute.clone(), *held)).collect();
+    applied.retain(|(who, _), _| *who != player);
+    held
+}
+
+static MULTIPLY: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// The ratios to fold a player's attribute bases by for the multiply-total factors `wanted` (one per attribute): (attribute, ratio, the
+/// total factor then folded in). The ratio is the wanted factor over the factor already folded in (1.0 when nothing is), so repeating the
+/// action with the same factor changes nothing. Nothing is recorded until `multiply_factor_applied` is told the host took the ratio.
+pub(crate) fn multiply_factor_changes(player: u128, wanted: &[(String, f64)]) -> Vec<(String, f64, f64)> {
+    let mut totals: std::collections::BTreeMap<&str, f64> = std::collections::BTreeMap::new();
+    for (attribute, factor) in wanted { *totals.entry(attribute).or_insert(1.0) *= factor; }
+    let Ok(applied) = MULTIPLY.lock() else { return Vec::new() };
+    let mut changes = Vec::new();
+    for (attribute, total) in &totals {
+        let held = applied.get(&(player, (*attribute).to_owned())).copied().unwrap_or(1.0);
+        if *total != held {
+            let ratio = if held == 0.0 { *total } else { total / held };
+            changes.push(((*attribute).to_owned(), ratio, *total));
+        }
+    }
+    for ((who, attribute), held) in applied.iter() {
+        if *who == player && *held != 1.0 && !totals.contains_key(attribute.as_str()) { changes.push((attribute.clone(), 1.0 / held, 1.0)); }
+    }
+    changes
+}
+
+/// Records that the host took a fold: the player's total factor for the attribute is now `total`.
+pub(crate) fn multiply_factor_applied(player: u128, attribute: &str, total: f64) {
+    if let Ok(mut applied) = MULTIPLY.lock() {
+        if total == 1.0 { applied.remove(&(player, attribute.to_owned())); } else { applied.insert((player, attribute.to_owned()), total); }
+    }
+}
+
+/// What a player who leaves holds folded into their attributes (to unfold), forgotten.
+pub(crate) fn forget_multiply_factors(player: u128) -> Vec<(String, f64)> {
+    let Ok(mut applied) = MULTIPLY.lock() else { return Vec::new() };
     let held: Vec<(String, f64)> = applied.iter().filter(|((who, _), _)| *who == player).map(|((_, attribute), held)| (attribute.clone(), *held)).collect();
     applied.retain(|(who, _), _| *who != player);
     held
@@ -1964,6 +2099,93 @@ mod tests {
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");
+    }
+
+    #[test]
+    fn a_critical_hit_callback_may_force_the_crit_and_raise_the_multiplier() {
+        ServerLivingEntityEvents::CRITICAL_HIT.register(|hit| {
+            if hit.attacker_entity != 7701 { return; }
+            if !hit.attacker_on_ground && !hit.attacker_in_water && !hit.critical.get() {
+                hit.critical.set(true);
+                hit.damage_multiplier.set(hit.damage_multiplier.get() + 0.5);
+            }
+        });
+        let hit = CriticalHit {
+            attacker_entity: 7701, attacker_on_ground: false, attacker_in_water: false,
+            target_kind: "minecraft:zombie".into(), vanilla_critical: false,
+            critical: Cell::new(false), damage_multiplier: Cell::new(1.0),
+        };
+        critical_hit(&hit);
+        assert!(hit.critical.get(), "the airborne hit is forced critical");
+        assert_eq!(hit.damage_multiplier.get(), 1.5);
+        let grounded = CriticalHit {
+            attacker_entity: 7701, attacker_on_ground: true, attacker_in_water: false,
+            target_kind: "minecraft:zombie".into(), vanilla_critical: false,
+            critical: Cell::new(false), damage_multiplier: Cell::new(1.0),
+        };
+        critical_hit(&grounded);
+        assert!(!grounded.critical.get(), "a grounded hit is not forced");
+        assert_eq!(grounded.damage_multiplier.get(), 1.0);
+    }
+
+    #[test]
+    fn a_jump_is_reported_with_its_kind() {
+        use std::sync::Mutex;
+        static JUMPED: Mutex<Vec<(i32, String)>> = Mutex::new(Vec::new());
+        ServerLivingEntityEvents::LIVING_JUMP.register(|jump| JUMPED.lock().unwrap().push((jump.entity, jump.kind.clone())));
+        living_jump(&LivingJump { entity: 7702, kind: "minecraft:player".into() });
+        assert_eq!(JUMPED.lock().unwrap().clone(), vec![(7702, "minecraft:player".to_owned())]);
+    }
+
+    #[test]
+    fn a_movement_input_callback_may_scale_the_impulses() {
+        ServerLivingEntityEvents::MOVEMENT_INPUT.register(|input| {
+            if input.entity != 7703 || !input.using_item { return; }
+            input.forward.set(input.forward.get() * 0.5);
+            input.strafe.set(input.strafe.get() * 0.5);
+        });
+        let input = MovementInput {
+            entity: 7703, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: true,
+        };
+        movement_input(&input);
+        assert_eq!(input.forward.get(), 0.5);
+        assert!((input.strafe.get() - 0.2).abs() < 1e-9);
+        let idle = MovementInput {
+            entity: 7703, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: false,
+        };
+        movement_input(&idle);
+        assert_eq!(idle.forward.get(), 1.0, "not using an item, the impulses stand");
+    }
+
+    #[test]
+    fn a_multiply_total_fold_applies_as_a_ratio_and_unfolds() {
+        let player = 77_001u128;
+        let speed = "minecraft:movement_speed".to_owned();
+        assert_eq!(multiply_factor_changes(player, &[(speed.clone(), 0.1)]), vec![(speed.clone(), 0.1, 0.1)], "folding from 1.0 to 0.1 is a ratio of 0.1");
+        multiply_factor_applied(player, &speed, 0.1);
+        assert!(multiply_factor_changes(player, &[(speed.clone(), 0.1)]).is_empty(), "the same factor again changes nothing");
+        assert_eq!(multiply_factor_changes(player, &[(speed.clone(), 1.0)]), vec![(speed.clone(), 10.0, 1.0)], "unfolding is a ratio of 10");
+        multiply_factor_applied(player, &speed, 1.0);
+        assert!(multiply_factor_changes(player, &[(speed.clone(), 1.0)]).is_empty(), "unfolded, nothing to do");
+        multiply_factor_applied(player, &speed, 0.1);
+        assert_eq!(multiply_factor_changes(player, &[]), vec![(speed.clone(), 10.0, 1.0)], "a fold no longer wanted unfolds");
+        multiply_factor_applied(player, &speed, 1.0);
+        assert_eq!(forget_multiply_factors(player), Vec::<(String, f64)>::new(), "nothing held after the unfold");
+        multiply_factor_applied(player, &speed, 0.1);
+        assert_eq!(forget_multiply_factors(player), vec![(speed, 0.1)], "the fold is handed back on leaving");
+        assert!(forget_multiply_factors(player).is_empty(), "forgotten once");
+    }
+
+    #[test]
+    fn an_attribute_addition_total_is_read_for_the_fold() {
+        let player = 77_002u128;
+        assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.0, "nothing applied yet");
+        attribute_applied(player, "minecraft:armor", 0.5);
+        assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.5);
+        attribute_applied(player, "minecraft:armor", 0.0);
+        assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.0, "a zero total clears it");
     }
 
     #[test]

@@ -210,6 +210,7 @@
     "api/src/modifier_repair.rs",
     "api/src/table_recipes.rs",
     "api/src/custom_attributes.rs",
+    "api/src/attribute_hooks.rs",
     "LICENSE"
   ],
   "cargo_dependencies": ["serde_json", "toml"],

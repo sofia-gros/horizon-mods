@@ -6,7 +6,7 @@
 use horizon_client::mod_api::{
     AddServerReloadListenersEvent, ServerReloadListenerApplyEvent, NativeReloadListener,
     AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, LootFunctionEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
-    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
+    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, CriticalHitEvent, LivingJumpEvent, MovementInputEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
@@ -2994,6 +2994,22 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 host.remove_effect(player.uuid, &effect);
                 host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: kept.id, amplifier: kept.amplifier, duration, ambient: kept.ambient, particles: kept.particles });
             }
+            EntityAction::MultiplyAttribute { target, attribute, factor } => {
+                if !factor.is_finite() || factor <= 0.0 { continue; }
+                let id = id_of(target);
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                let Some(player) = player else { continue };
+                // The fold is a ratio against the factor already folded in, and it works around the additions on the same attribute:
+                // an addition sits on top of the folded base, so it is taken off before the ratio and put back after, and the unfold
+                // on leaving divides the same way. A player the host cannot reach, or an attribute it does not know, is skipped.
+                for (attribute, ratio, total) in entity_events_v1::multiply_factor_changes(player.uuid, &[(attribute, factor)]) {
+                    if ratio == 1.0 { continue; }
+                    let Some((base, _)) = host.attribute(player.uuid, &attribute) else { continue };
+                    let added = entity_events_v1::attribute_applied_total(player.uuid, &attribute);
+                    if host.set_attribute_base(player.uuid, &attribute, (base - added) * ratio + added) { entity_events_v1::multiply_factor_applied(player.uuid, &attribute, total); }
+                }
+            }
             EntityAction::AddEffect { target, effect, amplifier, duration } => {
                 let id = id_of(target);
                 // A player gets the effect through the host; a mob through the same hand-off the weapon-hit effects use.
@@ -5123,6 +5139,13 @@ impl Hooks for PlutoHooks {
         for (attribute, held) in entity_events_v1::forget_attributes(uuid) {
             if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base - held); }
         }
+        // A folded multiply-total payload is unfolded after the additions are taken off: the additions sat on top of the folded base,
+        // so what is left is the folded base itself, which divides back to the plain base.
+        for (attribute, factor) in entity_events_v1::forget_multiply_factors(uuid) {
+            if factor != 1.0 {
+                if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base / factor); }
+            }
+        }
         scoped(host, || networking_api_v1::player_left(uuid, name));
     }
 
@@ -5531,6 +5554,55 @@ impl Hooks for PlutoHooks {
         event.distance = fall.distance.get();
         event.multiplier = fall.multiplier.get();
         Flow::Continue
+    }
+
+    fn critical_hit(&self, host: &mut dyn Host, event: &mut CriticalHitEvent<'_>) {
+        // A player's melee hit on a living target: what the callbacks leave of the critical
+        // and the multiplier is what the game goes on with. The attacker is the acting player;
+        // a hit the game runs for no acting player (a guest's hit on a LAN world) names -1 and
+        // the callbacks leave it alone. Airborne is off the ground and not in water, as the
+        // wearer state reads it: the block at the attacker's feet holds water.
+        let acting = host.acting_player();
+        let (attacker, on_ground, in_water) = match &acting {
+            Some(player) => {
+                let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
+                let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
+                (player.entity_id, player.on_ground, in_water)
+            }
+            None => (-1, false, false),
+        };
+        let hit = entity_events_v1::CriticalHit { attacker_entity: attacker, attacker_on_ground: on_ground, attacker_in_water: in_water, target_kind: event.target_kind.to_owned(), vanilla_critical: event.vanilla_critical, critical: std::cell::Cell::new(event.critical), damage_multiplier: std::cell::Cell::new(event.damage_multiplier) };
+        entity_events_v1::critical_hit(&hit);
+        event.critical = hit.critical.get();
+        event.damage_multiplier = hit.damage_multiplier.get();
+    }
+
+    fn living_jump(&self, event: &mut LivingJumpEvent<'_>) {
+        // A living entity jumped: the event carries no host and no velocity, so a callback
+        // that needs to move the entity defers the push to the entity's next tick (a player
+        // has no set-velocity: the push lands as the set velocity minus the motion the tick
+        // measured).
+        let jump = entity_events_v1::LivingJump { entity: event.entity as i32, kind: event.kind.to_owned() };
+        entity_events_v1::living_jump(&jump);
+    }
+
+    fn movement_input(&self, host: &dyn Host, event: &mut MovementInputEvent<'_>) {
+        // The local player's movement input, after the game read it and before it applies it:
+        // what the callbacks leave of the impulses is what the player moves with. The player is
+        // the acting player; the entity reach is not open here, so a callback that needs to move
+        // the player defers the push to the next tick. The native hook is a `&self` method, so
+        // the host arrives immutable (unlike the `&mut self` hooks, which get `&mut dyn Host`).
+        let acting = host.acting_player();
+        let (entity, using_item) = match &acting {
+            Some(player) => (player.entity_id, player.using_item),
+            None => (-1, false),
+        };
+        let input = entity_events_v1::MovementInput { entity, forward: std::cell::Cell::new(event.forward), strafe: std::cell::Cell::new(event.strafe), jump: std::cell::Cell::new(event.jump), sneak: std::cell::Cell::new(event.sneak), using_item };
+        entity_events_v1::movement_input(&input);
+        event.forward = input.forward.get();
+        event.strafe = input.strafe.get();
+        event.jump = input.jump.get();
+        event.sneak = input.sneak.get();
     }
 
     fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
