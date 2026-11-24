@@ -2,11 +2,13 @@
 //! behind it (the side opposite its facing) and pours it into the block below at a nugget per tick, stopping when the source runs
 //! dry, the target is full or, if it was not powered, when asked to. Right click toggles it. Redstone pulses and the scheduled tick
 //! need block events the host does not deliver to a block entity yet (`State::handle_redstone` is the logic); the client packet is
-//! the saved `render_fluid`/`state` data, which a renderer will read.
+//! the saved `render_fluid`/`state` data, which a renderer will read. The stream below is measured on the client instead: the
+//! client tick walks the blocks below through the client world view and keeps their states in transient client data (`stream`),
+//! which the renderer draws from (Mantle's `RenderingHelper.renderFaucetFluids` reads the same states live).
 use crate::fluid_values::{INGOT, NUGGET};
 use pluto_lib::{
-    ActionResult, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, BlockPos, Direction, FluidStack, Identifier, Nbt, NbtCompound,
-    NbtCompoundExt, Neighbours,
+    ActionResult, BlockEntityClientTick, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, BlockPos, BlockState, BlockView,
+    Direction, FluidStack, Identifier, Nbt, NbtCompound, NbtCompoundExt, Neighbours,
 };
 
 /// Amount drawn from the input at a time, and what flows per tick.
@@ -220,10 +222,46 @@ pub(crate) fn use_faucet(used: &mut BlockEntityUse<'_>) -> ActionResult {
     ActionResult::Success
 }
 
+/// The blocks the stream pours through, nearest first, as Mantle's `RenderingHelper.renderFaucetFluids` walks them:
+/// the state of each block below, stopping after a block whose faucet fluid does not continue (every shipped entry
+/// stops, so the walk is one block in practice). A block the view cannot say (an unloaded chunk) answers as air, whose
+/// entry is the default — also a stop — so the walk ends at the bottom of the world at the latest.
+pub(crate) fn stream_states(world: &dyn BlockView, pos: BlockPos) -> Vec<String> {
+    let mut states = Vec::new();
+    let mut depth = 0;
+    loop {
+        depth += 1;
+        let below = [pos[0], pos[1] - depth, pos[2]];
+        let state = world.block_state(below).unwrap_or_else(|| BlockState::parse("minecraft:air").expect("a fixed id"));
+        let continued = crate::render_data::faucet_fluid(&state).continued;
+        states.push(state.to_string());
+        if !continued {
+            break;
+        }
+    }
+    states
+}
+
+/// The client tick of a faucet: while pouring, the stream below it is measured from the client world and kept in the
+/// transient client data (`stream`: the block states below, nearest first), so the renderer can draw it; when it is
+/// not pouring the stream is cleared, so nothing stale is drawn.
+pub(crate) fn tick_faucet_client(tick: &mut BlockEntityClientTick<'_>) {
+    let state = State::load(tick.data);
+    if !state.is_pouring() || state.render.is_none() {
+        tick.client_data.remove("stream");
+        return;
+    }
+    let states = stream_states(tick.world, tick.pos);
+    let stream = Nbt::List(states.into_iter().map(Nbt::String).collect());
+    tick.client_data.insert("stream".into(), stream);
+}
+
 pub(crate) fn register() {
     for name in BLOCKS {
         let block = Identifier::new("tconstruct", name).expect("valid faucet id");
-        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().ticker(tick_faucet).on_use(use_faucet));
+        BlockEntityTypeRegistry::register(
+            BlockEntityType::new(block).sync_data().ticker(tick_faucet).client_ticker(tick_faucet_client).on_use(use_faucet),
+        );
     }
 }
 
@@ -326,5 +364,48 @@ mod tests {
         });
         assert_eq!(world.tanks[&[0, 64, 1]][0].0.as_ref().unwrap().amount, 410, "an ingot drawn from the south");
         assert_eq!(world.tanks[&[0, 63, 0]][0].0.as_ref().unwrap().amount, 10);
+    }
+
+    #[test]
+    fn the_stream_walk_names_the_block_below_and_stops_after_it() {
+        use pluto_lib::{BlockState, MemoryBlockView};
+        let mut world = MemoryBlockView::default();
+        world.blocks.insert([0, 63, 0], BlockState::parse("tconstruct:seared_table").unwrap());
+        assert_eq!(stream_states(&world, [0, 64, 0]), ["tconstruct:seared_table"]);
+        world.blocks.insert([0, 63, 0], BlockState::parse("tconstruct:seared_basin").unwrap());
+        assert_eq!(stream_states(&world, [0, 64, 0]), ["tconstruct:seared_basin"]);
+        world.blocks.insert([0, 63, 0], BlockState::parse("tconstruct:seared_channel").unwrap());
+        assert_eq!(stream_states(&world, [0, 64, 0]), ["tconstruct:seared_channel"]);
+        // a block with no entry of its own pours through the default column
+        world.blocks.insert([0, 63, 0], BlockState::parse("minecraft:stone").unwrap());
+        assert_eq!(stream_states(&world, [0, 64, 0]), ["minecraft:stone"]);
+        world.blocks.remove(&[0, 63, 0]);
+        assert_eq!(stream_states(&world, [0, 64, 0]), ["minecraft:air"]);
+    }
+
+    #[test]
+    fn the_client_tick_keeps_the_stream_in_transient_data_while_pouring_and_clears_it_when_off() {
+        use pluto_lib::{BlockEntityClientTick, BlockState, MemoryBlockView};
+        let mut world = MemoryBlockView::default();
+        world.blocks.insert([0, 63, 0], BlockState::parse("tconstruct:seared_table").unwrap());
+        let mut pouring = NbtCompound::new();
+        pouring.insert("state".into(), Nbt::Int(1));
+        let mut render_fluid = NbtCompound::new();
+        render_fluid.insert("Fluid".into(), Nbt::String("tconstruct:molten_iron".into()));
+        render_fluid.insert("Amount".into(), Nbt::Int(90));
+        pouring.insert("render_fluid".into(), Nbt::Compound(render_fluid));
+        let mut client_data = NbtCompound::new();
+        tick_faucet_client(&mut BlockEntityClientTick { pos: [0, 64, 0], data: &pouring, client_data: &mut client_data, world: &world });
+        let stream: Vec<&str> = client_data
+            .get("stream")
+            .and_then(|stream| stream.as_list())
+            .map(|items| items.iter().filter_map(|item| item.as_str()).collect())
+            .unwrap_or_default();
+        assert_eq!(stream, ["tconstruct:seared_table"]);
+        // off: the stream is cleared, so the renderer draws nothing stale
+        let mut off = NbtCompound::new();
+        off.insert("state".into(), Nbt::Int(0));
+        tick_faucet_client(&mut BlockEntityClientTick { pos: [0, 64, 0], data: &off, client_data: &mut client_data, world: &world });
+        assert!(client_data.get("stream").is_none());
     }
 }

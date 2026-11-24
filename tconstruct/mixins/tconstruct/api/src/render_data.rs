@@ -1,7 +1,10 @@
 //! The original's block entity render data (SlimeKnights, MIT; see LICENSE): the fluid cuboids and item placements
 //! the block entity renderers draw, from Mantle's model data (`assets/tconstruct/mantle/model`), the channel's
-//! cuboids, and each fluid's still and flowing textures (`assets/tconstruct/mantle/fluid_texture`).
+//! cuboids, the faucet fluid of the blocks below a pour, and each fluid's still and flowing textures
+//! (`assets/tconstruct/mantle/fluid_texture`).
 //! Generated from the pinned original by tools/import_original_data.py; do not edit by hand.
+
+use pluto_lib::BlockState;
 
 /// One face of a fluid cuboid: its direction, whether it uses the flowing texture, and the texture rotation in degrees.
 pub(crate) struct Face { pub dir: &'static str, pub flowing: bool, pub rotation: u16 }
@@ -167,6 +170,53 @@ pub(crate) const CHANNEL_FLUIDS: ChannelFluids = ChannelFluids {
     down: Cuboid { from: [6.0, 0.0, 6.0], to: [10.0, 6.0, 10.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }, side_still: Cuboid { from: [6.0, 6.0, 10.0], to: [10.0, 8.0, 10.0], faces: &[Face { dir: "south", flowing: false, rotation: 0 }] },
     side_in: Cuboid { from: [6.0, 8.0, 10.0], to: [10.0, 8.0, 16.0], faces: &[Face { dir: "up", flowing: true, rotation: 180 }] }, side_out: Cuboid { from: [6.0, 8.0, 10.0], to: [10.0, 8.0, 16.0], faces: &[Face { dir: "up", flowing: true, rotation: 0 }] },
     side_edge: Cuboid { from: [6.0, 6.0, 16.0], to: [10.0, 8.0, 16.0], faces: &[Face { dir: "south", flowing: true, rotation: 0 }] } };
+
+/// One block's faucet fluid (Mantle's FaucetFluid, `mantle/model/faucet_fluid`): the cuboids the stream
+/// draws in the block below a faucet or a channel's down side, in its side form (a side-facing pour) and its
+/// center form (a pour straight down), and whether the stream continues into the next block below.
+pub(crate) struct FaucetFluid { pub side: &'static [Cuboid], pub center: &'static [Cuboid], pub continued: bool }
+
+/// The faucet fluid of a block with no entry of its own (Mantle's `_default`): a full column in the block
+/// below, stopping there.
+pub(crate) const FAUCET_FLUID_DEFAULT: FaucetFluid = FaucetFluid { side: &[Cuboid { from: [6.0, 1.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 1.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false };
+
+/// The faucet fluid of a block (`mantle/model/faucet_fluid`), by block id.
+pub(crate) fn faucet_fluids(block: &str) -> Option<&'static [Variant<FaucetFluid>]> {
+    Some(match block {
+        "tconstruct:scorched_basin" => &[
+            Variant { when: &[], data: &[FaucetFluid { side: &[Cuboid { from: [6.0, 4.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 4.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false }] },
+        ],
+        "tconstruct:scorched_channel" => &[
+            Variant { when: &[], data: &[FaucetFluid { side: &[Cuboid { from: [6.0, 8.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 8.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false }] },
+        ],
+        "tconstruct:scorched_table" => &[
+            Variant { when: &[], data: &[FaucetFluid { side: &[Cuboid { from: [6.0, 15.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 15.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false }] },
+        ],
+        "tconstruct:seared_basin" => &[
+            Variant { when: &[], data: &[FaucetFluid { side: &[Cuboid { from: [6.0, 4.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 4.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false }] },
+        ],
+        "tconstruct:seared_channel" => &[
+            Variant { when: &[], data: &[FaucetFluid { side: &[Cuboid { from: [6.0, 8.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 8.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "down", flowing: false, rotation: 0 }, Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false }] },
+        ],
+        "tconstruct:seared_table" => &[
+            Variant { when: &[], data: &[FaucetFluid { side: &[Cuboid { from: [6.0, 15.0, 6.0], to: [10.0, 16.0, 8.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], center: &[Cuboid { from: [6.0, 15.0, 6.0], to: [10.0, 16.0, 10.0], faces: &[Face { dir: "north", flowing: true, rotation: 0 }, Face { dir: "south", flowing: true, rotation: 0 }, Face { dir: "west", flowing: true, rotation: 0 }, Face { dir: "east", flowing: true, rotation: 0 }] }], continued: false }] },
+        ],
+        _ => return None,
+    })
+}
+
+/// The faucet fluid of a block state: its entry when it has one, else the default (Mantle's
+/// `FaucetFluid.Loader.get`, which answers the default for any state without an entry).
+pub(crate) fn faucet_fluid(state: &BlockState) -> &'static FaucetFluid {
+    faucet_fluids(&state.block.to_string())
+        .and_then(|variants| {
+            variants.iter()
+                .find(|variant| !variant.when.is_empty() && variant.when.iter().all(|(name, wanted)| state.property(name) == Some(*wanted)))
+                .or_else(|| variants.iter().find(|variant| variant.when.is_empty()))
+        })
+        .and_then(|variant| variant.data.first())
+        .unwrap_or(&FAUCET_FLUID_DEFAULT)
+}
 
 /// A fluid's still and flowing textures (Mantle's fluid texture data, `mantle/fluid_texture`).
 pub(crate) struct FluidTexture { pub still: &'static str, pub flowing: &'static str }
