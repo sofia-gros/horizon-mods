@@ -1,10 +1,13 @@
 //! Connects the brush module to PlutoLib's per-stack item use ticks. The use itself — the BRUSH pose and
 //! the 200 tick duration for a stack carrying the module — is composed into the throwing hook's per-stack
 //! registration (a stack that can be eaten eats and a blocking stack blocks first, as the original's hook
-//! order runs them; see `throwing_hook`), so this hook only runs the strokes: on a stroke tick it raytraces
-//! the player's view, brushes the hit block and the tool's AOE transform neighbours through the world brush
-//! call, and writes the stroke's wear onto the hand holding the tool. What the strokes cannot do here is
-//! in `brush`'s notes (the release on a missed ray, the highlight, the client-side fallback sound).
+//! order runs them; see `throwing_hook`), so this hook runs the strokes and the use's ends: on every tick
+//! it raytraces the player's view and releases the use when the ray stops hitting a block; on a stroke
+//! tick it brushes the hit block and the tool's AOE transform neighbours through the world brush call,
+//! writes the stroke's wear onto the hand holding the tool, and stops the use when the wear broke it —
+//! the ends BrushModule.onUsingTick runs, asked of PlutoLib's player surface and applied by the game at
+//! its seam (see `brush`'s notes). What is not carried over is in `brush`'s notes too (the highlight,
+//! the client-side fallback sound).
 use crate::{break_speed_hook::with_held_tool, brush, edible, edible_hook, tool_damage_hook, tool_slot, tool_stack};
 use pluto_lib::{Direction, EntityReach, Identifier, ItemEvents, ItemSlot, Nbt, StackData, StackSlot, UseTick, World};
 
@@ -121,19 +124,18 @@ pub(crate) fn stack_of(slot: &ItemSlot) -> StackData {
 
 /// The stroke's wear, written onto the hand that holds the tool (BrushModule's
 /// damageAnimated, with the brushing modifier as its cause): the main hand through its
-/// selected slot, the off hand through its equipment slot. A tool the wear breaks is
-/// written back broken; the use itself ends at its release or its 200 ticks, as a use
-/// tick cannot end it (see `brush`'s notes).
-fn wear(tick: &UseTick, amount: i32) {
+/// selected slot, the off hand through its equipment slot. True when the wear broke
+/// the tool, as damageAnimated answers — the answer onUsingTick stops the use by.
+fn wear(tick: &UseTick, amount: i32) -> bool {
     if amount <= 0 {
-        return;
+        return false;
     }
     let cause = Identifier::parse(brush::MODIFIER).expect("valid id");
-    let Ok(Some(worn)) = with_held_tool(&tick.stack, |env, _tool| {
+    let Ok(Some((worn, broke))) = with_held_tool(&tick.stack, |env, _tool| {
         let mut slot = slot_of(&tick.stack)?;
-        tool_slot::damage_slot(&mut slot, env, amount, !tick.creative, true, Some(&cause), &mut tool_damage_hook::random).ok()?;
-        Some(stack_of(&slot))
-    }) else { return };
+        let outcome = tool_slot::damage_slot(&mut slot, env, amount, !tick.creative, true, Some(&cause), &mut tool_damage_hook::random).ok()?;
+        Some((stack_of(&slot), outcome.broke))
+    }) else { return false };
     let main = tick.player.main_hand_stack().is_some_and(|held| held.item == tick.stack.item && held.custom_data == tick.stack.custom_data);
     if main {
         if let Some(selected) = tick.player.selected_slot() {
@@ -142,28 +144,37 @@ fn wear(tick: &UseTick, amount: i32) {
     } else {
         tick.player.set_equipment(StackSlot::OffHand, Some(&worn));
     }
+    broke
 }
 
-/// One tick of a brush use: the stroke, when this tick is one (see `brush`).
+/// One tick of a brush use (BrushModule.onUsingTick): the ray decides the use's end on
+/// every tick, the stroke lands on the stroke ticks, and a stroke whose wear breaks the
+/// tool stops the use. The ends are asked of the player surface and applied by the game
+/// at its seam (see `brush`'s notes).
 fn on_tick(tick: &UseTick) {
     if tick.duration != brush::USE_DURATION as u32 || !brush_use(&tick.stack) {
+        return;
+    }
+    let world = tick.world();
+    let hit = brush::ray_hit(tick.eye, tick.look, brush::reach(tick.creative), &|pos| world.get_block_state(pos).map(|state| state.block.to_string()));
+    let blocked = hit.as_ref().is_some_and(|(_, _, distance)| blocked_by_entity(tick, *distance));
+    if brush::releases(hit.is_some(), blocked) {
+        tick.player.release_use();
         return;
     }
     if !brush::is_phase(tick.ticks_used) {
         return;
     }
-    let world = tick.world();
-    let Some((hit, face, distance)) = brush::ray_hit(tick.eye, tick.look, brush::reach(tick.creative), &|pos| world.get_block_state(pos).map(|state| state.block.to_string())) else { return };
-    if blocked_by_entity(tick, distance) {
-        return;
-    }
+    let Some((hit, face, _)) = hit else { return };
     // The look as the AOE iterator asks for it (yaw and pitch in degrees), from the tick's
     // look vector: the inverse of the release telling's own construction of it.
     let yaw = (-tick.look[0]).atan2(tick.look[2]).to_degrees() as f32;
     let pitch = (-tick.look[1]).clamp(-1.0, 1.0).asin().to_degrees() as f32;
     let neighbours = neighbours(&tick.stack, &world, hit, face, yaw, pitch);
     let damage = brush::stroke(&world, hit, face, &neighbours);
-    wear(tick, damage);
+    if wear(tick, damage) {
+        tick.player.stop_use();
+    }
 }
 
 /// Registers the use tick callback. Called once from the product's hooks, after the

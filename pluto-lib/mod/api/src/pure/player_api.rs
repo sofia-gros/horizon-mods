@@ -103,6 +103,20 @@ pub trait PlayerOps {
     /// `use_cooldown` component, else the item's default, names the group); nothing happens
     /// for an item with no cooldown, or when the game does not report cooldowns.
     fn start_item_cooldown(&mut self, _player: u128, _item: &str, _ticks: i32) {}
+    /// Ends the player's item use in progress as `LivingEntity.releaseUsingItem` does: the use's own
+    /// release runs first (a callback's Stop may skip that part, never the end itself), then the use is
+    /// over. The game applies the end at its next tick seam, so a use that already ended is untouched
+    /// and an end ordered during one use never lands on a later use of a mod's. True when the end was
+    /// taken; false when this backend cannot end uses (the default) or the player is not known.
+    fn release_use(&mut self, _player: u128) -> bool {
+        false
+    }
+    /// Ends the player's item use in progress as `LivingEntity.stopUsingItem` does: the use is simply
+    /// over, with no release run — what an item breaking in the hand does to its use. Applied at the
+    /// game's next tick seam like [`PlayerOps::release_use`]. True when the end was taken; false by default.
+    fn stop_use(&mut self, _player: u128) -> bool {
+        false
+    }
 }
 
 /// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
@@ -418,6 +432,22 @@ impl ServerPlayer {
         with_current((), |ops| ops.start_item_cooldown(self.uuid, item, ticks))
     }
 
+    /// Ends this player's item use in progress as `LivingEntity.releaseUsingItem` does: the use's own
+    /// release runs first (a callback's Stop may skip that part, never the end itself), then the use is
+    /// over — what letting go of the use button does, asked for from inside a callback such as a use
+    /// tick. The game applies the end at its next tick seam; a use that already ended is untouched.
+    /// False outside a callback that carries the player, or when the game cannot end uses.
+    pub fn release_use(&self) -> bool {
+        with_current(false, |ops| ops.release_use(self.uuid))
+    }
+
+    /// Ends this player's item use in progress as `LivingEntity.stopUsingItem` does: the use is simply
+    /// over, with no release run, as when the item in use breaks in the hand. Applied at the game's
+    /// next tick seam like [`ServerPlayer::release_use`]. False outside a callback that carries the player.
+    pub fn stop_use(&self) -> bool {
+        with_current(false, |ops| ops.stop_use(self.uuid))
+    }
+
     /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
     pub fn main_hand_stack(&self) -> Option<StackData> {
         self.selected_slot().and_then(|slot| self.stack(slot))
@@ -539,6 +569,10 @@ pub struct MemoryPlayerOps {
     /// The memory backend does not tick them down; a started cooldown stays on until a test
     /// clears it.
     pub cooldowns: std::collections::HashMap<(u128, String), i32>,
+    /// Every player whose use a `release_use` ended, in the order they were ended.
+    pub released_uses: Vec<u128>,
+    /// Every player whose use a `stop_use` ended, in the order they were ended.
+    pub stopped_uses: Vec<u128>,
 }
 
 impl MemoryPlayerOps {
@@ -675,6 +709,15 @@ impl PlayerOps for MemoryPlayerOps {
     }
     fn start_item_cooldown(&mut self, player: u128, item: &str, ticks: i32) {
         self.cooldowns.insert((player, item.to_owned()), ticks);
+    }
+
+    fn release_use(&mut self, player: u128) -> bool {
+        self.released_uses.push(player);
+        true
+    }
+    fn stop_use(&mut self, player: u128) -> bool {
+        self.stopped_uses.push(player);
+        true
     }
 }
 
@@ -924,5 +967,20 @@ mod tests {
         inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, enchantments: std::collections::BTreeMap::new() }) });
         let seen = SEEN.lock().unwrap().clone();
         assert_eq!(seen, vec![(3, true, None), (100, false, Some("minecraft:torch".into()))]);
+    }
+
+    #[test]
+    fn use_ends_are_recorded_by_the_memory_game_and_unheard_outside_a_scope() {
+        let player = player();
+        assert!(!player.release_use(), "outside a scope nothing is ended");
+        assert!(!player.stop_use(), "outside a scope nothing is ended");
+        let mut game = MemoryPlayerOps::default();
+        with_ops(&mut game, || {
+            assert!(player.release_use());
+            assert!(player.stop_use());
+            assert!(player.release_use());
+        });
+        assert_eq!(game.released_uses, [7u128, 7u128], "every release is recorded, in order");
+        assert_eq!(game.stopped_uses, [7u128]);
     }
 }

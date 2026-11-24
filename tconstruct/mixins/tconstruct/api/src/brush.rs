@@ -6,11 +6,15 @@
 //! advances, its item drops out when the count completes — and the tool takes one durability damage per block
 //! brushed (`BrushModule.onUsingTick`, its `damageAnimated` total). The wiring is in `brush_hook`.
 //!
+//! The use's ends are carried over through PlutoLib's player surface, a seam later at most:
+//! `onUsingTick` releases the use on the tick the ray stops hitting a block (`releaseUsingItem`)
+//! and stops it on the tick a stroke's wear breaks the tool (`stopUsingItem`); the hook asks for
+//! the same ends (`ServerPlayer::release_use` and `stop_use`), and the game applies them at its
+//! creature tick seam — the seam the strokes themselves land at — so an end ordered on a tick is
+//! in force from that tick's seam on, and a use whose button is let go first never has its end
+//! applied.
+//!
 //! Not carried over, exactly:
-//! - The release on a missed ray (`onUsingTick` calls `releaseUsingItem` when the ray no longer hits a
-//!   block, and stops the use when the tool breaks): a use tick in this port cannot end the use, so the use
-//!   runs to its release or its 200 ticks and the strokes simply do not happen while the ray misses or the
-//!   tool is broken.
 //! - The AOE highlight (`shouldHighlight`): no highlight surface exists in this port — the hook binds, as
 //!   the tool action transform's does, and nothing is drawn.
 //! - The client-side generic brush sound when a stroke brushes nothing: the game side plays each brushable
@@ -34,6 +38,15 @@ pub(crate) fn brushable(block: &str) -> bool {
 /// `ticks_used` the use tick's own count (`duration - timeLeft`).
 pub(crate) fn is_phase(ticks_used: u32) -> bool {
     (ticks_used + 1) % 10 == 5
+}
+
+/// Whether the use ends on this tick before any stroke: `onUsingTick` computes its ray on
+/// every tick of the use and falls out of its block-hit branch into `releaseUsingItem`
+/// whenever the ray does not hit a block — a miss, or a living entity in the way (the
+/// entity's hit is the nearer one then, not the block's). A block hit, brushable or not,
+/// keeps the use going.
+pub(crate) fn releases(hit: bool, entity_in_the_way: bool) -> bool {
+    !hit || entity_in_the_way
 }
 
 /// The range BrushModule.calculateHitResult aims over: the block reach attribute's base
@@ -114,6 +127,14 @@ mod tests {
         assert_eq!(phases, [4, 14, 24], "(ticks_used + 1) % 10 == 5, as (200 - timeLeft + 1) % 10 == 5 counts it");
         assert!(!is_phase(0) && !is_phase(5) && !is_phase(199));
         assert!(is_phase(194), "the last stroke of the 200 ticks");
+    }
+
+    #[test]
+    fn a_missed_or_blocked_ray_releases_the_use_and_a_block_hit_keeps_it() {
+        assert!(releases(false, false), "the ray misses everything: releaseUsingItem");
+        assert!(releases(false, true), "an entity alone in view is not a block hit either");
+        assert!(releases(true, true), "an entity nearer than the block is the hit, not the block: release");
+        assert!(!releases(true, false), "any block hit keeps the use, brushable or not");
     }
 
     #[test]
