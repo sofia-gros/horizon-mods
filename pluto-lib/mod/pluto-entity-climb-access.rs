@@ -11,13 +11,13 @@
 // cleared whole if it ever grows past the cap, and the next tick records
 // every mob again.
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use crate::mobs::Mob;
 
 const CAP: usize = 4096;
 
-static CLIMB: Mutex<HashMap<u32, (bool, bool)>> = Mutex::new(HashMap::new());
+static CLIMB: LazyLock<Mutex<HashMap<u32, (bool, bool)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 // Records the climb state the mob's tick settled: its climbing flag (a
 // spider or cave spider pressed against a wall) and whether it glides.

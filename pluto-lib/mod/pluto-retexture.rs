@@ -14,7 +14,7 @@
 // its retextured slots. A level replacement clears the cache outright.
 use super::*;
 use std::collections::HashMap;
-use std::sync::{OnceLock, RwLock};
+use std::sync::{LazyLock, OnceLock, RwLock};
 
 // The face test, from the pure side: (block, sprite, baked UVs) -> whether
 // the face belongs to one of the block's retextured slots. Installed by
@@ -28,7 +28,7 @@ pub fn set_matcher(matcher: fn(&str, &str, [[f32; 2]; 4]) -> bool) {
 // The texture item id each retextured block entity currently names, by world
 // position. Written by the client block-entity tick pass, read by the mesh
 // seam on worker threads.
-static TEXTURES: RwLock<HashMap<[i32; 3], String>> = RwLock::new(HashMap::new());
+static TEXTURES: LazyLock<RwLock<HashMap<[i32; 3], String>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
 pub fn texture_at(pos: [i32; 3]) -> Option<String> {
     TEXTURES.read().ok()?.get(&pos).cloned()
