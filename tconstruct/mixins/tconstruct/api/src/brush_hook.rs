@@ -7,8 +7,9 @@
 //! writes the stroke's wear onto the hand holding the tool, and stops the use when the wear broke it —
 //! the ends BrushModule.onUsingTick runs, asked of PlutoLib's player surface and applied by the game at
 //! its seam (see `brush`'s notes). It also answers the brush's highlight through PlutoLib's highlight
-//! surface (see `highlight`). What is not carried over is in `brush`'s notes too (the client-side
-//! fallback sound).
+//! surface (see `highlight`). The range the strokes aim over is the player's block-interaction-range
+//! attribute (see `block_reach`), and a stroke that brushes nothing plays the generic brush sound for
+//! the acting player alone (see `brush`'s notes for the dust that stays open).
 use crate::{break_speed_hook::with_held_tool, brush, edible, edible_hook, tool_damage_hook, tool_slot, tool_stack};
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry};
 use pluto_lib::{Direction, EntityReach, Identifier, ItemEvents, ItemSlot, Nbt, StackData, StackSlot, UseTick, World};
@@ -154,6 +155,13 @@ fn wear(tick: &UseTick, amount: i32) -> bool {
     broke
 }
 
+/// The range BrushModule.calculateHitResult aims over: the player's block-interaction-range
+/// attribute as the game computes it, falling back to the attribute's base values when the
+/// game cannot answer (see `brush::reach_with`).
+fn block_reach(tick: &UseTick) -> f64 {
+    brush::reach_with(tick.player.attribute_value(brush::BLOCK_REACH), tick.creative)
+}
+
 /// One tick of a brush use (BrushModule.onUsingTick): the ray decides the use's end on
 /// every tick, the stroke lands on the stroke ticks, and a stroke whose wear breaks the
 /// tool stops the use. The ends are asked of the player surface and applied by the game
@@ -163,7 +171,7 @@ fn on_tick(tick: &UseTick) {
         return;
     }
     let world = tick.world();
-    let hit = brush::ray_hit(tick.eye, tick.look, brush::reach(tick.creative), &|pos| world.get_block_state(pos).map(|state| state.block.to_string()));
+    let hit = brush::ray_hit(tick.eye, tick.look, block_reach(tick), &|pos| world.get_block_state(pos).map(|state| state.block.to_string()));
     let blocked = hit.as_ref().is_some_and(|(_, _, distance)| blocked_by_entity(tick, *distance));
     if brush::releases(hit.is_some(), blocked) {
         tick.player.release_use();
@@ -179,6 +187,9 @@ fn on_tick(tick: &UseTick) {
     let pitch = (-tick.look[1]).clamp(-1.0, 1.0).asin().to_degrees() as f32;
     let neighbours = neighbours(&tick.stack, &world, hit, face, yaw, pitch);
     let damage = brush::stroke(&world, hit, face, &neighbours);
+    if brush::fallback(damage) {
+        world.brush_fallback_sound(hit);
+    }
     if wear(tick, damage) {
         tick.player.stop_use();
     }

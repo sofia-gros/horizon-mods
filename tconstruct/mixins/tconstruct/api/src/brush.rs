@@ -14,15 +14,24 @@
 //! in force from that tick's seam on, and a use whose button is let go first never has its end
 //! applied.
 //!
+//! The range the strokes aim over is the player's block-interaction-range attribute as the
+//! game computes it (`LivingEntity.getAttributeValue`, read through PlutoLib's player
+//! surface), falling back to the attribute's base values (4.5 in survival, 5 in creative)
+//! when the game cannot answer. And a stroke that brushes nothing plays the generic brush
+//! sound for the acting player alone (`SoundEvents.BRUSH_GENERIC`): the hook queues it
+//! through the world's fallback call and the game's brush seam plays it — unshared for the
+//! local player, sent to them alone for a guest — as the original plays it on the
+//! brushing player's client only.
+//!
 //! Not carried over, exactly:
 //! - The AOE highlight (`shouldHighlight`) is drawn through PlutoLib's highlight surface: while the
 //!   player holds the tool and aims at a block, the brushable neighbours are outlined (see
 //!   `brush_hook`'s highlight). Two edges of the original's render event are not carried over: the
 //!   DISPLAY predicate's other half (neighbours the tool is effective on are outlined too — this
 //!   port has no mining-outline consumer) and the world-border check on each outlined block.
-//! - The client-side generic brush sound when a stroke brushes nothing: the game side plays each brushable
-//!   block's own sound as its stroke lands (see the flush in PlutoLib), and a stroke on plain blocks is
-//!   silent here, as it is server-side in the original.
+//! - The dust of the fallback effect: the original's `brushEffects` spawns dust particles at the
+//!   centre block with the generic sound, and the game's own brush dusts every local stroke; this
+//!   port dusts brushable strokes only, so a stroke on plain blocks sounds but shows no dust.
 use pluto_lib::World;
 
 /// BrushModule.getUseDuration: the use lasts 200 ticks.
@@ -30,6 +39,10 @@ pub(crate) const USE_DURATION: i32 = 200;
 
 /// The modifier this module belongs to, for the wear's damage cause.
 pub(crate) const MODIFIER: &str = "tconstruct:brushing";
+
+/// The block-interaction-range attribute BrushModule.calculateHitResult reads
+/// (`ForgeMod.BLOCK_REACH`): the range a use that aims traces over.
+pub(crate) const BLOCK_REACH: &str = "minecraft:block_interaction_range";
 
 /// Whether `block` can be brushed (a `BrushableBlock`: suspicious sand and suspicious gravel —
 /// the only blocks with a brushable block entity).
@@ -52,10 +65,22 @@ pub(crate) fn releases(hit: bool, entity_in_the_way: bool) -> bool {
     !hit || entity_in_the_way
 }
 
-/// The range BrushModule.calculateHitResult aims over: the block reach attribute's base
-/// values, 4.5 in survival and 5 in creative (the attribute itself is not read here).
+/// The block reach attribute's base values, 4.5 in survival and 5 in creative: what a
+/// stroke aims over when the game cannot answer the attribute itself (see `reach_with`).
 pub(crate) fn reach(creative: bool) -> f64 {
     if creative { 5.0 } else { 4.5 }
+}
+
+/// The range with the player's block-interaction-range attribute value in hand: the
+/// value itself when the game answered with a usable range, else the base values — the
+/// game cannot answer for a player between bodies, and a test's memory game answers
+/// nothing it was not told. A value of 0 still aims nowhere (a reach of 0 hits nothing),
+/// as the attribute's own range starts there.
+pub(crate) fn reach_with(attribute: Option<f64>, creative: bool) -> f64 {
+    match attribute {
+        Some(value) if value.is_finite() => value.max(0.0),
+        _ => reach(creative),
+    }
 }
 
 /// The first solid block along the view ray, walked voxel by voxel as the game's own block
@@ -118,6 +143,13 @@ pub(crate) fn stroke(world: &World, hit: [i32; 3], face: [i32; 3], neighbours: &
     damage
 }
 
+/// Whether a stroke whose wear is `damage` plays the generic fallback sound: one that
+/// brushed nothing (`BrushModule.onUsingTick`'s `damage == 0`, on the client side — the
+/// client-side half is the seam's, which plays it for the acting player alone).
+pub(crate) fn fallback(damage: i32) -> bool {
+    damage == 0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,6 +170,25 @@ mod tests {
         assert!(releases(false, true), "an entity alone in view is not a block hit either");
         assert!(releases(true, true), "an entity nearer than the block is the hit, not the block: release");
         assert!(!releases(true, false), "any block hit keeps the use, brushable or not");
+    }
+
+    #[test]
+    fn the_reach_is_the_attribute_value_and_the_base_values_are_the_fallback() {
+        assert_eq!(reach_with(Some(6.0), false), 6.0, "a reach modifier's value is aimed over");
+        assert_eq!(reach_with(Some(4.5), false), 4.5);
+        assert_eq!(reach_with(Some(0.0), false), 0.0, "a reach of 0 aims nowhere, not at the base");
+        assert_eq!(reach_with(Some(-1.0), false), 0.0, "a negative read is clamped, not aimed past the eye");
+        assert_eq!(reach_with(Some(f64::NAN), false), 4.5, "an unusable read falls back to the base");
+        assert_eq!(reach_with(None, false), 4.5, "no answer falls back to the base");
+        assert_eq!(reach_with(None, true), 5.0);
+        assert_eq!(reach(false), 4.5);
+        assert_eq!(reach(true), 5.0);
+    }
+
+    #[test]
+    fn only_an_empty_stroke_plays_the_generic_fallback() {
+        assert!(fallback(0), "nothing brushed: the generic sound");
+        assert!(!fallback(1) && !fallback(2), "a brushed block plays its own sound, not the generic");
     }
 
     #[test]
