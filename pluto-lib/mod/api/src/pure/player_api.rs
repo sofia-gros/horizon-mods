@@ -93,6 +93,25 @@ pub trait PlayerOps {
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         None
     }
+    /// Swings the player's arm in `hand` (`LivingEntity.swing`): the arm moves on their own screen and, for a
+    /// guest, the players around them are told. False when the swing could not be queued (no player, no host).
+    /// The swing plays when the game next reaches the player — inside their break, or at their next tick.
+    fn swing_hand(&mut self, _player: u128, _hand: super::events_interaction_v0::Hand) -> bool {
+        false
+    }
+    /// Broadcasts that the stack in `slot` broke (`LivingEntity.onEquippedItemBroken`): the break statistic,
+    /// the break sound and crumbs where the player stands, and the item-break event for the players around.
+    /// False when the broadcast could not be queued. The game's own wear already broadcasts the breaks it
+    /// applies (mining, hurt armor), so only a break the port itself applied — a tool worn by a modifier —
+    /// is broadcast this way; calling it for a host break would sound the break twice.
+    fn broadcast_item_break(
+        &mut self,
+        _player: u128,
+        _slot: super::entity_events_v1::StackSlot,
+        _stack: &StackData,
+    ) -> bool {
+        false
+    }
 }
 
 /// FoodData.eat arithmetic, shared by the real adapter and the in-memory backend.
@@ -394,6 +413,27 @@ impl ServerPlayer {
         with_current(None, |ops| ops.selected_slot(self.uuid))
     }
 
+    /// Swings the player's arm in `hand` (`LivingEntity.swing`): the arm moves on their own screen and, for a
+    /// guest, the players around them are told. False outside a callback that carries this player, or when the
+    /// game could not queue the swing. The swing plays when the game next reaches the player — inside their
+    /// break, or at their next tick.
+    pub fn swing_hand(&self, hand: super::events_interaction_v0::Hand) -> bool {
+        with_current(false, |ops| ops.swing_hand(self.uuid, hand))
+    }
+
+    /// Broadcasts that the stack in `slot` broke (`LivingEntity.onEquippedItemBroken`): the break statistic,
+    /// the break sound and crumbs where the player stands, and the item-break event for the players around.
+    /// `stack` is the stack as it broke. False outside a callback that carries this player, or when the game
+    /// could not queue the broadcast. Only a break the port itself applied is broadcast this way — the game's
+    /// own wear already broadcasts the breaks it applies.
+    pub fn broadcast_item_break(
+        &self,
+        slot: super::entity_events_v1::StackSlot,
+        stack: &StackData,
+    ) -> bool {
+        with_current(false, |ops| ops.broadcast_item_break(self.uuid, slot, stack))
+    }
+
     /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
     pub fn main_hand_stack(&self) -> Option<StackData> {
         self.selected_slot().and_then(|slot| self.stack(slot))
@@ -438,6 +478,42 @@ pub(crate) fn key_heard() -> bool {
 /// Reports a key press to the callbacks.
 pub(crate) fn key_press(press: &KeyPress) {
     KEY_PRESS.invoke(press);
+}
+
+/// A player's item broke (NeoForge's `PlayerDestroyItemEvent` carries the original stack and a hand, which
+/// armour has not; Bukkit's `PlayerItemBreakEvent`). Heard on a server when the game's own wear breaks a
+/// player's stack — the host names the break only for a guest (its `player_equipment_broke` fires the hook
+/// from a guest's turn, never for the host player, whose break still sounds and shows its crumbs locally).
+/// `item` is the item that broke, `slot` the equipment slot it broke in. A break the port itself applied
+/// and broadcast (see [`PlayerOps::broadcast_item_break`]) is heard the same way, once the game plays it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ItemBreak {
+    /// The player whose item broke.
+    pub player: ServerPlayer,
+    /// The item that broke, such as `tconstruct:pickaxe`.
+    pub item: String,
+    /// The equipment slot the stack broke in.
+    pub slot: super::entity_events_v1::StackSlot,
+}
+
+static ITEM_BREAK: Event<ItemBreak, ()> = Event::void();
+
+/// A player's item breaking (see [`ItemBreak`]).
+pub struct PlayerItemBreakEvents;
+
+impl PlayerItemBreakEvents {
+    /// The event: every callback runs, in registration order.
+    pub const EVENT: &'static Event<ItemBreak, ()> = &ITEM_BREAK;
+}
+
+/// Whether any callback hears item breaks (the host adapter skips its work when none does).
+pub(crate) fn item_break_heard() -> bool {
+    !ITEM_BREAK.is_empty()
+}
+
+/// Reports a player's broken item to the callbacks.
+pub(crate) fn item_break(broken: &ItemBreak) {
+    ITEM_BREAK.invoke(broken);
 }
 
 /// One inventory slot of a player ticked (NeoForge: `PlayerTickEvent` has no slot-level counterpart; the closest is
@@ -860,7 +936,47 @@ mod tests {
     }
 
     #[test]
-    fn inventory_ticks_reach_their_callbacks_with_the_slot_and_stack() {
+    fn item_breaks_reach_their_callbacks_with_player_item_and_slot() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<(u128, String, String)>> = Mutex::new(Vec::new());
+        PlayerItemBreakEvents::EVENT.register(|broken| {
+            SEEN.lock().unwrap().push((
+                broken.player.uuid,
+                broken.item.clone(),
+                format!("{:?}", broken.slot),
+            ));
+        });
+        assert!(item_break_heard());
+        item_break(&ItemBreak {
+            player: player(),
+            item: "tconstruct:pickaxe".into(),
+            slot: super::entity_events_v1::StackSlot::MainHand,
+        });
+        assert_eq!(
+            SEEN.lock().unwrap().clone(),
+            vec![(7, "tconstruct:pickaxe".to_string(), "MainHand".to_string())]
+        );
+    }
+
+    #[test]
+    fn a_swing_and_a_break_broadcast_answer_false_without_a_host() {
+        let mut ops = Recorder::default();
+        let held = player();
+        assert!(!with_ops(&mut ops, || held.swing_hand(super::events_interaction_v0::Hand::Off)));
+        let stack = StackData {
+            item: "tconstruct:pickaxe".into(),
+            count: 1,
+            damage: 60,
+            max_damage: Some(60),
+            custom_data: crate::pure::base::NbtCompound::new(),
+            custom_model_data: None,
+            enchantments: std::collections::BTreeMap::new(),
+        };
+        assert!(!with_ops(&mut ops, || held
+            .broadcast_item_break(super::entity_events_v1::StackSlot::MainHand, &stack)));
+        assert!(!held.swing_hand(super::events_interaction_v0::Hand::Main), "outside a callback nothing swings");
+    }
+}
         use std::sync::Mutex;
         static SEEN: Mutex<Vec<(i32, bool, Option<String>)>> = Mutex::new(Vec::new());
         PlayerInventoryEvents::TICK.register(|tick| {
