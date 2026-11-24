@@ -238,6 +238,18 @@ mod tests {
     use pluto_lib::{Identifier, LivingFacts, MemoryEntityOps, MemoryWorldOps, WorldEntity, with_entities, with_world};
     use std::cell::{Cell, RefCell};
 
+    /// The handlers, registered once per test process: `register()` appends a handler on
+    /// every call, so calling it in each test would scale the impulses once per test (a
+    /// held-tool factor of 2.0 applied three times reads 8.0, not 2.0). The product calls
+    /// it once from its hooks.
+    static REGISTER_ONCE: std::sync::Once = std::sync::Once::new();
+    fn ensure_registered() {
+        REGISTER_ONCE.call_once(|| {
+            register();
+            custom_attributes::register();
+        });
+    }
+
     #[test]
     fn the_critical_boost_is_the_value_over_its_default() {
         assert_eq!(critical_boost(1.5, 0.0), 0.0, "the default is no boost");
@@ -278,7 +290,8 @@ mod tests {
         assert_eq!(use_item_speed_factor(1.0, 0.0, 0.0), 5.0);
         assert_eq!(use_item_speed_factor(2.0, 0.0, 0.0), 5.0, "clamped at 1.0");
         assert_eq!(use_item_speed_factor(0.2, 0.2, 0.0), 2.0, "a tool 0.2 over its default doubles the factor");
-        assert_eq!(use_item_speed_factor(0.2, 0.0, 0.1), 1.5, "the armor stat adds to the speed");
+        // (0.2 + 0.1) * 5 is 1.5000000000000002 in f64, so the term is compared loosely.
+        assert!((use_item_speed_factor(0.2, 0.0, 0.1) - 1.5).abs() < 1e-9, "the armor stat adds to the speed");
         assert_eq!(use_item_speed_factor(0.2, -0.3, 0.0), 0.0, "a slow tool clamps at zero");
     }
 
@@ -312,8 +325,7 @@ mod tests {
 
     #[test]
     fn a_critical_hit_with_no_boost_leaves_the_hit_alone() {
-        register();
-        custom_attributes::register();
+        ensure_registered();
         let hit = CriticalHit {
             attacker_entity: 7707, attacker_on_ground: false, attacker_in_water: false,
             target_kind: "minecraft:zombie".into(), vanilla_critical: false,
@@ -326,8 +338,7 @@ mod tests {
 
     #[test]
     fn using_an_item_at_the_default_speed_keeps_full_impulses() {
-        register();
-        custom_attributes::register();
+        ensure_registered();
         let input = input_for(7708, false, true);
         ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input);
         assert_eq!(input.forward.get(), 1.0, "the default 0.2 cancels vanilla's slowdown");
@@ -336,8 +347,7 @@ mod tests {
 
     #[test]
     fn a_held_tool_over_its_use_item_speed_default_speeds_the_impulses() {
-        register();
-        custom_attributes::register();
+        ensure_registered();
         // The held bow's built stat is 0.4, 0.2 over the default: the factor is (0.2 + 0.2) * 5 = 2.
         let mut stats = pluto_lib::NbtCompound::new();
         stats.insert("tconstruct:use_item_speed".into(), pluto_lib::Nbt::Float(0.4));
@@ -356,8 +366,7 @@ mod tests {
 
     #[test]
     fn a_double_jump_fires_once_per_press_and_once_per_airtime() {
-        register();
-        custom_attributes::register();
+        ensure_registered();
         let entity = 7709;
         // The double-jump effect grants one jump count: the count is 2, one extra jump.
         ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], true, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
@@ -405,7 +414,7 @@ mod tests {
 
     #[test]
     fn a_pending_jump_boost_pushes_up_on_the_next_tick() {
-        register();
+        ensure_registered();
         let entity = 7710;
         if let Ok(mut pending) = PENDING_BOOST.lock() { pending.insert(entity, 1.0); }
         let mut ops = MemoryEntityOps::default();

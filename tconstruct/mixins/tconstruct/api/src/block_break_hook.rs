@@ -720,7 +720,10 @@ mod tests {
         let known = lookup(&["minecraft:stone", "minecraft:oak_stairs"]);
         let mined = pluto_lib::BlockState::parse("minecraft:oak_stairs[waterlogged=false]").unwrap();
         // A range predicate with no nbt: the mined state answers it with no block entity needed.
-        let component = pluto_lib::Nbt::parse_snbt("{blocks:[\"minecraft:oak_stairs\"],state:{waterlogged:false}}").unwrap();
+        // The state value is a string in the game's predicate NBT (as in pluto_lib's own
+        // place-predicate tests): a bare `false` parses to Nbt::Byte, which the predicate read
+        // cannot match, so the value is quoted here.
+        let component = pluto_lib::Nbt::parse_snbt("{blocks:[\"minecraft:oak_stairs\"],state:{waterlogged:\"false\"}}").unwrap();
         let predicates = pluto_lib::adventure_place_predicates(&component);
         assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[], &predicates, None).is_some());
     }

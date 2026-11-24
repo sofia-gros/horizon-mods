@@ -451,7 +451,10 @@ mod tests {
         ];
         assert_eq!(claims.len(), 3, "every worn piece claims");
         let amounts = armor_stat_totals(claims);
-        assert_eq!(amounts, vec![(key.clone(), 0.35)], "0.05 each at levels 2, 3 and 2, summed: {amounts:?}");
+        assert_eq!(amounts.len(), 1, "0.05 each at levels 2, 3 and 2, summed: {amounts:?}");
+        assert_eq!(amounts[0].0, key, "0.05 each at levels 2, 3 and 2, summed: {amounts:?}");
+        // Each claim's amount is worked out in f32, so the f64 sum is 0.3500000089406967, not 0.35.
+        assert!((amounts[0].1 - 0.35).abs() < 1e-6, "0.05 each at levels 2, 3 and 2, summed: {amounts:?}");
         let max = MaxArmorStat::decode(json!({"key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05}).as_object().unwrap()).unwrap();
         let max_claims = [1, 3, 2].map(|level| max.claim(&entry(level), true, false).unwrap());
         let amounts = armor_stat_totals(max_claims);

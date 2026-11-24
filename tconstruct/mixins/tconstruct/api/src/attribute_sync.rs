@@ -202,6 +202,13 @@ pub(crate) fn register() {
 mod tests {
     use super::*;
 
+    /// How many packets are queued for `player`: the queue is process-global, and other
+    /// tests' ticks publish for their own players (a stale entry stays queued — the drain
+    /// only runs on the end-of-tick event), so this test counts its own player's packets.
+    fn queued_for(player: u128) -> usize {
+        OUTGOING.lock().map(|outgoing| outgoing.iter().filter(|(queued, _, _)| *queued == player).count()).unwrap_or(0)
+    }
+
     #[test]
     fn the_payload_round_trips_and_rejects_bad_packets() {
         let bytes = encode(7708, &[(9, 2.0), (5, 0.5)], &[(1, 0.25)]);
@@ -235,21 +242,21 @@ mod tests {
         let mut stored = BTreeMap::new();
         stored.insert(custom_attributes::JUMP_COUNT.to_owned(), 2.0);
         publish(player, 7709, &stored, &[("tconstruct:jump_boost".to_owned(), 0.5)]);
-        assert_eq!(OUTGOING.lock().unwrap().len(), 1, "the first change is queued");
+        assert_eq!(queued_for(player), 1, "the first change is queued");
         publish(player, 7709, &stored, &[("tconstruct:jump_boost".to_owned(), 0.5)]);
-        assert_eq!(OUTGOING.lock().unwrap().len(), 1, "nothing changed, nothing more is queued");
+        assert_eq!(queued_for(player), 1, "nothing changed, nothing more is queued");
         stored.insert(custom_attributes::JUMP_COUNT.to_owned(), 3.0);
         publish(player, 7709, &stored, &[("tconstruct:jump_boost".to_owned(), 0.5)]);
-        assert_eq!(OUTGOING.lock().unwrap().len(), 1, "a later publish in the same tick replaces the queued packet");
+        assert_eq!(queued_for(player), 1, "a later publish in the same tick replaces the queued packet");
         stored.remove(custom_attributes::JUMP_COUNT);
         publish(player, 7709, &stored, &[]);
-        assert_eq!(OUTGOING.lock().unwrap().len(), 1, "the fall back to the default still goes out, so the guest forgets the old value");
+        assert_eq!(queued_for(player), 1, "the fall back to the default still goes out, so the guest forgets the old value");
         // The drain retries a failed send and drops it after the fifth failure: with no host
         // scope in a unit test, every send fails.
         for _ in 0..4 { drain(); }
-        assert_eq!(OUTGOING.lock().unwrap().len(), 1, "still queued after four failures");
+        assert_eq!(queued_for(player), 1, "still queued after four failures");
         drain();
-        assert!(OUTGOING.lock().unwrap().is_empty(), "dropped after the fifth failure");
+        assert_eq!(queued_for(player), 0, "dropped after the fifth failure");
         if let Ok(mut last_sent) = LAST_SENT.lock() { last_sent.remove(&player); }
     }
 

@@ -116,7 +116,12 @@ fn every_creative_stack_carries_the_sprite_keys_of_its_materials() {
 fn built_repaired_swapped_and_cast_stacks_all_carry_their_sprite_keys() {
     use crate::tool_materials::MaterialVariant;
     use crate::tool_station::{lookup, Context, Input, Outcome};
-    let world = world();
+    let mut world = world();
+    // The code-defined modifiers production `modifiers::register` adds before the first reload:
+    // world() registers only the unported ones, so a copper part's dwarven trait would resolve as
+    // "required modifier tconstruct:dwarven unavailable". The other tests that need code modifiers
+    // register them into world().registry themselves; this one needs the ported set.
+    for modifier in crate::modifiers::ported_code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
     let tools: Vec<(Identifier, &crate::tool_definitions::Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |_: &Identifier| 1;
     let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
@@ -152,8 +157,14 @@ fn built_repaired_swapped_and_cast_stacks_all_carry_their_sprite_keys() {
 #[test]
 fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_and_none_is_left_out() {
     let declared = crate::casting_loop::declared();
-    let groups: BTreeMap<String, BTreeSet<String>> = crate::creative::groups().into_iter()
+    let all_groups = crate::creative::groups();
+    let groups: BTreeMap<String, BTreeSet<String>> = all_groups.iter()
         .map(|group| (group.id.path().to_owned(), group.entries.iter().map(|stack| stack.item.to_string()).collect())).collect();
+    // The plain stacks per tab: the Deco tab holds only retextured variants (TinkerTables.addTableVariants
+    // and TinkerSmeltery.addTableVariants), each carrying its texture under custom data, so a variant of a
+    // table or controller is not a second plain listing of that item — the "also in" check below reads these.
+    let plain: BTreeMap<String, BTreeSet<String>> = all_groups.iter()
+        .map(|group| (group.id.path().to_owned(), group.entries.iter().filter(|stack| stack.components.is_none()).map(|stack| stack.item.to_string()).collect())).collect();
     let tools: BTreeSet<String> = crate::tool_parts::tool_items().map(|tool| tool.to_string()).collect();
     let parts: BTreeSet<String> = crate::tool_parts::material_items().keys().map(ToString::to_string).chain(["tconstruct:modifier_crystal".to_owned()]).collect();
     let expected = |name: &str| -> &'static str {
@@ -183,13 +194,13 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     let mut wrong = Vec::new();
     for name in &declared {
         // Fluid blocks have no item in the original, and soulsteel is in no tab at all ("future: soulsteel" in
-        // TinkerMaterials): neither its block nor its bucket.
+        // TinkerMaterials for the metal, in TinkerFluids for the bucket): neither its block, ingot nor nugget, nor its bucket.
         // The potted flora, the wall signs and the wall heads are blocks with no item in the original either, so they are in no tab.
         // The ichor foliage is in no tab either: FoliageType.VISIBLE excludes ichor, and the wood section of the tab
         // accepts only the earth, sky, blood and ender saplings and leaves.
         // The crystalshot is likewise accepted into no tab (it is only cast), and the fake ingot and fake storage
         // block get tab variants only for the compatibility materials, which this port does not ship.
-        if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket" || name == "tconstruct:soulsteel_block"
+        if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket" || name == "tconstruct:soulsteel_block" || name == "tconstruct:soulsteel_ingot" || name == "tconstruct:soulsteel_nugget"
             || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
             || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) || name == "tconstruct:crystalshot" || name == "tconstruct:fake_ingot" || name == "tconstruct:fake_storage_block"
             // The deprecated throwables are accepted by no addTabItems in the original, and the general tab
@@ -200,9 +211,10 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         }
         let tab = expected(name);
         if !groups[tab].contains(name) { wrong.push(format!("{name} is missing from {tab}")); }
-        for (other, entries) in &groups {
-            // the Tanks tab holds filled tanks (the tank items again)
-            if other != tab && other != "fluids" && entries.contains(name) { wrong.push(format!("{name} is also in {other}")); }
+        for other in groups.keys() {
+            // the Tanks tab holds filled tanks (the tank items again); a Deco variant is the same
+            // item retextured, not a second plain listing, so this reads the plain stacks
+            if other != tab && other != "fluids" && plain[other].contains(name) { wrong.push(format!("{name} is also in {other}")); }
         }
     }
     assert!(wrong.is_empty(), "{wrong:#?}");

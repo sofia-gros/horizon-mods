@@ -282,9 +282,12 @@ fn gold_casts_are_made_from_the_item_they_shape_and_molten_gold_and_sand_casts_f
             let (state, items, taken) = pour_and_cool(&live, &ItemSlot::new(cast.clone(), 1), &gold);
             assert_eq!(taken, 90, "{}: molten gold on {cast}", recipe.id);
             assert!(state.fluid.is_none());
-            // the shape is used up and the new cast is in the table's first slot (switch_slots)
-            assert_eq!(items[INPUT].as_ref().map(|stack| &stack.item), Some(result), "{}: {cast} and gold make {result}", recipe.id);
-            assert!(items[OUTPUT].is_none(), "{}: the shape is used up", recipe.id);
+            // the shape is used up and the new cast lands where the cast was when the recipe switches slots, in the output otherwise
+            let slot = if recipe.switch_slots { INPUT } else { OUTPUT };
+            let made_item = items[slot].as_ref().unwrap_or_else(|| panic!("{}: {cast} and gold make nothing in slot {slot}: {items:?}", recipe.id));
+            assert_eq!(&made_item.item, result, "{}: {cast} and gold make {result}", recipe.id);
+            let other = if slot == INPUT { OUTPUT } else { INPUT };
+            assert_eq!(items[other].is_none(), recipe.cast_consumed, "{}: the shape is used up", recipe.id);
             made.insert(result.to_string());
         }
     }
@@ -293,7 +296,7 @@ fn gold_casts_are_made_from_the_item_they_shape_and_molten_gold_and_sand_casts_f
     let mut unmade = BTreeSet::new();
     for name in &declared {
         let Some(path) = name.strip_prefix("tconstruct:") else { continue };
-        if path.ends_with("_cast") && !path.contains("sand") && path != "arrow_cast" {
+        if path.ends_with("_cast") && !path.contains("sand") {
             if !made.contains(name) { unmade.insert(name.clone()); }
         }
     }

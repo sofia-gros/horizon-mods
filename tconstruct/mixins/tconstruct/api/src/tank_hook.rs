@@ -1475,16 +1475,17 @@ mod tests {
         // Reverse (the carried tool clicked onto the other): the carried tank fills the
         // clicked one first.
         assert_eq!(transfer_tools(&mut carried, &mut clicked, true), Some(false));
-        assert_eq!(tool_tank::fluid(&carried).map(|fluid| fluid.amount), Some(0));
+        // A full drain removes the tank key: an emptied tank reads as no fluid, not zero.
+        assert_eq!(tool_tank::fluid(&carried).map(|fluid| fluid.amount), None);
         assert_eq!(tool_tank::fluid(&clicked).map(|fluid| fluid.amount), Some(1500));
         // Nothing left to move out of an empty tank.
         let mut empty = tool_data(&[("tconstruct:tank_handler", 1)], None);
         assert_eq!(transfer_tools(&mut empty, &mut clicked, true), Some(true), "the reverse falls to filling the carried tank");
         assert_eq!(tool_tank::fluid(&empty).map(|fluid| fluid.amount), Some(1500));
-        assert_eq!(tool_tank::fluid(&clicked).map(|fluid| fluid.amount), Some(0));
+        assert_eq!(tool_tank::fluid(&clicked).map(|fluid| fluid.amount), None);
         // And with both empty, nothing moves.
         let mut other_empty = tool_data(&[("tconstruct:tank_handler", 1)], None);
-        assert_eq!(transfer_tools(&mut empty, &mut other_empty, false), None);
+        assert_eq!(transfer_tools(&mut clicked, &mut other_empty, false), None);
     }
 
     #[test]

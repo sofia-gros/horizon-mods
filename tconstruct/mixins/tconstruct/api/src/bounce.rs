@@ -553,9 +553,14 @@ mod tests {
 
     #[test]
     fn the_sling_leap_adds_a_momentum_only_handler() {
-        register();
-        ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(710_004, [0.0, 64.0, 0.0], true, false, false));
-        ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(710_004, [2.0, 64.0, 0.0], false, false, false));
+        // The leap's two ticks, as the player's last tick kept them: the handler reads the
+        // kept motion, so the facts are set directly — invoking the tick here would run the
+        // tick handler once per register() call already made in this process, and every run
+        // after the first would see no movement and zero the kept velocity.
+        {
+            let mut kept = KEPT.lock().expect("the bounce facts are never poisoned");
+            kept.insert(710_004, Kept { position: [2.0, 64.0, 0.0], velocity: [2.0, 0.0, 0.0], tick: 2, sneaking: false, dimension: "minecraft:overworld".to_owned() });
+        }
         add_bounce_handler(710_004);
         let bounces = BOUNCES.lock().expect("the bounce state is never poisoned");
         let info = bounces.get(&710_004).expect("the handler is kept");

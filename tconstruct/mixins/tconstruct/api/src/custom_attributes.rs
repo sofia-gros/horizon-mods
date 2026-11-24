@@ -437,6 +437,7 @@ mod tests {
 
     #[test]
     fn armor_stat_and_value_reads_fall_back_to_the_synced_copy() {
+        declare(); // the declared default is only visible once the attributes are declared
         assert_eq!(armor_stat_for(7707, "tconstruct:jump_boost"), 0.0, "nothing kept or synced yet");
         assert_eq!(value(7707, JUMP_COUNT), 1.0, "the declared default while nothing is kept or synced");
         assert_eq!(armor_stat(&[head("tconstruct:helmet")], "tconstruct:jump_boost"), 0.0, "a plain piece claims nothing");

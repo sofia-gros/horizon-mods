@@ -854,15 +854,18 @@ mod tests {
     fn the_enderference_gate_opens_for_the_mark_the_effect_and_other_kinds() {
         // Each of the original's three openings runs the hooks: the projectile carries the mark, the
         // enderman carries the effect, or the target is no enderman at all; a block hit has no target
-        // to gate on, so its hooks run too.
-        for (dimension, entity, kind, effects, mark) in [
-            ("test:endergate-mark", Some(9), "minecraft:enderman", Vec::new(), true),
-            ("test:endergate-effect", Some(9), "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], false),
-            ("test:endergate-zombie", Some(9), "minecraft:zombie", Vec::new(), false),
-            ("test:endergate-block", None, "", Vec::new(), false),
+        // to gate on, so its hooks run too. The effect case's hit is answered by the arrow
+        // reimplementation instead of the game's own hit (see
+        // `a_bound_arrow_is_reimplemented_after_its_hit_hooks`), so it returns false while its
+        // hooks still ran.
+        for (dimension, entity, kind, effects, mark, lands) in [
+            ("test:endergate-mark", Some(9), "minecraft:enderman", Vec::new(), true, true),
+            ("test:endergate-effect", Some(9), "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], false, false),
+            ("test:endergate-zombie", Some(9), "minecraft:zombie", Vec::new(), false, true),
+            ("test:endergate-block", None, "", Vec::new(), false, true),
         ] {
             let hit = gated_hit(dimension, entity, kind, effects, mark);
-            assert!(on_impact(&hit), "{dimension}: the hit itself always lands");
+            assert_eq!(on_impact(&hit), lands, "{dimension}: the hit lands as the game's own, except where the reimplementation answers it");
             assert_eq!(queued_attractions(dimension).len(), 1, "{dimension}: the hit hooks ran");
         }
     }

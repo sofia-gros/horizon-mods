@@ -700,6 +700,51 @@ mod tests {
 
     #[test]
     fn the_result_slot_follows_the_preview_and_unloaded_registries_craft_nothing() {
+        // The registries are process-global, and an earlier test's real reload leaves them
+        // loaded (station_dispatch's, and reload_tests' before it), which would make
+        // with_context assemble: unload the three gates this test reads, and put them back
+        // when the test ends, even if an assertion panics.
+        struct Unloaded {
+            materials_loaded: bool,
+            modifiers_loaded: Option<bool>,
+            tool_data: std::collections::BTreeMap<Identifier, crate::tool_definitions::Data>,
+        }
+        impl Drop for Unloaded {
+            fn drop(&mut self) {
+                if let Ok(mut materials) = crate::common::register().write() {
+                    materials.server_loaded = self.materials_loaded;
+                }
+                if let Some(loaded) = self.modifiers_loaded {
+                    if let Some(modifiers) = crate::common::server_modifiers() {
+                        if let Ok(mut modifiers) = modifiers.write() {
+                            modifiers.definitions_loaded = loaded;
+                        }
+                    }
+                }
+                if let Ok(mut definitions) = crate::tool_definitions::register().write() {
+                    definitions.data = std::mem::take(&mut self.tool_data);
+                }
+            }
+        }
+        let _unloaded = {
+            let materials_loaded = {
+                let mut materials = crate::common::register().write().expect("materials lock poisoned");
+                let loaded = materials.server_loaded;
+                materials.server_loaded = false;
+                loaded
+            };
+            let modifiers_loaded = crate::common::server_modifiers().map(|modifiers| {
+                let mut modifiers = modifiers.write().expect("modifiers lock poisoned");
+                let loaded = modifiers.definitions_loaded;
+                modifiers.definitions_loaded = false;
+                loaded
+            });
+            let tool_data = {
+                let mut definitions = crate::tool_definitions::register().write().expect("tool definitions lock poisoned");
+                std::mem::take(&mut definitions.data)
+            };
+            Unloaded { materials_loaded, modifiers_loaded, tool_data }
+        };
         // With no registries loaded the context is absent: nothing previews, nothing changes.
         let mut items: Vec<Option<ItemSlot>> = vec![None; 6];
         assert!(!refresh_result(&mut items, 4));
