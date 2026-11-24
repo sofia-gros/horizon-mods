@@ -1,7 +1,7 @@
 {
   "schema": 6,
   "horizon_revision": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
-  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics.",
+  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics. One further reviewed attachment, pluto-damage-dragon, observes dragon damage for the damage-event reach; it creates, stores and ticks no clouds.",
   "sources": {
     "crates/horizon-client/src/game/potions.rs": "69328359c5df8e6dbff9fd76979d56b94f07b8c5789d946f28f670428157abd7",
     "crates/horizon-client/src/game/dragon.rs": "bd1ec0e7e76701f31e4080b380b6d58a4aee887cf7b50d7188b1744dbe627bc6",
@@ -33,6 +33,22 @@
     "cancellable": false,
     "bindings": [{"name": "game", "ty": "&mut crate::game::Game<'_>", "value": "&mut *self"}]
   },
+  "permitted_hooks": [
+    {
+      "mod_id": "pluto_lib",
+      "injection_id": "pluto-damage-dragon",
+      "file": "crates/horizon-client/src/game/dragon.rs",
+      "target": "horizon_client::game::dragon::Dragon::hurt_health",
+      "node": [46, 12],
+      "function_fingerprint": "700d85c4ebd2df453a3610a62ce72ed10ff403a44e3cff820f0095bdbb2d12ed",
+      "kind": "HEAD",
+      "priority": 0,
+      "cancellable": false,
+      "bindings": [{"name": "dragon", "ty": "&Dragon", "value": "&*self"}],
+      "helper_source": "pluto-damage-dragon.rs",
+      "helper_sha256": "a4fdf2a2fb05b8e0a6323e7f2597bc1388437401a0152c05c60a1c2cda827856"
+    }
+  ],
   "module_source": "pluto-contact-sound.rs",
   "module_sha256": "44b79d3a9b2cf0d92e3f9cfff1905a3eda2caa07dcf00f6075f593d4bfd7967f",
   "hook_source": "pluto-contact-sound-head.rs",
