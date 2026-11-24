@@ -17,15 +17,16 @@
     "pluto-entity-particle-host-event": "pluto-entity-particle-event.rs",
     "pluto-armor-worn-layers": "pluto-armor-worn-layers.rs",
     "pluto-armor-stand-worn-layers": "pluto-armor-worn-layers.rs",
-    "pluto-block-entity-container-reach": "pluto-container-reach.rs"
+    "pluto-block-entity-container-reach": "pluto-container-reach.rs",
+    "pluto-item-menu-open": "pluto-item-menu-open.rs"
   },
   "direct_attachments": [
     {"id":"pluto-block-entity-cache-generation","file":"crates/horizon-client/src/game/native_block_entity_draw.rs","before":"f2ba152dde79b3ee0610c179eee9c7dfa88974bfda492a9721fa78b1791a66e7","after":"cde2246d40e89509b11301843ca5f3df560d5f046e5b1b711e939c7260dbc206"},
     {"id":"pluto-living-drop-state","file":"crates/horizon-client/src/game/combat.rs","before":"2d7a2a593644ea96f61878f9c1ab1d3eb1c4e61961ce4c31d3822c90d95f4ae0","after":"3dbf30de77ccca585a8b4055ac8e6debda1fc379888c1086c252609118ed6699"},
     {"id":"pluto-item-prototypes","file":"crates/horizon-items/src/items.rs","before":"d9c283ac47a8ed7689e0b9ae72d7d20f872c3d8bd0d7515b47d12d8120d7c7aa","after":"85a8159f18a8596642f31b3a4a830b8eba586ead5d3f068b8b77e780e63d1132","helper_sha256":"bc2802b9b53aa8e52a18da63d5656216671bcb7a479b6616107d454c84f4e392"},
-    {"id":"pluto-menu-actions","file":"crates/horizon-client/src/menu.rs","before":"aa6d55c0d5dc90ad17ae361cf8547227ab675e98cbcb56f1aea3bea65657b9ec","after":"29b1672224f6d58a5b4c2966a258e7f74776f2d57c660ad2289b33ef7596c6fa","helper_sha256":"dca6e2fb15d2ede422474819179c6239b695ba0d5026630497f69f7de77afdf2"},
-    {"id":"pluto-menu-actions-local","file":"crates/horizon-client/src/game/menu_clicks.rs","before":"48d2e5ebd0cfe3e7186dd1c44edde127c19ee3e31c57f75fd55fd63eeaf5fb16","after":"2402a3ebb6ac563f8943eb4f5dc49194f63c9258668a764df3bb280b4f76cbb5","helper_sha256":"dca6e2fb15d2ede422474819179c6239b695ba0d5026630497f69f7de77afdf2"},
-    {"id":"pluto-menu-actions-guest","file":"crates/horizon-client/src/game/lan_crafting.rs","before":"2de83cef1caa01154391170e390a41093bd63ccdf78d06056154b1c1924477a9","after":"402f7968c0adcb6453860ab1c4edf16887856cb837b324742c790e95ae184904","helper_sha256":"dca6e2fb15d2ede422474819179c6239b695ba0d5026630497f69f7de77afdf2"},
+    {"id":"pluto-menu-actions","file":"crates/horizon-client/src/menu.rs","before":"aa6d55c0d5dc90ad17ae361cf8547227ab675e98cbcb56f1aea3bea65657b9ec","after":"c6075bc4f6be14d7f3bae7136ad1942da01aac5faec2ad5841ee0e21c4d5f7a8","helper_sha256":"4c570ebc14c185247a8745ddc6012bdacd2c474043395e29f862ed3f621974aa"},
+    {"id":"pluto-menu-actions-local","file":"crates/horizon-client/src/game/menu_clicks.rs","before":"48d2e5ebd0cfe3e7186dd1c44edde127c19ee3e31c57f75fd55fd63eeaf5fb16","after":"bd3ace9bba558090d90b36471e12a8c850a9cdb5bd66b3d7f9af85bd0d3831fa","helper_sha256":"4c570ebc14c185247a8745ddc6012bdacd2c474043395e29f862ed3f621974aa"},
+    {"id":"pluto-menu-actions-guest","file":"crates/horizon-client/src/game/lan_crafting.rs","before":"2de83cef1caa01154391170e390a41093bd63ccdf78d06056154b1c1924477a9","after":"7afac78a1556942f8cae9b21901e1556a0fd38b664c0860be0fda01163733517","helper_sha256":"4c570ebc14c185247a8745ddc6012bdacd2c474043395e29f862ed3f621974aa"},
     {"id":"pluto-item-after-fall","file":"crates/horizon-client/src/entities.rs","before":"adc93c608a76dea972366c28419a9095e9dbe9b03ec516e56a46e653710ad819","after":"adc486d9c4da6a58b549fe7fe23bd946f67ee15a00d61483b16b9c608bfab12b","helper_sha256":"5619126ff0a4442016aabd861188fccbbbbdcc75381dc379118db47c3fa3eaa4"},
     {"id":"pluto-mob-after-fall","file":"crates/horizon-client/src/mobs/living.rs","before":"9e45de46bba2cfc099c11b8eab7890aeb25e28430aa2ccad56107d140d3a315a","after":"e0bc82608716a04ded92aa5e8ca50cbcab334ba6b5017e43328d5ab0c0f4c0d5","helper_sha256":"3b4d7c15e6c72a24a09f83fa328d17ab0e9a7a292229e5322af7b0c884154ea2"},
     {"id":"pluto-block-inside-motion","file":"crates/horizon-client/src/motion.rs","before":"eb2b80f88fd8a3438ab49db171ef6da1aa2d5fa3814d828ff7c11c99cd3ab976","after":"c78a4535ee34cf056dcd6c87193a4c0ef8b4fcb2a7fa5c57a46f65b6b8dacf8d","helper_sha256":"c723828b7695728b7d043753ac61f98f11f572d7152bcf8061c50a5decd7b802"},
@@ -36,7 +37,8 @@
     {"id":"pluto-entity-particle-host-event","file":"crates/horizon-client/src/game/creatures.rs","before":"e276aab6cdbc245c8840a3b43dfb966dd1b1e69707f39dd1c2fd1442d917358e","after":"e2a6a83ce2f210596cc76a9886965f89198a416ea1c3a4673a3bee42ecb4002c","helper_sha256":"6f38cc6ca96a20145ed7147e48410dbae076c23d9941971714c26403795917c1"},
     {"id":"pluto-armor-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a","after":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"},
     {"id":"pluto-armor-stand-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","after":"8e4037a44fd52d1bf1848f32277b4c7ae06743867d906739de0244111603e14a","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"},
-    {"id":"pluto-block-entity-container-reach","file":"crates/horizon-client/src/game/machines/native_items.rs","before":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d","after":"e1dd3344a019f1f230d3faf401c2f083b041300999e4b93f36e7ecf984b37807","helper_sha256":"a2cc74811cb3d7c477c1da235ded1bd68d0b962f2e8535fda00d10d7c7259236"}
+    {"id":"pluto-block-entity-container-reach","file":"crates/horizon-client/src/game/machines/native_items.rs","before":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d","after":"e1dd3344a019f1f230d3faf401c2f083b041300999e4b93f36e7ecf984b37807","helper_sha256":"a2cc74811cb3d7c477c1da235ded1bd68d0b962f2e8535fda00d10d7c7259236"},
+    {"id":"pluto-item-menu-open","file":"crates/horizon-client/src/game/native_menus.rs","before":"e85cf29cb3ca1d7a2d1e1a28374c67738f71e4ca74208eef30e1ab1148958857","after":"538f2f1be3cf0799751b246c5f4e73415d523bc4a5f8fb8741e49b17a4fa169b","helper_sha256":"4b55ed13d239aa8cb63aa1fe36347ea6843745c5fcc43c92098962a25783009a"}
   ],
   "official_source_sha256": {
     "crates/horizon-client/src/game/machines/native_items.rs":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d",
@@ -44,6 +46,7 @@
     "crates/horizon-client/src/menu.rs": "aa6d55c0d5dc90ad17ae361cf8547227ab675e98cbcb56f1aea3bea65657b9ec",
     "crates/horizon-client/src/game/menu_clicks.rs": "48d2e5ebd0cfe3e7186dd1c44edde127c19ee3e31c57f75fd55fd63eeaf5fb16",
     "crates/horizon-client/src/game/lan_crafting.rs": "2de83cef1caa01154391170e390a41093bd63ccdf78d06056154b1c1924477a9",
+    "crates/horizon-client/src/game/native_menus.rs": "e85cf29cb3ca1d7a2d1e1a28374c67738f71e4ca74208eef30e1ab1148958857",
     "crates/horizon-client/src/game/native_block_entity_draw.rs": "f2ba152dde79b3ee0610c179eee9c7dfa88974bfda492a9721fa78b1791a66e7",
     "crates/horizon-client/src/game/combat.rs": "2d7a2a593644ea96f61878f9c1ab1d3eb1c4e61961ce4c31d3822c90d95f4ae0",
     "crates/horizon-items/src/items.rs": "d9c283ac47a8ed7689e0b9ae72d7d20f872c3d8bd0d7515b47d12d8120d7c7aa",
@@ -95,7 +98,7 @@
       "name": "pluto_item_behavior_access",
       "visibility": "pub",
       "source_file": "pluto-item-behavior-access.rs",
-      "source_sha256": "9fe009874dd2252de201997f054e8e3f391243f8d61ec07174e52aef6bd4db0e"
+      "source_sha256": "313b9b3d03c6dd21172b865274c2999b509243c0f67e14ff8829efe0b9856fd4"
     },
     {
       "module_id": "pluto-entity-type-access",
@@ -207,7 +210,7 @@
       "name": "pluto_block_level",
       "visibility": "pub(crate)",
       "source_file": "pluto-block-level.rs",
-      "source_sha256": "f3bd19dbee68af94b5a22d8a3d5811921e81d25bfb24d84d834d09a23cdc1d95"
+      "source_sha256": "4af0676986b1a6bb3c614724440d4856a9d519e411edb637a1f1aa1b70c3220d"
     },
     {
       "module_id": "pluto-structure-generation",
@@ -295,7 +298,7 @@
       "name": "pluto_block_access",
       "visibility": "pub",
       "source_file": "pluto-block-access.rs",
-      "source_sha256": "4596aa5820fdd90864744f4ccf4e1bad21f06e5c2e3c93fc76d197ffd990250c"
+      "source_sha256": "c7f9af0fe2d87c78c72e742b1c83ceff05d0e4664460486ef1c14b0f30681963"
     },
     {
       "module_id": "pluto-block",
@@ -303,7 +306,7 @@
       "name": "pluto_block",
       "visibility": "pub",
       "source_file": "pluto-block.rs",
-      "source_sha256": "2c75e04a9cc395be41a1ff315b452f3a12f27394526e654ebcaa8b82797af3ff"
+      "source_sha256": "1ce8b0253ae064c6740e25e1d2bdcdab11afee33a3fe7cf0292884fbc0664781"
     },
     {
       "module_id": "pluto-tree-level",

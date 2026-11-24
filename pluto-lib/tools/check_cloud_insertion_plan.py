@@ -56,13 +56,35 @@ def check_native(plan, workspace):
         if digest(raw) != meta[source_key + '_sha256'] or entry.get(field, '').encode() != raw:
             raise ValueError('Cloud-adjacent contact source differs')
         permitted[section] = entry
+    # Further reviewed attachments into preserved files (the contract's
+    # permitted_hooks): when present, one must match its reviewed identity and
+    # packaged helper bytes exactly, and it is then exempt from the ban below.
+    # Absence is not an error: such a hook only observes the boundary; it is
+    # not part of what this guard preserves.
+    permitted_hooks = set()
+    for expected in meta.get('permitted_hooks', []):
+        selected = [entry for entry in plan.get('injections', [])
+                    if entry.get('injection_id') == expected['injection_id']]
+        if len(selected) > 1:
+            raise ValueError('Duplicated reviewed permitted cloud-boundary hook')
+        if not selected:
+            continue
+        entry = selected[0]
+        contract = {k: v for k, v in expected.items()
+                    if k not in ('helper_source', 'helper_sha256')}
+        if any(entry.get(k) != value for k, value in contract.items()):
+            raise ValueError('Permitted cloud-boundary hook identity/phase differs')
+        raw = (ROOT / 'mod' / expected['helper_source']).read_bytes()
+        if digest(raw) != expected['helper_sha256'] or entry.get('helper_source', '').encode() != raw:
+            raise ValueError('Permitted cloud-boundary hook source differs')
+        permitted_hooks.add(id(entry))
     forbidden_names = {entry['name'] for entry in metadata()['modules']}
     prefixes = tuple(meta['protected_prefixes'])
     for section in ('modules', 'injections', 'states'):
         for entry in plan.get(section, []):
             if any(c.get('file') in meta['sources'] for c in entry.get('constructors', [])):
                 raise ValueError('State constructor changes a preserved native cloud source')
-            if entry is permitted.get(section):
+            if entry is permitted.get(section) or id(entry) in permitted_hooks:
                 continue
             if (entry.get('mod_id') == MOD_ID or entry.get('name') in forbidden_names
                     or entry.get('file') in meta['sources']

@@ -38,6 +38,30 @@ UNATTACHED_FILES = {
     'crates/horizon-client/src/game/explosion.rs',
     'crates/horizon-client/src/game/item_durability.rs',
 }
+# Reviewed exceptions to the file-level ban in check_native_order: a HEAD hook
+# anchored in a preserved file whose target is not an equipment function and
+# which the pinned damage callers cannot bypass. Pinned by identity, target,
+# function fingerprint and packaged helper bytes; any drift re-trips the guard.
+PERMITTED_ATTACHMENTS = {
+    'pluto-hanging-frame-explosion-return': {
+        'target': "horizon_client::game::explosion::Game<'_>::explosion_breaks_decorations",
+        'function_fingerprint': '46df438c823f03a83f64360159fb2415d27995fc1a80158b8c09d3122cde29f1',
+        'helper': 'pluto-hanging-frame-explosion-return.rs',
+        'helper_sha256': '4ddfc734dde11454e93679c551478c19d09759f75979e3c2aeabe37708b3805b',
+    },
+}
+
+
+def permitted_attachment(entry):
+    expected = PERMITTED_ATTACHMENTS.get(entry.get('injection_id'))
+    if expected is None:
+        return False
+    if (entry.get('target') != expected['target']
+            or entry.get('function_fingerprint') != expected['function_fingerprint']):
+        return False
+    raw = (ROOT / 'mod' / expected['helper']).read_bytes()
+    return (hashlib.sha256(raw).hexdigest() == expected['helper_sha256']
+            and entry.get('helper_source', '').encode() == raw)
 
 
 def native_bundle(plan):
@@ -59,7 +83,8 @@ def check_native_order(plan, entries):
                 raise ValueError('native equipment cannot compose the retired marker bundle')
             if (entry.get('file') in UNATTACHED_FILES
                     or entry.get('target', '').rsplit('::', 1)[-1] in methods):
-                raise ValueError('native equipment boundary must remain unattached')
+                if not permitted_attachment(entry):
+                    raise ValueError('native equipment boundary must remain unattached')
     # Unrelated creature spawn/drop/particle attachments are checked by their
     # own mandatory guards, not certified as equipment behavior here.
 
