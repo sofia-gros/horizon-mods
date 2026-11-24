@@ -107,6 +107,13 @@ pub(crate) fn register() {
         let dealt = hit.target_health.map_or(amount, |health| amount.min(health));
         if dealt <= 0.0 { return; }
         let stack = attack.stack();
+        // EnderportingModifier's monster-held form: a monster's melee hit with an enderporting
+        // weapon trades the attacker and the victim (the wear by 2 has no surface — see
+        // enderporting_hook). Only a held weapon swaps; the unarmed form's chest piece is no
+        // weapon.
+        if matches!(&attack, Attack::Weapon(_)) {
+            crate::enderporting_hook::monster_swap(hit);
+        }
         let entities = common::entity_type_snapshot();
         let target = Identifier::parse(&hit.damage.kind).ok();
         let attacker_kind = Identifier::parse(&hit.attacker_kind).ok();

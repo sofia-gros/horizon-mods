@@ -27,7 +27,10 @@ fn profile(stack: &StackData) -> Option<FishingProfile> {
         }
         // The caster's state tags and the entities a conditional stat could look at are not known to
         // the use event, so a conditional stat that needs them does not apply (the edible reading
-        // makes the same choice).
+        // makes the same choice). The dwarven velocity arm is one of them: it reads the holder's
+        // height, which this event does not carry, so a dwarven rod's velocity reads the stored
+        // value here — the registry's profile fn takes only the stack, and passing the caster
+        // through it would be a PlutoLib API change, declined for this lane.
         let no_state = |_: &Identifier| false;
         let no_entities = entity_facts::Entities { attacker: None, target: None };
         let stat = |stat: Stat| tool_stack::conditional_stat(nbt, env, stat, &no_state, &no_entities);

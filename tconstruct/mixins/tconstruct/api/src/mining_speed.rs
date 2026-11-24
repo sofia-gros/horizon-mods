@@ -136,6 +136,16 @@ pub(crate) struct BlockFacts {
     pub build_height: Option<[i32; 2]>,
 }
 
+/// The build range of a dimension, [min, max), for the modules that read the level's max build height
+/// (dwarven) when no dig reported it: the vanilla dimensions' ranges, the overworld's for anything else.
+/// A data pack dimension's range is not known here — the same reduction as the port's crop_max_age table.
+pub(crate) fn build_height_for(dimension: &str) -> [i32; 2] {
+    match dimension {
+        "minecraft:the_nether" | "minecraft:the_end" => [0, 256],
+        _ => [-64, 320],
+    }
+}
+
 /// DwarvenModifier.getBoost: the speed after the depth adjustment, for a dig or a shot at height
 /// `y` in a level whose max build height is `max_build_height`. `bonus` is the per-level bonus at
 /// full depth (the mining bonus for a dig, the velocity bonus for a shot), already scaled by the
@@ -444,6 +454,14 @@ mod tests {
         let read = |value: &Value| Variable::decode_in(value, EntityScope::None).unwrap().unwrap().value(&unreported);
         assert_eq!(read(&json!({"type": "tconstruct:block_light", "fallback": 15.0, "light_layer": "block"})), 15.0);
         assert_eq!(read(&json!({"type": "tconstruct:biome_temperature", "fallback": -0.5})), -0.5);
+    }
+
+    #[test]
+    fn build_height_for_names_the_vanilla_dimensions_ranges() {
+        assert_eq!(build_height_for("minecraft:overworld"), [-64, 320]);
+        assert_eq!(build_height_for("minecraft:the_nether"), [0, 256]);
+        assert_eq!(build_height_for("minecraft:the_end"), [0, 256]);
+        assert_eq!(build_height_for("example:custom"), [-64, 320], "an unknown dimension reads the overworld's range");
     }
 
     #[test]

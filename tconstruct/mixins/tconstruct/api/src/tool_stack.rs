@@ -366,10 +366,17 @@ pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, dama
 /// modules by priority, the modifiers in tool order), clamped to the stat's limits. `holder_in_tag` answers the holder's pseudo state tags
 /// and `entities.attacker` is the holder's state, for the variables that read it. A stat the item does not support is returned as stored.
 pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat_at(nbt, env, stat, holder_in_tag, entities, None)
+}
+
+/// The same, with the build range of the level the holder stands in for the modules that read the level's max build height
+/// (dwarven velocity: a shot's holder is not digging, so no dig reports it and the caller names the dimension's range).
+pub(crate) fn conditional_stat_at(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities, build_height: Option<[i32; 2]>) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut value = self::stat(nbt, stat);
         if !crate::modifier_modules::supports(stat, facts) { return stat.clamp(value); }
-        let view = crate::mining_speed::ToolView::with(nbt, *entities);
+        let mut view = crate::mining_speed::ToolView::with(nbt, *entities);
+        view.facts.build_height = build_height;
         let multiplier = view.multiplier(stat);
         for (entry, modifier) in saved {
             let mut modules: Vec<(i32, &crate::modifier_modules::Module)> = modifier.conditional_stat_modules().collect();
@@ -916,9 +923,11 @@ pub(crate) fn sling_force(nbt: &NbtCompound, env: &Environment, entities: &crate
 }
 
 /// The power a sling spends (SlingModule.getPower): half the tool's conditional
-/// projectile damage times its conditional velocity, for the holder `entities`.
-pub(crate) fn sling_power(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
-    conditional_stat(nbt, env, Stat::ProjectileDamage, &|_| false, entities) / 2.0 * conditional_stat(nbt, env, Stat::Velocity, &|_| false, entities)
+/// projectile damage times its conditional velocity, for the holder `entities`. `build_height` is the
+/// build range of the level the holder stands in, for the dwarven velocity half (a shot's holder is not
+/// digging, so no dig reports it); None leaves the dwarven velocity arm at its stored value.
+pub(crate) fn sling_power(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, build_height: Option<[i32; 2]>) -> f32 {
+    conditional_stat_at(nbt, env, Stat::ProjectileDamage, &|_| false, entities, build_height) / 2.0 * conditional_stat_at(nbt, env, Stat::Velocity, &|_| false, entities, build_height)
 }
 
 /// The draw speed a sling charges by (the conditional stat in SlingModule.getDrawtime).

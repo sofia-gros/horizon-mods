@@ -110,7 +110,13 @@ fn shoot(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompoun
     let world = release.world();
     let entities = crate::entity_facts::Entities::default();
     let power = tool_stack::conditional_stat(nbt, env, Stat::ProjectileDamage, &|_| false, &entities);
-    let velocity = f64::from(tool_stack::conditional_stat(nbt, env, Stat::Velocity, &|_| false, &entities));
+    // The holder's height and the level's build range, for the dwarven velocity half (a shot's
+    // holder is not digging, so no dig reports them); the velocity alone reads the holder, so the
+    // power above keeps the holder-less entities it always had.
+    let holder = pluto_lib::EntityState { y: Some(release.position[1]), ..Default::default() };
+    let velocity_entities = crate::entity_facts::Entities { attacker: Some(&holder), target: None };
+    let build_height = Some(crate::mining_speed::build_height_for(&release.dimension));
+    let velocity = f64::from(tool_stack::conditional_stat_at(nbt, env, Stat::Velocity, &|_| false, &velocity_entities, build_height));
     let inaccuracy = f64::from(tool_stack::inaccuracy(nbt, env, &entities)) / 16.0;
     // The look scaled by two, jittered on x and z only, the whole scaled by the velocity.
     let motion = [
