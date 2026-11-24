@@ -1086,18 +1086,6 @@ mod tests {
             .broadcast_item_break(super::entity_events_v1::StackSlot::MainHand, &stack)));
         assert!(!held.swing_hand(super::events_interaction_v0::Hand::Main), "outside a callback nothing swings");
     }
-}
-        use std::sync::Mutex;
-        static SEEN: Mutex<Vec<(i32, bool, Option<String>)>> = Mutex::new(Vec::new());
-        PlayerInventoryEvents::TICK.register(|tick| {
-            SEEN.lock().unwrap().push((tick.slot, tick.selected, tick.stack.as_ref().map(|stack| stack.item.clone())));
-        });
-        assert!(inventory_tick_heard());
-        inventory_tick(&InventoryTick { player: None, slot: 3, selected: true, stack: None });
-        inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, enchantments: std::collections::BTreeMap::new() }) });
-        let seen = SEEN.lock().unwrap().clone();
-        assert_eq!(seen, vec![(3, true, None), (100, false, Some("minecraft:torch".into()))]);
-    }
 
     #[test]
     fn use_ends_are_recorded_by_the_memory_game_and_unheard_outside_a_scope() {
