@@ -1131,7 +1131,7 @@ assert_eq!(FallOutcome::Cancel, FallOutcome::Cancel);
 
 ### `EquipmentDropChanceContext`
 
-The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only, and `looting` is the killing blow's Looting level. The roll a class's own `dropCustomDeathLoot` makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is rolled even when the recorded chance is exactly 0: with looting, a 0-chance slot still drops at `looting` percent.
+The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only, and `looting` is the killing blow's Looting level. A LAN guest killer's level is read from the guest's own hand, as the host resolved it for the kill. The roll a class's own `dropCustomDeathLoot` makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is rolled even when the recorded chance is exactly 0: with looting, a 0-chance slot still drops at `looting` percent.
 
 ```rust
 use pluto_lib::{EquipmentDropChanceContext, Identifier};
