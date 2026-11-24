@@ -69,7 +69,7 @@
       "visibility": "pub",
       "fingerprint": "c2d2acf483670cda14df39e0da0d730516e500db691cba1866d30be082f729aa",
       "source_file": "pluto-crafting-match.rs",
-      "source_sha256": "d01e35dddcc1dfbea3a070c5b7a3be25cf126e9c839087883f96ce5b2ac67e4c",
+      "source_sha256": "2e3255ae488acfca30e710b6fd20580992c5d7f440745456410f15ad32547ad4",
       "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e"
     },
     {
@@ -99,7 +99,7 @@
       "injection_id": "pluto-crafting-match-veto",
       "helper": "pluto-crafting-match-veto-head.rs",
       "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e",
-      "helper_sha256": "dd4d50ad4117dca9a5e4523a783ff72d644c28813031b56f504fce9ec6f9c27e"
+      "helper_sha256": "a4e5a283622deccad6e2256bfe7627102d5e2bd91048c90964438831f797feec"
     },
     {
       "target": "horizon_client_lib::crafting::Recipes::find_with",

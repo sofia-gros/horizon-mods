@@ -1,5 +1,5 @@
 // Read-only admission and provider assembly before the native matching/assembly body.
-use super::{Context, Ingredient as NativeIngredient, Input, ItemStack, Recipe, Recipes, Shape};
+use super::{Context, Ingredient as NativeIngredient, Input, ItemStack, Recipe, Recipes, Shape, Special};
 use crate::pluto_component_view::ItemFacts;
 use horizon_world::nbt::Tag;
 use pluto_inventory_api::{
@@ -51,6 +51,10 @@ impl Ingredient for NativeIngredient {
 
 pub enum Verdict {
     Native,
+    /// A special-recipe marker entry produces no result for this
+    /// grid: its provider does not answer it, or a native entry
+    /// matches the grid and stands instead of the marker.
+    Unmatched,
     Denied,
     Assembled(ItemStack),
 }
@@ -75,9 +79,6 @@ fn with_custom_data(stack: ItemStack, custom_data: ComponentValue) -> ItemStack 
 }
 
 pub fn evaluate(ctx: &Context, input: &Input<'_>, recipe: &Recipe) -> Verdict {
-    if !matching::has_providers() && !assembly::has_providers() {
-        return Verdict::Native;
-    }
     // The recipe's loaded id: the tables store it beside the recipe, and
     // every caller reaches this function with the recipe borrowed from that
     // table, so the entry whose recipe is this very one names it. A recipe
@@ -89,6 +90,19 @@ pub fn evaluate(ctx: &Context, input: &Input<'_>, recipe: &Recipe) -> Verdict {
         .iter()
         .find(|(_, stored)| std::ptr::eq(stored, recipe))
         .map(|(name, _)| name.as_str());
+    // Special-recipe providers answer through marker entries planted
+    // in the table under their own ids (see `evaluate_marker`); a
+    // marker resolves here, before the admission/assembly flow, whose
+    // Form::Special handling is the vanilla repair path a marker must
+    // never reach.
+    if special::has_providers() {
+        if let Some(verdict) = evaluate_marker(ctx, input, recipe, id) {
+            return verdict;
+        }
+    }
+    if !matching::has_providers() && !assembly::has_providers() {
+        return Verdict::Native;
+    }
     let (form, ingredients, template): (_, Option<Vec<Option<&dyn Ingredient>>>, _) = match recipe {
         Recipe::Shaped {
             width,
@@ -186,25 +200,56 @@ pub fn evaluate(ctx: &Context, input: &Input<'_>, recipe: &Recipe) -> Verdict {
     Verdict::Native
 }
 
-/// The find_with HEAD fill for special recipes: the native scan runs
-/// first here (a native match always stands, so the caller continues into
-/// the real body and recomputes it), and only a native miss reaches the
-/// providers. None continues natively; Some(result) breaks with the
-/// providers' answer, itself None when no provider matches.
-pub fn evaluate_special(
-    recipes: &Recipes,
-    grid: &[Option<ItemStack>],
-    size: usize,
-    map_scale: &dyn Fn(i32) -> Option<u8>,
-) -> Option<Option<(&str, ItemStack)>> {
-    if !special::has_providers() {
+/// The special-recipe seam: the answer for a marker entry, or None
+/// when `recipe` is not one.
+///
+/// A marker is a table entry planted for one registered provider:
+/// `Recipe::Special(Special::RepairItem)` under the provider's own
+/// id, contributed as a data-pack recipe file (and mirrored into
+/// server-synced tables on receipt), so the host's own scan forms
+/// the result pair with the provider's identity. The recipe book
+/// assigns special entries no display number, so a marker shifts no
+/// numbering anywhere. This replaces the retired find_with HEAD,
+/// whose borrowed `(&str, ItemStack)` result no cancellable helper
+/// signature can spell: the weaver requires the host's exact
+/// spelling, lifetimes included, and rustc elision cannot produce
+/// it from the helper's borrowed inputs.
+///
+/// A marker always resolves here, never through the native flow:
+/// - when a native (non-marker) entry matches the grid, the marker
+///   is Unmatched and the scan goes on to that entry: a native match
+///   always stands, wherever the marker sorts in the table. The
+///   replay skips marker entries, so it never re-enters this path.
+/// - otherwise the provider registered under the entry's id is
+///   asked: its stack is Assembled, no stack is Unmatched.
+///
+/// A genuine vanilla or data-pack repair entry — the same payload
+/// under a name no provider registered — is not a marker and
+/// returns None, so vanilla item repair keeps its native behaviour.
+fn evaluate_marker(
+    ctx: &Context,
+    input: &Input<'_>,
+    recipe: &Recipe,
+    id: Option<&str>,
+) -> Option<Verdict> {
+    if !matches!(recipe, Recipe::Special(Special::RepairItem)) {
         return None;
     }
-    let input = Input::of(grid, size)?;
-    let ctx = Context { recipes, map_scale };
-    for (_, recipe) in &recipes.crafting {
-        if Recipes::assemble_if_matches(&ctx, &input, recipe).is_some() {
-            return None;
+    let qualified = super::qualified(id?);
+    let providers = special::provider_ids();
+    if !providers.iter().any(|p| *p == qualified.as_str()) {
+        return None;
+    }
+    let is_marker = |name: &str, stored: &Recipe| {
+        matches!(stored, Recipe::Special(Special::RepairItem))
+            && providers.iter().any(|p| *p == super::qualified(name).as_str())
+    };
+    for (name, stored) in &ctx.recipes.crafting {
+        if std::ptr::eq(stored, recipe) || is_marker(name, stored) {
+            continue;
+        }
+        if Recipes::assemble_if_matches(ctx, input, stored).is_some() {
+            return Some(Verdict::Unmatched);
         }
     }
     let captures: Vec<_> = input
@@ -223,8 +268,8 @@ pub fn evaluate_special(
         top: input.top,
         cells: &cells,
     };
-    let Some((name, spec)) = special::evaluate(&facts) else {
-        return Some(None);
+    let Some(spec) = special::evaluate_provider(&qualified, &facts) else {
+        return Some(Verdict::Unmatched);
     };
     let stack = ItemStack {
         item: spec.item.into(),
@@ -236,5 +281,5 @@ pub fn evaluate_special(
         Some(data) => with_custom_data(stack, data),
         None => stack,
     };
-    Some(Some((name, stack)))
+    Some(Verdict::Assembled(stack))
 }

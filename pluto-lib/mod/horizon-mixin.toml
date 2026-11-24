@@ -2459,15 +2459,26 @@ cancellable = true
 helper = "pluto-crafting-match-veto-head.rs"
 bindings = [{ name = "ctx", ty = "&Context<'_>", value = "ctx" }, { name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
 
-# special-recipe providers; a native match is returned unchanged. Reviewed
-# with the crafting-match pair (crafting-match-boundaries.json).
+# special-recipe providers: each registered provider id is planted as a
+# marker recipe entry (the data-pack file contribution below, plus the
+# synced-table mirror), and the crafting-match veto resolves a marker
+# through its provider. There is deliberately no injection on
+# Recipes::find_with: its borrowed (&str, ItemStack) result cannot be
+# spelled by a cancellable helper. Reviewed with the crafting-match
+# pair (crafting-match-boundaries.json).
 [[injection]]
-id = "pluto-crafting-special"
-target = "horizon_client_lib::crafting::Recipes::find_with"
+id = "pluto-crafting-special-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
 kind = "HEAD"
-cancellable = true
-helper = "pluto-crafting-special-head.rs"
-bindings = [{ name = "recipes", ty = "&Recipes", value = "self" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }, { name = "map_scale", ty = "&dyn Fn(i32) -> Option<u8>", value = "map_scale" }]
+helper = "pluto-crafting-special-files-head.rs"
+bindings = [{ name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "files" }]
+
+[[injection]]
+id = "pluto-crafting-special-synced"
+target = "horizon_client::game::native_recipes::Game<'_>::recipes_received_now"
+kind = "HEAD"
+helper = "pluto-crafting-special-synced-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
 
 # Queued custom advancement events drain into the native sink each tick.
 [[injection]]
