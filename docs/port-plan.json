@@ -20,6 +20,7 @@
     "api/src/part_builder_recipes.rs",
     "api/src/tool_predicate.rs",
     "api/src/modifier_modules.rs",
+    "api/src/mob_effect_ticks.rs",
     "api/src/mob_equipment.rs",
     "api/src/modifiers.rs",
     "api/src/enchantment_map.rs",

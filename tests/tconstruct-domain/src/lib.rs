@@ -223,6 +223,8 @@ mod recipe_conditions;
 mod recipe_removal;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/monster_melee.rs"]
 mod monster_melee;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_effect_ticks.rs"]
+mod mob_effect_ticks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/mob_equipment.rs"]
 mod mob_equipment;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/dragon_scales.rs"]

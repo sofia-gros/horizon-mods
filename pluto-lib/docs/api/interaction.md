@@ -894,6 +894,95 @@ with_entities(&mut ops, || {
 });
 ```
 
+### `EntityReach::effects_of`
+
+`fn effects_of(id: u64) -> Vec<(String, i32, i32)>`. The mob effects entity `id` carries, as (effect id, amplifier, ticks left); empty outside a scope, when it carries none, or when the host cannot say.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.effect_lists.push((2, vec![("tconstruct:magnetic".to_owned(), 0, 120)]));
+assert!(EntityReach::effects_of(2).is_empty(), "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::effects_of(2), vec![("tconstruct:magnetic".to_owned(), 0, 120)]);
+    assert!(EntityReach::effects_of(99).is_empty(), "no such entity");
+});
+```
+
+### `EntityReach::velocity_of`
+
+`fn velocity_of(id: u64) -> Option<[f64; 3]>`. The velocity entity `id` moves with (`Entity.getDeltaMovement`); `None` outside a scope or when the host cannot reach it. A player's is the motion their client last reported.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.velocities.push((2, [0.0, 0.3, 0.0]));
+assert_eq!(EntityReach::velocity_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::velocity_of(2), Some([0.0, 0.3, 0.0]));
+    assert_eq!(EntityReach::velocity_of(99), None, "no such entity");
+});
+```
+
+### `EntityReach::bounds_of`
+
+`fn bounds_of(id: u64) -> Option<[[f64; 3]; 2]>`. The two corners of entity `id`'s bounding box (min, max), as `Entity.getBoundingBox` gives them; `None` outside a scope or when the host cannot reach it.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.bounding_boxes.push((2, [[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]]));
+assert_eq!(EntityReach::bounds_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::bounds_of(2), Some([[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]]));
+    assert_eq!(EntityReach::bounds_of(99), None, "no such entity");
+});
+```
+
+### `EntityReach::set_velocity`
+
+`fn set_velocity(id: u64, velocity: [f64; 3]) -> bool`. Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced, not added. A player is not set (its client moves it); an item entity or a mob is. False outside a scope, for a player, or when the host cannot.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.velocities.push((1, [0.0, -0.1, 0.0]));
+assert!(!EntityReach::set_velocity(1, [0.1, 0.2, 0.3]), "outside a scope");
+with_entities(&mut ops, || {
+    assert!(EntityReach::set_velocity(1, [0.1, 0.2, 0.3]));
+    assert_eq!(EntityReach::velocity_of(1), Some([0.1, 0.2, 0.3]));
+    assert!(!EntityReach::set_velocity(99, [0.0, 0.0, 0.0]), "no such entity");
+});
+```
+
 ### `EntityReach::teleport`
 
 `fn teleport(id: u64, pos: [f64; 3]) -> bool`. Moves entity `id` to `pos`; a mob's navigation stops and its fall distance resets, as the game's own teleport does. False outside a scope, for a player, or when the host cannot move it.

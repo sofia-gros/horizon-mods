@@ -2204,6 +2204,43 @@ impl EntityOps for HostEntities {
             .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)).map(|player| player.position)
     }
 
+    fn effects_of(&mut self, id: u64) -> Vec<(String, i32, i32)> {
+        let host = self.host.get();
+        // A mob's effects come as (id, ticks left, amplifier); the reach reports them as (id,
+        // amplifier, ticks left), the order a tick report uses.
+        if let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) {
+            if let Some(effects) = host.entity_effects(entity) {
+                return effects.into_iter().map(|(effect, ticks_left, amplifier)| (effect, amplifier, ticks_left)).collect();
+            }
+        }
+        // The host's entity call does not name every player (the owner of a single-player world is
+        // entity id 0 in the player list); their effects are read from the player list instead.
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        let player = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted));
+        player.and_then(|player| host.effects(player.uuid))
+            .map(|effects| effects.into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect())
+            .unwrap_or_default()
+    }
+
+    fn velocity_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        let host = self.host.get();
+        u32::try_from(id).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_velocity(entity))
+    }
+
+    fn bounds_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        let host = self.host.get();
+        u32::try_from(id).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_bounding_box(entity))
+    }
+
+    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
+        // The host sets the motion of an item entity or a mob directly; a player is refused (its
+        // client moves it), and a player is pushed instead.
+        let host = self.host.get();
+        let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) else { return false };
+        host.entity_set_velocity(entity, velocity)
+    }
+
     fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
         let Ok(id) = u32::try_from(id) else { return false };
         let host = self.host.get();
@@ -5022,8 +5059,11 @@ impl Hooks for PlutoHooks {
         };
         let creative = player.game_mode == 1;
         entity_events_v1::remember_aim(player.uuid, player.entity_id, entity_events_v1::PlayerAim { dimension: player.dimension.to_string(), position: player.position, look, creative });
-        if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty())) {
-            let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
+        // The effects are read before the gate: the tick is heard while the player carries a mob
+        // effect, even with no gear, so an effect's per-tick behaviour runs (the original's effects
+        // tick whether or not the bearer holds anything).
+        let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect::<Vec<_>>();
+        if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty()) || !effects.is_empty()) {
             // The light where the player stands, sampled half a block up, the point the original's walk modules read.
             let light_pos = [player.position[0].floor() as i32, (player.position[1] + 0.5).floor() as i32, player.position[2].floor() as i32];
             let (block_light, sky_light) = host.light(light_pos);

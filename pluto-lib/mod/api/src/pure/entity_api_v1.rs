@@ -50,6 +50,30 @@ pub trait EntityOps {
     fn position_of(&mut self, _id: u64) -> Option<[f64; 3]> {
         None
     }
+    /// The mob effects entity `id` carries (its id, amplifier and ticks left, in that order), as the
+    /// effect list of a mob or the effects of a player. Empty when it carries none, or when the host
+    /// cannot say (a host that predates the call answers empty).
+    fn effects_of(&mut self, _id: u64) -> Vec<(String, i32, i32)> {
+        Vec::new()
+    }
+    /// The velocity entity `id` moves with (`Entity.getDeltaMovement`); None when the host cannot
+    /// reach it (a player moves on their client: the host reads the motion their client last
+    /// reported). Hosts that predate the call answer None.
+    fn velocity_of(&mut self, _id: u64) -> Option<[f64; 3]> {
+        None
+    }
+    /// The two corners of entity `id`'s bounding box (min, max), as `Entity.getBoundingBox` gives
+    /// them; None when the host cannot reach it. Hosts that predate the call answer None.
+    fn bounds_of(&mut self, _id: u64) -> Option<[[f64; 3]; 2]> {
+        None
+    }
+    /// Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced,
+    /// not added. A player is not set (its client moves it); an item entity or a mob is. False when
+    /// the host cannot (no such entity, a player, an entity the game does not simulate, or a value
+    /// that is not finite). Hosts that predate the call answer false.
+    fn set_velocity(&mut self, _id: u64, _velocity: [f64; 3]) -> bool {
+        false
+    }
     /// Moves entity `id` to `pos` (`Entity.teleportTo`): a mob's navigation stops and its fall distance
     /// resets, as the game's own teleport does; another entity keeps the way it faces. A player is moved
     /// by the host's own player teleport (the `/tp` path: they leave their vehicle, lose their motion
@@ -215,6 +239,29 @@ impl EntityReach {
         with_current(None, |ops| ops.position_of(id))
     }
 
+    /// The mob effects entity `id` carries (id, amplifier, ticks left); empty outside a scope or when
+    /// it carries none.
+    pub fn effects_of(id: u64) -> Vec<(String, i32, i32)> {
+        with_current(Vec::new(), |ops| ops.effects_of(id))
+    }
+
+    /// The velocity entity `id` moves with; None outside a scope or when the host cannot reach it.
+    pub fn velocity_of(id: u64) -> Option<[f64; 3]> {
+        with_current(None, |ops| ops.velocity_of(id))
+    }
+
+    /// The two corners of entity `id`'s bounding box (min, max); None outside a scope or when the host
+    /// cannot reach it.
+    pub fn bounds_of(id: u64) -> Option<[[f64; 3]; 2]> {
+        with_current(None, |ops| ops.bounds_of(id))
+    }
+
+    /// Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`); false outside a scope
+    /// or when the host cannot.
+    pub fn set_velocity(id: u64, velocity: [f64; 3]) -> bool {
+        with_current(false, |ops| ops.set_velocity(id, velocity))
+    }
+
     /// Moves entity `id` to `pos` (`Entity.teleportTo`); false outside a scope or when the host cannot
     /// by the host's own player teleport (the `/tp` path: they leave their vehicle, lose their motion
     /// and fall, and their client is told), keeping the way they face; a player that call cannot reach is
@@ -321,11 +368,15 @@ pub struct MemoryEntityOps {
     pub ignited_creepers: Vec<u64>,
     /// The players whose spin attack was started, in order.
     pub spun: Vec<u64>,
+    /// The mob effects each entity carries: its id and the (effect id, amplifier, ticks left) list.
+    pub effect_lists: Vec<(u64, Vec<(String, i32, i32)>)>,
+    /// The bounding box of each entity: its id and the (min, max) corners.
+    pub bounding_boxes: Vec<(u64, [[f64; 3]; 2])>,
 }
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), velocities: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new(), spun: Vec::new() }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), velocities: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new(), spun: Vec::new(), effect_lists: Vec::new(), bounding_boxes: Vec::new() }
     }
 }
 
@@ -361,6 +412,29 @@ impl EntityOps for MemoryEntityOps {
 
     fn position_of(&mut self, id: u64) -> Option<[f64; 3]> {
         self.entities.iter().find(|(_, entity)| entity.id == id).map(|(pos, _)| *pos)
+    }
+
+    fn effects_of(&mut self, id: u64) -> Vec<(String, i32, i32)> {
+        self.effect_lists.iter().find(|(held, _)| *held == id).map(|(_, effects)| effects.clone()).unwrap_or_default()
+    }
+
+    fn velocity_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        self.velocities.iter().find(|(held, _)| *held == id).map(|(_, velocity)| *velocity)
+    }
+
+    fn bounds_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        self.bounding_boxes.iter().find(|(held, _)| *held == id).map(|(_, bounds)| *bounds)
+    }
+
+    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
+        if !velocity.iter().all(|v| v.is_finite()) || !self.entities.iter().any(|(_, entity)| entity.id == id) {
+            return false;
+        }
+        match self.velocities.iter_mut().find(|(held, _)| *held == id) {
+            Some((_, held)) => *held = velocity,
+            None => self.velocities.push((id, velocity)),
+        }
+        true
     }
 
     fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
@@ -615,5 +689,43 @@ mod tests {
             assert_eq!(EntityReach::passengers_of(2), vec![3]);
         });
         assert_eq!(ops.mounts, vec![(3, 2)]);
+    }
+
+    #[test]
+    fn effects_velocity_and_bounds_are_read_and_empty_for_the_unknown() {
+        let mut ops = world();
+        ops.effect_lists = vec![(2, vec![("tconstruct:magnetic".to_owned(), 0, 120), ("tconstruct:returning".to_owned(), 1, 1)])];
+        ops.velocities = vec![(2, [0.0, 0.3, 0.0])];
+        ops.bounding_boxes = vec![(2, [[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]])];
+        with_entities(&mut ops, || {
+            assert_eq!(EntityReach::effects_of(2), vec![("tconstruct:magnetic".to_owned(), 0, 120), ("tconstruct:returning".to_owned(), 1, 1)]);
+            assert_eq!(EntityReach::velocity_of(2), Some([0.0, 0.3, 0.0]));
+            assert_eq!(EntityReach::bounds_of(2), Some([[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]]));
+            assert!(EntityReach::effects_of(99).is_empty(), "no such entity");
+            assert_eq!(EntityReach::velocity_of(99), None, "no such entity");
+            assert_eq!(EntityReach::bounds_of(99), None, "no such entity");
+            assert!(EntityReach::effects_of(1).is_empty(), "the item entity carries no effect");
+            assert_eq!(EntityReach::velocity_of(1), None, "no velocity was given for it");
+            assert_eq!(EntityReach::bounds_of(1), None, "no box was given for it");
+        });
+        assert!(EntityReach::effects_of(2).is_empty(), "outside a scope nothing is read");
+        assert_eq!(EntityReach::velocity_of(2), None);
+        assert_eq!(EntityReach::bounds_of(2), None);
+    }
+
+    #[test]
+    fn a_velocity_is_set_for_an_item_and_a_mob_but_not_the_unknown() {
+        let mut ops = world();
+        ops.velocities = vec![(1, [0.0, -0.1, 0.0])];
+        with_entities(&mut ops, || {
+            assert!(EntityReach::set_velocity(1, [0.1, 0.2, 0.3]), "an item entity's motion is set");
+            assert_eq!(EntityReach::velocity_of(1), Some([0.1, 0.2, 0.3]));
+            assert!(EntityReach::set_velocity(2, [0.0, 0.5, 0.0]), "a mob's motion is set");
+            assert_eq!(EntityReach::velocity_of(2), Some([0.0, 0.5, 0.0]));
+            assert!(!EntityReach::set_velocity(99, [0.0, 0.0, 0.0]), "no such entity");
+            assert!(!EntityReach::set_velocity(2, [f64::NAN, 0.0, 0.0]), "a motion that is not finite is refused");
+            assert_eq!(EntityReach::velocity_of(2), Some([0.0, 0.5, 0.0]), "the refused set changed nothing");
+        });
+        assert!(!EntityReach::set_velocity(2, [0.0, 0.0, 0.0]), "outside a scope nothing is set");
     }
 }
