@@ -218,6 +218,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/tool_actions.rs',
                 'mixins/tconstruct_native/api/src/tool_behavior_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_build.rs',
+                'mixins/tconstruct_native/api/src/tool_container_menu.rs',
                 'mixins/tconstruct_native/api/src/tool_damage.rs',
                 'mixins/tconstruct_native/api/src/tool_damage_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_definitions.rs',
@@ -318,7 +319,7 @@ class CleanPort(unittest.TestCase):
         feature = data / 'tconstruct/worldgen/feature/cobalt_ore_small.json'
         modifier = data / 'tconstruct/neoforge/biome_modifier/cobalt_ore.json'
         tag = data / 'minecraft/tags/block/mineable/pickaxe.json'
-        for path, bad in ((loot, lambda t: t.replace('minecraft:apply_bonus', 'mantle:fill_retextured_block')),
+        for path, bad in ((loot, lambda t: t.replace('minecraft:apply_bonus', 'tconstruct:fill_retextured_block')),
                           (loot, lambda t: t.replace('minecraft:tool/can_silk_touch', 'minecraft:random_chance')),
                           (loot, lambda t: json.dumps({'type': 'minecraft:block', 'pools': []})),
                           (feature, lambda t: t.replace('minecraft:ore', 'minecraft:flower')),

@@ -1449,7 +1449,7 @@ HORIZON_DECLARATIONS = ROOT / 'tconstruct/content/data/tconstruct/horizon'
 SMELTERY_STATE_BLOCKS = ['seared_melter', 'seared_heater', 'smeltery_controller', 'foundry_controller', 'scorched_alloyer'] + [f'{kind}_{block}' for kind in ('seared', 'scorched') for block in ('table', 'basin', 'faucet', 'channel')]
 SMELTERY_GUI_TEXTURES = ['melter', 'heater', 'heating_structure', 'duct', 'alloyer']
 # Station screens' textures and the pattern sprites their windows draw (station_layouts' sprite table).
-STATION_GUI_TEXTURES = ['tinker', 'part_builder', 'icons']
+STATION_GUI_TEXTURES = ['tinker', 'part_builder', 'icons', 'worktable']
 STATION_PATTERN_SPRITES = ['adze_head', 'arrow_head', 'arrow_part', 'arrow_shaft', 'block', 'boots_plating',
     'bow_grip', 'bow_limb', 'bowstring', 'broad_axe_head', 'broad_blade', 'button_repair', 'chestplate_plating',
     'coin', 'crystal', 'dust', 'fletching', 'gear', 'gem', 'hammer_head', 'helmet_plating', 'ingot', 'laces',
@@ -2762,8 +2762,9 @@ def firewood_blocks():
         blocks[f'{name}_fence'] = declare('minecraft:nether_brick_fence', color, light)
         blocks[f'{name}_slab'] = declare('minecraft:stone_slab', color, light)
         blocks[f'{name}_stairs'] = declare('minecraft:stone_stairs', color, light)
-    # The original's data ships a fence gate for nahuatl only; blazewood has none.
-    blocks['nahuatl_fence_gate'] = declare('minecraft:oak_fence_gate', 'COLOR_PURPLE')
+    # Neither family has a fence gate: FenceBuildingBlockObject registers no gate (the wood objects'
+    # gates come from addWood), and the original's stale nahuatl_fence_gate blockstate/model resources
+    # name a block that is never registered, with no loot table and no lang name.
     return blocks
 
 

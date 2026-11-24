@@ -159,13 +159,13 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(["molten_tin_bucket", "molten_aluminum_bucket", "molten_lead_bucket", "molten_silver_bucket", "molten_nickel_bucket", "molten_zinc_bucket", "molten_platinum_bucket", "molten_tungsten_bucket", "molten_osmium_bucket", "molten_uranium_bucket", "molten_chromium_bucket", "molten_cadmium_bucket"].map(str::to_owned));
     rest.extend(["molten_bronze_bucket", "molten_brass_bucket", "molten_electrum_bucket", "molten_invar_bucket", "molten_constantan_bucket", "molten_pewter_bucket", "molten_nicrosil_bucket", "molten_enderium_bucket", "molten_lumium_bucket", "molten_signalum_bucket", "molten_refined_glowstone_bucket", "molten_refined_obsidian_bucket", "molten_duralumin_bucket", "molten_bendalloy_bucket", "molten_steeleaf_bucket", "fiery_liquid_bucket", "potion_bucket"].map(str::to_owned));
     // The rest of the tab's declared items: the foods, the bones, the dragon scale, the silky cloth and the creative
-    // slot, the reinforcements, the plating dummies, the nahuatl fence gate and the splash and lingering bottles.
+    // slot, the reinforcements, the plating dummies and the splash and lingering bottles.
     // Not here: the soulsteel set (the original leaves it for the future, in no tab) and the clear tinted glass
     // (the original puts it in the general tab only, where this port's GENERAL list already carries it).
     rest.extend(["bacon", "jeweled_apple", "necrotic_bone", "venombone", "blazing_bone", "necronium_bone", "dragon_scale", "silky_cloth", "creative_slot",
         "emerald_reinforcement", "slimesteel_reinforcement", "iron_reinforcement", "seared_reinforcement", "gold_reinforcement", "cobalt_reinforcement", "obsidian_reinforcement",
         "boots_plating_dummy", "chestplate_plating_dummy", "helmet_plating_dummy", "leggings_plating_dummy",
-        "nahuatl_fence_gate", "splash_bottle", "lingering_bottle"].map(str::to_owned));
+        "splash_bottle", "lingering_bottle"].map(str::to_owned));
     entries.extend(rest.iter().map(|name| item(name)));
     smeltery.entries(entries)
 }
