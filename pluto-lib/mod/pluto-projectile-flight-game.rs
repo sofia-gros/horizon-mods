@@ -97,15 +97,46 @@ pub(crate) fn on_spawn(game: &mut crate::game::Game<'_>, p: &mut Projectile) {
     }
 }
 
+/// The ignore lists the impact telling recorded, applied to the live arrows before they fly again: an entity a
+/// callback said a piercing arrow passed through is added to the arrow's own list, so the game's next tick skips it
+/// (its `canHitEntity` check, which passes over an entity already on the list). Only a piercing arrow takes one —
+/// the game never puts a victim on a plain arrow's list — and one already there is not added twice. The host player
+/// rides as `Who::Player`, every other entity as the mob id the impact telling names it by.
+fn apply_ignored(game: &crate::game::Game<'_>, projectiles: &mut [Projectile], pending: Vec<(u32, Vec<u32>)>) {
+    if pending.is_empty() {
+        return;
+    }
+    let player = game.player.as_ref().and_then(|player| u32::try_from(player.entity_id).ok());
+    for (projectile, entities) in pending {
+        let Some(p) = projectiles.iter_mut().find(|p| p.id == projectile) else { continue };
+        let Some(a) = &mut p.arrow else { continue };
+        if a.pierce == 0 {
+            continue;
+        }
+        for id in entities {
+            let who = if Some(id) == player { Who::Player } else { Who::Mob(id) };
+            if !a.pierced.contains(&who) {
+                a.pierced.push(who);
+            }
+        }
+    }
+}
+
 /// The end of a tick of the flying list (the return reach on `tick_projectiles`, which has put the projectiles it
 /// keeps back): the flight pass. Each projectile the game still flies is told, what a callback settled is done to it,
 /// and the actions it queued are done in the level in the order queued.
 pub(crate) fn after_tick(game: &mut crate::game::Game<'_>) {
-    if !access::hears_flight() || game.creatures.projectiles.is_empty() {
+    // The ignore lists the impact telling recorded land here too, whether or not anyone listens to flights: a
+    // piercing arrow a callback re-dealt has its victim added before it flies again, or it would meet the same
+    // entity on its next tick (the game's own settle re-flies the arrow as it was before the tick, without the
+    // victim). A record for a projectile that no longer flies is dropped with it.
+    let pending_ignored = crate::entry::pluto_projectile_impact_access::take_all();
+    if game.creatures.projectiles.is_empty() || (pending_ignored.is_empty() && !access::hears_flight()) {
         return;
     }
     let dimension = game.dim.id().to_owned();
     let mut projectiles: Vec<Projectile> = std::mem::take(&mut game.creatures.projectiles).into();
+    apply_ignored(game, &mut projectiles, pending_ignored);
     let mut pending: Vec<(Vec<access::FlightAction>, Option<[f64; 3]>, [f64; 3])> = Vec::new();
     projectiles.retain_mut(|p| {
         let facts = access::FlightFacts {

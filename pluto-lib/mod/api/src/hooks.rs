@@ -4493,8 +4493,10 @@ impl Hooks for PlutoHooks {
             at: event.at,
             motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
             data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+            piercing_ignored: horizon_client::entry::pluto_projectile_impact_access::take(event.projectile).unwrap_or_default(),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
+            ignore_entities: std::cell::RefCell::new(Vec::new()),
             actions: std::cell::RefCell::new(Vec::new()),
         };
         // The callbacks see the world and the entities around the hit, as a block entity tick does;
@@ -4512,7 +4514,16 @@ impl Hooks for PlutoHooks {
         }
         // What the callbacks settled on the projectile itself, done as the hook returns: a discard
         // removes it (the game's own remove call, which discards projectiles), a new motion sends it
-        // flying on — the bounce a cancelled hit turns into.
+        // flying on — the bounce a cancelled hit turns into. And what a callback recorded as passed
+        // through goes to the game's own ignore list, through the impact access: the flight pass adds
+        // it as the tick settles, before the projectile flies again. A discarded projectile needs no
+        // record — it is gone — so only a live one records.
+        if !hit.discard.get() {
+            let recorded: Vec<u32> = hit.ignore_entities.borrow_mut().drain(..).collect();
+            if !recorded.is_empty() {
+                horizon_client::entry::pluto_projectile_impact_access::record(event.projectile, recorded);
+            }
+        }
         if hit.discard.get() {
             host.remove_entity(event.dimension, event.projectile);
         } else if let Some(motion) = hit.motion_after.borrow_mut().take() {
