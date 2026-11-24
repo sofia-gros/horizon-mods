@@ -4,9 +4,10 @@
 //! hook), the harvest enchantments the breaker's armor lends the breaking stack
 //! (HarvestEnchantmentsModifierHook: merged into the stack before the break, restored after) and the block-break half of tool usage
 //! effects (MobEffectModule.ToolUsage's afterBlockBreak). The edits land as `EntityAction::EditStackData` on the main hand. An area
-//! tool's extra blocks ride the same before-break callback through `break_extra` (see area_break).
+//! tool's extra blocks ride the same before-break callback through `break_extra` (see area_break). The mining half of the original's
+//! render event — the neighbours the held tool is effective on — is outlined through the highlight provider (see highlight).
 use crate::{break_speed_hook::with_held_tool, common, melting_recipes::{MeltingKind, OreRate}, tool_damage_hook, tool_mining, tool_slot, tool_stack, weapon_effect::Usage, weapon_effect_hook::usage_actions};
-use pluto_lib::{ActionTarget, BlockBreakContext, EntityAction, FluidStack, Identifier, LootTableEvents, Nbt, PlayerBlockBreakEvents, StackData, StackDataEdit, StackSlot, World};
+use pluto_lib::{highlight_api_v1::{HighlightFacts, HighlightRegistry}, ActionTarget, BlockBreakContext, Direction, EntityAction, FluidStack, Identifier, ItemSlot, LootTableEvents, Nbt, PlayerBlockBreakEvents, StackData, StackDataEdit, StackSlot, World};
 use std::sync::Mutex;
 
 /// Whether the tool that broke the block at (dimension, position) was effective on it, noted by the
@@ -264,6 +265,11 @@ fn durability_tagged(item: &Identifier) -> bool {
 
 /// A slot as the player API's stack data (the write-back form of a damaged tool).
 fn stack_data_of_slot(slot: &pluto_lib::ItemSlot) -> StackData {
+/// The AOE_INTERACTION tag's members (tconstruct/content/data/tconstruct/tinkering/tags/modifiers/aoe_interaction.json):
+/// the modifiers whose presence makes the original's render event draw the highlight even when the
+/// tool is not effective on the aimed block.
+const AOE_INTERACTION: [&str; 6] = ["tconstruct:pathing", "tconstruct:stripping", "tconstruct:tilling", "tconstruct:brushing", "tconstruct:splashing", "tconstruct:harvest"];
+
     StackData {
         item: slot.item.to_string(),
         count: slot.count,
@@ -386,8 +392,52 @@ fn exchange_after(broken: &BlockBreakContext) {
     player.swing_hand(pluto_lib::Hand::Off);
 }
 
+/// The mining half of the original's render event over the AOE iterator's DISPLAY predicate
+/// (ToolRenderEvents.renderBlockHighlights): while the player holds a mining tool and aims at a
+/// block, the neighbours the tool is effective on are outlined — the predicate's other half to the
+/// brush's shouldHighlight answers. The gate is the render event's own: nothing is outlined when
+/// the tool is effective on nothing at the aim and carries no AOE-interaction modifier (pathing,
+/// stripping, tilling, brushing, splashing, harvest), and the distance gate is the frame's block
+/// reach, as the brush's is. Box and circle candidates are filtered to the effective ones, as the
+/// break hook filters its area; vein, tree and conditional positions ride as the break hook takes
+/// them, so only when the tool is effective on the aimed block itself — otherwise a brush tool's
+/// vein would outline blocks its stroke never breaks. The hardness clause of the predicate (a
+/// neighbour more than three times as hard as the aim, or unbreakable) has no surface here, as in
+/// the break hook (see aoe.rs): the outlined set is the break set.
+fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
+    let Some(slot) = facts.main_hand else { return Vec::new() };
+    let Some(target) = &facts.target else { return Vec::new() };
+    if target.distance > facts.block_reach { return Vec::new() };
+    let stack = stack_data_of_slot(slot);
+    let Ok(positions) = with_held_tool(&stack, |env, tool| {
+        let Some(iterator) = env.definition.and_then(|definition| definition.aoe()) else { return Vec::new() };
+        let tier = tool_stack::harvest_tier(&tool.custom_data);
+        let effective = env.definition.and_then(|definition| definition.effective());
+        let effective_on = |pos: [i32; 3]| effective.is_some_and(|effective| tool_mining::is_effective(effective, &tier, &|tag: &Identifier| (facts.in_tag_at)(pos, tag)));
+        let has_aoe_interaction = tool_stack::saved_modifiers(&tool.custom_data, env.modifiers).iter()
+            .any(|(entry, _)| entry.level > 0 && AOE_INTERACTION.contains(&entry.id.to_string().as_str()));
+        if !effective_on(target.pos) && !has_aoe_interaction { return Vec::new() };
+        let expanded = match tool.custom_data.get(tool_stack::TAG_VOLATILE) {
+            Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get("tconstruct:expanded")),
+            _ => 0,
+        };
+        let face = Direction::from_offset(target.face).unwrap_or(Direction::Up);
+        let positions = iterator.positions(target.pos, face, facts.yaw, facts.pitch, expanded, facts.block_at, facts.in_tag_at);
+        if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
+            positions.into_iter().filter(|pos| (facts.block_at)(*pos).is_some_and(|block| block.to_string() != "minecraft:air") && effective_on(*pos)).collect()
+        } else if effective_on(target.pos) {
+            positions
+        } else {
+            Vec::new()
+        }
+    }) else { return Vec::new() };
+    positions
+}
+
 /// Registers the callbacks. Called once from the product's hooks.
 pub(crate) fn register() {
+    // The mining half of the original's render event: the neighbours the held tool is effective on.
+    HighlightRegistry::register(highlight);
     // startHarvest: the modules that run before the break (overwield spends overslime as the tool starts to dig). Runs even when a later
     // callback vetoes the break, as the original runs it before the break is attempted.
     PlayerBlockBreakEvents::BEFORE.register(|broken| {

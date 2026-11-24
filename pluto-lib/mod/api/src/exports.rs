@@ -27,7 +27,7 @@ pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, Attachme
 pub use crate::pure::dispense_api_v1::{self, DispenseBehavior, DispenseRegistry, dispense_shot};
 pub use crate::pure::fishing_api_v1::{self, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, hook_damage_type, pull_delta, retrieve_damage};
 pub use crate::pure::fov_api_v1::{self, FovCallback, FovFacts, FovRegistry, FovSlot, FovStack, fov_multiplier};
-pub use crate::pure::highlight_api_v1::{self, HighlightFacts, HighlightProvider, HighlightRegistry, HighlightTarget, highlight_positions, MAX_HIGHLIGHTS, OUTLINE_ARGB, OUTLINE_WIDTH};
+pub use crate::pure::highlight_api_v1::{self, HighlightFacts, HighlightProvider, HighlightRegistry, HighlightTarget, highlight_positions, block_reach_for_mode, MAX_HIGHLIGHTS, OUTLINE_ARGB, OUTLINE_WIDTH, SURVIVAL_BLOCK_REACH, CREATIVE_BLOCK_REACH};
 pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, CriticalHit, LivingJump, MovementInput, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, MobTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ExperienceDrop, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
