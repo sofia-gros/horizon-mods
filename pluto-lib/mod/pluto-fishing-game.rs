@@ -191,7 +191,17 @@ fn pull_entity(
         let scaled = (impact_speed * f64::from(profile.power) * 15.0).clamp(0.0, f64::from(i32::MAX));
         let damage = (scaled.ceil() / 10.0) as f32;
         if damage > 0.0 {
-            game.native_hurt_entity(game.dim.id(), target, damage, "tconstruct:fishing_hook", None);
+            // The hurt's damage type is the pure side's `hook_damage_type`, written out again as
+            // this file's formulas are: the melee type only when the hooked mob is an enderman
+            // carrying the enderference effect (`TinkerEffects.needsEnderferenceOverride`, read
+            // off the mob as the hurt sink reads a mob's kind and effects), as an enderman dodges
+            // the ranged type with the rest of the projectiles. A target no mob names (an item,
+            // a boat) takes the ranged type, as it did before.
+            let exposed = game.mobs.iter().find(|mob| mob.id == target).is_some_and(|mob| {
+                mob.kind.id == "minecraft:enderman" && mob.extra.effects.iter().any(|effect| effect.0 == "tconstruct:enderference")
+            });
+            let damage_type = if exposed { "tconstruct:melee_fishing_hook" } else { "tconstruct:fishing_hook" };
+            game.native_hurt_entity(game.dim.id(), target, damage, damage_type, None);
         }
     }
     // The pull: a tenth of the way to the owner, plus the knockback bonus.

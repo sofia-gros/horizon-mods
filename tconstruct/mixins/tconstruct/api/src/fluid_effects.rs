@@ -1124,8 +1124,11 @@ impl EntityEffect {
                 let damage_type = match damage_type {
                     Some(pair) => {
                         if context.env.holder.projectile.is_some() {
-                            // Enderference on the target cancels projectile damage, so the melee type is used.
-                            if context.target.has_effect(&Identifier::new("tconstruct", "enderference").expect("valid id")) { pair.melee.clone() } else { pair.ranged.clone() }
+                            // TinkerEffects.needsEnderferenceOverride: the melee type only for an
+                            // enderman carrying the enderference effect — either half alone (an
+                            // enderman without the effect, another kind carrying it) keeps the
+                            // ranged type, as DamageFluidEffect reads the living target.
+                            if context.target.kind() == "minecraft:enderman" && context.target.has_effect(&Identifier::new("tconstruct", "enderference").expect("valid id")) { pair.melee.clone() } else { pair.ranged.clone() }
                         } else { pair.melee.clone() }
                     }
                     None => context.env.holder.damage_source().to_owned(),
@@ -2202,6 +2205,7 @@ mod tests {
 
     #[derive(Clone, Default)]
     struct TestTarget {
+        kind: String,
         living: bool,
         player: bool,
         effects: HashMap<Identifier, ActiveEffect>,
@@ -2217,7 +2221,7 @@ mod tests {
 
     impl TestTarget {
         fn living() -> Self {
-            Self { living: true, air: 300, ..Self::default() }
+            Self { kind: "minecraft:zombie".to_owned(), living: true, air: 300, ..Self::default() }
         }
     }
 
@@ -2226,7 +2230,7 @@ mod tests {
             1
         }
         fn kind(&self) -> &str {
-            "minecraft:zombie"
+            &self.kind
         }
         fn is_living(&self) -> bool {
             self.living
@@ -2389,6 +2393,7 @@ mod tests {
         })).expect("decode");
         let mut world = TestWorld::default();
         let mut target = TestTarget::living();
+        target.kind = "minecraft:enderman".to_owned();
         target.effects.insert(id("tconstruct:enderference"), ActiveEffect { amplifier: 0, duration: 100 });
         let level = EffectLevel { value: 2.0, max: 2.0 };
         let fluid = stack("tconstruct:molten_ender", 100);
@@ -2403,8 +2408,32 @@ mod tests {
             context.env.holder.projectile = Some(ProjectileFacts { id: 7, delta: [0.0, 0.0, 1.0] });
             assert_eq!(effect.apply(&fluid, level, &mut context, FluidAction::Execute), 2.0);
         }
-        // The enderference effect turns the projectile's ranged damage into melee.
+        // An enderman carrying the enderference effect takes the projectile's damage as melee.
         assert_eq!(target.hurts, vec![("tconstruct:melee".to_owned(), 6.0)]);
+    }
+
+    #[test]
+    fn damage_pair_keeps_the_ranged_type_without_the_whole_override() {
+        // TinkerEffects.needsEnderferenceOverride names the enderman and the effect together:
+        // a marked zombie and an unmarked enderman both keep the pair's ranged type.
+        let effect = EntityEffect::decode(&json!({
+            "type": "tconstruct:damage", "damage": 3.0,
+            "damage_type": {"melee": "tconstruct:melee", "ranged": "tconstruct:ranged"},
+        })).expect("decode");
+        let level = EffectLevel { value: 2.0, max: 2.0 };
+        let fluid = stack("tconstruct:molten_ender", 100);
+        for (kind, marked) in [("minecraft:zombie", true), ("minecraft:enderman", false), ("minecraft:zombie", false)] {
+            let mut world = TestWorld::default();
+            let mut target = TestTarget::living();
+            target.kind = kind.to_owned();
+            if marked {
+                target.effects.insert(id("tconstruct:enderference"), ActiveEffect { amplifier: 0, duration: 100 });
+            }
+            let mut context = entity_context(&mut world, &mut target);
+            context.env.holder.projectile = Some(ProjectileFacts { id: 7, delta: [0.0, 0.0, 1.0] });
+            assert_eq!(effect.apply(&fluid, level, &mut context, FluidAction::Execute), 2.0);
+            assert_eq!(target.hurts, vec![("tconstruct:ranged".to_owned(), 6.0)], "{kind} marked={marked}");
+        }
     }
 
     #[test]

@@ -82,6 +82,20 @@ pub fn combat_damage(impact_speed: f64, power: f32) -> f32 {
     (scaled.ceil() / 10.0) as f32
 }
 
+/// The damage type a combat hook's retrieve hurt is dealt as (the original's
+/// `CombatFishingHook.pullEntity`, through `TinkerEffects.needsEnderferenceOverride`): the ranged
+/// `tconstruct:fishing_hook`, a projectile type an enderman dodges — or, when the hooked target is
+/// an enderman carrying the enderference effect (the override), the melee
+/// `tconstruct:melee_fishing_hook`, outside the projectile tag, so the hurt lands. The game side
+/// reads the target's kind and effects off the hooked mob and passes the answer in.
+pub fn hook_damage_type(enderference_override: bool) -> &'static str {
+    if enderference_override {
+        "tconstruct:melee_fishing_hook"
+    } else {
+        "tconstruct:fishing_hook"
+    }
+}
+
 /// The velocity a hooked entity gains at retrieve (the original's pull in `pullEntity`): toward the
 /// owner, a tenth of the way, plus the knockback bonus `0.25 * knockback / distance` when the rod has
 /// knockback. A hook at the owner's feet pulls nothing.
@@ -219,6 +233,14 @@ mod tests {
         // No power, no damage; a still hook hurts nothing.
         assert_eq!(combat_damage(3.0, 0.0), 0.0);
         assert_eq!(combat_damage(0.0, 2.0), 0.0);
+    }
+
+    #[test]
+    fn hook_damage_type_turns_on_the_enderference_override() {
+        // CombatFishingHook.pullEntity: the melee type only for an enderman the enderference
+        // effect exposes; every other hooked target takes the ranged type.
+        assert_eq!(hook_damage_type(true), "tconstruct:melee_fishing_hook");
+        assert_eq!(hook_damage_type(false), "tconstruct:fishing_hook");
     }
 
     #[test]
