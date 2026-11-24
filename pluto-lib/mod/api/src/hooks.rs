@@ -566,6 +566,11 @@ pub fn hooks() -> Box<dyn Hooks> {
         })
     });
     world_api_v1::set_sturdy_lookup(|block, direction| horizon_client::entry::pluto_block_facts::face_sturdy(block, direction));
+    world_api_v1::set_placement_facts_lookup(|block| horizon_client::entry::pluto_block_facts::placement_for(block).map(|facts| world_api_v1::PlacementFacts {
+        classes: facts.classes.iter().map(|class| class.to_string()).collect(),
+        full_collision: facts.full_collision,
+        solid_render: facts.solid_render,
+    }));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -2314,6 +2319,12 @@ impl EntityOps for HostEntities {
         let host = self.host.get();
         let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) else { return false };
         host.entity_set_velocity(entity, velocity)
+    }
+    fn bounding_box_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        let Ok(id) = u32::try_from(id) else { return None };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return None };
+        host.entity_bounding_box(entity)
     }
 
     fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {

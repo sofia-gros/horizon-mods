@@ -9,10 +9,11 @@ pub use crate::pure::base::{
 };
 pub use crate::pure::block_api_v1::{
     self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PickContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, EntityInsideMotionContext, FallOnContext, AfterFallContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
-    SurviveContext, PathNodeType, PathNodeTypeContext, PistonBehavior,
+    SurviveContext, PathNodeType, PathNodeTypeContext, PistonBehavior, can_survive, vegetation_may_place_on,
 };
 pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityDrain, BlockEntityFill, BlockEntityPlace, BlockEntitySignal, BlockEntityTransfer, TransferMode, FluidFilter, FluidForward, ItemFilter, ItemForward, SidedAccess, BlockEntityTick, BlockEntityUse, BlockUseOutcome, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
 pub use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose, CubeDefinition, PartDefinition, LayerDefinition, EntityModelLayerRegistry};
+pub use crate::pure::block_events_v1::{self, BlockPlace, ServerBlockEvents, block_place, block_place_heard};
 pub use crate::pure::color_provider_api_v1::{self, BlockColorContext, ItemColorContext, ColorProviderRegistry};
 pub use crate::pure::armor_renderer_api_v1::{self, ArmorLayer, ArmorLayerKind, ArmorRenderContext, ArmorRenderer};
 pub use crate::pure::command_api_v2::{self, CommandContext, CommandRegistrar, CommandRegistrationCallback};
@@ -66,7 +67,7 @@ pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage
 pub use crate::pure::item_storage_api_v1::{self, ItemStorage};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
 pub use crate::pure::entity_api_v1::{self, EntityOps, EntityReach, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
-pub use crate::pure::world_api_v1::{self, BlockState, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, ParticleRecord, Region, SummonRecord, World, WorldOps, with_ticking_dimension, with_world};
+pub use crate::pure::world_api_v1::{self, BlockState, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, ParticleRecord, PlacementFacts, Region, SummonRecord, World, WorldOps, WorldView, placement_facts, set_placement_facts_lookup, with_ticking_dimension, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, NativeTreeRoute, native_tree_route, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, RegistryLookup, JsonResourceStack, ResourceManagerHelper, ResourceType, reload_event};
 pub use crate::pure::advancement_api_v1::{self, DispatchResult, EventMatcher, ItemSnapshot, PredicateCallback, PredicateRegistration, PredicateRequest, PredicateResult, QueuedEvent, RegistrationError, TagLookup};

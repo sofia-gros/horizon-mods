@@ -3,7 +3,7 @@
 // API crate's dig report can name the block's hardness, its correct-tool requirement and its
 // explosion resistance. The three are constant across a block's states in the game's data, so
 // the table answers by block name and the first state of a block wins.
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DigFacts {
@@ -31,6 +31,30 @@ pub fn for_block(block: &str) -> Option<DigFacts> {
 pub fn face_sturdy(block: &str, direction: u8) -> Option<bool> {
     if direction > 5 { return None; }
     for_block(block).map(|facts| facts.sturdy_full & (1 << direction) != 0)
+}
+
+/// The game's own placement facts for a block: what `canSurvive` needs of a state that is not
+/// in the world yet. Published with the dig facts by the same head. The class chain is a
+/// property of the block class, so it is constant across a block's states; the two shape flags
+/// answer with the block's first state, as the dig facts do.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlacementFacts {
+    /// The block's class chain (`TransparentBlock`, `LeavesBlock`, ...), most specific first.
+    pub classes: Arc<[Arc<str>]>,
+    /// `BlockState.isCollisionShapeFullBlock`: the shape a placement's obstruction check tests.
+    pub full_collision: bool,
+    /// Whether the block renders as a solid cube (`solid_render`).
+    pub solid_render: bool,
+}
+
+static PLACEMENT_FACTS: RwLock<Vec<(String, PlacementFacts)>> = RwLock::new(Vec::new());
+
+pub fn publish_placement(states: Vec<(String, PlacementFacts)>) {
+    if let Ok(mut facts) = PLACEMENT_FACTS.write() { *facts = states; }
+}
+
+pub fn placement_for(block: &str) -> Option<PlacementFacts> {
+    PLACEMENT_FACTS.read().ok()?.iter().find(|(name, _)| name == block).map(|(_, facts)| facts.clone())
 }
 
 static DIG_HEIGHT: RwLock<Option<[i32; 2]>> = RwLock::new(None);
