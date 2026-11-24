@@ -42,9 +42,10 @@ impl DamageOnShoot {
 /// InfinityModule: a launcher that fires its named ammo without the shooter carrying any, paid for with
 /// the tool's durability. The arrows it supplies are marked `tic_infinity`, and the modifier's variant
 /// stored on the tool is copied onto them under the variant tag, as findAmmo does. What the module does
-/// on shoot in the original — set the fired arrow to creative-only pickup — has no surface here: the
-/// launch and shot events report the arrow but cannot change it, so a supplied arrow that lands can be
-/// picked up like a normal one.
+/// on shoot in the original — set the fired arrow to creative-only pickup — rides PlutoLib's arrow pickup
+/// surface: the spawn pass reads the `tic_infinity` mark on a supplied arrow, and the flight pass reads
+/// the weapon's own Infinity from the shot's profile, so every arrow the launcher fires is creative-only,
+/// as in the original.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Infinity { ammo: Identifier, variant_tag: String, durability_usage: i32, check_standard_arrows: bool }
 

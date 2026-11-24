@@ -8,7 +8,10 @@
 //! is the one the `AMMO` pass just read for that player, merged with the weapon's own (the original
 //! runs the shot hooks over the weapon with the fired projectile). A thrown tool and a shuriken bind
 //! directly, under the id their spawn answered. The spawn pass sets a shot up from its own stack
-//! (pierce, no gravity, the angle fan) whether or not a profile is bound yet.
+//! (pierce, no gravity, the angle fan) whether or not a profile is bound yet, and marks an arrow
+//! the Infinity module supplied creative-only pickup, so it cannot be picked up again. The weapon's
+//! own Infinity reaches the same arrow through the flight pass: the shot binds the weapon's profile,
+//! and the first flight tick sets the pickup, for an arrow the shooter carried.
 //!
 //! The original's scheduled projectile tasks (gravity's return, the fuse) run here as age checks on
 //! the flight telling, which reports every projectile on every tick. Attraction on a hit is the one
@@ -27,8 +30,8 @@
 //! not applied (the launch pass knows the tool only as a stack in a hand it cannot edit here).
 use crate::{break_speed_hook::with_held_tool, projectile_modules::clamp_to, slime_entities, tool_stack};
 use pluto_lib::{
-    ActionTarget, EntityAction, EntityReach, ExplosionInteraction, FlightAction, ItemSlot, KnockbackDirection,
-    ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData,
+    ActionTarget, ArrowPickup, EntityAction, EntityReach, ExplosionInteraction, FlightAction, ItemSlot, KnockbackDirection,
+    Nbt, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData,
 };
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -41,6 +44,9 @@ pub(crate) struct InFlight {
     bounces_used: HashMap<String, i32>,
     gravity_restored: bool,
     fuse_done: bool,
+    /// Whether the weapon-side Infinity mark has been applied to this flight's arrow already (the
+    /// flight pass sets it once, on the first tick it sees the bound profile).
+    pickup_set: bool,
     thrown: Option<ThrownTool>,
     shuriken: Option<ThrownShuriken>,
 }
@@ -127,6 +133,7 @@ fn merge(ammo: tool_stack::FlightProfile, weapon: tool_stack::FlightProfile) -> 
         efln: ammo.efln || weapon.efln,
         enderference: ammo.enderference || weapon.enderference,
         enderporting: ammo.enderporting || weapon.enderporting,
+        infinity: ammo.infinity || weapon.infinity,
         tipped: weapon.tipped.or(ammo.tipped),
     }
 }
@@ -135,6 +142,13 @@ fn merge(ammo: tool_stack::FlightProfile, weapon: tool_stack::FlightProfile) -> 
 /// a profile is bound under its id yet.
 fn on_spawn(spawn: &ProjectileSpawned) {
     let Some(stack) = &spawn.stack else { return };
+    // InfinityModule.onProjectileShoot: an arrow the modifier supplied carries the tic_infinity mark,
+    // and the original sets the fired arrow to creative-only pickup, so a supplied arrow that lands
+    // cannot be picked up again. The mark is read here, before the profile's early return, because a
+    // supplied arrow is a plain stack with no modifiers of its own.
+    if matches!(stack.custom_data.get("tic_infinity"), Some(Nbt::Byte(1)) | Some(Nbt::Int(1))) {
+        spawn.pickup.set(Some(ArrowPickup::CreativeOnly));
+    }
     let profile = profile_of(stack);
     if profile.is_empty() { return; }
     if let Some(pierce) = profile.pierce { spawn.pierce.set(Some(pierce)); }
@@ -198,6 +212,15 @@ fn on_flight(flight: &ProjectileFlight) {
     }
     let Some(mut state) = take_flight(&flight.dimension, flight.projectile) else { return };
     let profile = state.profile.clone();
+    // InfinityModule.onProjectileShoot, weapon side: the shot hooks run over the weapon, so an arrow
+    // a player carried and fired from an Infinity launcher is creative-only too — the spawn pass
+    // cannot see the weapon (it reads the ammunition's own stack), so the first flight tick applies
+    // it once the shot has bound the weapon's profile. A thrown tool or shuriken is not a shot: its
+    // pickup is its own stack, handed back where it lands.
+    if profile.infinity && !state.pickup_set && state.thrown.is_none() && state.shuriken.is_none() {
+        flight.pickup_after.set(Some(ArrowPickup::CreativeOnly));
+        state.pickup_set = true;
+    }
     // ProjectileGravityModule's scheduled task: gravity returns when the delay passes.
     if let Some(delay) = profile.gravity_delay {
         if flight.age < delay && !flight.no_gravity {
@@ -425,12 +448,79 @@ mod tests {
     #[test]
     fn profiles_merge_carrying_either_side_projectile_marks() {
         // The volatile flags' marks (fins' efln, enderference's) ride the merged profile from
-        // whichever stack carries them, as the shot hooks run over both.
+        // whichever stack carries them, as the shot hooks run over both; so does the weapon's
+        // Infinity, for the fired arrow's pickup.
         let ammo = tool_stack::FlightProfile { efln: true, ..Default::default() };
-        let weapon = tool_stack::FlightProfile { enderference: true, ..Default::default() };
+        let weapon = tool_stack::FlightProfile { enderference: true, infinity: true, ..Default::default() };
         let merged = merge(ammo, weapon);
         assert!(merged.efln);
         assert!(merged.enderference);
+        assert!(merged.infinity);
         assert!(!merged.is_empty(), "a lone enderference mark still binds a flight");
+    }
+
+    #[test]
+    fn a_supplied_arrow_is_set_creative_only_at_spawn_and_a_plain_arrow_is_left_alone() {
+        use pluto_lib::{ArrowFacts, NbtCompound};
+        use std::cell::{Cell, RefCell};
+        let spawn_with = |stack: Option<StackData>| ProjectileSpawned {
+            dimension: "minecraft:overworld".into(), projectile: 0, kind: "minecraft:arrow".into(), owner: 4,
+            position: [0.5, 64.0, 0.5], motion: [0.0, 0.2, -2.0],
+            arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
+            stack, data: NbtCompound::new(),
+            motion_after: RefCell::new(None), pierce: Cell::new(None), pickup: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
+        };
+        let mut supplied_data = NbtCompound::new();
+        supplied_data.insert("tic_infinity".into(), Nbt::Byte(1));
+        let supplied = spawn_with(Some(StackData { item: "minecraft:arrow".into(), count: 1, custom_data: supplied_data, ..StackData::default() }));
+        on_spawn(&supplied);
+        assert_eq!(supplied.pickup.get(), Some(ArrowPickup::CreativeOnly), "an Infinity-supplied arrow cannot be picked up again");
+        let plain = spawn_with(Some(StackData { item: "minecraft:arrow".into(), count: 1, ..StackData::default() }));
+        on_spawn(&plain);
+        assert_eq!(plain.pickup.get(), None, "a plain arrow keeps the game's own pickup");
+        let none = spawn_with(None);
+        on_spawn(&none);
+        assert_eq!(none.pickup.get(), None);
+    }
+
+    #[test]
+    fn a_weapon_side_infinity_marks_the_arrow_once_on_its_first_flight() {
+        use pluto_lib::{ArrowFacts, NbtCompound};
+        use std::cell::{Cell, RefCell};
+        let flight_at = |age: u32| ProjectileFlight {
+            dimension: "minecraft:overworld".into(), projectile: 424242, kind: "minecraft:arrow".into(), owner: 4,
+            owner_position: None, age, position: [0.5, 64.0, 0.5], motion: [0.0; 3],
+            in_ground: false, no_gravity: false,
+            arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
+            data: NbtCompound::new(),
+            motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None), pickup_after: Cell::new(None),
+            release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
+        };
+        bind("minecraft:overworld", 424242, InFlight { profile: tool_stack::FlightProfile { infinity: true, ..Default::default() }, ..Default::default() });
+        let first = flight_at(1);
+        on_flight(&first);
+        assert_eq!(first.pickup_after.get(), Some(ArrowPickup::CreativeOnly), "the weapon's Infinity marks a carried arrow");
+        let second = flight_at(2);
+        on_flight(&second);
+        assert_eq!(second.pickup_after.get(), None, "the mark is applied once, on the first flight tick");
+    }
+
+    #[test]
+    fn a_thrown_tool_with_infinity_keeps_its_own_pickup() {
+        use pluto_lib::{ArrowFacts, NbtCompound};
+        use std::cell::{Cell, RefCell};
+        let flight = ProjectileFlight {
+            dimension: "minecraft:overworld".into(), projectile: 424243, kind: "minecraft:arrow".into(), owner: 4,
+            owner_position: None, age: 1, position: [0.5, 64.0, 0.5], motion: [0.0; 3],
+            in_ground: false, no_gravity: false,
+            arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
+            data: NbtCompound::new(),
+            motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None), pickup_after: Cell::new(None),
+            release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
+        };
+        let stack = StackData { item: "example:thrown_tool".into(), count: 1, ..StackData::default() };
+        bind("minecraft:overworld", 424243, thrown_flight(tool_stack::FlightProfile { infinity: true, ..Default::default() }, stack, 1.0));
+        on_flight(&flight);
+        assert_eq!(flight.pickup_after.get(), None, "a thrown tool is not a shot: its pickup is its own stack");
     }
 }

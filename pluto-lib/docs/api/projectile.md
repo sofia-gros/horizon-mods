@@ -450,7 +450,7 @@ assert_eq!(request.supplied.borrow().as_ref().unwrap().item.to_string(), "minecr
 
 ### `ProjectileEvents::SPAWN`
 
-A projectile joined the flying list, before its first tick: the set-up pass. A callback may still set the shot up — replace its `motion_after`, give an arrow a `pierce` level, lift its gravity (`no_gravity`), or name the `pickup_stack` a stuck arrow hands back. Heard for every projectile the game adds on a server, a callback's own summons included; the projectile's id may still be 0 here (it is numbered as it joins), so bind per-projectile state at `LAUNCH` or on the first `FLIGHT`. Server only.
+A projectile joined the flying list, before its first tick: the set-up pass. A callback may still set the shot up — replace its `motion_after`, give an arrow a `pierce` level, set an arrow's pickup status (`pickup`), lift its gravity (`no_gravity`), or name the `pickup_stack` a stuck arrow hands back. Heard for every projectile the game adds on a server, a callback's own summons included; the projectile's id may still be 0 here (it is numbered as it joins), so bind per-projectile state at `LAUNCH` or on the first `FLIGHT`. Server only.
 
 ```rust
 use pluto_lib::ProjectileEvents;
@@ -464,10 +464,10 @@ ProjectileEvents::SPAWN.register(|spawn| {
 
 ### `ProjectileSpawned`
 
-A projectile at the moment it joins the flying list. `dimension` is the dimension id, `projectile` its entity id (0 when not yet numbered), `kind` its type, `owner` the entity that threw or shot it (negative if none), `position` where it enters and `motion` how fast it is moving, in blocks a tick. `arrow` holds the arrow facts when it is an arrow, `stack` the projectile's own stack as data (an arrow's pickup stack, a thrown type's item) and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the motion of its first tick, `pierce` gives an arrow its pierce level, `no_gravity` lifts its gravity, and `pickup_stack` names the stack a stuck arrow hands back when picked up.
+A projectile at the moment it joins the flying list. `dimension` is the dimension id, `projectile` its entity id (0 when not yet numbered), `kind` its type, `owner` the entity that threw or shot it (negative if none), `position` where it enters and `motion` how fast it is moving, in blocks a tick. `arrow` holds the arrow facts when it is an arrow, `stack` the projectile's own stack as data (an arrow's pickup stack, a thrown type's item) and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the motion of its first tick, `pierce` gives an arrow its pierce level, `pickup` sets an arrow's pickup status (creative-only for an arrow its launcher supplied), `no_gravity` lifts its gravity, and `pickup_stack` names the stack a stuck arrow hands back when picked up.
 
 ```rust
-use pluto_lib::{ArrowFacts, ProjectileSpawned};
+use pluto_lib::{ArrowFacts, ArrowPickup, ProjectileSpawned};
 use std::cell::{Cell, RefCell};
 
 let spawn = ProjectileSpawned {
@@ -475,11 +475,13 @@ let spawn = ProjectileSpawned {
     position: [0.5, 64.0, 0.5], motion: [0.0, 0.2, -2.0],
     arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
     stack: None, data: Default::default(),
-    motion_after: RefCell::new(None), pierce: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
+    motion_after: RefCell::new(None), pierce: Cell::new(None), pickup: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
 };
 spawn.pierce.set(Some(3));
 assert_eq!(spawn.pierce.get(), Some(3));
 assert_eq!(spawn.arrow.unwrap().pierce, 0);
+spawn.pickup.set(Some(ArrowPickup::CreativeOnly));
+assert_eq!(spawn.pickup.get(), Some(ArrowPickup::CreativeOnly));
 ```
 
 ### `ArrowFacts`
@@ -493,9 +495,20 @@ let facts = ArrowFacts { pierce: 2, in_ground: true, in_ground_time: 5, dealt_da
 assert!(facts.in_ground && facts.in_ground_time > 4 && !facts.dealt_damage);
 ```
 
+### `ArrowPickup`
+
+An arrow's pickup status (`AbstractArrow.Pickup`): who may pick a stuck arrow up. `Disallowed` is picked up by no player, `Allowed` by any player (who is handed the arrow's pickup stack), and `CreativeOnly` only by a player in creative, who takes no item for it — an arrow its shooter did not spend, such as one a launcher's modifier supplied. The codes are the host's saved byte: 0, 1, 2.
+
+```rust
+use pluto_lib::ArrowPickup;
+
+assert_eq!(ArrowPickup::default(), ArrowPickup::Disallowed);
+assert_eq!((ArrowPickup::Disallowed as u8, ArrowPickup::Allowed as u8, ArrowPickup::CreativeOnly as u8), (0, 1, 2));
+```
+
 ### `ProjectileEvents::FLIGHT`
 
-A projectile ended a tick it flew (or rested stuck) in: the steering pass. Heard once a tick for every projectile the game flies on a server, stuck arrows included, for as long as it stays in the flying list. A callback may set the motion it flies the next tick with, lift or restore its gravity, free a stuck arrow, discard it, and queue `FlightAction`s around it. A fuse is a callback counting `age`; a magnet is one queueing `FlightAction::PullItems` while its tool rests stuck. Server only.
+A projectile ended a tick it flew (or rested stuck) in: the steering pass. Heard once a tick for every projectile the game flies on a server, stuck arrows included, for as long as it stays in the flying list. A callback may set the motion it flies the next tick with, lift or restore its gravity, set an arrow's pickup status, free a stuck arrow, discard it, and queue `FlightAction`s around it. A fuse is a callback counting `age`; a magnet is one queueing `FlightAction::PullItems` while its tool rests stuck. Server only.
 
 ```rust
 use pluto_lib::ProjectileEvents;
@@ -509,7 +522,7 @@ ProjectileEvents::FLIGHT.register(|flight| {
 
 ### `ProjectileFlight`
 
-A projectile at the end of a tick of flight. `dimension` is the dimension id, `projectile` its entity id, `kind` its type and `owner` the entity that threw or shot it (negative if none); `owner_position` is where the owner stands, when the game could reach it — how a callback steers a flight home. `age` is how many ticks it has flown, `position` where it ended the tick and `motion` how fast it is moving, in blocks a tick: the motion it will fly the next tick with, before drag and gravity. `in_ground` says it rests stuck in a block, `no_gravity` whether its flight is without gravity, `arrow` the arrow facts when it is an arrow, and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the next tick's motion, `discard` removes it as the tick settles, `no_gravity_after` lifts or restores its gravity from the next tick, `release_from_ground` frees a stuck arrow so the motion it is given can fly it, and `actions` is the queue of `FlightAction`s to do around it.
+A projectile at the end of a tick of flight. `dimension` is the dimension id, `projectile` its entity id, `kind` its type and `owner` the entity that threw or shot it (negative if none); `owner_position` is where the owner stands, when the game could reach it — how a callback steers a flight home. `age` is how many ticks it has flown, `position` where it ended the tick and `motion` how fast it is moving, in blocks a tick: the motion it will fly the next tick with, before drag and gravity. `in_ground` says it rests stuck in a block, `no_gravity` whether its flight is without gravity, `arrow` the arrow facts when it is an arrow, and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the next tick's motion, `discard` removes it as the tick settles, `no_gravity_after` lifts or restores its gravity from the next tick, `pickup_after` sets an arrow's pickup status from the next tick, `release_from_ground` frees a stuck arrow so the motion it is given can fly it, and `actions` is the queue of `FlightAction`s to do around it.
 
 ```rust
 use pluto_lib::{ArrowFacts, FlightAction, ProjectileFlight};
@@ -521,7 +534,7 @@ let flight = ProjectileFlight {
     in_ground: true, no_gravity: false,
     arrow: Some(ArrowFacts { pierce: 0, in_ground: true, in_ground_time: 5, dealt_damage: true }),
     data: Default::default(),
-    motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None),
+    motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None), pickup_after: Cell::new(None),
     release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
 };
 if flight.in_ground && flight.arrow.is_some_and(|a| a.dealt_damage) {

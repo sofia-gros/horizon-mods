@@ -175,12 +175,13 @@ pub fn hooks() -> Box<dyn Hooks> {
                 arrow: facts.arrow.map(|a| projectile_events_v1::ArrowFacts { pierce: a.pierce, in_ground: a.in_ground, in_ground_time: a.in_ground_time, dealt_damage: a.dealt_damage }),
                 stack: facts.stack.as_ref().map(read_stack),
                 data: facts.stack.as_ref().map(|stack| read_stack(stack).custom_data).unwrap_or_default(),
-                motion_after: std::cell::RefCell::new(None), pierce: std::cell::Cell::new(None), no_gravity: std::cell::Cell::new(None), pickup_stack: std::cell::RefCell::new(None),
+                motion_after: std::cell::RefCell::new(None), pierce: std::cell::Cell::new(None), pickup: std::cell::Cell::new(None), no_gravity: std::cell::Cell::new(None), pickup_stack: std::cell::RefCell::new(None),
             };
             projectile_events_v1::spawned(&spawn);
             horizon_client::entry::pluto_projectile_flight_access::SpawnOutcome {
                 motion: spawn.motion_after.borrow_mut().take(),
                 pierce: spawn.pierce.get(),
+                pickup: spawn.pickup.get().map(|pickup| pickup as u8),
                 no_gravity: spawn.no_gravity.get(),
                 pickup_stack: spawn.pickup_stack.borrow_mut().take().map(|data| { let mut stack = ItemStack::new(&data.item, data.count); write_stack(&mut stack, &data); stack }),
             }
@@ -192,7 +193,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 in_ground: facts.in_ground, no_gravity: facts.no_gravity,
                 arrow: facts.arrow.map(|a| projectile_events_v1::ArrowFacts { pierce: a.pierce, in_ground: a.in_ground, in_ground_time: a.in_ground_time, dealt_damage: a.dealt_damage }),
                 data: facts.stack.as_ref().map(|stack| read_stack(stack).custom_data).unwrap_or_default(),
-                motion_after: std::cell::RefCell::new(None), discard: std::cell::Cell::new(false), no_gravity_after: std::cell::Cell::new(None),
+                motion_after: std::cell::RefCell::new(None), discard: std::cell::Cell::new(false), no_gravity_after: std::cell::Cell::new(None), pickup_after: std::cell::Cell::new(None),
                 release_from_ground: std::cell::Cell::new(false), actions: std::cell::RefCell::new(Vec::new()),
             };
             projectile_events_v1::flight(&flight);
@@ -200,6 +201,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 motion: flight.motion_after.borrow_mut().take(),
                 discard: flight.discard.get(),
                 no_gravity: flight.no_gravity_after.get(),
+                pickup: flight.pickup_after.get().map(|pickup| pickup as u8),
                 release_from_ground: flight.release_from_ground.get(),
                 actions: flight.actions.borrow_mut().drain(..).map(|action| match action {
                     projectile_events_v1::FlightAction::Explode { center, radius, fire, interaction } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::Explode {

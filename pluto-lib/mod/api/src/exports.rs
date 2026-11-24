@@ -56,7 +56,7 @@ pub use crate::pure::screen_handler_api_v1::{
 };
 pub use crate::pure::hud_api_v1::{self, HudDraw, HudEquipment, HudRegistry};
 pub use crate::pure::trade_offer_helper::{self, TradeOfferHelper, TradeOffer, TradeOfferFactory, TradeOfferContext, TradeRandom, TradeWorld};
-pub use crate::pure::projectile_events_v1::{self, AmmoRequest, ArrowFacts, BowShot, FlightAction, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileLaunch, ProjectileSpawned};
+pub use crate::pure::projectile_events_v1::{self, AmmoRequest, ArrowFacts, ArrowPickup, BowShot, FlightAction, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileLaunch, ProjectileSpawned};
 pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage, MemoryBlockEntities};
 pub use crate::pure::item_storage_api_v1::{self, ItemStorage};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};

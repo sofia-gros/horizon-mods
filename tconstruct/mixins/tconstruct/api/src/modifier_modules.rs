@@ -348,8 +348,9 @@ pub(crate) enum Module {
     /// BrushModule: the tool brushes suspicious blocks like the vanilla brush (brush_hook).
     Brush,
     /// InfinityModule: the launcher fires its named ammo without the shooter carrying any, paid for with
-    /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
-    /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
+    /// durability. The creative-only pickup the original sets on the fired arrow rides PlutoLib's arrow
+    /// pickup surface: the spawn pass reads the `tic_infinity` mark on a supplied arrow, and the flight
+    /// pass reads the weapon's own Infinity from the shot's profile (flight_hook).
     Infinity { module: crate::projectile_modules::Infinity },
     /// ArrowPierceModule: a shot's pierce level, set when the projectile spawns.
     ArrowPierce { module: crate::projectile_modules::ArrowPierce },
