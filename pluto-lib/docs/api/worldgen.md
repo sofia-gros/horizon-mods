@@ -403,6 +403,36 @@ RootPlacementTypeRegistry::register(id.clone(), |_| Err("invalid root settings".
 assert_eq!(RootPlacementTypeRegistry::decode(&id, &serde_json::Value::Null).err().as_deref(), Some("invalid root settings"));
 ```
 
+### `NativeTreeRoute`
+
+A native tree configuration prepared for explicit placement: the configuration rewritten to the form the host tree codec accepts, the decoded root override (`roots`, when the root placer type is registered) and the decoration `plan` interleaving native and custom steps in configuration order.
+
+```rust
+use pluto_lib::NativeTreeRoute;
+let route = NativeTreeRoute {
+    configuration: serde_json::Value::Null,
+    roots: None,
+    plan: Vec::new(),
+};
+assert!(route.roots.is_none() && route.plan.is_empty());
+```
+
+### `native_tree_route`
+
+`fn native_tree_route(configuration: &serde_json::Value) -> Result<Option<NativeTreeRoute>, String>`. Prepares a `minecraft:tree` configuration whose root placer or decorators use registered component types for `BlockEditor::place_tree_with_plan`: a registered root placer is decoded into the route's override and retagged to the native mangrove placer whose simulation it rides on, and registered decorators are decoded into custom plan steps and removed from the native decorator array. `Ok(None)` means the configuration names no registered component (or is not a tree configuration object) and native placement keeps it, including its errors; a registered codec's rejection stays an error. The feature dispatcher routes tree configurations through this preparation, so configured features placed by behaviours or structures grow with their registered components. No world access is performed.
+
+```rust
+use pluto_lib::{Identifier, RootPlacement, RootPlacementTypeRegistry, WorldgenBindings, native_tree_route};
+assert!(native_tree_route(&serde_json::json!({"decorators": []})).unwrap().is_none());
+RootPlacementTypeRegistry::register(Identifier::parse("example:variant_roots").unwrap(), |_| Ok(RootPlacement::new(WorldgenBindings::default(), |_| Ok(None))));
+let route = native_tree_route(&serde_json::json!({
+    "root_placer": {"type": "example:variant_roots"},
+    "decorators": [],
+})).unwrap().unwrap();
+assert!(route.roots.is_some());
+assert_eq!(route.configuration["root_placer"]["type"], "minecraft:mangrove_root_placer");
+```
+
 ### `StructureWorld`
 
 Borrowed query/RNG interface for one structure attempt. These required methods have no guessed default implementation:

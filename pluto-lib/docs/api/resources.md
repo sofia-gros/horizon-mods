@@ -65,7 +65,7 @@ ResourceManagerHelper::get(ResourceType::ServerData)
     }).unwrap();
 ```
 
-> **Use with Caution.** Server folder discovery/apply is included in the v13 host/API/game-entry typechecks; executable linking, gameplay and combined attachment review remain pending. Native source sorts effective IDs and omits malformed JSON (including a broken top override, without reviving a lower pack). The facade validates the whole batch before invoking a callback outside registry locks. Callback errors are returned by pure dispatch and logged by the native bridge; they do not roll back other listeners or abort the whole server reload. There is no borrowed player/world context. `reload_registry` source-exposes owned entity-type and item membership/tag snapshots during these callbacks; retain that value when later work needs the same generation. Other registries remain unavailable. Folder callbacks run before `ServerData` notifications; notification phase ordering does not order folder callbacks. Registrations made during application affect the next native enumeration, not the current one. Client JSON declarations are accepted but currently inert, never redirected to server data.
+> **Use with Caution.** Server folder discovery/apply is included in the v13 host/API/game-entry typechecks; executable linking, gameplay and combined attachment review remain pending. Native source sorts effective IDs and omits malformed JSON (including a broken top override, without reviving a lower pack). The facade validates the whole batch before invoking a callback outside registry locks. Callback errors are returned by pure dispatch and logged by the native bridge; they do not roll back other listeners or abort the whole server reload. There is no borrowed player/world context. `reload_registry` source-exposes owned entity-type, item and block membership/tag snapshots during these callbacks; retain that value when later work needs the same generation. Other registries remain unavailable. Folder callbacks run before `ServerData` notifications; notification phase ordering does not order folder callbacks. Registrations made during application affect the next native enumeration, not the current one. Client JSON declarations are accepted but currently inert, never redirected to server data.
 
 ## Reading Complete Resource Stacks
 
@@ -96,7 +96,7 @@ data.register_json_reload_listener(Identifier::new("example", "material_tags").u
 
 ## Capturing Reload Registry Membership
 
-Inside a server JSON-folder callback, `reload_registry` returns an owned lookup for a supported registry. Native source uses the full entity-type ID data used by command validation, not the renderer-filtered MobTypes list. Entity tags come from the active world's successfully loaded pack-tag registry, with the native base-tag fallback only when that registry is unavailable. Item entries/tags use the world's currently selected native Items, not the fixed base Items or a built-in mod tag catalog. The fluid registry (`minecraft:fluid`) is the native fluid IDs joined with the fluids defined through [`FluidRegistry`](fluid.md), with the fluid tags read as the game reads its own (the resource root's `data/<namespace>/tags/fluid` and the world's pack stack, nested `#tag`s expanded); see [Fluid Tags](fluid.md#fluid-tags). An absent tag and a present empty tag remain distinct.
+Inside a server JSON-folder callback, `reload_registry` returns an owned lookup for a supported registry. Native source uses the full entity-type ID data used by command validation, not the renderer-filtered MobTypes list. Entity tags come from the active world's successfully loaded pack-tag registry, with the native base-tag fallback only when that registry is unavailable. Item entries/tags use the world's currently selected native Items, not the fixed base Items or a built-in mod tag catalog. The fluid registry (`minecraft:fluid`) is the native fluid IDs joined with the fluids defined through [`FluidRegistry`](fluid.md), with the fluid tags read as the game reads its own (the resource root's `data/<namespace>/tags/fluid` and the world's pack stack, nested `#tag`s expanded); see [Fluid Tags](fluid.md#fluid-tags). The block registry (`minecraft:block`) is the world's own block registry — every block the active pack stack registers, vanilla and content alike — with the block tags of the world's pack-tag tables (the game's own tag read as fallback); tag members naming no registered block are dropped. An absent tag and a present empty tag remain distinct.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
@@ -110,7 +110,7 @@ ResourceManagerHelper::get(ResourceType::ServerData)
     }).unwrap();
 ```
 
-> **Use with Caution.** The native wrapper/provider is source-declared, guarded pending native attachment review, and not plan/type/build/game validated. `minecraft:entity_type` and `minecraft:item` are source-supported. Outside the callback, or for unsupported/unavailable registries, the result is `None`, not a fabricated empty registry. Invalid registry contents are logged and make that registry unavailable without discarding valid independent registries. Broken or duplicate registry IDs invalidate the entire ambiguous context. Valid JSON is still delivered so a consumer can disable stale state. This does not abort or roll back the whole server reload. Owned lookups survive callback exit/reload, but retaining one does not refresh it. Entries/tag members are sets: no original registry order or seeded random-selection parity is promised. Nested callbacks restore the outer context, including panic unwinding; no world pointer or temporary entity ID is retained.
+> **Use with Caution.** The native wrapper/provider is source-declared, guarded pending native attachment review, and not plan/type/build/game validated. `minecraft:entity_type`, `minecraft:item` and `minecraft:block` are source-supported. Outside the callback, or for unsupported/unavailable registries, the result is `None`, not a fabricated empty registry. Invalid registry contents are logged and make that registry unavailable without discarding valid independent registries. Broken or duplicate registry IDs invalidate the entire ambiguous context. Valid JSON is still delivered so a consumer can disable stale state. This does not abort or roll back the whole server reload. Owned lookups survive callback exit/reload, but retaining one does not refresh it. Entries/tag members are sets: no original registry order or seeded random-selection parity is promised. Nested callbacks restore the outer context, including panic unwinding; no world pointer or temporary entity ID is retained.
 
 ## Reference
 
@@ -204,7 +204,7 @@ assert!(stack.layers[1].is_err()); // not replaced by the lower layer
 
 ### `ResourceManagerHelper::reload_registry`
 
-`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type`, `minecraft:item` and `minecraft:fluid` (membership with mod fluids and tags); native integration remains unverified.
+`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type`, `minecraft:item`, `minecraft:fluid` (membership with mod fluids and tags) and `minecraft:block` (the world's blocks and their tags); native integration remains unverified.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -249,6 +249,19 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 }
 ```
 
+### `RegistryLookup::tags`
+
+`fn tags(&self) -> &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>`. Every captured tag with its members, for consumers that republish the resolved snapshot (the advancement tag overlay). A tag the reload did not capture is not in this map.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:item").unwrap()) {
+    for (tag, members) in items.tags() {
+        let _count = (tag, members.len());
+    }
+}
+```
+
 ### `RegistryLookup::with_extra_tags`
 
 `fn with_extra_tags(&self, extra: &[(Identifier, Vec<Identifier>)]) -> RegistryLookup`. A copy whose tags also hold the given members (a mod that needs a convention tag such as `forge:ingots/iron` that nothing in the game defines). Members that are not registry entries are dropped, and a tag with no remaining member is not created. The original snapshot is unchanged; redo it for every reload.
@@ -262,6 +275,22 @@ if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("
 }
 ```
 
+
+
+### `RegistryLookup::from_parts`
+
+`fn from_parts(entries: &[String], tags: &[(String, Vec<String>)]) -> Result<Self, String>`. A registry snapshot built from its entries and tags: every tag member must be an entry, and a tag may not repeat. A malformed id, an unknown tag member or a duplicate tag rejects the whole snapshot.
+
+```rust
+use pluto_lib::{Identifier, RegistryLookup};
+
+let lookup = RegistryLookup::from_parts(
+    &["minecraft:stone".to_owned()],
+    &[("minecraft:logs".to_owned(), vec!["minecraft:stone".to_owned()])],
+).unwrap();
+assert!(lookup.contains(&Identifier::parse("minecraft:stone").unwrap()));
+assert_eq!(lookup.get_tag(&Identifier::parse("minecraft:logs").unwrap()).unwrap().len(), 1);
+```
 ### `ResourceManagerHelper::read_client_resource`
 
 `fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed, the id contains a non-plain path (empty, `.` or `..` segments), or the asset could not be read. This does not read server datapacks, and does not validate the file's format.

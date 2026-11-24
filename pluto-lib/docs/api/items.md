@@ -697,6 +697,18 @@ assert_eq!(query.action, "shears_harvest");
 assert!(query.custom_data.is_empty());
 ```
 
+### `IndestructibleContext`
+
+A per-stack indestructibility query with `item: String` and `custom_data: NbtCompound` (the stack's own data, empty for none). A dropped stack answering true never takes environmental damage (fire, lava, cactus) and never ages out — the original's indestructible item entity, whose lifespan is unbounded and which is invulnerable to everything but the sources that bypass invulnerability. Only `Some(true)` changes anything.
+
+```rust
+use pluto_lib::{IndestructibleContext, Nbt, NbtCompound};
+let mut data = NbtCompound::new();
+data.insert("indestructible".into(), Nbt::Byte(1));
+let query = IndestructibleContext { item: "example:tool".into(), custom_data: data };
+assert!(query.custom_data.contains_key("indestructible"));
+```
+
 ### `ItemBehavior::enchantability`
 
 `fn enchantability(self, callback: impl Fn(&EnchantabilityContext) -> Option<i32> + Send + Sync + 'static) -> ItemBehavior`. How readily a stack of this item takes enchantments; `None` delegates to the item's own value. A negative answer is treated as no answer.
@@ -718,6 +730,17 @@ use pluto_lib::{Identifier, ItemBehavior};
 
 let behavior = ItemBehavior::new(Identifier::parse("example:kama").unwrap())
     .can_perform_action(|query| query.action.starts_with("shears_").then_some(true));
+let _ = behavior;
+```
+
+### `ItemBehavior::indestructible`
+
+`fn indestructible(self, callback: impl Fn(&IndestructibleContext) -> Option<bool> + Send + Sync + 'static) -> ItemBehavior`. Whether a dropped stack of this item is indestructible (see `IndestructibleContext`); `None` delegates to the item's own behaviour, and only a true answer changes anything.
+
+```rust
+use pluto_lib::{Identifier, ItemBehavior};
+let behavior = ItemBehavior::new(Identifier::parse("example:tool").unwrap())
+    .indestructible(|query| Some(query.custom_data.contains_key("indestructible")));
 let _ = behavior;
 ```
 
@@ -789,7 +812,7 @@ assert_eq!(leftover.count, 41, "the slot filled to 64");
 
 ## Advancement item predicates and trigger events
 
-Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions.
+Custom item predicates and custom trigger events for the game's advancement engine. A mod registers a predicate callback that decides whether an item satisfies a mod-defined predicate form named in advancement criteria, and submits events for mod-defined trigger ids; the native adapter owns the tree, progress and rewards and evaluates submissions. A mod also publishes its resolved item-tag snapshots, so criteria naming its tags resolve against the world data the mod itself loaded. A mod may also resolve an advancement's function reward in code — the game's function store carries only data pack files, so a function shipped in a mod's own package never reaches it — by registering the advancements the function grants to the rewarded player.
 
 ### `ItemSnapshot`
 
@@ -1043,4 +1066,393 @@ assert!(submit_event("example:counted", serde_json::json!({}), same));
 assert_eq!(queued_event_count(), 1);
 let _ = take_queued_events();
 assert_eq!(queued_event_count(), 0);
+```
+
+### `TagSnapshot`
+
+`type TagSnapshot = BTreeMap<String, Option<Vec<String>>>`. One owner's resolved item-tag snapshot for advancement matching: tag id to member ids. `Some(empty)` is a known empty tag; `None` is a tag the owner knows but cannot currently resolve, which matching fails closed on rather than falling back to the native table. Tags absent from the snapshot are not the owner's business.
+
+```rust
+use pluto_lib::advancement_api_v1::TagSnapshot;
+
+let mut snapshot = TagSnapshot::new();
+snapshot.insert("example:tag".into(), Some(vec!["example:item".into()]));
+snapshot.insert("example:unavailable".into(), None);
+snapshot.insert("example:empty".into(), Some(Vec::new()));
+assert_eq!(snapshot["example:tag"], Some(vec!["example:item".to_string()]));
+assert_eq!(snapshot["example:unavailable"], None);
+assert_eq!(snapshot["example:empty"], Some(Vec::new()));
+```
+
+### `publish_tag_snapshot`
+
+`fn publish_tag_snapshot(owner: &str, snapshot: TagSnapshot)`. Publishes one owner's current resolved item-tag snapshot, replacing the owner's previous publication wholesale. Publishing an empty snapshot releases the ownership; the publication is retained as an empty snapshot so the adapter releases the owner's world-side ownership on its next tick. Consumers publish when their data (re)loads and release when it unloads.
+
+```rust
+use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshots};
+
+let mut snapshot = TagSnapshot::new();
+snapshot.insert("example:tag".into(), Some(vec!["example:item".into()]));
+publish_tag_snapshot("example:docs", snapshot);
+assert!(tag_snapshots().contains(&("example:docs".to_string(), {
+    let mut snapshot = TagSnapshot::new();
+    snapshot.insert("example:tag".into(), Some(vec!["example:item".into()]));
+    snapshot
+})));
+publish_tag_snapshot("example:docs", TagSnapshot::new());
+assert!(tag_snapshots().contains(&("example:docs".to_string(), TagSnapshot::new())));
+```
+
+### `tag_snapshot_generation`
+
+`fn tag_snapshot_generation() -> u64`. The publication generation: 0 before the first publication, bumped by every `publish_tag_snapshot` call. The native adapter compares it against the generation it last applied to a world's store, so an unchanged publication costs one comparison per tick.
+
+```rust
+use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshot_generation};
+
+let before = tag_snapshot_generation();
+publish_tag_snapshot("example:docs", TagSnapshot::new());
+assert_eq!(tag_snapshot_generation(), before + 1);
+```
+
+### `tag_snapshots`
+
+`fn tag_snapshots() -> Vec<(String, TagSnapshot)>`. Every currently published owner snapshot, cloned for the native adapter; pure consumers only publish.
+
+```rust
+use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshots};
+
+publish_tag_snapshot("example:docs", TagSnapshot::new());
+assert!(tag_snapshots().iter().any(|(owner, snapshot)| owner == "example:docs" && snapshot.is_empty()));
+```
+
+### `FunctionRewardCallback`
+
+`FunctionRewardCallback` is the callback type `fn(&str) -> Vec<String>`: called with a function id, it returns the advancement ids to grant the player the reward belongs to. An empty return leaves the function unexecuted, exactly as an unregistered one does; the callback names grants only and the native adapter performs them, against progress whose grants are idempotent.
+
+```rust
+use pluto_lib::advancement_api_v1::FunctionRewardCallback;
+
+fn root(function: &str) -> Vec<String> {
+    if function == "example:grant_root" { vec!["minecraft:story/root".to_string()] } else { Vec::new() }
+}
+let callback: FunctionRewardCallback = root;
+assert_eq!(callback("example:grant_root"), vec!["minecraft:story/root".to_string()]);
+assert!(callback("example:other").is_empty());
+```
+
+### `FunctionRewardRegistration`
+
+One registration: `id` the stable unique registration identity (not a function discriminator), `function` the function id it resolves (the id an advancement's `rewards.function` names) and `callback` the `FunctionRewardCallback`.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardCallback, FunctionRewardRegistration};
+
+fn none(_: &str) -> Vec<String> { Vec::new() }
+let entry = FunctionRewardRegistration { id: "example:root", function: "example:grant_root", callback: none };
+assert_eq!(entry.id, "example:root");
+assert_eq!(entry.function, "example:grant_root");
+let _: FunctionRewardCallback = entry.callback;
+```
+
+### `register_function_reward`
+
+`fn register_function_reward(entry: FunctionRewardRegistration) -> Result<(), RegistrationError>`. Process-lifetime registration, once during startup before the first advancement completes; a function id and a registration id are each claimed once, and duplicates are rejected without replacement.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, RegistrationError, register_function_reward, resolve_function_reward};
+
+fn root(_: &str) -> Vec<String> { vec!["minecraft:story/root".to_string()] }
+let entry = FunctionRewardRegistration { id: "example:root", function: "example:grant_root", callback: root };
+register_function_reward(entry).unwrap();
+assert_eq!(register_function_reward(entry), Err(RegistrationError::DuplicateId));
+assert_eq!(register_function_reward(FunctionRewardRegistration { id: "", function: "example:other", callback: root }), Err(RegistrationError::EmptyId));
+assert_eq!(register_function_reward(FunctionRewardRegistration { id: "example:other", function: "", callback: root }), Err(RegistrationError::EmptyId));
+assert_eq!(resolve_function_reward("example:grant_root"), vec!["minecraft:story/root".to_string()]);
+```
+
+### `has_function_rewards`
+
+`fn has_function_rewards() -> bool`. Whether any function reward is registered.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, has_function_rewards, register_function_reward};
+
+fn none(_: &str) -> Vec<String> { Vec::new() }
+assert!(!has_function_rewards());
+register_function_reward(FunctionRewardRegistration { id: "example:present", function: "example:grant_none", callback: none }).unwrap();
+assert!(has_function_rewards());
+```
+
+### `resolve_function_reward`
+
+`fn resolve_function_reward(function: &str) -> Vec<String>`. The advancements a registered resolver grants for `function`; empty when the function is unregistered or its resolver grants none. The native adapter calls this at the game's reward boundary; pure consumers only register.
+
+```rust
+use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, register_function_reward, resolve_function_reward};
+
+fn root(_: &str) -> Vec<String> { vec!["minecraft:story/root".to_string()] }
+assert!(resolve_function_reward("example:grant_root").is_empty());
+register_function_reward(FunctionRewardRegistration { id: "example:root", function: "example:grant_root", callback: root }).unwrap();
+assert_eq!(resolve_function_reward("example:grant_root"), vec!["minecraft:story/root".to_string()]);
+assert!(resolve_function_reward("example:unregistered").is_empty());
+```
+
+## Stacked-on-other clicks
+
+A carried stack can answer clicks onto other stacks itself — the game's `overrideStackedOnOther` shape, as a bundle answers clicks onto items. Register the behaviour for the carried item with `StackedOnOtherRegistry`: the dispatch runs in every menu, including the game's own inventory and container menus, before the game's bundle handling, exactly where the game asks the carried item first. The callback decides from the two stacks: pass (the game's own click handling runs), consume (the click is taken with no stack change), or apply — both stacks are replaced, an optional stack is handed to the clicking player, and an optional sound event is played to the player. The request names the clicking player by uuid (`player`, 0 when the menu names none). An applied sound carries its own volume and pitch; the menu's own sounds carry only their event id, so theirs are the game's own. The request's `random` is a draw in [0, 1) from the game's own random stream, for an answer that varies by chance.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest};
+
+fn consume(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Consume }
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), consume);
+let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, player: 0, secondary: true, allow_modification: true, random: 0.5 };
+assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
+```
+
+### `StackedOnOtherRequest`
+
+A click of the carried stack onto another stack in a menu: `carried` is the stack in the player's hand (the registered item), `clicked` the stack in the clicked slot (None when the slot is empty), `player` the clicking player's uuid (0 when the menu names none), `secondary` is true for the secondary (right) click and false for the primary, and `allow_modification` is whether the clicked slot allows modification by this player (the game's own `Slot.allowModification` answer), and `random` is a draw in [0, 1) from the game's own random stream for this click, for an answer that varies by chance (the original reads the level's random for its saw pitch).
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+use pluto_lib::item_api_v1::StackedOnOtherRequest;
+
+let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 2);
+let clicked = ItemSlot::new(Identifier::new("example", "tool").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), player: 0, secondary: true, allow_modification: false, random: 0.5 };
+assert!(request.secondary);
+assert!(!request.allow_modification);
+assert_eq!(request.clicked.map(|slot| slot.count), Some(1));
+```
+
+### `StackedOnOtherDecision`
+
+What the carried item does with the click: `Pass` leaves the game's own click handling to run; `Consume` takes the click with no stack change; `Apply` takes the click and replaces both stacks — `clicked` is the clicked slot's new stack (None empties it), `carried` the carried stack (None empties the hand), `give` a stack handed to the clicking player (into their inventory, else dropped, such as a single filled item split off a carried stack of more than one), and `sound` a `StackedSound` played to the player with its own volume and pitch.
+
+```rust
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedSound};
+
+let decision = StackedOnOtherDecision::Apply { clicked: None, carried: None, give: None, sound: Some(StackedSound { id: "example:saw", volume: 1.0, pitch: 0.9 }) };
+assert!(matches!(decision, StackedOnOtherDecision::Apply { sound: Some(StackedSound { pitch: 0.9, .. }), .. }));
+assert!(matches!(StackedOnOtherDecision::Pass, StackedOnOtherDecision::Pass));
+assert!(matches!(StackedOnOtherDecision::Consume, StackedOnOtherDecision::Consume));
+```
+
+### `StackedSound`
+
+A sound a stacked-on-other click plays for the player, with the volume and pitch the caller chose (the original's `Player.playSound(sound, volume, pitch)`): `id` is the sound event id, `volume` the volume it plays at (1 is the event's own level) and `pitch` the pitch it plays at (1 is the event's own pitch). An `Apply` decision's sound travels on the rich menu-sound queue, which carries both, where the menu's own sounds carry only their event id.
+
+```rust
+use pluto_lib::item_api_v1::StackedSound;
+
+let sound = StackedSound { id: "example:saw", volume: 1.0, pitch: 0.8 + 0.4 * 0.5 };
+assert_eq!(sound.id, "example:saw");
+assert_eq!(sound.volume, 1.0);
+assert!((sound.pitch - 1.0).abs() < 1e-6);
+```
+
+### `StackedOnOtherCallback`
+
+`type StackedOnOtherCallback = fn(&StackedOnOtherRequest<'_>) -> StackedOnOtherDecision`. Decides one click of the carried stack it is registered for.
+
+```rust
+use pluto_lib::item_api_v1::{StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRequest};
+
+fn pass(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Pass }
+let callback: StackedOnOtherCallback = pass;
+let carried = pluto_lib::ItemSlot::new(pluto_lib::Identifier::new("example", "kit").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, player: 0, secondary: false, allow_modification: true, random: 0.5 };
+assert!(matches!(callback(&request), StackedOnOtherDecision::Pass));
+```
+
+### `StackedOnOtherRegistry`
+
+The registry of stacked-on-other behaviours, keyed by the carried item. Register once during startup; registering the same item again replaces the earlier entry.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot};
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest};
+
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Consume);
+let carried = ItemSlot::new(Identifier::new("example", "kit").unwrap(), 1);
+let request = StackedOnOtherRequest { carried: &carried, clicked: None, player: 0, secondary: true, allow_modification: true, random: 0.5 };
+assert!(StackedOnOtherRegistry::get("example:kit").is_some());
+assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
+assert!(StackedOnOtherRegistry::get("example:other").is_none());
+```
+
+### `StackedOnOtherRegistry::register`
+
+`fn register(item: Identifier, callback: StackedOnOtherCallback)`. Makes `item` answer clicks of its carried stacks onto other stacks; registering the same item again replaces the earlier entry.
+
+```rust
+use pluto_lib::Identifier;
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry};
+
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Pass);
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Consume);
+assert!(StackedOnOtherRegistry::get("example:kit").is_some());
+```
+
+### `StackedOnOtherRegistry::get`
+
+`fn get(item: &str) -> Option<StackedOnOtherCallback>`. The callback registered for `item` (an id such as `tconstruct:repair_kit`), if anything.
+
+```rust
+use pluto_lib::Identifier;
+use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedOnOtherRegistry};
+
+assert!(StackedOnOtherRegistry::get("example:kit").is_none());
+StackedOnOtherRegistry::register(Identifier::new("example", "kit").unwrap(), |_| StackedOnOtherDecision::Pass);
+assert!(StackedOnOtherRegistry::get("example:kit").is_some());
+```
+### `ItemEvents`
+
+Events about items.
+
+```rust
+use pluto_lib::ItemEvents;
+
+ItemEvents::RELEASE_USING.register(|_| {});
+```
+
+### `ItemEvents::RELEASE_USING`
+
+A player let go of an item they were using, before its use time ran out: the charge-and-release half of a use (a bow-like item shoots by its charge; a thrown tool leaves the hand). Only a player's release is heard, and only for an item a `StackUse` or `ItemUse` registration gave a use time. Server only.
+
+```rust
+use pluto_lib::ItemEvents;
+
+ItemEvents::RELEASE_USING.register(|release| {
+    if release.ticks_used > 10 {
+        release.set_used();
+    }
+});
+```
+
+### `ItemEvents::USE_TICK`
+
+One tick of a player using an item over time (see [`UseTick`](#usetick)): heard every tick of the use, for the using player only, and only when a callback listens. The tick itself changes nothing; a callback acts through the player and the world. Server only.
+
+```rust
+use pluto_lib::ItemEvents;
+
+ItemEvents::USE_TICK.register(|tick| {
+    if tick.ticks_used % 4 == 0 {
+        // every fourth tick of the use: an eating tool's sound, a charge's drain
+    }
+});
+```
+
+### `ReleaseUsing`
+
+A player releasing an item they were using. `stack` is the stack that was being used, `player` who let go and `dimension` the dimension they are in. `position` is where the player stands, `eye` where their eyes are (where a thrown projectile leaves from) and `look` the direction they look, as a unit vector. `creative` says whether the player is in creative mode. `ticks_used` is how many ticks the use was held — the charge. `main_hand` and `off_hand` are the stacks in the player's hands as the use ends (the used stack is one of them). Set `used` (with `set_used`) to count the release as a use of the item, which starts its cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the player carries, written after the callbacks ran; a count of 0 empties the place, as an ammunition callback spends its source.
+
+```rust
+use pluto_lib::{CarriedEdit, CarriedSlot, ItemSlot, Identifier, ReleaseUsing, ServerPlayer, StackData, StackSlot};
+use std::cell::{Cell, RefCell};
+
+let release = ReleaseUsing {
+    stack: StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() },
+    player: ServerPlayer { uuid: 7, name: "thrower".into() },
+    dimension: "minecraft:overworld".into(),
+    position: [0.5, 64.0, 0.5], eye: [0.5, 65.62, 0.5], look: [0.0, 0.0, 1.0], creative: false,
+    ticks_used: 20,
+    main_hand: Some(ItemSlot::new(Identifier::parse("example:thrown_tool").unwrap(), 1)),
+    off_hand: None,
+    used: Cell::new(false),
+    edits: RefCell::new(Vec::new()),
+};
+assert_eq!(release.world().dimension, "minecraft:overworld");
+if release.ticks_used > 10 {
+    release.set_used();
+    release.edits.borrow_mut().push(CarriedEdit {
+        slot: CarriedSlot::Equipment(StackSlot::MainHand),
+        stack: ItemSlot::new(Identifier::parse("example:thrown_tool").unwrap(), 0),
+    });
+}
+assert!(release.used.get());
+assert_eq!(release.edits.borrow().len(), 1);
+```
+
+### `ReleaseUsing::set_used`
+
+`fn set_used(&self)`. Mark the release as a use of the item, so its cooldown starts.
+
+```rust
+use pluto_lib::{ReleaseUsing, ServerPlayer, StackData};
+use std::cell::{Cell, RefCell};
+
+let release = ReleaseUsing {
+    stack: StackData::default(), player: ServerPlayer { uuid: 1, name: "a".into() }, dimension: "minecraft:overworld".into(),
+    position: [0.0; 3], eye: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false,
+    ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
+};
+release.set_used();
+assert!(release.used.get());
+```
+
+### `ReleaseUsing::world`
+
+`fn world(&self) -> World`. The world the player is in.
+
+```rust
+use pluto_lib::{ReleaseUsing, ServerPlayer, StackData};
+use std::cell::{Cell, RefCell};
+
+let release = ReleaseUsing {
+    stack: StackData::default(), player: ServerPlayer { uuid: 1, name: "a".into() }, dimension: "minecraft:the_nether".into(),
+    position: [0.0; 3], eye: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false,
+    ticks_used: 0, main_hand: None, off_hand: None, used: Cell::new(false), edits: RefCell::new(Vec::new()),
+};
+assert_eq!(release.world().dimension, "minecraft:the_nether");
+```
+
+### `UseTick`
+
+One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`). `stack` is the stack in use, `player` the player using it and `dimension` the dimension they are in; `position` is where the player stands (their feet), `eye` where their eyes are and `look` the direction they look, as a unit vector (where a use that aims, such as a brush's strokes, traces from), and `creative` whether they are in creative mode. `ticks_used` is how many ticks the use has run (the use's full time less the ticks left, so the first ticks of a use read near 0 and the last near the end) and `duration` the use's full time in ticks, as the stack's use gives it. The tick itself changes nothing: a callback acts through the player and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's drain). A use that ran its time out is finished, not ticked past its end.
+
+```rust
+use pluto_lib::{ServerPlayer, StackData};
+use pluto_lib::item_api_v1::UseTick;
+
+let tick = UseTick {
+    stack: StackData { item: "example:eaten_tool".into(), count: 1, ..Default::default() },
+    player: ServerPlayer { uuid: 7, name: "eater".into() },
+    dimension: "minecraft:overworld".into(),
+    position: [0.5, 64.0, 0.5],
+    eye: [0.5, 65.62, 0.5],
+    look: [0.0, 0.0, 1.0],
+    creative: false,
+    ticks_used: 8,
+    duration: 32,
+};
+assert_eq!(tick.world().dimension, "minecraft:overworld");
+assert!(tick.ticks_used < tick.duration);
+```
+
+### `UseTick::world`
+
+`fn world(&self) -> World`. The world the player is in.
+
+```rust
+use pluto_lib::{ServerPlayer, StackData};
+use pluto_lib::item_api_v1::UseTick;
+
+let tick = UseTick {
+    stack: StackData::default(),
+    player: ServerPlayer { uuid: 1, name: "a".into() },
+    dimension: "minecraft:the_nether".into(),
+    position: [0.0; 3],
+    eye: [0.0, 1.62, 0.0],
+    look: [0.0, 0.0, 1.0],
+    creative: false,
+    ticks_used: 0,
+    duration: 20,
+};
+assert_eq!(tick.world().dimension, "minecraft:the_nether");
 ```

@@ -127,6 +127,38 @@ data.insert("heat".to_owned(), Nbt::Int(100));
 assert_eq!(data.len(), 1);
 ```
 
+### `Nbt::from_binary`
+
+`fn from_binary(bytes: &[u8]) -> Result<NbtCompound, String>`. Reads a binary NBT document (a named root compound) into the model, inflating it first when it is gzip-wrapped, as structure templates are stored. The root's own name is dropped; trailing bytes after the root are refused, so a corrupt file fails instead of reading as a shorter one. Java's byte arrays are signed there and bit patterns here, so a byte array round-trips exactly.
+
+```rust
+use pluto_lib::Nbt;
+
+// A root compound holding one int, DataVersion 3465, written out by hand.
+let bytes: &[u8] = &[
+    10, 0, 0, // compound, empty root name
+    3, 0, 11, b'D', b'a', b't', b'a', b'V', b'e', b'r', b's', b'i', b'o', b'n', 0, 0, 13, 137,
+    0, // end
+];
+let root = Nbt::from_binary(bytes).unwrap();
+assert_eq!(root.get("DataVersion"), Some(&Nbt::Int(3465)));
+assert!(Nbt::from_binary(&[3, 0, 0]).is_err(), "an int root is not a compound");
+```
+
+### `gunzip`
+
+`fn gunzip(bytes: &[u8]) -> Result<Vec<u8>, String>`. Inflates a gzip stream to the bytes it wraps (stored and Huffman deflate blocks alike; the pure crate takes no compression dependency, so the inflater is PlutoLib's own). The stream's CRC32 and size trailer are not verified: the deflate stream's own final block marks the data's end.
+
+```rust
+use pluto_lib::gunzip;
+
+// A stored (uncompressed) gzip stream around the bytes 1, 2, 3.
+let mut stream = vec![0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 3, 1, 3, 0, 0xfc, 0xff, 1, 2, 3];
+stream.extend_from_slice(&[0; 8]);
+assert_eq!(gunzip(&stream).unwrap(), [1, 2, 3]);
+assert!(gunzip(&[0x1f, 0x8b, 7]).is_err(), "a non-deflate gzip is refused");
+```
+
 ### `Nbt::as_i64`
 
 `fn as_i64(&self) -> Option<i64>`. Any integer tag (`Byte`, `Short`, `Int`, `Long`) as an `i64`; `None` for other tags.
@@ -396,7 +428,7 @@ assert!(BlockEntityTypeRegistry::get("example:found").is_some());
 
 ### `ItemSlot`
 
-One stack in an item slot. `item` is the item, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage the stack takes before it breaks when that differs from the item's (the `minecraft:max_damage` component, None for the item's own) and `custom_data` the stack's `minecraft:custom_data` (empty for none). Clone an existing slot when moving it: an opaque host-owned snapshot carries its other components (including native wire data) across slot/cursor changes, and the adapter applies edits to the public fields afterward. Use `ItemSlot::new`, not a struct literal, for a plain new stack; it must not inherit the destination's components. Changing `item` discards the captured source components. To empty a container slot, assign `None`; a committed slot with `count == 0` is also written back as `None`, matching the host's empty-slot representation. Production conversion fixtures pass; the changed native adapter has not yet been compiled or exercised in game. A tool a mod made keeps its materials and stats in `custom_data`, so a block that takes tools or tool parts can read them. `tool` is the stack's own `minecraft:tool` component: write the mining rules and speeds there and only this stack mines that way (`None` keeps the item's own). `attribute_modifiers` is the stack's own `minecraft:attribute_modifiers` component, one compound per modifier with `type`, `id`, `amount`, `operation` and `slot`: write the list there and only this stack carries those attribute modifiers (an empty list gives it none, `None` keeps the item's); the host applies the list to a player holding or wearing the stack. `enchantments` is the stack's own `minecraft:enchantments` component as enchantment id to level: write it there and only this stack carries those enchantments (an empty map removes them, `None` keeps the stack's), and the host applies them to a player holding or wearing the stack. The native mining-speed and drop rules read it, and the native item encoder/decoder already carries it between players; the conversion is source-wired and not yet compiled against the pinned host. `custom_model_data` is the stack's own `minecraft:custom_model_data` component (see `CustomModelData` on the player page): write it there and only this stack selects that item-model entry (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host.
+One stack in an item slot. `item` is the item, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage the stack takes before it breaks when that differs from the item's (the `minecraft:max_damage` component, None for the item's own) and `custom_data` the stack's `minecraft:custom_data` (empty for none). Clone an existing slot when moving it: an opaque host-owned snapshot carries its other components (including native wire data) across slot/cursor changes, and the adapter applies edits to the public fields afterward. Use `ItemSlot::new`, not a struct literal, for a plain new stack; it must not inherit the destination's components. Changing `item` discards the captured source components. To empty a container slot, assign `None`; a committed slot with `count == 0` is also written back as `None`, matching the host's empty-slot representation. Production conversion fixtures pass; the changed native adapter has not yet been compiled or exercised in game. A tool a mod made keeps its materials and stats in `custom_data`, so a block that takes tools or tool parts can read them. `tool` is the stack's own `minecraft:tool` component: write the mining rules and speeds there and only this stack mines that way (`None` keeps the item's own). `attribute_modifiers` is the stack's own `minecraft:attribute_modifiers` component, one compound per modifier with `type`, `id`, `amount`, `operation` and `slot`: write the list there and only this stack carries those attribute modifiers (an empty list gives it none, `None` keeps the item's); the host applies the list to a player holding or wearing the stack. `enchantments` is the stack's own `minecraft:enchantments` component as enchantment id to level: write it there and only this stack carries those enchantments (an empty map removes them, `None` keeps the stack's), and the host applies them to a player holding or wearing the stack. The native mining-speed and drop rules read it, and the native item encoder/decoder already carries it between players; the conversion is source-wired and not yet compiled against the pinned host. `custom_model_data` is the stack's own `minecraft:custom_model_data` component (see `CustomModelData` on the player page): write it there and only this stack selects that item-model entry (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host. `profile` is the stack's own `minecraft:profile` component (a player head's owner: `name`, `id` as the uuid's four ints, and `properties`): write it there and only this stack carries that owner, so a head a beheading drops keeps the player's skin (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host. `map_id` is the stack's own `minecraft:map_id` component (a filled map's id): write it there and only this stack carries that map id, so a map a minimap inventory stores keeps its explored data (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, Nbt};

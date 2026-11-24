@@ -18,7 +18,7 @@ RECIPE_DONE.invoke(&"steel".to_owned());
 
 ## Choosing How Answers Combine
 
-When callbacks return something, a combiner turns the list of answers into one. The three that ship cover the events of the game: `Event::void()` (no answer, every callback runs), `Event::first_not_pass()` (the first answer that is not `Pass` wins) and `Event::allow_all()` (any `false` vetoes).
+When callbacks return something, a combiner turns the list of answers into one. The four that ship cover the events of the game: `Event::void()` (no answer, every callback runs), `Event::first_not_pass()` (the first answer that is not `Pass` wins), `Event::allow_all()` (any `false` vetoes) and `Event::first_some()` (the first `Some` answer wins).
 
 ```rust
 use pluto_lib::{ActionResult, Event};
@@ -124,6 +124,20 @@ assert!(ALLOW.invoke(&3));
 assert!(!ALLOW.invoke(&-1));
 ```
 
+### `Event::first_some`
+
+`const fn first_some() -> Event<A, Option<T>>`. Callbacks answer with `Some` when they know the answer for the request, `None` when they pass. The first `Some` wins and stops the rest; all `None` (or none) is `None`.
+
+```rust
+use pluto_lib::Event;
+
+static LOOKUP: Event<i32, Option<&'static str>> = Event::first_some();
+LOOKUP.register(|n| if *n == 1 { Some("one") } else { None });
+LOOKUP.register(|n| if *n == 2 { Some("two") } else { None });
+assert_eq!(LOOKUP.invoke(&2), Some("two"));
+assert_eq!(LOOKUP.invoke(&3), None);
+```
+
 ### `Event::register`
 
 `fn register(&self, callback: impl Fn(&A) -> R + Send + Sync + 'static)`. Adds a callback in the default phase. Registering from inside a running callback is allowed.
@@ -202,7 +216,7 @@ assert_eq!(double(&4), 8);
 
 ### `Combiner`
 
-Trait that turns the callbacks into one result. Implement it for a custom event; the three provided ones (`Unit`, `FirstNotPass`, `AllowAll`) cover PlutoLib's events.
+Trait that turns the callbacks into one result. Implement it for a custom event; the four provided ones (`Unit`, `FirstNotPass`, `AllowAll`, `FirstSome`) cover PlutoLib's events.
 
 ```rust
 use pluto_lib::{Combiner, Event};
@@ -254,6 +268,19 @@ use pluto_lib::{AllowAll, Event};
 static E: Event<(), bool> = Event::new(&AllowAll);
 E.register(|_| false);
 assert!(!E.invoke(&()));
+```
+
+### `FirstSome`
+
+Combiner for `Option<T>` events: the first `Some` wins.
+
+```rust
+use pluto_lib::{Event, FirstSome};
+
+static E: Event<i32, Option<&'static str>> = Event::new(&FirstSome);
+E.register(|n| if *n == 1 { Some("one") } else { None });
+assert_eq!(E.invoke(&1), Some("one"));
+assert_eq!(E.invoke(&2), None);
 ```
 
 ### `default_phase`
@@ -447,4 +474,28 @@ use pluto_lib::{entries_with, Support};
 for row in entries_with(Support::Stub) {
     assert_eq!(row.support, Support::Stub);
 }
+```
+
+### `Nbt::parse_snbt`
+
+`fn parse_snbt(text: &str) -> Result<Nbt, String>`. Parses SNBT text (the game's stringified NBT) into a value; the error says where the text stopped making sense.
+
+```rust
+use pluto_lib::Nbt;
+
+assert!(Nbt::parse_snbt("{count: 3, name: \"gem\"}").is_ok());
+assert!(Nbt::parse_snbt("{count: 3").is_err());
+```
+
+### `compare_nbt`
+
+`fn compare_nbt(expected: &Nbt, actual: Option<&Nbt>) -> bool`. Whether `actual` carries the pattern `expected` (the game's `NbtUtils.compareNbt` with the third argument true): the kinds must match exactly (a byte is not an int, and no number widens); a compound pattern matches when the data has at least its entries and every one matches; a list pattern matches when the data has at least its elements and every pattern element matches some data element; anything else must be equal. No data at all never matches.
+
+```rust
+use pluto_lib::{Nbt, compare_nbt};
+
+let pattern = Nbt::parse_snbt("{count: 3}").unwrap();
+let data = Nbt::parse_snbt("{count: 3, name: \"gem\"}").unwrap();
+assert!(compare_nbt(&pattern, Some(&data)));
+assert!(!compare_nbt(&pattern, None));
 ```

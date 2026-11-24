@@ -321,7 +321,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `build_height(dimension) -> Option<[i32; 2]>` (the build range of the dimension's level, default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, every entity summoned in `summons`, every explosion asked for in `explosions`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every generic brush sound asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -448,6 +448,35 @@ with_world(&mut tape, || {
 assert_eq!(tape.0, 0.75);
 ```
 
+### `World::build_height`
+
+`fn build_height(&self) -> Option<[i32; 2]>`. Minecraft: `Level.getMinBuildHeight` and `Level.getMaxBuildHeight`: the build range of this dimension's level, [lowest buildable y, first y above the build limit]. The host answers inside a callback that carries a world; outside one, the range the level last published on its tick answers (a level publishes every tick it runs), so a projectile's flight telling reads its own level's range too. `None` when neither has answered for the dimension — an unloaded dimension, a client, or a level that never ticked. A custom dimension reads its own range, not the overworld's.
+
+```rust
+use pluto_lib::{with_world, World, WorldOps};
+
+struct Levels;
+impl WorldOps for Levels {
+    fn block_state(&mut self, _: &str, _: [i32; 3]) -> Option<String> { None }
+    fn set_block_state(&mut self, _: &str, _: [i32; 3], _: &str) -> bool { false }
+    fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+    fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> {
+        match dimension {
+            "minecraft:overworld" => Some([-64, 320]),
+            "example:custom" => Some([-32, 128]),
+            _ => None,
+        }
+    }
+}
+let mut levels = Levels;
+assert_eq!(World::new("example:custom").build_height(), None);
+with_world(&mut levels, || {
+    assert_eq!(World::new("example:custom").build_height(), Some([-32, 128]));
+    assert_eq!(World::new("minecraft:overworld").build_height(), Some([-64, 320]));
+    assert_eq!(World::new("minecraft:the_end").build_height(), None);
+});
+```
+
 ### `World::set_block_state`
 
 `fn set_block_state(&self, pos: BlockPos, state: &BlockState) -> bool`. Puts the state at `pos`; false if it could not be set (chunk not loaded, unknown block, outside a callback).
@@ -457,6 +486,47 @@ use pluto_lib::{BlockState, Identifier, World};
 
 let stone = BlockState::new(Identifier::new("minecraft", "stone").unwrap());
 assert!(!World::new("minecraft:overworld").set_block_state([0, 64, 0], &stone), "outside a callback nothing is set");
+```
+
+### `World::light`
+
+`fn light(&self, pos: BlockPos) -> Option<(u8, u8)>`. Minecraft: `getBrightness` for the block and sky layers at `pos`: (block light, sky light), each 0..=15. `None` when the chunk is not loaded or the call is made outside a callback that carries a world.
+
+```rust
+use pluto_lib::World;
+
+assert_eq!(World::new("minecraft:overworld").light([0, 64, 0]), None);
+```
+
+### `World::break_block`
+
+`fn break_block(&self, pos: BlockPos, drop: bool) -> bool`. Minecraft: `Level.destroyBlock`. Breaks the block at `pos` through the game's own destroy path, with its drops when `drop` is set (the drops are the level's own, rolled without a tool). The request is queued and the level's tick seams apply it in request order, a tick late at most, so true means the break is accepted, not that it has happened when the call returns. False outside a callback that carries a world, or when the host cannot break blocks.
+
+```rust
+use pluto_lib::World;
+
+assert!(!World::new("minecraft:overworld").break_block([0, 64, 0], true), "outside a callback nothing is broken");
+```
+
+### `World::use_block`
+
+`fn use_block(&self, pos: BlockPos, face: BlockPos, hit: [f64; 3], item: Option<&str>) -> bool`. Minecraft: `BlockState.useItemOn` then `useWithoutItem`, re-dispatched: a use of the block at `pos` as a survival player holding the item `item` (None for an empty hand), clicked on the face `face` (a unit offset) at the absolute hit point `hit`. Queued and answered like `World::break_block`: true means the use will be dispatched at the level's next seam, not that it consumed the action. False outside a callback or when the host cannot re-dispatch.
+
+```rust
+use pluto_lib::World;
+
+assert!(!World::new("minecraft:overworld").use_block([0, 64, 0], [0, 1, 0], [0.5, 65.0, 0.5], None));
+```
+
+### `World::set_block_state_queued`
+
+`fn set_block_state_queued(&self, pos: BlockPos, state: &BlockState) -> bool`. Minecraft: `setBlockState`, at the level's next tick seam: the write joins the queued block actions (see `World::break_block`) and lands in request order among them, for a write that must follow a queued break of the same block. False outside a callback or when the host cannot queue one.
+
+```rust
+use pluto_lib::{BlockState, Identifier, World};
+
+let stone = BlockState::new(Identifier::new("minecraft", "stone").unwrap());
+assert!(!World::new("minecraft:overworld").set_block_state_queued([0, 64, 0], &stone), "outside a callback nothing is queued");
 ```
 
 ### `World::block_entity_data`
@@ -556,6 +626,77 @@ assert_eq!(ops.explosions.len(), 1);
 assert_eq!(ops.explosions[0].interaction, ExplosionInteraction::Tnt);
 ```
 
+### `World::brush_block`
+
+`fn brush_block(&self, pos: BlockPos, face: BlockPos) -> bool`. One brush stroke on the block at `pos`, on the face `face` (a unit offset): Minecraft's `BrushableBlockEntity.brush`. A brushable block entity (suspicious sand or gravel) advances its archaeology count, its `dusted` state follows, and a completed block drops its item beside the brushed face and turns back into plain sand or gravel; the block entity remembers the first face brushed as the face its item shows from. Returns whether the stroke was accepted (over Horizon, queued for the game's brush seam to apply within the tick — the game has no mod call that brushes, so the request is carried into the game, as an explosion is); it does not say whether the block is brushable, which `World::get_block_state` answers. False outside a callback that carries a world.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` queues the request on `pluto_brush_access`; the game's creature tick seam (`pluto_brush_flush`, in the game's own brush module) plays the brushable block's brush sound, spawns its dust, and calls the game's own `BrushableBlockEntity.brush` port in the dimension named.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.brush_block([0, 64, 0], [0, 1, 0]), "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:suspicious_sand".to_owned());
+with_world(&mut ops, || {
+    assert!(world.brush_block([0, 64, 0], [0, 1, 0]));
+    assert!(!world.brush_block([1, 64, 0], [0, 1, 0]), "plain air is not brushable");
+});
+assert_eq!(ops.brushes.len(), 2);
+assert_eq!(ops.brushes[0].pos, [0, 64, 0]);
+```
+
+### `BrushRecord`
+
+One brush stroke a `MemoryWorldOps` was asked to apply, as it was asked: `dimension`, `pos` and `face`.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:suspicious_sand".to_owned());
+with_world(&mut ops, || {
+    assert!(world.brush_block([0, 64, 0], [0, 1, 0]));
+});
+let record = &ops.brushes[0];
+assert_eq!(record.dimension, "minecraft:overworld");
+assert_eq!(record.pos, [0, 64, 0]);
+assert_eq!(record.face, [0, 1, 0]);
+```
+
+### `World::brush_fallback_sound`
+
+`fn brush_fallback_sound(&self, pos: BlockPos) -> bool`. The generic brush sound (`minecraft:item.brush.brushing.generic`) for a stroke that brushed nothing at `pos`: `BrushModule.onUsingTick` plays `SoundEvents.BRUSH_GENERIC` when a stroke's damage is 0, on the client only. Returns whether the sound was accepted (over Horizon, queued for the game's brush seam to play within the tick, for the brushing player alone — unshared when they are the local player, sent to them alone when they are a guest). False outside a callback that carries a world.
+
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` queues the request on `pluto_brush_access` (its fallback queue); the game's creature tick seam (`pluto_brush_flush`, in the game's own brush module) drains it after the strokes and plays the generic sound for the acting player alone.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.brush_fallback_sound([0, 64, 0]), "outside a world scope");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert!(world.brush_fallback_sound([0, 64, 0]));
+});
+assert_eq!(ops.brush_fallbacks.len(), 1);
+assert_eq!(ops.brush_fallbacks[0].pos, [0, 64, 0]);
+```
+
+### `BrushFallbackRecord`
+
+One generic brush sound a `MemoryWorldOps` was asked to play, as it was asked: `dimension` and `pos`.
+
+
+
+```rust
+use pluto_lib::BrushFallbackRecord;
+
+let record = BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0] };
+assert_eq!(record.pos, [0, 64, 0]);
+```
 ### `ExplosionInteraction`
 
 What an explosion does to the blocks it reaches (Minecraft: `ExplosionInteraction`): `Keep` leaves them (Java: `NONE`), `Block` breaks them by the block-explosion rule (`BLOCK`), and `Tnt` breaks them by the tnt-explosion rule (`TNT`; the original's `DESTROY` is the same rule).
@@ -585,4 +726,568 @@ assert_eq!(record.center, [8.5, 64.0, -2.5]);
 assert_eq!(record.radius, 4.0);
 assert!(record.fire);
 assert_eq!(record.interaction, ExplosionInteraction::Tnt);
+```
+
+### `SturdyLookup`
+
+`type SturdyLookup = fn(&str, u8) -> Option<bool>`. A face-sturdiness lookup the host installs: whether the named block's face in a direction (Minecraft's Direction ordinal: 0 down, 1 up, 2 north, 3 south, 4 west, 5 east) is sturdy for the full support type (`BlockState.isFaceSturdy(.., SupportType.FULL)`), as the game's own block table reports it. The table answers by block name, so a block whose states differ answers with its first state.
+
+```rust
+use pluto_lib::world_api_v1::SturdyLookup;
+
+let lookup: SturdyLookup = |block, _direction| if block == "minecraft:stone" { Some(true) } else { None };
+assert_eq!(lookup("minecraft:stone", 1), Some(true));
+assert_eq!(lookup("minecraft:glass", 1), None);
+```
+
+### `set_sturdy_lookup`
+
+`fn set_sturdy_lookup(lookup: SturdyLookup)`. Installs the face-sturdiness lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::world_api_v1::{face_sturdy, set_sturdy_lookup};
+
+set_sturdy_lookup(|block, _direction| if block == "minecraft:stone" { Some(true) } else { None });
+assert_eq!(face_sturdy("minecraft:stone", 1), Some(true));
+```
+
+### `face_sturdy`
+
+`fn face_sturdy(block: &str, direction: u8) -> Option<bool>`. Whether the named block's face in `direction` (a Direction ordinal) is sturdy for the full support type, when the game's table answers for the block. `None` when no lookup is installed or the table has no answer for the block.
+
+```rust
+use pluto_lib::world_api_v1::{face_sturdy, set_sturdy_lookup};
+
+assert_eq!(face_sturdy("minecraft:stone", 1), None, "no lookup installed yet");
+set_sturdy_lookup(|block, _direction| if block == "minecraft:stone" { Some(true) } else { None });
+assert_eq!(face_sturdy("minecraft:stone", 1), Some(true));
+assert_eq!(face_sturdy("minecraft:glass", 1), None);
+```
+
+### `PlacementFacts`
+
+`struct PlacementFacts { classes: Vec<String>, full_collision: bool, solid_render: bool }`. What the game's block table says about a block's shape and kind, for placement checks: the block's class chain (most specific first, in the game's own names, such as `TorchBlock`), whether its collision shape is a whole block, and whether it renders solid. Published from the game's table by the block facts head, by block name, so a block whose states differ answers with its first state.
+
+```rust
+use pluto_lib::world_api_v1::PlacementFacts;
+
+let facts = PlacementFacts {
+    classes: ["TorchBlock", "BaseTorchBlock", "Block"].iter().map(|c| c.to_string()).collect(),
+    full_collision: false,
+    solid_render: false,
+};
+assert_eq!(facts.classes[0], "TorchBlock");
+```
+
+### `set_placement_facts_lookup`
+
+`fn set_placement_facts_lookup(lookup: PlacementFactsLookup)`. Installs the placement-facts lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::world_api_v1::{PlacementFacts, set_placement_facts_lookup};
+
+set_placement_facts_lookup(|block| if block == "minecraft:torch" {
+    Some(PlacementFacts { classes: vec!["TorchBlock".to_string()], full_collision: false, solid_render: false })
+} else { None });
+```
+
+### `placement_facts`
+
+`fn placement_facts(block: &str) -> Option<PlacementFacts>`. The published placement facts for the named block. `None` when no lookup is installed or the table has no answer for the block.
+
+```rust
+use pluto_lib::world_api_v1::{PlacementFacts, placement_facts, set_placement_facts_lookup};
+
+assert_eq!(placement_facts("minecraft:torch"), None, "no lookup installed yet");
+set_placement_facts_lookup(|block| if block == "minecraft:torch" {
+    Some(PlacementFacts { classes: vec!["TorchBlock".to_string()], full_collision: false, solid_render: false })
+} else { None });
+assert!(placement_facts("minecraft:torch").is_some());
+assert_eq!(placement_facts("minecraft:glass"), None);
+```
+
+### `World::can_survive`
+
+`fn can_survive(&self, state: &BlockState, pos: [i32; 3], sky_darken: u8) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it: the same class-chain dispatch the game runs, over the world view, so a torch needs a sturdy face below, a wall torch the face it leans on, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (the solid flag, the centre and rigid support bits, fire odds, the multiface attach table): a placement check must treat `None` as "cannot say", not as a refusal.
+
+```rust
+use pluto_lib::world_api_v1::{MemoryWorldOps, PlacementFacts, World, set_placement_facts_lookup, with_world};
+
+set_placement_facts_lookup(|block| if block == "minecraft:frosted_ice" {
+    Some(PlacementFacts { classes: vec!["FrostedIceBlock".to_string()], full_collision: true, solid_render: false })
+} else { None });
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert_eq!(world.can_survive(&pluto_lib::BlockState::parse("minecraft:frosted_ice").unwrap(), [0, 64, 0], 0), Some(true));
+});
+```
+
+### `World::is_unobstructed`
+
+`fn is_unobstructed(&self, state: &BlockState, pos: [i32; 3]) -> Option<bool>`. Whether `state` may be placed at `pos` without standing in something's way, as the game's `Level.isUnobstructed` answers it: the replacement's collision shape against the entities around the cell. Only a whole-block shape is known, from the published placement facts, so any other state answers `None`. Entities are read through the entity scope, which the player tick opens; item entities never block, and an entity whose feet stand exactly on the cell's top face does not block it. `None` when the shape is not a whole block, no facts are published for the block, or no entity scope is open.
+
+```rust
+use pluto_lib::world_api_v1::{MemoryWorldOps, PlacementFacts, World, set_placement_facts_lookup, with_world};
+
+set_placement_facts_lookup(|block| if block == "minecraft:frosted_ice" {
+    Some(PlacementFacts { classes: vec!["FrostedIceBlock".to_string()], full_collision: true, solid_render: false })
+} else { None });
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    // No entity scope is open here, so the answer is unknown.
+    assert_eq!(world.is_unobstructed(&pluto_lib::BlockState::parse("minecraft:frosted_ice").unwrap(), [0, 64, 0]), None);
+});
+```
+
+### `WorldView`
+
+`struct WorldView<'a> { world: &'a World, sky_darken: u8 }`. A `BlockView` over a live `World`: block states, light and sturdy facts read through the world scope, and placement facts through the installed lookup. `brightness` darkens the sky light by `sky_darken`, as the game's getMaxLocalRawBrightness does; `raw_brightness` does not. Unreadable light is 0 for `brightness` and `None` for `raw_brightness`; `is_full_block` is the published `full_collision`, and `build_height` is the vanilla [-64, 320].
+
+```rust
+use pluto_lib::{BlockView, World};
+use pluto_lib::world_api_v1::{MemoryWorldOps, WorldView, with_world};
+
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    let view = WorldView::new(&world, 0);
+    assert!(view.is_air([0, 64, 0]));
+});
+```
+
+## Mob splits
+
+### `MobSplitContext`
+
+The dying parent and the split the game is about to perform: `parent` is the parent entity, `position` its position, `size` its size and `child_size` the children's size (half of it).
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitContext};
+let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
+    position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
+assert_eq!(context.child_size, 2);
+assert_eq!(context.parent.id, 7);
+```
+
+### `MobSplitRandom`
+
+Random draws for inheritance decisions, from the parent's own stream.
+
+```rust
+use pluto_lib::MobSplitRandom;
+struct Fixed;
+impl MobSplitRandom for Fixed {
+    fn next_float(&mut self) -> f32 { 0.25 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> { Ok(bound - 1) }
+}
+let mut random = Fixed;
+assert_eq!(random.next_float(), 0.25);
+assert_eq!(random.next_int(3), Ok(2));
+```
+
+### `MobSplitChild`
+
+One spawned child, dressed before it joins the world; its `EntityInfo` carries the child's real id, so attachment writes land on the child.
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitChild, StackData};
+struct Child { info: EntityInfo }
+impl MobSplitChild for Child {
+    fn info(&self) -> EntityInfo { self.info.clone() }
+    fn set_equipment(&mut self, _: &str, _: StackData) -> Result<(), String> { Ok(()) }
+    fn set_custom_name(&mut self, _: Option<String>) -> Result<(), String> { Ok(()) }
+    fn set_no_ai(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+    fn set_invulnerable(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+}
+let child = Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } };
+assert_eq!(child.info().id, 8);
+```
+
+### `MobSplitInheritance`
+
+The inheritance view handed to split callbacks after the game spawned the children: `context` is the split, `head` is the parent's head stack (children receive copies), `head_drop_chance` is the parent's recorded head drop chance, `custom_name`, `no_ai` and `invulnerable` are the parent's flags, `random` draws from the parent's stream, and `children` are the spawned children in the game's spawn order.
+
+```rust
+use pluto_lib::{EntityInfo, MobSplitChild, MobSplitContext, MobSplitInheritance, MobSplitRandom, StackData};
+struct Fixed;
+impl MobSplitRandom for Fixed {
+    fn next_float(&mut self) -> f32 { 0.5 }
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> { Ok(bound - 1) }
+}
+struct Child { info: EntityInfo }
+impl MobSplitChild for Child {
+    fn info(&self) -> EntityInfo { self.info.clone() }
+    fn set_equipment(&mut self, _: &str, _: StackData) -> Result<(), String> { Ok(()) }
+    fn set_custom_name(&mut self, _: Option<String>) -> Result<(), String> { Ok(()) }
+    fn set_no_ai(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+    fn set_invulnerable(&mut self, _: bool) -> Result<(), String> { Ok(()) }
+}
+let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
+    position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
+let mut random = Fixed;
+let mut children: Vec<Box<dyn MobSplitChild>> = vec![Box::new(Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } })];
+let view = MobSplitInheritance { context: &context, head: None, head_drop_chance: 0.085,
+    custom_name: None, no_ai: false, invulnerable: false, random: &mut random, children: &mut children };
+assert_eq!(view.children.len(), 1);
+assert_eq!(view.head_drop_chance, 0.085);
+```
+
+### `MobSplitCallback`
+
+A split observer with two phases, both defaulting to keeping the game's split: `prepare` tunes the child count or cancels the split; `inherit` dresses the spawned children.
+
+```rust
+use pluto_lib::MobSplitCallback;
+struct Observer;
+impl MobSplitCallback for Observer {}
+let _observer = Observer;
+```
+
+### `MobSplitCallbacks`
+
+The registration-order split dispatch: preparation callbacks run in order before the game spawns, inheritance callbacks in order after.
+
+```rust
+use pluto_lib::MobSplitCallbacks;
+let _registry = MobSplitCallbacks;
+```
+
+### `MobSplitCallbacks::register`
+
+Registers a split callback under a unique name; duplicate names reject.
+
+```rust
+use pluto_lib::{MobSplitCallback, MobSplitCallbacks};
+struct Observer;
+impl MobSplitCallback for Observer {}
+MobSplitCallbacks::register("example:observer", Observer).unwrap();
+assert!(MobSplitCallbacks::has_callbacks());
+```
+
+### `MobSplitCallbacks::has_callbacks`
+
+Whether any split callback is registered; the native split hooks stay inert while none is.
+
+```rust
+use pluto_lib::MobSplitCallbacks;
+let active: bool = MobSplitCallbacks::has_callbacks();
+let _ = active;
+```
+
+## Spawn placements
+
+### `SpawnPlacementContext`
+
+The facts of one candidate spawn position: `entity_type` and `dimension` name the spawn, `position` is the block position of the mob's feet, `reason` is the backend reason, `peaceful` reports a peaceful level, `block_below` is the block below the candidate, `fluid_at` and `fluid_below` are the fluids at and below it (`minecraft:empty` when none), `block_below_valid_spawn` says the block below is a valid spawn block for the type's base, and `dark_enough` says a monster would be dark enough to spawn there.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementContext};
+let context = SpawnPlacementContext { entity_type: Identifier::parse("example:slime").unwrap(),
+    dimension: Identifier::parse("minecraft:overworld").unwrap(), position: [0, 64, 0], reason: "natural".into(),
+    peaceful: false, block_below: Identifier::parse("example:grass").unwrap(),
+    fluid_at: Identifier::parse("minecraft:empty").unwrap(), fluid_below: Identifier::parse("minecraft:empty").unwrap(),
+    block_below_valid_spawn: true, dark_enough: true };
+assert_eq!(context.position[1], 64);
+```
+
+### `SpawnPlacementRegistry`
+
+Per-type spawn placement registration: one predicate per type, whose verdict replaces the inherited species rules for that type where the game consults placements.
+
+```rust
+use pluto_lib::SpawnPlacementRegistry;
+let _registry = SpawnPlacementRegistry;
+```
+
+### `SpawnPlacementRegistry::register`
+
+Registers a type's placement predicate; a second registration for the same type rejects.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+SpawnPlacementRegistry::register(Identifier::parse("example:slime").unwrap(), |context| {
+    !context.peaceful && context.block_below == Identifier::parse("example:grass").unwrap()
+}).unwrap();
+assert!(SpawnPlacementRegistry::is_registered(&Identifier::parse("example:slime").unwrap()));
+```
+
+### `SpawnPlacementRegistry::is_registered`
+
+Whether a placement predicate is registered for the type.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+let registered: bool = SpawnPlacementRegistry::is_registered(&Identifier::parse("example:absent").unwrap());
+let _ = registered;
+```
+
+### `SpawnPlacementRegistry::register_or`
+
+Registers a type's OR placement predicate (the original's `Operation.OR`): positions the inherited species rules rejected may still spawn when the predicate accepts them. The game's own selection never proposes those positions, so a permit-add pass after the game's natural pass proposes its own candidates around players and spawns the accepted ones through the game's own preparation and finalization. One OR predicate per type, independent of any replacing predicate; a second OR registration for the same type rejects.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+SpawnPlacementRegistry::register_or(Identifier::parse("example:or_slime").unwrap(), |context| {
+    !context.peaceful && context.block_below == Identifier::parse("example:grass").unwrap()
+}).unwrap();
+assert!(SpawnPlacementRegistry::is_or_registered(&Identifier::parse("example:or_slime").unwrap()));
+```
+
+### `SpawnPlacementRegistry::is_or_registered`
+
+Whether an OR placement predicate is registered for the type.
+
+```rust
+use pluto_lib::{Identifier, SpawnPlacementRegistry};
+let registered: bool = SpawnPlacementRegistry::is_or_registered(&Identifier::parse("example:absent").unwrap());
+let _ = registered;
+```
+
+### `FishingRegistry`
+
+The registry of fishing rods a mod casts with: which items count as rods (a hook stays alive only while its owner holds one — the game's own check names the vanilla rod, and the transport asks this registry for the rest), and how a rod stack's cast profile is computed. The game's fishing is built around its own hook, whose rod use is gated to the vanilla item; a registered rod's use goes through [`Fishing::use_rod`](#fishing) instead.
+
+```rust
+use pluto_lib::{FishingProfile, FishingRegistry, Grapple, Identifier, StackData};
+
+FishingRegistry::register(Identifier::parse("example:war_rod").unwrap(), |stack| {
+    (stack.count > 0).then_some(FishingProfile { power: 2.0, grapple: Grapple::Drill, ..FishingProfile::default() })
+});
+assert!(FishingRegistry::is_rod("example:war_rod"));
+let stack = StackData { item: "example:war_rod".into(), count: 1, ..StackData::default() };
+assert_eq!(FishingRegistry::profile(&stack).map(|profile| profile.power), Some(2.0));
+```
+
+### `FishingProfile`
+
+The numbers a rod casts with, computed from the stack used: the `luck` and `lure` the hook fishes with, the `velocity` it flies at, the cast's `inaccuracy` spread, the `power` a hooked entity is hurt by (0 fishes without fighting), the `knockback` bonus on the retrieve pull, whether the hook `grapple`s and collects what it touches.
+
+```rust
+use pluto_lib::{FishingProfile, Grapple};
+
+let plain = FishingProfile::default();
+assert_eq!((plain.velocity, plain.power, plain.grapple), (1.0, 0.0, Grapple::None));
+let war = FishingProfile { luck: 2, lure: 1, power: 2.0, grapple: Grapple::Dash, collecting: true, ..plain };
+assert_eq!((war.luck, war.lure, war.collecting), (2, 1, true));
+```
+
+### `Grapple`
+
+How a grapple hook behaves: `None` only fishes and fights, `Dash` pulls its owner toward the hook when it lands, and `Drill` also pulls when it hooks an entity.
+
+```rust
+use pluto_lib::Grapple;
+
+assert_eq!(Grapple::default(), Grapple::None);
+assert_ne!(Grapple::Dash, Grapple::Drill);
+```
+
+### `Fishing`
+
+Fishing with a mod's rod: the calls a mod makes. `use_rod` queues a use — the game's fishing tick casts with the profile when no hook of this rod is out and retrieves when one is — and `take_wear` drains the rod wear the game side reports (a cast's and a hit's 1, a retrieve's cost), which the mod pays into its own tool at its next use, so the wear lands at most one use late. The reach is the local player's, as the game's fishing simulation is single-hook and local.
+
+```rust
+use pluto_lib::{Fishing, FishingProfile, ServerPlayer};
+
+let player = ServerPlayer { uuid: 7, name: "Alex".into() };
+Fishing::use_rod(&player, FishingProfile::default());
+assert_eq!(Fishing::take_use(), Some((7, FishingProfile::default())));
+Fishing::note_wear(7, 3);
+assert_eq!(Fishing::take_wear(&player), 3);
+assert_eq!(Fishing::take_wear(&player), 0);
+```
+
+### `combat_damage`
+
+The damage a hooked entity takes at retrieve: the impact speed times the power times 15, rounded up to a whole tenth.
+
+```rust
+use pluto_lib::combat_damage;
+
+assert_eq!(combat_damage(2.0, 2.0), 6.0);
+assert_eq!(combat_damage(0.5, 1.0), 0.8);
+assert_eq!(combat_damage(3.0, 0.0), 0.0);
+```
+
+### `hook_damage_type`
+
+The damage type a combat hook's retrieve hurt is dealt as: the ranged `tconstruct:fishing_hook`, or the melee `tconstruct:melee_fishing_hook` when the hooked target is an enderman carrying the enderference effect (the enderference override), so the hurt lands on a mob that dodges projectiles.
+
+```rust
+use pluto_lib::hook_damage_type;
+
+assert_eq!(hook_damage_type(true), "tconstruct:melee_fishing_hook");
+assert_eq!(hook_damage_type(false), "tconstruct:fishing_hook");
+```
+
+### `pull_delta`
+
+The velocity a hooked entity gains at retrieve: toward the owner, a tenth of the way, plus the knockback bonus `0.25 * knockback / distance` when the rod has knockback.
+
+```rust
+use pluto_lib::pull_delta;
+
+assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 0.0), [-1.0, 0.0, 0.0]);
+assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 4.0), [-2.0, 0.0, 0.0]);
+```
+
+### `grapple_delta`
+
+The velocity the owner gains from a grapple: toward the hook, scaled by `0.58 / sqrt(distance)`.
+
+```rust
+use pluto_lib::grapple_delta;
+
+let pull = grapple_delta([0.0, 64.0, 0.0], [16.0, 64.0, 0.0]);
+assert!((pull[0] - 2.32).abs() < 1e-9);
+assert_eq!(grapple_delta([0.0, 64.0, 0.0], [0.0, 64.0, 0.0]), [0.0; 3]);
+```
+
+### `retrieve_damage`
+
+The rod wear a retrieve costs, over the game's own retrieve number: a grounded hook costs at least 2 and at most 3; anything else costs at most 3.
+
+```rust
+use pluto_lib::retrieve_damage;
+
+assert_eq!(retrieve_damage(5, true), 3);
+assert_eq!(retrieve_damage(0, true), 2);
+assert_eq!(retrieve_damage(5, false), 3);
+assert_eq!(retrieve_damage(1, false), 1);
+```
+
+### `DispenseRegistry::register`
+
+Registers the behaviour for an item, replacing any earlier one for it.
+
+```rust
+use pluto_lib::{DispenseBehavior, DispenseRegistry, Identifier};
+
+DispenseRegistry::register(
+    Identifier::parse("example:ball").unwrap(),
+    DispenseBehavior::Shoot { entity: Identifier::parse("example:ball").unwrap(), power: 1.1, inaccuracy: 6.0 },
+);
+assert!(DispenseRegistry::get("example:ball").is_some());
+```
+
+### `DispenseRegistry::get`
+
+The behaviour registered for the item named, if any.
+
+```rust
+use pluto_lib::DispenseRegistry;
+
+assert!(DispenseRegistry::get("example:never_registered").is_none());
+```
+
+### `FishingRegistry::register`
+
+Registers a rod item and its cast profile computation: when the item is used, the computation reads the stack and answers the profile to cast with, or None to leave the use to the game.
+
+```rust
+use pluto_lib::{FishingProfile, FishingRegistry, Identifier};
+
+FishingRegistry::register(Identifier::parse("example:rod").unwrap(), |_| Some(FishingProfile::default()));
+assert!(FishingRegistry::is_rod("example:rod"));
+```
+
+### `FishingRegistry::register_rod`
+
+Names an item a fishing rod for the hook's lifetime check, without a cast computation of its own.
+
+```rust
+use pluto_lib::{FishingRegistry, Identifier};
+
+FishingRegistry::register_rod(Identifier::parse("example:plain_rod").unwrap());
+assert!(FishingRegistry::is_rod("example:plain_rod"));
+```
+
+### `FishingRegistry::is_rod`
+
+Whether the item named is a registered rod.
+
+```rust
+use pluto_lib::FishingRegistry;
+
+assert!(!FishingRegistry::is_rod("example:not_a_rod"));
+```
+
+### `FishingRegistry::profile`
+
+The profile a stack casts with, when its item registered a computation and the computation answers one.
+
+```rust
+use pluto_lib::{FishingRegistry, StackData};
+
+assert_eq!(FishingRegistry::profile(&StackData::default()), None);
+```
+
+### `Fishing::use_rod`
+
+Queues a use of a fishing rod by the player with the profile: the game's fishing tick casts with it when no hook of this rod is out, and retrieves when one is.
+
+```rust
+use pluto_lib::{Fishing, FishingProfile, ServerPlayer};
+
+let player = ServerPlayer { uuid: 3, name: "Sam".into() };
+Fishing::use_rod(&player, FishingProfile::default());
+assert!(Fishing::take_use().is_some());
+```
+
+### `Fishing::take_use`
+
+Takes the queued use, if any; the transport calls this.
+
+```rust
+use pluto_lib::Fishing;
+
+assert_eq!(Fishing::take_use(), None);
+```
+
+### `Fishing::note_wear`
+
+Records rod wear the game side reports; the transport calls this.
+
+```rust
+use pluto_lib::{Fishing, ServerPlayer};
+
+Fishing::note_wear(5, 2);
+let player = ServerPlayer { uuid: 5, name: "Sam".into() };
+assert_eq!(Fishing::take_wear(&player), 2);
+```
+
+### `Fishing::take_wear`
+
+The rod wear waiting for the player, drained: the total the game side has reported since the last call.
+
+```rust
+use pluto_lib::{Fishing, ServerPlayer};
+
+let player = ServerPlayer { uuid: 6, name: "Sam".into() };
+assert_eq!(Fishing::take_wear(&player), 0);
+```
+
+### `PlacementFactsLookup`
+
+`pub type PlacementFactsLookup = fn(&str) -> Option<PlacementFacts>`. A placement-facts lookup the host installs: the facts for a named block, if the game's table names it.
+
+```rust
+use pluto_lib::{PlacementFacts, PlacementFactsLookup};
+
+fn no_facts(_block: &str) -> Option<PlacementFacts> { None }
+let lookup: PlacementFactsLookup = no_facts;
+assert!(lookup("minecraft:stone").is_none());
+```
+
+### `WorldView::new`
+
+`fn new(world: &World, sky_darken: u8) -> WorldView`. A view over `world`, reading light against `sky_darken` (the host's `Level.getSkyDarken`): the view's brightness is the darkened one, while its `canSurvive` reads the undarkened one, as the host's own placement checks do.
+
+```rust
+use pluto_lib::{World, WorldView};
+
+let world = World::new("minecraft:overworld");
+let _view = WorldView::new(&world, 0);
 ```

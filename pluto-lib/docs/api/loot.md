@@ -71,7 +71,7 @@ LootTableEvents::MODIFY_DROPS.register(|context| {
 
 ### `LootDrops`
 
-What is about to drop. `table` is the loot table rolled (empty when none), `dimension` the level, `origin` where they drop, `block` the block's position when a block broke, `entity` the mob's entity id and type (the mob that died, or the entity a player's use dropped them from), `player` the uuid of the player who broke the block or killed the mob when the game knows them, `tool` what broke the block or what the player used (`None` when the game reports none), `explosion` the radius of the explosion that broke the block, `used` whether a player's use dropped them, `drops` the stacks, as item slots a callback edits, and `actions` the `EntityAction`s for the player (the main hand's stack is edited as it is when they land; dropped when `player` is `None`).
+What is about to drop. `table` is the loot table rolled (empty when none), `dimension` the level, `origin` where they drop, `block` the block's position when a block broke, `entity` the mob's entity id and type (the mob that died, or the entity a player's use dropped them from), `entity_facts` the entity's own state (a `LootEntityFacts`), when the game reported it, `player` the uuid of the player who broke the block or killed the mob when the game knows them, `tool` what broke the block or what the player used (`None` when the game reports none), `explosion` the radius of the explosion that broke the block, `used` whether a player's use dropped them, `drops` the stacks, as item slots a callback edits, and `actions` the `EntityAction`s for the player (the main hand's stack is edited as it is when they land; dropped when `player` is `None`).
 
 ```rust
 use pluto_lib::{LootDrops, LootTableEvents};
@@ -82,6 +82,65 @@ fn from_mob(context: &LootDrops) -> bool {
 LootTableEvents::MODIFY_DROPS.register(|context| {
     let _ = (&context.table, &context.dimension, context.origin, context.player, &context.tool, context.explosion, context.actions.borrow().len());
     if from_mob(context) && context.drops.borrow().is_empty() { return; }
+});
+```
+
+### `LootEntityFacts`
+
+The dropping entity's own state, for drops whose output depends on the entity itself. `baby` is a baby animal, `sheared` a sheep whose wool is gone (a snow golem's pumpkin is gone with it; the game keeps one flag for both), `wool_color` a sheep's wool colour as a dye id (0 white to 15 black), `mooshroom` a mooshroom's kind (`red` or `brown`), and `player` the profile of the player the entity is, when it is one. A fact the game did not report reads as its plain value (an adult, an unsheared sheep); the whole `entity_facts` is `None` when there is no entity or its state was not reported, and state-dependent drops then do not happen. The conversion is source-wired and not yet compiled against the pinned host.
+
+```rust
+use pluto_lib::LootEntityFacts;
+
+let facts = LootEntityFacts { baby: true, ..LootEntityFacts::default() };
+assert!(facts.baby);
+assert!(!facts.sheared);
+assert_eq!(facts.wool_color, None);
+```
+
+### `PlayerProfile`
+
+A player's profile, as a player head keeps it: `name` is their name as the server's player list writes it and `uuid` their id. A head dropped for the player carries it in its `minecraft:profile` component (see `ItemSlot` on the block-entity page); the game reports no texture properties for the player, so the client resolves the skin from the name and id, as it does for a profile without properties.
+
+```rust
+use pluto_lib::PlayerProfile;
+
+let profile = PlayerProfile { name: "Steve".into(), uuid: 42 };
+assert_eq!(profile.name, "Steve");
+assert_eq!(profile.uuid, 42);
+```
+
+### `LootFunctionContext`
+
+A loot function of a mod's own kind being applied to one stack: a loot table entry named a `modifier` whose `type` is not one of the game's (such as `mantle:fill_retextured_block`). `kind` is that type, `data` the function's own JSON beside `type`, `origin` and `dimension` where the table rolled, `seed` a seed from the roll's random for a mod's own draws, `block_entity` the block entity the broken block had (its saved data, id and position included; a mod's block entity carries its own data in it), and `stack` the stack to change in place. Away from a broken block the place fields are `None`.
+
+```rust
+use pluto_lib::{Identifier, ItemSlot, LootFunctionContext, LootTableEvents, Nbt};
+use serde_json::json;
+use std::cell::RefCell;
+
+LootTableEvents::FUNCTION.register(|c| {
+    if c.kind == "example:fill_marker" {
+        c.stack.borrow_mut().custom_data.insert("marker".into(), Nbt::String("example:stone".into()));
+    }
+});
+let context = LootFunctionContext { kind: "example:fill_marker".into(), data: json!({}), origin: None, dimension: None, seed: 0,
+    block_entity: None, stack: RefCell::new(ItemSlot::new(Identifier::parse("example:rock").unwrap(), 1)) };
+LootTableEvents::FUNCTION.invoke(&context);
+assert_eq!(context.stack.borrow().custom_data.get("marker"), Some(&Nbt::String("example:stone".into())));
+```
+
+### `LootTableEvents::FUNCTION`
+
+Runs for every loot function of a mod's own kind as its table rolls, once per stack the function applies to. Every callback hears every kind; answer only the kinds you own and leave the others' stacks alone. The game's own function kinds never arrive here.
+
+```rust
+use pluto_lib::LootTableEvents;
+
+LootTableEvents::FUNCTION.register(|context| {
+    if context.kind == "mantle:fill_retextured_block" {
+        // read the texture from context.block_entity and set it on context.stack
+    }
 });
 ```
 
