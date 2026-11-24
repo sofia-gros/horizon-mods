@@ -81,13 +81,38 @@ pub trait PlayerOps {
     }
     /// Sets the stack carried in a slot named by the carried numbering (see
     /// [`crate::pure::entity_events_v1::carried_slot_number`]), creating it in an empty slot, or clearing it
-    /// when `stack` is None. The host reaches a stack this way only in the equipment slots (feet 100, legs
-    /// 101, chest 102, head 103, offhand -106): its carried read names occupied slots only, but its equipment
-    /// write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that equips a copy of
-    /// itself on an entity's chest (the piggyback pack) needs. Any other slot, an unknown player and a client
-    /// answer false. The memory backend keeps no such restriction and answers for every slot.
+    /// when `stack` is None. The host reaches a stack this way in the equipment slots (feet 100, legs
+    /// 101, chest 102, head 103, offhand -106) and in the main inventory slots (0 to 35): the main
+    /// slots go through the host's checked inventory write, which needs the slot to still hold
+    /// what the caller read there, so a stack that moved in between is not overwritten. The
+    /// equipment write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that
+    /// equips a copy of itself on an entity's chest (the piggyback pack) needs. Any other slot, an
+    /// unknown player and a client answer false. The memory backend keeps no such restriction and
+    /// answers for every slot.
     fn set_stack(&mut self, _player: u128, _slot: i32, _stack: Option<&StackData>) -> bool {
         false
+    }
+    /// The stack the NAMED player carries in `slot` (the carried numbering, as in
+    /// [`Self::set_stack`]), with its custom data; None for an empty slot, an unknown player, or
+    /// outside a callback that carries a player scope. Unlike [`ServerPlayer::stack`], this names
+    /// the player, so it also answers where no player's state is swapped in (a packet receiver,
+    /// a server tick, a native menu click), which is what a keybind packet's server half reads
+    /// the sender's worn piece and off hand through.
+    fn stack_named(&mut self, _player: u128, _slot: i32) -> Option<StackData> {
+        None
+    }
+    /// Opens a mod menu for the player's item (not a block): the menu type `menu` (a content menu
+    /// type, such as a tool's container), with `items` in its slots and `extra` as its menu-extra
+    /// data, titled `title`. The window id, or None when the player is not here, the menu type is
+    /// unknown, or the call runs inside the player's own turn (call it from a packet receiver, a
+    /// server tick or a native menu click, where the player's state is not swapped in). The
+    /// menu's slots are the mod's input slots: the player moves items in them by vanilla's rules,
+    /// and what they hold when the menu closes comes back through the native-menu close event.
+    /// The extra data's first bytes mark an item menu for the client screen: they must begin with
+    /// `PLUTO\x01`, the versioned item-menu magic, followed by whatever the mod's screen needs
+    /// (the worn slot's carried number, for one).
+    fn open_item_menu(&mut self, _player: u128, _menu: &str, _title: &str, _items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, _extra: Vec<u8>) -> Option<i32> {
+        None
     }
     /// The player's selected hotbar slot (0 to 8); None if unknown.
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
@@ -415,10 +440,24 @@ impl ServerPlayer {
     }
 
     /// Sets the stack carried in a slot named by the carried numbering, creating it in an empty slot, or
-    /// clearing it with None. The host answers only for the equipment slots (feet 100, legs 101, chest 102,
-    /// head 103, offhand -106); see [`PlayerOps::set_stack`]. False outside a callback or for another slot.
+    /// clearing it with None. The host answers for the equipment slots (feet 100, legs 101, chest 102,
+    /// head 103, offhand -106) and for the main inventory slots (0 to 35); see [`PlayerOps::set_stack`].
+    /// False outside a callback or for another slot.
     pub fn set_stack(&self, slot: i32, stack: Option<&StackData>) -> bool {
         with_current(false, |ops| ops.set_stack(self.uuid, slot, stack))
+    }
+
+    /// The stack the player carries in `slot` (see [`PlayerOps::stack_named`]); None for an empty slot
+    /// or outside a callback. Unlike [`Self::stack`], this names the player, so it answers in a packet
+    /// receiver too.
+    pub fn stack_named(&self, slot: i32) -> Option<StackData> {
+        with_current(None, |ops| ops.stack_named(self.uuid, slot))
+    }
+
+    /// Opens a mod menu for the player's item (see [`PlayerOps::open_item_menu`]); the window id, or
+    /// None outside a callback, for an unknown player or menu type, or inside the player's own turn.
+    pub fn open_item_menu(&self, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        with_current(None, |ops| ops.open_item_menu(self.uuid, menu, title, items, extra))
     }
 
     /// Sets one equipment slot's stack by its [`StackSlot`](crate::pure::entity_events_v1::StackSlot), creating
@@ -649,6 +688,23 @@ pub struct MemoryPlayerOps {
     pub released_uses: Vec<u128>,
     /// Every player whose use a `stop_use` ended, in the order they were ended.
     pub stopped_uses: Vec<u128>,
+    /// The item menus opened, in order, as (player, menu type, title, items, extra data).
+    pub opened_item_menus: Vec<OpenedItemMenu>,
+}
+
+/// An item menu opened through the memory backend, as [`MemoryPlayerOps::opened_item_menus`] records it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct OpenedItemMenu {
+    /// The player it opened for.
+    pub player: u128,
+    /// The menu type, such as `tconstruct:tool_container_3`.
+    pub menu: String,
+    /// The title shown.
+    pub title: String,
+    /// The items in its slots, in order.
+    pub items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>,
+    /// Its menu-extra data.
+    pub extra: Vec<u8>,
 }
 
 impl MemoryPlayerOps {
@@ -777,6 +833,18 @@ impl PlayerOps for MemoryPlayerOps {
         }
         true
     }
+    fn stack_named(&mut self, player: u128, slot: i32) -> Option<StackData> {
+        // What `set_stack` wrote answers first (the carried map is where its writes land); the main
+        // inventory vector answers the rest, as `stack` reads it.
+        if let Some(stack) = self.carried.get(&(player, slot)) {
+            return Some(stack.clone()).filter(|stack| stack.count > 0);
+        }
+        self.stack(player, slot)
+    }
+    fn open_item_menu(&mut self, player: u128, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        self.opened_item_menus.push(OpenedItemMenu { player, menu: menu.to_owned(), title: title.to_owned(), items, extra });
+        Some(self.opened_item_menus.len() as i32)
+    }
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         Some(self.selected_slot)
     }
@@ -889,6 +957,48 @@ mod stack_tests {
             assert_eq!(player.give_stack(stack.clone()), None);
             assert_eq!(player.stack(0).unwrap().custom_model_data, stack.custom_model_data);
         });
+    }
+
+    #[test]
+    fn a_named_player_stack_reads_what_set_stack_wrote_in_any_carried_slot() {
+        let mut ops = MemoryPlayerOps::default();
+        ops.stacks.insert(1, vec![None, Some(pickaxe(0))]);
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        with_ops(&mut ops, || {
+            // the main inventory vector answers through the named read too
+            assert_eq!(player.stack_named(1).unwrap().damage, 0);
+            assert_eq!(player.stack_named(0), None, "an empty main slot");
+            assert_eq!(player.stack_named(103), None, "an empty head slot");
+            // a whole-stack write lands where the named read looks, main and equipment alike
+            let torch = StackData { item: "minecraft:torch".into(), count: 5, ..StackData::default() };
+            assert!(player.set_stack(5, Some(&torch)));
+            assert_eq!(player.stack_named(5), Some(torch));
+            let helmet = StackData { item: "tconstruct:helmet".into(), count: 1, ..StackData::default() };
+            assert!(player.set_stack(103, Some(&helmet)));
+            assert_eq!(player.stack_named(103), Some(helmet));
+            // clearing takes the named read with it
+            assert!(player.set_stack(5, None));
+            assert_eq!(player.stack_named(5), None);
+        });
+        assert_eq!(player.stack_named(1), None, "outside a callback there is nothing");
+    }
+
+    #[test]
+    fn an_item_menu_open_is_recorded_with_its_menu_and_items() {
+        use crate::pure::base::Identifier;
+        use crate::pure::block_entity_api_v1::ItemSlot;
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 3, name: "Alex".into() };
+        let items = vec![Some(ItemSlot::new(Identifier::parse("minecraft:torch").unwrap(), 5)), None];
+        let window = with_ops(&mut ops, || player.open_item_menu("tconstruct:tool_container_1", "Pickaxe", items.clone(), vec![b'P', b'L', b'U', b'T', b'O', 0x01, 103]));
+        assert_eq!(window, Some(1));
+        assert_eq!(ops.opened_item_menus.len(), 1);
+        let opened = &ops.opened_item_menus[0];
+        assert_eq!((opened.player, opened.menu.as_str(), opened.title.as_str()), (3, "tconstruct:tool_container_1", "Pickaxe"));
+        assert_eq!(opened.items, items);
+        assert_eq!(opened.extra, vec![b'P', b'L', b'U', b'T', b'O', 0x01, 103]);
+        assert_eq!(with_ops(&mut ops, || player.open_item_menu("tconstruct:tool_container_2", "Pickaxe", vec![], vec![])), Some(2), "a second open gets the next window");
+        assert_eq!(player.open_item_menu("tconstruct:tool_container_1", "Pickaxe", vec![], vec![]), None, "outside a callback nothing opens");
     }
 
     #[test]

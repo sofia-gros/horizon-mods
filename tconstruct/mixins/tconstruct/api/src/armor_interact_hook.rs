@@ -9,8 +9,12 @@
 //! keys, the packet on the original's keys — the original's keys are rebindable key bindings, which this
 //! host has no mod key bindings for, so the defaults are read directly) and the server logic in full
 //! (`interact`: the merger's order, both swaps, the minimap's selection cycle, the blacklist rules, the
-//! sound conditions), unit-tested below. The minimap's selection write-back rides the same walled
-//! surface as the swaps (it changes the worn piece's own data, which no event offers a write for).
+//! sound conditions), unit-tested below. The server receiver runs the outcomes through the carried-stack
+//! exchange surface: the worn piece and the off hand take whole-stack write-backs (`ServerPlayer::set_stack`
+//! over the carried numbering), the belt's changed main slots the same, and the inventory menu opens
+//! through the item-menu surface (`tool_container_menu`), which writes back what the player leaves in it.
+//! The minimap's selection write-back rides the same surface (it changes the worn piece's own data, which
+//! no event offers a write for).
 //!
 //! The zoom keybind is wired too (ZoomModule.startInteract/stopInteract, the spyglass style only —
 //! the scope binds no armor interact hook): the client key tracking sets the FOV keybind flag on the
@@ -18,16 +22,15 @@
 //! spyglass use and stop sounds. The receiver has no position or dimension to play one at, so it queues
 //! the sound for the player and the player tick — which carries both — plays it on its next tick.
 //!
-//! What cannot run yet, with the evidence: executing a swap on the server needs to replace stacks in
-//! places whose item changes — the off hand takes the strap inventory's first stack, hotbar slots take
-//! belt stacks. The player handle writes a slot back only when it still holds the same item
-//! (ServerPlayer::update_stack), whole-stack write-backs of carried places exist only on the ammo and
-//! item-wear events (CarriedEdit), and no event fires either for a keybind packet. Reading the worn
-//! pieces is not the problem (the player tick reports them, and the handle reads armor at slots 100 to
-//! 103 and the off hand at -106); the exchange itself has no surface. Opening the inventory menu is
-//! walled the same way: screens are keyed by block and open when a block is used, and no call opens one
-//! for an item. So the server receiver drops the strap, belt and menu forms with a one-time log until
-//! such a surface exists; `interact` is ready to be called by it unchanged.
+//! Two pieces of the original are not reproduced here, with the evidence. The equip sound's id is
+//! unverified against canon (the original's `startInteract` sound could not be re-fetched — see the
+//! lane report), so the receiver plays `minecraft:item.armor.equip_generic` for the strap and belt when
+//! their sound condition holds; a packet receiver names no position or dimension, so the sound is queued
+//! and the player tick below plays it at the wearer's place, a tick later at most. The minimap's
+//! selection message (`MinimapModule.onInventorySelect`) is not sent either: its lang key could not be
+//! re-fetched, and no text is invented for it — the selection itself is written back. The spectator
+//! skip of the original's handler has no player surface to read it from (only the local HUD knows
+//! whether the local player is a spectator), so a spectator's keypress runs the interact like anyone's.
 //!
 //! One form needs no exchange and does run: SelfDestructiveModifier primes its wearer from the
 //! helmet key (shift held — the packet's tooltip key is Shift exactly then, which is the
@@ -40,11 +43,10 @@
 //! SpittingModule's armor timers change only the worn piece's own persistent data (which the
 //! player handle writes at the armor slots) and the wearer's effects, so the receiver starts
 //! and stops them through tank_hook on the plain tooltip key, ahead of the exchange drop.
-use crate::{break_speed_hook::with_held_tool, modifier_modules::ZoomStyle, tool_inventory::{MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
+use crate::{break_speed_hook::with_held_tool, modifier_modules::ZoomStyle, tool_container_menu, tool_inventory::{slot_of, stack_of, with_snapshot_items, MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
 use pluto_lib::fov_api_v1::FovRegistry;
-use pluto_lib::{ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
+use pluto_lib::{player_api::ServerPlayer, ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
 use std::collections::BTreeSet;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 /// The channel the client hint travels on.
@@ -202,14 +204,14 @@ fn self_destructive_level(player: u128) -> i32 {
 fn self_destructive_start(player: u128) {
     let level = self_destructive_level(player);
     if level <= 0 { return; }
-    let wearer = pluto_lib::player_api::ServerPlayer { uuid: player, name: String::new() };
+    let wearer = ServerPlayer { uuid: player, name: String::new() };
     wearer.add_effect(&pluto_lib::player_api::EffectInstance::new("tconstruct:self_destructing", 30).amplifier((2 * level).clamp(0, 255) as u8));
 }
 
 /// SelfDestructiveModifier.stopInteract: the key's release takes the effect off.
 fn self_destructive_stop(player: u128) {
     if self_destructive_level(player) <= 0 { return; }
-    let wearer = pluto_lib::player_api::ServerPlayer { uuid: player, name: String::new() };
+    let wearer = ServerPlayer { uuid: player, name: String::new() };
     wearer.remove_effect("tconstruct:self_destructing");
 }
 
@@ -234,6 +236,63 @@ fn take_zoom_sound(player: u128) -> Option<&'static str> {
     let mut sounds = ZOOM_SOUNDS.lock().ok()?;
     let at = sounds.iter().position(|(who, _)| *who == player)?;
     Some(sounds.remove(at).1)
+}
+
+/// The armor equip sound the strap and belt play when their sound condition holds (see the module
+/// notes: the id is unverified against canon).
+const EQUIP_SOUND: &str = "minecraft:item.armor.equip_generic";
+
+/// The equip sounds a keybind interact queued, by player: a packet receiver names no position or
+/// dimension, so the player tick below plays them at the wearer's place, a tick later at most.
+static PENDING_SOUNDS: Mutex<Vec<(u128, &'static str)>> = Mutex::new(Vec::new());
+
+fn queue_sound(player: u128) {
+    if let Ok(mut pending) = PENDING_SOUNDS.lock() {
+        pending.push((player, EQUIP_SOUND));
+    }
+}
+
+/// Runs one interact outcome through the carried-stack exchange surface: the worn piece takes the
+/// whole-stack write-back first (it anchors the swap), then the off hand or the belt's changed
+/// main slots. The menu opens through the item-menu surface; a piece that is not a built tool
+/// opens nothing there.
+fn apply_outcome(player: &ServerPlayer, carried: i32, piece: &StackData, outcome: Outcome) {
+    match outcome {
+        Outcome::Nothing => {}
+        Outcome::Strap { piece, offhand, sound } => {
+            let _ = player.set_stack(carried, Some(&piece));
+            let offhand = offhand.as_ref().map(|slot| stack_of(slot));
+            let _ = player.set_stack(-106, offhand.as_ref());
+            if sound { queue_sound(player.uuid); }
+        }
+        Outcome::Belt { piece, main, sound } => {
+            let _ = player.set_stack(carried, Some(&piece));
+            for (slot, stack) in main {
+                let stack = stack.as_ref().map(|slot| stack_of(slot));
+                let _ = player.set_stack(slot as i32, stack.as_ref());
+            }
+            if sound { queue_sound(player.uuid); }
+        }
+        Outcome::Select { piece, .. } => {
+            let _ = player.set_stack(carried, Some(&piece));
+        }
+        Outcome::Menu => {
+            let _ = tool_container_menu::open_tool_menu(player, piece, carried);
+        }
+    }
+}
+
+/// The packet's interact, from the worn piece down: the piece, the off hand and the main inventory
+/// as the named reads see them, the blacklist from the item snapshot, then the outcome applied.
+/// A worn piece that is not a built Tinkers armor tool answers nothing (`interact` says so).
+fn apply_interact(player: u128, slot: u8, key: MenuKey) {
+    let wearer = ServerPlayer { uuid: player, name: String::new() };
+    let carried = if slot == SLOT_HEAD { 103 } else { 101 };
+    let Some(piece) = wearer.stack_named(carried) else { return; };
+    let offhand = wearer.stack_named(-106).and_then(|stack| slot_of(&stack));
+    let main: Vec<Option<ItemSlot>> = (0..36).map(|slot| wearer.stack_named(slot).and_then(|stack| slot_of(&stack))).collect();
+    let outcome = with_snapshot_items(|items| interact(&piece, key, offhand, &main, &|stack| items.is_blacklisted(stack)));
+    apply_outcome(&wearer, carried, &piece, outcome);
 }
 
 /// The players whose primed sound has played for the effect they currently carry, by uuid.
@@ -298,22 +357,31 @@ pub(crate) fn register() {
             queue_zoom_sound(player, "minecraft:item.spyglass.use");
             return;
         }
-        // The exchange the packet asks for has no server surface yet (see the module notes).
-        static LOGGED: AtomicBool = AtomicBool::new(false);
-        if !LOGGED.swap(true, Ordering::Relaxed) {
-            eprintln!("Tinkers: an armor interact key was pressed, but no server surface can exchange a worn piece's stacks yet; the interact was dropped");
-        }
+        // Anything else the key asks for runs through the carried-stack exchange surface.
+        apply_interact(player, slot, key);
     }) {
         eprintln!("Tinkers: armor interact receiver not registered: {error}");
     }
     // SelfDestructiveEffect.applyEffectTick and SelfDestructiveModifier.onUnequip, over the
     // player tick: the primed sound on the effect's first tick, the explosion on its last,
-    // and the removal when the helmet that primes it is no longer worn.
+    // and the removal when the helmet that primes it is no longer worn. Queued equip sounds
+    // play here too, at the wearer's place (the packet receiver names none).
     ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
         // A keybind zoom sound the receiver queued for this player: the tick carries the position
         // and dimension the receiver never had, so it plays here, on the next tick.
         if let Some(sound) = take_zoom_sound(tick.player) {
             World::new(&tick.dimension).play_sound(sound, tick.position, 1.0, 1.0);
+        }
+        if let Ok(mut pending) = PENDING_SOUNDS.lock() {
+            let mut index = 0;
+            while index < pending.len() {
+                if pending[index].0 == tick.player {
+                    let (_, sound) = pending.remove(index);
+                    World::new(&tick.dimension).play_sound(sound, tick.position, 1.0, 1.0);
+                } else {
+                    index += 1;
+                }
+            }
         }
         let Some((_, amplifier, left)) = tick.effects.iter().find(|(id, _, _)| id == "tconstruct:self_destructing") else {
             let _ = PRIMED.lock().map(|mut primed| primed.remove(&tick.player));
@@ -411,6 +479,65 @@ mod tests {
         assert_eq!(inventory.stack(&persistent, 1), None, "and its belt slot is untouched");
         assert_eq!(main[2], Some(stack("tconstruct:sword", 1)), "an empty slot takes the belt's stack");
         assert_eq!(inventory.stack(&persistent, 2), None);
+    }
+
+    #[test]
+    fn applying_a_strap_outcome_writes_the_piece_and_the_off_hand() {
+        use pluto_lib::player_api::{with_ops, MemoryPlayerOps};
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 7, name: "Alex".into() };
+        let piece = StackData { item: "tconstruct:helmet".into(), count: 1, ..StackData::default() };
+        ops.carried.insert((7, 103), piece.clone());
+        let outcome = Outcome::Strap { piece: piece.clone(), offhand: Some(stack("minecraft:shield", 1)), sound: true };
+        with_ops(&mut ops, || apply_outcome(&player, 103, &piece, outcome));
+        assert_eq!(ops.carried.get(&(7, 103)), Some(&piece), "the rotated piece is worn again");
+        assert_eq!(ops.carried.get(&(7, -106)).map(|stack| (stack.item.as_str(), stack.count)), Some(("minecraft:shield", 1)), "the first strap slot is the new off hand");
+        assert!(PENDING_SOUNDS.lock().map(|pending| pending.iter().any(|(uuid, _)| *uuid == 7)).unwrap_or(false), "the equip sound waits for the tick");
+        PENDING_SOUNDS.lock().map(|mut pending| pending.retain(|(uuid, _)| *uuid != 7)).unwrap();
+    }
+
+    #[test]
+    fn applying_a_belt_outcome_writes_the_piece_and_each_changed_slot() {
+        use pluto_lib::player_api::{with_ops, MemoryPlayerOps};
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 8, name: "Alex".into() };
+        let piece = StackData { item: "tconstruct:leggings".into(), count: 1, ..StackData::default() };
+        let outcome = Outcome::Belt {
+            piece: piece.clone(),
+            main: vec![(0, Some(stack("tconstruct:pickaxe", 1))), (2, None)],
+            sound: true,
+        };
+        with_ops(&mut ops, || apply_outcome(&player, 101, &piece, outcome));
+        assert_eq!(ops.carried.get(&(8, 101)), Some(&piece));
+        assert_eq!(ops.carried.get(&(8, 0)).map(|stack| stack.item.as_str()), Some("tconstruct:pickaxe"), "the belt's tool is in the hotbar");
+        assert_eq!(ops.carried.get(&(8, 2)), None, "an emptied slot is cleared, not left holding the old stack");
+        PENDING_SOUNDS.lock().map(|mut pending| pending.retain(|(uuid, _)| *uuid != 8)).unwrap();
+    }
+
+    #[test]
+    fn applying_a_selection_outcome_writes_only_the_piece() {
+        use pluto_lib::player_api::{with_ops, MemoryPlayerOps};
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 9, name: "Alex".into() };
+        let mut piece = StackData { item: "tconstruct:helmet".into(), count: 1, ..StackData::default() };
+        piece.custom_data.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(2));
+        with_ops(&mut ops, || apply_outcome(&player, 103, &piece, Outcome::Select { piece: piece.clone(), selected: 2 }));
+        assert_eq!(ops.carried.get(&(9, 103)), Some(&piece), "the piece carries the new selection");
+        assert_eq!(ops.carried.get(&(9, -106)), None, "the off hand is untouched");
+    }
+
+    #[test]
+    fn applying_nothing_writes_nothing_and_a_menu_for_an_unloaded_tool_opens_nothing() {
+        use pluto_lib::player_api::{with_ops, MemoryPlayerOps};
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 10, name: "Alex".into() };
+        let piece = StackData { item: "tconstruct:helmet".into(), count: 1, ..StackData::default() };
+        with_ops(&mut ops, || {
+            apply_outcome(&player, 103, &piece, Outcome::Nothing);
+            apply_outcome(&player, 103, &piece, Outcome::Menu);
+        });
+        assert!(ops.carried.is_empty(), "no outcome, no write");
+        assert!(ops.opened_item_menus.is_empty(), "the menu needs a built tool, and the registries are not loaded in this test");
     }
 
     #[test]

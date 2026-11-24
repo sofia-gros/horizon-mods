@@ -307,6 +307,15 @@ RULES = [
         # Appends one wrapper that returns the crate-private slot type as plain values; no existing line changes.
         'edits': [],
     },
+    {
+        'id': 'pluto-item-menu-open',
+        'file': 'crates/horizon-client/src/game/native_menus.rs',
+        'sha256': 'e85cf29cb3ca1d7a2d1e1a28374c67738f71e4ca74208eef30e1ab1148958857',
+        'target': "horizon_client::game::native_menus::Game<'_>::native_open_item_menu",
+        'kind': 'HEAD', 'helper': 'pluto-item-menu-open.rs',
+        # Appends one wrapper that opens a native-slots menu for a player's item; no existing line changes.
+        'edits': [],
+    },
 ]
 
 

@@ -1847,6 +1847,33 @@ bindings = [
     { name = "game", ty = "&Game<'_>", value = "&*self" },
 ]
 
+# A mod menu for a player's item as plain values for `Host`: `Hub::open_container` is crate-private, so a wrapper is appended to its file
+# (direct host attachment) and listed by a helper fragment beside the upstream ones.
+[[injection]]
+id = "pluto-item-menu-open"
+target = "horizon_client::game::native_menus::Game<'_>::native_open_item_menu"
+kind = "HEAD"
+helper = "pluto-item-menu-open.rs"
+bindings = [
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+]
+
+# A screen for a mod menu opened for an item (not a block): `open_native_screen` returns early for one, since no block at the stand-in
+# position carries the menu, so the return hook opens the screen from the menu's own layout when the extra data marks an item menu.
+[[injection]]
+id = "pluto-open-item-screen"
+target = "horizon_client::game::native_hooks::Game<'_>::open_native_screen"
+kind = "RETURN"
+helper = "pluto-open-item-screen-return.rs"
+bindings = [
+    { name = "value", ty = "()", value = "$value" },
+    { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+    { name = "key", ty = "Pos", value = "key" },
+    { name = "window", ty = "i32", value = "window" },
+    { name = "menu", ty = "&str", value = "menu" },
+    { name = "extra", ty = "Option<horizon_protocol::menu_extra::Message>", value = "extra" },
+]
+
 [[injection]]
 id = "pluto-item-color-layers"
 target = "horizon_client_lib::item_render::ItemRenderer::resolve_with_rule"

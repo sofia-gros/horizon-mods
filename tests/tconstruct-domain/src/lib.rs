@@ -307,6 +307,8 @@ mod quiver_hook;
 mod sleeves_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_behavior_hook.rs"]
 mod tool_behavior_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_container_menu.rs"]
+mod tool_container_menu;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/smeltery_blocks.rs"]
 mod smeltery_blocks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tank.rs"]

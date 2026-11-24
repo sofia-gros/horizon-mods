@@ -192,6 +192,7 @@
     "api/src/quiver_hook.rs",
     "api/src/sleeves_hook.rs",
     "api/src/tool_behavior_hook.rs",
+    "api/src/tool_container_menu.rs",
     "api/src/shaped_materials.rs",
     "api/src/retextured.rs",
     "api/src/swapping_recipes.rs",

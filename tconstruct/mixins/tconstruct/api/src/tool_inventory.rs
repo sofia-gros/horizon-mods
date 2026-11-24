@@ -5,8 +5,8 @@
 //! holds a list of `{id, Count (byte), tag, Slot (int)}` compounds, one per filled slot. A stack here also has parts the original kept in
 //! its `tag` (damage, enchantments) or did not have (a per-stack tool or attribute component); those are stored beside `tag` under
 //! `pluto_components`, so that a stack leaves and returns unchanged. A module with a filter this port cannot evaluate stays unbound.
-use crate::modifier_entries::Entry;
-use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound};
+use crate::{break_speed_hook::with_held_tool, common, modifier_entries::Entry, tool_stack};
+use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound, StackData};
 use serde_json::{Map, Value};
 
 /// ToolInventoryCapability.TOTAL_SLOTS: the volatile int holding the slot count over all modifiers.
@@ -248,6 +248,61 @@ pub(crate) fn read_stack(compound: &NbtCompound) -> Option<ItemSlot> {
     // The model selection is derived from the material data, not saved.
     crate::tool_materials::sync_model(&mut stack);
     Some(stack)
+}
+
+/// The item slot view of a stack, for the tool damage pipeline and the carried-stack write-backs
+/// (which work on slots): the item, count, damage, max damage, custom data, custom model data and
+/// enchantments. None for an item id that does not parse.
+pub(crate) fn slot_of(stack: &StackData) -> Option<ItemSlot> {
+    let mut slot = ItemSlot::new(Identifier::parse(&stack.item).ok()?, stack.count);
+    slot.damage = stack.damage;
+    slot.max_damage = stack.max_damage;
+    slot.custom_data = stack.custom_data.clone();
+    slot.custom_model_data = stack.custom_model_data.clone();
+    if !stack.enchantments.is_empty() {
+        slot.enchantments = Some(stack.enchantments.clone());
+    }
+    Some(slot)
+}
+
+/// The stack a slot view writes back as: the item, count, damage, max damage, custom data, custom
+/// model data and enchantments.
+pub(crate) fn stack_of(slot: &ItemSlot) -> StackData {
+    StackData {
+        item: slot.item.to_string(),
+        count: slot.count,
+        damage: slot.damage,
+        max_damage: slot.max_damage,
+        custom_data: slot.custom_data.clone(),
+        custom_model_data: slot.custom_model_data.clone(),
+        enchantments: slot.enchantments.clone().unwrap_or_default(),
+    }
+}
+
+/// Item.canFitInsideContainerItems: a shulker box (any colour) does not fit inside a container,
+/// and every other item does. The host offers no item property for this, so the vanilla rule is
+/// spelled out here (ShulkerBoxItem is the one vanilla override).
+pub(crate) fn can_fit_inside_container(item: &Identifier) -> bool { !item.path().ends_with("shulker_box") }
+
+/// Whether the stack carries an item handler of its own: a built Tinkers tool with inventory
+/// slots does (the capability exists only above zero slots). The port knows no other mod's
+/// handlers, so anything that is not such a tool answers false.
+pub(crate) fn has_item_handler(stack: &ItemSlot) -> bool {
+    let data = stack_of(stack);
+    with_held_tool(&data, |env, tool| tool_stack::inventory(&tool.custom_data, env).slots() > 0).unwrap_or(false)
+}
+
+/// The item facts for the blacklist and the slot-validity checks, from the captured item
+/// snapshot (the tag answers) and the item rules above. The max stack answers 64: neither
+/// check reads it (the blacklist reads the tag, the fit rule and the handler; slot validity
+/// reads the blacklist and the module's filter), and no vanilla max-stack surface exists to
+/// answer it from — do not use this `Items` for slot limits or stackability.
+pub(crate) fn with_snapshot_items<R>(run: impl FnOnce(&Items<'_>) -> R) -> R {
+    let snapshot = common::item_snapshot();
+    let in_tag = |item: &Identifier, tag: &Identifier| snapshot.as_deref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let max_stack = |_: &Identifier| 64;
+    let items = Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &can_fit_inside_container, has_item_handler: &has_item_handler };
+    run(&items)
 }
 
 /// ItemStack.isSameItem: only the item counts.
@@ -596,6 +651,26 @@ mod tests {
     fn fits(item: &Identifier) -> bool { item.path() != "shulker_box" }
     fn handler(stack: &ItemSlot) -> bool { stack.custom_data.contains_key("tic_stats") }
     fn items() -> Items<'static> { Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &fits, has_item_handler: &handler } }
+
+    #[test]
+    fn a_stack_round_trips_through_its_slot_view() {
+        let mut data = StackData { item: "minecraft:diamond_sword".into(), count: 1, damage: 12, max_damage: Some(1561), enchantments: [("minecraft:sharpness".to_owned(), 3)].into_iter().collect(), ..StackData::default() };
+        data.custom_data.insert("tconstruct:test".to_owned(), Nbt::Int(1));
+        let slot = slot_of(&data).expect("a parsed id");
+        assert_eq!((slot.damage, slot.max_damage, slot.enchantments.as_ref().map(|e| e.len())), (12, Some(1561), Some(1)));
+        assert_eq!(stack_of(&slot), data, "the write-back is the stack read");
+        assert!(slot_of(&StackData { item: "not an id".into(), ..StackData::default() }).is_none());
+    }
+
+    #[test]
+    fn only_a_shulker_box_does_not_fit_inside_a_container() {
+        assert!(!can_fit_inside_container(&id("minecraft:shulker_box")));
+        assert!(!can_fit_inside_container(&id("minecraft:red_shulker_box")));
+        assert!(can_fit_inside_container(&id("minecraft:chest")));
+        assert!(can_fit_inside_container(&id("minecraft:bundle")));
+        // A plain stack carries no handler: only a built tool with inventory slots does.
+        assert!(!has_item_handler(&stack("minecraft:torch", 1)));
+    }
     fn pockets(level: i32) -> ToolInventory {
         ToolInventory::new(vec![part(module(json!({"key":"tconstruct:pockets","slots":{"each_level":3}})).unwrap(), "tconstruct:pocket", level)])
     }
