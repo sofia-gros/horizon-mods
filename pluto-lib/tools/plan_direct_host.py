@@ -121,8 +121,12 @@ def plan(source, output, mixins, check_native=False, check_api=False, require_co
     if applied.returncode:
         return applied.returncode
     # This compiles host attachments, not the launcher's trait-crate wiring.
+    # --keep-going (here and in the sibling check scripts): one run surfaces
+    # every independent crate's errors instead of stopping at the first
+    # failing crate; the exit code is unchanged.
     checked = subprocess.run(['cargo', '+1.95.0', 'check', '--offline', '--locked',
-                              '--manifest-path', str(stage / 'Cargo.toml'), '-p', 'horizon-client'])
+                              '--manifest-path', str(stage / 'Cargo.toml'), '-p', 'horizon-client',
+                              '--keep-going'])
     (output / 'native-check.json').write_text(newline='\n', data=json.dumps({
         'exit': checked.returncode, 'trait_linkage_checked': False,
         'gameplay_checked': False,
@@ -142,7 +146,7 @@ def plan(source, output, mixins, check_native=False, check_api=False, require_co
     # Adding the local package requires a lockfile entry. Resolve offline from
     # the copied upstream lock, then check under --locked; never touch the pin.
     api_command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
-                   str(stage / 'Cargo.toml'), '-p', package]
+                   str(stage / 'Cargo.toml'), '-p', package, '--keep-going']
     if glue:
         api_command += ['--features', 'native-inventory-glue']
     resolved = subprocess.run(api_command)
