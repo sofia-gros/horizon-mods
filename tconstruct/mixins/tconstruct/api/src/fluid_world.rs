@@ -56,6 +56,23 @@ pub(crate) fn stack_of_slot(slot: &ItemSlot) -> Stack {
     }
 }
 
+/// A stack the game reported as data (a hit's weapon, a worn piece) as an engine stack; the same
+/// conversion as stack_of_slot.
+pub(crate) fn stack_of_data(stack: &pluto_lib::StackData) -> Stack {
+    Stack {
+        item: stack.item.clone(),
+        count: stack.count,
+        nbt: if stack.custom_data.is_empty() { None } else { Some(nbt_to_value(&stack.custom_data)) },
+    }
+}
+
+/// The original's FluidEffects.spawnParticles: the fluid's own sprite particles around a point —
+/// `count` of the `tconstruct:fluid` sprite carrying the fluid, spread (0.1, 0.2, 0.1) at speed 0.2
+/// around the point's middle height, as every caller of it asks.
+pub(crate) fn spawn_fluid_particles(world: &World, fluid: &FluidStack, at: [f64; 3], count: i32) {
+    world.send_particles("tconstruct:fluid", &pluto_lib::ParticleData::Fluid(fluid.clone()), [at[0], at[1] + 0.5, at[2]], [0.1, 0.2, 0.1], 0.2, count);
+}
+
 /// Writes an engine stack back into a cannon's item slot after an application: what the context's
 /// stack became is what the slot holds (FluidCannonBlockEntity's `itemHandler.setStack`). An emptied
 /// stack clears the slot; a stack of another item replaces the slot whole; the same item keeps the
@@ -525,6 +542,9 @@ impl WorldAccess for LiveWorld {
 enum Sink<'a> {
     Victim(&'a RefCell<Vec<EntityAction>>),
     Reach,
+    /// No queue at all: a given effect goes straight to the entity through the reach, and the rest
+    /// of the action vocabulary (which only a hit's own parties can carry) is refused.
+    Direct,
 }
 
 /// A live entity as an effect target: the facts the reaches answer, and conservative defaults for
@@ -536,6 +556,9 @@ pub(crate) struct LiveTarget<'a> {
     player: bool,
     fire_immune: bool,
     position: [f64; 3],
+    /// The party a queued action names: the victim of a hit, or the attacker where an effect
+    /// retaliates (a bursting tank answers its wearer's attacker).
+    party: ActionTarget,
     sink: Sink<'a>,
 }
 
@@ -564,6 +587,7 @@ impl<'a> LiveTarget<'a> {
             living,
             fire_immune,
             position: hit.at,
+            party: ActionTarget::Victim,
             sink: Sink::Victim(actions),
         }
     }
@@ -578,8 +602,38 @@ impl<'a> LiveTarget<'a> {
             player: entity.kind.to_string() == "minecraft:player",
             fire_immune: entity.living.map_or(false, |facts| facts.fire_immune),
             position,
+            party: ActionTarget::Victim,
             sink: Sink::Reach,
         }
+    }
+
+    /// An entity a callback names outright — a hit's attacker, the wearer of a tank, the drinker of
+    /// one: its living facts are probed from the reach around its position, and its given effects
+    /// queue on `actions` as the named party's.
+    pub(crate) fn party(id: i32, kind: &str, position: [f64; 3], actions: &'a RefCell<Vec<EntityAction>>, party: ActionTarget) -> Self {
+        let (mut living, mut fire_immune) = (!matches!(kind, "minecraft:item" | "minecraft:experience_orb" | "minecraft:falling_block"), false);
+        for entity in EntityReach::in_box([position[0] - 0.5, position[1] - 0.5, position[2] - 0.5], [position[0] + 0.5, position[1] + 0.5, position[2] + 0.5]) {
+            if entity.id == id as u64 {
+                living = entity.living.is_some();
+                fire_immune = entity.living.map_or(false, |facts| facts.fire_immune);
+                break;
+            }
+        }
+        Self { id, kind: kind.to_owned(), living, player: kind == "minecraft:player", fire_immune, position, party, sink: Sink::Victim(actions) }
+    }
+
+    /// An entity whose effects are given at once through the reach, for the tellings that carry no
+    /// action queue of their own (an inventory tick, a finished drink, an interact key's stop).
+    pub(crate) fn direct(id: i32, kind: &str, position: [f64; 3]) -> Self {
+        let (mut living, mut fire_immune) = (!matches!(kind, "minecraft:item" | "minecraft:experience_orb" | "minecraft:falling_block"), false);
+        for entity in EntityReach::in_box([position[0] - 0.5, position[1] - 0.5, position[2] - 0.5], [position[0] + 0.5, position[1] + 0.5, position[2] + 0.5]) {
+            if entity.id == id as u64 {
+                living = entity.living.is_some();
+                fire_immune = entity.living.map_or(false, |facts| facts.fire_immune);
+                break;
+            }
+        }
+        Self { id, kind: kind.to_owned(), living, player: kind == "minecraft:player", fire_immune, position, party: ActionTarget::Victim, sink: Sink::Direct }
     }
 
     fn queue(&mut self, action: EntityAction) -> bool {
@@ -589,6 +643,12 @@ impl<'a> LiveTarget<'a> {
                 true
             }
             Sink::Reach => false,
+            Sink::Direct => match action {
+                EntityAction::AddEffect { effect, amplifier, duration, .. } => {
+                    self.id > 0 && EntityReach::add_effect(self.id as u64, &effect, duration, amplifier.clamp(0, 255) as u8)
+                }
+                _ => false,
+            },
         }
     }
 }
@@ -632,17 +692,17 @@ impl EntityTarget for LiveTarget<'_> {
         // below the (unreadable) current burn is left to that rule, as setSecondsOnFire itself is.
         if ticks > 0 {
             let seconds = (ticks + 19) / 20;
-            self.queue(EntityAction::SetFire { target: ActionTarget::Victim, seconds });
+            self.queue(EntityAction::SetFire { target: self.party, seconds });
         }
     }
     fn set_ticks_frozen(&mut self, ticks: i32) {
         if ticks > 0 {
-            self.queue(EntityAction::Freeze { target: ActionTarget::Victim, ticks });
+            self.queue(EntityAction::Freeze { target: self.party, ticks });
         }
     }
     fn add_effect(&mut self, effect: NewEffect) -> bool {
         self.queue(EntityAction::AddEffect {
-            target: ActionTarget::Victim,
+            target: self.party,
             effect: effect.effect.to_string(),
             amplifier: effect.amplifier,
             duration: effect.duration,

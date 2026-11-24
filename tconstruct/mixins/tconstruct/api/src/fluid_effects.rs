@@ -1942,6 +1942,27 @@ impl FluidEffects {
         }
         (amount_per_level as f32 * used_scale.min(scale)).ceil() as i32
     }
+
+    /// What apply_to_entity would consume, running the simulate phase only: the original's
+    /// FluidAction.SIMULATE call, which interaction gates (a slurp that may start, a drink that may
+    /// finish) ask before anything is allowed to happen. Nothing is applied.
+    pub(crate) fn simulate_to_entity(&self, fluid: &FluidStack, level_cap: f32, context: &mut EntityContext, in_tag: InTag) -> i32 {
+        let amount_per_level = self.ingredient.amount(&fluid.fluid, in_tag);
+        if amount_per_level <= 0 { return 0; }
+        let amount = fluid.amount as i32;
+        let scale = if amount as f32 >= amount_per_level as f32 * level_cap {
+            level_cap
+        } else {
+            amount as f32 / amount_per_level as f32
+        };
+        let level = EffectLevel { value: scale, max: level_cap };
+        let mut used_scale = 0.0f32;
+        for effect in &self.entity_effects {
+            let used = effect.apply(fluid, level, context, FluidAction::Simulate);
+            if used > used_scale { used_scale = used; }
+        }
+        (amount_per_level as f32 * used_scale.min(scale)).ceil() as i32
+    }
 }
 
 /// The loaded files in load order, plus a problem for every file that failed to decode
@@ -2028,6 +2049,15 @@ impl Data {
         let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
         match self.effects.find(fluid, &in_tag) {
             Some(effects) => effects.apply_to_entity(fluid, level_cap, context, &in_tag),
+            None => 0,
+        }
+    }
+
+    /// What apply_to_entity would consume for the matching entry, simulate phase only.
+    pub(crate) fn simulate_to_entity(&self, fluid: &FluidStack, level_cap: f32, context: &mut EntityContext, tags: &FluidTags) -> i32 {
+        let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+        match self.effects.find(fluid, &in_tag) {
+            Some(effects) => effects.simulate_to_entity(fluid, level_cap, context, &in_tag),
             None => 0,
         }
     }
@@ -2354,6 +2384,22 @@ mod tests {
         // over the current 8, and only the used part is charged.
         assert_eq!(target.fire_ticks, 180);
         assert_eq!(consumed, 100);
+    }
+
+    #[test]
+    fn simulate_charges_the_same_and_changes_nothing() {
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:blazing_blood", "amount": 250},
+            "entity_effects": [{"type": "tconstruct:fire", "action": "add", "time": 2}],
+        })).expect("decode");
+        let mut world = TestWorld::default();
+        let mut target = TestTarget::living();
+        let would_consume = effects.simulate_to_entity(&stack("tconstruct:blazing_blood", 1000), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
+        assert_eq!(would_consume, 1000, "the simulate run prices the same application");
+        assert_eq!(target.fire_ticks, 0, "and sets nothing on fire");
+        let consumed = effects.apply_to_entity(&stack("tconstruct:blazing_blood", 1000), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
+        assert_eq!(consumed, would_consume);
+        assert_eq!(target.fire_ticks, 160);
     }
 
     #[test]

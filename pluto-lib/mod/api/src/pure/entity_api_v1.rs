@@ -176,6 +176,12 @@ pub trait EntityOps {
     fn spin_attack(&mut self, _id: u64) -> bool {
         false
     }
+    /// Gives the living entity `id` a mob effect for `duration` ticks at `amplifier` (the level less
+    /// one), as `LivingEntity.addEffect` does: an effect already running is combined by the game's own
+    /// rules. Only a living entity takes an effect. Hosts that predate the call answer false.
+    fn add_effect(&mut self, _id: u64, _effect: &str, _duration: i32, _amplifier: u8) -> bool {
+        false
+    }
 }
 
 thread_local! {
@@ -340,6 +346,11 @@ impl EntityReach {
     pub fn spin_attack(id: u64) -> bool {
         with_current(false, |ops| ops.spin_attack(id))
     }
+    /// Gives the living entity `id` a mob effect (see [`EntityOps::add_effect`]); whether the effect
+    /// was accepted. False outside a scope.
+    pub fn add_effect(id: u64, effect: &str, duration: i32, amplifier: u8) -> bool {
+        with_current(false, |ops| ops.add_effect(id, effect, duration, amplifier))
+    }
 }
 
 /// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
@@ -372,11 +383,13 @@ pub struct MemoryEntityOps {
     pub effect_lists: Vec<(u64, Vec<(String, i32, i32)>)>,
     /// The bounding box of each entity: its id and the (min, max) corners.
     pub bounding_boxes: Vec<(u64, [[f64; 3]; 2])>,
+    /// The effects given: the id, the effect's name, the duration in ticks and the amplifier.
+    pub effects: Vec<(u64, String, i32, u8)>,
 }
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), velocities: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new(), spun: Vec::new(), effect_lists: Vec::new(), bounding_boxes: Vec::new() }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), velocities: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new(), spun: Vec::new(), effect_lists: Vec::new(), bounding_boxes: Vec::new(), effects: Vec::new() }
     }
 }
 
@@ -526,6 +539,13 @@ impl EntityOps for MemoryEntityOps {
             return false;
         }
         self.spun.push(id);
+        true
+    }
+    fn add_effect(&mut self, id: u64, effect: &str, duration: i32, amplifier: u8) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some()) {
+            return false;
+        }
+        self.effects.push((id, effect.to_owned(), duration, amplifier));
         true
     }
 }
@@ -727,5 +747,24 @@ mod tests {
             assert_eq!(EntityReach::velocity_of(2), Some([0.0, 0.5, 0.0]), "the refused set changed nothing");
         });
         assert!(!EntityReach::set_velocity(2, [0.0, 0.0, 0.0]), "outside a scope nothing is set");
+    }
+
+    #[test]
+    fn add_effect_reaches_living_entities_only() {
+        let mut ops = world();
+        with_entities(&mut ops, || {
+            assert!(EntityReach::add_effect(2, "minecraft:poison", 100, 1), "the zombie takes the effect");
+            assert!(!EntityReach::add_effect(1, "minecraft:poison", 100, 0), "an item entity takes no effect");
+            assert!(!EntityReach::add_effect(99, "minecraft:poison", 100, 0), "no such entity");
+        });
+        assert_eq!(ops.effects, vec![(2, "minecraft:poison".to_string(), 100, 1)]);
+        // Outside a scope, and against a host that predates the call, the answer is false.
+        assert!(!EntityReach::add_effect(2, "minecraft:poison", 100, 0));
+        struct Bare;
+        impl EntityOps for Bare {
+            fn entities_in(&mut self, _min: [f64; 3], _max: [f64; 3]) -> Vec<WorldEntity> { Vec::new() }
+        }
+        let mut bare = Bare;
+        with_entities(&mut bare, || assert!(!EntityReach::add_effect(2, "minecraft:poison", 100, 0)));
     }
 }

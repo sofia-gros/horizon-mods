@@ -51,6 +51,8 @@ pub struct UseItemOnBlockContext {
     pub player: ServerPlayer,
     /// Whether the player is in creative mode (nothing is used up).
     pub creative: bool,
+    /// Whether the player is sneaking as they click.
+    pub sneaking: bool,
     /// The stack that was used, with its damage, max damage and custom data (a tool a mod made keeps its state there).
     pub held: Option<super::player_api::StackData>,
 }
@@ -194,6 +196,8 @@ pub struct UseItemOnEntityContext {
     pub entity: i32,
     /// The entity's type, such as `minecraft:sheep`.
     pub kind: String,
+    /// The dimension the interaction happens in, such as `minecraft:overworld`; empty when the game does not name it.
+    pub dimension: String,
     /// The hand the item is used with.
     pub hand: Hand,
     /// The stack in that hand, with its damage, max damage, custom data and enchantments; None for an empty hand.
@@ -710,7 +714,7 @@ mod tests {
             if click.kind == "minecraft:sheep" && click.held.as_ref().is_some_and(|held| held.item == "test:kama") { ActionResult::Success } else { ActionResult::Pass }
         });
         let click = |kind: &str, item: &str| UseItemOnEntityContext {
-            entity: 5, kind: kind.into(), hand: Hand::Main,
+            entity: 5, kind: kind.into(), dimension: String::new(), hand: Hand::Main,
             held: Some(StackData { item: item.into(), count: 1, ..Default::default() }),
             player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), dimension: "minecraft:overworld".into(), creative: false,
             actions: RefCell::new(Vec::new()),

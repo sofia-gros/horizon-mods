@@ -140,6 +140,7 @@ fn merge(ammo: tool_stack::FlightProfile, weapon: tool_stack::FlightProfile) -> 
         enderference: ammo.enderference || weapon.enderference,
         enderporting: ammo.enderporting || weapon.enderporting,
         tipped: weapon.tipped.or(ammo.tipped),
+        spilling: [ammo.spilling, weapon.spilling].concat(),
     }
 }
 
@@ -493,6 +494,33 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
                     // remainder. A lasting effect scales its duration exactly.
                     let duration = if effect.instant { 1 } else { crate::potion_contents::scaled_duration(effect.duration, *level) };
                     hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: effect.effect.to_string(), amplifier: effect.amplifier, duration });
+                }
+            }
+        }
+    }
+    // SpillingModule.onLauncherHitEntity: the firing tool's tank fluid, applied to the target at
+    // the module's level. The profile carries a snapshot of the tank, and what the application
+    // spends is spent from the snapshot — the firing tool itself is out of this telling's reach,
+    // the standing shape of the launcher applications here. The original's damageDealt > 0 gate
+    // cannot be read at the impact telling, the same remainder as the tipped application above.
+    if hit.entity.is_some() && !profile.spilling.is_empty() {
+        if let (Some(effects), Some(tags)) = (crate::common::fluid_effects(), crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.tags.clone()))) {
+            let effects = effects.read().expect("fluid effects lock poisoned");
+            let stack = state.thrown.as_ref().map(|thrown| crate::fluid_world::stack_of_data(&thrown.stack))
+                .or_else(|| state.shuriken.as_ref().map(|shuriken| crate::fluid_world::stack_of_data(&shuriken.stack)))
+                .unwrap_or_else(crate::fluid_effects::Stack::empty);
+            let mut world = crate::fluid_world::LiveWorld::new(hit.world());
+            for (level, fluid) in &profile.spilling {
+                let Some(fluid) = fluid else { continue };
+                if !effects.describe(fluid, &tags).map_or(false, |(_, has_entity, _)| has_entity) { continue; }
+                let mut target = crate::fluid_world::LiveTarget::victim(hit, &hit.actions);
+                let mut context = crate::fluid_effects::EntityContext {
+                    env: crate::fluid_effects::Env { world: &mut world, holder: crate::fluid_world::holder(stack.clone(), Some((hit.projectile as i32, hit.motion)), hit.at) },
+                    target: &mut target,
+                    location: hit.at,
+                };
+                if effects.apply_to_entity(fluid, *level, &mut context, &tags) > 0 {
+                    crate::fluid_world::spawn_fluid_particles(&hit.world(), fluid, hit.at, 10);
                 }
             }
         }

@@ -828,13 +828,13 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 
 ### `WeaponHit`
 
-A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands.
+A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands.
 
 ```rust
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty());
 ```
 
@@ -1143,6 +1143,11 @@ ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
 with_entities(&mut ops, || assert!(EntityReach::leave_ground(2)));
 assert_eq!(ops.lifted, vec![2]);
 ```
+
+
+### `EntityReach::add_effect`
+
+`fn add_effect(id: u64, effect: &str, duration: i32, amplifier: u8) -> bool`. Gives living entity `id` the mob effect for `duration` ticks at `amplifier` (level - 1).
 
 ### `EntityOps`
 

@@ -131,6 +131,35 @@ pub(crate) fn launch(
     Some(id)
 }
 
+/// Fires a fluid projectile from a creature (the original's spit from a tool's tank): it starts at
+/// `eye` already moving at `motion`, carries `fluid` at `power` with the tool's own water inertia,
+/// and is followed under the id the spawn returns, ownerless in the follow table (the spawn names
+/// the owner, the table only carries what an impact needs). None when the world cannot summon the
+/// kind there, and the caller fails the shot without spending fluid.
+pub(crate) fn launch_shot(
+    world: &World,
+    eye: [f64; 3],
+    motion: [f64; 3],
+    fluid: FluidStack,
+    power: f32,
+    water_inertia: f32,
+    owner: Option<u128>,
+    stack: Stack,
+) -> Option<u32> {
+    let mut data = NbtCompound::new();
+    data.insert("fluid".to_owned(), Nbt::Compound(fluid_nbt(&fluid)));
+    data.insert("power".to_owned(), Nbt::Float(power));
+    data.insert("knockback".to_owned(), Nbt::Float(KNOCKBACK));
+    data.insert("water_inertia".to_owned(), Nbt::Float(water_inertia));
+    let mut spawn = ProjectileSpawn::new(Identifier::parse(FLUID_SPIT).expect("valid spit id"), eye, motion).data(data);
+    if let Some(owner) = owner {
+        spawn = spawn.owner(owner);
+    }
+    let id = spawn_projectile(world, &spawn)?;
+    shots().insert((world.dimension.clone(), id), Shot { fluid, power, cannon: None, stack });
+    Some(id)
+}
+
 /// The effects data and the fluid tags an application runs against, as the other consumers read them.
 fn data() -> Option<(Arc<RwLock<fluid_effects::Data>>, FluidTags)> {
     let effects = common::fluid_effects()?.clone();

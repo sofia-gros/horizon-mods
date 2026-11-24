@@ -63,6 +63,7 @@ mod projectile_modules;
 mod shoot_hook;
 mod flight_hook;
 mod throwing_hook;
+mod tank_hook;
 mod sling_modules;
 mod sling_hook;
 mod bounce;
@@ -293,6 +294,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     // After throwing: the brush stroke ticks (its use is composed into the throwing hook's
     // registration above, as the sling's is).
     brush_hook::register();
+    tank_hook::register();
     fireball_hook::register();
     armor_worn::register();
     fancy_gadgets::register();
