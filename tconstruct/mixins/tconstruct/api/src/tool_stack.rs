@@ -1078,6 +1078,9 @@ pub(crate) struct FlightProfile {
     /// Whether the tool carries enderporting (the `tconstruct:enderporting` modifier): where its
     /// projectile lands, the thrower trades places with what it hit.
     pub enderporting: bool,
+    /// Whether the tool carries the infinity module (the `tconstruct:infinity` modifier): an arrow it
+    /// fires is creative-only pickup, whether the modifier supplied it or the shooter carried it.
+    pub infinity: bool,
     /// TippedModule: the potion the fired stack was tipped with (its persistent string
     /// under the modifier's ID, copied at the shot as onProjectileShoot copies it) and
     /// the entry's int effective level, which sets the hit's divisor.
@@ -1093,7 +1096,7 @@ impl FlightProfile {
     pub(crate) fn is_empty(&self) -> bool {
         self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
             && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
-            && !self.enderporting && !self.enderference && self.tipped.is_none() && self.spilling.is_empty()
+            && !self.enderporting && !self.enderference && self.tipped.is_none() && self.spilling.is_empty() && !self.infinity
     }
 }
 
@@ -1119,6 +1122,9 @@ pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProf
                 if let Some(module) = module.projectile_attract() { profile.attracts.push((module.radius(entry), module.strength(entry))); }
                 if let Some(module) = module.projectile_glow() { profile.glows.push((module.blocks(), module.entities(), module.tool_damage())); }
                 if let Some(module) = module.restrict_angle() { profile.angle_directions = Some(module.directions(entry)); }
+                // InfinityModule: the fired arrow is creative-only pickup (the spawn pass marks a
+                // supplied arrow from its stack, the flight pass the weapon's own from this flag).
+                if module.infinity().is_some() { profile.infinity = true; }
                 // VolatileFlagModule's launch half: a flag bound to a projectile hook is written
                 // into the launched projectile's persistent data, which the profile stands in for
                 // here; the explosion form and the enderference mark are the two readers.
@@ -1729,6 +1735,7 @@ mod tests {
             (Identifier::parse("test:fins").unwrap(), json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]})),
             (Identifier::parse("test:enderference").unwrap(), json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]}]})),
             (Identifier::parse("test:explosive").unwrap(), json!({"modules":[{"type":"tconstruct:projectile_explosion","block_interaction":"destroy","efln_bonus":0.5,"knockback":{"flat":1.0},"place_fire":false,"radius":{"each_level":1.0,"flat":1.0},"hooks":["tconstruct:projectile_hit"]}]})),
+            (Identifier::parse("test:infinity").unwrap(), json!({"modules":[{"type":"tconstruct:infinity","ammo":"minecraft:arrow","durability_usage":1,"hooks":["tconstruct:projectile_shot"]}]})),
             (Identifier::parse("test:plain").unwrap(), json!({})),
         ], &Always);
         let materials = loaded_materials();
@@ -1738,7 +1745,8 @@ mod tests {
         let list = List::default()
             .with_modifier(Identifier::parse("test:fins").unwrap(), 1).unwrap()
             .with_modifier(Identifier::parse("test:enderference").unwrap(), 1).unwrap()
-            .with_modifier(Identifier::parse("test:explosive").unwrap(), 1).unwrap();
+            .with_modifier(Identifier::parse("test:explosive").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("test:infinity").unwrap(), 1).unwrap();
         nbt.insert(TAG_MODIFIERS.into(), list.to_nbt());
         let profile = flight_profile(&nbt, &env);
         // Launching with fins bound marks the projectile efln: the explosion consumer adds the
@@ -1746,6 +1754,7 @@ mod tests {
         // enderference mark rides the profile the same way.
         assert!(profile.efln, "fins marks the launched projectile");
         assert!(profile.enderference, "enderference marks the launched projectile");
+        assert!(profile.infinity, "the infinity module rides the profile, for the fired arrow's pickup");
         assert_eq!(profile.explosions.len(), 1);
         assert_eq!(profile.explosions[0].3, 0.5, "the efln bonus the marked form adds");
         assert!(!profile.is_empty());
@@ -1753,7 +1762,7 @@ mod tests {
         let mut bare = NbtCompound::new();
         bare.insert(TAG_MODIFIERS.into(), List::default().with_modifier(Identifier::parse("test:plain").unwrap(), 1).unwrap().to_nbt());
         let profile = flight_profile(&bare, &env);
-        assert!(!profile.efln && !profile.enderference);
+        assert!(!profile.efln && !profile.enderference && !profile.infinity);
     }
     #[test]
     fn ensure_materials_fills_missing_materials_but_rebuild_alone_does_not() {

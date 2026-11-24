@@ -33,6 +33,9 @@ pub struct SpawnFacts {
 pub struct SpawnOutcome {
     pub motion: Option<[f64; 3]>,
     pub pierce: Option<u8>,
+    /// The arrow's pickup status, as the host's saved byte: 0 disallowed, 1 allowed, 2 creative-only
+    /// (`ArrowPickup` as a `u8`; out of range reads back as disallowed on the game side).
+    pub pickup: Option<u8>,
     pub no_gravity: Option<bool>,
     pub pickup_stack: Option<crate::items::ItemStack>,
 }
@@ -73,6 +76,9 @@ pub struct FlightOutcome {
     pub motion: Option<[f64; 3]>,
     pub discard: bool,
     pub no_gravity: Option<bool>,
+    /// The arrow's pickup status from this tick, as the host's saved byte: 0 disallowed, 1 allowed,
+    /// 2 creative-only (the same codes as [`SpawnOutcome::pickup`]).
+    pub pickup: Option<u8>,
     pub release_from_ground: bool,
     pub actions: Vec<FlightAction>,
 }

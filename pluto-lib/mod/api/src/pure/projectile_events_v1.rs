@@ -2,7 +2,8 @@
 //! world with [`World`] and can cancel the hit.
 //!
 //! A callback also hears a projectile when it is spawned ([`ProjectileEvents::SPAWN`], before its first tick of flight, with the
-//! spawn-time facts a shot is made of — an arrow's pierce, a flight without gravity, a clamped direction) and on every tick it
+//! spawn-time facts a shot is made of — an arrow's pierce, a flight without gravity, a clamped direction, a pickup status
+//! for the arrow) and on every tick it
 //! flies ([`ProjectileEvents::FLIGHT`], at the end of the tick, with the motion it will fly the next tick with). The game's own
 //! entity-tick telling covers mobs, item entities, minecarts and boats, not projectiles (pinned `native_entity_tick_pre`,
 //! API 146), so PlutoLib reaches into the game's projectile tick itself to tell these two; flight behaviours — a fuse that
@@ -173,11 +174,25 @@ pub struct ArrowFacts {
     pub dealt_damage: bool,
 }
 
+/// An arrow's pickup status (`AbstractArrow.Pickup`): who may pick a stuck arrow up. The discriminants are the
+/// host's saved byte (`Pickup.byte`): 0 disallowed, 1 allowed, 2 creative-only.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ArrowPickup {
+    /// No player may pick the arrow up.
+    #[default]
+    Disallowed = 0,
+    /// Any player may pick the arrow up and is handed its pickup stack.
+    Allowed = 1,
+    /// Only a player in creative may take the arrow, and takes no item for it: an arrow its shooter did not
+    /// spend, such as one a launcher's modifier supplied.
+    CreativeOnly = 2,
+}
+
 /// A projectile at the moment it joins the flying list, before its first tick: a callback may still set the shot up —
-/// give an arrow its pierce level, lift gravity off a flight, clamp the direction it leaves in, or name the stack a stuck
-/// arrow hands back when picked up. Heard for every projectile the game adds on a server: a bow's arrow, a thrown tool a
-/// callback itself summoned a moment earlier, a mob's shot. The game's own launch telling ([`ProjectileEvents::LAUNCH`])
-/// follows read-only; this one is the set-up pass before it.
+/// give an arrow its pierce level, lift gravity off a flight, clamp the direction it leaves in, set an arrow's pickup
+/// status, or name the stack a stuck arrow hands back when picked up. Heard for every projectile the game adds on a
+/// server: a bow's arrow, a thrown tool a callback itself summoned a moment earlier, a mob's shot. The game's own launch
+/// telling ([`ProjectileEvents::LAUNCH`]) follows read-only; this one is the set-up pass before it.
 #[derive(Clone, Debug)]
 pub struct ProjectileSpawned {
     /// The dimension, such as `minecraft:overworld`.
@@ -206,6 +221,10 @@ pub struct ProjectileSpawned {
     pub motion_after: RefCell<Option<[f64; 3]>>,
     /// The pierce level to give an arrow, when a callback sets one.
     pub pierce: Cell<Option<u8>>,
+    /// The pickup status to give an arrow, when a callback sets one (a supplied arrow is creative-only, so a
+    /// player who did not spend an arrow cannot pick it up again). Only an arrow reads it; on any other
+    /// projectile it does nothing.
+    pub pickup: Cell<Option<ArrowPickup>>,
     /// Whether the flight is without gravity, when a callback sets it (a hover that a later flight tick ends).
     pub no_gravity: Cell<Option<bool>>,
     /// The stack a stuck arrow hands back when a player picks it up, when a callback sets it (the tool a throw carries).
@@ -237,7 +256,8 @@ pub enum FlightAction {
 }
 
 /// A projectile at the end of a tick it flew (or rested stuck) in: a callback may steer the next tick — set the motion it
-/// flies on with, lift or restore its gravity, free a stuck arrow so it can fly home, discard it — and queue
+/// flies on with, lift or restore its gravity, set an arrow's pickup status, free a stuck arrow so it can fly home,
+/// discard it — and queue
 /// [`FlightAction`]s around it. A fuse is a callback counting `age`; gravity that returns is a callback answering the age
 /// it was set for; a magnet is a callback queueing [`FlightAction::PullItems`] while its tool rests stuck.
 #[derive(Clone, Debug)]
@@ -272,6 +292,10 @@ pub struct ProjectileFlight {
     pub discard: Cell<bool>,
     /// Whether its flight is without gravity from the next tick, when a callback sets it (gravity returning to a hover).
     pub no_gravity_after: Cell<Option<bool>>,
+    /// The pickup status to give an arrow from the next tick, when a callback sets it (a launcher's modifier marking
+    /// the fired arrow once the shot's profile is bound; a stuck arrow reads it no later than the tick it lands).
+    /// Only an arrow reads it; on any other projectile it does nothing.
+    pub pickup_after: Cell<Option<ArrowPickup>>,
     /// Set to true to free a stuck arrow so the motion it is given can fly it (a loyal tool leaving the ground).
     /// Only an arrow can be freed; on any other projectile it does nothing.
     pub release_from_ground: Cell<bool>,
@@ -512,13 +536,19 @@ mod tests {
             // A clamped direction and a pierce level, set before the first tick.
             spawn.motion_after.borrow_mut().replace([0.0, 0.2, -2.0]);
             spawn.pierce.set(Some(3));
+            // A supplied arrow is creative-only pickup: it cannot be picked up again.
+            spawn.pickup.set(Some(ArrowPickup::CreativeOnly));
             spawn.no_gravity.set(Some(true));
         });
         ProjectileEvents::FLIGHT.register(|flight| {
             if flight.projectile != 9090 { return; }
             match flight.age {
-                // The hover ends: gravity comes back.
-                20 => flight.no_gravity_after.set(Some(false)),
+                // The hover ends: gravity comes back, and the shot's pickup is settled now that
+                // the profile the shot bound is known.
+                20 => {
+                    flight.no_gravity_after.set(Some(false));
+                    flight.pickup_after.set(Some(ArrowPickup::CreativeOnly));
+                }
                 // Stuck long enough with loyalty: free it and steer it home.
                 25 => {
                     flight.release_from_ground.set(true);
@@ -540,11 +570,13 @@ mod tests {
             position: [0.5, 64.0, 0.5], motion: [0.1, 0.2, -2.0],
             arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
             stack: None, data: NbtCompound::new(),
-            motion_after: RefCell::new(None), pierce: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
+            motion_after: RefCell::new(None), pierce: Cell::new(None), pickup: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
         };
+        assert_eq!(spawn.pickup.get(), None, "no pickup status is settled until a callback sets one");
         spawned(&spawn);
         assert_eq!(*spawn.motion_after.borrow(), Some([0.0, 0.2, -2.0]));
         assert_eq!(spawn.pierce.get(), Some(3));
+        assert_eq!(spawn.pickup.get(), Some(ArrowPickup::CreativeOnly));
         assert_eq!(spawn.no_gravity.get(), Some(true));
         let flight_at = |age: u32| ProjectileFlight {
             dimension: "minecraft:overworld".into(), projectile: 9090, kind: "minecraft:arrow".into(), owner: 4,
@@ -552,12 +584,14 @@ mod tests {
             in_ground: age >= 25, no_gravity: age < 20,
             arrow: Some(ArrowFacts { pierce: 3, in_ground: age >= 25, in_ground_time: 5, dealt_damage: false }),
             data: NbtCompound::new(),
-            motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None),
+            motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None), pickup_after: Cell::new(None),
             release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
         };
         let hover_end = flight_at(20);
+        assert_eq!(hover_end.pickup_after.get(), None, "no pickup status is settled until a callback sets one");
         flight(&hover_end);
         assert_eq!(hover_end.no_gravity_after.get(), Some(false));
+        assert_eq!(hover_end.pickup_after.get(), Some(ArrowPickup::CreativeOnly));
         let stuck = flight_at(25);
         flight(&stuck);
         assert!(stuck.release_from_ground.get());
@@ -647,4 +681,11 @@ mod tests {
         );
     }
 
+
+    fn arrow_pickup_codes_are_the_host_saved_bytes() {
+        // The transport carries the status as a byte (`SpawnOutcome.pickup`); the codes must stay
+        // the host `Pickup.byte` ordinals (0 disallowed, 1 allowed, 2 creative-only).
+        assert_eq!((ArrowPickup::Disallowed as u8, ArrowPickup::Allowed as u8, ArrowPickup::CreativeOnly as u8), (0, 1, 2));
+        assert_eq!(ArrowPickup::default(), ArrowPickup::Disallowed);
+    }
 }

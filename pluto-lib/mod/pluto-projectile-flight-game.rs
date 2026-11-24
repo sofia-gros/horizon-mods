@@ -91,6 +91,11 @@ pub(crate) fn on_spawn(game: &mut crate::game::Game<'_>, p: &mut Projectile) {
         if let Some(pierce) = outcome.pierce {
             a.pierce = pierce;
         }
+        // The pickup status the spawn pass settled (`AbstractArrow.Pickup`, read back from the
+        // byte the API side sent; out of range is disallowed, as the host reads it).
+        if let Some(pickup) = outcome.pickup {
+            a.pickup = crate::arrows::Pickup::from_byte(i64::from(pickup));
+        }
         if let Some(stack) = outcome.pickup_stack {
             a.pickup_item = stack;
         }
@@ -165,6 +170,11 @@ pub(crate) fn after_tick(game: &mut crate::game::Game<'_>) {
         }
         if let Some(no_gravity) = outcome.no_gravity {
             p.no_gravity = no_gravity;
+        }
+        if let Some(pickup) = outcome.pickup {
+            if let Some(a) = &mut p.arrow {
+                a.pickup = crate::arrows::Pickup::from_byte(i64::from(pickup));
+            }
         }
         if outcome.release_from_ground {
             if let Some(a) = &mut p.arrow {
