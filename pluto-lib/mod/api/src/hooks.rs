@@ -303,6 +303,8 @@ pub fn hooks() -> Box<dyn Hooks> {
         hurt: |hurt| {
             let hit = entity_events_v1::WearerHit {
                 attacker: hurt.attacker, kind: hurt.attacker_kind.clone(), damage_type: hurt.damage_type.clone(), amount: hurt.amount,
+                // The damage event that follows resolves the type, the amount and the direct entity; until then they stand empty, 0 and -1.
+                direct: -1,
                 attacker_position: Some(hurt.position),
                 attacker_state: entity_events_v1::EntityState {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
@@ -316,7 +318,10 @@ pub fn hooks() -> Box<dyn Hooks> {
             // The damage event that follows carries the attacker's state, for the protection that conditions on it.
             let wearer = entity_events_v1::only_wearer_entity();
             if let Some(wearer) = wearer { entity_events_v1::hit_states(wearer, Some(hit.attacker_state.clone()), None); }
-            entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
+            // The hit itself is only noted here: the damage event that follows resolves its damage type (the hurt report names neither
+            // the type nor the amount yet) and hears it then, in `living_incoming_damage`, so the callbacks see the real source.
+            entity_events_v1::note_wearer_hit(wearer, hit);
+            Vec::new()
         },
     }).expect("PlutoLib player hurt sink installs once");
     horizon_client::entry::pluto_damage_facts_access::set_sink(horizon_client::entry::pluto_damage_facts_access::Sink {
@@ -6022,6 +6027,14 @@ impl Hooks for PlutoHooks {
         // The hurt stage, as the damage arrives and before armor and enchantment protection take their share: what the
         // callbacks leave of the amount is what the game goes on with.
         event.amount = entity_events_v1::modify_hurt(&damage);
+        // The hurt report a mob's attack opened named the hit before the game worked its damage type out; the damage event that
+        // follows resolves it, so the wearer-hit callbacks run now, with the real type, and the effects they put on the mob are
+        // pushed for the game to apply (pluto-mob-effect-apply), as the weapon-hit effects are.
+        if let Ok(attacker) = u32::try_from(damage.attacker) {
+            for grant in entity_events_v1::resolve_wearer_hit(&damage) {
+                horizon_client::entry::pluto_mob_effect_access::push(attacker, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
         Flow::Continue
     }
 

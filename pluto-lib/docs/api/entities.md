@@ -854,13 +854,13 @@ assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.b
 
 ### `WearerHit`
 
-A mob hurting the player: `attacker` the mob's id, `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as (both not reported yet: an empty id and 0.0), `attacker_state` what the mob was doing, `attacker_position` its position, `armor` the pieces the player wore (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data), `effects` the effects callbacks push for the mob, `self_effects` the ones for the wearer, `counter_damage` the damage for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the mob (`Attacker`) or the wearer (`Victim`), which land on the player's next tick.
+A mob hurting the player: `attacker` the mob's id, `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as, both resolved at the damage event, `direct` what directly dealt it (the attacker for a melee hit), `attacker_state` what the mob was doing, `attacker_position` its position, `armor` the pieces the player wore (only the pieces carrying custom data), `effects` the effects for the mob, `self_effects` the ones for the wearer, `counter_damage` the damage for the mob, and `actions` the [`EntityAction`](#entityaction)s for the mob (`Attacker`) or the wearer (`Victim`), which land on the player's next tick.
 
 ```rust
 use pluto_lib::{EntityState, WearerHit};
 use std::cell::RefCell;
 
-let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_position: None, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WearerHit { attacker: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, direct: 4, attacker_position: None, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effects.borrow().is_empty() && hit.counter_damage.borrow().is_empty() && hit.actions.borrow().is_empty());
 ```
 
@@ -944,7 +944,7 @@ ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
 
 ### `ServerLivingEntityEvents::WEARER_HIT`
 
-A mob hurting the player, heard on a server as the hit starts. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick (only the pieces carrying custom data); push status effects on the mob with `effects`, and the game puts them on it, or on the wearer with `self_effects`, which land on the player's next tick, and deal damage to the mob with `counter_damage` (an armor's thorns), which lands on the next tick too as hurt by the player; set it on fire, freeze it or knock it back with `actions`, which land on the next tick as well. The hit is heard once per attacker per tick, only when the mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
+A mob hurting the player, heard on a server as the damage arrives, with the type the damage event resolves. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick; push status effects on the mob with `effects`, which the game puts on it, or on the wearer with `self_effects`, or damage to the mob with `counter_damage` (an armor's thorns, as hurt by the player), the last two landing on the player's next tick; set it on fire, freeze it or knock it back with `actions`, which land then too. The hit is heard once per attacker per tick, only when the mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
 
 ```rust
 use pluto_lib::{EffectGrant, ServerLivingEntityEvents};
