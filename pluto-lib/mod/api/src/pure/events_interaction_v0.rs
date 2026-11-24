@@ -254,6 +254,18 @@ pub struct BlockBreakContext {
     /// Where the player looks, in degrees (`yRot`, `xRot`) as their last move told the server; 0 when the game names no player.
     pub yaw: f32,
     pub pitch: f32,
+    /// Whether the breaker is in creative mode (game mode 1), as the break started; false when the game names no player.
+    pub creative: bool,
+    /// Whether the breaker may build (vanilla `Player.mayBuild` for their game type: survival and creative may, adventure and
+    /// spectator may not), as the break started; true when the game names no player, as an unnamed breaker is not an
+    /// adventure-mode one.
+    pub may_build: bool,
+    /// The off hand stack's adventure-mode place tag (`minecraft:can_place_on`), one text entry per block predicate, in the
+    /// form the original's own tag strings take: a block id, a `#tag`, or an id with a state suffix
+    /// (`minecraft:oak_stairs[facing=east]`). Empty when the off hand carries no such tag (the common case) or the game did
+    /// not read it. A predicate carrying a block entity NBT test is not reported: the break reads the block without its
+    /// block entity, so the test could not be answered.
+    pub offhand_place_on: Vec<String>,
     /// More blocks this break takes with it, which `BEFORE` callbacks add to with [`BlockBreakContext::break_extra`]: the game
     /// breaks them through its own destroy path (their drops and loot are the game's, as for the block itself) at the level's next
     /// tick seam, a tick late at most. They do not fire break events of their own. Read by nobody in `AFTER` or `CANCELED`.
@@ -263,7 +275,7 @@ pub struct BlockBreakContext {
 impl BlockBreakContext {
     /// A context with only a position, for a game that reports nothing else (and for callbacks that only read `pos`).
     pub fn at(pos: [i32; 3]) -> Self {
-        Self { pos, dimension: String::new(), state: None, player: None, held: None, equipment: Vec::new(), actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()) }
+        Self { pos, dimension: String::new(), state: None, player: None, held: None, equipment: Vec::new(), actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, creative: false, may_build: true, offhand_place_on: Vec::new(), extra_breaks: RefCell::new(Vec::new()) }
     }
 
     /// Takes the block at `pos` with this break (see `extra_breaks`): the block itself, a duplicate and anything past 64 extra
@@ -607,7 +619,7 @@ mod tests {
             held: Some(StackData { item: "test:pick".into(), count: 1, damage: 4, ..Default::default() }),
             equipment: Vec::new(),
             actions: RefCell::new(Vec::new()),
-            face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, extra_breaks: RefCell::new(Vec::new()),
+            face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, creative: false, may_build: true, offhand_place_on: Vec::new(), extra_breaks: RefCell::new(Vec::new()),
         };
         assert!(after_block_break_heard());
         after_block_break(&context);

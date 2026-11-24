@@ -46,6 +46,33 @@ pub(crate) fn snapshot(game:&super::Game<'_>)->Option<Vec<horizon_client::regist
     // resource root's `data/<namespace>/tags/fluid` and the world's pack
     // stack, nested `#tag`s expanded). A failed read leaves the tags empty:
     // every `get_tag` is then None (unavailable), never an empty member set.
+    // The world's own block registry: the pack's block registry names every
+    // block of the world (vanilla and content alike), walked the way
+    // /setblock's completion walks it (`block_properties`), whose keys are
+    // the block IDs. The tags are the world's pack-tag tables, as the entity
+    // types take theirs, with the game's own tag read (`items::load_tags`
+    // over `data/<namespace>/tags/block`) as fallback. Tag members naming no
+    // registered block are dropped: a lookup's tags may only name its own
+    // entries, and a datapack tag may name a block a disabled pack would
+    // have added.
+    let blocks=super::block_properties(game.pack.assets.registry);
+    if !blocks.is_empty() {
+        let entries:Vec<String>=blocks.keys().cloned().collect();
+        let known:std::collections::BTreeSet<&str>=entries.iter().map(String::as_str).collect();
+        let keep=|tags:Vec<(String,Vec<String>)>| -> Vec<(String,Vec<String>)> {
+            tags.into_iter().map(|(tag,members)|(tag,members.into_iter().filter(|member|known.contains(member.as_str())).collect())).collect()
+        };
+        let tags=match game.world_tables.as_ref().and_then(|t|t.pack_tags.get("block")) {
+            Some(tags)=>keep(tags.iter().map(|(tag,members)|(tag.clone(),members.iter().cloned().collect())).collect()),
+            None=>match horizon_client::items::load_tags(&game.options.resources,"block",&game.pack_files()) {
+                Ok(tags)=>keep(tags.into_iter().map(|(tag,members)|(tag,members.into_iter().collect())).collect()),
+                Err(error)=>{ log::warn!("Horizon: the block tags are not captured: {error}"); Vec::new() },
+            },
+        };
+        registries.push(horizon_client::registries::pluto_reload_registry::Registry {
+            id:"minecraft:block".into(),entries,tags,item_defaults:None,
+        });
+    }
     if let Some(export)=super::command_export(&game.options.resources,game.options.dedicated.is_none()) {
         if let Some(fluids)=export.by_registry.get("minecraft:fluid").filter(|registry|!registry.ids.is_empty()) {
             let tags=match horizon_client::items::load_tags(&game.options.resources,"fluid",&game.pack_files()) {

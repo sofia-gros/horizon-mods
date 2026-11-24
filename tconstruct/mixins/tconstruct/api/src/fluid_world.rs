@@ -32,7 +32,7 @@
 //!   through the impact's own actions, which PlutoLib does to the hit's parties after the callback.
 //!   Area targets (an area effect's neighbours) are reached for hurts and facts only.
 use crate::common;
-use crate::{break_speed_hook, tool_stack};
+use crate::{break_speed_hook, tool_damage_hook, tool_slot, tool_stack};
 use crate::fluid_effects::{
     ActiveEffect, BlockContext, BlockInteraction, BreakSpec, CloudSpec, EntityInteractSpec, EntityTarget, ExplosionSpec, Holder,
     InteractSpec, InteractionResult, NewEffect, PlaceSpec, PotionEffect, PushReaction, Stack, WorldAccess,
@@ -143,10 +143,19 @@ pub(crate) fn holder(stack: Stack, projectile: Option<(i32, [f64; 3])>, position
     }
 }
 
+/// Whether the tool's item is in the durability tag (a Tinkers tool is); true when the snapshot is missing, as the wear path assumes.
+/// The exchange's consume keeps its own copy in block_break_hook, as the two wear sites share nothing else.
+fn durability_tagged(item: &Identifier, items: Option<&RegistryLookup>) -> bool {
+    let Some(items) = items else { return true; };
+    let tag = Identifier::new("tconstruct", "modifiable/durability").expect("valid id");
+    items.get_tag(&tag).is_some_and(|members| members.contains(item))
+}
+
 /// The live level: PlutoLib's world of one dimension, plus the registry snapshots the facts come from.
 pub(crate) struct LiveWorld {
     world: World,
     items: Option<Arc<RegistryLookup>>,
+    blocks: Option<Arc<RegistryLookup>>,
     entity_types: Option<Arc<RegistryLookup>>,
     fluids: Option<Arc<RegistryLookup>>,
     targets: Vec<LiveTarget<'static>>,
@@ -154,7 +163,7 @@ pub(crate) struct LiveWorld {
 
 impl LiveWorld {
     pub(crate) fn new(world: World) -> Self {
-        Self { world, items: common::item_snapshot(), entity_types: common::entity_type_snapshot(), fluids: common::fluid_snapshot(), targets: Vec::new() }
+        Self { world, items: common::item_snapshot(), blocks: common::block_snapshot(), entity_types: common::entity_type_snapshot(), fluids: common::fluid_snapshot(), targets: Vec::new() }
     }
 
     /// The world handle itself, for the operations outside the engine's vocabulary (spawning a
@@ -326,8 +335,7 @@ impl WorldAccess for LiveWorld {
         if !self.world.set_block_state(spec.pos, &block) { return InteractionResult::Pass; }
         // The original consumes the provider, not the placed stack as a count: a tool's provider
         // module damages the tool by its tool_damage (its consume), a block item shrinks by one. The
-        // engine stack carries no damage channel, so a tool's wear is written into its NBT with the
-        // env-free direct damage (the reduced damageAnimated path is unreachable from here) and its
+        // engine stack carries no damage channel, so a tool's wear lands in its NBT (below) and its
         // count is untouched; the caller writes the stack back into its slot. A stack that looks
         // like a tool but whose provider check errored (registries unready) is left untouched rather
         // than eaten: eating it would destroy a tool for a placement the provider never authorised.
@@ -341,14 +349,30 @@ impl WorldAccess for LiveWorld {
                 custom_model_data: None,
                 enchantments: Default::default(),
             };
-            let provider = break_speed_hook::with_held_tool(&held, |env, slot| tool_stack::block_item_provider(&slot.custom_data, env));
-            match provider {
-                Ok(Some((_modifier, _provided, wear))) => {
-                    let mut data = held.custom_data;
-                    crate::tool_damage::direct_damage(&mut data, wear, true);
-                    spec.stack.nbt = Some(nbt_to_value(&data));
+            let tagged = Identifier::parse(&held.item).is_ok_and(|item| durability_tagged(&item, self.items.as_deref()));
+            let outcome = break_speed_hook::with_held_tool(&held, |env, slot| {
+                let provider = tool_stack::block_item_provider(&slot.custom_data, env);
+                // ToolDamageUtil.damageAnimated on the reduced path, as the exchange's consume
+                // runs it: the TOOL_DAMAGE hooks speak first (overslime soaks what it can, the
+                // tool's own reductions apply), the durability-changed hooks hear the result, and
+                // the providing modifier is the cause. A wear that fails to apply leaves the tool
+                // unworn rather than eating it. (damageAnimated also broadcasts a break event when
+                // the tool breaks; neither this path nor the exchange's has a host reach for that
+                // broadcast from here.)
+                let damaged = provider.as_ref().and_then(|(modifier, _provided, wear)| {
+                    let mut slot = slot.clone();
+                    tool_slot::damage_slot(&mut slot, env, *wear, true, tagged, Some(modifier), &mut tool_damage_hook::random).ok()?;
+                    Some(slot.custom_data)
+                });
+                (provider, damaged)
+            });
+            match outcome {
+                Ok((Some(_), damaged)) => {
+                    if let Some(data) = damaged {
+                        spec.stack.nbt = Some(nbt_to_value(&data));
+                    }
                 }
-                Ok(None) => {
+                Ok((None, _)) => {
                     spec.stack.count -= 1;
                 }
                 Err(_) if held.custom_data.contains_key(tool_stack::TAG_MATERIALS) => {
@@ -414,15 +438,20 @@ impl WorldAccess for LiveWorld {
     }
 
     fn block_item(&self, block: &Identifier) -> Option<Identifier> {
-        self.items.as_deref().filter(|items| items.contains(block)).map(|_| block.clone())
+        // The item form of a block: an item of the block's id, and — when the block registry was
+        // captured — the id really naming a block (without the capture the item snapshot alone is
+        // the answer, as it was before the block registry was captured).
+        let known_block = self.blocks.as_deref().map_or(true, |blocks| blocks.contains(block));
+        (known_block && self.items.as_deref().is_some_and(|items| items.contains(block))).then(|| block.clone())
     }
 
     fn item_provided_block(&self, stack: &Stack) -> Option<BlockState> {
         // A tool's provider module says which block it provides (the glowing tool provides glowstone);
-        // a plain block item provides itself. The item snapshot is the only block-name reach, so a
-        // non-block item whose id happens to be listed there answers a state the host will not place;
-        // the placement then fails and nothing is consumed. A block registry reach would answer
-        // exactly. A broken tool provides nothing, as the original's tool-not-broken condition.
+        // a plain block item provides itself, which the block registry answers exactly: the item's id
+        // names a block. Without a block capture the item snapshot is the mirror, as it was before the
+        // block registry was captured — a non-block item whose id happens to be listed there answers a
+        // state the host will not place; the placement then fails and nothing is consumed. A broken
+        // tool provides nothing, as the original's tool-not-broken condition.
         let held = pluto_lib::StackData {
             item: stack.item.to_string(),
             count: stack.count.max(0) as u32,
@@ -437,7 +466,11 @@ impl WorldAccess for LiveWorld {
         {
             return Some(BlockState::new(provided));
         }
-        self.items.as_deref().filter(|items| items.contains(&stack.item)).map(|_| BlockState::new(stack.item.clone()))
+        let plain = match self.blocks.as_deref() {
+            Some(blocks) => blocks.contains(&stack.item),
+            None => self.items.as_deref().is_some_and(|items| items.contains(&stack.item)),
+        };
+        plain.then(|| BlockState::new(stack.item.clone()))
     }
 
     fn correct_tier_for_drops(&self, _tier: &str, _pos: BlockPos) -> bool { false }
