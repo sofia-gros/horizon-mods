@@ -2270,6 +2270,18 @@ impl PlayerOps for HostOps {
         self.host().acting_player().map(|acting| i32::from(acting.selected_slot))
     }
 
+    fn release_use(&mut self, player: u128) -> bool {
+        // The mod-facing host has no call that ends a use either (the game's own `releaseUsingItem`
+        // lives inside the game, in its using_item module), so the end is queued the same way as a
+        // brush stroke is and the game's creature tick seam applies it to the use in progress
+        // (see pluto_use_stop_access).
+        horizon_client::entry::pluto_use_stop_access::push(player, horizon_client::entry::pluto_use_stop_access::End::Release)
+    }
+
+    fn stop_use(&mut self, player: u128) -> bool {
+        horizon_client::entry::pluto_use_stop_access::push(player, horizon_client::entry::pluto_use_stop_access::End::Stop)
+    }
+
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
         let _ = player; // inside a callback the host reaches the acting player, who is the one the PlutoLib handle names
         (0..36).filter_map(|slot| self.host().carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()
@@ -3875,6 +3887,8 @@ impl Hooks for PlutoHooks {
         if event.entity.is_some() || !item_api_v1::has_stack_use(&event.stack.item) { return Flow::Continue; }
         let stack = read_stack(event.stack);
         let acting = host.acting_player();
+        // A new use begins: ends queued for the player's earlier uses go stale (see pluto_use_stop_access).
+        if let Some(player) = &acting { horizon_client::entry::pluto_use_stop_access::begin_use(player.uuid); }
         let (hungry, creative) = match &acting {
             Some(player) => (host.player_food(player.uuid).is_none_or(|(level, _, _)| level < 20), player.game_mode == 1),
             None => (true, false),
@@ -3920,7 +3934,8 @@ impl Hooks for PlutoHooks {
     }
 
     /// One tick of a player's use of an item (API 131): heard only for the using player and only
-    /// when a callback listens, as the release is. The use's end is the game's; the tick moves nothing.
+    /// when a callback listens, as the release is. The tick itself moves nothing: a callback ends
+    /// the use through the player's release and stop calls, which the game applies at its seam.
     fn living_entity_use_item_tick(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingEntityUseItemTickEvent<'_>) -> Flow {
         if event.entity.is_some() || !item_api_v1::use_tick_heard() { return Flow::Continue; }
         let Some(player) = host.acting_player() else { return Flow::Continue; };

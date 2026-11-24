@@ -1095,9 +1095,10 @@ bindings = [{ name = "resources", ty = "&Resources", value = "resources" }]
 # game is currently using (the startup table, a world's pack table after open or /reload, or a
 # server's synced table) so the recipe API's cooking lookup can answer what a furnace does to
 # an item. The creature tick refreshes the publication whenever the table in use changes.
-# The same tick also applies the brush strokes a mod ordered: the flush in the game's brush
-# module applies the queued strokes to its brushable block entities. One injection per place:
-# both callbacks run from this single head injection, cooking first.
+# The same tick also applies the brush strokes a mod ordered and ends the item uses a mod
+# ordered ended: the flushes in the game's brush and using_item modules apply what was
+# queued. One injection per place: all three callbacks run from this single head injection,
+# cooking first, and a use's strokes before its end.
 [[module]]
 id = "pluto-cooking-recipes"
 file = "crates/horizon-client/src/entry.rs"
@@ -1956,6 +1957,24 @@ id = "pluto-brush-flush"
 file = "crates/horizon-client/src/game/brush.rs"
 name = "pluto_brush_flush"
 source = "pluto-brush-flush.rs"
+visibility = "pub(crate)"
+
+# The item-use ends a mod orders (the game has no mod call that ends a use; its own
+# releaseUsingItem and stopUsingItem live inside the game, in the using_item module the
+# flush joins). The ends are applied at the creature tick seam, from the same head
+# injection as the cooking publication and the brush flush.
+[[module]]
+id = "pluto-use-stop-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_use_stop_access"
+source = "pluto-use-stop-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-use-stop-flush"
+file = "crates/horizon-client/src/game/using_item.rs"
+name = "pluto_use_stop_flush"
+source = "pluto-use-stop-flush.rs"
 visibility = "pub(crate)"
 
 # Native inventory gates for the pure advancement/recipe forwarders in the
