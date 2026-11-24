@@ -1169,6 +1169,11 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 # game did not consume the use (Tinkers' InteractionHandler, at its LOWEST priority). The
 # takeover reads the acting player, their aim and their crouch state; the cooldown module
 # carries the game's item cooldowns for the provider call. One injection per place.
+# The seam is a cancellable HEAD, not a RETURN: the use's body works through
+# closures and `?`, which a RETURN cannot plan (E_UNSUPPORTED_CONTROL_FLOW). The HEAD
+# runs the use itself under the module's guard (its nested call passes through
+# to the vanilla body) and reports the outcome the use leaves, as the menu
+# slot's wire mapping does for its body.
 [[module]]
 id = "pluto-sleeves-takeover-access"
 file = "crates/horizon-client/src/entry.rs"
@@ -1200,9 +1205,10 @@ visibility = "pub"
 [[injection]]
 id = "pluto-sleeves-takeover-return"
 target = "horizon_client::game::use_hand::Game<'_>::use_hand"
-kind = "RETURN"
+kind = "HEAD"
+cancellable = true
 helper = "pluto-sleeves-takeover-return.rs"
-bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "block_hit", ty = "Option<&Hit>", value = "block_hit" }]
 
 # The entity interaction finished: the same chestplate takeover runs when a click on an
 # entity took nothing (Tinkers' InteractionHandler.afterEntityInteract, at its LOWEST
