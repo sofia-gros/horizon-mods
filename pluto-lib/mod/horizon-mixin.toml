@@ -1144,6 +1144,25 @@ kind = "RETURN"
 helper = "pluto-sleeves-takeover-return.rs"
 bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 
+# The entity interaction finished: the same chestplate takeover runs when a click on an
+# entity took nothing (Tinkers' InteractionHandler.afterEntityInteract, at its LOWEST
+# priority, after the entity's own interaction ran). The module reports only clicks that
+# arrived as an entity packet; the local player's click falls through to the hand's use,
+# whose seam reports it instead. The provider and the cooldown hold are the hand seam's.
+[[module]]
+id = "pluto-sleeves-takeover-entity"
+file = "crates/horizon-client/src/game/item_actions.rs"
+name = "pluto_sleeves_takeover_entity"
+source = "pluto-sleeves-takeover-entity.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-sleeves-takeover-entity-return"
+target = "horizon_client::game::item_actions::Game<'_>::interact_entity"
+kind = "RETURN"
+helper = "pluto-sleeves-takeover-entity-return.rs"
+bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
 # A dig is worked out: the level's build range is published for the dig report the mods are
 # about to be asked for (dwarven reads the level's max build height).
 [[injection]]

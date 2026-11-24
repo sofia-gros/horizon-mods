@@ -1,15 +1,16 @@
 // The shared state of PlutoLib's sleeves takeover: the provider the API crate installs, and the
-// use the game's hand just finished. The game-side module in `game/use_hand.rs` reports the
-// use; nothing here knows a sleeve, a cooldown or a mod.
+// use the game's hand just finished. The game-side modules in `game/use_hand.rs` and
+// `game/item_actions.rs` report the use; nothing here knows a sleeve, a cooldown or a mod.
 use std::sync::Mutex;
 
 use horizon_client::mod_api::Host;
 
 /// What the hand's use left behind: who used it, where they aimed, and whether the game
 /// consumed it. The provider reads the aim (the eye and the look the throw aims by) and the
-/// crouch state the sleeves module branches on; `consumed` is false at the only seam that
-/// reports a use today (the takeover runs only when the game did not consume), and stays so
-/// a later seam can report a consumed use the same way.
+/// crouch state the sleeves module branches on; `consumed` is false at both seams that
+/// report a use today (the hand's use, and a click on an entity the game did not take; the
+/// takeover runs only when the game did not consume), and stays so a later seam can report
+/// a consumed use the same way.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PostUse {
     pub uuid: u128,

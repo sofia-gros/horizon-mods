@@ -56,10 +56,12 @@ pub struct UseItemOnBlockContext {
 }
 
 /// A player's use finished without the game consuming it: the hand is empty, the player is
-/// not a spectator, and nothing the game did took the click. The takeover a chestplate
+/// not a spectator, and nothing the game did took the click — for a click that named an
+/// entity, the entity's own interaction did not take it either. The takeover a chestplate
 /// module runs on (Tinkers' sleeves) answers here, with the aim the throw uses and the
-/// crouch state the module branches on. `consumed` is false at the only seam that reports a
-/// use today; a later seam may report a consumed use the same way.
+/// crouch state the module branches on. `consumed` is false at both seams that report a
+/// use today (the hand's use, and the entity interaction); a later seam may report a
+/// consumed use the same way.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AfterUseContext {
     /// The player; its methods work inside the callback.

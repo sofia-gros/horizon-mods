@@ -12,16 +12,25 @@
 //! the crouch state and the eye and look the throw aims by. `register` answers it for a
 //! non-spectator wearing a chest piece with the sleeves modifier, with the selected item's
 //! cooldown as the gate (the host seam already excluded spectators and consumed uses). The
-//! entity-click path of the original's takeover is not covered: the hand's use seam reports
-//! block and air uses only, so an empty-hand click on an entity still does nothing here.
+//! entity-click path of the original's takeover is covered by the same callback: a click on
+//! an entity the game's own interaction did not take is reported through it too — the woven
+//! entity seam reports the clicks that arrive as entity packets, and the local player's
+//! click falls through to the hand's use, which the hand seam reports — so an empty-hand
+//! click on an entity throws or cycles exactly as a click on air does. The original runs
+//! the entity's interaction first and the takeover only when it took nothing
+//! (InteractionHandler.afterEntityInteract); both seams keep that order.
 //!
 //! Reductions kept honest:
-//! - Cooldowns: the original checks the selected item's cooldown before using it (and the
-//!   takeover checks the piece's own item). The selected item's gate is wired now:
-//!   `register` reads it through `ServerPlayer::is_item_on_cooldown`, and `execute` starts
-//!   it for a thrown stack (`THROW_COOLDOWN_TICKS`, the held shuriken's half-second
-//!   `use_cooldown`). The piece's own item is not checked: a chest piece has no use that
-//!   starts a cooldown, so the original's piece check always passes for it.
+//! - Cooldowns: the original checks the selected item's cooldown before using it, and the
+//!   takeover's dispatch checks the piece's own item before any chestplate hook runs
+//!   (InteractionHandler, at the head of `afterEntityInteract` and inside
+//!   `onChestplateUse`). Both gates are wired: `register` reads them through
+//!   `ServerPlayer::is_item_on_cooldown` — the piece's own item first, then the selected
+//!   item's — and `execute` starts the selected item's cooldown for a thrown stack
+//!   (`THROW_COOLDOWN_TICKS`, the held shuriken's half-second `use_cooldown`). A chest
+//!   piece has no use of its own that starts a cooldown, so the piece gate passes in
+//!   practice unless another system put the piece's item on cooldown; it is checked
+//!   anyway, as the original checks it.
 //! - Only this port's own throwables are thrown: the sibling inventory's filter admits any
 //!   `tconstruct:throwable`-tagged stack, and the original swaps it into the hand and calls its
 //!   use, whatever it is. A generic "use any stack as if held" verb is deliberately not built
@@ -187,13 +196,18 @@ pub(crate) fn execute(player: &ServerPlayer, dimension: &str, eye: [f64; 3], loo
 
 /// Registers the sleeves answer on the finished use: a player wearing a chest piece with the
 /// sleeves modifier uses the selected stack (or cycles the selection crouching), gated on
-/// the selected item's cooldown. Spectators and consumed uses never reach here: the host
-/// seam gates both. The piece must carry the sleeves modifier — `on_tool_use` answers
-/// nothing without it — and the chest piece is the one the tick memory last saw worn (see
-/// `equipment_of`).
+/// the piece's own item cooldown first and then the selected item's — the original's two
+/// checks, the piece's at the takeover's dispatch (InteractionHandler) and the selected
+/// item's inside SleevesModule. Spectators and consumed uses never reach here: the host
+/// seams gate both, on the hand's use and on the entity interaction alike. The piece must
+/// carry the sleeves modifier — `on_tool_use` answers nothing without it — and the chest
+/// piece is the one the tick memory last saw worn (see `equipment_of`).
 pub(crate) fn register() {
     AfterUseCallback::EVENT.register(|context| {
         let Some(piece) = chest_piece(&context.player) else { return ActionResult::Pass };
+        // The takeover's own gate comes first: the original checks the piece's item
+        // cooldown before any chestplate hook runs, on every path into the takeover.
+        if context.player.is_item_on_cooldown(&piece.item) { return ActionResult::Pass; }
         let cooling_down = selected_item(&piece)
             .is_some_and(|selected| context.player.is_item_on_cooldown(&selected.item.to_string()));
         if execute(&context.player, &context.dimension, context.eye, context.look, &piece, context.crouching, context.creative, cooling_down) {
@@ -331,6 +345,24 @@ mod tests {
         assert!(matches!(use_stored(&inventory, &mut persistent, false, true), Stored::Nothing));
         assert_eq!(inventory.stack(&persistent, 0), Some(stack("tconstruct:shuriken", 2)), "nothing was thrown");
         assert_eq!(selected(&persistent), 0, "and the selection did not toggle");
+    }
+
+    #[test]
+    fn the_takeover_gate_reads_the_pieces_own_item_cooldown() {
+        use pluto_lib::MemoryPlayerOps;
+        // InteractionHandler gates every chestplate interaction on the piece's own item
+        // cooldown (`getCooldowns().isOnCooldown(chestplate.getItem())`), at the dispatch,
+        // separately from the selected item's gate inside the module. The read is the one
+        // `register` makes for the piece before anything else, over the memory backend.
+        let piece = StackData { item: "tconstruct:plate_chestplate".into(), count: 1, ..Default::default() };
+        let player = ServerPlayer { uuid: 9, name: "Alex".into() };
+        let mut ops = MemoryPlayerOps::default();
+        pluto_lib::with_ops(&mut ops, || {
+            assert!(!player.is_item_on_cooldown(&piece.item), "a piece whose item never started a cooldown passes the gate");
+            player.start_item_cooldown(&piece.item, 20);
+            assert!(player.is_item_on_cooldown(&piece.item), "the piece's own item on cooldown closes the gate");
+            assert!(!player.is_item_on_cooldown("tconstruct:shuriken"), "the selected item's cooldown is the other gate, not this one");
+        });
     }
 
     #[test]

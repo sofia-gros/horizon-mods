@@ -164,7 +164,7 @@ assert!(context.player.is_none() && context.held.is_none() && context.actions.bo
 
 ### `AfterUseContext`
 
-A player's use finished without the game consuming it. `player` is the player (its methods work inside the callback), `dimension` the level, `eye` where the player's eyes are and `look` where they look (a unit vector), `crouching` whether the player is sneaking, `creative` whether nothing is used up, and `consumed` whether the game's own handling consumed the use (false at the only seam that reports a use today). The chestplate takeover a worn piece answers on (Tinkers' sleeves) reads the aim and the crouch state here.
+A player's use finished without the game consuming it. `player` is the player (its methods work inside the callback), `dimension` the level, `eye` where the player's eyes are and `look` where they look (a unit vector), `crouching` whether the player is sneaking, `creative` whether nothing is used up, and `consumed` whether the game's own handling consumed the use (false at both seams that report a use today: the hand's use, and a click on an entity the game did not take). The chestplate takeover a worn piece answers on (Tinkers' sleeves) reads the aim and the crouch state here.
 
 ```rust
 use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
@@ -322,7 +322,7 @@ AfterUseCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 
 ### `AfterUseCallback::EVENT`
 
-Runs when a player's use finished without the game consuming it: the hand is empty, the player is not a spectator, and nothing the game did took the click. Answer `Success` after doing the job, `Pass` to leave the click to the game.
+Runs when a player's use finished without the game consuming it: the hand is empty, the player is not a spectator, and nothing the game did took the click. A click on an entity the game's own interaction did not take is reported the same way. Answer `Success` after doing the job, `Pass` to leave the click to the game.
 
 ```rust
 use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
