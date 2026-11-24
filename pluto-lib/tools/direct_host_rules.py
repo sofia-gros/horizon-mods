@@ -105,6 +105,12 @@ RULES = [
         'target': "horizon_client::game::lan_crafting::Game<'_>::lan_machine_click",
         'kind': 'OVERWRITE', 'helper': 'pluto-menu-actions.rs', 'append_helper': False,
         'edits': [
+            # The click's random draw is taken before guest_menu_op is
+            # entered: inside its closure the draw needs &mut self while the
+            # call itself borrows *self mutably (E0500/E0501, CI round 6).
+            # The op closure is FnOnce in the host (lan_crafting.rs) and
+            # guest_menu_op's pre-op path (maps / menu_env / load_player)
+            # never draws from this stream, so the stream order is unchanged.
             ('''        let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
             if matches!(kind, Kind::Mod(_)) {''', '''        let mut pluto_context = match self.world.block_entities.get(&pos) {
             Some(BlockEntity::Mod(entity)) => Some(horizon_client::menu::pluto_menu_actions::Context {
@@ -115,8 +121,9 @@ RULES = [
             }),
             _ => None,
         };
+        let pluto_click_random = horizon_core::random::RandomSource::next_float(&mut self.world.random);
         let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
-            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), horizon_core::random::RandomSource::next_float(&mut self.world.random), || {
+            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), pluto_click_random, || {
             if matches!(kind, Kind::Mod(_)) {'''),
             ('''                .collect::<Vec<_>>()
         });
