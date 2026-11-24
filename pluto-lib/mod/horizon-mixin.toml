@@ -1676,13 +1676,18 @@ name = "pluto_block_exp_access"
 source = "pluto-block-exp-access.rs"
 visibility = "pub"
 
+# The seam sits on the store of sampled_xp: the sampled expression's only
+# use is that store, and an expression seam inside break_block_as_player is
+# an unsupported injection context (the body uses closures and ?), while the
+# store carries the same value at the same point — the provider is asked
+# while the amount can still change, before the silk-touch rule reads it.
 [[injection]]
 id = "pluto-block-exp"
 target = "horizon_client::game::Game<'_>::break_block_as_player"
-kind = "MODIFY_EXPRESSION_VALUE"
-selector = "self.block_experience(&facts.name)"
-ordinal = 0
+kind = "MODIFY_VARIABLE"
+variable = { name = "sampled_xp", ordinal = 0, at = "STORE" }
 require = 1
+ordinal = 0
 helper = "pluto-block-exp.rs"
 bindings = [
     { name = "value", ty = "u32", value = "$value" },
