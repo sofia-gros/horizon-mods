@@ -196,7 +196,7 @@ pub fn evaluate_special(
     grid: &[Option<ItemStack>],
     size: usize,
     map_scale: &dyn Fn(i32) -> Option<u8>,
-) -> Option<Option<(&str, ItemStack)>> {
+) -> Option<Option<(&'static str, ItemStack)>> {
     if !special::has_providers() {
         return None;
     }
