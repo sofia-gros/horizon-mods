@@ -35,7 +35,7 @@
       "name": "pluto_potions",
       "visibility": "pub",
       "source_file": "potion-facts.rs",
-      "source_sha256": "f891d4cbe93393eef8765fdd9097438457a74952ad126db19708d578ec8f1c2f"
+      "source_sha256": "ae683f232ad1e44b9239bf121474bfd520a83daf63f8f6c7fdfa7ab3a37b9d80"
     },
     {
       "module_id": "pluto_native_creative-cloud-factory",
