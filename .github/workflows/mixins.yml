@@ -316,6 +316,48 @@ jobs:
       - name: Domain suite (tests/tconstruct-domain)
         if: steps.scope.outputs.docs_only != 'true'
         run: cargo test --locked --manifest-path tests/tconstruct-domain/Cargo.toml
+  pipes-domain:
+    name: Domain suite (Pipes)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      - name: Install build prerequisites
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+          rustup component add rustfmt --toolchain 1.95.0
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # Mirrors the domain job for the pipes mod's suite; it exists in the
+      # tree and CI covers it so every test suite runs.
+      - name: Domain suite (tests/pipes-domain)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path tests/pipes-domain/Cargo.toml
   mixins-validation:
     name: Mixins validation (weave plan + guarded build)
     runs-on: ubuntu-24.04
@@ -398,7 +440,7 @@ jobs:
   summary:
     name: Summary (all suites)
     if: always()
-    needs: [lint, census, package, python-tests, pure, doctests, domain, mixins-validation]
+    needs: [lint, census, package, python-tests, pure, doctests, domain, pipes-domain, mixins-validation]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -409,6 +451,7 @@ jobs:
       R_PURE: ${{ needs.pure.result }}
       R_DOCTESTS: ${{ needs.doctests.result }}
       R_DOMAIN: ${{ needs.domain.result }}
+      R_PIPES: ${{ needs.pipes-domain.result }}
       R_MIXINS: ${{ needs.mixins-validation.result }}
     steps:
       - name: Suite summary
@@ -425,10 +468,11 @@ jobs:
             echo "| Pure suite (PlutoLib unit tests) | $R_PURE |"
             echo "| Doctests (API page examples) | $R_DOCTESTS |"
             echo "| Domain suite (Tinkers) | $R_DOMAIN |"
+            echo "| Domain suite (Pipes) | $R_PIPES |"
             echo "| Mixins validation (weave plan + guarded build) | $R_MIXINS |"
           } >> "$GITHUB_STEP_SUMMARY"
           failed=0
-          for r in "$R_LINT" "$R_CENSUS" "$R_PACKAGE" "$R_PYTHON" "$R_PURE" "$R_DOCTESTS" "$R_DOMAIN" "$R_MIXINS"; do
+          for r in "$R_LINT" "$R_CENSUS" "$R_PACKAGE" "$R_PYTHON" "$R_PURE" "$R_DOCTESTS" "$R_DOMAIN" "$R_PIPES" "$R_MIXINS"; do
             if [ "$r" != 'success' ]; then failed=1; fi
           done
           if [ "$failed" -ne 0 ]; then
