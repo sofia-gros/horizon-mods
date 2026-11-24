@@ -198,8 +198,8 @@ mod tests {
         assert_eq!(highlight_positions(&facts), vec![[1, 64, -3], [0, 64, 0], [1, 64, 0]],
             "the border lets only the flood's first two blocks through");
         let border = |pos: [i32; 3]| pos[0] >= 2;
-        let facts = HighlightFacts { in_world_border: &border, ..facts(None, None) };
-        let merged = highlight_positions(&facts);
+        let facts2 = HighlightFacts { in_world_border: &border, ..facts(None, None) };
+        let merged = highlight_positions(&facts2);
         assert_eq!(merged.len(), MAX_HIGHLIGHTS, "excluded positions do not spend slots");
         assert_eq!(merged[59], [60, 64, 0], "the sixtieth drawn block is the flood's fifty-ninth");
     }
