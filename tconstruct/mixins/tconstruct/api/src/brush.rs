@@ -15,8 +15,11 @@
 //! applied.
 //!
 //! Not carried over, exactly:
-//! - The AOE highlight (`shouldHighlight`): no highlight surface exists in this port — the hook binds, as
-//!   the tool action transform's does, and nothing is drawn.
+//! - The AOE highlight (`shouldHighlight`) is drawn through PlutoLib's highlight surface: while the
+//!   player holds the tool and aims at a block, the brushable neighbours are outlined (see
+//!   `brush_hook`'s highlight). Two edges of the original's render event are not carried over: the
+//!   DISPLAY predicate's other half (neighbours the tool is effective on are outlined too — this
+//!   port has no mining-outline consumer) and the world-border check on each outlined block.
 //! - The client-side generic brush sound when a stroke brushes nothing: the game side plays each brushable
 //!   block's own sound as its stroke lands (see the flush in PlutoLib), and a stroke on plain blocks is
 //!   silent here, as it is server-side in the original.
