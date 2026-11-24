@@ -100,40 +100,6 @@
       "helper": "pluto-crafting-match-veto-head.rs",
       "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e",
       "helper_sha256": "a4e5a283622deccad6e2256bfe7627102d5e2bd91048c90964438831f797feec"
-    },
-    {
-      "target": "horizon_client_lib::crafting::Recipes::find_with",
-      "file": "crates/horizon-client/src/crafting.rs",
-      "kind": "HEAD",
-      "cancellable": true,
-      "priority": 0,
-      "bindings": [
-        {
-          "name": "recipes",
-          "ty": "&Recipes",
-          "value": "self"
-        },
-        {
-          "name": "grid",
-          "ty": "&[Option<ItemStack>]",
-          "value": "grid"
-        },
-        {
-          "name": "size",
-          "ty": "usize",
-          "value": "size"
-        },
-        {
-          "name": "map_scale",
-          "ty": "&dyn Fn(i32) -> Option<u8>",
-          "value": "map_scale"
-        }
-      ],
-      "function_fingerprint": "dbae351a5cca19163154dc1273150ef41da7bb2c56dcba331e69cb3077b899e7",
-      "injection_id": "pluto-crafting-special",
-      "helper": "pluto-crafting-special-head.rs",
-      "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e",
-      "helper_sha256": "a3736e47278116b3c9575daf1fd4d4b453b571b8a48b561eaa27440e517e9446"
     }
   ]
 }

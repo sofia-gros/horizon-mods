@@ -24,7 +24,6 @@ SHARED = load('check_recipe_placement_plan')
 PACKAGE = load('package_native')
 BOUNDARIES = json.loads((ROOT / 'tools/crafting-match-boundaries.json').read_text(encoding='utf-8'))
 SPECIAL = [b for b in BOUNDARIES['boundaries'] if b['injection_id'] == 'crafting-special']
-BUNDLE_SPECIAL = [b for b in BOUNDARIES['bundle_attachments'] if b.get('injection_id') == 'pluto-crafting-special']
 FIND_WITH = 'horizon_client_lib::crafting::Recipes::find_with'
 
 
@@ -104,19 +103,13 @@ class CraftingSpecialBoundaries(unittest.TestCase):
 
     def test_boundary_entries_pin_the_actual_sources(self):
         self.assertEqual(len(SPECIAL), 1)
-        self.assertEqual(len(BUNDLE_SPECIAL), 1)
-        for meta, helpers in ((SPECIAL[0], NATIVE), (BUNDLE_SPECIAL[0], BUNDLE)):
+        for meta, helpers in ((SPECIAL[0], NATIVE),):
             self.assertEqual(meta['target'], FIND_WITH)
             self.assertEqual(meta['kind'], 'HEAD')
             self.assertTrue(meta['cancellable'])
             self.assertEqual(meta['file_sha256'], '298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e')
             self.assertEqual(GUARD.digest((helpers / meta['helper']).read_bytes()), meta['helper_sha256'])
         self.assertEqual(SPECIAL[0]['priority'], 100)
-        self.assertEqual(BUNDLE_SPECIAL[0]['priority'], 0)
-        # The bundle guard requires every reviewed attachment exactly once
-        # once the inventory gates are composed; the special fill is one.
-        keys = {m.get('injection_id', m.get('module_id')) for m in SHARED.bundle_entries()}
-        self.assertIn('pluto-crafting-special', keys)
 
     def test_actual_archive_contains_exact_source(self):
         with tempfile.TemporaryDirectory() as d:
