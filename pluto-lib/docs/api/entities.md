@@ -652,7 +652,7 @@ assert_eq!((wear.amount.get(), wear.cancel.get(), wear.replacement.borrow().is_n
 
 ### `PlayerTick`
 
-A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `on_ground` whether they stand on the ground, `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
+A server player's tick: `player` the uuid, `entity` the entity id, `dimension` the dimension, `position` their feet position, `on_ground` whether they stand on the ground, `armor` the worn pieces with custom data (as (slot, stack)), `hands` the held stacks with custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled half a block above, `effects` their effects as (id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to their attribute bases while pushed (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end, reaching only a player the host can name by entity id. The tick is heard once more after the last custom-data piece is put away, so an equipment-tied amount is let go. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off when the player leaves (best effort), and a crash while applied leaves it in the save.
 
 ```rust
 use pluto_lib::PlayerTick;
@@ -1012,7 +1012,7 @@ ServerLivingEntityEvents::MODIFY_VISIBILITY.register(|look| {
 
 ### `ServerLivingEntityEvents::EXPERIENCE_DROP`
 
-NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`.
+NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`. `projectile_tool` is the stack the killing projectile was launched from; `looting_slot` the slot the killing blow claimed (an armor piece or the off hand, else the main hand).
 
 ### `ServerLivingEntityEvents::MODIFY_DAMAGE`
 

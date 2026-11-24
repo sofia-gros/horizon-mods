@@ -13,7 +13,7 @@ use horizon_client::mod_api::{
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
-    ComputeFovModifierEvent,
+    ComputeFovModifierEvent, BlockExpEvent, LevelHost, LevelDimension,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
@@ -252,12 +252,25 @@ pub fn hooks() -> Box<dyn Hooks> {
         adjust: |host, pos, value| {
             if !events_interaction_v0::block_experience_heard() { return value; }
             let acting = host.acting_player();
+            let dimension = acting.as_ref().map(|player| player.dimension.clone()).unwrap_or_default();
+            // A break the game named a breaker for (every player's, a guest's included) leaves
+            // its breaker here; the acting player is the fallback when no note names one, and
+            // taking the note first keeps the removal path from bonusing the same break again.
+            let noted = events_interaction_v0::take_block_breaker(&dimension, pos);
+            let (player, player_entity, held) = match &noted {
+                Some(breaker) => (
+                    Some(player_api::ServerPlayer { uuid: breaker.uuid, name: breaker.name.clone() }),
+                    breaker.entity,
+                    host.held_stack(breaker.uuid).map(|stack| read_stack(&stack)),
+                ),
+                None => (
+                    acting.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+                    acting.as_ref().map(|player| player.entity_id).unwrap_or(0),
+                    acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack)),
+                ),
+            };
             let context = events_interaction_v0::BlockExperienceContext {
-                pos,
-                dimension: acting.as_ref().map(|player| player.dimension.clone()).unwrap_or_default(),
-                player: acting.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
-                player_entity: acting.as_ref().map(|player| player.entity_id).unwrap_or(0),
-                held: acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack)),
+                pos, dimension, player, player_entity, held,
                 experience: std::cell::Cell::new(value),
             };
             scoped(host, || events_interaction_v0::block_experience(&context))
@@ -4531,6 +4544,14 @@ impl Hooks for PlutoHooks {
     }
 
     fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
+        // The launcher's tool is remembered for the kill its projectile may make: the death
+        // report names the projectile, not its float, and the launch is the only moment the
+        // tool is in hand. A launch no player made (a dispenser, a mob) names no tool.
+        if let Some(player) = event.player {
+            if let Some(tool) = host.held_stack(player).map(|stack| read_stack(&stack)) {
+                entity_events_v1::note_projectile_tool(event.entity, tool);
+            }
+        }
         if !projectile_events_v1::launch_heard() { return; }
         let entity = host.entity(event.entity);
         let launch = projectile_events_v1::ProjectileLaunch {
@@ -4738,14 +4759,48 @@ impl Hooks for PlutoHooks {
         // The game's experience report names no player: the killer is the one the death loot
         // report in the same call named (see the note in `loot_drops`).
         let attacker = entity_events_v1::take_experience_attacker(event.entity as i32);
+        // The killing blow's direct entity, remembered from the damage that landed it: a
+        // projectile there names the stack it was launched from, taken before the heard check
+        // like the attacker above, so an unheard drop leaves no note behind.
+        let direct = entity_events_v1::take_killing_direct(event.entity as i32);
+        let projectile_tool = direct.filter(|direct| *direct >= 0).and_then(|direct| u32::try_from(direct).ok()).and_then(entity_events_v1::take_projectile_tool);
         if !entity_events_v1::experience_drop_heard() { return; }
         let player = attacker.and_then(|uuid| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (uuid, player.entity_id)));
+        let looting_slot = player.and_then(|(uuid, _)| entity_events_v1::take_looting_slot(uuid));
         let effects = host.entity_effects(event.entity).unwrap_or_default().into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect();
         let drop = entity_events_v1::ExperienceDrop {
             entity: event.entity as i32, kind: event.kind.to_owned(), player, effects,
+            projectile_tool, looting_slot,
             experience: std::cell::Cell::new(event.xp),
         };
         event.xp = scoped(host, || entity_events_v1::experience_drop(&drop));
+    }
+
+    fn block_exp(&self, _level: &dyn LevelHost, event: &mut BlockExpEvent<'_>) {
+        // A broken block is about to drop experience on the level's removal path, which names no
+        // breaker: the breaker is the one `destroy_block` named for this block (see
+        // `note_block_breaker`). With no note the amount is left alone — a break no player made
+        // (an explosion, a piston) has no one to credit, and a break the player's own path already
+        // sampled took its note first, so this never bonuses a break twice. No host is in hand
+        // here, so the callbacks run without one and the held tool reads from the note's snapshot.
+        if !events_interaction_v0::block_experience_heard() { return; }
+        let dimension = match &event.dimension {
+            LevelDimension::Overworld => "minecraft:overworld",
+            LevelDimension::Nether => "minecraft:the_nether",
+            LevelDimension::End => "minecraft:the_end",
+            _ => return,
+        };
+        let Some(breaker) = events_interaction_v0::take_block_breaker(dimension, [event.pos.x, event.pos.y, event.pos.z]) else { return; };
+        if breaker.creative { return; }
+        let context = events_interaction_v0::BlockExperienceContext {
+            pos: [event.pos.x, event.pos.y, event.pos.z],
+            dimension: dimension.to_owned(),
+            player: Some(player_api::ServerPlayer { uuid: breaker.uuid, name: breaker.name.clone() }),
+            player_entity: breaker.entity,
+            held: breaker.held,
+            experience: std::cell::Cell::new(event.experience),
+        };
+        event.experience = events_interaction_v0::block_experience(&context);
     }
 
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
@@ -5107,10 +5162,25 @@ impl Hooks for PlutoHooks {
     }
 
     fn destroy_block(&self, host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
+        // The break's breaker is remembered for the experience its drop is sampled at: the
+        // sampling paths name no breaker on the level's removal path, and this break event is
+        // the one hook that names every player's break (a LAN guest's included). Noted before
+        // the `BEFORE` gate, so it does not depend on `BEFORE` being heard.
+        if events_interaction_v0::block_experience_heard() {
+            if let Some(acting) = host.acting_player() {
+                let held = host.held_stack(acting.uuid).map(|stack| read_stack(&stack));
+                events_interaction_v0::note_block_breaker(&acting.dimension, event.pos, events_interaction_v0::BlockBreaker {
+                    uuid: acting.uuid, name: acting.name.clone(), entity: acting.entity_id, held, creative: acting.game_mode == 1,
+                });
+            }
+        }
         if !events_interaction_v0::block_break_heard() { return Flow::Continue; }
         let context = break_context(host, event.pos);
         if let Some(player) = &context.player { flush_block_breaks(host, player.uuid); }
         let allowed = scoped(host, || events_interaction_v0::before_block_break(&context));
+        // A vetoed break leaves its block standing: forget its breaker, so a later removal of
+        // the same block is not credited to the player whose break was refused.
+        if !allowed { events_interaction_v0::clear_block_breaker(&context.dimension, event.pos); }
         let actions = context.actions.take();
         if let (Some(player), false) = (&context.player, actions.is_empty()) { apply_player_actions(host, player.uuid, actions); }
         // The extra blocks an allowed break's callbacks asked for are broken by the level seams (see the schedule drain in `hooks()`).
@@ -5272,6 +5342,11 @@ impl Hooks for PlutoHooks {
     }
 
     fn living_damage_pre(&self, event: &mut LivingDamagePreEvent<'_>) {
+        // The killing blow's direct entity is remembered for the experience drop the death works
+        // out in the same call: a projectile there names the launcher's tool (see
+        // `living_experience_drop`). A blow with no direct entity overwrites, so a later
+        // non-projectile kill does not inherit an earlier projectile's float.
+        entity_events_v1::note_killing_direct(event.entity, event.direct);
         let damage = LivingDamage {
             entity: event.entity,
             kind: event.kind.to_owned(),
@@ -5366,6 +5441,14 @@ impl Hooks for PlutoHooks {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
             attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
+        // The looting slot this attack claims (canon's `ModifierLootingHandler`: the slot the
+        // attacking tool came from): the weapon matched against the attacker's worn armor and off
+        // hand, else the main hand. The experience drop of a mob this blow kills reads it. Only
+        // a player's attack claims one; a mob's weapon matches nothing it wears.
+        if let Some(uuid) = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.uuid)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing).map(|player| player.uuid)) {
+            entity_events_v1::note_looting_slot(uuid, entity_events_v1::looting_slot(hit.weapon.as_ref(), &hit.armor, entity_events_v1::offhand_worn_by(event.causing).as_ref()));
+        }
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {
                 horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);

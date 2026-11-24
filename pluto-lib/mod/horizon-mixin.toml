@@ -1518,8 +1518,9 @@ visibility = "pub"
 
 # Block experience reach: on the player's own break path the sampled
 # experience is asked of the block experience callbacks while it can still
-# change (the game's silk-touch rule applies to the answer). The level's
-# removal path names no breaker, so guest breaks travel it unheard.
+# change (the game's silk-touch rule applies to the answer). The break's
+# breaker is remembered from its break event (see `note_block_breaker`), so a
+# guest's break is credited; the removal path hears it through the same note.
 [[module]]
 id = "pluto-block-exp-access"
 file = "crates/horizon-client/src/game.rs"
