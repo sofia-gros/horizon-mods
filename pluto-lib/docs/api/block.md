@@ -273,7 +273,7 @@ assert_eq!(world.has_neighbor_signal([1, 64, 2]), None);
 
 ### `BlockView`
 
-What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`, `brightness(pos) -> u8` the light at the position (0 to 15), `light_passes_up(pos) -> bool` whether light passes from that block into the one above it, `is_water(pos) -> bool` whether it holds water, `is_fluid_full(pos) -> bool` whether its fluid is a full source, `is_area_loaded(pos, radius) -> bool` whether the chunks around are loaded (check it in a tick callback before touching blocks near the edge), `is_full_block(pos) -> bool` whether its collision shape is a whole block and `build_height() -> [i32; 2]` the lowest buildable y and the first y above the build limit.
+What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`, `brightness(pos) -> u8` the light at the position (0 to 15), `light_passes_up(pos) -> bool` whether light passes from that block into the one above it, `is_water(pos) -> bool` whether it holds water, `is_fluid_full(pos) -> bool` whether its fluid is a full source, `is_area_loaded(pos, radius) -> bool` whether the chunks around are loaded (check it in a tick callback before touching blocks near the edge), `is_full_block(pos) -> bool` whether its collision shape is a whole block and `build_height() -> [i32; 2]` the lowest buildable y and the first y above the build limit. Three more answers ride on the same view: `face_sturdy(pos, face) -> Option<bool>` whether the face is sturdy when the game's table has an answer for the block, `raw_brightness(pos) -> Option<u8>` the light before the sky darkens it, and `placement_facts(state) -> Option<PlacementFacts>` the published shape and class facts for the state.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction};
@@ -328,7 +328,7 @@ assert_eq!(view.build_height(), [-64, 320]); // build range is a different query
 
 ### `MemoryBlockView`
 
-A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `neighbor_signals: BTreeMap<BlockPos, bool>` supplies explicit neighbor-signal answers (`None` when absent or unloaded), without redstone simulation. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `state_tags` explicit registry tags by block id, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `break_requests` records destruction requests while removing their blocks without native loot/fluid effects. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
+A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `neighbor_signals: BTreeMap<BlockPos, bool>` supplies explicit neighbor-signal answers (`None` when absent or unloaded), without redstone simulation. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `state_tags` explicit registry tags by block id, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `placement_facts` holds the placement facts a test supplies by block name, for `can_survive` and `is_unobstructed`. `break_requests` records destruction requests while removing their blocks without native loot/fluid effects. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
 
 ```rust
 use pluto_lib::{BlockState, BlockView, Direction, MemoryBlockView};
@@ -842,6 +842,23 @@ let behavior = BlockBehavior::new(Identifier::new("example", "sign").unwrap())
 assert!(behavior.block().path() == "sign");
 ```
 
+### `can_survive`
+
+`fn can_survive(state: &BlockState, pos: [i32; 3], view: &dyn BlockView) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it — the same class-chain dispatch the game runs, over the view: a torch needs a sturdy face below, a wall torch the face it leans on, a crop the farmland below, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (the solid flag, the centre and rigid support bits, fire odds, the multiface attach table, fluid tags): a placement check must treat `None` as "cannot say", not as a refusal.
+
+```rust
+use pluto_lib::{BlockState, MemoryBlockView, PlacementFacts, can_survive};
+
+let mut view = MemoryBlockView::default();
+view.placement_facts.insert("minecraft:frosted_ice".to_string(), PlacementFacts {
+    classes: vec!["FrostedIceBlock".to_string()],
+    full_collision: true,
+    solid_render: false,
+});
+assert_eq!(can_survive(&BlockState::parse("minecraft:frosted_ice").unwrap(), [0, 64, 0], &view), Some(true));
+assert_eq!(can_survive(&BlockState::parse("minecraft:torch").unwrap(), [0, 64, 0], &view), None, "a torch's class facts are not in this view");
+```
+
 ### `BlockBehavior::state_for_placement`
 
 `fn state_for_placement(self, f: impl Fn(&PlacementContext) -> Placement) -> BlockBehavior`. The state the block takes when placed (see [Choosing the State When Placed](#choosing-the-state-when-placed)).
@@ -1024,6 +1041,25 @@ let behavior = BlockBehavior::new(Identifier::new("example", "fern").unwrap()).m
 assert_eq!(behavior.block().path(), "fern");
 ```
 
+### `vegetation_may_place_on`
+
+`fn vegetation_may_place_on(state: &BlockState, ground: &BlockState, ground_pos: [i32; 3], view: &dyn BlockView) -> Option<bool>`. Whether a plant of `state` may stand on `ground`, as the game's support tags answer it — the `minecraft:supports_*` tags on the ground block, such as `supports_crops` for farmland under a crop. A mod-registered `BlockBehavior::may_place_on` answers first. `None` where the ground block carries none of the support tags the plant asks for, or where the plant's support tag is one the view cannot answer (fluid tags such as `supports_frogspawn`).
+
+```rust
+use pluto_lib::{BlockState, MemoryBlockView, PlacementFacts, vegetation_may_place_on};
+
+let mut view = MemoryBlockView::default();
+view.placement_facts.insert("minecraft:wheat".to_string(), PlacementFacts {
+    classes: vec!["CropBlock".to_string()],
+    full_collision: false,
+    solid_render: false,
+});
+view.state_tags.insert("minecraft:farmland".to_string(), ["minecraft:supports_crops".to_string()].into_iter().collect());
+let wheat = BlockState::parse("minecraft:wheat").unwrap();
+let farmland = BlockState::parse("minecraft:farmland").unwrap();
+assert_eq!(vegetation_may_place_on(&wheat, &farmland, [0, 63, 0], &view), Some(true));
+```
+
 ### `PickContext`
 
 A player picks the block. `state` is the block's state and `pos` its position.
@@ -1147,4 +1183,22 @@ context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount: 1.0, dama
 let queued = context.actions.borrow();
 assert_eq!(queued.len(), 1);
 assert_eq!(queued[0], EntityAction::Hurt { target: ActionTarget::Victim, amount: 1.0, damage_type: "minecraft:generic".into() });
+```
+
+### `ServerBlockEvents::BLOCK_PLACE`
+
+`static BLOCK_PLACE: &'static Event<BlockPlace, ()>`. A block is about to be placed by a player or a walk module (NeoForge: `BlockEvent.EntityPlaceEvent`, the Forge `onBlockPlace`): set `cancel` to stop the placement. Heard before the block lands, so a later callback may still cancel it. `block_place_heard()` says whether any callback hears it, so a placer can skip firing when nobody listens. The walk hook fires it before a frost walker replacement lands. There are no listeners in the tree yet: protection and claim mods are the callers this surface is for.
+
+```rust
+use pluto_lib::{BlockPlace, BlockState, ServerBlockEvents, block_place};
+
+ServerBlockEvents::BLOCK_PLACE.register(|place| {
+    if place.state.block.to_string() == "minecraft:frosted_ice" {
+        place.cancel.set(true);
+    }
+});
+let place = BlockPlace::new(Some(42), "minecraft:overworld", [0, 64, 0],
+    BlockState::parse("minecraft:frosted_ice").unwrap(),
+    BlockState::parse("minecraft:water[level=0]").unwrap());
+assert!(block_place(&place));
 ```

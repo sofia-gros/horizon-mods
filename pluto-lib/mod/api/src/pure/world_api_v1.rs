@@ -10,7 +10,9 @@ use std::marker::PhantomData;
 use std::sync::RwLock;
 
 use super::base::{Identifier, IdentifierError, Nbt, NbtCompound};
+use super::block_api_v1::{BlockView, Direction};
 use super::block_entity_api_v1::BlockPos;
+use super::entity_api_v1::EntityReach;
 use super::particle_api_v1::ParticleData;
 
 /// A block with its properties, as `/setblock` writes it: `minecraft:oak_stairs[facing=east,half=bottom]`.
@@ -192,6 +194,40 @@ pub fn face_sturdy(block: &str, direction: u8) -> Option<bool> {
     lookup(block, direction)
 }
 
+/// The game's own placement facts for a block: its class chain and the shape flags
+/// `canSurvive` and the obstruction check read (the host's `pluto_block_facts::PlacementFacts`,
+/// published from the game's block table). The table answers by block name, so a block whose
+/// states differ answers with its first state.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlacementFacts {
+    /// The block's class chain (`AmethystClusterBlock`, `LeavesBlock`, ...), most specific first.
+    pub classes: Vec<String>,
+    /// `BlockState.isCollisionShapeFullBlock`.
+    pub full_collision: bool,
+    /// Whether the block renders as a solid cube (`solid_render`).
+    pub solid_render: bool,
+}
+
+/// A placement-facts lookup the host installs: the facts for a named block, if the game's
+/// table names it.
+pub type PlacementFactsLookup = fn(&str) -> Option<PlacementFacts>;
+
+static PLACEMENT_FACTS_LOOKUP: RwLock<Option<PlacementFactsLookup>> = RwLock::new(None);
+
+/// Installs the placement-facts lookup. Called by the host adapter at startup.
+pub fn set_placement_facts_lookup(lookup: PlacementFactsLookup) {
+    if let Ok(mut slot) = PLACEMENT_FACTS_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// The placement facts for `block`, when the game's table answers for it.
+pub fn placement_facts(block: &str) -> Option<PlacementFacts> {
+    let guard = PLACEMENT_FACTS_LOOKUP.read().ok()?;
+    let lookup = (*guard)?;
+    lookup(block)
+}
+
 thread_local! {
     static OPS: Cell<Option<*mut dyn WorldOps>> = const { Cell::new(None) };
 }
@@ -350,6 +386,73 @@ impl World {
         with_current(false, |ops| ops.set_block_state_queued(&self.dimension, pos, &state.to_string()))
     }
 
+    /// Minecraft: `BlockState.canSurvive`, as the pure `canSurvive` port answers it for the
+    /// state that would go at `pos` (see `block_api_v1::can_survive`): a behaviour registered
+    /// for the block answers first, then the vanilla class chain decides. `sky_darken` is the
+    /// world's sky darkening at the call (`Level.getSkyDarken`), which the light the crop
+    /// and mushroom arms read is taken against. `None` where the view cannot say — a caller
+    /// that places on `None` keeps the pre-check behaviour.
+    pub fn can_survive(&self, state: &BlockState, pos: BlockPos, sky_darken: u8) -> Option<bool> {
+        let view = WorldView::new(self, sky_darken);
+        super::block_api_v1::can_survive(state, pos, &view)
+    }
+
+    /// Minecraft: `Level.isUnobstructed`, for the state that would go at `pos`: whether
+    /// anything stands in the way of placing it there. The replacement's collision shape
+    /// comes from the game's table (a whole block, or the check cannot say); the entities
+    /// come from the entity scope, which the caller's callback must have open (a player
+    /// tick does) — `None` outside one. `Some(true)` is clear, `Some(false)` is blocked,
+    /// `None` is unknown, and a caller that places on `None` keeps the pre-check behaviour.
+    /// Item entities never block building, and a spectator's box is not told apart from any
+    /// other living entity's (the reach carries no spectator flag), so one standing in the
+    /// cell blocks it here where the game would let the placement through.
+    pub fn is_unobstructed(&self, state: &BlockState, pos: BlockPos) -> Option<bool> {
+        let facts = placement_facts(&state.block.to_string())?;
+        if !facts.full_collision {
+            return None;
+        }
+        if !EntityReach::has_scope() {
+            return None;
+        }
+        let (x, y, z) = (f64::from(pos[0]), f64::from(pos[1]), f64::from(pos[2]));
+        // The query is wider than the cell by three blocks: an entity is listed by its
+        // position, and a wide or tall one (an end crystal, a warden) can reach into the
+        // cell from outside it. The host walks every entity of the level for the query,
+        // so a caller asks it for a few cells, not every tick.
+        let found = EntityReach::in_box(
+            [x - 3.0, y - 3.0, z - 3.0], [x + 4.0, y + 4.0, z + 4.0]);
+        for entity in found {
+            if entity.kind.to_string() == "minecraft:item" {
+                continue;
+            }
+            match EntityReach::bounding_box_of(entity.id) {
+                Some([lo, hi]) => {
+                    // Touching faces do not overlap, as the game's shape join reads it: a
+                    // walker standing on the surface has feet exactly at the cell's top
+                    // and does not block it.
+                    let overlaps = (0..3).all(|axis| lo[axis] < pos[axis] as f64 + 1.0 && hi[axis] > pos[axis] as f64);
+                    if overlaps {
+                        return Some(false);
+                    }
+                }
+                None => match EntityReach::position_of(entity.id) {
+                    Some(p) => {
+                        // No box to test: the feet point stands in the cell, where the
+                        // point is the centre of the feet, so it counts on the side faces
+                        // and the floor, but not on the top face the walker stands on.
+                        let inside = p[0] >= x && p[0] <= x + 1.0 && p[1] >= y && p[1] < y + 1.0 && p[2] >= z && p[2] <= z + 1.0;
+                        if inside {
+                            return Some(false);
+                        }
+                    }
+                    // An entity is here that cannot be placed at all: unknown.
+                    None => return None,
+                },
+            }
+        }
+        Some(true)
+    }
+
     /// The saved data of the block entity at `pos` (Minecraft: `BlockEntity.saveWithoutMetadata`); None where there is none, the chunk is not loaded
     /// or the call is made outside a callback.
     pub fn block_entity_data(&self, pos: BlockPos) -> Option<NbtCompound> {
@@ -407,6 +510,113 @@ impl World {
         }
         with_current(false, |ops| ops.send_particles(&self.dimension, particle, data, at, spread, speed, count))
     }
+}
+
+/// A [`BlockView`](super::block_api_v1::BlockView) over a [`World`]: the blocks around a
+/// position, read through the world handle, for `canSurvive` to judge a state that is not in
+/// the world yet. The sky darkening the light is read against rides along, because the view's
+/// brightness is the darkened one (`getMaxLocalRawBrightness`) while `canSurvive` reads the
+/// undarkened one (`getRawBrightness(pos, 0)`).
+pub struct WorldView<'a> {
+    world: &'a World,
+    sky_darken: u8,
+}
+
+impl<'a> WorldView<'a> {
+    /// A view over `world`, reading light against `sky_darken` (`Level.getSkyDarken`).
+    pub fn new(world: &'a World, sky_darken: u8) -> Self {
+        Self { world, sky_darken }
+    }
+}
+
+fn is_air_block(state: &BlockState) -> bool {
+    matches!(state.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air")
+}
+
+impl BlockView for WorldView<'_> {
+    fn block_state(&self, pos: BlockPos) -> Option<BlockState> {
+        self.world.get_block_state(pos)
+    }
+
+    fn is_air(&self, pos: BlockPos) -> bool {
+        self.world.get_block_state(pos).is_some_and(|state| is_air_block(&state))
+    }
+
+    fn is_face_sturdy(&self, pos: BlockPos, face: Direction) -> bool {
+        self.face_sturdy(pos, face).unwrap_or(false)
+    }
+
+    fn face_sturdy(&self, pos: BlockPos, face: Direction) -> Option<bool> {
+        let state = self.world.get_block_state(pos)?;
+        face_sturdy(&state.block.to_string(), face as u8)
+    }
+
+    fn is_in_tag(&self, pos: BlockPos, tag: &str) -> bool {
+        self.world.get_block_state(pos).is_some_and(|state| state.is_in_tag(tag))
+    }
+
+    fn is_state_in_tag(&self, state: &BlockState, tag: &str) -> Option<bool> {
+        Some(state.is_in_tag(tag))
+    }
+
+    fn placement_facts(&self, state: &BlockState) -> Option<PlacementFacts> {
+        placement_facts(&state.block.to_string())
+    }
+
+    fn brightness(&self, pos: BlockPos) -> u8 {
+        self.world.light(pos).map_or(0, |(block, sky)| sky.saturating_sub(self.sky_darken).max(block))
+    }
+
+    fn raw_brightness(&self, pos: BlockPos) -> Option<u8> {
+        self.world.light(pos).map(|(block, sky)| sky.max(block))
+    }
+
+    fn light_passes_up(&self, pos: BlockPos) -> bool {
+        // The host's answer needs the occlusion flags, which are not published; a block
+        // that does not render solid lets light through, which is the same answer for
+        // air, glass, leaves and slabs, and the wrong one only for a solid-rendering
+        // block that still passes light.
+        self.world.get_block_state(pos).is_some_and(|state| {
+            placement_facts(&state.block.to_string()).is_some_and(|facts| !facts.solid_render)
+        })
+    }
+
+    fn is_water(&self, pos: BlockPos) -> bool {
+        self.world.get_block_state(pos).is_some_and(|state| {
+            is_block_water(&state) || state.property("waterlogged") == Some("true")
+        })
+    }
+
+    fn is_fluid_full(&self, pos: BlockPos) -> bool {
+        self.world.get_block_state(pos).is_some_and(|state| {
+            state.property("waterlogged") == Some("true")
+                || ((is_block_water(&state) || state.block.to_string() == "minecraft:lava")
+                    && state.property("level") == Some("0"))
+        })
+    }
+
+    fn is_area_loaded(&self, pos: BlockPos, radius: i32) -> bool {
+        // A read of an unloaded chunk answers None without loading it, so the four
+        // corners of the square say whether the whole area is there.
+        [-radius, radius].iter().all(|dx| [-radius, radius].iter().all(|dz| {
+            self.world.get_block_state([pos[0] + *dx, pos[1], pos[2] + *dz]).is_some()
+        }))
+    }
+
+    fn is_full_block(&self, pos: BlockPos) -> bool {
+        self.world.get_block_state(pos).is_some_and(|state| {
+            placement_facts(&state.block.to_string()).is_some_and(|facts| facts.full_collision)
+        })
+    }
+
+    fn build_height(&self) -> [i32; 2] {
+        // The world handle carries no build range; the vanilla default, as the memory view answers.
+        [-64, 320]
+    }
+}
+
+fn is_block_water(state: &BlockState) -> bool {
+    state.block.to_string() == "minecraft:water"
 }
 
 /// A block tick a host-side callback asked for. The mod-facing host has no call that schedules a
@@ -821,5 +1031,189 @@ mod tests {
             fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
         }
         with_world(&mut NoSend, || assert!(!world.send_particles("minecraft:flame", &ParticleData::Plain, [0.0, 64.0, 0.0], [0.0, 0.0, 0.0], 0.0, 1)));
+    }
+
+    fn test_placement_facts(block: &str) -> Option<PlacementFacts> {
+        match block {
+            "minecraft:frosted_ice" => Some(PlacementFacts {
+                classes: ["FrostedIceBlock", "IceBlock", "HalfTransparentBlock", "Block"].iter().map(|c| c.to_string()).collect(),
+                full_collision: true, solid_render: false,
+            }),
+            "minecraft:stone" => Some(PlacementFacts {
+                classes: vec!["Block".to_owned()], full_collision: true, solid_render: true,
+            }),
+            "minecraft:oak_slab" => Some(PlacementFacts {
+                classes: ["SlabBlock", "Block"].iter().map(|c| c.to_string()).collect(),
+                full_collision: false, solid_render: false,
+            }),
+            "minecraft:torch" => Some(PlacementFacts {
+                classes: ["TorchBlock", "BaseTorchBlock", "Block"].iter().map(|c| c.to_string()).collect(),
+                full_collision: false, solid_render: false,
+            }),
+            "minecraft:wall_torch" => Some(PlacementFacts {
+                classes: ["WallTorchBlock", "TorchBlock", "BaseTorchBlock", "Block"].iter().map(|c| c.to_string()).collect(),
+                full_collision: false, solid_render: false,
+            }),
+            _ => None,
+        }
+    }
+
+    /// A world with light: the memory ops hold the blocks, the light map holds the layers.
+    struct LitWorld {
+        memory: MemoryWorldOps,
+        light: BTreeMap<BlockPos, (u8, u8)>,
+    }
+
+    impl WorldOps for LitWorld {
+        fn block_state(&mut self, dimension: &str, pos: BlockPos) -> Option<String> {
+            self.memory.block_state(dimension, pos)
+        }
+        fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool {
+            self.memory.set_block_state(dimension, pos, state)
+        }
+        fn play_sound(&mut self, dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+            self.memory.play_sound(dimension, sound, at, volume, pitch)
+        }
+        fn block_in_tag(&mut self, block: &str, tag: &str) -> bool {
+            self.memory.block_in_tag(block, tag)
+        }
+        fn light(&mut self, _dimension: &str, pos: BlockPos) -> Option<(u8, u8)> {
+            self.light.get(&pos).copied()
+        }
+    }
+
+    #[test]
+    fn placement_facts_come_from_the_installed_lookup() {
+        set_placement_facts_lookup(test_placement_facts);
+        let ice = placement_facts("minecraft:frosted_ice").expect("the lookup names frosted ice");
+        assert!(ice.full_collision);
+        assert_eq!(ice.classes[0], "FrostedIceBlock");
+        assert_eq!(placement_facts("minecraft:stone").unwrap().solid_render, true);
+        assert_eq!(placement_facts("minecraft:unknown_block"), None);
+    }
+
+    #[test]
+    fn a_world_view_reads_the_blocks_light_and_facts() {
+        set_placement_facts_lookup(test_placement_facts);
+        set_sturdy_lookup(|block, _| Some(block == "minecraft:stone"));
+        let world = World::new("minecraft:overworld");
+        let mut ops = LitWorld {
+            memory: MemoryWorldOps::default(),
+            light: BTreeMap::from([([0, 64, 0], (3, 15)), ([0, 63, 0], (0, 0))]),
+        };
+        ops.memory.blocks.insert(("minecraft:overworld".to_owned(), [0, 63, 0]), "minecraft:stone".to_owned());
+        ops.memory.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:water[level=0]".to_owned());
+        ops.memory.tags.push(("minecraft:stone".to_owned(), "minecraft:mineable/pickaxe".to_owned()));
+        with_world(&mut ops, || {
+            let view = WorldView::new(&world, 4);
+            assert_eq!(view.block_state([0, 63, 0]).unwrap().block.to_string(), "minecraft:stone");
+            assert!(view.is_air([5, 64, 5]), "an unset cell reads air");
+            assert!(view.is_water([0, 64, 0]));
+            assert!(view.is_fluid_full([0, 64, 0]), "level 0 water is a full source");
+            assert_eq!(view.brightness([0, 64, 0]), 11, "sky 15 darkened by 4 beats block 3");
+            assert_eq!(view.raw_brightness([0, 64, 0]), Some(15), "undarkened sky wins");
+            assert_eq!(view.raw_brightness([9, 9, 9]), None, "no light reading there");
+            assert_eq!(view.face_sturdy([0, 63, 0], Direction::Up), Some(true));
+            assert_eq!(view.face_sturdy([0, 64, 0], Direction::Up), Some(false), "water holds nothing");
+            assert_eq!(view.is_state_in_tag(&BlockState::parse("minecraft:stone").unwrap(), "minecraft:mineable/pickaxe"), Some(true));
+            assert_eq!(view.placement_facts(&BlockState::parse("minecraft:frosted_ice").unwrap()).unwrap().full_collision, true);
+            assert!(view.is_full_block([0, 63, 0]));
+            assert!(!view.is_full_block([0, 64, 0]), "water is not a full block");
+        });
+    }
+
+    #[test]
+    fn can_survive_over_a_world_uses_the_chain() {
+        set_placement_facts_lookup(test_placement_facts);
+        set_sturdy_lookup(|block, _| Some(block == "minecraft:stone"));
+        let world = World::new("minecraft:overworld");
+        let mut ops = MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [-1, 64, 0]), "minecraft:stone".to_owned());
+        with_world(&mut ops, || {
+            let ice = BlockState::parse("minecraft:frosted_ice").unwrap();
+            assert_eq!(world.can_survive(&ice, [0, 64, 0], 4), Some(true), "frosted ice has no surviving arm");
+            let torch = BlockState::parse("minecraft:torch").unwrap();
+            assert_eq!(world.can_survive(&torch, [0, 64, 0], 4), None, "a standing torch needs the CENTER bit");
+            let wall = BlockState::parse("minecraft:wall_torch[facing=east]").unwrap();
+            assert_eq!(world.can_survive(&wall, [0, 64, 0], 4), Some(true), "the stone to the west holds it");
+        });
+    }
+
+    fn obstruction_world() -> (World, MemoryWorldOps, super::super::entity_api_v1::MemoryEntityOps) {
+        set_placement_facts_lookup(test_placement_facts);
+        let world = World::new("minecraft:overworld");
+        let ops = MemoryWorldOps::default();
+        let entities = super::super::entity_api_v1::MemoryEntityOps::default();
+        (world, ops, entities)
+    }
+
+    fn zombie(id: u64) -> super::super::entity_api_v1::WorldEntity {
+        super::super::entity_api_v1::WorldEntity {
+            id,
+            kind: Identifier::parse("minecraft:zombie").unwrap(),
+            item: None,
+            living: Some(super::super::entity_api_v1::LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+        }
+    }
+
+    #[test]
+    fn is_unobstructed_needs_a_full_shape_and_an_entity_scope() {
+        let (world, mut ops, entities) = obstruction_world();
+        let ice = BlockState::parse("minecraft:frosted_ice").unwrap();
+        let slab = BlockState::parse("minecraft:oak_slab").unwrap();
+        let unknown = BlockState::parse("minecraft:unknown_block").unwrap();
+        with_world(&mut ops, || {
+            assert_eq!(world.is_unobstructed(&ice, [0, 64, 0]), None, "no entity scope is open");
+            assert_eq!(world.is_unobstructed(&slab, [0, 64, 0]), None, "a slab's shape is not a whole block");
+            assert_eq!(world.is_unobstructed(&unknown, [0, 64, 0]), None, "no facts for the block");
+        });
+        let mut entities = entities;
+        with_world(&mut ops, || {
+            super::super::entity_api_v1::with_entities(&mut entities, || {
+                assert_eq!(world.is_unobstructed(&ice, [0, 64, 0]), Some(true), "an empty cell is clear");
+            });
+        });
+    }
+
+    #[test]
+    fn is_unobstructed_reads_entity_boxes_not_positions() {
+        let (world, mut ops, mut entities) = obstruction_world();
+        let ice = BlockState::parse("minecraft:frosted_ice").unwrap();
+        let cell = [0, 64, 0];
+        entities.entities = vec![
+            ([0.5, 64.0, 0.5], zombie(2)),
+            ([0.5, 65.0, 0.5], zombie(3)),
+            ([0.5, 64.0, 0.5], super::super::entity_api_v1::WorldEntity {
+                id: 4,
+                kind: Identifier::parse("minecraft:item").unwrap(),
+                item: Some(super::super::block_entity_api_v1::ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 1)),
+                living: None,
+            }),
+            // No box: its feet point stands exactly on the cell's top face.
+            ([0.5, 65.0, 0.5], zombie(5)),
+        ];
+        entities.boxes = vec![
+            (2, [[0.2, 64.0, 0.2], [0.8, 65.8, 0.8]]),
+            (3, [[0.2, 65.0, 0.2], [0.8, 66.8, 0.8]]),
+            (4, [[0.2, 64.0, 0.2], [0.8, 64.3, 0.8]]),
+        ];
+        let clear = |world: &World, ops: &mut MemoryWorldOps, entities: &mut super::super::entity_api_v1::MemoryEntityOps| {
+            with_world(ops, || {
+                super::super::entity_api_v1::with_entities(entities, || world.is_unobstructed(&ice, cell))
+            })
+        };
+        assert_eq!(clear(&world, &mut ops, &mut entities), Some(false), "the zombie in the cell blocks it");
+        // The zombie in the cell leaves; the one standing on the cell's top face stays.
+        entities.entities.retain(|(_, entity)| entity.id != 2);
+        entities.boxes.retain(|(id, _)| *id != 2);
+        assert_eq!(clear(&world, &mut ops, &mut entities), Some(true), "touching the top face does not block, and items never do");
+        // The zombie on top loses its box: its feet point, exactly at the cell's top, still does not block.
+        entities.boxes.retain(|(id, _)| *id != 3);
+        assert_eq!(clear(&world, &mut ops, &mut entities), Some(true));
+        // The boxless zombie wades in: its feet point inside the cell blocks it.
+        if let Some((held, _)) = entities.entities.iter_mut().find(|(_, entity)| entity.id == 5) {
+            *held = [0.5, 64.5, 0.5];
+        }
+        assert_eq!(clear(&world, &mut ops, &mut entities), Some(false), "the feet point inside the cell blocks it");
     }
 }

@@ -21,12 +21,14 @@
 //! ReplaceBlockWalkerModule rides the same tick as the fire, glow and cover forms: its target
 //! predicate is tested against the block below an empty cell through the same world read, which
 //! carries the state's properties, so still water (level 0) freezes and flowing water does not.
-//! Reductions against the original: the replacement state's canSurvive and isUnobstructed checks
-//! and the Forge onBlockPlace event are not modelled (placement follows the target match alone),
-//! and the module's own scheduleTick for the melt is not repeated — the host's frosted ice
-//! schedules the same 60–120 tick itself when a state is placed, as the vanilla block's onPlace
-//! does, so the ice still melts on schedule. The original charges the boots no wear for a
-//! replacement, and neither does this form.
+//! Before a replacement lands, the walk asks the three checks the original's walkOn asks:
+//! the replacement's canSurvive over the world view, isUnobstructed over the entities around
+//! the cell, and the Forge onBlockPlace event, which a listener may cancel. A check that
+//! cannot say (a survival fact the game's table does not publish, a shape that is not a whole
+//! block, no entity scope) does not refuse the placement. The module's own scheduleTick for
+//! the melt is not repeated — the host's frosted ice schedules the same 60–120 tick itself
+//! when a state is placed, as the vanilla block's onPlace does, so the ice still melts on
+//! schedule. The original charges the boots no wear for a replacement, and neither does this form.
 //!
 //! LightspeedAttributeModule rides the same tick: the boots' attribute is granted while the light at the
 //! wearer (which the tick reports) is above the module's minimum, and the boots take wear by the module's
@@ -162,10 +164,14 @@ pub(crate) fn register() {
                                 if !matches!(cell.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") { continue; }
                                 let Some(ground) = world.get_block_state(below) else { continue };
                                 // ReplaceBlockWalkerModule.walkOn: the first replacement whose target
-                                // matches the block below the empty cell takes that block's place.
+                                // matches the block below the empty cell takes that block's place, where
+                                // the replacement can survive and nothing stands in its way, and no
+                                // block-place listener vetoes it.
                                 for replacement in replacements {
                                     if replacement.target.matches(&ground) {
-                                        world.set_block_state(below, &replacement.state);
+                                        if replace_allowed(&world, &replacement.state, below, tick.sky_darken, tick.player, &tick.dimension, &ground) {
+                                            world.set_block_state(below, &replacement.state);
+                                        }
                                         break;
                                     }
                                 }
@@ -212,4 +218,89 @@ pub(crate) fn register() {
             }
         }
     });
+}
+
+/// Whether a replacement may land at `pos`: the state survives there, nothing stands in its way,
+/// and no block-place listener vetoes it. A check that cannot say (`None`) does not refuse the
+/// placement, as before this lane: only a proven refusal stops it.
+fn replace_allowed(world: &World, state: &BlockState, pos: [i32; 3], sky_darken: u8, placer: u128, dimension: &str, replaced: &BlockState) -> bool {
+    if world.can_survive(state, pos, sky_darken) == Some(false) {
+        return false;
+    }
+    if world.is_unobstructed(state, pos) == Some(false) {
+        return false;
+    }
+    if pluto_lib::block_events_v1::block_place_heard() {
+        let place = pluto_lib::block_events_v1::BlockPlace::new(Some(placer), dimension, pos, state.clone(), replaced.clone());
+        if pluto_lib::block_events_v1::block_place(&place) {
+            return false;
+        }
+    }
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pluto_lib::block_events_v1::ServerBlockEvents;
+    use pluto_lib::entity_api_v1::{LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+    use pluto_lib::world_api_v1::{MemoryWorldOps, PlacementFacts, set_placement_facts_lookup, with_world};
+
+    fn test_placement_facts(block: &str) -> Option<PlacementFacts> {
+        match block {
+            "minecraft:frosted_ice" => Some(PlacementFacts {
+                classes: ["FrostedIceBlock", "IceBlock", "HalfTransparentBlock", "Block"].iter().map(|class| class.to_string()).collect(),
+                full_collision: true,
+                solid_render: false,
+            }),
+            "minecraft:torch" => Some(PlacementFacts {
+                classes: ["TorchBlock", "BaseTorchBlock", "Block"].iter().map(|class| class.to_string()).collect(),
+                full_collision: false,
+                solid_render: false,
+            }),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn a_replacement_lands_only_where_it_survives_unobstructed_and_unvetoed() {
+        set_placement_facts_lookup(test_placement_facts);
+        let world = World::new("minecraft:overworld");
+        let mut ops = MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 63, 0]), "minecraft:water[level=0]".to_owned());
+        let ice = BlockState::parse("minecraft:frosted_ice").unwrap();
+        let water = BlockState::parse("minecraft:water[level=0]").unwrap();
+        let mut entities = MemoryEntityOps::default();
+        with_world(&mut ops, || {
+            with_entities(&mut entities, || {
+                assert!(replace_allowed(&world, &ice, [0, 63, 0], 0, 7, "minecraft:overworld", &water), "frosted ice survives anywhere and the cell is empty");
+            });
+        });
+        // A zombie wading in the cell blocks it.
+        entities.entities.push(([0.5, 63.5, 0.5], WorldEntity {
+            id: 2,
+            kind: Identifier::parse("minecraft:zombie").unwrap(),
+            item: None,
+            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+        }));
+        entities.boxes.push((2, [[0.2, 63.0, 0.2], [0.8, 64.8, 0.8]]));
+        with_world(&mut ops, || {
+            with_entities(&mut entities, || {
+                assert!(!replace_allowed(&world, &ice, [0, 63, 0], 0, 7, "minecraft:overworld", &water));
+            });
+        });
+        // The zombie leaves, but a block-place listener vetoes the frosted ice.
+        entities.entities.clear();
+        entities.boxes.clear();
+        ServerBlockEvents::BLOCK_PLACE.register(|place| {
+            if place.state.block.to_string() == "minecraft:frosted_ice" {
+                place.cancel.set(true);
+            }
+        });
+        with_world(&mut ops, || {
+            with_entities(&mut entities, || {
+                assert!(!replace_allowed(&world, &ice, [0, 63, 0], 0, 7, "minecraft:overworld", &water));
+            });
+        });
+    }
 }

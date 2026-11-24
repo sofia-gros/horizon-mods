@@ -50,6 +50,11 @@ pub trait EntityOps {
     fn position_of(&mut self, _id: u64) -> Option<[f64; 3]> {
         None
     }
+    /// The box entity `id` occupies, as `[min corner, max corner]` (`Entity.getBoundingBox`); None when the host
+    /// cannot reach it. Hosts that predate the call answer None, as does the memory backend unless a test sets a box.
+    fn bounding_box_of(&mut self, _id: u64) -> Option<[[f64; 3]; 2]> {
+        None
+    }
     /// Moves entity `id` to `pos` (`Entity.teleportTo`): a mob's navigation stops and its fall distance
     /// resets, as the game's own teleport does; another entity keeps the way it faces. A player is moved
     /// by the host's own player teleport (the `/tp` path: they leave their vehicle, lose their motion
@@ -191,6 +196,17 @@ impl EntityReach {
         with_current(None, |ops| ops.position_of(id))
     }
 
+    /// The box entity `id` occupies, as `[min corner, max corner]`; None outside a scope or when the host cannot reach it.
+    pub fn bounding_box_of(id: u64) -> Option<[[f64; 3]; 2]> {
+        with_current(None, |ops| ops.bounding_box_of(id))
+    }
+
+    /// Whether an entity scope is open on this thread: the reach answers "nothing there"
+    /// outside one, and a caller that must tell "nothing there" from "never looked" asks this.
+    pub fn has_scope() -> bool {
+        OPS.with(Cell::get).is_some()
+    }
+
     /// Moves entity `id` to `pos` (`Entity.teleportTo`); false outside a scope or when the host cannot
     /// by the host's own player teleport (the `/tp` path: they leave their vehicle, lose their motion
     /// and fall, and their client is told), keeping the way they face; a player that call cannot reach is
@@ -257,6 +273,8 @@ impl EntityReach {
 pub struct MemoryEntityOps {
     /// The entities, each at its position.
     pub entities: Vec<([f64; 3], WorldEntity)>,
+    /// The box of an entity, by id, as `[min corner, max corner]`; an entity with no entry has no box.
+    pub boxes: Vec<(u64, [[f64; 3]; 2])>,
     /// The item entities removed, in order.
     pub discarded: Vec<u64>,
     /// What was left in an item entity: its id and the stack.
@@ -277,7 +295,7 @@ pub struct MemoryEntityOps {
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new() }
+        Self { entities: Vec::new(), boxes: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new() }
     }
 }
 
@@ -313,6 +331,10 @@ impl EntityOps for MemoryEntityOps {
 
     fn position_of(&mut self, id: u64) -> Option<[f64; 3]> {
         self.entities.iter().find(|(_, entity)| entity.id == id).map(|(pos, _)| *pos)
+    }
+
+    fn bounding_box_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        self.boxes.iter().find(|(held, _)| *held == id).map(|(_, bounds)| *bounds)
     }
 
     fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
@@ -400,10 +422,12 @@ mod tests {
     #[test]
     fn outside_a_scope_the_reach_answers_nothing() {
         assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty());
+        assert!(!EntityReach::has_scope());
         assert!(!EntityReach::discard(1));
         assert!(!EntityReach::hurt(2, 2.0, "minecraft:in_fire"));
         assert!(!EntityReach::set_item(1, &ItemSlot::new(id("minecraft:iron_ingot"), 1)));
         assert_eq!(EntityReach::position_of(2), None);
+        assert_eq!(EntityReach::bounding_box_of(2), None);
         assert!(!EntityReach::teleport(2, [0.0, 64.0, 0.0]));
         assert!(!EntityReach::knockback(2, 1.0, 1.0, 0.0));
         assert!(!EntityReach::push(2, [0.0, 1.0, 0.0]));
@@ -506,5 +530,22 @@ mod tests {
             assert_eq!(EntityReach::passengers_of(2), vec![3]);
         });
         assert_eq!(ops.mounts, vec![(3, 2)]);
+    }
+
+    #[test]
+    fn a_scope_names_its_boxes_and_says_when_it_is_open() {
+        let mut ops = world();
+        ops.boxes = vec![
+            (2, [[2.2, 64.0, 2.2], [2.8, 65.9, 2.8]]),
+            (3, [[9.2, 64.0, 9.2], [9.8, 65.4, 9.8]]),
+        ];
+        with_entities(&mut ops, || {
+            assert!(EntityReach::has_scope());
+            assert_eq!(EntityReach::bounding_box_of(2), Some([[2.2, 64.0, 2.2], [2.8, 65.9, 2.8]]));
+            assert_eq!(EntityReach::bounding_box_of(1), None, "an item entity holds no box here");
+            assert_eq!(EntityReach::bounding_box_of(99), None, "no such entity");
+        });
+        assert!(!EntityReach::has_scope(), "the scope is closed again");
+        assert_eq!(EntityReach::bounding_box_of(2), None, "outside a scope nothing is boxed");
     }
 }

@@ -5,6 +5,7 @@ pub mod base;
 pub mod block_api_v1;
 pub mod block_entity_api_v1;
 pub mod block_entity_renderer_api_v1;
+pub mod block_events_v1;
 pub mod book_api_v1;
 pub(crate) mod render_cache;
 pub mod color_provider_api_v1;

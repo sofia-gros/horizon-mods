@@ -663,3 +663,96 @@ set_sturdy_lookup(|block, _direction| if block == "minecraft:stone" { Some(true)
 assert_eq!(face_sturdy("minecraft:stone", 1), Some(true));
 assert_eq!(face_sturdy("minecraft:glass", 1), None);
 ```
+
+### `PlacementFacts`
+
+`struct PlacementFacts { classes: Vec<String>, full_collision: bool, solid_render: bool }`. What the game's block table says about a block's shape and kind, for placement checks: the block's class chain (most specific first, in the game's own names, such as `TorchBlock`), whether its collision shape is a whole block, and whether it renders solid. Published from the game's table by the block facts head, by block name, so a block whose states differ answers with its first state.
+
+```rust
+use pluto_lib::world_api_v1::PlacementFacts;
+
+let facts = PlacementFacts {
+    classes: ["TorchBlock", "BaseTorchBlock", "Block"].iter().map(|c| c.to_string()).collect(),
+    full_collision: false,
+    solid_render: false,
+};
+assert_eq!(facts.classes[0], "TorchBlock");
+```
+
+### `set_placement_facts_lookup`
+
+`fn set_placement_facts_lookup(lookup: PlacementFactsLookup)`. Installs the placement-facts lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::world_api_v1::{PlacementFacts, set_placement_facts_lookup};
+
+set_placement_facts_lookup(|block| if block == "minecraft:torch" {
+    Some(PlacementFacts { classes: vec!["TorchBlock".to_string()], full_collision: false, solid_render: false })
+} else { None });
+```
+
+### `placement_facts`
+
+`fn placement_facts(block: &str) -> Option<PlacementFacts>`. The published placement facts for the named block. `None` when no lookup is installed or the table has no answer for the block.
+
+```rust
+use pluto_lib::world_api_v1::{PlacementFacts, placement_facts, set_placement_facts_lookup};
+
+assert_eq!(placement_facts("minecraft:torch"), None, "no lookup installed yet");
+set_placement_facts_lookup(|block| if block == "minecraft:torch" {
+    Some(PlacementFacts { classes: vec!["TorchBlock".to_string()], full_collision: false, solid_render: false })
+} else { None });
+assert!(placement_facts("minecraft:torch").is_some());
+assert_eq!(placement_facts("minecraft:glass"), None);
+```
+
+### `World::can_survive`
+
+`fn can_survive(&self, state: &BlockState, pos: [i32; 3], sky_darken: u8) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it: the same class-chain dispatch the game runs, over the world view, so a torch needs a sturdy face below, a wall torch the face it leans on, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (the solid flag, the centre and rigid support bits, fire odds, the multiface attach table): a placement check must treat `None` as "cannot say", not as a refusal.
+
+```rust
+use pluto_lib::world_api_v1::{MemoryWorldOps, PlacementFacts, World, set_placement_facts_lookup, with_world};
+
+set_placement_facts_lookup(|block| if block == "minecraft:frosted_ice" {
+    Some(PlacementFacts { classes: vec!["FrostedIceBlock".to_string()], full_collision: true, solid_render: false })
+} else { None });
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    assert_eq!(world.can_survive(&pluto_lib::BlockState::parse("minecraft:frosted_ice").unwrap(), [0, 64, 0], 0), Some(true));
+});
+```
+
+### `World::is_unobstructed`
+
+`fn is_unobstructed(&self, state: &BlockState, pos: [i32; 3]) -> Option<bool>`. Whether `state` may be placed at `pos` without standing in something's way, as the game's `Level.isUnobstructed` answers it: the replacement's collision shape against the entities around the cell. Only a whole-block shape is known, from the published placement facts, so any other state answers `None`. Entities are read through the entity scope, which the player tick opens; item entities never block, and an entity whose feet stand exactly on the cell's top face does not block it. `None` when the shape is not a whole block, no facts are published for the block, or no entity scope is open.
+
+```rust
+use pluto_lib::world_api_v1::{MemoryWorldOps, PlacementFacts, World, set_placement_facts_lookup, with_world};
+
+set_placement_facts_lookup(|block| if block == "minecraft:frosted_ice" {
+    Some(PlacementFacts { classes: vec!["FrostedIceBlock".to_string()], full_collision: true, solid_render: false })
+} else { None });
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    // No entity scope is open here, so the answer is unknown.
+    assert_eq!(world.is_unobstructed(&pluto_lib::BlockState::parse("minecraft:frosted_ice").unwrap(), [0, 64, 0]), None);
+});
+```
+
+### `WorldView`
+
+`struct WorldView<'a> { world: &'a World, sky_darken: u8 }`. A `BlockView` over a live `World`: block states, light and sturdy facts read through the world scope, and placement facts through the installed lookup. `brightness` darkens the sky light by `sky_darken`, as the game's getMaxLocalRawBrightness does; `raw_brightness` does not. Unreadable light is 0 for `brightness` and `None` for `raw_brightness`; `is_full_block` is the published `full_collision`, and `build_height` is the vanilla [-64, 320].
+
+```rust
+use pluto_lib::{BlockView, World};
+use pluto_lib::world_api_v1::{MemoryWorldOps, WorldView, with_world};
+
+let world = World::new("minecraft:overworld");
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || {
+    let view = WorldView::new(&world, 0);
+    assert!(view.is_air([0, 64, 0]));
+});
+```

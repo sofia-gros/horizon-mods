@@ -501,6 +501,11 @@ pub fn hooks() -> Box<dyn Hooks> {
         })
     });
     world_api_v1::set_sturdy_lookup(|block, direction| horizon_client::entry::pluto_block_facts::face_sturdy(block, direction));
+    world_api_v1::set_placement_facts_lookup(|block| horizon_client::entry::pluto_block_facts::placement_for(block).map(|facts| world_api_v1::PlacementFacts {
+        classes: facts.classes.iter().map(|class| class.to_string()).collect(),
+        full_collision: facts.full_collision,
+        solid_render: facts.solid_render,
+    }));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -2101,6 +2106,13 @@ impl EntityOps for HostEntities {
         let wanted = i32::try_from(id).unwrap_or(-1);
         host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
             .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)).map(|player| player.position)
+    }
+
+    fn bounding_box_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        let Ok(id) = u32::try_from(id) else { return None };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return None };
+        host.entity_bounding_box(entity)
     }
 
     fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
@@ -4787,8 +4799,11 @@ impl Hooks for PlutoHooks {
             let (block_light, sky_light) = host.light(light_pos);
             let (rain, thunder) = host.weather();
             let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
-            // The world scope is open while the tick runs, so a callback may work on the blocks around the player.
-            for id in scoped(host, || entity_events_v1::player_tick(&tick)) { host.remove_effect(player.uuid, &id); }
+            // The world and entity scopes are open while the tick runs, so a callback may work on the blocks and the
+            // entities around the player (the walk hook's obstruction check reads the entities).
+            let handle = HostHandle::new(host);
+            let dimension = player.dimension.to_string();
+            for id in scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || entity_events_v1::player_tick(&tick))) { host.remove_effect(player.uuid, &id); }
             // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
             let own = entity_events_v1::take_tick_actions(&tick);
             if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }
