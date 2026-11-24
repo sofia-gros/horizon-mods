@@ -356,6 +356,44 @@ assert!(backend.add_food(1, 2, 0.5));
 assert_eq!(backend.food(1).unwrap().saturation, 2.0);
 ```
 
+### `ServerPlayer::swing_hand`
+
+`fn swing_hand(&self, hand: Hand) -> bool`. Swings the player's arm — the place animation of a mod that places a block for them, the attack animation of one that hits. True when the swing was queued; it plays at the acting player's turn (inside their break, or at their next tick). False outside a callback.
+
+```rust
+use pluto_lib::{Hand, ServerPlayer};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+assert!(!player.swing_hand(Hand::Off)); // no running game: nothing happens
+```
+
+### `ServerPlayer::broadcast_item_break`
+
+`fn broadcast_item_break(&self, slot: StackSlot, stack: &StackData) -> bool`. Broadcasts that the stack in `slot` broke — the break sound and crumbs where the player stands, and the item-break event for the mods listening. Use it only when the mod itself wore the stack to breaking (a `damage_slot` that returned `broke`); the host's own wear already broadcasts, so calling it there would sound the break twice. True when the broadcast was queued. False outside a callback.
+
+```rust
+use pluto_lib::{NbtCompound, ServerPlayer, StackData, StackSlot};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let stack = StackData { item: "minecraft:iron_pickaxe".into(), count: 1, damage: 250, max_damage: Some(250), custom_data: NbtCompound::new(), custom_model_data: None, enchantments: Default::default() };
+assert!(!player.broadcast_item_break(StackSlot::MainHand, &stack)); // no running game: nothing happens
+```
+
+### `PlayerItemBreakEvents`
+
+`PlayerItemBreakEvents::EVENT` hears a player's stack break: the player, the item id, and the slot it broke in. The host reports it when its own wear breaks a stack; a mod that wears a stack itself reports it by calling `ServerPlayer::broadcast_item_break`, which is also what plays the sound and crumbs. There is no body or saddle slot on a player, so those never arrive.
+
+```rust
+use pluto_lib::{ItemBreak, PlayerItemBreakEvents, StackSlot};
+
+PlayerItemBreakEvents::EVENT.register(|broken: &ItemBreak| {
+    if broken.slot == StackSlot::MainHand {
+        let _player = &broken.player;
+    }
+});
+PlayerItemBreakEvents::EVENT.invoke(&ItemBreak { player: pluto_lib::ServerPlayer { uuid: 1, name: "Alex".into() }, item: "minecraft:iron_pickaxe".into(), slot: StackSlot::MainHand });
+```
+
 ### `ServerPlayer::empty_slots`
 
 `fn empty_slots(&self) -> u32`. How many of the 36 main inventory slots are empty. Check it before an action that needs room, so nothing is consumed and then lost. 0 outside a callback.

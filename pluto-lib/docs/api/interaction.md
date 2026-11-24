@@ -90,7 +90,7 @@ PlayerBlockBreakEvents::AFTER.register(|broken| {
 });
 ```
 
-> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` is not immediate: the game has no hook at the end of a break, so it runs at the breaking player's next tick or next break, at most one tick late, and only if the block at the position is no longer the one `BEFORE` saw (a break another mod cancelled later is not reported). `held` is the tool as of that tick. Creative breaks are heard too; it carries no block entity. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
+> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` runs inside the break: the game's own break reports its completion, so the telling lands before the removal is sent to the players around. A break the completion seam does not report — the host returned an error after the removal, or the seam was not woven — falls back to the breaking player's next tick or next break, at most one tick late, and only if the block at the position is no longer the one `BEFORE` saw (a break another mod cancelled later is not reported). `held` is the tool as of the report. Creative breaks are heard too. The context carries the mined block's block entity (`mined_block_entity`) and the off hand's structured place predicates (`offhand_place_predicates`) alongside the flattened `offhand_place_on` entries. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
 
 `PlayerBlockBreakEvents::EXPERIENCE` is the experience half of NeoForge's `BlockEvent.BreakEvent`: it runs on the player's own break path as the game samples what the block drops, with a `BlockExperienceContext` (the position, dimension, player and their entity id, and the main-hand stack). Change the sampled amount with `experience.set`; the game's own silk-touch rule is applied to the answer afterwards. Breaks the level works out for a guest name no breaker and are not heard.
 
@@ -152,7 +152,7 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand, `equipment` the pieces the breaker wears or holds in the off hand (as (slot, stack): `feet`, `legs`, `chest`, `head`, then `offhand`, as of their last tick; only the pieces carrying custom data) and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`. `creative` says whether the breaker is in creative mode and `may_build` whether their game type lets them build (both as the break started; `creative` is false and `may_build` true when the game names no player), and `offhand_place_on` holds the off hand stack's adventure-mode place tag entries (a block id, a `#tag`, or an id with a `[key=value,...]` state suffix), empty when it carries none.
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand, `equipment` the pieces the breaker wears or holds in the off hand (as (slot, stack): `feet`, `legs`, `chest`, `head`, then `offhand`, as of their last tick; only the pieces carrying custom data) and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`. `creative` says whether the breaker is in creative mode and `may_build` whether their game type lets them build (both as the break started; `creative` is false and `may_build` true when the game names no player), and `offhand_place_on` holds the off hand stack's adventure-mode place tag entries (a block id, a `#tag`, or an id with a `[key=value,...]` state suffix), empty when it carries none. `offhand_place_predicates` holds the same tag's structured predicates (blocks, state ranges and block-entity NBT — see `AdventurePlacePredicate`), and `mined_block_entity` is the mined block's block entity (`None` when it had none).
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
@@ -187,6 +187,22 @@ let used = AfterUseContext {
     eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
 };
 assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
+```
+
+### `AdventurePlacePredicate`
+
+One entry of an adventure-mode place tag (`minecraft:can_place_on`), read whole: the blocks it names (`None` means any block), the state tests (an exact value, or a minimum and maximum the mined state must lie between), and the block-entity NBT it must match (`None` when the entry carries no NBT test). `adventure_place_predicates` reads them from the component, and `place_predicates_allow` answers whether any of them allows a mined block with its block entity, as the host's own adventure-mode matcher does — the flattened `offhand_place_on` entries cannot carry the NBT test, so a tag that has one answers only through these.
+
+```rust
+use pluto_lib::{adventure_place_predicates, place_predicates_allow, BlockState, Nbt};
+
+let component = Nbt::parse_snbt("{blocks:[\"minecraft:chest\"],nbt:{CustomName:'{\"text\":\"Loots\"}'}}").unwrap();
+let predicates = adventure_place_predicates(&component);
+let mined = BlockState::parse("minecraft:chest").unwrap();
+let mut be = pluto_lib::NbtCompound::new();
+be.insert("CustomName".into(), Nbt::String("{\"text\":\"Loots\"}".to_string()));
+assert!(place_predicates_allow(&predicates, &mined, Some(&be), None));
+assert!(!place_predicates_allow(&predicates, &mined, None, None));
 ```
 
 ## Events

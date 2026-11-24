@@ -5,11 +5,12 @@
 
 use std::cell::{Cell, RefCell};
 
-use super::base::{ActionResult, Event};
+use super::base::{compare_nbt, ActionResult, Event, Identifier, Nbt, NbtCompound};
 use super::block_api_v1::Direction;
 use super::block_entity_api_v1::ItemSlot;
 use super::entity_events_v1::EntityAction;
 use super::player_api::{ServerPlayer, StackData};
+use super::resource_loader_v0::RegistryLookup;
 use super::world_api_v1::BlockState;
 
 /// A player used an item.
@@ -292,9 +293,19 @@ pub struct BlockBreakContext {
     /// The off hand stack's adventure-mode place tag (`minecraft:can_place_on`), one text entry per block predicate, in the
     /// form the original's own tag strings take: a block id, a `#tag`, or an id with a state suffix
     /// (`minecraft:oak_stairs[facing=east]`). Empty when the off hand carries no such tag (the common case) or the game did
-    /// not read it. A predicate carrying a block entity NBT test is not reported: the break reads the block without its
-    /// block entity, so the test could not be answered.
+    /// not read it. A predicate carrying a block entity NBT test is not reported here: the text form cannot carry it —
+    /// see `offhand_place_predicates` for the structured predicates, which keep it.
     pub offhand_place_on: Vec<String>,
+    /// The off hand stack's adventure-mode place tag (`minecraft:can_place_on`) as structured block predicates — the
+    /// blocks, state tests and block-entity NBT tests the tag carries, in the form the game's own matcher reads them
+    /// (see [`AdventurePlacePredicate`]). Empty when the off hand carries no such tag. A predicate carrying a
+    /// block-entity NBT test is kept here, unlike in `offhand_place_on`: the break reads the mined block's block
+    /// entity with it (see `mined_block_entity`).
+    pub offhand_place_predicates: Vec<AdventurePlacePredicate>,
+    /// The mined block's block entity as the break started, as the game saved it (`BlockEntity.saveWithFullMetadata`);
+    /// None when the block has no block entity, or the game did not read it. The NBT tests of
+    /// `offhand_place_predicates` match against it.
+    pub mined_block_entity: Option<NbtCompound>,
     /// More blocks this break takes with it, which `BEFORE` callbacks add to with [`BlockBreakContext::break_extra`]: the game
     /// breaks them through its own destroy path (their drops and loot are the game's, as for the block itself) at the level's next
     /// tick seam, a tick late at most. They do not fire break events of their own. Read by nobody in `AFTER` or `CANCELED`.
@@ -304,7 +315,7 @@ pub struct BlockBreakContext {
 impl BlockBreakContext {
     /// A context with only a position, for a game that reports nothing else (and for callbacks that only read `pos`).
     pub fn at(pos: [i32; 3]) -> Self {
-        Self { pos, dimension: String::new(), state: None, player: None, held: None, equipment: Vec::new(), actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, creative: false, may_build: true, offhand_place_on: Vec::new(), extra_breaks: RefCell::new(Vec::new()) }
+        Self { pos, dimension: String::new(), state: None, player: None, held: None, equipment: Vec::new(), actions: RefCell::new(Vec::new()), face: None, yaw: 0.0, pitch: 0.0, creative: false, may_build: true, offhand_place_on: Vec::new(), offhand_place_predicates: Vec::new(), mined_block_entity: None, extra_breaks: RefCell::new(Vec::new()) }
     }
 
     /// Takes the block at `pos` with this break (see `extra_breaks`): the block itself, a duplicate and anything past 64 extra
@@ -334,6 +345,176 @@ pub struct BlockExperienceContext {
     pub held: Option<StackData>,
     /// The experience now, which callbacks may change with `set`; each callback sees the last one's.
     pub experience: Cell<u32>,
+}
+
+/// One block predicate of an adventure-mode place tag (`minecraft:can_place_on`), as the game's own
+/// `BlockPredicate` reads it: the blocks it accepts, the state tests it narrows them with, and the
+/// block-entity NBT test it may carry. Parsed from the tag's NBT by [`adventure_place_predicates`]
+/// and matched by [`place_predicates_allow`], mirroring the game's `adventure_predicate_at`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdventurePlacePredicate {
+    /// The blocks this predicate accepts, as written: block ids or `#tag`s. `None` when the predicate
+    /// names no blocks (any block passes the block test); `Some` of an empty list when it names blocks
+    /// no entry of which can match (a malformed `blocks` value), so nothing passes.
+    pub blocks: Option<Vec<String>>,
+    /// The state tests, as (property, matcher) pairs. A property the mined block does not carry fails.
+    pub state: Vec<(String, StateMatcher)>,
+    /// The block-entity NBT test: a compound pattern, or SNBT text. `None` when the predicate carries
+    /// no NBT test.
+    pub nbt: Option<Nbt>,
+}
+
+/// One state test of a block predicate: an exact property value, or a min/max range over a numeric value.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StateMatcher {
+    /// The property must equal this value.
+    Exact(String),
+    /// The property's value, read as an integer, must lie between the bounds (each bound absent means
+    /// open). A value or bound that is not an integer fails the test, as the game's range test does.
+    Range { min: Option<String>, max: Option<String> },
+    /// A test that never passes: a state entry the game cannot read (neither a value nor a range).
+    Never,
+}
+
+impl AdventurePlacePredicate {
+    /// A predicate that matches no block: what a malformed predicate becomes, so it is kept in the list
+    /// (and fails) rather than dropped (which would let another predicate pass in its place).
+    pub fn never() -> Self {
+        Self { blocks: Some(Vec::new()), state: Vec::new(), nbt: None }
+    }
+
+    /// One predicate from its NBT: a bare string is the block id it accepts; a compound names its blocks
+    /// (one id or a list), its state tests and its NBT test. Any other value matches nothing.
+    pub fn from_nbt(value: &Nbt) -> Self {
+        match value {
+            Nbt::String(id) => Self { blocks: Some(vec![id.clone()]), state: Vec::new(), nbt: None },
+            Nbt::Compound(predicate) => {
+                let blocks = match predicate.get("blocks") {
+                    None => None,
+                    Some(Nbt::String(id)) => Some(vec![id.clone()]),
+                    Some(Nbt::List(ids)) => {
+                        Some(ids.iter().filter_map(Nbt::as_str).map(str::to_owned).collect())
+                    }
+                    Some(_) => Some(Vec::new()),
+                };
+                let state = match predicate.get("state") {
+                    None => Vec::new(),
+                    Some(Nbt::Compound(want)) => want
+                        .iter()
+                        .map(|(key, matcher)| {
+                            let matcher = match matcher {
+                                Nbt::String(value) => StateMatcher::Exact(value.clone()),
+                                Nbt::Compound(range) => StateMatcher::Range {
+                                    min: range.get("min").and_then(Nbt::as_str).map(str::to_owned),
+                                    max: range.get("max").and_then(Nbt::as_str).map(str::to_owned),
+                                },
+                                _ => StateMatcher::Never,
+                            };
+                            (key.clone(), matcher)
+                        })
+                        .collect(),
+                    Some(_) => return Self::never(),
+                };
+                Self { blocks, state, nbt: predicate.get("nbt").cloned() }
+            }
+            _ => Self::never(),
+        }
+    }
+
+    /// Whether this predicate accepts the mined block: its blocks name it, its state tests hold, and its
+    /// NBT test matches the mined block's block entity. `blocks` resolves `#tag`s; None means no snapshot,
+    /// so a tag names nothing. Mirrors the game's `adventure_predicate_at`.
+    pub fn allows(
+        &self,
+        mined: &BlockState,
+        mined_block_entity: Option<&NbtCompound>,
+        blocks: Option<&RegistryLookup>,
+    ) -> bool {
+        let block_ok = match &self.blocks {
+            None => true,
+            Some(ids) => ids.iter().any(|id| block_in_holder_set(id, &mined.block, blocks)),
+        };
+        let state_ok = self.state.iter().all(|(key, matcher)| {
+            let Some(have) = mined.properties.get(key) else { return false };
+            match matcher {
+                StateMatcher::Exact(want) => have == want,
+                StateMatcher::Range { min, max } => {
+                    let in_range = |bound: &Option<String>, above: bool| {
+                        bound.as_ref().is_none_or(|bound| {
+                            match (have.parse::<i64>(), bound.parse::<i64>()) {
+                                (Ok(have), Ok(bound)) if above => have >= bound,
+                                (Ok(have), Ok(bound)) => have <= bound,
+                                _ => false,
+                            }
+                        })
+                    };
+                    in_range(min, true) && in_range(max, false)
+                }
+                StateMatcher::Never => false,
+            }
+        });
+        let nbt_ok = match &self.nbt {
+            None => true,
+            Some(Nbt::String(snbt)) => match Nbt::parse_snbt(snbt) {
+                Ok(pattern) => {
+                    let actual = mined_block_entity.map(|entity| Nbt::Compound(entity.clone()));
+                    compare_nbt(&pattern, actual.as_ref())
+                }
+                Err(_) => false,
+            },
+            Some(pattern @ Nbt::Compound(_)) => {
+                let actual = mined_block_entity.map(|entity| Nbt::Compound(entity.clone()));
+                compare_nbt(pattern, actual.as_ref())
+            }
+            Some(_) => false,
+        };
+        block_ok && state_ok && nbt_ok
+    }
+}
+
+/// Whether a holder-set entry (a block id or a `#tag`) names `block`, as the game's `block_in_holder_set`
+/// does: the `#` is stripped first, then an id without a namespace reads as a `minecraft:` one; a tag resolves
+/// through the block snapshot.
+fn block_in_holder_set(entry: &str, block: &Identifier, blocks: Option<&RegistryLookup>) -> bool {
+    match entry.strip_prefix('#') {
+        Some(tag) => {
+            let namespaced = if tag.contains(':') { tag.to_owned() } else { format!("minecraft:{tag}") };
+            Identifier::parse(&namespaced).is_ok_and(|tag| {
+                blocks
+                    .and_then(|blocks| blocks.get_tag(&tag))
+                    .is_some_and(|members| members.contains(block))
+            })
+        }
+        None => {
+            let namespaced = if entry.contains(':') { entry.to_owned() } else { format!("minecraft:{entry}") };
+            Identifier::parse(&namespaced).is_ok_and(|id| id == *block)
+        }
+    }
+}
+
+/// The block predicates of a `minecraft:can_place_on` component, in the order the tag lists them: a list
+/// of predicates, one compound predicate, or a bare block id (the shorthand the game's own text path reads
+/// as an id). A predicate that is not a compound or a string matches nothing. The game's matcher reads
+/// every key of such a value as absent and would call it a match for any block, which no real tag means —
+/// a bare string is the only shorthand a tag writes.
+pub fn adventure_place_predicates(component: &Nbt) -> Vec<AdventurePlacePredicate> {
+    match component {
+        Nbt::List(predicates) => predicates.iter().map(AdventurePlacePredicate::from_nbt).collect(),
+        Nbt::Compound(_) | Nbt::String(_) => vec![AdventurePlacePredicate::from_nbt(component)],
+        _ => Vec::new(),
+    }
+}
+
+/// Whether any of the place tag's predicates accepts the mined block: the game's `AdventureModePredicate.test`
+/// over the structured predicates, with the mined block's block entity for the NBT tests. An empty predicate
+/// list accepts nothing.
+pub fn place_predicates_allow(
+    predicates: &[AdventurePlacePredicate],
+    mined: &BlockState,
+    mined_block_entity: Option<&NbtCompound>,
+    blocks: Option<&RegistryLookup>,
+) -> bool {
+    predicates.iter().any(|predicate| predicate.allows(mined, mined_block_entity, blocks))
 }
 
 static USE_ITEM: Event<UseItemContext, ActionResult> = Event::first_not_pass();
@@ -435,10 +616,13 @@ pub struct PlayerBlockBreakEvents;
 impl PlayerBlockBreakEvents {
     /// Fabric: `BEFORE`: return `false` to cancel the break.
     pub const BEFORE: &'static Event<BlockBreakContext, bool> = &BEFORE_BLOCK_BREAK;
-    /// Fabric: `AFTER`: a player's break went through and the block is gone. The game has no hook at the end of a break, so it is heard at
-    /// the player's next tick (or their next break), at most one tick late, and only when the block at `pos` is no longer the one `BEFORE`
-    /// saw. `held` is the tool as of then; the block entity is not given. Creative breaks are heard too. Not heard for the breaks
-    /// `BEFORE` does not hear (leaves decaying, a piston, `/setblock`).
+    /// Fabric: `AFTER`: a player's break went through and the block is gone. The break's own return tells the bridge it
+    /// completed, so it is heard inside the break, before the removal is sent to the players around — the swap a break
+    /// triggers never shows air. When the return is not heard (an error after the removal, or a weave that predates
+    /// the completion seam) it is reconstructed at the player's next tick (or their next break), at most one tick late,
+    /// and only when the block at `pos` is no longer the one `BEFORE` saw. `held` is the tool as of then; the block
+    /// entity is not given. Creative breaks are heard too. Not heard for the breaks `BEFORE` does not hear (leaves
+    /// decaying, a piston, `/setblock`).
     pub const AFTER: &'static Event<BlockBreakContext, ()> = &AFTER_BLOCK_BREAK;
     /// Fabric: `CANCELED`. Called once when `BEFORE` vetoes a break; the block is kept.
     pub const CANCELED: &'static Event<BlockBreakContext, ()> = &BLOCK_BREAK_CANCELED;
@@ -698,7 +882,7 @@ mod tests {
             held: Some(StackData { item: "test:pick".into(), count: 1, damage: 4, ..Default::default() }),
             equipment: Vec::new(),
             actions: RefCell::new(Vec::new()),
-            face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, creative: false, may_build: true, offhand_place_on: Vec::new(), extra_breaks: RefCell::new(Vec::new()),
+            face: Some(Direction::Up), yaw: 90.0, pitch: 0.0, creative: false, may_build: true, offhand_place_on: Vec::new(), offhand_place_predicates: Vec::new(), mined_block_entity: None, extra_breaks: RefCell::new(Vec::new()),
         };
         assert!(after_block_break_heard());
         after_block_break(&context);
@@ -794,6 +978,102 @@ mod tests {
         assert_eq!(broken.len(), 8);
         assert_eq!(apply_pending_extra_breaks("test:aoe", |_| true), 0, "the queue for this dimension is drained");
         assert_eq!(apply_pending_extra_breaks("test:other_dimension", |_| true), 1, "other dimensions wait for their own seam");
+    }
+
+    #[test]
+    fn place_predicates_read_blocks_state_and_block_entity_nbt() {
+        use super::super::base::Identifier as Id;
+        use super::super::resource_loader_v0::RegistryLookup;
+        let component = Nbt::parse_snbt(
+            "[{blocks:[\"minecraft:chest\",\"#minecraft:logs\"],state:{facing:\"east\"},nbt:{Lock:\"key\"}},\"minecraft:stone\"]",
+        )
+        .unwrap();
+        // A list component holds one predicate per entry: a compound, then a bare block id.
+        let predicates = adventure_place_predicates(&component);
+        assert_eq!(predicates.len(), 2);
+        let first = &predicates[0];
+        assert_eq!(
+            first.blocks,
+            Some(vec!["minecraft:chest".to_string(), "#minecraft:logs".to_string()])
+        );
+        assert_eq!(
+            first.state,
+            vec![("facing".to_string(), StateMatcher::Exact("east".to_string()))]
+        );
+        assert!(first.nbt.is_some());
+        assert_eq!(predicates[1].blocks, Some(vec!["minecraft:stone".to_string()]));
+
+        let mined = BlockState {
+            block: Id::parse("minecraft:chest").unwrap(),
+            properties: [("facing".to_string(), "east".to_string())].into_iter().collect(),
+        };
+        let mut locked = NbtCompound::new();
+        locked.insert("Lock".into(), Nbt::String("key".into()));
+        locked.insert("Items".into(), Nbt::List(vec![]));
+        let logs = RegistryLookup::from_parts(
+            &["minecraft:oak_log".to_string()],
+            &[("minecraft:logs".to_string(), vec!["minecraft:oak_log".to_string()])],
+        )
+        .unwrap();
+        assert!(place_predicates_allow(&predicates, &mined, Some(&locked), Some(&logs)));
+        // The NBT test fails without the lock, and without any block entity at all.
+        let unlocked = NbtCompound::new();
+        assert!(!place_predicates_allow(&predicates, &mined, Some(&unlocked), Some(&logs)));
+        assert!(!place_predicates_allow(&predicates, &mined, None, Some(&logs)));
+        // The second predicate takes a stone block with no state or NBT test.
+        let stone = BlockState { block: Id::parse("minecraft:stone").unwrap(), properties: Default::default() };
+        assert!(place_predicates_allow(&predicates, &stone, None, Some(&logs)));
+        assert!(!place_predicates_allow(&[], &stone, None, Some(&logs)));
+        assert!(!AdventurePlacePredicate::never().allows(&stone, None, Some(&logs)));
+    }
+
+    #[test]
+    fn place_predicates_match_tags_ranges_and_snbt() {
+        use super::super::base::Identifier as Id;
+        use super::super::resource_loader_v0::RegistryLookup;
+        let mined = BlockState {
+            block: Id::parse("minecraft:oak_stairs").unwrap(),
+            properties: [("waterlogged".to_string(), "false".to_string()), ("age".to_string(), "3".to_string())]
+                .into_iter()
+                .collect(),
+        };
+        let logs = RegistryLookup::from_parts(
+            &["minecraft:oak_log".to_string()],
+            &[("minecraft:logs".to_string(), vec!["minecraft:oak_log".to_string()])],
+        )
+        .unwrap();
+        let tag = AdventurePlacePredicate::from_nbt(&Nbt::parse_snbt("{blocks:\"#minecraft:logs\"}").unwrap());
+        let log = BlockState { block: Id::parse("minecraft:oak_log").unwrap(), properties: Default::default() };
+        assert!(tag.allows(&log, None, Some(&logs)));
+        assert!(!tag.allows(&log, None, None), "a tag names nothing without the block snapshot");
+        let ranged = AdventurePlacePredicate::from_nbt(
+            &Nbt::parse_snbt("{blocks:\"minecraft:oak_stairs\",state:{age:{min:\"2\",max:\"4\"}}}").unwrap(),
+        );
+        assert!(ranged.allows(&mined, None, None));
+        let too_old = BlockState {
+            block: Id::parse("minecraft:oak_stairs").unwrap(),
+            properties: [("age".to_string(), "5".to_string())].into_iter().collect(),
+        };
+        assert!(!ranged.allows(&too_old, None, None));
+        let unnumbered = BlockState {
+            block: Id::parse("minecraft:oak_stairs").unwrap(),
+            properties: [("age".to_string(), "young".to_string())].into_iter().collect(),
+        };
+        assert!(!ranged.allows(&unnumbered, None, None), "a non-integer value fails a range test");
+        let snbt = AdventurePlacePredicate::from_nbt(
+            &Nbt::parse_snbt("{blocks:\"minecraft:chest\",nbt:\"{Lock:'key'}\"}").unwrap(),
+        );
+        let chest = BlockState { block: Id::parse("minecraft:chest").unwrap(), properties: Default::default() };
+        let mut locked = NbtCompound::new();
+        locked.insert("Lock".into(), Nbt::String("key".into()));
+        assert!(snbt.allows(&chest, Some(&locked), None));
+        assert!(!snbt.allows(&chest, None, None));
+        // A bare block id is the shorthand for a predicate naming that block.
+        let bare = adventure_place_predicates(&Nbt::String("minecraft:stone".into()));
+        assert_eq!(bare.len(), 1);
+        let stone = BlockState { block: Id::parse("minecraft:stone").unwrap(), properties: Default::default() };
+        assert!(place_predicates_allow(&bare, &stone, None, None));
+        assert!(!place_predicates_allow(&bare, &chest, None, None));
     }
 
     #[test]

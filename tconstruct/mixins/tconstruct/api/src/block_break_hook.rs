@@ -183,7 +183,9 @@ enum ExchangeConsume {
 /// The adventure gate runs last, on the chosen provider, as the original checks it on the provided stack before placing:
 /// a breaker who may not build (`may_build` false) places only when the provided stack's place tag names the mined block.
 /// The port's provider stacks carry no place tag (their module data names a bare item), so only the plain off-hand stack —
-/// whose tag the break context reports as `place_on` — can pass it.
+/// whose tag the break context reports as `place_on` — can pass it. When the context also carries the tag's structured
+/// predicates (the full `can_place_on` read, blocks and state ranges and block-entity NBT included), those answer the gate
+/// instead of the flattened text entries, as they are the same tag read without anything dropped.
 fn exchange_decision(
     carries: bool,
     offhand: Option<&StackData>,
@@ -194,6 +196,8 @@ fn exchange_decision(
     may_build: bool,
     mined: Option<&pluto_lib::BlockState>,
     place_on: &[String],
+    place_predicates: &[pluto_lib::AdventurePlacePredicate],
+    mined_block_entity: Option<&pluto_lib::NbtCompound>,
 ) -> Option<Exchange> {
     if !carries {
         return None;
@@ -223,7 +227,13 @@ fn exchange_decision(
     };
     if !may_build {
         let allowed = matches!(exchange.consume, ExchangeConsume::ShrinkOffhand)
-            && mined.is_some_and(|mined| adventure_place_allowed(place_on, mined, blocks));
+            && mined.is_some_and(|mined| {
+                if place_predicates.is_empty() {
+                    adventure_place_allowed(place_on, mined, blocks)
+                } else {
+                    pluto_lib::place_predicates_allow(place_predicates, mined, mined_block_entity, blocks)
+                }
+            });
         if !allowed {
             return None;
         }
@@ -295,13 +305,18 @@ fn apply_exchange_consume(player: &pluto_lib::ServerPlayer, held: &StackData, of
             let Some(live) = live.filter(|live| live.item == stack.item && Nbt::Compound(live.custom_data.clone()) == Nbt::Compound(stack.custom_data.clone())) else { return; };
             let damaged = with_held_tool(&live, |env, slot| {
                 let mut slot = slot.clone();
-                tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?;
-                Some(stack_data_of_slot(&slot))
+                let broke = tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?.broke;
+                Some((stack_data_of_slot(&slot), broke))
             })
             .ok()
             .flatten();
-            if let Some(damaged) = damaged {
-                player.set_equipment(StackSlot::OffHand, Some(&damaged));
+            if let Some((damaged, broke)) = damaged {
+                // The wear landed on the stack the host still holds only once the write-back succeeds; the
+                // break broadcast (the sound and crumbs of damageAnimated) follows it, and only when the
+                // wear actually broke the stack — the host's own wear already broadcasts itself.
+                if player.set_equipment(StackSlot::OffHand, Some(&damaged)) && broke {
+                    player.broadcast_item_break(StackSlot::OffHand, &damaged);
+                }
             }
         }
         ExchangeConsume::DamageMainHand { modifier, wear } => {
@@ -309,13 +324,15 @@ fn apply_exchange_consume(player: &pluto_lib::ServerPlayer, held: &StackData, of
             let Some(live) = player.stack(selected).filter(|live| live.item == held.item && Nbt::Compound(live.custom_data.clone()) == Nbt::Compound(held.custom_data.clone())) else { return; };
             let damaged = with_held_tool(&live, |env, slot| {
                 let mut slot = slot.clone();
-                tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?;
-                Some(stack_data_of_slot(&slot))
+                let broke = tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?.broke;
+                Some((stack_data_of_slot(&slot), broke))
             })
             .ok()
             .flatten();
-            if let Some(damaged) = damaged {
-                player.update_stack(selected, &damaged);
+            if let Some((damaged, broke)) = damaged {
+                if player.update_stack(selected, &damaged) && broke {
+                    player.broadcast_item_break(StackSlot::MainHand, &damaged);
+                }
             }
         }
     }
@@ -326,18 +343,16 @@ fn apply_exchange_consume(player: &pluto_lib::ServerPlayer, held: &StackData, of
 /// original harvests; and the after telling only fires for a block that actually changed, so the glow and fire vetoes (which keep their
 /// block) never reach here, whatever their priority. The timing is the after telling's own, and it is the one point where this
 /// differs from the original observably: ToolHarvestLogic.breakBlock runs the REMOVE_BLOCK hooks synchronously, before the block
-/// is removed, so the original's swap never shows air; the game has no hook at the end of a break, so PlutoLib's after telling is
-/// reconstructed at the player's next tick (see the bridge's flush) and the position stands open in between — attached blocks
-/// have already answered the break itself by then, as they do for any break in this port. What else the port does not carry:
-/// the off-hand swing and the neighbour packet (UpdateNeighborsPacket). The host names no way to swing a named player's arm
-/// (its swing_arm is the local player's own predicted arm, in the client use path) and no client verb to recompute a block's
-/// neighbour shapes; the packet's work — refreshing the old state's connection shapes on the breaking player's client — has
-/// no stale shape to fix here, as the host's client derives connection shapes from the block states when it remeshes after
-/// the synced block change. And the slab orientation of BlockItem.place (the state is placed as its default, as the fluid
-/// place-block effect does). The tool is read as the break left it, as the after-break telling does.
-/// The off hand is read live first (a plain block item carries no custom data, so the tick memory never names it); the captured
-/// equipment is the fallback for a tool provider. The two environment builds run sequentially, never nested, so no registry lock is
-/// ever taken twice.
+/// is removed, so the original's swap never shows air; the game's own break now reports its completion to the bridge (see the
+/// break-completion seam), so this telling runs inside the break, before the removal is sent to the players around — the position
+/// stands open only for the calls between the removal and the return, not until the breaking player's next tick. What else the port
+/// does not carry: the neighbour packet (UpdateNeighborsPacket). The host names no client verb to recompute a block's neighbour
+/// shapes; the packet's work — refreshing the old state's connection shapes on the breaking player's client — has no stale shape to
+/// fix here, as the host's client derives connection shapes from the block states when it remeshes after the synced block change.
+/// And the slab orientation of BlockItem.place (the state is placed as its default, as the fluid place-block effect does). The tool
+/// is read as the break left it, as the after-break telling does. The off hand is read live first (a plain block item carries no
+/// custom data, so the tick memory never names it); the captured equipment is the fallback for a tool provider. The two environment
+/// builds run sequentially, never nested, so no registry lock is ever taken twice.
 fn exchange_after(broken: &BlockBreakContext) {
     let (Some(player), Some(held)) = (broken.player.as_ref(), broken.held.as_ref()) else { return; };
     // Another placement has taken the air since the break; never overwrite it.
@@ -355,7 +370,7 @@ fn exchange_after(broken: &BlockBreakContext) {
     let Some(exchange) = with_held_tool(held, |env, slot| {
         let carries = tool_stack::saved_modifiers(&slot.custom_data, env.modifiers).iter().any(|(entry, _)| entry.id == exchanging);
         let mainhand_provider = tool_stack::block_item_provider(&slot.custom_data, env);
-        exchange_decision(carries, offhand.as_ref(), offhand_provider, mainhand_provider, blocks.as_deref(), items.as_deref(), broken.may_build, broken.state.as_ref(), &broken.offhand_place_on)
+        exchange_decision(carries, offhand.as_ref(), offhand_provider, mainhand_provider, blocks.as_deref(), items.as_deref(), broken.may_build, broken.state.as_ref(), &broken.offhand_place_on, &broken.offhand_place_predicates, broken.mined_block_entity.as_ref())
     })
     .ok()
     .flatten() else {
@@ -366,6 +381,9 @@ fn exchange_after(broken: &BlockBreakContext) {
         return;
     }
     apply_exchange_consume(player, held, offhand.as_ref(), &exchange, broken.creative);
+    // The place animation: the original swings the off hand once the placement lands, whether or not the
+    // holder was creative — the swing is the placement's, not the consume's.
+    player.swing_hand(pluto_lib::Hand::Off);
 }
 
 /// Registers the callbacks. Called once from the product's hooks.
@@ -460,7 +478,7 @@ pub(crate) fn register() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pluto_lib::{MemoryPlayerOps, RegistryLookup, ServerPlayer, with_ops};
+    use pluto_lib::{MemoryPlayerOps, NbtCompound, RegistryLookup, ServerPlayer, with_ops};
     use serde_json::json;
 
     fn stack(item: &str, count: u32) -> StackData {
@@ -497,7 +515,7 @@ mod tests {
     fn no_exchanging_means_no_exchange_even_when_a_hand_provides() {
         let offhand = stack("minecraft:stone", 64);
         let known = lookup(&["minecraft:stone"]);
-        assert_eq!(exchange_decision(false, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[]), None);
+        assert_eq!(exchange_decision(false, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[], &[], None), None);
     }
 
     #[test]
@@ -505,7 +523,7 @@ mod tests {
         let offhand = stack("minecraft:stone", 64);
         let known = lookup(&["minecraft:stone"]);
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, None, Some(&known), None, true, None, &[]),
+            exchange_decision(true, Some(&offhand), None, None, Some(&known), None, true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand })
         );
     }
@@ -515,7 +533,7 @@ mod tests {
         let offhand = stack("minecraft:stone", 64);
         let known = lookup(&["minecraft:stone"]);
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[]),
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand })
         );
     }
@@ -524,7 +542,7 @@ mod tests {
     fn an_offhand_tool_provider_wears_the_offhand_tool() {
         let offhand = tool_stack("tconstruct:pickaxe");
         assert_eq!(
-            exchange_decision(true, Some(&offhand), Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None, None, true, None, &[]),
+            exchange_decision(true, Some(&offhand), Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None, None, true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageOffhand { modifier: id("tconstruct:glowing"), wear: 5 } })
         );
     }
@@ -533,7 +551,7 @@ mod tests {
     fn an_offhand_tool_without_a_provider_falls_through_to_the_mainhand() {
         let offhand = tool_stack("tconstruct:pickaxe");
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None, true, None, &[]),
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None, true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageMainHand { modifier: id("tconstruct:glowing"), wear: 5 } })
         );
     }
@@ -546,7 +564,7 @@ mod tests {
         let offhand = stack("minecraft:stick", 1);
         let known = lookup(&["minecraft:stone"]);
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[]),
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageMainHand { modifier: id("tconstruct:glowing"), wear: 5 } })
         );
     }
@@ -556,7 +574,7 @@ mod tests {
         let offhand = stack("minecraft:stone", 64);
         let known = lookup(&["minecraft:stone"]);
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, None, None, Some(&known), true, None, &[]),
+            exchange_decision(true, Some(&offhand), None, None, None, Some(&known), true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand })
         );
     }
@@ -566,7 +584,7 @@ mod tests {
         let offhand = stack("minecraft:stone", 0);
         let known = lookup(&["minecraft:stone"]);
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[]),
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known), None, true, None, &[], &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageMainHand { modifier: id("tconstruct:glowing"), wear: 5 } })
         );
     }
@@ -575,8 +593,8 @@ mod tests {
     fn nothing_providing_means_no_exchange() {
         let offhand = stack("minecraft:stick", 1);
         let known = lookup(&["minecraft:stone"]);
-        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, true, None, &[]), None);
-        assert_eq!(exchange_decision(true, None, None, None, Some(&known), None, true, None, &[]), None);
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, true, None, &[], &[], None), None);
+        assert_eq!(exchange_decision(true, None, None, None, Some(&known), None, true, None, &[], &[], None), None);
     }
 
     #[test]
@@ -585,15 +603,15 @@ mod tests {
         let known = lookup(&["minecraft:stone"]);
         let mined = pluto_lib::BlockState::parse("minecraft:dirt").unwrap();
         // No tag at all: no exchange.
-        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[]), None);
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[], &[], None), None);
         // A tag naming the placed block but not the mined one: the original checks the mined
         // position, so this is still no exchange.
         let entries = vec!["minecraft:stone".to_string()];
-        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries), None);
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries, &[], None), None);
         // A tag naming the mined block: the exchange runs.
         let entries = vec!["minecraft:dirt".to_string()];
         assert_eq!(
-            exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries),
+            exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries, &[], None),
             Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand })
         );
     }
@@ -604,9 +622,9 @@ mod tests {
         let known = lookup(&["minecraft:stone", "minecraft:oak_stairs"]);
         let mined = pluto_lib::BlockState::parse("minecraft:oak_stairs[facing=east]").unwrap();
         let entries = vec!["minecraft:oak_stairs[facing=west]".to_string()];
-        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries), None);
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries, &[], None), None);
         let entries = vec!["minecraft:oak_stairs[facing=east]".to_string()];
-        assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries).is_some());
+        assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries, &[], None).is_some());
     }
 
     #[test]
@@ -615,11 +633,44 @@ mod tests {
         let known = lookup_with_tag(&["minecraft:stone", "minecraft:oak_log"], "minecraft:logs", &["minecraft:oak_log"]);
         let mined = pluto_lib::BlockState::parse("minecraft:oak_log").unwrap();
         let entries = vec!["#minecraft:logs".to_string()];
-        assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries).is_some());
+        assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &entries, &[], None).is_some());
         // Without the block snapshot a #tag names nothing (the item mirror still provides the
         // block, so the gate is what refuses).
         let items = lookup(&["minecraft:stone"]);
-        assert_eq!(exchange_decision(true, Some(&offhand), None, None, None, Some(&items), false, Some(&mined), &entries), None);
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, None, Some(&items), false, Some(&mined), &entries, &[], None), None);
+    }
+
+    #[test]
+    fn a_place_tag_nbt_predicate_matches_the_mined_block_entity() {
+        let offhand = stack("minecraft:stone", 64);
+        let known = lookup(&["minecraft:stone", "minecraft:chest"]);
+        let mined = pluto_lib::BlockState::parse("minecraft:chest").unwrap();
+        // The predicate names the mined block and the block entity's custom name; the text entries name
+        // nothing (a predicate carrying nbt never flattens into one), so only the structured read can
+        // pass this gate.
+        let component = pluto_lib::Nbt::parse_snbt("{blocks:[\"minecraft:chest\"],nbt:{CustomName:'{\"text\":\"Loots\"}'}}").unwrap();
+        let predicates = pluto_lib::adventure_place_predicates(&component);
+        let mut be = NbtCompound::new();
+        be.insert("CustomName".into(), pluto_lib::Nbt::String("{\"text\":\"Loots\"}".to_string()));
+        assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[], &predicates, Some(&be)).is_some());
+        // Another name in the block entity: the predicate does not match, and the text gate has nothing
+        // to fall back to, so there is no exchange.
+        let mut other = NbtCompound::new();
+        other.insert("CustomName".into(), pluto_lib::Nbt::String("{\"text\":\"Junk\"}".to_string()));
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[], &predicates, Some(&other)), None);
+        // No block entity at all: an nbt predicate cannot match.
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[], &predicates, None), None);
+    }
+
+    #[test]
+    fn a_place_tag_state_range_predicate_answers_without_a_block_entity() {
+        let offhand = stack("minecraft:stone", 64);
+        let known = lookup(&["minecraft:stone", "minecraft:oak_stairs"]);
+        let mined = pluto_lib::BlockState::parse("minecraft:oak_stairs[waterlogged=false]").unwrap();
+        // A range predicate with no nbt: the mined state answers it with no block entity needed.
+        let component = pluto_lib::Nbt::parse_snbt("{blocks:[\"minecraft:oak_stairs\"],state:{waterlogged:false}}").unwrap();
+        let predicates = pluto_lib::adventure_place_predicates(&component);
+        assert!(exchange_decision(true, Some(&offhand), None, None, Some(&known), None, false, Some(&mined), &[], &predicates, None).is_some());
     }
 
     #[test]
@@ -628,7 +679,7 @@ mod tests {
         let mined = pluto_lib::BlockState::parse("minecraft:dirt").unwrap();
         let entries = vec!["minecraft:dirt".to_string()];
         assert_eq!(
-            exchange_decision(true, None, None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None, false, Some(&mined), &entries),
+            exchange_decision(true, None, None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None, false, Some(&mined), &entries, &[], None),
             None
         );
     }

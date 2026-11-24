@@ -11,7 +11,7 @@ use horizon_client::mod_api::{
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
-    InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
+    InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent, PlayerDestroyItemEvent,
     IngredientEvent, IngredientTestEvent,
     ComputeFovModifierEvent,
     WorldPrimitivesEvent,
@@ -232,6 +232,10 @@ pub fn hooks() -> Box<dyn Hooks> {
             }
         },
     }).expect("PlutoLib projectile flight sink installs once");
+    horizon_client::entry::pluto_break_complete_access::set_break_complete_sink(
+        horizon_client::entry::pluto_break_complete_access::BreakCompleteSink { completed: break_complete_sink },
+    )
+    .expect("PlutoLib break completion sink installs once");
     horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
         .expect("PlutoLib block entity predicate installs once before native initialization");
     horizon_client::entry::pluto_block_entity_access::set_cache_generation_provider(crate::pure::render_cache::generation)
@@ -2472,6 +2476,32 @@ impl PlayerOps for HostOps {
         horizon_client::entry::pluto_use_stop_access::push(player, horizon_client::entry::pluto_use_stop_access::End::Stop)
     }
 
+    fn swing_hand(&mut self, player: u128, hand: events_interaction_v0::Hand) -> bool {
+        horizon_client::entry::pluto_player_animate_access::push_swing(
+            player,
+            matches!(hand, events_interaction_v0::Hand::Off),
+        )
+    }
+
+    fn broadcast_item_break(
+        &mut self,
+        player: u128,
+        slot: entity_events_v1::StackSlot,
+        stack: &player_api::StackData,
+    ) -> bool {
+        let native_slot = match slot {
+            entity_events_v1::StackSlot::MainHand => EquipmentSlot::MainHand,
+            entity_events_v1::StackSlot::OffHand => EquipmentSlot::OffHand,
+            entity_events_v1::StackSlot::Feet => EquipmentSlot::Feet,
+            entity_events_v1::StackSlot::Legs => EquipmentSlot::Legs,
+            entity_events_v1::StackSlot::Chest => EquipmentSlot::Chest,
+            entity_events_v1::StackSlot::Head => EquipmentSlot::Head,
+        };
+        let mut native = ItemStack::new(&stack.item, stack.count);
+        write_stack(&mut native, stack);
+        horizon_client::entry::pluto_player_animate_access::push_break(player, native_slot, native)
+    }
+
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
         let _ = player; // inside a callback the host reaches the acting player, who is the one the PlutoLib handle names
         (0..36).filter_map(|slot| self.host().carried_stack(slot).filter(|s| &*s.item == item).map(|s| s.count)).sum()
@@ -2718,7 +2748,7 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
 }
 
 /// What the break hook read before the block went, kept for the end of the same break.
-struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, equipment: Vec<(String, player_api::StackData)>, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32, creative: bool, may_build: bool, offhand_place_on: Vec<String> }
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, equipment: Vec<(String, player_api::StackData)>, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32, creative: bool, may_build: bool, offhand_place_on: Vec<String>, offhand_place_predicates: Vec<events_interaction_v0::AdventurePlacePredicate>, mined_block_entity: Option<NbtCompound> }
 static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
 
 /// The face each player last started digging, by uuid: the break hook itself is not told the face, but the dig's start is
@@ -2741,12 +2771,29 @@ fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::B
     // The game type as the break starts: creative is mode 1, and mayBuild is the vanilla ability of the type
     // (survival and creative). An unnamed breaker reads as a survival one.
     let (creative, may_build) = acting.as_ref().map(|player| (player.game_mode == 1, matches!(player.game_mode, 0 | 1))).unwrap_or((false, true));
-    let offhand_place_on = if acting.is_some() { host.carried_stack(-106).map(|stack| adventure_place_entries(stack)).unwrap_or_default() } else { Vec::new() };
+    // The off hand stack is read once, for both the text entries and the structured predicates: a predicate
+    // carrying a block-entity NBT test is dropped from the text entries (the text form cannot carry it) but
+    // kept in the predicates, which are matched against the mined block's block entity below.
+    let offhand = if acting.is_some() { host.carried_stack(-106) } else { None };
+    let offhand_place_on = offhand.as_ref().map(|stack| adventure_place_entries(stack)).unwrap_or_default();
+    let offhand_place_predicates = offhand
+        .as_ref()
+        .and_then(|stack| stack.data())
+        .and_then(|data| data.other("minecraft:can_place_on"))
+        .and_then(nbt_from_tag)
+        .map(|component| events_interaction_v0::adventure_place_predicates(&component))
+        .unwrap_or_default();
+    // The mined block's block entity, as the break's head seam read it: the bridge's own block-entity read
+    // names mod block entities only, so a vanilla one (a chest, a furnace) is read by the woven seam that
+    // runs before this dispatch. None when the block has none, or the seam did not run.
+    let mined_block_entity = horizon_client::entry::pluto_break_context_access::take_block_entity_nbt(&dimension, pos)
+        .and_then(|tag| nbt_from_tag(&tag))
+        .and_then(|tag| match tag { Nbt::Compound(data) => Some(data), _ => None });
     events_interaction_v0::BlockBreakContext {
         pos, dimension, state,
         player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
         held, equipment, actions: std::cell::RefCell::new(Vec::new()),
-        face, yaw, pitch, creative, may_build, offhand_place_on, extra_breaks: std::cell::RefCell::new(Vec::new()),
+        face, yaw, pitch, creative, may_build, offhand_place_on, offhand_place_predicates, mined_block_entity, extra_breaks: std::cell::RefCell::new(Vec::new()),
     }
 }
 
@@ -2799,9 +2846,44 @@ fn adventure_place_entry(predicate: &Nbt, entries: &mut Vec<String>) {
     }
 }
 
-/// Reports the earlier breaks of the player `uuid` to `AFTER`: the game has no hook at the end of a break, so each allowed break waits until the
-/// player's next tick (or their next break) and is heard then if the block at its position is no longer the one that was there. `held` is the
-/// stack the player holds now, and the actions the callbacks queue are done to the player.
+/// The break the game's break-completion seam reports (see `pluto_break_complete_access`): the break at
+/// `completed.pos` in `completed.dimension` went through and the block is gone. Runs its `AFTER` now, inside
+/// the break, while the breaking player is still the acting one — before the removal is sent to the players
+/// around. A pending break the seam does not name stays queued for the next tick, as before.
+fn break_complete_sink(
+    host: &mut dyn Host,
+    completed: horizon_client::entry::pluto_break_complete_access::BreakCompleted,
+) {
+    flush_break_complete(host, completed);
+}
+
+/// Runs the `AFTER` of the pending breaks the completion seam confirmed, at `completed`'s position in its
+/// dimension. A break whose block was replaced by another block in between still hears its `AFTER`: the seam
+/// is the proof the break happened, not a re-read of the block.
+fn flush_break_complete(
+    host: &mut dyn Host,
+    completed: horizon_client::entry::pluto_break_complete_access::BreakCompleted,
+) {
+    let due: Vec<PendingBreak> = match PENDING_BREAKS.lock() {
+        Ok(mut pending) => {
+            let (due, rest) = std::mem::take(&mut *pending).into_iter().partition(|entry| {
+                entry.dimension == completed.dimension && entry.pos == completed.pos
+            });
+            *pending = rest;
+            due
+        }
+        Err(_) => return,
+    };
+    for entry in due {
+        run_pending_after(host, entry);
+    }
+}
+
+/// Reports one earlier break to `AFTER`: the break-completion seam (see `break_complete_sink`) runs the `AFTER` of
+/// most breaks inside the break itself; a break the seam did not report — the host returned an error after the removal,
+/// or the seam was not woven — waits here until the player's next tick (or their next break) and is heard then if the
+/// block at its position is no longer the one that was there. `held` is the stack the player holds now, and the actions
+/// the callbacks queue are done to the player.
 fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
     let due: Vec<PendingBreak> = match PENDING_BREAKS.lock() {
         Ok(mut pending) => { let (due, rest) = std::mem::take(&mut *pending).into_iter().partition(|entry| entry.player.uuid == uuid); *pending = rest; due }
@@ -2811,15 +2893,22 @@ fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
         let now = match host.level(&entry.dimension) { Some(level) => host.level_block_state(level, entry.pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
         // An unreadable block or one that is still the same means the break did not happen (another mod cancelled it later).
         if now.is_none() || now == entry.state { continue; }
-        let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
-        let context = events_interaction_v0::BlockBreakContext {
-            pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, equipment: entry.equipment, actions: std::cell::RefCell::new(Vec::new()),
-            face: entry.face, yaw: entry.yaw, pitch: entry.pitch, creative: entry.creative, may_build: entry.may_build, offhand_place_on: entry.offhand_place_on, extra_breaks: std::cell::RefCell::new(Vec::new()),
-        };
-        scoped(host, || events_interaction_v0::after_block_break(&context));
-        let actions = context.actions.take();
-        if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
+        run_pending_after(host, entry);
     }
+}
+
+/// Runs `AFTER` for one pending break whose block is gone, with the tool as the break left it, and does the
+/// actions the callbacks queued for the player.
+fn run_pending_after(host: &mut dyn Host, entry: PendingBreak) {
+    let uuid = entry.player.uuid;
+    let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
+    let context = events_interaction_v0::BlockBreakContext {
+        pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, equipment: entry.equipment, actions: std::cell::RefCell::new(Vec::new()),
+        face: entry.face, yaw: entry.yaw, pitch: entry.pitch, creative: entry.creative, may_build: entry.may_build, offhand_place_on: entry.offhand_place_on, offhand_place_predicates: entry.offhand_place_predicates, mined_block_entity: entry.mined_block_entity, extra_breaks: std::cell::RefCell::new(Vec::new()),
+    };
+    scoped(host, || events_interaction_v0::after_block_break(&context));
+    let actions = context.actions.take();
+    if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
 }
 
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
@@ -5220,6 +5309,27 @@ impl Hooks for PlutoHooks {
         scoped(host, || networking_api_v1::player_joined(uuid, name));
     }
 
+    fn player_destroy_item(&self, host: &mut dyn Host, event: &mut PlayerDestroyItemEvent<'_>) {
+        if !player_api::item_break_heard() { return; }
+        // The host names the slot as `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body` or
+        // `saddle`; a player has no body or saddle slot, so those two are not reported.
+        let Some(slot) = match &*event.slot {
+            "mainhand" => Some(entity_events_v1::StackSlot::MainHand),
+            "offhand" => Some(entity_events_v1::StackSlot::OffHand),
+            "head" => Some(entity_events_v1::StackSlot::Head),
+            "chest" => Some(entity_events_v1::StackSlot::Chest),
+            "legs" => Some(entity_events_v1::StackSlot::Legs),
+            "feet" => Some(entity_events_v1::StackSlot::Feet),
+            _ => None,
+        } else { return };
+        let broken = player_api::ItemBreak {
+            player: player_api::ServerPlayer { uuid: event.player, name: event.name.to_string() },
+            item: event.item.to_string(),
+            slot,
+        };
+        scoped(host, || player_api::item_break(&broken));
+    }
+
     fn player_tick(&self, host: &mut dyn Host, _event: &mut horizon_client::mod_api::PlayerTickEvent) {
         // Damage hooks get no host, so the armor a player wears is read here each tick for them to find.
         let Some(player) = host.acting_player() else { return };
@@ -5538,7 +5648,7 @@ impl Hooks for PlutoHooks {
         }
         // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
         let pending = match (allowed, context.player) {
-            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, equipment: context.equipment.clone(), face: context.face, yaw: context.yaw, pitch: context.pitch, creative: context.creative, may_build: context.may_build, offhand_place_on: context.offhand_place_on.clone() }),
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, equipment: context.equipment.clone(), face: context.face, yaw: context.yaw, pitch: context.pitch, creative: context.creative, may_build: context.may_build, offhand_place_on: context.offhand_place_on.clone(), offhand_place_predicates: context.offhand_place_predicates.clone(), mined_block_entity: context.mined_block_entity.clone() }),
             _ => None,
         };
         if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
