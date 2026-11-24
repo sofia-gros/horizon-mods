@@ -4069,6 +4069,7 @@ impl Hooks for PlutoHooks {
             base: event.base, flying: event.player.flying, walking_speed: event.player.walking_speed,
             movement_speed: event.player.movement_speed, stacks: &stacks,
             using_ticks: event.player.using.map(|(_, ticks)| ticks),
+            keybind_zoom: fov_api_v1::keybind_zoom(),
         };
         if let Some(factor) = fov_api_v1::fov_multiplier(&facts) { event.modifier *= factor; }
     }
@@ -4406,7 +4407,7 @@ impl Hooks for PlutoHooks {
         if matches!(outcome.result, ActionResult::Pass) { Flow::Continue } else { Flow::Cancel }
     }
 
-    fn menu_button_v2(&self, _host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
+    fn menu_button_v2(&self, host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
         let (pos, button) = (event.pos, event.id);
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
         let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(slot_of);
@@ -4415,8 +4416,11 @@ impl Hooks for PlutoHooks {
         with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried, &mut switch));
         // A menu switch the button asked for (a tabbed table's tab): the game-side module
         // applies it at the end of this press, where the game is at hand (pluto-menu-switch).
+        // The presser travels with it — the acting player is the guest during a guest's press —
+        // so the local flush takes only the local player's switches and the guest flush takes
+        // the guest's.
         if let Some(target) = switch {
-            horizon_client::game::pluto_menu_switch::queue(pos, target);
+            horizon_client::game::pluto_menu_switch::queue(pos, target, host.acting_player().map(|player| player.uuid));
         }
         if carried != before {
             *event.carried = carried.filter(|s| s.count > 0).map(|s| {
@@ -4477,8 +4481,13 @@ impl Hooks for PlutoHooks {
         if screen_handler_api_v1::has_menu_links(&block) {
             let dimension = host.dimension().to_owned();
             let handle = HostHandle::new(host);
-            let named = neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension }, || {
-                screen_handler_api_v1::menu_links(&block, event.pos)
+            // A links callback may read block states and tags (a melter's fuel-tanks-only
+            // link asks whether the block below is in a tag): give it the world scope the
+            // neighbours scope nests in, as a placement does.
+            let named = world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension }, || {
+                    screen_handler_api_v1::menu_links(&block, event.pos)
+                })
             });
             if let Some(positions) = named {
                 event.links.extend(positions);
@@ -4579,10 +4588,10 @@ impl Hooks for PlutoHooks {
     fn screen_draw(&self, host: &dyn Host, event: &mut ScreenDrawEvent<'_>) {
         let mut canvas = HostCanvas { host, batch: &mut *event.batch };
         screen_handler_api_v1::draw(event.block, event.origin, event.data, host.cursor(), &mut canvas);
-        // Equipment-sourced slots are not the block entity's, so the menu's own item sync never
-        // fills them: draw the acting player's worn pieces at their places from the live
-        // equipment, as the HUD draw reads it. (The slots take no clicks — the host's menu
-        // model binds container slots to the block entity or to linked block containers only.)
+        // Equipment-sourced slots ride the menu's armor slots over the player's equipment (they
+        // click through the native armor behaviour): draw the acting player's worn pieces at
+        // their places from the live equipment, as the HUD draw reads it — the menu slot mirrors
+        // it, and the live read never lags a sync.
         let Some(layout) = screen_handler_api_v1::layout(event.block) else { return };
         if !layout.sources.iter().any(|source| matches!(source, screen_handler_api_v1::SlotSource::PlayerEquipment(_))) {
             return;
@@ -4625,6 +4634,7 @@ impl Hooks for PlutoHooks {
         // without a world) the equipment simply reads empty and the callbacks draw nothing.
         let mut equipment = hud_api_v1::HudEquipment { right_handed: true, ..hud_api_v1::HudEquipment::default() };
         let mut spectator = false;
+        let mut effects: Vec<hud_api_v1::HudEffect> = Vec::new();
         if let Some(player) = host.acting_player() {
             spectator = player.game_mode == 3;
             let worn = |slot| host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
@@ -4634,9 +4644,17 @@ impl Hooks for PlutoHooks {
             equipment.feet = worn(EquipmentSlot::Feet);
             equipment.offhand = worn(EquipmentSlot::OffHand);
             equipment.main_hand = worn(EquipmentSlot::MainHand);
+            // The player's active effects, for the original's effect shift at the top right: an
+            // effect the catalog does not know counts as not beneficial (the shift that keeps the
+            // icons from overlapping), and an ambient effect (a beacon's, a conduit's) shows no
+            // icon, so it shifts nothing.
+            effects = host.effects(player.uuid).map(|active| active.iter().map(|effect| {
+                let beneficial = horizon_client::pluto_potions::effect(&effect.id).map(|facts| facts.beneficial).unwrap_or(false);
+                hud_api_v1::HudEffect { beneficial, visible: !effect.ambient }
+            }).collect()).unwrap_or_default();
         }
         let mut canvas = HostCanvas { host, batch: event.batch };
-        hud_api_v1::draw_hud(&mut canvas, size, &inventory, &equipment, spectator);
+        hud_api_v1::draw_hud(&mut canvas, size, &inventory, &equipment, spectator, &effects);
     }
 
     fn screen_render_post(&self, host: &dyn Host, event: &mut ScreenRenderPostEvent<'_>) {

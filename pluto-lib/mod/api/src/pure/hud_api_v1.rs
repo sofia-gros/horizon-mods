@@ -2,7 +2,7 @@
 //! `RenderGuiOverlayEvent`, the hotbar's neighbourhood). A mod registers one draw callback;
 //! PlutoLib calls it each frame the HUD shows, with the same [`ScreenCanvas`] the menu screens
 //! draw on, the window's size, and the local player's own carrying — the inventory the client
-//! last saw synced and the equipment it wears. The original's modifier HUD (the shield strap's
+//! last saw synced, the equipment it wears, and the player's active effects. The original's modifier HUD (the shield strap's
 //! item above the offhand slot, the sleeves' item beside it, the item frame's grid in a corner)
 //! is drawn from exactly this: worn tools and what their modifier inventories hold, all of it
 //! readable from the stacks themselves on the client.
@@ -31,6 +31,18 @@ pub struct HudEquipment {
     pub right_handed: bool,
 }
 
+/// One of the local player's active effects, as the HUD needs it for the original's effect shift:
+/// whether it is beneficial and whether it shows (its icon in the GUI).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HudEffect {
+    /// Whether the effect's category is beneficial (a harmful or neutral one is not).
+    pub beneficial: bool,
+    /// Whether the effect shows in the GUI: not ambient (a beacon or conduit effect hides its
+    /// icon). The host's effect read carries no icon flag, so an effect hidden with showIcon
+    /// still counts here; vanilla never hides one that way.
+    pub visible: bool,
+}
+
 /// What a HUD draw callback receives.
 pub struct HudDraw<'a> {
     /// Where to draw, in GUI pixels from the window's top left.
@@ -45,6 +57,9 @@ pub struct HudDraw<'a> {
     pub equipment: &'a HudEquipment,
     /// Whether the local player is a spectator (the original draws none of its HUD then).
     pub spectator: bool,
+    /// The local player's active effects, as the HUD needs them for the original's effect
+    /// shift (the minimap and the item frame grid move below the icons at the top right).
+    pub effects: &'a [HudEffect],
 }
 
 type Draw = Arc<dyn Fn(&mut HudDraw<'_>) + Send + Sync>;
@@ -69,12 +84,12 @@ pub(crate) fn has_hud() -> bool {
 }
 
 /// Runs the registered HUD draw callbacks; false when none are registered.
-pub(crate) fn draw_hud(canvas: &mut dyn ScreenCanvas, size: [f32; 2], inventory: &[Option<ItemSlot>], equipment: &HudEquipment, spectator: bool) -> bool {
+pub(crate) fn draw_hud(canvas: &mut dyn ScreenCanvas, size: [f32; 2], inventory: &[Option<ItemSlot>], equipment: &HudEquipment, spectator: bool, effects: &[HudEffect]) -> bool {
     let draws = DRAWS.lock().map(|held| held.clone()).unwrap_or_default();
     if draws.is_empty() {
         return false;
     }
-    let mut draw = HudDraw { canvas, size, inventory, equipment, spectator };
+    let mut draw = HudDraw { canvas, size, inventory, equipment, spectator, effects };
     for each in &draws {
         each(&mut draw);
     }
@@ -107,18 +122,20 @@ mod tests {
     #[test]
     fn a_registered_hud_draws_with_the_window_size_and_the_players_carrying() {
         let mut canvas = Recorder::default();
-        assert!(!draw_hud(&mut canvas, [320.0, 240.0], &[], &HudEquipment::default(), false), "nothing registered yet");
+        assert!(!draw_hud(&mut canvas, [320.0, 240.0], &[], &HudEquipment::default(), false, &[]), "nothing registered yet");
         HudRegistry::register(|draw| {
             assert_eq!(draw.size, [320.0, 240.0]);
             assert_eq!(draw.inventory.len(), 36);
             assert_eq!(draw.equipment.legs.as_ref().map(|stack| stack.count), Some(1));
+            assert_eq!(draw.effects, &[HudEffect { beneficial: false, visible: true }]);
             draw.canvas.fill([draw.size[0] / 2.0 - 117.0, draw.size[1] - 41.0, 22.0, 22.0], 0xFF00_00FF);
         });
         assert!(has_hud());
         let mut inventory = vec![None; 36];
         inventory[0] = Some(ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 1));
         let equipment = HudEquipment { legs: Some(ItemSlot::new(Identifier::parse("tconstruct:plate_leggings").unwrap(), 1)), right_handed: true, ..HudEquipment::default() };
-        assert!(draw_hud(&mut canvas, [320.0, 240.0], &inventory, &equipment, false));
+        let effects = [HudEffect { beneficial: false, visible: true }];
+        assert!(draw_hud(&mut canvas, [320.0, 240.0], &inventory, &equipment, false, &effects));
         assert_eq!(canvas.fills, vec![([43.0, 199.0, 22.0, 22.0], 0xFF00_00FF)]);
     }
 }

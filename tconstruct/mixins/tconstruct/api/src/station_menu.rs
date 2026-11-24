@@ -23,13 +23,13 @@
 //!   original keeps it dormant and take-out-able. Switching back to a layout that shows the slot
 //!   reaches its contents again.
 //! - The original's window also carries the player's armor and offhand slots. They are declared
-//!   (at the original's places, after the result slot) and drawn from the opening player's live
-//!   equipment, but they take no clicks: the host's menu model binds container slots to the
-//!   opened block entity or to linked block containers only, so swapping a worn piece still
-//!   happens in the inventory window.
+//!   (at the original's places, after the result slot), drawn from the opening player's live
+//!   equipment, and they click: the menu carries them as armor slots over the player's equipment
+//!   (registered with the window, see `register_station`), so swapping a worn piece works here as
+//!   in the inventory window, through the native armor behaviour.
 //! - The neighbouring tables' tabs above the window are carried (see `tabbed_tables`): a tab
-//!   switches the open menu to that table. The station family shows no side inventory in the
-//!   original, and none here. A LAN guest's tab press does not switch (see `tabbed_tables`).
+//!   switches the open menu to that table, for a LAN guest too. The station family shows no side inventory in the
+//!   original, and none here.
 //! - The armor stand preview is drawn through PlutoLib's living preview (the host's own
 //!   screen-preview path for a stand, the smithing screen's), wearing or holding the staged
 //!   result. It stands at the original's anchor; the original turns it with the mouse and
@@ -75,6 +75,8 @@ const RESULT_POSITION: (i32, i32) = (114, 38);
 const EQUIPMENT_POSITIONS: [[f32; 2]; 5] = [[152.0, 20.0], [152.0, 38.0], [152.0, 56.0], [152.0, 74.0], [132.0, 74.0]];
 /// The equipment pieces at `EQUIPMENT_POSITIONS`, in the same order.
 const EQUIPMENT_KINDS: [EquipmentSlotKind; 5] = [EquipmentSlotKind::Head, EquipmentSlotKind::Chest, EquipmentSlotKind::Legs, EquipmentSlotKind::Feet, EquipmentSlotKind::OffHand];
+/// The same pieces' names, for the menu's equipment registration (pluto-menu-equipment).
+const EQUIPMENT_NAMES: [&str; 5] = ["head", "chest", "legs", "feet", "offhand"];
 /// The selected layout's name in the block entity's data; absent is the main layout.
 const SELECTED: &str = "layout";
 /// The window's textures: the station sheet and the shared icon sheet, both 256x256.
@@ -535,6 +537,14 @@ fn register_station(name: &'static str, input_count: usize) {
     for (position, kind) in EQUIPMENT_POSITIONS.iter().zip(EQUIPMENT_KINDS) {
         layout = layout.equipment_slot(position[0], position[1], kind);
     }
+    // The menu carries the equipment as armor slots over the player's equipment (pluto-menu-
+    // equipment): the layout's container slots end where the equipment starts, so the menu's
+    // indices match the layout's and the clicks the layout's slots take reach them.
+    horizon_client::menu::pluto_menu_equipment::set_equipment(
+        Box::leak(format!("tconstruct:{name}").into_boxed_str()),
+        input_count + 2,
+        &EQUIPMENT_NAMES,
+    );
     let draw_field = field.clone();
     let char_field = field.clone();
     let key_field = field.clone();

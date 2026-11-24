@@ -17,7 +17,7 @@ use pluto_lib::{BlockEntityTick, BlockPos, Direction, FluidRegistry, FluidStack,
 pub(crate) const SLOTS: usize = MELTER_SLOTS as usize;
 pub(crate) const MELTING_TAG: &str = "melting";
 /// The block tag a fuel source below the melter must be in (`TinkerTags.Blocks.FUEL_TANKS`).
-const FUEL_TANKS: &str = "tconstruct:fuel_tanks";
+pub(crate) const FUEL_TANKS: &str = "tconstruct:fuel_tanks";
 
 /// What an item in a slot melts into, from the recipe that matches it (IMeltingRecipe: time, temperature, getOutput).
 #[derive(Clone, Debug, PartialEq)]

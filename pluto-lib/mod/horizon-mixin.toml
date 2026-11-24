@@ -36,6 +36,30 @@ require = 1
 helper = "pluto-menu-actions.rs"
 bindings = []
 
+# A content mod's menu type's equipment slots (a station window's armor and offhand): the mod
+# registers them with the window, and the menu carries them as armor slots over the player's
+# equipment, so the clicks the layout's slots take reach them through the native armor behaviour.
+[[module]]
+id = "pluto-menu-equipment"
+file = "crates/horizon-client/src/menu.rs"
+name = "pluto_menu_equipment"
+source = "pluto-menu-equipment.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-menu-equipment-new"
+target = "horizon_client_lib::menu::Menu::new"
+kind = "RETURN"
+helper = "pluto-menu-equipment-new.rs"
+bindings = [{ name = "menu", ty = "Menu", value = "$value" }]
+
+[[injection]]
+id = "pluto-menu-equipment-slot"
+target = "horizon_client::game::remote::Game<'_>::menu_slot"
+kind = "RETURN"
+helper = "pluto-menu-equipment-slot.rs"
+bindings = [{ name = "value", ty = "Option<usize>", value = "$value" }, { name = "menu", ty = "&str", value = "menu" }, { name = "slot", ty = "i32", value = "slot" }]
+
 # Check every candidate, including results reached from a different clicked slot.
 [[injection]]
 id = "pluto-menu-pick-all"
@@ -1918,6 +1942,17 @@ target = "horizon_client::game::native_hooks::Game<'_>::mod_menu_button"
 kind = "RETURN"
 helper = "pluto-menu-switch-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" }]
+
+# A LAN guest's menu switch: the local flush has no hold of the guest's menu (it lives in the
+# LAN host's guest state), so the guest flush runs on the LAN station button's return — after
+# the local flush, inside the same press — and applies the guest's switches through the host's
+# guest container open (pluto-menu-switch's guest half, mirroring lan_open_container).
+[[injection]]
+id = "pluto-menu-switch-guest-flush"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_button"
+kind = "RETURN"
+helper = "pluto-menu-switch-guest-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "host" }, { name = "conn", ty = "u32", value = "conn" }]
 
 # Map faces a mod's HUD drawing asked for (a minimap's map): the draw queues them through
 # the mod API's canvas, and the flush at the end of the HUD's draw renders each from its map
