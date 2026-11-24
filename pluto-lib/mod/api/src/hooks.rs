@@ -271,6 +271,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 attacker_state: entity_events_v1::EntityState {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
                     eyes_in_water: hurt.eyes_in_water,
+                    rain_exposed: hurt.rain_exposed,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
                     ..entity_events_v1::EntityState::default()
                 },

@@ -43,6 +43,9 @@ fn pluto_player_hurt(game:&crate::game::Game<'_>,attacker:i32) {
         on_ground:mob.on_ground,
         in_water:mob.fluids.in_water,
         eyes_in_water:mob.fluids.eye_in_water,
+        // The game's own check (weather, sky light, motion-blocking height, biome precipitation)
+        // at the attacker's feet block, the same block vanilla's entity block position gives.
+        rain_exposed:game.raining_at(horizon_core::position::BlockPos::new(mob.position.x.floor() as i32, mob.position.y.floor() as i32, mob.position.z.floor() as i32)),
         fire_ticks:mob.fire_ticks,
         fire_immune:mob.kind.flags.fire_immune,
         effects:mob.extra.effects.iter().map(|effect| effect.0.to_string()).collect(),

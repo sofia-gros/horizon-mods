@@ -9,6 +9,9 @@ pub struct PlayerHurt {
     pub on_ground:bool,
     pub in_water:bool,
     pub eyes_in_water:bool,
+    // Whether rain falls on the attacker: the game's own `Level.isRainingAt` at the attacker's feet block,
+    // for the `mantle:raining_at` counter condition.
+    pub rain_exposed:bool,
     pub fire_ticks:i32,
     pub fire_immune:bool,
     pub effects:Vec<String>,
