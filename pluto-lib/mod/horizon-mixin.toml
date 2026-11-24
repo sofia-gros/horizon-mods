@@ -1215,6 +1215,11 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { nam
 # priority, after the entity's own interaction ran). The module reports only clicks that
 # arrived as an entity packet; the local player's click falls through to the hand's use,
 # whose seam reports it instead. The provider and the cooldown hold are the hand seam's.
+# The seam is a cancellable HEAD, not a RETURN: the interaction's body works through
+# closures and `?`, which a RETURN cannot plan (E_UNSUPPORTED_CONTROL_FLOW). The HEAD
+# runs the interaction itself under the module's guard (its nested call passes through
+# to the vanilla body) and reports the outcome the interaction leaves, as the menu
+# slot's wire mapping does for its body.
 [[module]]
 id = "pluto-sleeves-takeover-entity"
 file = "crates/horizon-client/src/game/item_actions.rs"
@@ -1225,9 +1230,10 @@ visibility = "pub(crate)"
 [[injection]]
 id = "pluto-sleeves-takeover-entity-return"
 target = "horizon_client::game::item_actions::Game<'_>::interact_entity"
-kind = "RETURN"
+kind = "HEAD"
+cancellable = true
 helper = "pluto-sleeves-takeover-entity-return.rs"
-bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "target", ty = "Option<InteractTarget>", value = "target" }]
 
 [[injection]]
 id = "pluto-release-cooldown-drain"

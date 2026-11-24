@@ -5,9 +5,70 @@
 // hand's own use when the interaction takes nothing, and that seam reports the same
 // click, so this one stays quiet there. The game reports the interaction's outcome; the
 // pure side owns the piece, the selection and the throw.
+//
+// The seam is a cancellable HEAD, not a RETURN: the interaction's body works through
+// closures and `?`, which a RETURN cannot plan (E_UNSUPPORTED_CONTROL_FLOW). The HEAD
+// runs the interaction itself under a guard (the nested call's HEAD passes through to
+// the vanilla body), then reports the outcome the interaction leaves and breaks with
+// it, so the body runs exactly once and the report reads the game as the interaction
+// leaves it, as the return seam's report did.
+use std::cell::Cell;
+
 use super::*;
 
 use horizon_client::mod_api::Host;
+
+thread_local! {
+    /// Whether the seam's own call is running: its nested HEAD passes through to the
+    /// vanilla body, so the interaction runs exactly once.
+    static IN_CALL: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Marks the seam's own call for its duration; the mark clears on drop, so a panic in
+/// the interaction cannot leave the seam passing through.
+struct InCall;
+
+impl InCall {
+    fn enter() -> Self {
+        IN_CALL.with(|slot| slot.set(true));
+        InCall
+    }
+}
+
+impl Drop for InCall {
+    fn drop(&mut self) {
+        IN_CALL.with(|slot| slot.set(false));
+    }
+}
+
+/// The seam on the entity interaction. The outermost call runs the interaction itself:
+/// the nested call that makes passes through to the vanilla body, so the body runs
+/// exactly once, and the outcome it leaves is reported through `after_entity_use`
+/// before the seam breaks with it — the caller sees the interaction's own result in
+/// every case, as it did from the return seam. The mark is down again by the time the
+/// report runs, so an interaction the provider's answer sets off is entered fresh and
+/// reported the same way. An errored interaction reports nothing (the report's own
+/// gate), so it just breaks with the error.
+pub(crate) fn interact(
+    game: &mut Game<'_>,
+    target: Option<InteractTarget>,
+) -> std::ops::ControlFlow<Result<bool>> {
+    use std::ops::ControlFlow::{Break, Continue};
+    if IN_CALL.with(Cell::get) {
+        return Continue(());
+    }
+    let value = {
+        let _seam = InCall::enter();
+        game.interact_entity(target)
+    };
+    match value {
+        Ok(took) => {
+            after_entity_use(game, Ok(took));
+            Break(Ok(took))
+        }
+        Err(error) => Break(Err(error)),
+    }
+}
 
 /// The look direction for a yaw and pitch in degrees (the host's own shoot-from-rotation
 /// formula: the yaw and pitch are converted to radians, then the direction is
