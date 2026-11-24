@@ -8,7 +8,7 @@
 // pluto-lib/LICENSE.horizon) with the variant rules applied; anything the
 // provider does not know keeps the host's vanilla path untouched.
 use super::*;
-use horizon_client::entry::pluto_hanging_access as access;
+use crate::entity_nbt::pluto_hanging_access as access;
 use horizon_client::{entities::{ArmorStand, ItemFrame}, items::ItemStack};
 use horizon_core::{geometry::Vec3, position::BlockPos, random::RandomSource};
 use horizon_world::nbt::Tag;

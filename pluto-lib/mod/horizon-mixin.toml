@@ -2561,9 +2561,15 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "i
 # with PlutoLib's hanging registry run their variant behaviour over the
 # host's vanilla frame/stand state (the variant rides in the entity's kept
 # raw NBT). Unregistered items and entities keep the vanilla paths.
+# The transport module hangs off entity_nbt.rs, not entry.rs: the from-NBT
+# loader compiles in horizon-client-lib, whose crate root has no `entry`
+# module (entry and game exist only in the horizon_client library crate),
+# while entity_nbt is compiled in the shared client library and re-exported
+# to the game crate as horizon_client::entity_nbt, so the one module
+# instance is reachable from both compilation contexts.
 [[module]]
 id = "pluto-hanging-access"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/entity_nbt.rs"
 name = "pluto_hanging_access"
 source = "pluto-hanging-access.rs"
 visibility = "pub"
