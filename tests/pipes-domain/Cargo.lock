@@ -26,9 +26,14 @@ dependencies = [
 name = "pluto-lib-pure-tests"
 version = "0.0.0"
 dependencies = [
+ "pluto-movement-api",
  "serde",
  "serde_json",
 ]
+
+[[package]]
+name = "pluto-movement-api"
+version = "0.1.0"
 
 [[package]]
 name = "proc-macro2"
