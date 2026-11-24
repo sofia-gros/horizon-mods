@@ -93,10 +93,11 @@ fn release_with(release: &ReleaseUsing) {
         }
         let holder = holder_state(release);
         // The holder's height, for the dwarven velocity half of the sling power; the build range of
-        // the level they stand in, since a shot's holder is not digging and no dig reports it.
+        // the level they stand in, since a shot's holder is not digging and no dig reports it:
+        // the host's own range for the dimension, the vanilla table when it has not answered.
         let holder_entity = pluto_lib::EntityState { on_ground: holder.on_ground, y: Some(release.position[1]), ..Default::default() };
         let entities = crate::entity_facts::Entities { attacker: Some(&holder_entity), target: None };
-        let build_height = Some(crate::mining_speed::build_height_for(&release.dimension));
+        let build_height = Some(crate::mining_speed::level_build_height(&release.dimension));
         let active = slings[0].1.clone();
         for (entry, id, module) in &slings {
             let charge = charge(release.ticks_used, drawtime(nbt, env, &entities, module));

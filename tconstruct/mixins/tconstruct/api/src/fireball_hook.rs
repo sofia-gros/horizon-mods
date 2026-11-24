@@ -28,8 +28,10 @@
 //!   and their projectile hooks (bounce and friends) ride the flight profile, which is
 //!   built from a fired stack; a summoned fireball has none, so those hooks do not run
 //!   for a fireball yet. The fireball's own damage path is complete without them.
-//! - The flight's end below the world: the original discards past the build height;
-//!   the flight telling carries no build height, so only the 2400-tick half runs.
+//! - The flight's end below the world: the original discards past the build height
+//!   (`CustomFireball.checkBelowWorld`: below min - 64 or above max + 64), read from the
+//!   host for the flight's dimension; when the host has not published the level's range,
+//!   only the 2400-tick half runs.
 use crate::{
     break_speed_hook::with_held_tool, common, modifier_entries::Entry,
     projectile_modules::Fireball, sling_hook, tool_stack, tool_stats::Stat,
@@ -37,7 +39,7 @@ use crate::{
 use pluto_lib::{
     ActionTarget, EntityAction, EntityTypeRegistry, Identifier, ItemEvents, Nbt, NbtCompound,
     ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawn, ReleaseUsing,
-    StackData, spawn_projectile,
+    StackData, World, spawn_projectile,
 };
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -111,11 +113,11 @@ fn shoot(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompoun
     let entities = crate::entity_facts::Entities::default();
     let power = tool_stack::conditional_stat(nbt, env, Stat::ProjectileDamage, &|_| false, &entities);
     // The holder's height and the level's build range, for the dwarven velocity half (a shot's
-    // holder is not digging, so no dig reports them); the velocity alone reads the holder, so the
-    // power above keeps the holder-less entities it always had.
+    // holder is not digging, so no dig reports them): the host's own range for the dimension,
+    // the vanilla table when it has not answered.
     let holder = pluto_lib::EntityState { y: Some(release.position[1]), ..Default::default() };
     let velocity_entities = crate::entity_facts::Entities { attacker: Some(&holder), target: None };
-    let build_height = Some(crate::mining_speed::build_height_for(&release.dimension));
+    let build_height = Some(crate::mining_speed::level_build_height(&release.dimension));
     let velocity = f64::from(tool_stack::conditional_stat_at(nbt, env, Stat::Velocity, &|_| false, &velocity_entities, build_height));
     let inaccuracy = f64::from(tool_stack::inaccuracy(nbt, env, &entities)) / 16.0;
     // The look scaled by two, jittered on x and z only, the whole scaled by the velocity.
@@ -164,13 +166,24 @@ fn shoot(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompoun
     }
 }
 
-/// CustomFireball.tick: the flight ends after 2400 ticks.
+/// CustomFireball.tick: the flight ends after 2400 ticks. CustomFireball.checkBelowWorld
+/// discards it past the build height too: below the level's min less 64 or above its max
+/// plus 64, read from the host for the flight's dimension (a level publishes its range on
+/// every tick, so the flight telling — which runs in no world callback — reads it all the
+/// same). When the host has not published the range, only the 2400-tick half runs.
 fn on_flight(flight: &ProjectileFlight) {
     if flight.kind != FIREBALL {
         return;
     }
     if flight.age > 2400 {
         flight.discard.set(true);
+        return;
+    }
+    if let Some([min_y, max_y]) = World::new(&flight.dimension).build_height() {
+        let y = flight.position[1];
+        if y < f64::from(min_y) - 64.0 || y > f64::from(max_y) + 64.0 {
+            flight.discard.set(true);
+        }
     }
 }
 
@@ -204,4 +217,77 @@ fn on_impact(impact: &ProjectileImpact) -> bool {
     }
     impact.discard.set(true);
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pluto_lib::{MemoryWorldOps, with_world};
+
+    fn flight(dimension: &str, age: u32, y: f64) -> ProjectileFlight {
+        ProjectileFlight {
+            dimension: dimension.to_owned(),
+            projectile: 1,
+            kind: FIREBALL.to_owned(),
+            owner: -1,
+            owner_position: None,
+            age,
+            position: [0.0, y, 0.0],
+            motion: [0.0; 3],
+            in_ground: false,
+            no_gravity: false,
+            arrow: None,
+            data: NbtCompound::new(),
+            motion_after: std::cell::RefCell::new(None),
+            discard: std::cell::Cell::new(false),
+            no_gravity_after: std::cell::Cell::new(None),
+            release_from_ground: std::cell::Cell::new(false),
+            actions: std::cell::RefCell::new(Vec::new()),
+        }
+    }
+
+    #[test]
+    fn a_fireball_discards_past_the_build_height_and_not_inside_it() {
+        // The overworld's range, and a custom dimension's own range, as the host publishes them.
+        let mut ops = MemoryWorldOps::default();
+        ops.build_heights.insert("minecraft:overworld".into(), [-64, 320]);
+        ops.build_heights.insert("example:custom".into(), [-32, 128]);
+        with_world(&mut ops, || {
+            // Inside the overworld's range and its 64-block margin it flies on.
+            let flying = flight("minecraft:overworld", 10, 383.0);
+            on_flight(&flying);
+            assert!(!flying.discard.get(), "384 is the top of the margin, 383 still flies");
+            // Past the top margin it ends: max 320 + 64 = 384.
+            let high = flight("minecraft:overworld", 10, 384.5);
+            on_flight(&high);
+            assert!(high.discard.get());
+            // Below the bottom margin it ends too: min -64 - 64 = -128.
+            let low = flight("minecraft:overworld", 10, -128.5);
+            on_flight(&low);
+            assert!(low.discard.get());
+            // A custom dimension reads its own range: its top margin is 128 + 64 = 192.
+            let custom_inside = flight("example:custom", 10, 191.0);
+            on_flight(&custom_inside);
+            assert!(!custom_inside.discard.get());
+            let custom_past = flight("example:custom", 10, 192.5);
+            on_flight(&custom_past);
+            assert!(custom_past.discard.get());
+            // The 2400-tick half still ends a flight inside the range.
+            let old = flight("minecraft:overworld", 2401, 64.0);
+            on_flight(&old);
+            assert!(old.discard.get());
+        });
+        // With no range published for the dimension, only the 2400-tick half runs.
+        let unknown = flight("example:unpublished", 10, 9999.0);
+        on_flight(&unknown);
+        assert!(!unknown.discard.get(), "no host range: a high flight is not discarded");
+        let unknown_old = flight("example:unpublished", 2401, 64.0);
+        on_flight(&unknown_old);
+        assert!(unknown_old.discard.get());
+        // Another kind is not a fireball: the flight is left alone.
+        let mut other = flight("minecraft:overworld", 10, 9999.0);
+        other.kind = "minecraft:arrow".into();
+        on_flight(&other);
+        assert!(!other.discard.get());
+    }
 }

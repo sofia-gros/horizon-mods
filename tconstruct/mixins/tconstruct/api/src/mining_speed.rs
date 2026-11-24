@@ -139,11 +139,20 @@ pub(crate) struct BlockFacts {
 /// The build range of a dimension, [min, max), for the modules that read the level's max build height
 /// (dwarven) when no dig reported it: the vanilla dimensions' ranges, the overworld's for anything else.
 /// A data pack dimension's range is not known here — the same reduction as the port's crop_max_age table.
+/// This is only the fallback for when the host has not answered for the dimension (outside a callback,
+/// or a level that never ticked); see `level_build_height`.
 pub(crate) fn build_height_for(dimension: &str) -> [i32; 2] {
     match dimension {
         "minecraft:the_nether" | "minecraft:the_end" => [0, 256],
         _ => [-64, 320],
     }
+}
+
+/// The build range of the level `dimension` stands in, [min, max), for the modules that read the level's
+/// max build height (dwarven): the host's own range for the dimension when the game has published it —
+/// any dimension, custom ones included — else the vanilla table above.
+pub(crate) fn level_build_height(dimension: &str) -> [i32; 2] {
+    pluto_lib::World::new(dimension).build_height().unwrap_or_else(|| build_height_for(dimension))
 }
 
 /// DwarvenModifier.getBoost: the speed after the depth adjustment, for a dig or a shot at height
@@ -462,6 +471,24 @@ mod tests {
         assert_eq!(build_height_for("minecraft:the_nether"), [0, 256]);
         assert_eq!(build_height_for("minecraft:the_end"), [0, 256]);
         assert_eq!(build_height_for("example:custom"), [-64, 320], "an unknown dimension reads the overworld's range");
+    }
+
+    #[test]
+    fn level_build_height_reads_the_host_range_and_falls_back_to_the_table() {
+        use pluto_lib::world_api_v1::{with_world, MemoryWorldOps};
+        // No scope, no publication: the table answers.
+        assert_eq!(level_build_height("example:custom"), [-64, 320]);
+        assert_eq!(level_build_height("minecraft:the_nether"), [0, 256]);
+        // A host range published for the dimension wins over the table, for a custom dimension
+        // and for a vanilla one alike; an unpublished dimension keeps the table.
+        let mut ops = MemoryWorldOps::default();
+        ops.build_heights.insert("example:custom".into(), [-32, 128]);
+        ops.build_heights.insert("minecraft:the_nether".into(), [0, 192]);
+        with_world(&mut ops, || {
+            assert_eq!(level_build_height("example:custom"), [-32, 128]);
+            assert_eq!(level_build_height("minecraft:the_nether"), [0, 192]);
+            assert_eq!(level_build_height("minecraft:the_end"), [0, 256]);
+        });
     }
 
     #[test]
