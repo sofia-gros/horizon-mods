@@ -2206,6 +2206,13 @@ impl EntityOps for HostEntities {
     }
 }
 
+/// Whether the effect `id` shows its icon, as PlutoLib's effect-icon reach published it at
+/// the head of the last HUD draw; true when the snapshot names no such effect (no draw yet,
+/// or an effect added since), as vanilla defaults the flag.
+fn effect_shows_icon(id: &str) -> bool {
+    horizon_client::entry::pluto_effect_icon_access::show_icon(id).unwrap_or(true)
+}
+
 /// Runs `f` with the player scope and the world scope both open over the host.
 fn scoped<R>(host: &mut dyn Host, f: impl FnOnce() -> R) -> R {
     let handle = HostHandle::new(host);
@@ -2347,7 +2354,7 @@ impl PlayerOps for HostOps {
         Some(
             effects
                 .into_iter()
-                .map(|e| EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles })
+                .map(|e| EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles, show_icon: effect_shows_icon(&e.id) })
                 .collect(),
         )
     }
@@ -4349,11 +4356,15 @@ impl Hooks for PlutoHooks {
             equipment.main_hand = worn(EquipmentSlot::MainHand);
             // The player's active effects, for the original's effect shift at the top right: an
             // effect the catalog does not know counts as not beneficial (the shift that keeps the
-            // icons from overlapping), and an ambient effect (a beacon's, a conduit's) shows no
-            // icon, so it shifts nothing.
+            // icons from overlapping), and only an effect that shows its icon shifts anything
+            // (ModifierClientEvents.getEffectOffset counts showIcon, not ambient: an ambient
+            // effect with an icon — a beacon's, the piggyback carry — shifts as the original
+            // does. The original also asks the effect's client extension whether it shows in
+            // the GUI; the host carries no such extension, so every effect counts as visible
+            // there, which is the extension's default).
             effects = host.effects(player.uuid).map(|active| active.iter().map(|effect| {
                 let beneficial = horizon_client::pluto_potions::effect(&effect.id).map(|facts| facts.beneficial).unwrap_or(false);
-                hud_api_v1::HudEffect { beneficial, visible: !effect.ambient }
+                hud_api_v1::HudEffect { beneficial, visible: effect_shows_icon(&effect.id) }
             }).collect()).unwrap_or_default();
         }
         let mut canvas = HostCanvas { host, batch: event.batch };

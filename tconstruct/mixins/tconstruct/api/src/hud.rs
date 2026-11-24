@@ -77,9 +77,10 @@ fn grid_origin(location: Orientation2D, size: [f32; 2], grid: [f32; 2], offsets:
 
 /// ModifierClientEvents.getEffectOffset: the top-right corner's shift for the player's active
 /// effects — 52 when any visible effect is not beneficial, 26 when any visible effect is
-/// beneficial, 0 otherwise. A visible effect is one that shows its icon (the draw is given the
-/// icon flag as the host reports it: not ambient); an effect hidden with showIcon still shifts,
-/// which vanilla never does.
+/// beneficial, 0 otherwise. A visible effect is one that shows its icon: the draw is given
+/// the icon flag (vanilla's showIcon, published by PlutoLib's effect-icon reach at the head
+/// of every HUD draw), not ambient — an ambient effect with an icon, a beacon's or the
+/// piggyback carry, shifts as the original does, and an effect hidden with showIcon does not.
 fn effect_offset(effects: &[HudEffect]) -> f32 {
     if effects.iter().any(|effect| effect.visible && !effect.beneficial) { 52.0 }
     else if effects.iter().any(|effect| effect.visible && effect.beneficial) { 26.0 }
@@ -235,8 +236,11 @@ mod tests {
         let beneficial = HudEffect { beneficial: true, visible: true };
         let hidden = HudEffect { beneficial: false, visible: false };
         assert_eq!(effect_offset(&[]), 0.0);
-        assert_eq!(effect_offset(&[hidden]), 0.0, "an ambient effect shows no icon, so it shifts nothing");
+        assert_eq!(effect_offset(&[hidden]), 0.0, "an effect that hides its icon shifts nothing");
         assert_eq!(effect_offset(&[beneficial]), 26.0);
+        // Visible means showing its icon, not "not ambient": an ambient effect with an icon
+        // (a beacon's, the piggyback carry) shifts exactly as the original counts it, so the
+        // harmful case below covers it.
         assert_eq!(effect_offset(&[harmful]), 52.0);
         assert_eq!(effect_offset(&[beneficial, harmful]), 52.0, "any non-beneficial visible effect wins");
         assert_eq!(effect_offset(&[beneficial, hidden]), 26.0);

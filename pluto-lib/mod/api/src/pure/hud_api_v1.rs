@@ -37,9 +37,11 @@ pub struct HudEquipment {
 pub struct HudEffect {
     /// Whether the effect's category is beneficial (a harmful or neutral one is not).
     pub beneficial: bool,
-    /// Whether the effect shows in the GUI: not ambient (a beacon or conduit effect hides its
-    /// icon). The host's effect read carries no icon flag, so an effect hidden with showIcon
-    /// still counts here; vanilla never hides one that way.
+    /// Whether the effect shows in the GUI: its icon flag as the host reports it (vanilla's
+    /// `MobEffectInstance.showIcon`, published by PlutoLib's effect-icon reach at the head of
+    /// every HUD draw; an effect the snapshot does not name counts as shown, as vanilla
+    /// defaults the flag). The original counts exactly these effects, ambient or not: a
+    /// beacon's effect and the piggyback carry show their icons and shift the HUD.
     pub visible: bool,
 }
 

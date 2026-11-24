@@ -208,21 +208,21 @@ with_ops(&mut game, || assert_eq!(player.language(), "ja_jp"));
 
 ### `EffectInstance`
 
-A status effect on a player. Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration: i32` (ticks; -1 never ends), `ambient: bool` (beacon-style) and `particles: bool`.
+A status effect on a player. Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration: i32` (ticks; -1 never ends), `ambient: bool` (beacon-style), `particles: bool` and `show_icon: bool` (whether its icon shows in the GUI; the read's flag, published by PlutoLib's effect-icon reach at the head of every HUD draw — giving an effect always shows its icon, as the host's add path carries no flag).
 
 ```rust
 use pluto_lib::EffectInstance;
 
 let plain = EffectInstance::new("minecraft:regeneration", 100);
 assert_eq!(plain.amplifier, 0);
-assert!(plain.particles && !plain.ambient);
+assert!(plain.particles && !plain.ambient && plain.show_icon);
 let custom = EffectInstance { ambient: true, ..EffectInstance::new("minecraft:haste", -1) };
 assert_eq!(custom.duration, -1);
 ```
 
 ### `EffectInstance::new`
 
-`fn new(id: &str, duration: i32) -> EffectInstance`. An effect of level I lasting `duration` ticks, with particles.
+`fn new(id: &str, duration: i32) -> EffectInstance`. An effect of level I lasting `duration` ticks, with particles and its icon showing.
 
 ```rust
 use pluto_lib::EffectInstance;
