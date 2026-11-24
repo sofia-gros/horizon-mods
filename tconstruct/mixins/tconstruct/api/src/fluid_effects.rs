@@ -1790,6 +1790,7 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
         _ => context.env.holder.stack.clone(),
     };
     if context.env.place_restricted(&probe, context.pos) { return 0.0; }
+    if action.simulate() { return 1.0; }
     let stack = match which {
         0 => &mut context.env.holder.main_hand,
         1 => &mut context.env.holder.off_hand,
