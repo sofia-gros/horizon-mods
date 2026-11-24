@@ -1796,4 +1796,50 @@ mod tests {
         env.item_tags_loaded = true;
         assert!(!rebuild_stats(&mut nbt, &env).unwrap());
     }
+    #[test]
+    fn melee_capacity_fills_the_bar_on_a_hit_and_answers_its_conditions() {
+        // The grant the monster melee hit wires: a bar of 10 and a flat grant of 3 per hit.
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:charge").unwrap(), json!({"modules":[
+                {"type":"tconstruct:capacity_bar","hooks":["tconstruct:capacity_bar"],"flat":10},
+                {"type":"tconstruct:melee_capacity","hooks":["tconstruct:melee_hit"],"grant":{"flat":3}}
+            ]})),
+            (Identifier::parse("test:picky").unwrap(), json!({"modules":[
+                {"type":"tconstruct:capacity_bar","hooks":["tconstruct:capacity_bar"],"flat":10},
+                {"type":"tconstruct:melee_capacity","hooks":["tconstruct:melee_hit"],"grant":{"flat":5},"target":{"type":"mantle:tag","tag":"minecraft:undead"}}
+            ]})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let tool = |id: &str| {
+            let mut nbt = NbtCompound::new();
+            nbt.insert(TAG_MODIFIERS.into(), List::default().with_modifier(Identifier::parse(id).unwrap(), 1).unwrap().to_nbt());
+            nbt
+        };
+        let yes = |_: &Identifier| true;
+        // An empty bar fills by the flat grant, as one persistent edit on the bar's own key.
+        let nbt = tool("test:charge");
+        let edits = melee_capacity_edits(&nbt, &env, &yes, &yes);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].path, vec![TAG_PERSISTENT.to_string(), "test:charge".to_string()]);
+        assert_eq!(edits[0].value, Some(Nbt::Int(3)));
+        // The fill caps at the bar's capacity, as the bar's own set does.
+        let mut full = tool("test:charge");
+        let mut persistent = NbtCompound::new();
+        persistent.insert("test:charge".into(), Nbt::Int(9));
+        full.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        let edits = melee_capacity_edits(&full, &env, &yes, &yes);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].value, Some(Nbt::Int(10)), "nine plus three is capped at ten");
+        // A target condition the hit does not meet grants nothing; one it meets grants the flat amount.
+        let undead = Identifier::parse("minecraft:undead").unwrap();
+        let nbt = tool("test:picky");
+        assert!(melee_capacity_edits(&nbt, &env, &|tag: &Identifier| *tag != undead, &yes).is_empty(), "a living target is not undead");
+        let edits = melee_capacity_edits(&nbt, &env, &|tag: &Identifier| *tag == undead, &yes);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].path, vec![TAG_PERSISTENT.to_string(), "test:picky".to_string()]);
+        assert_eq!(edits[0].value, Some(Nbt::Int(5)));
+    }
 }
