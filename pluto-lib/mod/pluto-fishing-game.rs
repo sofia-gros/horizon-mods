@@ -84,7 +84,7 @@ fn cast(game: &mut super::super::Game<'_>, uuid: u128, profile: access::UseProfi
         player.position.z - f64::from(y_cos) * 0.3,
     );
     let at = [player.position.x, player.position.y, player.position.z];
-    let base = Vec3::new(-f64::from(y_sin), dir_y, -f64::from(y_cos));
+    let base = Vec3::new(-f64::from(y_sin), f64::from(dir_y), -f64::from(y_cos));
     let length = (base.x * base.x + base.y * base.y + base.z * base.z).sqrt();
     let mut random = horizon_client::random_source::entity();
     let spread = 0.03 * f64::from(profile.inaccuracy) * f64::from(profile.inaccuracy);

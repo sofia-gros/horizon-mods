@@ -125,7 +125,7 @@ fn apply(game: &mut Game<'_>, request: PushRequest) {
                 }
                 PushRequest::Push { delta, .. } => {
                     if let Some(player) = guest.player.as_mut() {
-                        player.velocity = player.velocity.add_vector(delta[0], delta[1], delta[2]);
+                        player.velocity = player.velocity.add_vector(Vec3::new(delta[0], delta[1], delta[2]));
                     }
                 }
                 PushRequest::LeaveGround { .. } => lift_player(guest),
@@ -142,7 +142,7 @@ fn apply(game: &mut Game<'_>, request: PushRequest) {
     }
 }
 
-fn apply_to_mob(game: &mut Game<'_>, id: i32, request: PushRequest) {
+fn apply_to_mob(game: &mut Game<'_>, id: u32, request: PushRequest) {
     let Some(mob) = game.mobs.iter_mut().find(|mob| mob.id == id) else { return };
     match request {
         PushRequest::Knockback { strength, x, z, .. } => {
@@ -150,7 +150,7 @@ fn apply_to_mob(game: &mut Game<'_>, id: i32, request: PushRequest) {
             mob.knockback(strength, x, z, &source);
         }
         PushRequest::Push { delta, .. } => {
-            mob.velocity = mob.velocity.add_vector(delta[0], delta[1], delta[2]);
+            mob.velocity = mob.velocity.add_vector(Vec3::new(delta[0], delta[1], delta[2]));
             mob.needs_sync = true;
         }
         PushRequest::LeaveGround { .. } => {}
@@ -173,7 +173,7 @@ fn apply_to_player(game: &mut Game<'_>, request: PushRequest) {
         }
         PushRequest::Push { delta, .. } => {
             if let Some(player) = game.player.as_mut() {
-                player.velocity = player.velocity.add_vector(delta[0], delta[1], delta[2]);
+                player.velocity = player.velocity.add_vector(Vec3::new(delta[0], delta[1], delta[2]));
                 player.health.sync_velocity = true;
             }
         }
@@ -209,7 +209,7 @@ fn lift_player(game: &mut Game<'_>) {
         player.position.y + height,
         player.position.z + half,
     ];
-    let mut lift = 1.3;
+    let mut lift: f64 = 1.3;
     for block in game.native_collision_boxes(game.dim.id(), aabb) {
         let overlaps = block[0] < aabb[3] && block[3] > aabb[0] && block[2] < aabb[5] && block[5] > aabb[2];
         if overlaps && block[1] >= aabb[4] {
