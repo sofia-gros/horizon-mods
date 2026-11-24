@@ -287,7 +287,8 @@ pub struct LivingJump {
 /// The local player's movement input, after the game read it and before it applies it
 /// (NeoForge: `MovementInputUpdateEvent`). Client only. A callback may scale the
 /// impulses (an item's use slowdown) or read the jump key state (a double jump);
-/// it may not reach the player themselves — the entity reach is not open here, so
+/// `using` is the stack being used, when one is, for the use-item speed its stats
+/// carry; it may not reach the player themselves — the entity reach is not open here, so
 /// a motion change is deferred to the player's next tick.
 #[derive(Clone, Debug)]
 pub struct MovementInput {
@@ -303,6 +304,12 @@ pub struct MovementInput {
     pub sneak: Cell<bool>,
     /// Whether the player is using an item (eating, drawing a bow, blocking).
     pub using_item: bool,
+    /// The stack being used, when the player is using an item: the held (main-hand) stack,
+    /// as the game hands it out. None when the player is not using an item, or the game
+    /// names no acting player. A use from the off hand has no surface at this hook (the
+    /// native hook names no hand, and the use-item tick that does is server-only), so an
+    /// off-hand use reads as the main hand's stack.
+    pub using: Option<StackData>,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -2044,17 +2051,37 @@ mod tests {
         });
         let input = MovementInput {
             entity: 7703, forward: Cell::new(1.0), strafe: Cell::new(0.4),
-            jump: Cell::new(false), sneak: Cell::new(false), using_item: true,
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: None,
         };
         movement_input(&input);
         assert_eq!(input.forward.get(), 0.5);
         assert!((input.strafe.get() - 0.2).abs() < 1e-9);
         let idle = MovementInput {
             entity: 7703, forward: Cell::new(1.0), strafe: Cell::new(0.4),
-            jump: Cell::new(false), sneak: Cell::new(false), using_item: false,
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: false, using: None,
         };
         movement_input(&idle);
         assert_eq!(idle.forward.get(), 1.0, "not using an item, the impulses stand");
+    }
+
+    #[test]
+    fn a_movement_input_carries_the_stack_being_used() {
+        use std::sync::Mutex;
+        static USED: Mutex<Vec<Option<StackData>>> = Mutex::new(Vec::new());
+        ServerLivingEntityEvents::MOVEMENT_INPUT.register(|input| {
+            if input.entity != 7704 { return; }
+            USED.lock().unwrap().push(input.using.clone());
+        });
+        let bow = StackData { item: "tconstruct:longbow".into(), count: 1, ..StackData::default() };
+        movement_input(&MovementInput {
+            entity: 7704, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: Some(bow.clone()),
+        });
+        movement_input(&MovementInput {
+            entity: 7704, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: false, using: None,
+        });
+        assert_eq!(USED.lock().unwrap().clone(), vec![Some(bow), None], "the used stack rides the event, and none when nothing is used");
     }
 
     #[test]

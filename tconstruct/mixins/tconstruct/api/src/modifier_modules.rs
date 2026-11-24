@@ -220,6 +220,13 @@ pub(crate) enum Module {
     LightspeedAttribute { module: crate::wearer_modules::LightspeedAttribute, condition: Condition },
     /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
     ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
+    /// ArmorStatModule: a float stat the worn pieces add up under a TinkerDataKey (the
+    /// critical damage, jump boost and use item speed the formulas read; no shipped
+    /// modifier carries one, so the amounts only ever come from datapack modifiers).
+    ArmorStat { module: Box<crate::max_armor::ArmorStat>, condition: Condition },
+    /// MaxArmorStatModule: the same float stat, but the largest level of its modifier
+    /// among the worn pieces counts once.
+    MaxArmorStat { module: Box<crate::max_armor::MaxArmorStat>, condition: Condition },
     /// ShowOffhandModule: a chest piece counts 1 toward the `tconstruct:show_empty_offhand` armor level while worn.
     ShowOffhand { allow_broken: bool },
     /// MobDisguiseModule: armor that makes mobs of one type see its wearer from half as far for each level.
@@ -959,6 +966,12 @@ impl Module {
             "tconstruct:armor_level" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::ArmorLevel { module: Box::new(crate::max_armor::ArmorLevel::decode(fields)?) }
             }
+            "tconstruct:armor_stat" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                Self::ArmorStat { module: Box::new(crate::max_armor::ArmorStat::decode(fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:max_armor_stat" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                Self::MaxArmorStat { module: Box::new(crate::max_armor::MaxArmorStat::decode(fields)?), condition: Condition::decode(fields)? }
+            }
             "tconstruct:show_offhand" if only("tconstruct:equipment_change") => {
                 // ShowOffhandModule is an enum module: the required mode says whether a broken piece still counts.
                 Self::ShowOffhand { allow_broken: match fields.get("mode").and_then(Value::as_str) {
@@ -1506,7 +1519,7 @@ impl Module {
                 }
             }
             Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::Sleeves | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::Brush | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ArmorStat { .. } | Self::MaxArmorStat { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::Brush | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
@@ -1863,6 +1876,17 @@ impl Module {
             _ => None,
         }
     }
+    /// The armor-stat claim a worn piece makes under a TinkerDataKey, when its conditions hold:
+    /// a plain claim (every piece adds up) or a max claim (the largest level counts once).
+    pub fn armor_stat_claim(&self, entry: &Entry, facts: &Facts, broken: bool) -> Option<crate::max_armor::ArmorStatClaim> {
+        match self {
+            Self::ArmorStat { module, condition } => module.claim(entry, condition.matches(entry, facts), broken),
+            Self::MaxArmorStat { module, condition } => module.claim(entry, condition.matches(entry, facts), broken),
+            _ => None,
+        }
+    }
+    /// Whether this is an armor stat module (plain or max).
+    pub fn is_armor_stat(&self) -> bool { matches!(self, Self::ArmorStat { .. } | Self::MaxArmorStat { .. }) }
     /// The (attribute, operation, amount) a golden attribute module grants a wearer with `total_gold` golden pieces.
     pub fn golden_amount(&self, entry: &Entry, facts: &Facts, total_gold: i32) -> Option<(String, pluto_lib::AttributeOperation, f64)> {
         let Self::GoldenAttribute { module, condition } = self else { return None; };
@@ -2828,6 +2852,24 @@ mod tests {
         assert!(Module::decode("tconstruct:show_offhand", json!({}).as_object().unwrap(), &[]).is_err());
         assert!(Module::decode("tconstruct:show_offhand", json!({"mode":"sometimes"}).as_object().unwrap(), &[]).is_err());
         assert!(decode(json!({"type":"tconstruct:show_offhand","mode":"disallow_broken","hooks":["tconstruct:tooltip"]})).is_none());
+    }
+    #[test]
+    fn armor_stat_modules_decode_and_claim_for_worn_pieces() {
+        let entry = Entry::new(id("tconstruct:unburdened"), 2);
+        let no_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &no_tag);
+        // The original's deprecated armor stat: a plain claim adds up, a max claim counts its
+        // largest level once. The tooltip hook binds too (the original reads the module there),
+        // a foreign hook leaves it unbound, and a missing key rejects.
+        let plain = decode(json!({"type":"tconstruct:armor_stat","key":"tconstruct:jump_boost","each_level":0.5,"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert!(plain.is_armor_stat());
+        assert_eq!(plain.armor_stat_claim(&entry, &f, false).map(|claim| (claim.key, claim.level, claim.max)), Some(("tconstruct:jump_boost".into(), 2.0, false)));
+        assert!(plain.armor_stat_claim(&entry, &f, true).is_none(), "a broken piece claims nothing unless allowed");
+        let maxed = decode(json!({"type":"tconstruct:max_armor_stat","key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05,"hooks":["tconstruct:tooltip"]})).unwrap();
+        assert!(maxed.is_armor_stat());
+        assert_eq!(maxed.armor_stat_claim(&entry, &f, false).map(|claim| claim.max), Some(true));
+        assert!(decode(json!({"type":"tconstruct:armor_stat","key":"tconstruct:jump_boost","each_level":0.5,"hooks":["tconstruct:melee_hit"]})).is_none());
+        assert!(Module::decode("tconstruct:armor_stat", json!({"each_level":0.5}).as_object().unwrap(), &[]).is_err());
     }
     #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {

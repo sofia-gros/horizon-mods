@@ -87,6 +87,7 @@ mod update_health_hook;
 mod max_armor;
 mod max_armor_hook;
 mod custom_attributes;
+mod attribute_sync;
 mod attribute_hooks;
 mod wearer_modules;
 mod mob_disguise;
@@ -258,7 +259,9 @@ pub fn hooks() -> pluto_lib::ModHooks {
     update_health_hook::register();
     max_armor_hook::register();
     custom_attributes::register();
-    // After the custom attributes: the attribute hooks read the values that tick keeps.
+    // After the custom attributes: the attribute sync publishes the values that tick keeps,
+    // and the attribute hooks read them.
+    attribute_sync::register();
     attribute_hooks::register();
     mob_disguise_hook::register();
     tool_behavior_hook::register();

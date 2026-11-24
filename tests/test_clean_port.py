@@ -47,6 +47,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/armor_trim.rs',
                 'mixins/tconstruct_native/api/src/armor_worn.rs',
                 'mixins/tconstruct_native/api/src/attribute_hooks.rs',
+                'mixins/tconstruct_native/api/src/attribute_sync.rs',
                 'mixins/tconstruct_native/api/src/banner_modifier.rs',
                 'mixins/tconstruct_native/api/src/block_break_hook.rs',
                 'mixins/tconstruct_native/api/src/blocking_hook.rs',

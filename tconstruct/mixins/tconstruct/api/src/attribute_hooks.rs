@@ -4,24 +4,27 @@
 //! has no host hook for the experience a block break or a death drops, so it stays unread
 //! (see custom_attributes.rs).
 //!
+//! Each formula reads three shares, as the canon does: the attribute, the tool stat (the
+//! held tool's USE_ITEM_SPEED over its default, for the use-item speed only) and the armor
+//! stat (the worn pieces' TinkerDataKeys totals). The readers take the values the server
+//! tick keeps, or the synced copy on a guest client (attribute_sync): a guest's own
+//! movement reads are the synced values, and a guest's jump press goes to the server as a
+//! control packet instead of resolving locally.
+//!
 //! The host refuses a player's set-velocity, so a motion change lands as a push on the
 //! player's next tick: the jump event and the input event only record what is pending,
 //! and the tick applies it as the set velocity minus the motion the tick measured (the
 //! bounce handler's shape). The jump boost is additive — the canon adds it to the motion —
 //! so it lands as a plain upward push; the double jump sets the whole velocity, so it
-//! lands as the set velocity minus the measured motion. The double jump is the local
-//! player only: the input event is client-side, and a guest's jump key never reaches
-//! this game — a guest's double jump needs a control packet, which is not wired here.
-//! The readers here take the values the server tick keeps, so on a LAN guest (whose tick
-//! runs on the owner's game) they see the defaults and nothing here applies to the guest.
-//! The double jump's four happy-villager particles have no spawn surface in the port,
-//! so only the sound lands. The use item speed scales the impulses by the attribute
-//! alone: the tool-stat delta and the armor stat have no read surface in the port
-//! (tool_stats.rs decodes stats but no consumer reads a live tool's, and no armor-stat
-//! reader exists), and a tool at the default stat contributes nothing to it anyway.
+//! lands as the set velocity minus the measured motion. The double jump's four
+//! happy-villager particles spawn at the player's feet with the sound, as one send of
+//! four (the port spreads them by a Gaussian, not the canon's uniform ±0.25 — the
+//! placement matches, the distribution does not).
 //! SlimeKnights (MIT; see LICENSE).
 use crate::custom_attributes::{self, CRITICAL_DAMAGE, JUMP_BOOST, JUMP_COUNT, USE_ITEM_SPEED};
-use pluto_lib::{CriticalHit, EntityReach, LivingJump, MovementInput, PlayerTick, ServerLivingEntityEvents, World};
+use crate::{attribute_sync, material_sync, tool_stack};
+use crate::tool_stats::Stat;
+use pluto_lib::{CriticalHit, EntityReach, LivingJump, MovementInput, ParticleData, PlayerTick, ServerLivingEntityEvents, World};
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
@@ -34,6 +37,20 @@ const JUMP_BOOST_PER_POINT: f64 = 0.1;
 /// The declared default of the critical damage, from `custom_attributes::DECLARED`: the
 /// boost is the value over this.
 const CRITICAL_DAMAGE_DEFAULT: f64 = 1.5;
+/// The declared default of the use item speed, from `custom_attributes::DECLARED` and the
+/// tool stat's registered default: the tool-stat delta is the held tool's stat over this.
+const USE_ITEM_SPEED_DEFAULT: f32 = 0.2;
+/// The armor-stat key for the critical damage (TinkerDataKeys).
+const CRITICAL_DAMAGE_STAT: &str = "tconstruct:critical_damage";
+/// The armor-stat key for the jump boost (TinkerDataKeys).
+const JUMP_BOOST_STAT: &str = "tconstruct:jump_boost";
+/// The armor-stat key for the use item speed (TinkerDataKeys).
+const USE_ITEM_SPEED_STAT: &str = "tconstruct:use_item_speed";
+/// The double jump's particles (canon `DoubleJumpHandler.extraJump`): four happy villagers
+/// at the player's feet, ±0.25 on x and z, no vertical spread, no speed.
+const DOUBLE_JUMP_PARTICLE: &str = "minecraft:happy_villager";
+const DOUBLE_JUMP_PARTICLE_COUNT: i32 = 4;
+const DOUBLE_JUMP_PARTICLE_SPREAD: [f64; 3] = [0.25, 0.0, 0.25];
 
 /// The jump boost to add on a player's next tick, by entity id: set by the jump event.
 static PENDING_BOOST: Mutex<BTreeMap<i32, f64>> = Mutex::new(BTreeMap::new());
@@ -48,10 +65,9 @@ static PREVIOUS_JUMP_KEY: Mutex<BTreeMap<i32, bool>> = Mutex::new(BTreeMap::new(
 /// The position a player's last tick saw, by entity id: the tick's motion is the delta.
 static KEPT: Mutex<BTreeMap<i32, [f64; 3]>> = Mutex::new(BTreeMap::new());
 
-/// The critical boost: the critical damage over its declared default, plus the armor stat
-/// (which has no read surface in the port, so it contributes nothing here).
-fn critical_boost(value: f64) -> f64 {
-    value - CRITICAL_DAMAGE_DEFAULT
+/// The critical boost: the critical damage over its declared default, plus the armor stat.
+fn critical_boost(value: f64, armor_stat: f64) -> f64 {
+    value - CRITICAL_DAMAGE_DEFAULT + armor_stat
 }
 
 /// Whether the hit is forced critical: the boost is positive, the attacker is airborne
@@ -73,11 +89,11 @@ fn may_double_jump(on_ground: bool, in_water: bool, taken: i32, extra: i32) -> b
     !on_ground && !in_water && taken < extra
 }
 
-/// The factor the impulses are scaled by for a use item speed: the attribute clamped to
-/// 0..1, times 5 (which cancels vanilla's 20% slowdown, as the canon multiplies by
-/// `speed * 5`).
-fn use_item_speed_factor(attribute: f64) -> f64 {
-    attribute.clamp(0.0, 1.0) * 5.0
+/// The factor the impulses are scaled by for a use item speed: the attribute, plus the
+/// held tool's use-item-speed stat over its default, plus the armor stat, clamped to 0..1,
+/// times 5 (which cancels vanilla's 20% slowdown, as the canon multiplies by `speed * 5`).
+fn use_item_speed_factor(attribute: f64, tool_delta: f64, armor_stat: f64) -> f64 {
+    (attribute + tool_delta + armor_stat).clamp(0.0, 1.0) * 5.0
 }
 
 /// The push a jump boost adds: upward by the boost, the canon `delta.add(0, boost*0.1, 0)`.
@@ -97,12 +113,15 @@ fn sub(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
 }
 
 /// `ModifierEvents.onCritical` (CriticalHitEvent ~L293): the boost is the critical damage
-/// over its default; while it is positive, an airborne hit is forced critical, and a
-/// critical hit's damage multiplier grows by the boost. A hit the game runs for no acting
-/// player (a guest's hit on a LAN world) names -1 and is left alone.
+/// over its default, plus the armor stat; while it is positive, an airborne hit is forced
+/// critical, and a critical hit's damage multiplier grows by the boost. A hit the game runs
+/// for no acting player (a guest's hit on a LAN world) names -1 and is left alone.
 fn on_critical_hit(hit: &CriticalHit) {
     if hit.attacker_entity < 0 { return; }
-    let boost = critical_boost(custom_attributes::value(hit.attacker_entity, CRITICAL_DAMAGE));
+    let boost = critical_boost(
+        custom_attributes::value(hit.attacker_entity, CRITICAL_DAMAGE),
+        custom_attributes::armor_stat_for(hit.attacker_entity, CRITICAL_DAMAGE_STAT),
+    );
     if boost <= 0.0 { return; }
     if force_critical(boost, hit.attacker_on_ground, hit.attacker_in_water, hit.critical.get()) {
         hit.critical.set(true);
@@ -119,20 +138,33 @@ fn on_critical_hit(hit: &CriticalHit) {
 fn on_living_jump(jump: &LivingJump) {
     if jump.kind != "minecraft:player" { return; }
     if let Ok(mut taken) = JUMPS_TAKEN.lock() { taken.remove(&jump.entity); }
-    let boost = custom_attributes::value(jump.entity, JUMP_BOOST);
+    let boost = custom_attributes::value(jump.entity, JUMP_BOOST)
+        + custom_attributes::armor_stat_for(jump.entity, JUMP_BOOST_STAT);
     if boost > 0.0 {
         if let Ok(mut pending) = PENDING_BOOST.lock() { pending.insert(jump.entity, boost); }
     }
 }
 
 /// `ToolClientEvents.handleInput` (MovementInputUpdateEvent ~L359-366): while the player
-/// uses an item, the impulses are scaled by the use item speed; a fresh press of the jump
-/// key records a double-jump attempt, resolved on the next tick. The entity reach is not
-/// open here, so nothing is pushed from this callback.
+/// uses an item, the impulses are scaled by the use item speed (the attribute, plus the held
+/// tool's use-item-speed stat over its default, plus the armor stat); a fresh press of the
+/// jump key records a double-jump attempt, resolved on the next tick. A guest client sends
+/// the attempt to the server instead of resolving it locally — it has no server tick — while
+/// the owner resolves it locally. The entity reach is not open here, so nothing is pushed
+/// from this callback. An off-hand use reads as the main hand's stack (the input's `using`
+/// is the held stack; see entity_events_v1).
 fn on_movement_input(input: &MovementInput) {
     if input.entity < 0 { return; }
     if input.using_item {
-        let factor = use_item_speed_factor(custom_attributes::value(input.entity, USE_ITEM_SPEED));
+        // The tool-stat delta rides the input's used stack: the held tool's built stat, or
+        // the registered default when the stack carries none (a plain item). A non-tool
+        // contributes nothing.
+        let tool_delta = input.using.as_ref().map(|stack| f64::from(tool_stack::stat(&stack.custom_data, Stat::UseItemSpeed) - USE_ITEM_SPEED_DEFAULT)).unwrap_or(0.0);
+        let factor = use_item_speed_factor(
+            custom_attributes::value(input.entity, USE_ITEM_SPEED),
+            tool_delta,
+            custom_attributes::armor_stat_for(input.entity, USE_ITEM_SPEED_STAT),
+        );
         input.forward.set(input.forward.get() * factor as f32);
         input.strafe.set(input.strafe.get() * factor as f32);
     }
@@ -142,7 +174,9 @@ fn on_movement_input(input: &MovementInput) {
         // Only when the player has jumps to spend: a press with no double-jump gear would
         // otherwise sit pending until they equip some, and fire from a stale press.
         if extra_jumps(custom_attributes::value(input.entity, JUMP_COUNT)) > 0 {
-            if let Ok(mut pending) = PENDING_DOUBLE_JUMP.lock() { pending.insert(input.entity, ()); }
+            if material_sync::remote_connection() {
+                attribute_sync::request_double_jump();
+            } else if let Ok(mut pending) = PENDING_DOUBLE_JUMP.lock() { pending.insert(input.entity, ()); }
         }
     }
 }
@@ -161,15 +195,24 @@ fn on_player_tick(tick: &PlayerTick) {
     if tick.on_ground {
         if let Ok(mut taken) = JUMPS_TAKEN.lock() { taken.remove(&tick.entity); }
     }
+    // A guest client's jump press arrives as a control packet: it lands here, as a pending
+    // double jump resolved with the server's values and jumps-taken state.
+    if attribute_sync::take_double_jump_request(tick.player) {
+        if let Ok(mut pending) = PENDING_DOUBLE_JUMP.lock() { pending.insert(tick.entity, ()); }
+    }
     let mut double_jumped = false;
     if PENDING_DOUBLE_JUMP.lock().map(|mut pending| pending.remove(&tick.entity).is_some()).unwrap_or(false) {
         let taken = JUMPS_TAKEN.lock().map(|taken| taken.get(&tick.entity).copied().unwrap_or(0)).unwrap_or(0);
         let extra = extra_jumps(custom_attributes::value(tick.entity, JUMP_COUNT));
         if may_double_jump(tick.on_ground, tick.in_water, taken, extra) {
-            let boost = custom_attributes::value(tick.entity, JUMP_BOOST);
+            let boost = custom_attributes::value(tick.entity, JUMP_BOOST)
+                + custom_attributes::armor_stat_for(tick.entity, JUMP_BOOST_STAT);
             EntityReach::push(tick.entity as u64, sub(double_jump_velocity(boost), velocity));
             if let Ok(mut taken) = JUMPS_TAKEN.lock() { taken.insert(tick.entity, taken + 1); }
             World::new(&tick.dimension).play_sound(DOUBLE_JUMP_SOUND, tick.position, 0.5, 0.5);
+            // The canon's four happy-villager particles at the player's feet, as one send of
+            // four: the port spreads them by a Gaussian, not the canon's uniform ±0.25.
+            World::new(&tick.dimension).send_particles(DOUBLE_JUMP_PARTICLE, &ParticleData::Plain, tick.position, DOUBLE_JUMP_PARTICLE_SPREAD, 0.0, DOUBLE_JUMP_PARTICLE_COUNT);
             double_jumped = true;
         }
     }
@@ -197,9 +240,10 @@ mod tests {
 
     #[test]
     fn the_critical_boost_is_the_value_over_its_default() {
-        assert_eq!(critical_boost(1.5), 0.0, "the default is no boost");
-        assert_eq!(critical_boost(2.0), 0.5);
-        assert_eq!(critical_boost(1.0), -0.5, "below the default, no force");
+        assert_eq!(critical_boost(1.5, 0.0), 0.0, "the default is no boost");
+        assert_eq!(critical_boost(2.0, 0.0), 0.5);
+        assert_eq!(critical_boost(1.0, 0.0), -0.5, "below the default, no force");
+        assert_eq!(critical_boost(1.5, 0.25), 0.25, "the armor stat adds to the boost");
     }
 
     #[test]
@@ -229,10 +273,13 @@ mod tests {
 
     #[test]
     fn the_use_item_speed_factor_cancels_vanillas_slowdown_at_default() {
-        assert_eq!(use_item_speed_factor(0.2), 1.0, "the default 0.2 times 5 is full speed");
-        assert_eq!(use_item_speed_factor(0.0), 0.0, "stopped");
-        assert_eq!(use_item_speed_factor(1.0), 5.0);
-        assert_eq!(use_item_speed_factor(2.0), 5.0, "clamped at 1.0");
+        assert_eq!(use_item_speed_factor(0.2, 0.0, 0.0), 1.0, "the default 0.2 times 5 is full speed");
+        assert_eq!(use_item_speed_factor(0.0, 0.0, 0.0), 0.0, "stopped");
+        assert_eq!(use_item_speed_factor(1.0, 0.0, 0.0), 5.0);
+        assert_eq!(use_item_speed_factor(2.0, 0.0, 0.0), 5.0, "clamped at 1.0");
+        assert_eq!(use_item_speed_factor(0.2, 0.2, 0.0), 2.0, "a tool 0.2 over its default doubles the factor");
+        assert_eq!(use_item_speed_factor(0.2, 0.0, 0.1), 1.5, "the armor stat adds to the speed");
+        assert_eq!(use_item_speed_factor(0.2, -0.3, 0.0), 0.0, "a slow tool clamps at zero");
     }
 
     #[test]
@@ -253,9 +300,13 @@ mod tests {
     }
 
     fn input_for(entity: i32, jump: bool, using_item: bool) -> MovementInput {
+        input_with(entity, jump, using_item, None)
+    }
+
+    fn input_with(entity: i32, jump: bool, using_item: bool, using: Option<pluto_lib::StackData>) -> MovementInput {
         MovementInput {
             entity, forward: Cell::new(1.0), strafe: Cell::new(0.4),
-            jump: Cell::new(jump), sneak: Cell::new(false), using_item,
+            jump: Cell::new(jump), sneak: Cell::new(false), using_item, using,
         }
     }
 
@@ -284,6 +335,26 @@ mod tests {
     }
 
     #[test]
+    fn a_held_tool_over_its_use_item_speed_default_speeds_the_impulses() {
+        register();
+        custom_attributes::register();
+        // The held bow's built stat is 0.4, 0.2 over the default: the factor is (0.2 + 0.2) * 5 = 2.
+        let mut stats = pluto_lib::NbtCompound::new();
+        stats.insert("tconstruct:use_item_speed".into(), pluto_lib::Nbt::Float(0.4));
+        let mut custom_data = pluto_lib::NbtCompound::new();
+        custom_data.insert("tic_stats".into(), pluto_lib::Nbt::Compound(stats));
+        let bow = pluto_lib::StackData { item: "tconstruct:longbow".into(), count: 1, custom_data, ..pluto_lib::StackData::default() };
+        let input = input_with(7708, false, true, Some(bow));
+        ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input);
+        assert_eq!(input.forward.get(), 2.0, "the tool-stat delta joins the attribute: {:?}", input.forward.get());
+        assert!((input.strafe.get() - 0.8).abs() < 1e-9);
+        // No stack in hand: the delta is zero and the default speed stands.
+        let input = input_for(7708, false, true);
+        ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input);
+        assert_eq!(input.forward.get(), 1.0);
+    }
+
+    #[test]
     fn a_double_jump_fires_once_per_press_and_once_per_airtime() {
         register();
         custom_attributes::register();
@@ -303,6 +374,9 @@ mod tests {
                 assert_eq!(ops.pushed[0].0, 7709);
                 assert_eq!(ops.pushed[0].1, [0.0, 0.42, 0.0], "the set velocity, the measured motion being still: {:?}", ops.pushed[0].1);
                 assert_eq!(world.sounds, vec![("tconstruct:extra_jump".to_owned(), [0.0, 64.0, 0.0])], "the extra-jump sound");
+                assert_eq!(world.particles.len(), 1, "one send for the four particles");
+                assert_eq!(world.particles[0].particle, "minecraft:happy_villager");
+                assert_eq!((world.particles[0].at, world.particles[0].spread, world.particles[0].speed, world.particles[0].count), ([0.0, 64.0, 0.0], [0.25, 0.0, 0.25], 0.0, 4), "four at the feet, ±0.25 on x and z: {:?}", world.particles[0]);
                 // Held down, the key is no fresh press: nothing more fires.
                 ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
                 ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
