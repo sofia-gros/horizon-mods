@@ -3,7 +3,8 @@
 //! over the area-of-effect iterator's DISPLAY predicate): while the local
 //! player holds a tool and aims at a block, each provider answers the
 //! extra positions its own hooks would highlight — for the brush, the
-//! brushable neighbours of the aimed block — and the game draws the
+//! brushable neighbours of the aimed block, for a mining tool the
+//! neighbours the tool is effective on — and the game draws the
 //! block outline around each of them. The aimed block itself is not a
 //! provider's business: the game draws its own outline around the
 //! target, as vanilla draws it, and the original's event adds only the
@@ -13,7 +14,9 @@
 //! from the player's current aim, so a highlight lives exactly as long
 //! as the aim that causes it. Here the transport asks every registered
 //! provider once a frame while the world is drawn, with the facts of
-//! the local player's view at that moment, and draws the merged set:
+//! the local player's view at that moment — its block reach for the
+//! player's game mode, and whether a position sits inside the world
+//! border — and draws the merged set:
 //! a provider's answer is one frame's outline set, refreshed by being
 //! asked again and gone the first frame it stops answering. A provider
 //! that owns nothing in the facts answers an empty set.
@@ -36,6 +39,21 @@ pub const OUTLINE_ARGB: u32 = 0x6600_0000;
 /// block's own.
 pub const OUTLINE_WIDTH: f32 = 2.0;
 
+/// The block reach in survival (and adventure and spectator): the
+/// `minecraft:block_interaction_range` attribute's base value, as the
+/// game recomputes it every tick (`Game::tick`).
+pub const SURVIVAL_BLOCK_REACH: f32 = 4.5;
+
+/// The block reach in creative: the same attribute's base value there.
+pub const CREATIVE_BLOCK_REACH: f32 = 5.0;
+
+/// The block reach for game mode `mode` (0 survival, 1 creative,
+/// 2 adventure, 3 spectator, as the game numbers its modes): creative
+/// reaches 5.0, every other mode 4.5.
+pub fn block_reach_for_mode(mode: i32) -> f32 {
+    if mode == 1 { CREATIVE_BLOCK_REACH } else { SURVIVAL_BLOCK_REACH }
+}
+
 /// The block the local player's view rests on, as the game states it
 /// when it asks: where it is, the face the view enters it through (a
 /// unit offset), what it is, and how far along the view it sits.
@@ -53,9 +71,10 @@ pub struct HighlightTarget {
 }
 
 /// The facts of one frame's outline ask, as the game states them when
-/// it asks: the local player's main-hand stack and view, and reads of
-/// the blocks around the view's target. A frame on the title screen
-/// is never asked; a frame with no block in the view has no target.
+/// it asks: the local player's main-hand stack and view, its block
+/// reach for the player's game mode, and reads of the blocks around
+/// the view's target. A frame on the title screen is never asked; a
+/// frame with no block in the view has no target.
 pub struct HighlightFacts<'a> {
     /// The stack in the player's main hand (a tool's modifiers and
     /// persistent data ride in its custom data), or None when the
@@ -68,6 +87,15 @@ pub struct HighlightFacts<'a> {
     pub yaw: f32,
     /// The player's pitch, in degrees.
     pub pitch: f32,
+    /// The block reach the distance gate uses: the
+    /// `minecraft:block_interaction_range` attribute's base value for
+    /// the player's game mode (4.5 in survival, 5.0 in creative), as
+    /// the game recomputes it every tick.
+    pub block_reach: f32,
+    /// Whether a position sits inside the world border (the original's
+    /// `WorldBorder.isWithinBounds`): positions outside it are never
+    /// outlined, and do not spend one of the sixty slots.
+    pub in_world_border: &'a dyn Fn([i32; 3]) -> bool,
     /// The block at a position near the view, or None when nothing is
     /// loaded there: the read an area-of-effect iterator walks by.
     pub block_at: &'a dyn Fn([i32; 3]) -> Option<Identifier>,
@@ -99,13 +127,16 @@ impl HighlightRegistry {
 
 /// The merged outline set over `facts`: every registered provider's
 /// positions, in the order they answered, each position once, cut to
-/// [`MAX_HIGHLIGHTS`]. Empty when no provider highlights anything.
+/// [`MAX_HIGHLIGHTS`]. A position outside the world border never
+/// enters the set, and does not spend one of the sixty slots (the
+/// original counts only the blocks it draws). Empty when no provider
+/// highlights anything.
 pub fn highlight_positions(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
     let Ok(providers) = PROVIDERS.read() else { return Vec::new() };
     let mut positions: Vec<[i32; 3]> = Vec::new();
     for provider in providers.iter() {
         for pos in provider(facts) {
-            if !positions.contains(&pos) {
+            if !positions.contains(&pos) && (facts.in_world_border)(pos) {
                 positions.push(pos);
                 if positions.len() >= MAX_HIGHLIGHTS {
                     return positions;
@@ -129,7 +160,7 @@ mod tests {
     }
 
     fn facts<'a>(main_hand: Option<&'a ItemSlot>, target: Option<HighlightTarget>) -> HighlightFacts<'a> {
-        HighlightFacts { main_hand, target, yaw: 0.0, pitch: 0.0, block_at: &no_block, in_tag_at: &no_tag }
+        HighlightFacts { main_hand, target, yaw: 0.0, pitch: 0.0, block_reach: CREATIVE_BLOCK_REACH, in_world_border: &|_| true, block_at: &no_block, in_tag_at: &no_tag }
     }
 
     fn two(_: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
@@ -160,6 +191,27 @@ mod tests {
         assert_eq!(merged.len(), MAX_HIGHLIGHTS, "the merged set is cut to the original's maximum");
         assert_eq!(merged[..2], [[1, 64, -3], [2, 64, -3]], "earlier providers keep their places at the head");
         assert_eq!(merged[2], [0, 64, 0], "the flood fills the rest in its own order");
+        // A position outside the world border is never outlined, and does not
+        // spend one of the sixty slots (the original counts only drawn blocks).
+        let border = |pos: [i32; 3]| pos[0] <= 1;
+        let facts = HighlightFacts { in_world_border: &border, ..facts(None, None) };
+        assert_eq!(highlight_positions(&facts), vec![[1, 64, -3], [0, 64, 0], [1, 64, 0]],
+            "the border lets only the flood's first two blocks through");
+        let border = |pos: [i32; 3]| pos[0] >= 2;
+        let facts = HighlightFacts { in_world_border: &border, ..facts(None, None) };
+        let merged = highlight_positions(&facts);
+        assert_eq!(merged.len(), MAX_HIGHLIGHTS, "excluded positions do not spend slots");
+        assert_eq!(merged[59], [60, 64, 0], "the sixtieth drawn block is the flood's fifty-ninth");
+    }
+
+    #[test]
+    fn the_reach_is_the_game_modes_own() {
+        assert_eq!(SURVIVAL_BLOCK_REACH, 4.5);
+        assert_eq!(CREATIVE_BLOCK_REACH, 5.0);
+        assert_eq!(block_reach_for_mode(0), 4.5, "survival");
+        assert_eq!(block_reach_for_mode(1), 5.0, "creative");
+        assert_eq!(block_reach_for_mode(2), 4.5, "adventure reaches as survival does");
+        assert_eq!(block_reach_for_mode(3), 4.5, "spectator reaches as survival does");
     }
 
     #[test]

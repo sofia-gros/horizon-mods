@@ -3831,6 +3831,24 @@ impl Hooks for PlutoHooks {
                 distance,
             })
         });
+        // The block reach for the player's game mode: no host read states the local
+        // player's mode on the render path, so the mode is the one the game's mode
+        // setter last left (recorded by the pluto-highlight-mode reach, which runs
+        // on every path that sets the local mode: a world opening, /gamemode, a LAN
+        // mode). The setter runs before the first rendered frame of a world, and
+        // survival is the recorded default, so the reach is current in practice.
+        let block_reach = highlight_api_v1::block_reach_for_mode(horizon_client::entry::pluto_highlight_mode::mode());
+        // The world border the original checks each outlined block against: the
+        // host states it for the player's dimension, and states none off a server
+        // (a remote client has no border of its own) — where there is none, every
+        // position counts as inside, as the original's border is the world's own.
+        // The check is the original's `isWithinBounds` (the border is two
+        // dimensional; height is never checked).
+        let border = host.world_border(player.dimension);
+        let in_world_border = move |pos: [i32; 3]| {
+            let Some([min_x, min_z, max_x, max_z]) = border else { return true };
+            (f64::from(pos[0]) + 1.0) > min_x && f64::from(pos[0]) < max_x && (f64::from(pos[2]) + 1.0) > min_z && f64::from(pos[2]) < max_z
+        };
         let block_at = |pos: [i32; 3]| Identifier::parse(&host.block(pos)).ok();
         let in_tag_at = |pos: [i32; 3], tag: &Identifier| {
             block_at(pos).is_some_and(|block| host.block_name_in_tag(&block.to_string(), &tag.to_string()).unwrap_or(false))
@@ -3840,6 +3858,8 @@ impl Hooks for PlutoHooks {
             target,
             yaw: player.yaw,
             pitch: player.pitch,
+            block_reach,
+            in_world_border: &in_world_border,
             block_at: &block_at,
             in_tag_at: &in_tag_at,
         };

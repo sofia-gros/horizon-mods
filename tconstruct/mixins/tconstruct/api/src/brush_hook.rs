@@ -179,8 +179,9 @@ fn on_tick(tick: &UseTick) {
 /// ones — are outlined. The aimed block itself is not returned: the game draws its
 /// own outline around the target, as vanilla does, and the original's event adds
 /// only the extra blocks. The frame's view hit is the game's own ray, which runs
-/// far past the brush's reach; a target past the creative reach highlights nothing
-/// (the frame facts carry no game mode to pick between the two reaches).
+/// far past the brush's reach; a target past the frame's block reach highlights
+/// nothing (the reach is the player's game mode's own, recorded by the
+/// pluto-highlight-mode reach).
 fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
     let Some(stack) = facts.main_hand else { return Vec::new() };
     let stack = stack_of(stack);
@@ -188,7 +189,7 @@ fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
         return Vec::new();
     }
     let Some(target) = &facts.target else { return Vec::new() };
-    if target.distance > brush::reach(true) as f32 {
+    if target.distance > facts.block_reach {
         return Vec::new();
     }
     neighbours_with(&stack, target.pos, target.face, facts.yaw, facts.pitch, facts.block_at, facts.in_tag_at)

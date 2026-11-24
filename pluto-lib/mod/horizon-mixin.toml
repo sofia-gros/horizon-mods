@@ -1958,6 +1958,26 @@ name = "pluto_brush_flush"
 source = "pluto-brush-flush.rs"
 visibility = "pub(crate)"
 
+# The highlight's game-mode facts: the game's mode setter runs on every path that sets the local
+# mode (a world opening, /gamemode, a LAN mode), and no host read states it on the render path,
+# so this records the mode the setter leaves for the highlight transport to read as the frame's
+# block reach (4.5 in survival, 5.0 in creative).
+[[module]]
+id = "pluto-highlight-mode"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_highlight_mode"
+source = "pluto-highlight-mode.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-highlight-mode-head"
+target = "horizon_client::game::game_mode::Game<'_>::set_mode"
+kind = "HEAD"
+helper = "pluto-highlight-mode-head.rs"
+bindings = [
+ { name = "mode", ty = "horizon_client::command::args::GameMode", value = "mode" }
+]
+
 # Native inventory gates for the pure advancement/recipe forwarders in the
 # API package (hooks.rs, behind the `native-inventory-glue` feature). This is
 # the transport subset migrated from the retired pluto_native_creative
