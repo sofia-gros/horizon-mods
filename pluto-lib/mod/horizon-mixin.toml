@@ -1911,16 +1911,20 @@ bindings = [
 ]
 
 # A screen for a mod menu opened for an item (not a block): `open_native_screen` returns early for one, since no block at the stand-in
-# position carries the menu, so the return hook opens the screen from the menu's own layout when the extra data marks an item menu.
+# position carries the menu, so the hook opens the screen from the menu's own layout when the extra data marks an item menu.
+# A cancellable HEAD, not a RETURN: the host body spends its control flow in ways the weaver cannot rewrite for a return hook
+# (E_UNSUPPORTED_CONTROL_FLOW), so the head hook reproduces the return hook's decisions from the same state the body would have
+# read, and skips the body only on the path where it would have left `mod_screen` cleared.
 [[injection]]
 id = "pluto-open-item-screen"
 target = "horizon_client::game::native_hooks::Game<'_>::open_native_screen"
-kind = "RETURN"
-helper = "pluto-open-item-screen-return.rs"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-open-item-screen.rs"
 bindings = [
-    { name = "value", ty = "()", value = "$value" },
     { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
     { name = "key", ty = "Pos", value = "key" },
+    { name = "target", ty = "Option<Pos>", value = "target" },
     { name = "window", ty = "i32", value = "window" },
     { name = "menu", ty = "&str", value = "menu" },
     { name = "extra", ty = "Option<horizon_protocol::menu_extra::Message>", value = "extra" },
