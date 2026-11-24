@@ -22,7 +22,7 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|mob_equipment|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/enchantments_to_modifiers\.json'),
-    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment|block_entity_type|potion|menu)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment|block_entity_type|potion|menu|instrument)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
     # The original's sound definitions and recordings (tools/import_original_data.py copy_sounds).
@@ -93,6 +93,13 @@ CONTENT_PATHS = (
     # the fluids recipe viewers hide, referenced by tconstruct's hide_in_creative_tanks fluid tag.
     # The port's tag kinds are singular, so it lands under data/c/tags/fluid.
     re.compile(r'data/c/tags/fluid/hidden_from_recipe_viewers\.json'),
+    # The original's common item and creative-tab tags (its data/c/tags/items and
+    # data/c/tags/creative_mode_tab): the items and tabs the recipe viewers hide.
+    # The port's tag kinds are singular, so the item one lands under data/c/tags/item.
+    # Unlike the fluid one above, the importer has no copy step for these two; they
+    # ship as-is, and a full importer re-run leaves them alone.
+    re.compile(r'data/c/tags/item/hidden_from_recipe_viewers\.json'),
+    re.compile(r'data/c/tags/creative_mode_tab/hidden_from_recipe_viewers\.json'),
     # Gameplay advancements and the functions their internal advancements reward, converted by the importer
     # (display icons in the host's form); the starting book's advancement reward table rides with them.
     re.compile(r'data/tconstruct/advancement/(?:foundry|internal|smeltery|tools|world)/[a-z0-9_]+\.json'),
