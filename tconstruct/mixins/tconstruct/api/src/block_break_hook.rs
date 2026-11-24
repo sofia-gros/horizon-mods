@@ -5,7 +5,7 @@
 //! (HarvestEnchantmentsModifierHook: merged into the stack before the break, restored after) and the block-break half of tool usage
 //! effects (MobEffectModule.ToolUsage's afterBlockBreak). The edits land as `EntityAction::EditStackData` on the main hand. An area
 //! tool's extra blocks ride the same before-break callback through `break_extra` (see area_break).
-use crate::{break_speed_hook::with_held_tool, common, melting_recipes::{MeltingKind, OreRate}, tool_damage_hook, tool_mining, tool_stack, weapon_effect::Usage, weapon_effect_hook::usage_actions};
+use crate::{break_speed_hook::with_held_tool, common, melting_recipes::{MeltingKind, OreRate}, tool_damage_hook, tool_mining, tool_slot, tool_stack, weapon_effect::Usage, weapon_effect_hook::usage_actions};
 use pluto_lib::{ActionTarget, BlockBreakContext, EntityAction, FluidStack, Identifier, LootTableEvents, Nbt, PlayerBlockBreakEvents, StackData, StackDataEdit, StackSlot, World};
 use std::sync::Mutex;
 
@@ -157,6 +157,164 @@ fn area_break(broken: &BlockBreakContext) {
     for pos in positions { broken.break_extra(pos); }
 }
 
+/// What the exchanging modifier does with one broken block: the state to place and how the provider is consumed.
+#[derive(Debug, PartialEq)]
+struct Exchange {
+    state: pluto_lib::BlockState,
+    consume: ExchangeConsume,
+}
+
+/// How one placement consumes its provider: a block item shrinks by one in the off hand; a tool takes its provider module's wear in the hand that provided it.
+#[derive(Debug, PartialEq)]
+enum ExchangeConsume {
+    ShrinkOffhand,
+    DamageOffhand { modifier: Identifier, wear: i32 },
+    DamageMainHand { modifier: Identifier, wear: i32 },
+}
+
+/// The exchange for one broken block, decided from the tool and the hands alone: the state to place and how the provider is consumed.
+/// `carries` is whether the breaking tool carries exchanging; `offhand` the off-hand stack; `offhand_provider`/`mainhand_provider` are the
+/// tools' block_item_provider answers (providing modifier, item, wear). Off hand first, then the breaking tool — the original's order.
+/// A plain block item provides itself when the item snapshot names it (a tool only ever provides through its provider module, and the
+/// module's load validation is what guarantees its item is a BlockItem). None when the tool carries no exchanging or nothing provides
+/// a block. The plain-item half is the mirror of WorldAccess::block_item with the same approximation: with no block registry reach,
+/// an item the snapshot names but whose id names no block answers a state the host refuses to place, so the placement fails and
+/// nothing is consumed.
+fn exchange_decision(
+    carries: bool,
+    offhand: Option<&StackData>,
+    offhand_provider: Option<(Identifier, Identifier, i32)>,
+    mainhand_provider: Option<(Identifier, Identifier, i32)>,
+    items: Option<&pluto_lib::RegistryLookup>,
+) -> Option<Exchange> {
+    if !carries {
+        return None;
+    }
+    if let Some(stack) = offhand.filter(|stack| stack.count > 0) {
+        if let Some((modifier, item, wear)) = offhand_provider {
+            return Some(Exchange { state: pluto_lib::BlockState::new(item), consume: ExchangeConsume::DamageOffhand { modifier, wear } });
+        }
+        if !stack.custom_data.contains_key(tool_stack::TAG_MATERIALS) {
+            if let Ok(item) = Identifier::parse(&stack.item) {
+                if items.is_some_and(|items| items.contains(&item)) {
+                    return Some(Exchange { state: pluto_lib::BlockState::new(item), consume: ExchangeConsume::ShrinkOffhand });
+                }
+            }
+        }
+    }
+    let (modifier, item, wear) = mainhand_provider?;
+    Some(Exchange { state: pluto_lib::BlockState::new(item), consume: ExchangeConsume::DamageMainHand { modifier, wear } })
+}
+
+/// Whether the tool's item is in the durability tag (a Tinkers tool is); true when the snapshot is missing, as the wear path assumes.
+fn durability_tagged(item: &Identifier) -> bool {
+    let Some(items) = common::item_snapshot() else { return true; };
+    let tag = Identifier::new("tconstruct", "modifiable/durability").expect("valid id");
+    items.get_tag(&tag).is_some_and(|members| members.contains(item))
+}
+
+/// A slot as the player API's stack data (the write-back form of a damaged tool).
+fn stack_data_of_slot(slot: &pluto_lib::ItemSlot) -> StackData {
+    StackData {
+        item: slot.item.to_string(),
+        count: slot.count,
+        damage: slot.damage,
+        max_damage: slot.max_damage.map(|max| u32::try_from(max).unwrap_or(0)),
+        custom_data: slot.custom_data.clone(),
+        custom_model_data: slot.custom_model_data.clone(),
+        enchantments: slot.enchantments.clone().unwrap_or_default(),
+    }
+}
+
+/// Consumes the provider of one exchange, on the stacks the player holds now (the decision's stacks are a tick old, so the live stack
+/// must still be the same tool before it is worn, as the harvest-merge restore does). A block item shrinks in the off hand; a tool
+/// takes its provider's wear on ToolDamageUtil.damageAnimated's reduced path, with the providing modifier as the cause. A wear that
+/// fails to apply leaves the tool unworn rather than eating it. A creative holder is not told apart here (no game-mode surface on
+/// the player handle), so their provider wears too.
+fn apply_exchange_consume(player: &pluto_lib::ServerPlayer, held: &StackData, offhand: Option<&StackData>, exchange: &Exchange) {
+    match &exchange.consume {
+        ExchangeConsume::ShrinkOffhand => {
+            let Some(stack) = offhand.filter(|stack| stack.count > 0) else { return; };
+            let live = player.stack(-106).or_else(|| offhand.cloned());
+            let Some(live) = live.filter(|live| live.item == stack.item && live.count > 0) else { return; };
+            if live.count <= 1 {
+                player.set_equipment(StackSlot::OffHand, None);
+            } else {
+                let mut shrunk = live;
+                shrunk.count -= 1;
+                player.set_equipment(StackSlot::OffHand, Some(&shrunk));
+            }
+        }
+        ExchangeConsume::DamageOffhand { modifier, wear } => {
+            let Some(stack) = offhand else { return; };
+            let live = player.stack(-106).or_else(|| offhand.cloned());
+            let Some(live) = live.filter(|live| live.item == stack.item && Nbt::Compound(live.custom_data.clone()) == Nbt::Compound(stack.custom_data.clone())) else { return; };
+            let damaged = with_held_tool(&live, |env, slot| {
+                let mut slot = slot.clone();
+                tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?;
+                Some(stack_data_of_slot(&slot))
+            })
+            .ok()
+            .flatten();
+            if let Some(damaged) = damaged {
+                player.set_equipment(StackSlot::OffHand, Some(&damaged));
+            }
+        }
+        ExchangeConsume::DamageMainHand { modifier, wear } => {
+            let Some(selected) = player.selected_slot() else { return; };
+            let Some(live) = player.stack(selected).filter(|live| live.item == held.item && Nbt::Compound(live.custom_data.clone()) == Nbt::Compound(held.custom_data.clone())) else { return; };
+            let damaged = with_held_tool(&live, |env, slot| {
+                let mut slot = slot.clone();
+                tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?;
+                Some(stack_data_of_slot(&slot))
+            })
+            .ok()
+            .flatten();
+            if let Some(damaged) = damaged {
+                player.update_stack(selected, &damaged);
+            }
+        }
+    }
+}
+
+/// ExchangingModifier.removeBlock, after the break: the break already rolled its drops (and its XP), so the replacement lands here, in
+/// the air the break left — a tick late at most. A veto in the before callback would have kept the block and lost the drops, which the
+/// original harvests; and the after telling only fires for a block that actually changed, so the glow and fire vetoes (which keep their
+/// block) never reach here, whatever their priority. What the port does not carry: the adventure-mode place check (no mayBuild surface
+/// on the player handle), the off-hand swing, the neighbour packet, and the slab orientation of BlockItem.place (the state is placed
+/// as its default, as the fluid place-block effect does). The tool is read as the break left it, as the after-break telling does.
+/// The off hand is read live first (a plain block item carries no custom data, so the tick memory never names it); the captured
+/// equipment is the fallback for a tool provider. The two environment builds run sequentially, never nested, so no registry lock is
+/// ever taken twice.
+fn exchange_after(broken: &BlockBreakContext) {
+    let (Some(player), Some(held)) = (broken.player.as_ref(), broken.held.as_ref()) else { return; };
+    // Another placement has taken the air since the break; never overwrite it.
+    let world = World::new(&broken.dimension);
+    if world.get_block_state(broken.pos).is_some_and(|now| now.block.to_string() != "minecraft:air") {
+        return;
+    }
+    let offhand = player.stack(-106).or_else(|| broken.equipment.iter().find(|(slot, _)| slot == "offhand").map(|(_, stack)| stack.clone()));
+    let items = common::item_snapshot();
+    let offhand_provider = offhand.as_ref().and_then(|stack| {
+        with_held_tool(stack, |env, slot| tool_stack::block_item_provider(&slot.custom_data, env)).ok().flatten()
+    });
+    let exchanging = Identifier::new("tconstruct", "exchanging").expect("valid id");
+    let Some(exchange) = with_held_tool(held, |env, slot| {
+        let carries = tool_stack::saved_modifiers(&slot.custom_data, env.modifiers).iter().any(|(entry, _)| entry.id == exchanging);
+        let mainhand_provider = tool_stack::block_item_provider(&slot.custom_data, env);
+        exchange_decision(carries, offhand.as_ref(), offhand_provider, mainhand_provider, items.as_deref())
+    })
+    .ok()
+    .flatten() else {
+        return;
+    };
+    // A failed placement consumes nothing, as the original consumes only what its fake stack spent.
+    if !world.set_block_state(broken.pos, &exchange.state) {
+        return;
+    }
+    apply_exchange_consume(player, held, offhand.as_ref(), &exchange);
+}
+
 /// Registers the callbacks. Called once from the product's hooks.
 pub(crate) fn register() {
     // startHarvest: the modules that run before the break (overwield spends overslime as the tool starts to dig). Runs even when a later
@@ -221,6 +379,8 @@ pub(crate) fn register() {
         }
         broken.actions.borrow_mut().extend(usage_actions(&[&broken.held], Usage::BlockBreak));
     });
+    // ExchangingModifier.removeBlock, after the break (see exchange_after): the break already rolled its drops, so the replacement lands here.
+    PlayerBlockBreakEvents::AFTER.register(|broken| exchange_after(broken));
     // processLoot: the loot of a block a player's tool broke. ModifierLootModifier runs it for tools of the loot capable tag that are not broken.
     LootTableEvents::MODIFY_DROPS.register(|drops| {
         let (Some(tool), Some(_), true) = (drops.tool.as_ref(), drops.player, drops.block.is_some()) else { return };
@@ -242,4 +402,157 @@ pub(crate) fn register() {
         // processLoot's autosmelt half: drops a cooking recipe takes become their cooked result.
         let _ = with_held_tool(tool, |env, stack| tool_stack::autosmelt_loot(&stack.custom_data, env, &mut loot, &in_tag, &mut tool_damage_hook::random));
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pluto_lib::{MemoryPlayerOps, RegistryLookup, ServerPlayer, with_ops};
+    use serde_json::json;
+
+    fn stack(item: &str, count: u32) -> StackData {
+        StackData { item: item.into(), count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), custom_model_data: None, enchantments: Default::default() }
+    }
+
+    fn tool_stack(item: &str) -> StackData {
+        let mut data = NbtCompound::new();
+        data.insert(tool_stack::TAG_MATERIALS.into(), Nbt::List(Vec::new()));
+        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data: data, custom_model_data: None, enchantments: Default::default() }
+    }
+
+    fn items(names: &[&str]) -> RegistryLookup {
+        RegistryLookup::from_parts(&names.iter().map(|name| name.to_string()).collect::<Vec<_>>(), &[]).unwrap()
+    }
+
+    fn id(value: &str) -> Identifier {
+        Identifier::parse(value).unwrap()
+    }
+
+    fn provider(modifier: &str, item: &str, wear: i32) -> (Identifier, Identifier, i32) {
+        (id(modifier), id(item), wear)
+    }
+
+    #[test]
+    fn no_exchanging_means_no_exchange_even_when_a_hand_provides() {
+        let offhand = stack("minecraft:stone", 64);
+        let known = items(&["minecraft:stone"]);
+        assert_eq!(exchange_decision(false, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known)), None);
+    }
+
+    #[test]
+    fn an_offhand_block_item_places_and_shrinks() {
+        let offhand = stack("minecraft:stone", 64);
+        let known = items(&["minecraft:stone"]);
+        assert_eq!(
+            exchange_decision(true, Some(&offhand), None, None, Some(&known)),
+            Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand })
+        );
+    }
+
+    #[test]
+    fn an_offhand_block_shadows_the_mainhand_provider() {
+        let offhand = stack("minecraft:stone", 64);
+        let known = items(&["minecraft:stone"]);
+        assert_eq!(
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known)),
+            Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand })
+        );
+    }
+
+    #[test]
+    fn an_offhand_tool_provider_wears_the_offhand_tool() {
+        let offhand = tool_stack("tconstruct:pickaxe");
+        assert_eq!(
+            exchange_decision(true, Some(&offhand), Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None, None),
+            Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageOffhand { modifier: id("tconstruct:glowing"), wear: 5 } })
+        );
+    }
+
+    #[test]
+    fn an_offhand_tool_without_a_provider_falls_through_to_the_mainhand() {
+        let offhand = tool_stack("tconstruct:pickaxe");
+        assert_eq!(
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), None),
+            Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageMainHand { modifier: id("tconstruct:glowing"), wear: 5 } })
+        );
+    }
+
+    #[test]
+    fn an_offhand_item_the_snapshot_does_not_name_falls_through_to_the_mainhand() {
+        let offhand = stack("minecraft:stick", 1);
+        let known = items(&["minecraft:stone"]);
+        assert_eq!(
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known)),
+            Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageMainHand { modifier: id("tconstruct:glowing"), wear: 5 } })
+        );
+    }
+
+    #[test]
+    fn an_empty_offhand_stack_falls_through_to_the_mainhand() {
+        let offhand = stack("minecraft:stone", 0);
+        let known = items(&["minecraft:stone"]);
+        assert_eq!(
+            exchange_decision(true, Some(&offhand), None, Some(provider("tconstruct:glowing", "minecraft:glowstone", 5)), Some(&known)),
+            Some(Exchange { state: pluto_lib::BlockState::new(id("minecraft:glowstone")), consume: ExchangeConsume::DamageMainHand { modifier: id("tconstruct:glowing"), wear: 5 } })
+        );
+    }
+
+    #[test]
+    fn nothing_providing_means_no_exchange() {
+        let offhand = stack("minecraft:stick", 1);
+        let known = items(&["minecraft:stone"]);
+        assert_eq!(exchange_decision(true, Some(&offhand), None, None, Some(&known)), None);
+        assert_eq!(exchange_decision(true, None, None, None, Some(&known)), None);
+    }
+
+    #[test]
+    fn a_tool_carrying_exchanging_and_a_provider_resolves_both() {
+        let data = crate::tool_definitions::Data::decode(&json!({"modules":[
+            {"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100,"tconstruct:mining_speed":4,"tconstruct:harvest_tier":"minecraft:stone"}},
+            {"type":"tconstruct:is_effective","predicate_type":"mantle:tag","tag":"minecraft:mineable/pickaxe"}
+        ]})).unwrap();
+        let mut materials = crate::materials::Definitions::default();
+        materials.server_loaded = true;
+        let mut registry = crate::modifiers::Registry::default();
+        for modifier in crate::modifiers::ported_code_modifiers().unwrap() {
+            registry.register_static(modifier).unwrap();
+        }
+        let glowing = crate::modifiers::Modifier::decode(
+            id("tconstruct:glowing"),
+            &json!({"modules":[{"type":"tconstruct:block_item_provider","item":"minecraft:glowstone","tool_damage":5}]}),
+        )
+        .unwrap();
+        registry.register_static(glowing).unwrap();
+        let list = crate::modifier_entries::List::from_nbt(None)
+            .with_modifier(id("tconstruct:exchanging"), 1).unwrap()
+            .with_modifier(id("tconstruct:glowing"), 1).unwrap();
+        let mut nbt = NbtCompound::new();
+        nbt.insert(tool_stack::TAG_MODIFIERS.into(), list.to_nbt());
+        let mut stats = NbtCompound::new();
+        stats.insert("tconstruct:durability".into(), Nbt::Float(100.0));
+        nbt.insert(tool_stack::TAG_STATS.into(), Nbt::Compound(stats));
+        let item = id("tconstruct:pickaxe");
+        let env = tool_stack::Environment { definition: Some(&data), has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: false, item: Some(&item), item_tags: None };
+        assert!(tool_stack::saved_modifiers(&nbt, &registry).iter().any(|(entry, _)| entry.id == id("tconstruct:exchanging")));
+        assert_eq!(tool_stack::block_item_provider(&nbt, &env), Some((id("tconstruct:glowing"), id("minecraft:glowstone"), 5)));
+        let exchanging = crate::modifiers::ported_code_modifiers().unwrap().into_iter().find(|modifier| modifier.id == id("tconstruct:exchanging")).unwrap();
+        assert_eq!(exchanging.priority, -32788);
+        assert!(exchanging.modules().iter().any(|module| matches!(module, crate::modifier_modules::Module::Exchanging)));
+        assert!(crate::modifiers::unported_code_modifiers().unwrap().iter().all(|modifier| modifier.id != id("tconstruct:exchanging")));
+    }
+
+    #[test]
+    fn shrinking_the_offhand_writes_back_through_the_player() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        let held = stack("tconstruct:pickaxe", 1);
+        let offhand = stack("minecraft:stone", 3);
+        let exchange = Exchange { state: pluto_lib::BlockState::new(id("minecraft:stone")), consume: ExchangeConsume::ShrinkOffhand };
+        with_ops(&mut ops, || apply_exchange_consume(&player, &held, Some(&offhand), &exchange));
+        assert_eq!(ops.carried.get(&(1, -106)).map(|stack| stack.count), Some(2));
+        // The last block clears the hand.
+        let offhand = stack("minecraft:stone", 1);
+        with_ops(&mut ops, || apply_exchange_consume(&player, &held, Some(&offhand), &exchange));
+        assert!(!ops.carried.contains_key(&(1, -106)));
+    }
 }

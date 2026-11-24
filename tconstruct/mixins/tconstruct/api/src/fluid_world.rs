@@ -32,6 +32,7 @@
 //!   through the impact's own actions, which PlutoLib does to the hit's parties after the callback.
 //!   Area targets (an area effect's neighbours) are reached for hurts and facts only.
 use crate::common;
+use crate::{break_speed_hook, tool_stack};
 use crate::fluid_effects::{
     ActiveEffect, BlockContext, BlockInteraction, BreakSpec, CloudSpec, EntityInteractSpec, EntityTarget, ExplosionSpec, Holder,
     InteractSpec, InteractionResult, NewEffect, PlaceSpec, PotionEffect, PushReaction, Stack, WorldAccess,
@@ -323,8 +324,40 @@ impl WorldAccess for LiveWorld {
         let Some(block) = spec.block.clone() else { return InteractionResult::Pass };
         if !self.can_be_replaced(spec.pos) { return InteractionResult::Pass; }
         if !self.world.set_block_state(spec.pos, &block) { return InteractionResult::Pass; }
+        // The original consumes the provider, not the placed stack as a count: a tool's provider
+        // module damages the tool by its tool_damage (its consume), a block item shrinks by one. The
+        // engine stack carries no damage channel, so a tool's wear is written into its NBT with the
+        // env-free direct damage (the reduced damageAnimated path is unreachable from here) and its
+        // count is untouched; the caller writes the stack back into its slot. A stack that looks
+        // like a tool but whose provider check errored (registries unready) is left untouched rather
+        // than eaten: eating it would destroy a tool for a placement the provider never authorised.
         if !spec.holder.creative && !spec.stack.is_empty() {
-            spec.stack.count -= 1;
+            let held = pluto_lib::StackData {
+                item: spec.stack.item.to_string(),
+                count: spec.stack.count.max(0) as u32,
+                damage: 0,
+                max_damage: None,
+                custom_data: spec.stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default(),
+                custom_model_data: None,
+                enchantments: Default::default(),
+            };
+            let provider = break_speed_hook::with_held_tool(&held, |env, slot| tool_stack::block_item_provider(&slot.custom_data, env));
+            match provider {
+                Ok(Some((_modifier, _provided, wear))) => {
+                    let mut data = held.custom_data;
+                    crate::tool_damage::direct_damage(&mut data, wear, true);
+                    spec.stack.nbt = Some(nbt_to_value(&data));
+                }
+                Ok(None) => {
+                    spec.stack.count -= 1;
+                }
+                Err(_) if held.custom_data.contains_key(tool_stack::TAG_MATERIALS) => {
+                    // A tool whose provider could not be read: leave the stack alone.
+                }
+                Err(_) => {
+                    spec.stack.count -= 1;
+                }
+            }
         }
         if let Some(sound) = &spec.sound {
             self.world.play_sound(sound, spec.location, 1.0, 1.0);
@@ -384,7 +417,28 @@ impl WorldAccess for LiveWorld {
         self.items.as_deref().filter(|items| items.contains(block)).map(|_| block.clone())
     }
 
-    fn item_provided_block(&self, _item: &Identifier) -> Option<BlockState> { None }
+    fn item_provided_block(&self, stack: &Stack) -> Option<BlockState> {
+        // A tool's provider module says which block it provides (the glowing tool provides glowstone);
+        // a plain block item provides itself. The item snapshot is the only block-name reach, so a
+        // non-block item whose id happens to be listed there answers a state the host will not place;
+        // the placement then fails and nothing is consumed. A block registry reach would answer
+        // exactly. A broken tool provides nothing, as the original's tool-not-broken condition.
+        let held = pluto_lib::StackData {
+            item: stack.item.to_string(),
+            count: stack.count.max(0) as u32,
+            damage: 0,
+            max_damage: None,
+            custom_data: stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default(),
+            custom_model_data: None,
+            enchantments: Default::default(),
+        };
+        if let Some((_modifier, provided, _wear)) =
+            break_speed_hook::with_held_tool(&held, |env, slot| tool_stack::block_item_provider(&slot.custom_data, env)).ok().flatten()
+        {
+            return Some(BlockState::new(provided));
+        }
+        self.items.as_deref().filter(|items| items.contains(&stack.item)).map(|_| BlockState::new(stack.item.clone()))
+    }
 
     fn correct_tier_for_drops(&self, _tier: &str, _pos: BlockPos) -> bool { false }
 

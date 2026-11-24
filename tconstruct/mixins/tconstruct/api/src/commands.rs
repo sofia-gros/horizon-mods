@@ -1982,6 +1982,9 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:break_speed");
             out.insert("tconstruct:conditional_stat");
         }
+        Module::Exchanging => {
+            out.insert("tconstruct:remove_block");
+        }
         Module::Enderporting => {
             out.insert("tconstruct:melee_hit");
             out.insert("tconstruct:block_harvest");
@@ -2241,6 +2244,16 @@ mod tests {
         let mut out = BTreeSet::new();
         module_hooks(&Module::PlaceFire, &mut out);
         let expected: BTreeSet<&'static str> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].into_iter().collect();
+        assert_eq!(out, expected);
+    }
+
+    #[test]
+    fn exchanging_module_hooks_are_its_remove_block_hook() {
+        // The module_hooks set must equal the decode guard set in modifier_modules (the census
+        // counts the kind bound only when the two agree).
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::Exchanging, &mut out);
+        let expected: BTreeSet<&'static str> = ["tconstruct:remove_block"].into_iter().collect();
         assert_eq!(out, expected);
     }
 
