@@ -28,7 +28,7 @@
 use crate::{break_speed_hook::with_held_tool, common, slime_entities, tool_stack};
 use pluto_lib::{ActionTarget, DamageModification, EntityAction, Identifier, PlayerBlockBreakEvents, PlayerTick, ServerLivingEntityEvents, StackSlot, UseItemOnBlockContext, World};
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 /// How long a queued teleport or rod wear waits for its owner's next player tick: the tick that
@@ -39,12 +39,12 @@ const QUEUE_LIFETIME: Duration = Duration::from_secs(5);
 /// position, queued at). The fuse teleport's owner is named by entity id (the flight telling
 /// carries no uuid); a player owner whose direct teleport the reach refused is the one that waits
 /// here.
-static PENDING_FUSE_TELEPORTS: Mutex<HashMap<u64, (String, [f64; 3], Instant)>> = Mutex::new(HashMap::new());
+static PENDING_FUSE_TELEPORTS: LazyLock<Mutex<HashMap<u64, (String, [f64; 3], Instant)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 /// Teleports queued for their player's next tick, by the player's uuid: (dimension, position,
 /// queued at). The plant harvest's owner is named by uuid (the use telling carries no entity id).
-static PENDING_PLANT_TELEPORTS: Mutex<HashMap<u128, (String, [f64; 3], Instant)>> = Mutex::new(HashMap::new());
+static PENDING_PLANT_TELEPORTS: LazyLock<Mutex<HashMap<u128, (String, [f64; 3], Instant)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 /// Rod wear queued for its owner's next player tick, by the owner's entity id: (amount, queued at).
-static PENDING_ROD_WEAR: Mutex<HashMap<u64, (u32, Instant)>> = Mutex::new(HashMap::new());
+static PENDING_ROD_WEAR: LazyLock<Mutex<HashMap<u64, (u32, Instant)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// The wear actions of a landed enderport: the tool in the main hand takes `amount` damage.
 fn wear(held: &pluto_lib::StackData, amount: i32) -> Option<EntityAction> {

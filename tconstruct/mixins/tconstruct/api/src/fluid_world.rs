@@ -60,8 +60,8 @@ pub(crate) fn stack_of_slot(slot: &ItemSlot) -> Stack {
 /// conversion as stack_of_slot.
 pub(crate) fn stack_of_data(stack: &pluto_lib::StackData) -> Stack {
     Stack {
-        item: stack.item.clone(),
-        count: stack.count,
+        item: Identifier::parse(&stack.item).unwrap_or_else(|_| Identifier::new("minecraft", "air").expect("valid id")),
+        count: stack.count as i32,
         nbt: if stack.custom_data.is_empty() { None } else { Some(nbt_to_value(&stack.custom_data)) },
     }
 }

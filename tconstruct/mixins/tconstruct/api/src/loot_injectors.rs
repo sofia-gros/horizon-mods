@@ -341,7 +341,7 @@ impl SeededRoll {
 
 /// Whether the stack's item is a modifiable tool (AddToolDataFunction's `stack.is(MODIFIABLE)`).
 fn is_modifiable(item: &Identifier, items: &pluto_lib::RegistryLookup) -> bool {
-    let Some(tag) = Identifier::new("tconstruct", "modifiable") else { return false };
+    let Ok(tag) = Identifier::new("tconstruct", "modifiable") else { return false };
     items.get_tag(&tag).is_some_and(|members| members.contains(item))
 }
 
@@ -373,13 +373,14 @@ fn apply_add_tool_data(context: &LootFunctionContext) {
                 tool_stack::set_materials_raw(&mut stack.custom_data, &list);
             }
         }
+        let item_id = stack.item.clone();
         let env = tool_stack::Environment {
             definition: Some(definition),
             has_materials: true,
             materials,
             modifiers: &modifiers,
             item_tags_loaded: true,
-            item: Some(&stack.item),
+            item: Some(&item_id),
             item_tags: Some(&items),
         };
         if tool_stack::rebuild_stats(&mut stack.custom_data, &env).is_err() {
@@ -516,7 +517,7 @@ mod tests {
 
     #[test]
     fn conditions_gate_the_whole_injection_and_missing_pools_append() {
-        let slimy = injector(json!({
+        let slimy = || injector(json!({
             "name": "minecraft:chests/simple_dungeon",
             "conditions": [{"type": "tconstruct:config", "prop": "slimy_loot_chests"}],
             "pools": [{"name": "main", "entries": [
@@ -533,8 +534,8 @@ mod tests {
         let mut dungeon = table(json!([{"rolls": 1, "entries": []}]));
         let mut off = context();
         off.config.insert("slimy_loot_chests".to_owned(), false);
-        assert!(!merge_table("minecraft:chests/simple_dungeon", &mut dungeon, &[slimy], &off), "the gate off skips the injection");
-        assert!(merge_table("minecraft:chests/simple_dungeon", &mut dungeon, &[slimy], &context()), "the gate on (the default) merges it");
+        assert!(!merge_table("minecraft:chests/simple_dungeon", &mut dungeon, &[slimy()], &off), "the gate off skips the injection");
+        assert!(merge_table("minecraft:chests/simple_dungeon", &mut dungeon, &[slimy()], &context()), "the gate on (the default) merges it");
         assert_eq!(dungeon["pools"][0]["entries"].as_array().unwrap().len(), 1);
         // The labyrinth target never loads here: its mod is not loaded, so nothing merges even
         // for its own table id.

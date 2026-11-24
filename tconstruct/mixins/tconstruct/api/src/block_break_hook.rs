@@ -263,18 +263,18 @@ fn durability_tagged(item: &Identifier) -> bool {
     items.get_tag(&tag).is_some_and(|members| members.contains(item))
 }
 
-/// A slot as the player API's stack data (the write-back form of a damaged tool).
-fn stack_data_of_slot(slot: &pluto_lib::ItemSlot) -> StackData {
 /// The AOE_INTERACTION tag's members (tconstruct/content/data/tconstruct/tinkering/tags/modifiers/aoe_interaction.json):
 /// the modifiers whose presence makes the original's render event draw the highlight even when the
 /// tool is not effective on the aimed block.
 const AOE_INTERACTION: [&str; 6] = ["tconstruct:pathing", "tconstruct:stripping", "tconstruct:tilling", "tconstruct:brushing", "tconstruct:splashing", "tconstruct:harvest"];
 
+/// A slot as the player API's stack data (the write-back form of a damaged tool).
+fn stack_data_of_slot(slot: &pluto_lib::ItemSlot) -> StackData {
     StackData {
         item: slot.item.to_string(),
         count: slot.count,
         damage: slot.damage,
-        max_damage: slot.max_damage.map(|max| u32::try_from(max).unwrap_or(0)),
+        max_damage: slot.max_damage,
         custom_data: slot.custom_data.clone(),
         custom_model_data: slot.custom_model_data.clone(),
         enchantments: slot.enchantments.clone().unwrap_or_default(),
@@ -311,7 +311,8 @@ fn apply_exchange_consume(player: &pluto_lib::ServerPlayer, held: &StackData, of
             let Some(live) = live.filter(|live| live.item == stack.item && Nbt::Compound(live.custom_data.clone()) == Nbt::Compound(stack.custom_data.clone())) else { return; };
             let damaged = with_held_tool(&live, |env, slot| {
                 let mut slot = slot.clone();
-                let broke = tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?.broke;
+                let tagged = durability_tagged(&slot.item);
+                let broke = tool_slot::damage_slot(&mut slot, env, *wear, true, tagged, Some(modifier), &mut tool_damage_hook::random).ok()?.broke;
                 Some((stack_data_of_slot(&slot), broke))
             })
             .ok()
@@ -330,7 +331,8 @@ fn apply_exchange_consume(player: &pluto_lib::ServerPlayer, held: &StackData, of
             let Some(live) = player.stack(selected).filter(|live| live.item == held.item && Nbt::Compound(live.custom_data.clone()) == Nbt::Compound(held.custom_data.clone())) else { return; };
             let damaged = with_held_tool(&live, |env, slot| {
                 let mut slot = slot.clone();
-                let broke = tool_slot::damage_slot(&mut slot, env, *wear, true, durability_tagged(&slot.item), Some(modifier), &mut tool_damage_hook::random).ok()?.broke;
+                let tagged = durability_tagged(&slot.item);
+                let broke = tool_slot::damage_slot(&mut slot, env, *wear, true, tagged, Some(modifier), &mut tool_damage_hook::random).ok()?.broke;
                 Some((stack_data_of_slot(&slot), broke))
             })
             .ok()

@@ -111,7 +111,7 @@ mod tests {
         UseItemOnEntityContext {
             entity: 5, kind: kind.into(), hand: Hand::Main,
             held: Some(StackData { item: "tconstruct:pickaxe".into(), count: 1, ..Default::default() }),
-            player: None, dimension: "minecraft:overworld".into(), creative,
+            player: None, dimension: "minecraft:overworld".into(), player_dimension: "minecraft:overworld".into(), creative,
             actions: RefCell::new(Vec::new()),
         }
     }

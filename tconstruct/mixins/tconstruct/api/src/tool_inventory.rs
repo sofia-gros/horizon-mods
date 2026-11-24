@@ -202,7 +202,7 @@ fn compound_list<'a>(persistent: &'a NbtCompound, key: &str) -> Option<Vec<&'a N
     // getList(key, TAG_COMPOUND) is empty for a list of anything else.
     Some(if found.len() == list.len() { found } else { Vec::new() })
 }
-fn slot_of(compound: &NbtCompound) -> i64 { compound.get(TAG_SLOT).and_then(Nbt::as_i64).unwrap_or(0) }
+fn slot_number(compound: &NbtCompound) -> i64 { compound.get(TAG_SLOT).and_then(Nbt::as_i64).unwrap_or(0) }
 
 /// ItemStack.save plus the slot, for a stack in slot `slot`.
 pub(crate) fn write_stack(stack: &ItemSlot, slot: usize) -> NbtCompound {
@@ -320,7 +320,7 @@ impl Part {
     /// InventoryModule.getStack.
     fn get(&self, persistent: &NbtCompound, slot: usize) -> Option<ItemSlot> {
         if slot >= self.slots() { return None; }
-        compound_list(persistent, &self.key())?.into_iter().find(|compound| slot_of(compound) == slot as i64).and_then(read_stack)
+        compound_list(persistent, &self.key())?.into_iter().find(|compound| slot_number(compound) == slot as i64).and_then(read_stack)
     }
 
     /// Whether the part is active on its tool (its module's condition held).
@@ -332,7 +332,7 @@ impl Part {
     /// reads and rewrites them here, where the stack accessors would drop those fields.
     pub(crate) fn entries(&self, persistent: &NbtCompound) -> Vec<(usize, NbtCompound)> {
         compound_list(persistent, &self.key()).map(|list| list.iter().filter_map(|compound| {
-            let slot = slot_of(compound);
+            let slot = slot_number(compound);
             (slot >= 0).then(|| (slot as usize, (*compound).clone()))
         }).collect()).unwrap_or_default()
     }
@@ -359,7 +359,7 @@ impl Part {
         let mut insert_at = 0;
         for index in 0..list.len() {
             let Nbt::Compound(existing) = &list[index] else { continue; };
-            let listed = slot_of(existing);
+            let listed = slot_number(existing);
             if listed == slot as i64 {
                 match stack { None => { list.remove(index); } Some(stack) => list[index] = Nbt::Compound(write_stack(stack, slot)) }
                 return;
@@ -468,7 +468,7 @@ impl ToolInventory {
             if max > 0 {
                 if let Some(list) = compound_list(persistent, &part.key()) {
                     for compound in list {
-                        let slot = slot_of(compound);
+                        let slot = slot_number(compound);
                         if slot < 0 || slot as usize >= max { continue; }
                         if let Some(stack) = read_stack(compound).filter(|stack| predicate(stack)) { return Some((stack, start + slot as usize)); }
                     }
@@ -490,7 +490,7 @@ impl ToolInventory {
             if max > 0 {
                 if let Some(list) = compound_list(persistent, &part.key()) {
                     for compound in list {
-                        let slot = slot_of(compound);
+                        let slot = slot_number(compound);
                         if slot < 0 || slot as usize >= max { continue; }
                         if let Some(stack) = read_stack(compound).filter(|stack| part.valid(&stack.item, in_tag)) { return Some((stack, start + slot as usize)); }
                     }
@@ -510,7 +510,7 @@ impl ToolInventory {
             let Some(list) = compound_list(persistent, &part.key()) else { continue; };
             let mut parsed: Vec<Option<ItemSlot>> = vec![None; max];
             for compound in list {
-                let slot = slot_of(compound);
+                let slot = slot_number(compound);
                 if slot >= 0 && (slot as usize) < max { parsed[slot as usize] = read_stack(compound); }
             }
             stacks.extend(parsed.into_iter().flatten());
@@ -570,13 +570,13 @@ impl ToolInventory {
             let mut free = vec![true; max];
             for tag in list.iter() {
                 if let Nbt::Compound(compound) = tag {
-                    let slot = slot_of(compound);
+                    let slot = slot_number(compound);
                     if slot >= 0 && (slot as usize) < max { free[slot as usize] = false; }
                 }
             }
             for tag in list.iter_mut() {
                 let Nbt::Compound(compound) = tag else { continue; };
-                if slot_of(compound) >= max as i64 {
+                if slot_number(compound) >= max as i64 {
                     let Some(target) = free.iter().position(|free| *free) else { return Err(HAS_ITEMS); };
                     free[target] = false;
                     compound.insert(TAG_SLOT.into(), Nbt::Int(target as i32));

@@ -208,7 +208,7 @@ fn on_player_tick(tick: &PlayerTick) {
             let boost = custom_attributes::value(tick.entity, JUMP_BOOST)
                 + custom_attributes::armor_stat_for(tick.entity, JUMP_BOOST_STAT);
             EntityReach::push(tick.entity as u64, sub(double_jump_velocity(boost), velocity));
-            if let Ok(mut taken) = JUMPS_TAKEN.lock() { taken.insert(tick.entity, taken + 1); }
+            if let Ok(mut jumps) = JUMPS_TAKEN.lock() { jumps.insert(tick.entity, taken + 1); }
             World::new(&tick.dimension).play_sound(DOUBLE_JUMP_SOUND, tick.position, 0.5, 0.5);
             // The canon's four happy-villager particles at the player's feet, as one send of
             // four: the port spreads them by a Gaussian, not the canon's uniform ±0.25.
@@ -293,7 +293,7 @@ mod tests {
     fn tick_for(entity: i32, position: [f64; 3], on_ground: bool, effects: Vec<(String, i32, i32)>) -> PlayerTick {
         PlayerTick {
             player: entity as u128, entity, dimension: "minecraft:overworld".to_owned(),
-            position, on_ground, sneaking: false, gliding: false, spectator: false, in_water: false,
+            position, look: [0.0, 0.0, 1.0], creative: false, on_ground, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false,
             armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects,
             remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()),
         }
@@ -365,35 +365,42 @@ mod tests {
         let mut ops = MemoryEntityOps::default();
         ops.entities = vec![([0.0, 64.0, 0.0], WorldEntity { id: 7709, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) })];
         let mut world = MemoryWorldOps::default();
-        with_entities(&mut ops, || {
-            with_world(&mut world, || {
-                // A fresh press in the air: the double jump fires.
-                ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
-                ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
-                assert_eq!(ops.pushed.len(), 1, "one push for the double jump");
-                assert_eq!(ops.pushed[0].0, 7709);
-                assert_eq!(ops.pushed[0].1, [0.0, 0.42, 0.0], "the set velocity, the measured motion being still: {:?}", ops.pushed[0].1);
-                assert_eq!(world.sounds, vec![("tconstruct:extra_jump".to_owned(), [0.0, 64.0, 0.0])], "the extra-jump sound");
-                assert_eq!(world.particles.len(), 1, "one send for the four particles");
-                assert_eq!(world.particles[0].particle, "minecraft:happy_villager");
-                assert_eq!((world.particles[0].at, world.particles[0].spread, world.particles[0].speed, world.particles[0].count), ([0.0, 64.0, 0.0], [0.25, 0.0, 0.25], 0.0, 4), "four at the feet, ±0.25 on x and z: {:?}", world.particles[0]);
-                // Held down, the key is no fresh press: nothing more fires.
-                ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
-                ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
-                assert_eq!(ops.pushed.len(), 1, "a held key is not a fresh press");
-                // Released and pressed again: the airtime has no jumps left.
-                ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, false, false));
-                ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
-                ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
-                assert_eq!(ops.pushed.len(), 1, "one extra jump per airtime");
-                // Landing resets the counter: a fresh press jumps again.
-                ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], true, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
-                ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, false, false));
-                ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
-                ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
-                assert_eq!(ops.pushed.len(), 2, "landing resets the counter");
-            });
-        });
+        // The recorded facts are asserted between rounds, not inside the scopes: while a
+        // scope runs it holds the ops and the world mutably, so reading them inside the
+        // closure that installs them does not borrow-check.
+        // A fresh press in the air: the double jump fires.
+        with_entities(&mut ops, || with_world(&mut world, || {
+            ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
+            ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
+        }));
+        assert_eq!(ops.pushed.len(), 1, "one push for the double jump");
+        assert_eq!(ops.pushed[0].0, 7709);
+        assert_eq!(ops.pushed[0].1, [0.0, 0.42, 0.0], "the set velocity, the measured motion being still: {:?}", ops.pushed[0].1);
+        assert_eq!(world.sounds, vec![("tconstruct:extra_jump".to_owned(), [0.0, 64.0, 0.0])], "the extra-jump sound");
+        assert_eq!(world.particles.len(), 1, "one send for the four particles");
+        assert_eq!(world.particles[0].particle, "minecraft:happy_villager");
+        assert_eq!((world.particles[0].at, world.particles[0].spread, world.particles[0].speed, world.particles[0].count), ([0.0, 64.0, 0.0], [0.25, 0.0, 0.25], 0.0, 4), "four at the feet, ±0.25 on x and z: {:?}", world.particles[0]);
+        // Held down, the key is no fresh press: nothing more fires.
+        with_entities(&mut ops, || with_world(&mut world, || {
+            ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
+            ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
+        }));
+        assert_eq!(ops.pushed.len(), 1, "a held key is not a fresh press");
+        // Released and pressed again: the airtime has no jumps left.
+        with_entities(&mut ops, || with_world(&mut world, || {
+            ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, false, false));
+            ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
+            ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
+        }));
+        assert_eq!(ops.pushed.len(), 1, "one extra jump per airtime");
+        // Landing resets the counter: a fresh press jumps again.
+        with_entities(&mut ops, || with_world(&mut world, || {
+            ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], true, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
+            ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, false, false));
+            ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input_for(entity, true, false));
+            ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], false, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
+        }));
+        assert_eq!(ops.pushed.len(), 2, "landing resets the counter");
     }
 
     #[test]

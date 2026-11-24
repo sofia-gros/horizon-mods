@@ -116,7 +116,7 @@ impl RegistryLookup {
     /// Every captured tag with its members, for consumers that republish the resolved snapshot
     /// (the advancement tag overlay). A tag the reload did not capture is not in this map.
     pub fn tags(&self)->&std::collections::BTreeMap<Identifier,std::collections::BTreeSet<Identifier>> { &self.tags }
-    pub(crate) fn from_parts(entries:&[String],tags:&[(String,Vec<String>)])->Result<Self,String> {
+    pub fn from_parts(entries:&[String],tags:&[(String,Vec<String>)])->Result<Self,String> {
         let parse=|id:&str| Identifier::parse(id).map_err(|e|format!("invalid registry snapshot ID: {e}"));
         let entries=entries.iter().map(|id|parse(id)).collect::<Result<std::collections::BTreeSet<_>,_>>()?;
         let mut parsed=std::collections::BTreeMap::new();

@@ -46,7 +46,7 @@ use pluto_lib::{
     StackData, StackSlot, World, spawn_projectile,
 };
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// The fireball entity type (TinkerModifiers.fireball).
 const FIREBALL: &str = "tconstruct:fireball";
@@ -66,7 +66,7 @@ struct Shot {
     tool: StackData,
 }
 
-static SHOTS: Mutex<HashMap<(String, u32), Shot>> = Mutex::new(HashMap::new());
+static SHOTS: LazyLock<Mutex<HashMap<(String, u32), Shot>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Registers the entity type and the firing, flight and impact callbacks. Called once
 /// from the product's hooks, after the throwing hook (whose use registration this
@@ -160,9 +160,9 @@ fn launch(player: &ServerPlayer, dimension: &str, position: [f64; 3], look: [f64
     // The holder's height and the level's build range, for the dwarven velocity half (a shot's
     // holder is not digging, so no dig reports them); the velocity alone reads the holder, so the
     // power above keeps the holder-less entities it always had.
-    let holder = pluto_lib::EntityState { y: Some(release.position[1]), ..Default::default() };
+    let holder = pluto_lib::EntityState { y: Some(position[1]), ..Default::default() };
     let velocity_entities = crate::entity_facts::Entities { attacker: Some(&holder), target: None };
-    let build_height = Some(crate::mining_speed::level_build_height(&release.dimension));
+    let build_height = Some(crate::mining_speed::level_build_height(dimension));
     let velocity = f64::from(tool_stack::conditional_stat_at(nbt, env, Stat::Velocity, &|_| false, &velocity_entities, build_height));
     let inaccuracy = f64::from(tool_stack::inaccuracy(nbt, env, &entities)) / 16.0;
     // The look scaled by two, jittered on x and z only, the whole scaled by the velocity.
@@ -363,6 +363,7 @@ mod tests {
             motion_after: RefCell::new(None),
             discard: Cell::new(false),
             no_gravity_after: Cell::new(None),
+            pickup_after: Cell::new(None),
             release_from_ground: Cell::new(false),
             actions: RefCell::new(Vec::new()),
         }
@@ -485,8 +486,10 @@ mod tests {
             at: [0.5, 64.5, 0.5],
             motion: [0.0; 3],
             data: NbtCompound::new(),
+            piercing_ignored: Vec::new(),
             discard: Cell::new(false),
             motion_after: RefCell::new(None),
+            ignore_entities: RefCell::new(Vec::new()),
             actions: RefCell::new(Vec::new()),
         };
         assert_eq!(damage_type(&shot, &impact("minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.into()])), "tconstruct:fluid_impact_melee");

@@ -20,7 +20,7 @@
 use crate::custom_attributes;
 use pluto_lib::{ClientPlayConnectionEvents, ClientPlayNetworking, Identifier, ServerLifecycleEvents, ServerPlayConnectionEvents, ServerPlayNetworking, ServerTickEvents};
 use std::collections::{BTreeMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// The server-to-client attribute sync channel: the changed values of a player's custom
 /// attributes and armor-stat totals, published on their tick.
@@ -154,7 +154,7 @@ fn drain() {
 
 /// The players whose guest clients asked for a double jump since the last tick, by uuid: the
 /// server tick drains them into the pending double jump.
-static DOUBLE_JUMP_REQUESTS: Mutex<HashSet<u128>> = Mutex::new(HashSet::new());
+static DOUBLE_JUMP_REQUESTS: LazyLock<Mutex<HashSet<u128>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
 /// Asks the server to run the extra jump for the local player: a guest client sends this
 /// instead of resolving the jump locally, as it has no server tick. The payload is empty;

@@ -27,13 +27,13 @@
 //!   `edible_hook`'s eating bursts.
 use pluto_lib::{Identifier, ParticleFactory, ParticleTypeRegistry, StackData};
 use std::collections::HashSet;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// The crumb particle types registered lazily for edible representatives, by id: the registry
 /// outlives a reload of this module's callers, so the set is the record of what is already there
 /// (re-registering a name replaces its factory, so a second registration would be harmless but
 /// wasteful on every burst).
-static EDIBLE_CRUMBS: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+static EDIBLE_CRUMBS: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
 /// The particle type for the crumbs of `item`, registered lazily on first use: the port's particle
 /// spawn carries no per-spawn item, so each representative item gets its own crumb type, an

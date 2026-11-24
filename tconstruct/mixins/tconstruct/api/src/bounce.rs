@@ -492,6 +492,8 @@ mod tests {
             entity,
             dimension: "minecraft:overworld".to_owned(),
             position,
+            look: [0.0, 0.0, 1.0],
+            creative: false,
             on_ground,
             sneaking,
             gliding: false,

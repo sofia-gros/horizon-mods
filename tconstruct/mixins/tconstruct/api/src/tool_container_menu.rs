@@ -30,11 +30,12 @@
 use crate::{break_speed_hook::with_held_tool, tool_inventory::{with_snapshot_items, ToolInventory}, tool_stack};
 use pluto_lib::{
     player_api::ServerPlayer,
-    screen_handler_api_v1::{BlockEntityType, BlockEntityTypeRegistry, NativeMenuClosed, NativeMenuEvents, NativeMenuInputClosed, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout},
+    block_entity_api_v1::{BlockEntityType, BlockEntityTypeRegistry},
+    screen_handler_api_v1::{NativeMenuClosed, NativeMenuEvents, NativeMenuInputClosed, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout},
     I18n, Identifier, ItemSlot, StackData,
 };
 use std::collections::HashMap;
-use std::sync::{Mutex, Once};
+use std::sync::{LazyLock, Mutex, Once};
 
 /// The item menu's extra-data magic: the versioned mark the client screen reads to tell an item
 /// menu from a block's (`PlayerOps::open_item_menu` documents the contract).
@@ -68,7 +69,7 @@ struct OpenToolMenu {
 }
 
 /// The tool container menus open now, by (player, window).
-static OPEN: Mutex<HashMap<(u128, i32), OpenToolMenu>> = Mutex::new(HashMap::new());
+static OPEN: LazyLock<Mutex<HashMap<(u128, i32), OpenToolMenu>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Opens the worn piece's inventory screen for the player (InventoryMenuModule.startInteract):
 /// the smallest container menu type that holds the tool's inventory, titled with the piece's

@@ -1907,6 +1907,8 @@ mod tests {
         assert_eq!(drawtime_ticks(0.0, 1.0), i32::MAX, "no draw speed means no end to the gate");
         assert_eq!(drawtime_ticks(-1.0, 1.0), 1, "a negative drawtime is floored to one tick");
         assert_eq!(drawtime_ticks(1.0, 0.0), 1, "a zero factor still gates one tick");
+    }
+
     #[test]
     fn melee_capacity_fills_the_bar_on_a_hit_and_answers_its_conditions() {
         // The grant the monster melee hit wires: a bar of 10 and a flat grant of 3 per hit.

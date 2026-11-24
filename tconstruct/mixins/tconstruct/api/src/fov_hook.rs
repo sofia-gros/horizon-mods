@@ -19,7 +19,7 @@
 //! there the factor can outlive the break); the hand using the item is
 //! inferred main hand first, as the FOV facts do not name it.
 
-use pluto_lib::fov_api_v1::{FovFacts, FovRegistry, FovSlot};
+use pluto_lib::fov_api_v1::{FovFacts, FovRegistry, FovSlot, FovStack};
 use pluto_lib::{ItemEvents, ItemSlot, Nbt, NbtCompound, ReleaseUsing, StackData, UseTick};
 
 use crate::modifier_modules::{Module, ZoomStyle};
@@ -191,14 +191,14 @@ mod tests {
 
     #[test]
     fn the_keybind_factor_is_the_spyglass_factor_while_the_key_is_held() {
-        let registry = registry("spyglass");
+        let spyglass = registry("spyglass");
         let stack = zoom_stack();
         let stacks = [FovStack { slot: FovSlot::Head, stack: &stack }];
-        assert_eq!(keybind_factor(&facts(&stacks, true), &registry), Some(SPYGLASS_FACTOR));
-        assert_eq!(keybind_factor(&facts(&stacks, false), &registry), None, "the key released answers nothing");
+        assert_eq!(keybind_factor(&facts(&stacks, true), &spyglass), Some(SPYGLASS_FACTOR));
+        assert_eq!(keybind_factor(&facts(&stacks, false), &spyglass), None, "the key released answers nothing");
         let scope = registry("scope");
         assert_eq!(keybind_factor(&facts(&stacks, true), &scope), None, "a scope helmet answers the keybind with nothing");
-        assert_eq!(keybind_factor(&facts(&[], true), &registry), None, "no helmet, no keybind zoom");
+        assert_eq!(keybind_factor(&facts(&[], true), &spyglass), None, "no helmet, no keybind zoom");
     }
 
     #[test]

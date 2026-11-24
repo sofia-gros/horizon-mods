@@ -336,7 +336,8 @@ fn render_faucet(render: &mut BlockEntityRender<'_>) {
 /// the stream inside the faucet's rotation. A block with no cuboids for the facing draws nothing, as the original
 /// skips it; without client data (an unsupported canvas) there is no stream to draw.
 fn draw_faucet_stream(canvas: &mut dyn BlockEntityCanvas, facing: &str, visual: &Visual) {
-    let Some(stream) = canvas.client_data().and_then(|data| data.get("stream")).and_then(|stream| stream.as_list())
+    // The stream is copied out of the client data: the canvas is drawn to while it is read.
+    let Some(stream) = canvas.client_data().and_then(|data| data.get("stream")).and_then(|stream| stream.as_list()).map(|stream| stream.to_vec())
     else {
         return;
     };

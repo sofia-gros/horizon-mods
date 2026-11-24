@@ -445,6 +445,7 @@ mod tests {
             data: json!({}),
             origin: Some([0.5; 3]),
             dimension: Some("minecraft:overworld".to_owned()),
+            seed: 0,
             block_entity: Some(kept),
             stack: RefCell::new(ItemSlot::new(Identifier::parse("tconstruct:seared_drain").unwrap(), 1)),
         };

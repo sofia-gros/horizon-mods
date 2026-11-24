@@ -137,6 +137,8 @@ mod mob_disguise_hook;
 mod weapon_effect_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/block_break_hook.rs"]
 mod block_break_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/enderporting_hook.rs"]
+mod enderporting_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/damage_vanilla.rs"]
 mod damage_vanilla;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/instrument_tags.rs"]
@@ -341,6 +343,14 @@ mod throwables;
 mod potion_contents;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/flight_hook.rs"]
 mod flight_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/smelting_hook.rs"]
+mod smelting_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/sling_hook.rs"]
+mod sling_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fireball_hook.rs"]
+mod fireball_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/fov_hook.rs"]
+mod fov_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/throwing_hook.rs"]
 mod throwing_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tank_hook.rs"]

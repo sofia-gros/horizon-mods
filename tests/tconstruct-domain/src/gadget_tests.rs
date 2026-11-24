@@ -215,7 +215,7 @@ fn player(food: Option<FoodStatus>, effects: &[(&str, i32)]) -> MemoryPlayerOps 
 fn eat(world: &mut TestWorld, ops: &mut MemoryPlayerOps, pos: [i32; 3]) -> ActionResult {
     let context = UseItemOnBlockContext {
         item: String::new(), count: 0, pos, face: [0, 1, 0], dimension: DIM.to_owned(),
-        player: ServerPlayer { uuid: 7, name: "Alex".to_owned() }, creative: false, held: None,
+        player: ServerPlayer { uuid: 7, name: "Alex".to_owned() }, creative: false, sneaking: false, held: None,
     };
     pluto_lib::with_ops(ops, || pluto_lib::with_world(world, || UseItemOnBlockCallback::EVENT.invoke(&context)))
 }

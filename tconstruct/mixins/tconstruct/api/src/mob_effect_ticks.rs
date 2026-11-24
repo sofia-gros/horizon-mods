@@ -27,7 +27,7 @@
 //! behind the original's.
 use pluto_lib::{EntityInfo, EntityReach, PlayerTick, ServerEntityEvents, ServerLivingEntityEvents, World};
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// The magnetic effect: it pulls item entities in (the original's `MagneticEffect`).
 pub(crate) const MAGNETIC: &str = "tconstruct:magnetic";
@@ -57,14 +57,14 @@ const OUT_OF_WORLD: &str = "minecraft:out_of_world";
 
 /// The effects each entity carried on its last tick (effect id, level), for the damage event to read
 /// when the hit carries no state of its own.
-static REMEMBERED: Mutex<HashMap<i32, Vec<(String, i32)>>> = Mutex::new(HashMap::new());
+static REMEMBERED: LazyLock<Mutex<HashMap<i32, Vec<(String, i32)>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 /// Where a returning bearer stood when the effect was first seen (block position, dimension), the
 /// original's persistent `tconstruct:returning` data.
-static RETURNING_FROM: Mutex<HashMap<i32, ([i32; 3], String)>> = Mutex::new(HashMap::new());
+static RETURNING_FROM: LazyLock<Mutex<HashMap<i32, ([i32; 3], String)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 /// The last two velocities of an antigravity bearer, for the ceiling bounce (`LastVelocity` in the original).
-static LAST_VELOCITY: Mutex<HashMap<i32, (f64, f64)>> = Mutex::new(HashMap::new());
+static LAST_VELOCITY: LazyLock<Mutex<HashMap<i32, (f64, f64)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 /// Where each entity stood on its last tick, for the ceiling check (the host names no ceiling collision).
-static PREVIOUS_POSITION: Mutex<HashMap<i32, [f64; 3]>> = Mutex::new(HashMap::new());
+static PREVIOUS_POSITION: LazyLock<Mutex<HashMap<i32, [f64; 3]>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Registers the tick callbacks. Called once from the product's hooks.
 pub(crate) fn register() {
@@ -387,7 +387,14 @@ mod tests {
             entity,
             dimension: "minecraft:overworld".into(),
             position,
+            look: [0.0, 0.0, 1.0],
+            creative: false,
             on_ground: true,
+            sneaking: false,
+            gliding: false,
+            spectator: false,
+            in_water: false,
+            on_climbable: false,
             armor: Vec::new(),
             hands: Vec::new(),
             block_light: 0,

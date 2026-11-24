@@ -788,8 +788,10 @@ mod tests {
             at: [0.5, 64.5, 0.5],
             motion: [0.0, 0.0, -1.0],
             data: pluto_lib::NbtCompound::new(),
+            piercing_ignored: Vec::new(),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
+            ignore_entities: std::cell::RefCell::new(Vec::new()),
             actions: std::cell::RefCell::new(Vec::new()),
         }
     }

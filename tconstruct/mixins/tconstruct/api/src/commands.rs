@@ -1985,6 +1985,10 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::Exchanging => {
             out.insert("tconstruct:remove_block");
         }
+        Module::ArmorStat { .. } | Module::MaxArmorStat { .. } => {
+            out.insert("tconstruct:equipment_change");
+            out.insert("tconstruct:tooltip");
+        }
         Module::Enderporting => {
             out.insert("tconstruct:melee_hit");
             out.insert("tconstruct:block_harvest");

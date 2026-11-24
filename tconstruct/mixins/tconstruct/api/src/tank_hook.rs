@@ -182,7 +182,7 @@ fn write_back_hand(player: &ServerPlayer, before: &StackData, after: &ItemSlot) 
     };
     if let Some(main) = player.main_hand_stack() {
         if main.item == before.item && main.custom_data == before.custom_data {
-            player.update_stack(player.selected_slot(), &after_data);
+            if let Some(selected) = player.selected_slot() { player.update_stack(selected, &after_data); }
             return;
         }
     }
@@ -660,7 +660,7 @@ fn bucket_pickup(release: &ReleaseUsing) -> Option<ItemSlot> {
             if let Some(def) = pluto_lib::FluidRegistry::get(&fluid.to_string()) {
                 for offset in [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] {
                     let neighbour = [target[0] + offset[0], target[1] + offset[1], target[2] + offset[2]];
-                    world.schedule_tick(neighbour, &FluidWorld::block_id(&fluid).to_string(), def.flow.tick_delay.max(1));
+                    world.schedule_tick(neighbour, &FluidWorld::block_id(&fluid).to_string(), i32::from(def.flow.tick_delay.max(1)));
                 }
             }
         }
@@ -1073,7 +1073,7 @@ fn bucket_place(click: &UseItemOnBlockContext, stack: &StackData, modules: &tool
     }
     if fluid.fluid.namespace() != "minecraft" {
         if let Some(def) = pluto_lib::FluidRegistry::get(&fluid.fluid.to_string()) {
-            world.schedule_tick(target, &FluidWorld::block_id(&fluid.fluid).to_string(), def.flow.tick_delay.max(1));
+            world.schedule_tick(target, &FluidWorld::block_id(&fluid.fluid).to_string(), i32::from(def.flow.tick_delay.max(1)));
         }
     }
     bucket_sound(&world, &fluid, centre, false);
