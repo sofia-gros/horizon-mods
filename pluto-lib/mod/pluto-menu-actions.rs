@@ -113,6 +113,13 @@ pub mod pluto_menu_actions {
         (result, finished)
     }
 
+    /// The player of the click session in scope (its uuid and name), if any: the staged context the
+    /// session's clicks run in, read the way the stacked call reads the click session's random.
+    /// None outside a session (a click the game made with no player, or a test).
+    pub fn current_player() -> Option<(u128, String)> {
+        CURRENT.with(|current| current.borrow().as_ref().map(|context| (context.player_uuid, context.player_name.clone())))
+    }
+
     pub(super) fn click(menu: &mut Menu, env: &Env<'_>, slot: i32, button: i32, input: Input) -> bool {
         // Leave outside clicks, drag state, creative cloning and pick-all to the engine.
         // This bridge does not reinterpret those independent native operations.

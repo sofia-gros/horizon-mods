@@ -407,6 +407,8 @@ pub struct StackedOnOtherRequest<'a> {
     pub carried: &'a super::block_entity_api_v1::ItemSlot,
     /// The stack in the clicked slot; None when the slot is empty.
     pub clicked: Option<&'a super::block_entity_api_v1::ItemSlot>,
+    /// The player clicking, by uuid; 0 when the menu names none.
+    pub player: u128,
     /// True for the secondary (right) click, false for the primary.
     pub secondary: bool,
     /// Whether the clicked slot allows modification by this player
@@ -444,11 +446,14 @@ pub enum StackedOnOtherDecision {
     Consume,
     /// The click is consumed and both stacks are replaced: the clicked
     /// slot's new stack (None empties it) and the carried stack (None
-    /// empties the hand). `sound` is played to the player with its own
-    /// volume and pitch.
+    /// empties the hand). `give` is a stack handed to the clicking
+    /// player (into their inventory, else dropped), such as a single
+    /// filled item split off a carried stack of more than one.
+    /// `sound` is played to the player with its own volume and pitch.
     Apply {
         clicked: Option<super::block_entity_api_v1::ItemSlot>,
         carried: Option<super::block_entity_api_v1::ItemSlot>,
+        give: Option<super::block_entity_api_v1::ItemSlot>,
         sound: Option<StackedSound>,
     },
 }
@@ -686,7 +691,7 @@ mod tests {
         assert!(has_stacked_on_other());
         let carried = ItemSlot::new(Identifier::new("test", "kit").unwrap(), 2);
         let clicked = ItemSlot::new(Identifier::new("test", "tool").unwrap(), 1);
-        let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), secondary: true, allow_modification: true, random: 0.25 };
+        let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), player: 7, secondary: true, allow_modification: true, random: 0.25 };
         assert!(matches!(stacked_on_other("test:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
         assert!(stacked_on_other("test:other").is_none(), "other carried items keep the game's click");
         StackedOnOtherRegistry::register(Identifier::new("test", "kit").unwrap(), pass);

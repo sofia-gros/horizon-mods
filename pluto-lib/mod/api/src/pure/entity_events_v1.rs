@@ -33,6 +33,35 @@ pub struct LivingDamage {
     pub amount: f32,
 }
 
+/// The vanilla damage-type tags a hit's gates name, flattened from the pinned vanilla data
+/// (`.local/base-26.3/data/minecraft/tags/damage_type/*.json`, the same source and flattening as
+/// `tools/import_original_data.py`'s `write_damage_vanilla`): `bypasses_effects` is only starvation,
+/// `bypasses_invulnerability` the out-of-world and generic-kill types, and `avoids_guardian_thorns`
+/// magic, thorns and the explosion types. A data pack may change them; the table is the vanilla game.
+const DAMAGE_TYPE_TAGS: &[(&str, &[&str])] = &[
+    ("bypasses_effects", &["minecraft:starve"]),
+    ("bypasses_invulnerability", &["minecraft:out_of_world", "minecraft:generic_kill"]),
+    ("avoids_guardian_thorns", &["minecraft:magic", "minecraft:thorns", "minecraft:fireworks", "minecraft:explosion", "minecraft:player_explosion", "minecraft:bad_respawn_point"]),
+];
+
+impl LivingDamage {
+    /// Whether the damage type is in the vanilla damage-type tag `tag` (`minecraft:<name>`), from
+    /// `DAMAGE_TYPE_TAGS`; false for a tag the table does not name.
+    pub fn in_damage_type_tag(&self, tag: &str) -> bool {
+        DAMAGE_TYPE_TAGS.iter().find(|(name, _)| *name == tag)
+            .is_some_and(|(_, members)| members.contains(&self.damage_type.as_str()))
+    }
+
+    /// Tinkers' `OnAttackedModifierHook.isDirectDamage`: the hit has a causing entity, the direct
+    /// entity is none or the causer, and the damage type is not in
+    /// `minecraft:avoids_guardian_thorns`. Vanilla's `isIndirect` is a direct entity different
+    /// from the causer; an id of 0 or less names none (the host passes 0, other tellings -1).
+    pub fn is_direct_damage(&self) -> bool {
+        self.attacker > 0 && (self.direct <= 0 || self.direct == self.attacker)
+            && !self.in_damage_type_tag("minecraft:avoids_guardian_thorns")
+    }
+}
+
 static ENTITY_LOAD: Event<EntityInfo, ()> = Event::void();
 static ENTITY_UNLOAD: Event<EntityInfo, ()> = Event::void();
 static ENTITY_TICK_PRE: Event<EntityInfo, bool> = Event::allow_all();
@@ -193,6 +222,14 @@ pub struct WeaponHit {
     pub dimension: String,
     /// The weapon: its damage, max damage and custom data; None for an empty hand.
     pub weapon: Option<StackData>,
+    /// The damage the hit is about to deal, before armor and enchantments take their share (the
+    /// incoming-damage amount); 0 when the game did not report one. A hit the armor absorbs whole
+    /// still reads its pre-armor amount here.
+    pub damage_dealt: f32,
+    /// The attacker's attack ticks as the hit landed: ticks since their last swing. A mob attacker
+    /// reads as fully charged, as mobs keep no strength ticker; with the weapon's attack speed
+    /// this is the host's attack-strength scale (see [`WeaponHit::fully_charged`]).
+    pub attack_ticks: u32,
     /// What the player and the mob were doing as the hit landed; None when the game could not tell.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
@@ -207,6 +244,26 @@ pub struct WeaponHit {
     pub effects: RefCell<Vec<EffectGrant>>,
     /// The actions to do to the player (`Attacker`) or the mob (`Victim`), which callbacks add to; they land before the hit's damage.
     pub actions: RefCell<Vec<EntityAction>>,
+}
+
+/// The attack ticks a fresh or unknown attacker reads as: the host starts a player's ticker at 100
+/// and a swing's delay is at most a few hundred ticks, so this is fully charged for any weapon.
+pub const ATTACK_TICKS_CHARGED: u32 = 10_000;
+
+impl WeaponHit {
+    /// The host's attack-strength scale for these ticks and this weapon's attack speed:
+    /// `(ticks + 0.5) / (20 / speed)`, clamped to 0..=1 (the host's `attack_strength_scale` in
+    /// `melee.rs`; a speed of 0 never charges, as the host's delay is then unbounded).
+    pub fn attack_strength_scale(&self, attack_speed: f32) -> f32 {
+        ((f32::from(self.attack_ticks) + 0.5) / (20.0 / attack_speed)).clamp(0.0, 1.0)
+    }
+
+    /// Whether the swing was fully charged: the host's `scale > 0.9` (the "full" gate of
+    /// `melee.rs`, and its critical-attack gate), for this weapon's attack speed. A mob attacker's
+    /// ticks read as charged (see [`ATTACK_TICKS_CHARGED`]).
+    pub fn fully_charged(&self, attack_speed: f32) -> bool {
+        self.attack_strength_scale(attack_speed) > 0.9
+    }
 }
 
 /// A server player's tick, heard while the player wears armor or holds a tool that carries custom data.
@@ -944,6 +1001,43 @@ pub(crate) fn remember_wearer_state(entity: i32, state: Option<EntityState>) {
 
 fn wearer_state(entity: i32) -> Option<EntityState> { WEARER_STATES.lock().ok()?.get(&entity).cloned() }
 
+/// A player's attack strength, as the host models it (`attack_strength.rs`, `hand.rs`): ticks
+/// since their last swing, and the main-hand item the ticker belongs to. The host resets the
+/// ticker when the player swings and when the main-hand item changes to a different item, and
+/// ticks it every tick; a swing's delay is `20 / attack speed` ticks, so the ticker is what a
+/// weapon hit's fully-charged gate reads.
+static ATTACK_TICKS: std::sync::Mutex<std::collections::BTreeMap<u128, (u32, String)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// A player ticked with `main_hand` in their main hand: their ticker advances one tick, or resets
+/// when the held item changed to a different one (the same item with a different count or
+/// components does not reset it, as the host compares the item only). A player first seen reads
+/// as fully charged (the host starts the ticker at 100).
+pub(crate) fn note_attack_tick(player: u128, main_hand: &str) {
+    let Ok(mut tickers) = ATTACK_TICKS.lock() else { return };
+    match tickers.get_mut(&player) {
+        Some((ticks, held)) if *held == main_hand => { *ticks = ticks.saturating_add(1); }
+        Some((ticks, held)) => { *held = main_hand.to_owned(); *ticks = 0; }
+        None => { tickers.insert(player, (ATTACK_TICKS_CHARGED, main_hand.to_owned())); }
+    }
+}
+
+/// A player swung: their attack ticker resets, as the host's `player_attack_cooldown_reset` reports.
+pub(crate) fn reset_attack_ticks(player: u128) {
+    if let Ok(mut tickers) = ATTACK_TICKS.lock() {
+        if let Some((ticks, _)) = tickers.get_mut(&player) { *ticks = 0; }
+    }
+}
+
+/// A player's attack ticks as of their last tick (see [`ATTACK_TICKS_CHARGED`] for one never seen).
+pub(crate) fn attack_ticks(player: u128) -> u32 {
+    ATTACK_TICKS.lock().ok().and_then(|tickers| tickers.get(&player).map(|(ticks, _)| *ticks)).unwrap_or(ATTACK_TICKS_CHARGED)
+}
+
+/// Forgets a player's attack ticker when they leave.
+pub(crate) fn forget_attack_ticks(player: u128) {
+    if let Ok(mut tickers) = ATTACK_TICKS.lock() { tickers.remove(&player); }
+}
+
 /// What the vanilla biomes are like: (id without `minecraft:`, base temperature, whether it has precipitation). A data pack's biome is not here.
 const BIOME_CLIMATES: &[(&str, f32, bool)] = &[
     ("badlands", 2.0, false), ("eroded_badlands", 2.0, false), ("wooded_badlands", 2.0, false), ("desert", 2.0, false), ("savanna", 2.0, false),
@@ -1225,8 +1319,14 @@ fn queue_damage_actions(damage: &LivingDamage, modification: &DamageModification
             continue;
         }
         // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
+        // A mob wearer has no player tick to drain them: theirs land on the entity's own tick instead.
         if !modification.armor.is_empty() {
-            if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.push((damage.entity, damage.attacker, action)); }
+            if ARMOR.lock().map_or(false, |worn| worn.contains_key(&damage.entity)) {
+                if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.push((damage.entity, damage.attacker, action)); }
+            } else {
+                let entity = match action_target(&action) { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+                if entity >= 0 { if let Ok(mut queue) = LATE_ACTIONS.lock() { queue.push((entity, damage.attacker, damage.entity, action)); } }
+            }
             continue;
         }
         // Neither tick queue can place it: keep it for the target entity's next tick instead of dropping it.
@@ -1475,7 +1575,7 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
@@ -1490,7 +1590,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
-        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, dimension: String::new(), weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert!(weapon_hit(&hit).is_empty());
         assert_eq!(*seen.lock().unwrap(), vec![1]);
         forget_armor(0xA11CE);
@@ -1526,7 +1626,7 @@ mod tests {
         assert!(take_wearer_actions(41).is_empty(), "the queue is emptied once taken");
         wearer_hit(&hit, None);
         assert!(take_wearer_actions(41).is_empty(), "a hit with no known wearer queues nothing");
-        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         weapon_hit(&weapon);
         assert_eq!(take_weapon_actions(&weapon), vec![EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }]);
         assert!(take_weapon_actions(&weapon).is_empty());
@@ -1871,5 +1971,82 @@ mod tests {
         assert!(entity_tick_before(&moving));
         entity_tick_after(&moving);
         assert_eq!(POSTED.lock().unwrap().clone(), vec![72], "only the tick that ran is reported");
+    }
+
+    #[test]
+    fn a_hit_reports_its_damage_and_charge() {
+        let hit = |ticks: u32| WeaponHit { entity: 1, kind: "minecraft:husk".into(), attacker: 2, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ticks, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        // A sword at 4.0 attack speed swings every 5 ticks: 4 ticks is a 0.9 scale, not over it.
+        assert!(!hit(4).fully_charged(4.0));
+        assert!(hit(5).fully_charged(4.0));
+        // A tool at 1.6 attack speed swings every 12.5 ticks: 11 ticks is 0.92, charged.
+        assert!(!hit(10).fully_charged(1.6));
+        assert!(hit(11).fully_charged(1.6));
+        assert!(!hit(0).fully_charged(4.0), "a fresh swing is not charged");
+        assert!(!hit(ATTACK_TICKS_CHARGED).fully_charged(0.0), "a speed of 0 never charges");
+        assert!(hit(ATTACK_TICKS_CHARGED).fully_charged(1.6), "a fresh attacker reads as charged");
+    }
+
+    #[test]
+    fn damage_type_tags_gate_the_hit_effects() {
+        let damage = |damage_type: &str, attacker: i32, direct: i32| LivingDamage { entity: 1, kind: "minecraft:zombie".into(), damage_type: damage_type.into(), attacker, direct, amount: 4.0 };
+        assert!(damage("minecraft:starve", 0, 0).in_damage_type_tag("minecraft:bypasses_effects"));
+        assert!(!damage("minecraft:mob_attack", 5, 5).in_damage_type_tag("minecraft:bypasses_effects"));
+        assert!(damage("minecraft:out_of_world", 0, 0).in_damage_type_tag("minecraft:bypasses_invulnerability"));
+        assert!(damage("minecraft:generic_kill", 0, 0).in_damage_type_tag("minecraft:bypasses_invulnerability"));
+        assert!(!damage("minecraft:mob_attack", 5, 5).in_damage_type_tag("minecraft:bypasses_invulnerability"));
+        assert!(!damage("minecraft:mob_attack", 5, 5).in_damage_type_tag("minecraft:not_a_tag"), "an unnamed tag holds nothing");
+        // Directness: a melee hit is direct, an arrow is not, a thorns hit is not (its type avoids guardian thorns).
+        assert!(damage("minecraft:mob_attack", 5, 5).is_direct_damage());
+        assert!(damage("minecraft:player_attack", 5, 0).is_direct_damage(), "no direct entity is a direct hit");
+        assert!(!damage("minecraft:arrow", 5, 9).is_direct_damage(), "the arrow is not its shooter");
+        assert!(!damage("minecraft:thorns", 5, 5).is_direct_damage(), "thorns avoids guardian thorns");
+        assert!(!damage("minecraft:magic", 5, 5).is_direct_damage(), "magic avoids guardian thorns too");
+        assert!(!damage("minecraft:mob_attack", 0, 0).is_direct_damage(), "no causer is no direct hit");
+        assert!(!damage("minecraft:mob_attack", -1, -1).is_direct_damage());
+    }
+
+    #[test]
+    fn attack_ticks_follow_the_swing_and_the_held_item() {
+        let player = 0xA77ACC;
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED, "a player never seen reads as charged");
+        note_attack_tick(player, "example:sword");
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED, "the first tick does not wear the charge down");
+        note_attack_tick(player, "example:sword");
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED + 1, "the same item keeps ticking");
+        note_attack_tick(player, "example:axe");
+        assert_eq!(attack_ticks(player), 0, "a different held item resets the ticker");
+        for _ in 0..4 { note_attack_tick(player, "example:axe"); }
+        assert_eq!(attack_ticks(player), 4);
+        reset_attack_ticks(player);
+        assert_eq!(attack_ticks(player), 0, "a swing resets the ticker");
+        note_attack_tick(player, "example:axe");
+        assert_eq!(attack_ticks(player), 1, "the ticker runs again after the swing");
+        forget_attack_ticks(player);
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED, "a player who left is forgotten");
+    }
+
+    #[test]
+    fn a_mob_wearers_damage_actions_wait_for_its_own_tick() {
+        let piece = StackData { item: "example:chestplate".into(), count: 1, ..StackData::default() };
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|modification| {
+            if modification.damage.entity == 91001 || modification.damage.entity == 91011 {
+                modification.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 3 });
+            }
+        });
+        // The mob wearer: its armor comes with the hit's own report of it.
+        hit_states(91001, None, Some(EntityState { armor_stacks: vec![("chest".into(), piece.clone())], ..EntityState::default() }));
+        let mob_hurt = LivingDamage { entity: 91001, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), attacker: 91002, direct: 91002, amount: 4.0 };
+        assert_eq!(modify_damage(&mob_hurt), 4.0);
+        assert!(take_wearer_actions(91001).is_empty(), "no player tick can place a mob's actions");
+        assert_eq!(take_late_actions(91001).len(), 1, "the mob's own tick takes them");
+        assert!(take_late_actions(91001).is_empty(), "taken once");
+        // The player wearer: the same action waits for their player tick, as before.
+        remember_armor(0xBEEF, 91011, vec![("chest".into(), piece)]);
+        let player_hurt = LivingDamage { entity: 91011, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 91002, direct: 91002, amount: 4.0 };
+        assert_eq!(modify_damage(&player_hurt), 4.0);
+        assert!(take_late_actions(91011).is_empty(), "a player's actions do not wait for an entity tick");
+        assert_eq!(take_wearer_actions(91011).len(), 1);
+        forget_armor(0xBEEF);
     }
 }

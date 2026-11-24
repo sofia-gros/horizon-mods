@@ -1512,6 +1512,8 @@ fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_
     let request = StackedOnOtherRequest {
         carried: &carried,
         clicked: clicked.as_ref(),
+        // The player of the click session in scope, when one is (see `current_player`); 0 when the menu names none.
+        player: horizon_client::menu::pluto_menu_actions::current_player().map(|(uuid, _)| uuid).unwrap_or(0),
         secondary: !primary,
         allow_modification: horizon_client::menu::pluto_menu_actions::allow_modification(menu, env, slot),
         random,
@@ -1519,9 +1521,15 @@ fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_
     match callback(&request) {
         StackedOnOtherDecision::Pass => false,
         StackedOnOtherDecision::Consume => true,
-        StackedOnOtherDecision::Apply { clicked, carried, sound } => {
+        StackedOnOtherDecision::Apply { clicked, carried, give, sound } => {
             menu.set_slot(env, slot, native_slot(clicked));
             menu.carried = native_slot(carried);
+            // A stack handed to the player: into their inventory, else dropped (the game's own place-back).
+            if let Some(give) = give {
+                if let Some(mut stack) = native_slot(Some(give)) {
+                    horizon_client::menu::pluto_menu_actions::give_stack(menu, env, &mut stack);
+                }
+            }
             if let Some(sound) = sound {
                 horizon_client::menu::pluto_menu_actions::push_rich_player_sound(menu,
                     horizon_client::menu::pluto_menu_actions::RichSound { id: sound.id, volume: sound.volume, pitch: sound.pitch });
@@ -4824,11 +4832,15 @@ impl Hooks for PlutoHooks {
             if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
         }
         // Held tools carrying custom data are reported too: a module may key on a hand slot (update health names the
-        // hands), and the tick is heard while either sort is carried.
+        // hands), and the tick is heard while either sort is carried. The main hand is read plainly, not from the
+        // custom-data-filtered hands: the attack ticker resets when the held item changes to a different one, even
+        // when neither item carries custom data (a plain sword to a plain axe).
         let mut hands = Vec::new();
+        let mut main_hand = String::new();
         for (name, slot) in [("mainhand", horizon_client::mod_api::EquipmentSlot::MainHand), ("offhand", horizon_client::mod_api::EquipmentSlot::OffHand)] {
             let Some(stack) = host.player_equipment(player.uuid, slot) else { continue };
             let data = stack_data_of(host, &stack);
+            if name == "mainhand" { main_hand.clone_from(&data.item); }
             if !data.custom_data.is_empty() { hands.push((name.to_string(), data)); }
         }
         // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
@@ -4837,6 +4849,8 @@ impl Hooks for PlutoHooks {
         let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
         entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+        // The attack ticker the weapon hits read: it advances each tick and resets when the held item changes.
+        entity_events_v1::note_attack_tick(player.uuid, &main_hand);
         entity_events_v1::remember_offhand(player.uuid, player.entity_id, hands.iter().find(|(name, _)| name == "offhand").map(|(_, stack)| stack.clone()));
         if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty())) {
             let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
@@ -4886,11 +4900,19 @@ impl Hooks for PlutoHooks {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
         entity_events_v1::forget_armor(uuid);
+        entity_events_v1::forget_attack_ticks(uuid);
         // The base values are saved with the player, so what the armor added is taken off before they go (best effort: the host may no longer reach them).
         for (attribute, held) in entity_events_v1::forget_attributes(uuid) {
             if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base - held); }
         }
         scoped(host, || networking_api_v1::player_left(uuid, name));
+    }
+
+    fn player_attack_cooldown_reset(&self, _host: &mut dyn Host, event: &mut horizon_client::mod_api::PlayerAttackCooldownResetEvent<'_>) {
+        // The swing the host reports after the attack resolved (its `handlePunch` reset): the attack ticker resets, so the
+        // next hit reads its ticks from a fresh swing. The event fires after the weapon-hit hook of the same swing, so that
+        // hit still reads the pre-swing ticks.
+        entity_events_v1::reset_attack_ticks(event.player);
     }
 
     fn entity_join_level(&self, host: &mut dyn Host, event: &mut EntityJoinLevelEvent<'_>) -> Flow {
@@ -5343,8 +5365,13 @@ impl Hooks for PlutoHooks {
             .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
                 .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.position));
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
+        // The damage the hit is about to deal, before armor takes its share, and the attacker's ticks as the hit landed: a mob
+        // attacker reads as charged, as mobs keep no strength ticker (see `entity_events_v1::ATTACK_TICKS_CHARGED`).
+        let attack_ticks = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| entity_events_v1::attack_ticks(player.uuid)).unwrap_or(entity_events_v1::ATTACK_TICKS_CHARGED);
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),
+            damage_dealt: event.amount, attack_ticks,
             attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         if let Ok(entity) = u32::try_from(event.entity) {

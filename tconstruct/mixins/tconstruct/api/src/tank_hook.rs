@@ -9,9 +9,11 @@
 //!   flight profile's spilling snapshot). A monster's melee hit with a tank tool is the same
 //!   weapon-hit telling with a mob attacker; the port's telling names the weapon either way.
 //! - **WettingModifier / BurstingModifier** (UseFluidOnHitModifier): being hit applies the worn
-//!   tank's fluid — wetting onto the wearer (the damage-modification telling, its MODIFY_DAMAGE
-//!   hook), bursting onto the attacker (the wearer-hit telling, its ON_ATTACKED hook) — each at a
-//!   25% chance per level, the application always at level 1.
+//!   tank's fluid — wetting onto the wearer, bursting onto the attacker — each at a 25% chance
+//!   per level, the application always at level 1. Both run on the damage-modification telling
+//!   (its MODIFY_DAMAGE hook): it names the damage type and its directness, which the
+//!   wearer-hit telling does not (it fires before the source is worked out), and it fires when
+//!   the attack will land, as the original's on-attacked hook does.
 //! - **SlurpingModule** (GENERAL_INTERACT, TOOL_USING, ARMOR_INTERACT, INVENTORY_TICK): drinking
 //!   the tank's fluid applies its effects to the drinker. The held form rides the stack use the
 //!   throwing registration composes (Drink pose, the module's duration), sounds on the use tick,
@@ -33,29 +35,28 @@
 //! - **OverburnModule** (INVENTORY_TICK): the inventory tick drives the burn now that this
 //!   consumer keeps the holder's tick count itself (the remembered player facts below).
 //!
-//! The standing reductions, each the closest the tellings allow: a hit's damage-dealt and
-//! fully-charged gates and a damage's directness are not reported by the hit tellings, so the
-//! on-hit applications run at the telling (the flight profile's tipped application accepts the
-//! same); wetting's two bypassing-damage-type tags are not readable from here, so it may answer
-//! a bypassing hit the original skips; a creative holder's tank is spent like a survival one's
-//! where a telling does not name the game mode (the capacity write-backs accept the same); the
-//! splashing item cooldown (20 / draw speed) rides the item-cooldown surface the sleeves lane
-//! built in PlutoLib (`ServerPlayer::start_item_cooldown`, on its branch at the time of writing)
-//! and is called out at the two splash sites for the merge that lands it; a fluid's world block
-//! form is not registered by this port, so the bucket module's place/pickup halves have nothing
-//! to place or pick and stay unwired (see `on_block_use`); the helmet spit's aim is the wearer's
-//! last look a use telling reported (the aim stash below), as no telling names a player's look
-//! outside a use.
+//! The standing reductions, each the closest the tellings allow: a hit's damage-dealt gate reads
+//! the incoming damage before armor takes its share, so a hit the armor absorbs whole still
+//! counts as dealt (the telling reports no post-armor amount); a creative holder's tank is spent
+//! like a survival one's where a telling does not name the game mode (the capacity write-backs
+//! accept the same); the splashing item cooldown (20 / draw speed) rides the item-cooldown
+//! surface the sleeves lane built in PlutoLib (`ServerPlayer::start_item_cooldown`, on its branch
+//! at the time of writing) and is called out at the two splash sites for the merge that lands
+//! it; the bucket module has no cauldron (`LiquidBlockContainer`) half — no such block exists in
+//! the port — and no `mayInteract` re-check, as the host already gates the block use; a mob
+//! wearer's piece is never spent (the stack-edit actions reach players only); the helmet spit's
+//! aim is the wearer's last look a use telling reported (the aim stash below), as no telling
+//! names a player's look outside a use.
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, RwLock};
 
 use pluto_lib::{
     ActionResult, ActionTarget, CarriedEdit, CarriedSlot, Direction, EntityAction, EntityReach, FluidItems, FluidStack,
-    Identifier, ItemEvents, ItemSlot, Nbt, NbtCompound, PlayerInventoryEvents, ReleaseUsing, ServerLivingEntityEvents,
+    FluidWorld, Identifier, ItemEvents, ItemSlot, Nbt, NbtCompound, PlayerInventoryEvents, ReleaseUsing, ServerLivingEntityEvents,
     ServerPlayer, StackData, StackSlot, StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest, StackedSound,
     UseItemFinishCallback, UseItemOnBlockCallback, UseItemOnEntityContext, UseItemOnBlockContext, UseEntityCallback, World,
 };
-use pluto_lib::entity_events_v1::{DamageModification, PlayerTick, WeaponHit, WearerHit};
+use pluto_lib::entity_events_v1::{DamageModification, PlayerTick, WeaponHit};
 
 use crate::{
     break_speed_hook::with_held_tool,
@@ -233,6 +234,10 @@ fn on_weapon_hit(hit: &WeaponHit) {
     let _ = with_held_tool(weapon, |env, tool| {
         let modules = tool_stack::tank_modules(&tool.custom_data, env);
         if modules.spilling.is_empty() || tool_stack::is_broken(&tool.custom_data) { return; }
+        // SpillingModule.onAttack: the hit must deal damage and the swing must be fully charged (the telling reports the
+        // incoming damage before armor takes its share, so a hit the armor absorbs whole still counts as dealt).
+        if hit.damage_dealt <= 0.0 { return; }
+        if !hit.fully_charged(tool_stack::stat(&tool.custom_data, Stat::AttackSpeed)) { return; }
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return };
         if !describe(&fluid).map_or(false, |(_, has_entity, _)| has_entity) { return; }
         let attacker_is_player = hit.attacker_state.as_ref().map_or(false, |state| state.kind == "minecraft:player");
@@ -299,30 +304,22 @@ fn use_fluid_on_hit(
     done
 }
 
-/// BurstingModifier.onAttacked: a worn bursting tank answers its wearer's attacker. The
-/// wearer is the remembered player whose armor this is (the telling names only the mob);
-/// without one, the wearer cannot be placed and nothing runs.
-fn on_wearer_hit(hit: &WearerHit) {
-    let wearer = PLAYERS.lock().ok().and_then(|players| {
-        players.values().find(|facts| facts.armor == hit.armor).cloned()
-            .or_else(|| if players.len() == 1 { players.values().next().cloned() } else { None })
-    });
-    let Some(wearer) = wearer else { return };
-    if hit.attacker == wearer.entity { return; }
-    let attacker_position = hit.attacker_position.unwrap_or(wearer.position);
-    for (slot, piece) in &hit.armor {
-        let mut target = LiveTarget::party(hit.attacker, &hit.kind, attacker_position, &hit.actions, ActionTarget::Attacker);
-        use_fluid_on_hit(&wearer.dimension, piece, slot, "tconstruct:bursting", (wearer.entity, wearer.position), &mut target, attacker_position, &hit.actions, ActionTarget::Victim);
-    }
-}
-
-/// WettingModifier.modifyDamageTaken: a worn wetting tank douses the wearer themselves. The
-/// telling names the damaged entity (LivingDamage), so a mob wearing a wetting piece is
-/// answered too; its bypassing-damage-type gates are not readable here (see the module note).
+/// WettingModifier.modifyDamageTaken / BurstingModifier.onAttacked: a worn tank answers a hit on its wearer —
+/// wetting douses the wearer, bursting answers the attacker. Both run on the damage-modification telling (see the
+/// module note): it names the damage type and its directness, and it fires when the attack will land. A mob
+/// wearing a piece is answered too; its piece is never spent (the stack-edit actions reach players only), but its
+/// fluid still answers. The attacker's position comes from the reach, falling back to the victim's.
 fn on_damage_modification(modification: &DamageModification) {
     let damage = &modification.damage;
     if damage.attacker == damage.entity { return; }
     if modification.armor.is_empty() { return; }
+    // Wetting skips damage whose type bypasses effects or invulnerability (the original's two tag gates).
+    let wetting = !(damage.in_damage_type_tag("minecraft:bypasses_effects")
+        || damage.in_damage_type_tag("minecraft:bypasses_invulnerability"));
+    // Bursting answers a direct hit only (the original's isDirectDamage: a causer, the direct entity none or the
+    // causer, and a type outside `minecraft:avoids_guardian_thorns`).
+    let bursting = damage.is_direct_damage();
+    if !wetting && !bursting { return; }
     let (dimension, position) = match PLAYERS.lock().ok().and_then(|players| players.values().find(|facts| facts.entity == damage.entity).map(|facts| (facts.dimension.clone(), facts.position))) {
         Some(found) => found,
         None => match EntityReach::position_of(damage.entity as u64) {
@@ -340,9 +337,25 @@ fn on_damage_modification(modification: &DamageModification) {
     } else {
         return;
     };
-    for (slot, piece) in &modification.armor {
-        let mut target = LiveTarget::party(damage.entity, &damage.kind, position, &modification.actions, ActionTarget::Victim);
-        use_fluid_on_hit(&dimension, piece, slot, "tconstruct:wetting", (damage.entity, position), &mut target, position, &modification.actions, ActionTarget::Victim);
+    if wetting {
+        for (slot, piece) in &modification.armor {
+            let mut target = LiveTarget::party(damage.entity, &damage.kind, position, &modification.actions, ActionTarget::Victim);
+            use_fluid_on_hit(&dimension, piece, slot, "tconstruct:wetting", (damage.entity, position), &mut target, position, &modification.actions, ActionTarget::Victim);
+        }
+    }
+    if bursting {
+        let attacker_position = EntityReach::position_of(damage.attacker as u64).unwrap_or(position);
+        let attacker_kind = if !modification.attacker_kind.is_empty() {
+            modification.attacker_kind.clone()
+        } else if modification.attacker_is_player == Some(true) {
+            "minecraft:player".to_owned()
+        } else {
+            String::new()
+        };
+        for (slot, piece) in &modification.armor {
+            let mut target = LiveTarget::party(damage.attacker, &attacker_kind, attacker_position, &modification.actions, ActionTarget::Attacker);
+            use_fluid_on_hit(&dimension, piece, slot, "tconstruct:bursting", (damage.entity, position), &mut target, attacker_position, &modification.actions, ActionTarget::Victim);
+        }
     }
 }
 
@@ -580,8 +593,96 @@ fn spit_fire(
 
 /// The held spit's release (SpittingModule.onStoppedUsing): the charge from the ticks held,
 /// over the draw time the use started with.
+/// The hand holding the released stack, for a release's write-back (the spit and the bucket pickup share it).
+fn release_hand(release: &ReleaseUsing) -> Option<CarriedSlot> {
+    let same = |slot: &ItemSlot| slot.item.to_string() == release.stack.item && slot.custom_data == release.stack.custom_data;
+    if release.main_hand.as_ref().is_some_and(|hand| same(hand)) {
+        Some(CarriedSlot::Equipment(StackSlot::MainHand))
+    } else if release.off_hand.as_ref().is_some_and(|hand| same(hand)) {
+        Some(CarriedSlot::Equipment(StackSlot::OffHand))
+    } else {
+        None
+    }
+}
+
+/// The source-fluid cell a look reaches (the original's Block.OUTLINE + SOURCE_ONLY trace): stepped from the
+/// eye along the look, the first source fluid is the target, the first solid block stops the trace, flowing
+/// fluid and air are passed through. None when nothing is reached within `reach` or the trace leaves loaded
+/// chunks (a cell the world does not name).
+fn ray_trace_source(world: &World, eye: [f64; 3], look: [f64; 3], reach: f64) -> Option<[i32; 3]> {
+    let mut last = [i32::MIN, i32::MIN, i32::MIN];
+    let mut travelled = 0.0;
+    while travelled <= reach {
+        let at = [eye[0] + look[0] * travelled, eye[1] + look[1] * travelled, eye[2] + look[2] * travelled];
+        let cell = [at[0].floor() as i32, at[1].floor() as i32, at[2].floor() as i32];
+        if cell != last {
+            last = cell;
+            let Some(state) = world.get_block_state(cell) else { return None };
+            if let Some((_, 0)) = FluidWorld::fluid_of(&state) { return Some(cell); }
+            if FluidWorld::fluid_of(&state).is_some() { travelled += 0.05; continue; }
+            if !matches!(state.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") {
+                return None;
+            }
+        }
+        travelled += 0.05;
+    }
+    None
+}
+
+/// BucketModule.onToolUse (the pickup half): the release of a bucket tool's use picks up the source fluid the
+/// player looks at, into the tank (set when empty, grown when the same fluid). A spittable tool never reaches
+/// this: its use is a spit (see the composed use's order). A click's release only (ten ticks or less); a hold
+/// is a spit charge or a throw, not a pickup. The source is removed and its neighbours woken so they settle;
+/// the fill sound plays and the tank is written back to the hand holding the tool. The original checks no game
+/// mode here either. Returns the stack after the pickup, when one happened.
+fn bucket_pickup(release: &ReleaseUsing) -> Option<ItemSlot> {
+    if spittable(&release.stack) { return None; }
+    let Ok(after) = with_held_tool(&release.stack, |env, tool| {
+        if tool_stack::is_broken(&tool.custom_data) { return None; }
+        let modules = tool_stack::tank_modules(&tool.custom_data, env);
+        let Some(bucket) = modules.bucket.first() else { return None };
+        let in_tag = bucket_in_tag();
+        if !bucket.can_pickup(&tool.custom_data, &in_tag) { return None; }
+        let world = World::new(&release.dimension);
+        let reach = if release.creative { 5.0 } else { 4.5 };
+        let Some(target) = ray_trace_source(&world, release.eye, release.look, reach) else { return None };
+        let Some(existing) = world.get_block_state(target) else { return None };
+        let Some((fluid, 0)) = FluidWorld::fluid_of(&existing) else { return None };
+        if !bucket.fluids.matches(&fluid, &in_tag) { return None; }
+        if let Some(stored) = tool_tank::fluid(&tool.custom_data) {
+            if stored.fluid != fluid { return None; }
+        }
+        // Remove the source and wake its neighbours so they settle (the host flows water and lava itself; a mod
+        // fluid's neighbours are woken by their own scheduled tick).
+        let air = pluto_lib::BlockState::new(Identifier::parse("minecraft:air").expect("a valid block"));
+        if !world.set_block_state(target, &air) { return None; }
+        if fluid.namespace() != "minecraft" {
+            if let Some(def) = pluto_lib::FluidRegistry::get(&fluid.to_string()) {
+                for offset in [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] {
+                    let neighbour = [target[0] + offset[0], target[1] + offset[1], target[2] + offset[2]];
+                    world.schedule_tick(neighbour, &FluidWorld::block_id(&fluid).to_string(), def.flow.tick_delay.max(1));
+                }
+            }
+        }
+        let mut slot = slot_of(&release.stack);
+        if !bucket.pickup(&mut slot.custom_data, &fluid) { return None; }
+        bucket_sound(&world, &FluidStack::new(fluid, crate::fluid_values::BUCKET as u32), [target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5], true);
+        Some(slot)
+    }) else { return None };
+    after
+}
+
 fn on_release(release: &ReleaseUsing) {
     remember_aim(release.player.uuid, release.eye, release.look);
+    // The bucket pickup is a click's release (ten ticks or less, a hold is a spit charge or a throw).
+    if release.ticks_used <= 10 {
+        if let Some(after) = bucket_pickup(release) {
+            if let Some(slot) = release_hand(release) {
+                release.edits.borrow_mut().push(CarriedEdit { slot, stack: after });
+            }
+            return;
+        }
+    }
     if release.ticks_used == 0 { return; }
     let _ = with_held_tool(&release.stack, |env, tool| {
         let modules = tool_stack::tank_modules(&tool.custom_data, env);
@@ -589,11 +690,8 @@ fn on_release(release: &ReleaseUsing) {
         if tool_stack::is_broken(&tool.custom_data) { return; }
         let charge = crate::throwing_hook::charge(release.ticks_used, spit_drawtime(&release.stack));
         if let Some(after) = spit_fire(&release.player, &release.dimension, release.eye, release.look, &release.stack, env, entry, spitting, charge, !release.creative) {
-            let same = |slot: &ItemSlot| slot.item.to_string() == release.stack.item && slot.custom_data == release.stack.custom_data;
-            if release.main_hand.as_ref().is_some_and(|hand| same(hand)) {
-                release.edits.borrow_mut().push(CarriedEdit { slot: CarriedSlot::Equipment(StackSlot::MainHand), stack: after });
-            } else if release.off_hand.as_ref().is_some_and(|hand| same(hand)) {
-                release.edits.borrow_mut().push(CarriedEdit { slot: CarriedSlot::Equipment(StackSlot::OffHand), stack: after });
+            if let Some(slot) = release_hand(release) {
+                release.edits.borrow_mut().push(CarriedEdit { slot, stack: after });
             }
         }
     });
@@ -912,11 +1010,80 @@ fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_sta
     true
 }
 
+/// The smeltery tags' read for a bucket module's fluid predicate (a tag the data does not name matches nothing).
+fn bucket_in_tag() -> impl Fn(&Identifier, &Identifier) -> bool {
+    let tags = common::smeltery_data().and_then(|data| data.read().ok()).map(|data| data.tags.clone());
+    move |fluid: &Identifier, tag: &Identifier| tags.as_ref().map_or(false, |tags| tags.contains(fluid, tag))
+}
+
+/// A bucket's sound for the fluid: its def's own, else the plain bucket's.
+fn bucket_sound(world: &World, fluid: &FluidStack, at: [f64; 3], filling: bool) {
+    let sound = pluto_lib::FluidRegistry::get(&fluid.fluid.to_string())
+        .and_then(|def| if filling { def.bucket_fill_sound.clone() } else { def.bucket_empty_sound.clone() })
+        .unwrap_or_else(|| if filling { "minecraft:item.bucket.fill".to_owned() } else { "minecraft:item.bucket.empty".to_owned() });
+    world.play_sound(&sound, at, 1.0, 1.0);
+}
+
+/// A bucket volume leaves the tank, written back to the hand the tool is in. The original drains the tank even
+/// in creative — it checks no game mode — and damages no tool.
+fn drain_bucket(player: &ServerPlayer, stack: &StackData) -> bool {
+    let mut slot = slot_of(stack);
+    if !tool_tank::Bucket::place_consume(&mut slot.custom_data) { return false; }
+    write_back_hand(player, stack, &slot);
+    true
+}
+
+/// BucketModule.afterBlockUse (the place half, sneaking only): a bucket tool pours its tank's fluid as a source
+/// block at the clicked face's offset. The port has no `LiquidBlockContainer` (cauldron) blocks, so the clicked
+/// block never contains the fluid and the target is always the offset; the `mayInteract` re-check is not
+/// repeated, as the host already gates the block use. Water placed in the Nether vaporizes instead of placing
+/// (the ultra-warm check the port can see: only the Nether is a known ultra-warm dimension). A source of the
+/// same fluid already there counts as placed with no block set. A replaceable solid is broken with its drops
+/// first (the set is queued to follow the queued break); air and a fluid cell are set at once. A mod fluid
+/// asks for its first flow tick; the host flows water and lava itself.
+fn bucket_place(click: &UseItemOnBlockContext, stack: &StackData, modules: &tool_stack::TankModules) -> bool {
+    let Some(bucket) = modules.bucket.first() else { return false };
+    let Some(fluid) = tool_tank::fluid(&stack.custom_data) else { return false };
+    let in_tag = bucket_in_tag();
+    if !bucket.can_place(Some(&fluid), &in_tag) { return false; }
+    let Some(source) = FluidWorld::source_block(&fluid.fluid) else { return false };
+    let target = [click.pos[0] + click.face[0], click.pos[1] + click.face[1], click.pos[2] + click.face[2]];
+    let world = World::new(&click.dimension);
+    let centre = [target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5];
+    // Water placed in the Nether vaporizes: no block, the extinguish sound and smoke, the tank still drained.
+    if fluid.fluid.to_string() == "minecraft:water" && click.dimension == "minecraft:the_nether" {
+        let pitch = 2.6 + (world.random_float().unwrap_or(0.5) - world.random_float().unwrap_or(0.5)) * 0.8;
+        world.play_sound("minecraft:block.fire.extinguish", centre, 0.5, pitch);
+        world.send_particles("minecraft:large_smoke", &pluto_lib::ParticleData::Plain, centre, [0.25, 0.25, 0.25], 0.1, 8);
+        return drain_bucket(&click.player, stack);
+    }
+    let Some(existing) = world.get_block_state(target) else { return false };
+    if FluidWorld::fluid_of(&existing) == Some((fluid.fluid.clone(), 0)) {
+        bucket_sound(&world, &fluid, centre, false);
+        return drain_bucket(&click.player, stack);
+    }
+    if !crate::fluid_world::replaceable(&existing) { return false; }
+    let is_air = matches!(existing.block.to_string().as_str(), "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air");
+    let is_fluid = FluidWorld::fluid_of(&existing).is_some();
+    if !is_air && !is_fluid {
+        world.break_block(target, true);
+        if !world.set_block_state_queued(target, &source) { return false; }
+    } else if !world.set_block_state(target, &source) {
+        return false;
+    }
+    if fluid.fluid.namespace() != "minecraft" {
+        if let Some(def) = pluto_lib::FluidRegistry::get(&fluid.fluid.to_string()) {
+            world.schedule_tick(target, &FluidWorld::block_id(&fluid.fluid).to_string(), def.flow.tick_delay.max(1));
+        }
+    }
+    bucket_sound(&world, &fluid, centre, false);
+    drain_bucket(&click.player, stack)
+}
+
 /// A use on a block: TankInteractionModule's before-use first (the right-click source for a
-/// held tool), then BucketModule's halves, then SplashingModule's after-use. The bucket
-/// module's world halves stay unwired: a fluid's world block form is not registered by this
-/// port (the fluids are registered without block forms), so placing has no block to place and
-/// pickup no source block to read — tool_tank::Bucket's tank gates stand ready for the form.
+/// held tool), then BucketModule's place half (sneaking), then SplashingModule's after-use.
+/// The pickup half runs on the release telling (see `on_release`): a plain use on a fluid
+/// source block starts the use whose release picks it up.
 fn on_block_use(click: &UseItemOnBlockContext) -> ActionResult {
     let Some(held) = &click.held else {
         // The armor-sourced form: an empty hand, the chest piece's module answering for the
@@ -944,6 +1111,9 @@ fn on_block_use(click: &UseItemOnBlockContext) -> ActionResult {
                 write_back_hand(&click.player, held, &slot);
             });
             if let Some(result) = traded { return result; }
+        }
+        if click.sneaking && !tool_stack::is_broken(&tool.custom_data) && bucket_place(click, held, &modules) {
+            return ActionResult::Success;
         }
         if !modules.splashing.is_empty() && !tool_stack::is_broken(&tool.custom_data) && splash_block(click, held, env, &modules) {
             return ActionResult::Success;
@@ -979,6 +1149,19 @@ pub(crate) fn spittable(stack: &StackData) -> bool {
         let fluid = tool_tank::fluid(&tool.custom_data);
         let has_effects = fluid.as_ref().map_or(false, |fluid| describe(fluid).map_or(false, |(has_block, has_entity, _)| has_block || has_entity));
         tool_tank::Spitting::can_start(entry, fluid.as_ref(), has_effects)
+    }).unwrap_or(false)
+}
+
+/// Whether the stack can start a bucket pickup (BucketModule.onToolUse's tank gates): a bucket
+/// module, unbroken, a tank the bucket can still fill (a bucket's worth of free space, a stored
+/// fluid the predicate allows and carrying no tag). The world half — the ray trace to a source —
+/// runs on the release.
+pub(crate) fn bucket_pickupable(stack: &StackData) -> bool {
+    with_held_tool(stack, |env, tool| {
+        if tool_stack::is_broken(&tool.custom_data) { return false; }
+        let modules = tool_stack::tank_modules(&tool.custom_data, env);
+        let Some(bucket) = modules.bucket.first() else { return false };
+        bucket.can_pickup(&tool.custom_data, &bucket_in_tag())
     }).unwrap_or(false)
 }
 
@@ -1066,14 +1249,31 @@ fn transfer_sound(into_tank: bool) -> StackedSound {
     }
 }
 
+/// Trades a carried container with a clicked tank tool, one unit at a time (TankItem.updateHeldItem's
+/// split): the transfer runs on a single unit of the carried stack; when the carried stack holds more
+/// than one, the filled or emptied unit is handed to the player (`give`) and the rest stays carried.
+/// Returns the carried stack afterwards, the stack to give (when the carried stack had more than one),
+/// and whether the fluid went into the tank; None when nothing moved.
+fn transfer_carried_container(tool_nbt: &mut NbtCompound, carried: &ItemSlot) -> Option<(ItemSlot, Option<ItemSlot>, bool)> {
+    let mut single = carried.clone();
+    single.count = 1;
+    let (result, into_tank) = transfer_with_container(tool_nbt, &single, false)?;
+    if carried.count == 1 {
+        Some((result, None, into_tank))
+    } else {
+        let mut rest = carried.clone();
+        rest.count -= 1;
+        Some((rest, Some(result), into_tank))
+    }
+}
+
 /// TankModule's two slot hooks as one callback (the telling asks the carried item only, so
 /// both directions are decided here): overrideStackedOnOther when the carried stack is the
 /// tool, overrideOtherStackedOnMe when the clicked stack is. Both answer the click (Consume,
 /// or Apply when fluid moved) whenever the other stack may have fluid, as the original
-/// returns true on that gate alone — with one exception: a carried container of more than
-/// one in the second direction would split in the original (the filled one is handed to the
-/// player), and the decision has no give channel and names no player, so that case passes
-/// to the game's own click handling and nothing moves.
+/// returns true on that gate alone. A carried container of more than one in the second
+/// direction splits in the original (the filled one is handed to the player); the decision's
+/// `give` carries that split unit, and the transport hands it to the clicking player.
 fn on_stacked_on_other(request: &StackedOnOtherRequest) -> StackedOnOtherDecision {
     if is_tank_tool(request.carried) {
         let Some(clicked) = request.clicked else { return StackedOnOtherDecision::Pass };
@@ -1088,7 +1288,7 @@ fn on_stacked_on_other(request: &StackedOnOtherRequest) -> StackedOnOtherDecisio
                     carried_after.custom_data = tool_nbt;
                     let mut clicked_after = clicked.clone();
                     clicked_after.custom_data = clicked_nbt;
-                    StackedOnOtherDecision::Apply { clicked: Some(clicked_after), carried: Some(carried_after), sound: Some(transfer_sound(into_carried)) }
+                    StackedOnOtherDecision::Apply { clicked: Some(clicked_after), carried: Some(carried_after), give: None, sound: Some(transfer_sound(into_carried)) }
                 }
                 None => StackedOnOtherDecision::Consume,
             };
@@ -1097,7 +1297,7 @@ fn on_stacked_on_other(request: &StackedOnOtherRequest) -> StackedOnOtherDecisio
             Some((container_after, into_tank)) => {
                 let mut carried_after = request.carried.clone();
                 carried_after.custom_data = tool_nbt;
-                StackedOnOtherDecision::Apply { clicked: Some(container_after), carried: Some(carried_after), sound: Some(transfer_sound(into_tank)) }
+                StackedOnOtherDecision::Apply { clicked: Some(container_after), carried: Some(carried_after), give: None, sound: Some(transfer_sound(into_tank)) }
             }
             None => StackedOnOtherDecision::Consume,
         };
@@ -1105,7 +1305,6 @@ fn on_stacked_on_other(request: &StackedOnOtherRequest) -> StackedOnOtherDecisio
     if let Some(clicked) = request.clicked {
         if is_tank_tool(clicked) {
             if !may_have_fluid(request.carried) { return StackedOnOtherDecision::Pass; }
-            if request.carried.count != 1 { return StackedOnOtherDecision::Pass; }
             let mut tool_nbt = clicked.custom_data.clone();
             if is_tank_tool(request.carried) {
                 let mut carried_nbt = request.carried.custom_data.clone();
@@ -1115,16 +1314,16 @@ fn on_stacked_on_other(request: &StackedOnOtherRequest) -> StackedOnOtherDecisio
                         clicked_after.custom_data = tool_nbt;
                         let mut carried_after = request.carried.clone();
                         carried_after.custom_data = carried_nbt;
-                        StackedOnOtherDecision::Apply { clicked: Some(clicked_after), carried: Some(carried_after), sound: Some(transfer_sound(into_carried)) }
+                        StackedOnOtherDecision::Apply { clicked: Some(clicked_after), carried: Some(carried_after), give: None, sound: Some(transfer_sound(into_carried)) }
                     }
                     None => StackedOnOtherDecision::Consume,
                 };
             }
-            return match transfer_with_container(&mut tool_nbt, request.carried, false) {
-                Some((container_after, into_tank)) => {
+            return match transfer_carried_container(&mut tool_nbt, request.carried) {
+                Some((carried_after, give, into_tank)) => {
                     let mut clicked_after = clicked.clone();
                     clicked_after.custom_data = tool_nbt;
-                    StackedOnOtherDecision::Apply { clicked: Some(clicked_after), carried: Some(container_after), sound: Some(transfer_sound(into_tank)) }
+                    StackedOnOtherDecision::Apply { clicked: Some(clicked_after), carried: Some(carried_after), give, sound: Some(transfer_sound(into_tank)) }
                 }
                 None => StackedOnOtherDecision::Consume,
             };
@@ -1150,7 +1349,6 @@ const TOOL_ITEMS: &[&str] = &[
 /// are registered (the slot interaction asks their registry).
 pub(crate) fn register() {
     ServerLivingEntityEvents::WEAPON_HIT.register(on_weapon_hit);
-    ServerLivingEntityEvents::WEARER_HIT.register(on_wearer_hit);
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(on_damage_modification);
     ServerLivingEntityEvents::PLAYER_TICK.register(on_player_tick);
     PlayerInventoryEvents::TICK.register(on_inventory_tick);
@@ -1319,6 +1517,52 @@ mod tests {
         assert!(into_tank);
         assert_eq!(container.item.to_string(), "minecraft:glass_bottle");
         assert_eq!(tool_tank::fluid(&empty_tool).map(|fluid| (fluid.fluid.to_string(), fluid.amount)), Some(("tconstruct:venom".into(), 250)));
+    }
+
+    #[test]
+    fn a_carried_stack_of_containers_splits_one_off_to_the_player() {
+        crate::fluids::register();
+        crate::fluid_items::register();
+        // Three empty bottles onto a tool holding 500 venom: one fills (250) and is handed to the
+        // player, two stay carried, the tank keeps 250.
+        let mut tool = tool_data(&[("tconstruct:tank_handler", 1)], Some(("tconstruct:venom", 500)));
+        let bottles = ItemSlot::new(id("minecraft:glass_bottle"), 3);
+        let (carried, give, into_tank) = transfer_carried_container(&mut tool, &bottles).expect("one bottle fills");
+        assert!(!into_tank, "the fluid left the tank");
+        assert_eq!(carried.count, 2, "the rest stays carried");
+        assert_eq!(carried.item, bottles.item);
+        let given = give.expect("the filled bottle is handed to the player");
+        assert_eq!(given.count, 1);
+        assert_ne!(given.item.to_string(), "minecraft:glass_bottle", "the given bottle is filled");
+        assert_eq!(tool_tank::fluid(&tool).map(|fluid| fluid.amount), Some(250));
+        // A single bottle: no split, the filled bottle is the carried one.
+        let mut tool = tool_data(&[("tconstruct:tank_handler", 1)], Some(("tconstruct:venom", 500)));
+        let bottle = ItemSlot::new(id("minecraft:glass_bottle"), 1);
+        let (carried, give, _) = transfer_carried_container(&mut tool, &bottle).expect("the bottle fills");
+        assert!(give.is_none(), "a single container stays carried");
+        assert_ne!(carried.item.to_string(), "minecraft:glass_bottle");
+        // Nothing to move: no split, no give.
+        let mut empty_tool = tool_data(&[("tconstruct:tank_handler", 1)], None);
+        assert!(transfer_carried_container(&mut empty_tool, &bottles).is_none());
+    }
+
+    #[test]
+    fn the_pickup_ray_finds_a_source_and_stops_at_a_solid_block() {
+        let world = World::new("minecraft:overworld");
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:air".to_owned());
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 1]), "minecraft:water[level=3]".to_owned());
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 2]), "minecraft:water[level=0]".to_owned());
+        // A source two blocks ahead, flowing water in between: the trace passes the flowing cell.
+        let found = pluto_lib::with_world(&mut ops, || ray_trace_source(&world, [0.5, 64.5, 0.5], [0.0, 0.0, 1.0], 4.5));
+        assert_eq!(found, Some([0, 64, 2]));
+        // A stone wall in between stops it.
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 1]), "minecraft:stone".to_owned());
+        let found = pluto_lib::with_world(&mut ops, || ray_trace_source(&world, [0.5, 64.5, 0.5], [0.0, 0.0, 1.0], 4.5));
+        assert_eq!(found, None, "a solid block stops the trace");
+        // No source that way: nothing.
+        let found = pluto_lib::with_world(&mut ops, || ray_trace_source(&world, [0.5, 64.5, 0.5], [0.0, 0.0, -1.0], 4.5));
+        assert_eq!(found, None);
     }
 
     #[test]

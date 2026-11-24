@@ -1132,8 +1132,10 @@ def write_damage_vanilla():
 
     Read from the pinned vanilla data, so a tag is as the game version defines it. The bypass tags are what
     mantle:can_protect (not bypassing invulnerability, as vanilla's enchantment protection) looks at."""
-    # is_freezing is the source frostshield's damage_to_capacity names.
-    wanted = {'bypasses_invulnerability', 'bypasses_enchantments', 'is_freezing'}
+    # is_freezing is the source frostshield's damage_to_capacity names. bypasses_effects and
+    # bypasses_invulnerability are wetting's skip gates, avoids_guardian_thorns the directness
+    # gate bursting shares with it (both read from the pure layer's DAMAGE_TYPE_TAGS too).
+    wanted = {'bypasses_invulnerability', 'bypasses_enchantments', 'is_freezing', 'bypasses_effects', 'avoids_guardian_thorns'}
     for path in DAMAGE_TAG_SOURCE.rglob('*.json'):
         for value in json.loads(path.read_text(encoding='utf-8')).get('values', []):
             text = value if isinstance(value, str) else value.get('id', '')
