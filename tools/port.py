@@ -587,6 +587,30 @@ def checked_content(root, version):
             if '/loot_modifiers/' in name:
                 check_loot_modifier(item, name)
                 continue
+            if '/loot_injectors/' in name:
+                # Mantle loot injectors: named pools of entries merged into the named vanilla table at
+                # load, with optional top-level conditions read against the live config. An entry is an
+                # item (with reviewed loot functions) or a tool part naming its material and tag.
+                pools = item.get('pools') if isinstance(item, dict) else None
+                conditions = item.get('conditions', []) if isinstance(item, dict) else []
+                entries_ok = isinstance(pools, list) and bool(pools) and all(
+                    isinstance(pool, dict) and set(pool) == {'entries', 'name'} and isinstance(pool['name'], str)
+                    and isinstance(pool['entries'], list) and all(
+                        isinstance(entry, dict) and not set(entry) - {'type', 'name', 'weight', 'functions', 'material', 'tag'}
+                        and ((entry.get('type') == 'minecraft:item' and isinstance(entry.get('name'), str) and entry['name'].count(':') == 1)
+                             or (entry.get('type') == 'tconstruct:tool_part' and isinstance(entry.get('tag'), str) and entry['tag'].count(':') == 1
+                                 and ((isinstance(entry.get('material'), str) and entry['material'].count(':') == 1)
+                                      or (isinstance(entry.get('material'), dict) and isinstance(entry['material'].get('type'), str) and entry['material']['type'].count(':') == 1))))
+                        and isinstance(entry.get('weight', 1), int) and entry.get('weight', 1) > 0
+                        and all(isinstance(fn, dict) and fn.get('function') in ('tconstruct:add_tool_data', 'mantle:set_fluid', 'minecraft:set_count', 'minecraft:set_damage') for fn in entry.get('functions', []))
+                        for entry in pool['entries'])
+                    for pool in pools)
+                conditions_ok = isinstance(conditions, list) and all(
+                    isinstance(cond, dict) and not set(cond) - {'type', 'modid', 'prop'} and isinstance(cond.get('type'), str) and cond['type'].count(':') == 1
+                    for cond in conditions)
+                if not isinstance(item, dict) or set(item) - {'name', 'pools', 'conditions'} or not isinstance(item.get('name'), str) or item['name'].count(':') != 1 or not entries_ok or not conditions_ok:
+                    raise ValueError(f'a loot injector names a vanilla table and reviewed pools of entries: {name}')
+                continue
             if name.startswith('data/tconstruct/recipe/'):
                 if not isinstance(item, dict) or item.get('type') not in CRAFTING_RECIPE_TYPES or not isinstance(item.get('result'), dict) or not str(item['result'].get('id', '')).count(':') == 1:
                     raise ValueError(f'only reviewed crafting, smelting, blasting and stonecutting recipes are allowed here: {name}')
