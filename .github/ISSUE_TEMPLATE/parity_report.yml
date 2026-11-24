@@ -1,0 +1,65 @@
+name: Difference from the original
+description: Report behaviour that differs from the original Java Tinkers' Construct
+title: "[Parity] "
+labels: ["parity"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This port aims for 100% parity with the original Java Tinkers' Construct.
+        If something behaves differently from the original, that is a bug — tell us here.
+  - type: dropdown
+    id: mod
+    attributes:
+      label: Target mod
+      options:
+        - Tinkers' Construct
+        - PlutoLib
+        - Stellarsky
+        - Classic Pipes
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Target version
+      placeholder: "tconstruct-v1.0.0-beta"
+    validations:
+      required: true
+  - type: input
+    id: horizon-version
+    attributes:
+      label: Horizon version
+      placeholder: "441f49d5"
+    validations:
+      required: true
+  - type: input
+    id: mixins-version
+    attributes:
+      label: Mixins version
+      placeholder: "e59da909"
+    validations:
+      required: true
+  - type: textarea
+    id: original-behaviour
+    attributes:
+      label: What does the original do?
+      description: The behaviour of the original Java mod (please include the original version if you know it).
+    validations:
+      required: true
+  - type: textarea
+    id: port-behaviour
+    attributes:
+      label: What does this port do?
+      description: The behaviour you see in this port, and the steps to reproduce it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am not using any other mods besides the ones listed above
+          required: true
+        - label: I searched the existing issues and this difference has not been reported yet
+          required: true

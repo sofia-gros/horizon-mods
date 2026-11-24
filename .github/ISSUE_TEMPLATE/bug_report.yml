@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a bug in Tinkers' Construct, PlutoLib, Stellarsky, or Classic Pipes
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please fill in the versions exactly — most bugs
+        depend on the combination of mod, Horizon, and Mixins versions.
+  - type: dropdown
+    id: mod
+    attributes:
+      label: Target mod
+      description: Which mod is this bug about?
+      options:
+        - Tinkers' Construct
+        - PlutoLib
+        - Stellarsky
+        - Classic Pipes
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Target version
+      description: The version of the mod, as shown in the release tag.
+      placeholder: "tconstruct-v1.0.0-beta"
+    validations:
+      required: true
+  - type: input
+    id: horizon-version
+    attributes:
+      label: Horizon version
+      description: The Horizon build you are running.
+      placeholder: "441f49d5"
+    validations:
+      required: true
+  - type: input
+    id: mixins-version
+    attributes:
+      label: Mixins version
+      description: The horizon-mixins version you are running.
+      placeholder: "e59da909"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we make the bug happen?
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What should have happened instead? If the original Java mod behaves differently, please say so — the original is the reference for this port.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am not using any other mods besides the ones listed above
+          required: true
+        - label: I installed the mod from the `.hmod` file (not by copying a folder)
+        - label: I searched the existing issues and this bug has not been reported yet
+          required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: Paste any relevant log output here, or drag and drop screenshots into this issue.
+      render: text
