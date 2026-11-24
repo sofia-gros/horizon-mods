@@ -1,0 +1,32 @@
+# Block movement factors for mod blocks (A34): the host's block declarations carry no speed-factor key, so the
+# factors ride in PlutoLib's movement registry and this mixin applies them to the host's movement table when it loads.
+[mod]
+id = "pluto_movement"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
+
+[[crate]]
+id = "movement-api"
+path = "api"
+dependent = "horizon-world"
+
+# The movement table lives in horizon-world; this module patches its definitions for registered blocks. It is a child
+# of movement_properties, so it may read that module's private definitions map.
+[[module]]
+id = "movement-apply"
+file = "crates/horizon-world/src/movement_properties.rs"
+name = "pluto_movement"
+source = "movement-apply.rs"
+visibility = "pub"
+
+[[injection]]
+id = "movement-table"
+target = "horizon_world::movement_properties::MovementProperties<'_>::from_table"
+kind = "RETURN"
+helper = "movement-table.rs"
+bindings = [
+  { name = "value", ty = "std::io::Result<crate::movement_properties::MovementProperties<'_>>", value = "$value" },
+]

@@ -2505,7 +2505,8 @@ def smeltery_u6c_blocks():
     light) over searedNonSolidProps(SoundType.LANTERN); they are no SearedBlock, so they carry no `in_structure`.
     Soul glass is the glass of its unit with noCollission and a speed factor (0.1 the smeltery pair, 0.2 the commons
     pair, whose glassBuilder is strength 0.3, no tool): the host's block declarations have no speed factor key, so
-    that part is not declared; the missing collision is `collision_shapes` of no boxes, as the fluid blocks declare
+    the factors ride in PlutoLib's movement registry (`pluto_lib::movement`) and the `pluto_movement` mixin applies
+    them to the host's movement table at load. The missing collision is `collision_shapes` of no boxes, as the fluid blocks declare
     theirs. The commons pane keeps its collision (only its speed factor differs)."""
     light = {'type': 'enum', 'values': [str(level) for level in range(16)]}
     in_structure = {'type': 'boolean'}
@@ -2618,7 +2619,8 @@ def commons_blocks():
     connections make and the waterlogging are not carried, as the pouring blocks leave waterlogging out, and the
     copper ones' weathering and waxing are block class behaviour, which is not carried, as the metal blocks'
     classes are not. The cheese block is the cheese pair's HalfTransparentBlock (honey sound, strength 1.5/3, no
-    occlusion); its speed and jump factors have no key in a block declaration, as the soul glass's speed factor has none."""
+    occlusion); its speed (0.4) and jump (0.5) factors ride in PlutoLib's movement registry with the soul glass's,
+    applied by the `pluto_movement` mixin, as the block declarations have no key for them."""
     def glass(template, color):
         return {'template': template, 'properties': {'hardness': 0.3, 'explosion_resistance': 0.3, 'sounds': 'minecraft:glass', 'map_color': MAP_COLOR[color], 'requires_tool': False, 'occludes': False}, 'item': True}
 
