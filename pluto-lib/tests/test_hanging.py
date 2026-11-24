@@ -26,9 +26,11 @@ class HangingTests(unittest.TestCase):
 
     def test_the_transport_and_game_modules_are_attached(self):
         access = self.module('pluto-hanging-access')
-        # entity_nbt.rs, not entry.rs: the loader compiles in
-        # horizon-client-lib, whose root has no entry module.
-        self.assertEqual(access['file'], 'crates/horizon-client/src/entity_nbt.rs')
+        # client_lib.rs (the shared crate root), not entry.rs: the
+        # loader compiles in horizon-client-lib, whose root has
+        # no entry module; entity_nbt.rs itself is unattachable
+        # (glob re-exports, E_MODULE_CONFLICT).
+        self.assertEqual(access['file'], 'crates/horizon-client/src/client_lib.rs')
         self.assertEqual(access['name'], 'pluto_hanging_access')
         self.assertEqual(access['source'], 'pluto-hanging-access.rs')
         self.assertEqual(access['visibility'], 'pub')

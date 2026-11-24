@@ -25,7 +25,7 @@ fn pluto_hanging_frame_analog(
         return std::ops::ControlFlow::Continue(());
     };
     std::ops::ControlFlow::Break(Some(
-        crate::entity_nbt::pluto_hanging_access::frame_analog(
+        crate::pluto_hanging_access::frame_analog(
             &facts,
             frame.item.is_some(),
             i32::from(frame.rotation),
