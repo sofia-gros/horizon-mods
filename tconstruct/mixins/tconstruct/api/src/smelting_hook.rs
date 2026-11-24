@@ -10,11 +10,11 @@
 //! tool's own arrows). The block harvest cooking rides block_break_hook (finishHarvest) and the
 //! plant harvest cooking harvest_hook (afterHarvest). The cooking engine is tool_stack::cook_smelting.
 //!
-//! Not connected: a monster's held tool (MonsterMeleeHit RedirectAfter). No mob-stack-write surface
-//! exists — `EntityAction::EditStackData` writes a player's stacks only, and `EntityReach::set_item`
-//! is for dropped item entities — so the cook has nowhere to land. The computation is ready
-//! (tool_stack::smelting_edits on the monster's held stack); only the write-back is missing. Do not
-//! build an unverified mob-stack-edit injection for it without a plan run proving the seam.
+//! Connected through the mob-stack-write surface: a monster's held tool (MonsterMeleeHit RedirectAfter) cooks by the damage it deals,
+//! in monster_melee's damage dispatch, through `EntityAction::EditStackData` on the attacker (MainHand for a held weapon, Chest for
+//! the unarmed chest piece). PlutoLib applies the edit on the mob's own tick, reading the slot as it is when the action lands and
+//! writing it back through the living handle's equipment write (API 382, the `/item replace entity` path) — no new injection was
+//! needed, the reach the surface stands on already existed. The computation is tool_stack::smelting_edits on the monster's held stack.
 //!
 //! The shear cooking is heard before the shears act, so a shearing a later callback cancels still
 //! leaves the cook — the same deviation the other shear consumers accept. A player's own shearing

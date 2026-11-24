@@ -408,9 +408,11 @@ pub enum EntityAction {
     /// `LivingEntity.addEffect`: puts a status effect on the target, a player or a mob. An effect id the game does not know is skipped;
     /// `amplifier` is the level less one and `duration` is in ticks, and an effect with a negative amplifier or no duration is not given.
     AddEffect { target: ActionTarget, effect: String, amplifier: i32, duration: i32 },
-    /// Edits the custom data of the stack a player carries in `slot` (`ItemStack.set(DataComponents.CUSTOM_DATA, ..)`), when that stack is
-    /// still of `item`. Players only: a mob target, a slot that holds another item and an edit that changes nothing are skipped. Acts on
-    /// the stack as it is when the action lands, not as the callback saw it, so wear that happened in between stays.
+    /// Edits the custom data of the stack a player or a mob carries in `slot` (`ItemStack.set(DataComponents.CUSTOM_DATA, ..)`), when
+    /// that stack is still of `item`. A player is reached only when they are the acting player of the hit; a mob is reached through
+    /// its living equipment write, except its off hand, which the host keeps as an item only. A slot that holds another item and an
+    /// edit that changes nothing are skipped. Acts on the stack as it is when the action lands, not as the callback saw it, so wear
+    /// that happened in between stays.
     EditStackData { target: ActionTarget, slot: StackSlot, item: String, edits: Vec<StackDataEdit> },
     /// `LivingEntity.hurt`: deals the target `amount` damage of `damage_type` with no attacker, as the host's hurt call does (armor, effects,
     /// invulnerability time and the damage hooks all hear it, so a callback hears its own hurt). A mod's own damage type id works once its
@@ -442,7 +444,7 @@ pub enum EntityAction {
     Summon { target: ActionTarget, kind: String },
 }
 
-/// Which stack of a player an [`EntityAction::EditStackData`] edits.
+/// Which stack of a player or a mob an [`EntityAction::EditStackData`] edits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StackSlot { MainHand, OffHand, Feet, Legs, Chest, Head }
 
@@ -2060,6 +2062,24 @@ mod tests {
         attack_started(5151, Some(sword()));
         modify_damage(&hit(-1));
         assert!(take_attacker_actions(-1).is_empty(), "no attacker, nothing queued");
+    }
+
+    #[test]
+    fn a_mob_attackers_stack_edit_waits_for_the_mobs_next_tick() {
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 6161 { return; }
+            hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: "example:sword".into(), edits: vec![StackDataEdit { path: vec!["bar".into()], value: Some(Nbt::Int(3)) }] });
+        });
+        let hit = |attacker| LivingDamage { entity: 6161, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker, direct: attacker, amount: 8.0 };
+        // No player's stack behind the hit (a mob's attack): nothing waits for a player's tick.
+        modify_damage(&hit(9193));
+        assert!(take_attacker_actions(9193).is_empty(), "a mob's action is not a player's");
+        // The edit waits in the late queue for the mob's own tick, which applies it as the attacker — the route the monster
+        // melee cook and the enderporting swap wear rely on.
+        let queued = take_late_actions(9193);
+        assert_eq!(queued.len(), 1);
+        assert!(matches!(&queued[0], (9193, 6161, EntityAction::EditStackData { slot: StackSlot::MainHand, .. })));
+        assert!(take_late_actions(9193).is_empty(), "taken once");
     }
 
     #[test]
