@@ -56,6 +56,16 @@ impl Combiner<bool> for AllowAll {
     }
 }
 
+/// The first `Some` answer wins, else `None`: a lookup event where each callback either knows
+/// the answer for the request or passes by answering `None`.
+pub struct FirstSome;
+
+impl<T> Combiner<Option<T>> for FirstSome {
+    fn combine(&self, results: &mut dyn Iterator<Item = Option<T>>) -> Option<T> {
+        results.find_map(|result| result)
+    }
+}
+
 /// Two phase orderings contradict each other.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PhaseOrderingCycle {
@@ -220,6 +230,13 @@ impl<A: 'static> Event<A, bool> {
     }
 }
 
+impl<A: 'static, T: 'static> Event<A, Option<T>> {
+    /// A lookup event: the first callback that answers `Some` decides.
+    pub const fn first_some() -> Self {
+        Self::new(&FirstSome)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -313,6 +330,24 @@ mod tests {
         assert_eq!(*calls.lock().unwrap(), 1);
         assert!(!event.invoke(&50));
         assert_eq!(*calls.lock().unwrap(), 1, "the veto stops the remaining callbacks");
+    }
+
+    #[test]
+    fn first_some_takes_the_first_answer_and_none_when_no_one_knows() {
+        let event: Event<i32, Option<&'static str>> = Event::first_some();
+        let later_ran = Arc::new(Mutex::new(false));
+        event.register(|n| if *n == 1 { Some("one") } else { None });
+        event.register(|n| if *n == 2 { Some("two") } else { None });
+        let flag = Arc::clone(&later_ran);
+        event.register(move |_| {
+            *flag.lock().unwrap() = true;
+            Some("late")
+        });
+        assert_eq!(event.invoke(&2), Some("two"), "the first answer wins, not the first callback");
+        assert!(!*later_ran.lock().unwrap(), "a decided lookup stops the remaining callbacks");
+        assert_eq!(event.invoke(&3), Some("late"));
+        let empty: Event<i32, Option<&'static str>> = Event::first_some();
+        assert_eq!(empty.invoke(&1), None);
     }
 
     static GLOBAL: Event<i32, ()> = Event::void();

@@ -71,13 +71,17 @@ pub struct ItemSlot {
     /// `properties`), when it has one. Set it to give this stack, not every stack of the item, that owner — a head a
     /// beheading drops keeps the player's skin through it; `None` leaves the stack's.
     pub profile: Option<NbtCompound>,
+    /// The stack's own `minecraft:map_id` component (a filled map's id), when it has one. Set it
+    /// to give this stack, not every stack of the item, that map id — a map a minimap inventory
+    /// stores keeps its explored data through it; `None` leaves the stack's.
+    pub map_id: Option<i32>,
     snapshot: Option<StackSnapshot>,
 }
 
 impl ItemSlot {
     /// A plain stack of `count` of `item`, with no damage and no data.
     pub fn new(item: Identifier, count: u32) -> Self {
-        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, enchantments: None, custom_model_data: None, profile: None, snapshot: None }
+        Self { item, count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), tool: None, attribute_modifiers: None, enchantments: None, custom_model_data: None, profile: None, map_id: None, snapshot: None }
     }
 
     pub(crate) fn capture<T: std::any::Any + Send + Sync + PartialEq>(&mut self, value: T) {

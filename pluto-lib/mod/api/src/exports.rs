@@ -1,7 +1,7 @@
 //! What `pluto_lib::` names. Shared by the real crate (`lib.rs`) and by the host-independent test crate (`tests/pure`), so the documentation examples are compiled against exactly the names a mod author sees.
 
 pub use crate::pure::base;
-pub use crate::pure::base::event::{AllowAll, FirstNotPass, Unit};
+pub use crate::pure::base::event::{AllowAll, FirstNotPass, FirstSome, Unit};
 pub use crate::pure::base::support::{MATRIX, entries_with};
 pub use crate::pure::base::{
     ActionResult, Callback, Nbt, NbtCompound, NbtCompoundExt, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry,
@@ -51,6 +51,7 @@ pub use crate::pure::i18n_api::{self, FALLBACK_LANGUAGE, I18n, LanguageChange, L
 pub use crate::pure::item_api_v1::{self, ItemTooltipCallback, ItemTooltipContext, Food, ItemUse, ItemUseRegistry, StackUse, ItemRegistry, ItemRegistrySnapshot, StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest, StackedSound, TooltipLine, TooltipText, UseAction, StandingAndWallBlockItem, EnchantabilityContext, EnderMaskContext, IndestructibleContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext, ItemEvents, ReleaseUsing, UseTick};
 pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemGroupRegistry, ItemStack, ModifyEntries};
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootEntityFacts, LootFunctionContext, LootTableContext, LootTableEvents, PlayerProfile};
+pub use crate::pure::map_api_v1::{self, MapTickCallback, MapTickRequest};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
 pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, InventoryTick, KeyPress, MemoryPlayerOps, PlayerInventoryEvents, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
 pub use crate::pure::potion_api_v1::{self, PotionEffectFact, Potions};

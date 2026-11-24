@@ -248,4 +248,5 @@ mod api_pages {
     page!(Particles, "particles.md");
     page!(Sky, "sky.md");
     page!(Retexture, "retexture.md");
+    page!(Map, "map.md");
 }

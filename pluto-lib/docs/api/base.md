@@ -18,7 +18,7 @@ RECIPE_DONE.invoke(&"steel".to_owned());
 
 ## Choosing How Answers Combine
 
-When callbacks return something, a combiner turns the list of answers into one. The three that ship cover the events of the game: `Event::void()` (no answer, every callback runs), `Event::first_not_pass()` (the first answer that is not `Pass` wins) and `Event::allow_all()` (any `false` vetoes).
+When callbacks return something, a combiner turns the list of answers into one. The four that ship cover the events of the game: `Event::void()` (no answer, every callback runs), `Event::first_not_pass()` (the first answer that is not `Pass` wins), `Event::allow_all()` (any `false` vetoes) and `Event::first_some()` (the first `Some` answer wins).
 
 ```rust
 use pluto_lib::{ActionResult, Event};
@@ -124,6 +124,20 @@ assert!(ALLOW.invoke(&3));
 assert!(!ALLOW.invoke(&-1));
 ```
 
+### `Event::first_some`
+
+`const fn first_some() -> Event<A, Option<T>>`. Callbacks answer with `Some` when they know the answer for the request, `None` when they pass. The first `Some` wins and stops the rest; all `None` (or none) is `None`.
+
+```rust
+use pluto_lib::Event;
+
+static LOOKUP: Event<i32, Option<&'static str>> = Event::first_some();
+LOOKUP.register(|n| if *n == 1 { Some("one") } else { None });
+LOOKUP.register(|n| if *n == 2 { Some("two") } else { None });
+assert_eq!(LOOKUP.invoke(&2), Some("two"));
+assert_eq!(LOOKUP.invoke(&3), None);
+```
+
 ### `Event::register`
 
 `fn register(&self, callback: impl Fn(&A) -> R + Send + Sync + 'static)`. Adds a callback in the default phase. Registering from inside a running callback is allowed.
@@ -202,7 +216,7 @@ assert_eq!(double(&4), 8);
 
 ### `Combiner`
 
-Trait that turns the callbacks into one result. Implement it for a custom event; the three provided ones (`Unit`, `FirstNotPass`, `AllowAll`) cover PlutoLib's events.
+Trait that turns the callbacks into one result. Implement it for a custom event; the four provided ones (`Unit`, `FirstNotPass`, `AllowAll`, `FirstSome`) cover PlutoLib's events.
 
 ```rust
 use pluto_lib::{Combiner, Event};
@@ -254,6 +268,19 @@ use pluto_lib::{AllowAll, Event};
 static E: Event<(), bool> = Event::new(&AllowAll);
 E.register(|_| false);
 assert!(!E.invoke(&()));
+```
+
+### `FirstSome`
+
+Combiner for `Option<T>` events: the first `Some` wins.
+
+```rust
+use pluto_lib::{Event, FirstSome};
+
+static E: Event<i32, Option<&'static str>> = Event::new(&FirstSome);
+E.register(|n| if *n == 1 { Some("one") } else { None });
+assert_eq!(E.invoke(&1), Some("one"));
+assert_eq!(E.invoke(&2), None);
 ```
 
 ### `default_phase`

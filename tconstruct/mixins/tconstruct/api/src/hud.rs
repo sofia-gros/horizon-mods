@@ -14,16 +14,15 @@
 //! player arrow included), and the paper panel behind the face is the original's background
 //! texture (the checkerboard when the map has data, the plain sheet when it does not).
 //!
-//! What does not carry over: the map is not ticked while it is stored (the original swaps it
-//! into the offhand each tick so it updates and its data reaches the player; PlutoLib has no
-//! map-tick verb). Closing that needs a new PlutoLib reach — a host-side player-tick injection
-//! that swaps the helmet's stored map into the offhand, lets the vanilla tick run, swaps it
-//! back and sends the update packet, with the mod supplying the stored map through a registered
-//! handler (the host cannot parse a Tinkers helmet's NBT layout) — its own design and weave
-//! verification, not a fix in this file.
+//! The map IS ticked while it is stored: PlutoLib's map-tick reach (a host-side injection
+//! bracketing the maps tick) swaps the helmet's selected stored map into the offhand, lets the
+//! vanilla tick run, swaps it back and sends a LAN guest the update packet, and this file
+//! supplies the stored map's id through the registered handler — the host cannot parse a
+//! Tinkers helmet's NBT layout, so the game asks instead of reading. A map stored before the
+//! id fix carries no id in its saved data and is not ticked until it is re-inserted.
 
 use crate::{config::{self, Orientation2D}, tool_stack};
-use pluto_lib::{HudDraw, HudEffect, HudRegistry, ItemSlot, Nbt, NbtCompound, NbtCompoundExt};
+use pluto_lib::{HudDraw, HudEffect, HudRegistry, ItemSlot, MapTickCallback, Nbt, NbtCompound, NbtCompoundExt};
 
 /// `slimeknights.tconstruct.library.client.Icons.ICONS`: the slot frames' sheet.
 const ICONS: &str = "tconstruct:gui/icons";
@@ -111,6 +110,17 @@ fn minimap(draw: &mut HudDraw<'_>, client: &config::Client) -> Option<(Orientati
     Some((client.map_location, size + shift))
 }
 
+/// The worn helmet's selected stored map's id, for the map-tick reach: `None` when the helmet
+/// has no minimap module, when the selected slot holds no filled map, or when the stored map
+/// carries no id (a map stored before the id fix, until it is re-inserted).
+fn stored_map_id(head: &ItemSlot) -> Option<i32> {
+    if !has_modifier(head, "tconstruct:minimap") { return None; }
+    let selected = persistent(head).map_or(0, |data| data.get_int("tconstruct:minimap_selected", 0));
+    let map = stored_slot(head, "tconstruct:minimap", selected)?;
+    if map.item.to_string() != "minecraft:filled_map" { return None; }
+    map.map_id
+}
+
 fn draw(draw: &mut HudDraw<'_>) {
     if draw.spectator { return; }
     let Ok(client) = config::client() else { return };
@@ -180,8 +190,11 @@ fn draw(draw: &mut HudDraw<'_>) {
     }
 }
 
-/// Registers the HUD elements. Called once from the product's hooks.
-pub(crate) fn register() { HudRegistry::register(draw); }
+/// Registers the HUD elements and the stored-map tick. Called once from the product's hooks.
+pub(crate) fn register() {
+    HudRegistry::register(draw);
+    MapTickCallback::EVENT.register(|request| stored_map_id(&request.head));
+}
 
 #[cfg(test)]
 mod tests {
@@ -227,5 +240,42 @@ mod tests {
         assert_eq!(effect_offset(&[harmful]), 52.0);
         assert_eq!(effect_offset(&[beneficial, harmful]), 52.0, "any non-beneficial visible effect wins");
         assert_eq!(effect_offset(&[beneficial, hidden]), 26.0);
+    }
+
+    fn helmet(maps: &[(i64, Option<i32>)], selected: Option<i64>) -> ItemSlot {
+        let mut stack = ItemSlot::new(Identifier::parse("tconstruct:plate_helmet").unwrap(), 1);
+        let mut entry = NbtCompound::new();
+        entry.insert("name".to_owned(), Nbt::String("tconstruct:minimap".to_owned()));
+        entry.insert("level".to_owned(), Nbt::Int(1));
+        let mut persistent = NbtCompound::new();
+        let list: Vec<Nbt> = maps.iter().map(|(slot, map_id)| {
+            let mut compound = NbtCompound::new();
+            compound.insert("id".to_owned(), Nbt::String("minecraft:filled_map".to_owned()));
+            compound.insert("Count".to_owned(), Nbt::Byte(1));
+            compound.insert("Slot".to_owned(), Nbt::Int(*slot as i32));
+            if let Some(id) = map_id {
+                let mut extra = NbtCompound::new();
+                extra.insert("map_id".to_owned(), Nbt::Int(*id));
+                compound.insert("pluto_components".to_owned(), Nbt::Compound(extra));
+            }
+            Nbt::Compound(compound)
+        }).collect();
+        persistent.insert("tconstruct:minimap".to_owned(), Nbt::List(list));
+        if let Some(selected) = selected {
+            persistent.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(selected as i32));
+        }
+        stack.custom_data.insert(tool_stack::TAG_UPGRADES.to_owned(), Nbt::List(vec![Nbt::Compound(entry)]));
+        stack.custom_data.insert(tool_stack::TAG_PERSISTENT.to_owned(), Nbt::Compound(persistent));
+        stack
+    }
+
+    #[test]
+    fn the_stored_map_tick_answers_the_selected_maps_id() {
+        assert_eq!(stored_map_id(&helmet(&[(0, Some(7))], None)), Some(7));
+        assert_eq!(stored_map_id(&helmet(&[(0, Some(7)), (1, Some(9))], Some(1))), Some(9), "the selected slot, not the first");
+        assert_eq!(stored_map_id(&helmet(&[(1, Some(9))], None)), None, "the default slot is empty");
+        assert_eq!(stored_map_id(&helmet(&[(0, None)], None)), None, "a map stored before the id fix carries no id");
+        assert_eq!(stored_map_id(&tool("tconstruct:minimap", &[("minecraft:paper", 0)])), None, "the selected slot holds no map");
+        assert_eq!(stored_map_id(&tool("tconstruct:item_frame", &[("minecraft:filled_map", 0)])), None, "no minimap module, no tick");
     }
 }

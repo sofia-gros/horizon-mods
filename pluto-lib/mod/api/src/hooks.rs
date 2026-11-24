@@ -479,6 +479,11 @@ pub fn hooks() -> Box<dyn Hooks> {
         });
     horizon_client::entry::pluto_sleeves_takeover_access::set_provider(
         horizon_client::entry::pluto_sleeves_takeover_access::Provider { post_use: native_post_use });
+    horizon_client::entry::pluto_map_tick_access::set_provider(
+        horizon_client::entry::pluto_map_tick_access::Provider {
+            enabled:crate::pure::map_api_v1::map_tick_heard,
+            map_tick:native_map_tick,
+        });
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -1361,6 +1366,11 @@ fn native_post_use(host: &mut dyn Host, post: &horizon_client::entry::pluto_slee
         consumed: post.consumed,
     };
     scoped(host, || events_interaction_v0::after_use(&context))
+}
+
+fn native_map_tick(_host:&mut dyn horizon_client::mod_api::Host,head:&ItemStack)->Option<i32> {
+    let slot=slot_of(head)?;
+    crate::pure::map_api_v1::map_tick(&crate::pure::map_api_v1::MapTickRequest { head:slot })
 }
 
 fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::entry::pluto_hanging_access::StandFacts {
@@ -3173,6 +3183,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.enchantments = read_enchantments(stack);
     slot.custom_model_data = data.custom_model_data;
     slot.profile = read_profile(stack);
+    slot.map_id = stack.data().and_then(|d| d.map_id);
     slot.capture(stack.clone());
     Some(slot)
 }
@@ -3286,6 +3297,10 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     // The stack's own profile: a player head's owner, whose skin the head shows.
     if slot.profile != read_profile(stack) {
         stack.data_mut().set_other("minecraft:profile", slot.profile.as_ref().map(|profile| Tag::Compound(compound_to_tag(profile))));
+    }
+    // The stack's own map id: a filled map's identity, which the map tick and the map face read.
+    if slot.map_id != stack.data().and_then(|d| d.map_id) {
+        stack.data_mut().map_id = slot.map_id;
     }
     stack.tidy();
 }
