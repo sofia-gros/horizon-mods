@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, CriticalHitEvent, LivingJumpEvent, MovementInputEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenCharTypedPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent, PlayerDestroyItemEvent,
     IngredientEvent, IngredientTestEvent,
@@ -2437,14 +2437,6 @@ impl EntityOps for HostEntities {
         horizon_client::game::pluto_entity_push_access::request_push(&self.dimension, id, delta)
     }
 
-    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
-        // The host sets the motion of an item entity or a mob directly; a player is refused (its
-        // client moves it), and a player is pushed instead.
-        let host = self.host.get();
-        let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) else { return false };
-        host.entity_set_velocity(entity, velocity)
-    }
-
     fn leave_ground(&mut self, id: u64) -> bool {
         let Some(id) = self.push_target(id) else { return false };
         horizon_client::game::pluto_entity_push_access::request_leave_ground(&self.dimension, id)
@@ -2466,7 +2458,7 @@ impl EntityOps for HostEntities {
         if host.entity(id).is_none() {
             return false;
         }
-        horizon_client::entry::pluto_mob_effect_access::push(id, effect, duration, amplifier);
+        horizon_client::entry::pluto_mob_effect_access::push(id, effect, duration, amplifier.into());
         true
     }
 }
@@ -2712,7 +2704,7 @@ impl PlayerOps for HostOps {
         Some(
             effects
                 .into_iter()
-                .map(|e| EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles, show_icon: effect_shows_icon(&e.id) })
+                .map(|e| { let show_icon = effect_shows_icon(&e.id); EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles, show_icon } })
                 .collect(),
         )
     }
@@ -3228,7 +3220,7 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
                 let (x, z) = match direction {
                     KnockbackDirection::AgainstFacing => match host.entity_rotation(entity) { Some([yaw, _]) => entity_events_v1::facing_direction(yaw), None => continue },
-                    KnockbackDirection::Vector { x, z } => (*x, *z),
+                    KnockbackDirection::Vector { x, z } => (x, z),
                     KnockbackDirection::AwayFromOther => {
                         let other = if target == ActionTarget::Attacker { victim } else { attacker };
                         let (Some(from), Some(here)) = (position_of(host, other), host.entity_position(entity)) else { continue };
@@ -3271,7 +3263,7 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 let Some(stack) = living.equipment(host, native) else { continue };
                 if &*stack.item != item || stack.count == 0 { continue; }
                 let Some(mut held) = slot_of(&stack) else { continue };
-                if !entity_events_v1::edit_custom_data(&mut held.custom_data, edits) { continue; }
+                if !entity_events_v1::edit_custom_data(&mut held.custom_data, &edits) { continue; }
                 living.set_equipment(host, native, native_slot(Some(held)));
             }
             EntityAction::Hurt { target, amount, damage_type } => {
@@ -5430,7 +5422,7 @@ impl Hooks for PlutoHooks {
         if !entity_events_v1::experience_drop_heard() { return; }
         let player = attacker.and_then(|uuid| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (uuid, player.entity_id)));
         let looting_slot = player.and_then(|(uuid, _)| entity_events_v1::take_looting_slot(uuid));
-        let effects = host.entity_effects(event.entity).unwrap_or_default().into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect();
+        let effects = host.entity(event.entity).and_then(|entity| host.entity_effects(entity)).unwrap_or_default().into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect();
         let drop = entity_events_v1::ExperienceDrop {
             entity: event.entity as i32, kind: event.kind.to_owned(), player, effects,
             projectile_tool, looting_slot,
@@ -5565,7 +5557,7 @@ impl Hooks for PlutoHooks {
         if !player_api::item_break_heard() { return; }
         // The host names the slot as `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body` or
         // `saddle`; a player has no body or saddle slot, so those two are not reported.
-        let Some(slot) = match &*event.slot {
+        let Some(slot) = (match &*event.slot {
             "mainhand" => Some(entity_events_v1::StackSlot::MainHand),
             "offhand" => Some(entity_events_v1::StackSlot::OffHand),
             "head" => Some(entity_events_v1::StackSlot::Head),
@@ -5573,7 +5565,7 @@ impl Hooks for PlutoHooks {
             "legs" => Some(entity_events_v1::StackSlot::Legs),
             "feet" => Some(entity_events_v1::StackSlot::Feet),
             _ => None,
-        } else { return };
+        }) else { return };
         let broken = player_api::ItemBreak {
             player: player_api::ServerPlayer { uuid: event.player, name: event.name.to_string() },
             item: event.item.to_string(),
@@ -6178,7 +6170,7 @@ impl Hooks for PlutoHooks {
         entity_events_v1::living_jump(&jump);
     }
 
-    fn movement_input(&self, host: &dyn Host, event: &mut MovementInputEvent<'_>) {
+    fn movement_input(&self, host: &dyn Host, event: &mut MovementInputEvent) {
         // The local player's movement input, after the game read it and before it applies it:
         // what the callbacks leave of the impulses is what the player moves with. The player is
         // the acting player; the entity reach is not open here, so a callback that needs to move
