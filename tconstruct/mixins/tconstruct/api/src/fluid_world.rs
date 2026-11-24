@@ -15,8 +15,11 @@
 //! - Destroy particles have no emission surface: they are the destroy-block crumble level event,
 //!   not a particle send. The cannon's shot particles do send, through the world handle (see
 //!   `crate::fluid_cannon`); sounds do.
-//! - Potion contents are not read: no potion registry reach hands out a potion's effects, so
-//!   `potion` / `potion_cloud` effects find no effects to give (their fluid's other effects still run).
+//! - Potion contents come from the game's own potion registry through PlutoLib's potion reach
+//!   (POTION-REACH): the fluid's tag names the potion under its `Potion` string, and the
+//!   `potion` / `potion_cloud` effects apply that potion's effects. A potion the game does not
+//!   know carries none, as the original's Potions.EMPTY does. Custom effects are not read:
+//!   neither original effect reads them (PotionCloudFluidEffect carries the TODO).
 //! - The vanilla interaction pipelines are not reachable, so `interact` effects answer Pass.
 //! - Blocks cannot be piston-moved, so nothing is pushable through this context and move effects rest.
 //! - An entity's active effects, air and equipment cannot be read by id; a target answers the
@@ -402,9 +405,16 @@ impl WorldAccess for LiveWorld {
         Some(Stack { item, count: output.count, nbt: output.nbt.clone() })
     }
 
-    fn potion_effects(&self, _tag: Option<&NbtCompound>) -> Vec<PotionEffect> {
-        // No potion contents reach; see the module note.
-        Vec::new()
+    fn potion_effects(&self, tag: Option<&NbtCompound>) -> Vec<PotionEffect> {
+        // PotionUtils.getPotion: the fluid's tag names the potion under its `Potion` string,
+        // and the game's registry hands out that potion's effects (see `crate::potion_contents`).
+        // No tag, no `Potion` string, or an id that does not parse names no potion, and a potion
+        // the game does not know carries no effects — the original answers Potions.EMPTY the same
+        // way. Custom effects are not read: neither original effect reads them.
+        let Some(tag) = tag else { return Vec::new() };
+        let Some(potion) = tag.get_string("Potion") else { return Vec::new() };
+        let Ok(potion) = Identifier::parse(potion) else { return Vec::new() };
+        crate::potion_contents::effects(&potion)
     }
 
     fn living_in_block(&mut self, pos: BlockPos) -> Vec<&mut dyn EntityTarget> {
@@ -667,5 +677,23 @@ mod tests {
         assert_eq!(blast.radius, 1.0, "a half plus a half for the one level");
         assert!(blast.fire);
         assert_eq!(blast.interaction, pluto_lib::ExplosionInteraction::Block, "destroy_with_decay is the game's block rule");
+    }
+
+    #[test]
+    fn potion_effects_read_the_potion_the_fluids_tag_names() {
+        // Without a game the registry lookup finds nothing, so every tag answers empty here; the
+        // test pins the tag reading — no tag, no `Potion` key, a non-string value and an
+        // unparsable id all answer empty without touching the registry — and the fallback for a
+        // potion the game would know.
+        let live = LiveWorld::new(World::new("minecraft:overworld"));
+        assert!(live.potion_effects(None).is_empty());
+        let mut tag = NbtCompound::new();
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "no Potion key names no potion");
+        tag.insert("Potion".to_owned(), Nbt::Int(7));
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "a non-string Potion names no potion");
+        tag.insert("Potion".to_owned(), Nbt::String("not an id".to_owned()));
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "an unparsable id names no potion");
+        tag.insert("Potion".to_owned(), Nbt::String("minecraft:strong_poison".to_owned()));
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "without a game no potion has effects");
     }
 }
