@@ -108,6 +108,9 @@ pub fn hooks() -> Box<dyn Hooks> {
         crate::pure::color_provider_api_v1::has_block_provider,
         crate::pure::color_provider_api_v1::block_color_from_host,
     );
+    horizon_client::mesher::pluto_retexture::set_matcher(
+        crate::pure::retexture_api_v1::is_retextured_face,
+    );
     horizon_client::item_render::pluto_item_colors::set_provider(
         crate::pure::color_provider_api_v1::has_item_provider,
         |item,count,components,tint_index| {

@@ -12,6 +12,7 @@ pub mod armor_renderer_api_v1;
 pub mod particle_factory_registry;
 pub mod particle_api_v1;
 pub mod sky_api_v1;
+pub mod retexture_api_v1;
 pub mod attribute_api_v1;
 pub mod skull_model_registry;
 pub mod command_api_v2;
