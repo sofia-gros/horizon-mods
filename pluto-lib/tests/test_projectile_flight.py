@@ -3,11 +3,13 @@
 The game's entity-tick telling does not cover projectiles (pinned
 `native_entity_tick_pre`, API 146: mobs, items, minecarts, boats), so the
 spawn and flight tellings ride PlutoLib's own reaches into the game's
-projectile list: a head on `add_projectile`, a return on `tick_projectiles`,
-a game-side pass in the creatures module, and a sink in the entry point the
+projectile list: a head on `add_projectile`, the flight pass delivered at
+the head of `tick_fangs` (the call the creature tick makes immediately
+after `tick_projectiles`, whose own body refuses a return seam), a
+game-side pass in the creatures module, and a sink in the entry point the
 API crate installs. These checks pin that wiring so it cannot silently fall
-away: the access module, the two reaches (with the weave rule for return
-injections), the pure events and their fields, and the transport's
+away: the access module, the two reaches (with the weave rule for
+require), the pure events and their fields, and the transport's
 hand-offs between them.
 """
 from pathlib import Path
@@ -63,11 +65,17 @@ class ProjectileFlightTests(unittest.TestCase):
         self.assertEqual(reach['helper'], 'pluto-projectile-spawn-head.rs')
         self.assertIn('on_spawn', self.source('pluto-projectile-spawn-head.rs'))
 
-    def test_the_flight_reach_is_a_return_on_tick_projectiles_without_require(self):
+    def test_the_flight_reach_rides_the_tick_fangs_head_without_require(self):
         reach = self.injection('pluto-projectile-flight-return')
-        self.assertEqual(reach['target'], "horizon_client::game::creatures::Game<'_>::tick_projectiles")
-        self.assertEqual(reach['kind'], 'RETURN')
-        # RETURN injections must not carry require (E_SELECTOR: require applies only to site injections).
+        # A RETURN on tick_projectiles is not weaveable (its body uses ?,
+        # E_UNSUPPORTED_CONTROL_FLOW), so the flight pass rides the head of
+        # tick_fangs, which the creature tick calls immediately after
+        # tick_projectiles; on the error path the caller aborts with ?, so
+        # the head is skipped exactly as a return would be.
+        self.assertEqual(reach['target'], "horizon_client::game::fangs::Game<'_>::tick_fangs")
+        self.assertEqual(reach['kind'], 'HEAD')
+        # This head carries bindings, so require would be E_SELECTOR
+        # (require applies only to site injections, and to binding-free heads).
         self.assertNotIn('require', reach)
         self.assertEqual(reach['helper'], 'pluto-projectile-flight-return.rs')
         self.assertIn('after_tick', self.source('pluto-projectile-flight-return.rs'))
