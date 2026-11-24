@@ -329,8 +329,9 @@ impl BlockBreakContext {
 
 /// The experience a player's block break is about to drop (the experience half of NeoForge's
 /// `BlockEvent.BreakEvent`): heard as the game samples the drop on the player's own break path,
-/// before the game's silk-touch rule is applied to the sampled amount. Only the local player's
-/// breaks are heard; a break the level works out for a guest names no breaker to credit.
+/// before the game's silk-touch rule is applied to the sampled amount, and on the level's removal
+/// path for a break that path works out: the break named its breaker there (see `BlockBreaker`),
+/// so a guest's break is heard with the guest credited, not left unheard for naming no breaker.
 #[derive(Clone, Debug)]
 pub struct BlockExperienceContext {
     /// The block's position.
@@ -627,7 +628,7 @@ impl PlayerBlockBreakEvents {
     /// Fabric: `CANCELED`. Called once when `BEFORE` vetoes a break; the block is kept.
     pub const CANCELED: &'static Event<BlockBreakContext, ()> = &BLOCK_BREAK_CANCELED;
     /// NeoForge: `BlockEvent.BreakEvent` (its experience). The experience the break is about to drop, heard as the game
-    /// samples it: change it with `experience.set`. Only the local player's breaks are heard.
+    /// samples it: change it with `experience.set`. Every player's break is heard, a guest's included.
     pub const EXPERIENCE: &'static Event<BlockExperienceContext, ()> = &BLOCK_EXPERIENCE;
 }
 
@@ -733,6 +734,62 @@ pub(crate) fn block_experience_heard() -> bool {
 pub(crate) fn block_experience(context: &BlockExperienceContext) -> u32 {
     BLOCK_EXPERIENCE.invoke(context);
     context.experience.get()
+}
+
+/// The player who broke the block at a position, remembered from the break the game named them for:
+/// `destroy_block` names every player's break (a LAN guest's included), while the experience the
+/// break drops is sampled on paths that name no breaker — the player's own break path, which the
+/// acting player names, and the level's removal path, which names none. The note is taken by the
+/// first sampling site that runs for the break, so a break is bonused once at most; a break the
+/// game never samples (a creative break, a break whose block drops no experience) leaves a note
+/// that is dropped unread once it is this old.
+#[derive(Clone, Debug)]
+pub(crate) struct BlockBreaker {
+    pub uuid: u128,
+    pub name: String,
+    pub entity: i32,
+    /// The stack in the breaker's main hand as the break started; None for an empty hand. The
+    /// removal path reads the held tool from this snapshot, where no acting player is in hand.
+    pub held: Option<StackData>,
+    /// Whether the breaker was in creative mode (their break drops no experience).
+    pub creative: bool,
+}
+
+/// How long a breaker's name waits for its break's experience to be sampled.
+const BLOCK_BREAKER_LIFETIME: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// The most breakers remembered at once; past it the oldest break is forgotten rather than letting
+/// a broken caller grow the map without bound.
+const MAX_BLOCK_BREAKERS: usize = 4096;
+
+static BLOCK_BREAKERS: std::sync::Mutex<std::collections::BTreeMap<(String, [i32; 3]), (BlockBreaker, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Remembers `breaker` as the player who broke the block at `pos` in `dimension`.
+pub(crate) fn note_block_breaker(dimension: &str, pos: [i32; 3], breaker: BlockBreaker) {
+    let Ok(mut breakers) = BLOCK_BREAKERS.lock() else { return };
+    let now = std::time::Instant::now();
+    breakers.retain(|_, (_, at)| at.elapsed() < BLOCK_BREAKER_LIFETIME);
+    if breakers.len() >= MAX_BLOCK_BREAKERS {
+        if let Some(oldest) = breakers.iter().min_by_key(|(_, (_, at))| *at).map(|(key, _)| key.clone()) { breakers.remove(&oldest); }
+    }
+    breakers.insert((dimension.to_owned(), pos), (breaker, now));
+}
+
+/// The breaker `note_block_breaker` named for the block at `pos` in `dimension`, taken; a stale
+/// one is dropped.
+pub(crate) fn take_block_breaker(dimension: &str, pos: [i32; 3]) -> Option<BlockBreaker> {
+    let Ok(mut breakers) = BLOCK_BREAKERS.lock() else { return None };
+    match breakers.remove(&(dimension.to_owned(), pos)) {
+        Some((breaker, at)) if at.elapsed() < BLOCK_BREAKER_LIFETIME => Some(breaker),
+        _ => None,
+    }
+}
+
+/// Forgets the breaker `note_block_breaker` named for the block at `pos` in `dimension` (a break
+/// `BEFORE` vetoed, whose block stays and whose experience must not be credited to them later).
+pub(crate) fn clear_block_breaker(dimension: &str, pos: [i32; 3]) {
+    let Ok(mut breakers) = BLOCK_BREAKERS.lock() else { return };
+    breakers.remove(&(dimension.to_owned(), pos));
 }
 
 /// An extra break a `BEFORE` callback asked for, waiting for a level seam that can break blocks: the host adapter's break
@@ -1074,6 +1131,22 @@ mod tests {
         let stone = BlockState { block: Id::parse("minecraft:stone").unwrap(), properties: Default::default() };
         assert!(place_predicates_allow(&bare, &stone, None, None));
         assert!(!place_predicates_allow(&bare, &chest, None, None));
+    }
+
+    #[test]
+    fn a_break_names_its_breaker_until_its_experience_is_sampled() {
+        let breaker = |name: &str| BlockBreaker { uuid: 5, name: name.into(), entity: 6, held: None, creative: false };
+        note_block_breaker("minecraft:overworld", [1, 2, 3], breaker("guest"));
+        assert_eq!(take_block_breaker("minecraft:overworld", [1, 2, 3]).map(|breaker| breaker.name), Some("guest".to_string()), "the breaker is taken");
+        assert_eq!(take_block_breaker("minecraft:overworld", [1, 2, 3]), None, "taken once");
+        note_block_breaker("minecraft:overworld", [1, 2, 3], breaker("first"));
+        note_block_breaker("minecraft:overworld", [1, 2, 3], breaker("second"));
+        assert_eq!(take_block_breaker("minecraft:overworld", [1, 2, 3]).map(|breaker| breaker.name), Some("second".to_string()), "a later break at the same position overwrites");
+        assert_eq!(take_block_breaker("minecraft:overworld", [4, 5, 6]), None, "another position's breaker is not taken");
+        assert_eq!(take_block_breaker("minecraft:the_nether", [1, 2, 3]), None, "another dimension's breaker is not taken");
+        note_block_breaker("minecraft:overworld", [1, 2, 3], breaker("vetoed"));
+        clear_block_breaker("minecraft:overworld", [1, 2, 3]);
+        assert_eq!(take_block_breaker("minecraft:overworld", [1, 2, 3]), None, "a vetoed break's breaker is forgotten");
     }
 
     #[test]

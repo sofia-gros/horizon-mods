@@ -1001,7 +1001,7 @@ ServerLivingEntityEvents::MODIFY_VISIBILITY.register(|look| {
 
 ### `ServerLivingEntityEvents::EXPERIENCE_DROP`
 
-NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`.
+NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`. `projectile_tool` is the stack the killing projectile was launched from; `looting_slot` the slot the killing blow claimed (an armor piece or the off hand, else the main hand).
 
 ### `ServerLivingEntityEvents::MODIFY_DAMAGE`
 

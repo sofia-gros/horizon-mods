@@ -799,6 +799,16 @@ pub struct ExperienceDrop {
     pub player: Option<(u128, i32)>,
     /// The dying mob's effects as of the drop, as (id, amplifier).
     pub effects: Vec<(String, i32)>,
+    /// The stack the killing projectile was launched from, when the killing blow was a projectile
+    /// a player launched and the launch named its tool; None otherwise (a melee kill, a projectile
+    /// no launch named, or a projectile the game did not report). The consumer reads the
+    /// projectile's recorded experience float from it instead of the held tool's.
+    pub projectile_tool: Option<StackData>,
+    /// The looting slot the killing blow's attack claimed (canon's `ModifierLootingHandler`:
+    /// the slot the attacking tool came from, usually the main hand, an armor piece when the
+    /// blow was struck with one); None when no weapon hit named one, and the main hand reads
+    /// then. The consumer reads the tool in this slot instead of the main hand.
+    pub looting_slot: Option<StackSlot>,
     /// The experience now, which callbacks may change with `set` (0 or less drops no orbs);
     /// each callback sees the last one's.
     pub experience: Cell<i32>,
@@ -939,6 +949,105 @@ pub(crate) fn take_experience_attacker(entity: i32) -> Option<u128> {
             _ => None,
         }
     })
+}
+
+/// How long a killing blow's direct entity waits for its victim's death, and a looting slot waits
+/// for its attack's kill; a blow whose victim drops no experience leaves a name that is dropped
+/// unread once it is this old.
+const KILLING_NOTE_LIFETIME: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// The direct entity of the last blow that landed on each victim, by victim entity id: a projectile
+/// there names the launcher's tool (see `PROJECTILE_TOOLS`), so the experience drop of a mob the
+/// blow killed reads its float instead of the held tool's. Noted on every blow, including one with
+/// no direct entity, so a non-projectile killing blow does not inherit an earlier projectile's float.
+static KILLING_DIRECT: std::sync::Mutex<std::collections::BTreeMap<i32, (i32, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Remembers the direct entity of the blow that landed on `victim`.
+pub(crate) fn note_killing_direct(victim: i32, direct: i32) {
+    let Ok(mut blows) = KILLING_DIRECT.lock() else { return };
+    let now = std::time::Instant::now();
+    blows.retain(|_, (_, at)| at.elapsed() < KILLING_NOTE_LIFETIME);
+    blows.insert(victim, (direct, now));
+}
+
+/// The direct entity of the blow that landed on `victim`, taken; a stale one is dropped.
+pub(crate) fn take_killing_direct(victim: i32) -> Option<i32> {
+    let Ok(mut blows) = KILLING_DIRECT.lock() else { return None };
+    match blows.remove(&victim) {
+        Some((direct, at)) if at.elapsed() < KILLING_NOTE_LIFETIME => Some(direct),
+        _ => None,
+    }
+}
+
+/// How long a launched projectile's tool waits for a kill: a projectile flies for seconds at most,
+/// and an entry older than this is dropped unread (an entity id reused by another projectile after
+/// the first left the world must not lend it its launcher's tool).
+const PROJECTILE_TOOL_LIFETIME: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// The most launched projectiles remembered at once; past it the oldest launch is forgotten rather
+/// than letting a broken caller grow the map without bound.
+const MAX_PROJECTILE_TOOLS: usize = 4096;
+
+/// The stack each player's projectile was launched from, by projectile entity id: the death report
+/// names the killing projectile, not its float, and the launch is the only moment the tool is in
+/// hand. A launch no player made (a dispenser, a mob) names no tool.
+static PROJECTILE_TOOLS: std::sync::Mutex<std::collections::BTreeMap<u32, (StackData, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Remembers the stack `projectile` was launched from.
+pub(crate) fn note_projectile_tool(projectile: u32, tool: StackData) {
+    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return };
+    let now = std::time::Instant::now();
+    tools.retain(|_, (_, at)| at.elapsed() < PROJECTILE_TOOL_LIFETIME);
+    if tools.len() >= MAX_PROJECTILE_TOOLS {
+        if let Some(oldest) = tools.iter().min_by_key(|(_, (_, at))| *at).map(|(id, _)| *id) { tools.remove(&oldest); }
+    }
+    tools.insert(projectile, (tool, now));
+}
+
+/// The stack `projectile` was launched from, taken; a stale one is dropped.
+pub(crate) fn take_projectile_tool(projectile: u32) -> Option<StackData> {
+    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return None };
+    match tools.remove(&projectile) {
+        Some((tool, at)) if at.elapsed() < PROJECTILE_TOOL_LIFETIME => Some(tool),
+        _ => None,
+    }
+}
+
+/// The looting slot each player's last weapon hit claimed, by player uuid: the slot the attacking
+/// tool came from (canon's `ModifierLootingHandler`, which claims it at attack time and resets it
+/// after the hit). A kill within the lifetime of a claim reads the claimed slot's tool instead of
+/// the main hand's; a kill after it reads the main hand.
+static LOOTING_SLOTS: std::sync::Mutex<std::collections::BTreeMap<u128, (StackSlot, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Claims the looting slot `slot` for `player`'s next kill.
+pub(crate) fn note_looting_slot(player: u128, slot: StackSlot) {
+    let Ok(mut slots) = LOOTING_SLOTS.lock() else { return };
+    let now = std::time::Instant::now();
+    slots.retain(|_, (_, at)| at.elapsed() < KILLING_NOTE_LIFETIME);
+    slots.insert(player, (slot, now));
+}
+
+/// The looting slot `player`'s last weapon hit claimed, taken; a stale claim is dropped.
+pub(crate) fn take_looting_slot(player: u128) -> Option<StackSlot> {
+    let Ok(mut slots) = LOOTING_SLOTS.lock() else { return None };
+    match slots.remove(&player) {
+        Some((slot, at)) if at.elapsed() < KILLING_NOTE_LIFETIME => Some(slot),
+        _ => None,
+    }
+}
+
+/// The looting slot an attack with `weapon` claims when the attacker wears `armor` and holds
+/// `offhand`: the armor slot whose piece the weapon is, the off hand when the weapon is the
+/// off-hand stack, else the main hand. Two pieces are the same tool when their item and custom
+/// data match (damage is wear, not identity); when two worn pieces match, the first named wins.
+pub(crate) fn looting_slot(weapon: Option<&StackData>, armor: &[(String, StackData)], offhand: Option<&StackData>) -> StackSlot {
+    let Some(weapon) = weapon else { return StackSlot::MainHand };
+    let same = |stack: &StackData| stack.item == weapon.item && stack.custom_data == weapon.custom_data;
+    if let Some((slot, _)) = armor.iter().find(|(_, stack)| same(stack)) {
+        if let Some(found) = armor_stack_slot(slot) { return found; }
+    }
+    if offhand.is_some_and(|stack| same(stack)) { return StackSlot::OffHand; }
+    StackSlot::MainHand
 }
 
 static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
@@ -1500,6 +1609,15 @@ pub(crate) fn armor_worn_by(entity: i32) -> Vec<(String, StackData)> {
     if let Some((_, pieces)) = worn.get(&entity) { return pieces.clone(); }
     if entity == 0 && worn.len() == 1 { return worn.values().next().map(|(_, pieces)| pieces.clone()).unwrap_or_default(); }
     Vec::new()
+}
+
+/// The stack the player with entity id `entity` holds in the off hand as of their last tick; the game names the local player of a
+/// single-player world as entity 0, which is the only holder when one is known.
+pub(crate) fn offhand_worn_by(entity: i32) -> Option<StackData> {
+    let Ok(hands) = OFFHAND.lock() else { return None };
+    if let Some((_, stack)) = hands.get(&entity) { return stack.clone(); }
+    if entity == 0 && hands.len() == 1 { return hands.values().next().and_then(|(_, stack)| stack.clone()); }
+    None
 }
 
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
@@ -2425,6 +2543,51 @@ mod tests {
         assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.5);
         attribute_applied(player, "minecraft:armor", 0.0);
         assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.0, "a zero total clears it");
+    }
+
+    #[test]
+    fn a_killing_blow_names_its_direct_entity_and_a_blow_without_one_overwrites() {
+        note_killing_direct(41, 7);
+        assert_eq!(take_killing_direct(41), Some(7), "the projectile's id is taken");
+        assert_eq!(take_killing_direct(41), None, "taken once");
+        note_killing_direct(41, 7);
+        note_killing_direct(41, -1);
+        assert_eq!(take_killing_direct(41), Some(-1), "a later blow without a direct entity overwrites");
+        assert_eq!(take_killing_direct(42), None, "another victim's blow is not taken");
+    }
+
+    #[test]
+    fn a_launched_projectiles_tool_is_remembered_until_its_kill() {
+        let tool = StackData { item: "tconstruct:bow".into(), count: 1, ..StackData::default() };
+        note_projectile_tool(9, tool.clone());
+        assert_eq!(take_projectile_tool(9), Some(tool), "the launcher's stack is taken");
+        assert_eq!(take_projectile_tool(9), None, "taken once");
+        assert_eq!(take_projectile_tool(10), None, "another projectile's tool is not taken");
+    }
+
+    #[test]
+    fn a_looting_slot_claim_is_remembered_until_its_kill() {
+        note_looting_slot(11, StackSlot::Chest);
+        assert_eq!(take_looting_slot(11), Some(StackSlot::Chest));
+        assert_eq!(take_looting_slot(11), None, "taken once");
+        assert_eq!(take_looting_slot(12), None, "another player's claim is not taken");
+    }
+
+    #[test]
+    fn the_looting_slot_is_the_slot_the_weapon_came_from() {
+        let stack = |item: &str, mark: i32| {
+            let mut custom_data = NbtCompound::new();
+            custom_data.insert("mark".into(), Nbt::Int(mark));
+            StackData { item: item.into(), count: 1, custom_data, ..StackData::default() }
+        };
+        let chest = stack("tconstruct:chestplate", 1);
+        let shield = stack("minecraft:shield", 2);
+        let armor = vec![("feet".to_string(), stack("minecraft:boots", 3)), ("chest".to_string(), chest.clone())];
+        assert_eq!(looting_slot(Some(&chest), &armor, Some(&shield)), StackSlot::Chest, "struck with the worn chestplate");
+        assert_eq!(looting_slot(Some(&shield), &armor, Some(&shield)), StackSlot::OffHand, "struck with the off-hand shield");
+        assert_eq!(looting_slot(Some(&stack("tconstruct:sword", 4)), &armor, Some(&shield)), StackSlot::MainHand, "a held sword is no worn piece");
+        assert_eq!(looting_slot(None, &armor, Some(&shield)), StackSlot::MainHand, "an empty hand claims the main hand");
+        assert_eq!(looting_slot(Some(&stack("tconstruct:chestplate", 9)), &armor, Some(&shield)), StackSlot::MainHand, "the same item with different data is another piece");
     }
 
     #[test]
