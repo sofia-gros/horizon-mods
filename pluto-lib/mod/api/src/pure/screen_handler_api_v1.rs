@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use super::base::{Identifier, NbtCompound};
+use super::base::{Event, Identifier, NbtCompound};
 use super::block_api_v1::Direction;
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
 use super::world_api_v1::BlockState;
@@ -920,6 +920,85 @@ pub(crate) fn accepts(block: &str, pos: BlockPos, slot: usize, item: &str, count
     }
 }
 
+/// A click in a menu a mod opened (a native menu: `native_menu_clicked`), which moved nothing:
+/// the player, the window, the menu slot clicked (the menu's own first, then the player's
+/// inventory, -999 outside), the button and the click's mode (`ClickType`'s id).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativeMenuClicked {
+    /// The player who clicked.
+    pub player: u128,
+    /// The window the click was in.
+    pub window: i32,
+    /// The menu slot clicked.
+    pub slot: i32,
+    /// The button used.
+    pub button: i32,
+    /// The click's mode.
+    pub mode: i32,
+}
+
+/// A menu a mod opened closed, for any reason: the player closed it, the server, a mod or
+/// another menu did, or the player died or left.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativeMenuClosed {
+    /// The player whose menu closed.
+    pub player: u128,
+    /// The window that closed.
+    pub window: i32,
+}
+
+/// The input slots of a menu a mod opened as the player left them, on its closing: the slots the
+/// handler takes (`Option::take`) are what the mod keeps, and what stays goes back to the player
+/// as vanilla's `clearContainer` gives a crafting grid's items back. Heard before the menu's
+/// close event for the same window. The slots ride a [`RefCell`](std::cell::RefCell), as the
+/// player tick's write-backs do: the event's callbacks share the event, so what they take is
+/// taken through the cell.
+pub struct NativeMenuInputClosed {
+    /// The player whose menu closed.
+    pub player: u128,
+    /// The window that closed.
+    pub window: i32,
+    /// The menu's input slots, in order.
+    pub slots: std::cell::RefCell<Vec<Option<ItemSlot>>>,
+}
+
+static NATIVE_MENU_CLICKED: Event<NativeMenuClicked, ()> = Event::void();
+static NATIVE_MENU_CLOSED: Event<NativeMenuClosed, ()> = Event::void();
+static NATIVE_MENU_INPUT_CLOSED: Event<NativeMenuInputClosed, ()> = Event::void();
+
+/// Clicks in menus a mod opened, and their closings (see [`NativeMenuClicked`],
+/// [`NativeMenuClosed`], [`NativeMenuInputClosed`]).
+pub struct NativeMenuEvents;
+
+impl NativeMenuEvents {
+    /// A click in a menu a mod opened.
+    pub const CLICKED: &'static Event<NativeMenuClicked, ()> = &NATIVE_MENU_CLICKED;
+    /// A menu a mod opened closed.
+    pub const CLOSED: &'static Event<NativeMenuClosed, ()> = &NATIVE_MENU_CLOSED;
+    /// The input slots of a menu a mod opened, on its closing.
+    pub const INPUT_CLOSED: &'static Event<NativeMenuInputClosed, ()> = &NATIVE_MENU_INPUT_CLOSED;
+}
+
+/// Reports a native menu click to the callbacks.
+pub(crate) fn menu_clicked(player: u128, window: i32, slot: i32, button: i32, mode: i32) {
+    NATIVE_MENU_CLICKED.invoke(&NativeMenuClicked { player, window, slot, button, mode });
+}
+
+/// Reports a native menu closing to the callbacks.
+pub(crate) fn menu_closed(player: u128, window: i32) {
+    NATIVE_MENU_CLOSED.invoke(&NativeMenuClosed { player, window });
+}
+
+/// Reports a native menu's input slots on its closing to the callbacks, and writes back what
+/// they took into `slots` (what stays there goes back to the player).
+pub(crate) fn menu_input_closed(player: u128, window: i32, slots: &mut [Option<ItemSlot>]) {
+    let event = NativeMenuInputClosed { player, window, slots: std::cell::RefCell::new(slots.to_vec()) };
+    NATIVE_MENU_INPUT_CLOSED.invoke(&event);
+    if let Ok(kept) = event.slots.try_borrow() {
+        slots.clone_from_slice(&kept);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1208,7 +1287,31 @@ mod tests {
     }
 
     #[test]
-    fn linked_slots_ride_the_menu_links_callback_and_a_button_can_ask_for_a_switch() {
+    fn a_native_menu_close_hands_its_input_slots_to_the_callbacks_that_take_them() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        // The callback only answers for its own window, so another test's close never takes here.
+        static TOOK: AtomicBool = AtomicBool::new(false);
+        NativeMenuEvents::INPUT_CLOSED.register(|event| {
+            if event.window == 4242 {
+                event.slots.borrow_mut()[0] = None;
+                TOOK.store(true, Ordering::Relaxed);
+            }
+        });
+        let mut slots = vec![Some(ItemSlot::new(Identifier::parse("test:ingot").unwrap(), 3)), Some(ItemSlot::new(Identifier::parse("test:coal").unwrap(), 1))];
+        menu_input_closed(9, 4242, &mut slots);
+        assert!(TOOK.load(Ordering::Relaxed), "the callback heard the close");
+        assert_eq!(slots, vec![None, Some(ItemSlot::new(Identifier::parse("test:coal").unwrap(), 1))], "the taken slot is gone and the kept one stays");
+        // A click and a close with no taker change nothing.
+        menu_clicked(9, 4242, 0, 0, 0);
+        menu_closed(9, 4242);
+        let mut kept = vec![Some(ItemSlot::new(Identifier::parse("test:ingot").unwrap(), 3))];
+        menu_input_closed(9, 7, &mut kept);
+        assert_eq!(kept.len(), 1);
+        assert!(kept[0].is_some(), "another window's close takes nothing");
+    }
+}
+
+
         let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).linked_slot().linked_slot();
         assert_eq!(declared.source(1), SlotSource::LinkedContainer);
         assert_eq!(declared.source(2), SlotSource::LinkedContainer);

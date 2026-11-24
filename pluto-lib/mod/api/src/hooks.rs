@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
     IngredientEvent, IngredientTestEvent,
@@ -2240,6 +2240,21 @@ impl PlayerOps for HostOps {
     }
 
     fn set_stack(&mut self, player: u128, slot: i32, stack: Option<&player_api::StackData>) -> bool {
+        // The main inventory's slots, 0 to 35, take a whole-stack write through the host's checked
+        // inventory slot: the slot must still hold what the caller read there, so a stack that moved
+        // in between is not overwritten, and the player's screen follows with the tick's sync. The
+        // host answers from a scope where the player's state is not swapped in (a packet receiver, a
+        // server tick, a native menu click); inside the player's own turn it refuses, as the
+        // inventory calls do. A count of 0 clears, as the carried read's empty slot does.
+        if (0..36).contains(&slot) {
+            let Some(current) = self.host().player_stacks(player).and_then(|stacks| stacks.get(slot as usize).cloned()) else { return false; };
+            let new = stack.filter(|stack| stack.count > 0).map(|stack| {
+                let mut made = ItemStack::new(&stack.item, stack.count);
+                write_stack(&mut made, stack);
+                made
+            });
+            return self.host().set_inventory_slot(player, horizon_client::game::NativeInventoryKind::Player, slot as usize, current.as_ref(), new).is_ok();
+        }
         // The carried numbering's equipment slots, and only they, have a host write that creates a stack in
         // an empty slot: the equipment write behind `/item replace entity` (the carried read names occupied
         // slots only, which is why update_stack cannot do this). The player is named exactly, through the
@@ -2262,6 +2277,30 @@ impl PlayerOps for HostOps {
             made
         });
         living.set_equipment(host, equipment, native)
+    }
+
+    fn stack_named(&mut self, player: u128, slot: i32) -> Option<player_api::StackData> {
+        // The main inventory comes from the host's per-player stacks (the carried read names the
+        // acting player only, and a packet receiver has none swapped in); equipment and the off hand
+        // from the host's per-player equipment read. Empty places are left out, as `stack` leaves them.
+        match slot {
+            0..36 => self.host().player_stacks(player)?.get(slot as usize)?.clone().filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            100 => self.host().player_equipment(player, EquipmentSlot::Feet).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            101 => self.host().player_equipment(player, EquipmentSlot::Legs).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            102 => self.host().player_equipment(player, EquipmentSlot::Chest).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            103 => self.host().player_equipment(player, EquipmentSlot::Head).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            -106 => self.host().player_equipment(player, EquipmentSlot::OffHand).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            _ => None,
+        }
+    }
+
+    fn open_item_menu(&mut self, player: u128, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        let native = items.into_iter().map(|slot| slot.filter(|slot| slot.count > 0).map(|slot| {
+            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+            write_slot(&mut stack, &slot);
+            stack
+        })).collect();
+        self.host().open_item_menu(player, menu, Text::literal(title.to_owned()), native, extra)
     }
 
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
@@ -4152,6 +4191,33 @@ impl Hooks for PlutoHooks {
     fn menu_slot_rules(&self, event: &mut MenuSlotRulesEvent<'_>) {
         let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
         screen_handler_api_v1::slot_rules(&block, event.slot, &event.stack.item, event.stack.count, &mut event.may_place, &mut event.max_stack);
+    }
+
+    /// A click in a menu a mod opened, which moved nothing: the click is the mod's to answer, and
+    /// the menu's slots it holds are the native menu's own.
+    fn menu_clicked(&self, host: &mut dyn Host, event: &mut MenuClickedEvent) {
+        scoped(host, || screen_handler_api_v1::menu_clicked(event.uuid, event.window, event.slot, event.button, event.mode));
+    }
+
+    /// A menu a mod opened closed, for any reason.
+    fn menu_closed(&self, host: &mut dyn Host, event: &mut MenuClosedEvent) {
+        scoped(host, || screen_handler_api_v1::menu_closed(event.uuid, event.window));
+    }
+
+    /// The input slots of a menu a mod opened as the player left them: what the pure callbacks take
+    /// is what the mod keeps, and what stays goes back to the player, so only the taken slots are
+    /// cleared on the host's copy.
+    fn menu_input_closed(&self, host: &mut dyn Host, event: &mut MenuInputClosedEvent<'_>) {
+        let mut slots: Vec<Option<ItemSlot>> = event.slots.iter().map(|stack| stack.as_ref().and_then(slot_of)).collect();
+        // Only a slot the pure side could name and the callbacks took is cleared: a stack no slot
+        // could name stays for the player, never silently dropped.
+        let had = slots.iter().map(Option::is_some).collect::<Vec<_>>();
+        scoped(host, || screen_handler_api_v1::menu_input_closed(event.uuid, event.window, &mut slots));
+        for (index, kept) in slots.iter().enumerate() {
+            if had[index] && kept.is_none() {
+                event.slots[index] = None;
+            }
+        }
     }
 
     /// The containers a window's linked slots show: the neighbour block entities its layout

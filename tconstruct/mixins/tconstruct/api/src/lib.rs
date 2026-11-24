@@ -195,6 +195,7 @@ mod armor_interact_hook;
 mod quiver_hook;
 mod sleeves_hook;
 mod tool_behavior_hook;
+mod tool_container_menu;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     common::register();
@@ -261,6 +262,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     tool_behavior_hook::register();
     quiver_hook::register();
     armor_interact_hook::register();
+    tool_container_menu::register();
     strong_bones_hook::register();
     edible_hook::register();
     fishing_hook::register();
