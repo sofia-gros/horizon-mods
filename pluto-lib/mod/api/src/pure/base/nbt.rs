@@ -392,7 +392,7 @@ mod tests {
         assert_eq!(Nbt::parse_snbt("{a:1,}").unwrap(), Nbt::parse_snbt("{a:1}").unwrap());
         assert!(Nbt::parse_snbt("{a:1} trailing").is_err());
         assert!(Nbt::parse_snbt("{a:}").is_err());
-        assert!(Nbt::parse_snbt("nan").unwrap(), Nbt::String("nan".into()));
+        assert_eq!(Nbt::parse_snbt("nan").unwrap(), Nbt::String("nan".into()));
     }
 
     #[test]

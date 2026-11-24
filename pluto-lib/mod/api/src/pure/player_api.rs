@@ -1060,7 +1060,7 @@ mod tests {
         item_break(&ItemBreak {
             player: player(),
             item: "tconstruct:pickaxe".into(),
-            slot: super::entity_events_v1::StackSlot::MainHand,
+            slot: crate::pure::entity_events_v1::StackSlot::MainHand,
         });
         assert_eq!(
             SEEN.lock().unwrap().clone(),
@@ -1072,7 +1072,7 @@ mod tests {
     fn a_swing_and_a_break_broadcast_answer_false_without_a_host() {
         let mut ops = Recorder::default();
         let held = player();
-        assert!(!with_ops(&mut ops, || held.swing_hand(super::events_interaction_v0::Hand::Off)));
+        assert!(!with_ops(&mut ops, || held.swing_hand(crate::pure::events_interaction_v0::Hand::Off)));
         let stack = StackData {
             item: "tconstruct:pickaxe".into(),
             count: 1,
@@ -1083,8 +1083,8 @@ mod tests {
             enchantments: std::collections::BTreeMap::new(),
         };
         assert!(!with_ops(&mut ops, || held
-            .broadcast_item_break(super::entity_events_v1::StackSlot::MainHand, &stack)));
-        assert!(!held.swing_hand(super::events_interaction_v0::Hand::Main), "outside a callback nothing swings");
+            .broadcast_item_break(crate::pure::entity_events_v1::StackSlot::MainHand, &stack)));
+        assert!(!held.swing_hand(crate::pure::events_interaction_v0::Hand::Main), "outside a callback nothing swings");
     }
 
     #[test]
