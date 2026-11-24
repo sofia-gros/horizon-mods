@@ -923,6 +923,27 @@ use pluto_lib::ScreenHandlerRegistry;
 assert!(ScreenHandlerRegistry::get("example:no_window").is_none());
 ```
 
+### `ScreenHandlerRegistry::set_menu_equipment`
+
+`fn set_menu_equipment(menu: &'static str, first: usize, kinds: &'static [&'static str])`. Registers `menu`'s equipment: the player's armor and offhand slots the window carries beside the block's own, in layout order. `first` is the layout index the equipment starts at, `kinds` the pieces' names (`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`). Registering the same menu again replaces the earlier entry.
+
+```rust
+use pluto_lib::ScreenHandlerRegistry;
+
+ScreenHandlerRegistry::set_menu_equipment("example:station", 5, &["head", "chest", "legs", "feet", "offhand"]);
+assert_eq!(ScreenHandlerRegistry::menu_equipment("example:station"), Some((5, vec!["head", "chest", "legs", "feet", "offhand"])));
+```
+
+### `ScreenHandlerRegistry::menu_equipment`
+
+`fn menu_equipment(menu: &str) -> Option<(usize, Vec<&'static str>)>`. The equipment registered for `menu`, if any: the layout index it starts at and the pieces in layout order.
+
+```rust
+use pluto_lib::ScreenHandlerRegistry;
+
+assert!(ScreenHandlerRegistry::menu_equipment("example:no_equipment").is_none());
+```
+
 ### `BlockEntityType::menu`
 
 `fn menu(self, menu_type: &str) -> BlockEntityType`. The menu the game opens when the block is used; its slots are the block entity's item slots. One of `minecraft:furnace`, `minecraft:blast_furnace`, `minecraft:smoker` (3 slots), `minecraft:hopper` (5), `minecraft:generic_3x3` (9), `minecraft:generic_9x1` to `minecraft:generic_9x6` (9 to 54), or a menu type of the mod's content; the slot count must match.

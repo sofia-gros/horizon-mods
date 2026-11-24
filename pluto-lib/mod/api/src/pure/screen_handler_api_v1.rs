@@ -5,7 +5,7 @@
 //! them. The window is laid out and drawn on the client and answers button presses on the server.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use super::base::{Identifier, NbtCompound};
 use super::block_api_v1::Direction;
@@ -728,6 +728,46 @@ impl ScreenHandlerRegistry {
     /// The window registered for `block` (an id such as `example:oven`), if any.
     pub fn get(block: &str) -> Option<ScreenHandlerType> {
         HANDLERS.lock().ok()?.as_ref()?.get(block).cloned()
+    }
+
+    /// Registers `menu`'s equipment: the player's armor and offhand slots the window carries
+    /// beside the block's own, in layout order (the original station windows' armor and offhand
+    /// slots). `first` is the layout index the equipment starts at, `kinds` the pieces' names
+    /// (`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`). Registering the same menu again
+    /// replaces the earlier entry. The game inserts the pieces at the menu's build, so the menu's
+    /// slot indices match the layout's.
+    pub fn set_menu_equipment(menu: &'static str, first: usize, kinds: &'static [&'static str]) {
+        if let Some(sink) = MENU_EQUIPMENT_SINK.get() {
+            sink(menu, first, kinds);
+        }
+        if let Ok(mut all) = MENU_EQUIPMENT.lock() {
+            let all = all.get_or_insert_with(Vec::new);
+            if let Some(entry) = all.iter_mut().find(|(id, _, _)| *id == menu) {
+                *entry = (menu, first, kinds);
+            } else {
+                all.push((menu, first, kinds));
+            }
+        }
+    }
+
+    /// The equipment registered for `menu`, if any: the layout index it starts at and the pieces
+    /// in layout order.
+    pub fn menu_equipment(menu: &str) -> Option<(usize, Vec<&'static str>)> {
+        MENU_EQUIPMENT.lock().ok()?.as_ref()?.iter().find(|(id, _, _)| *id == menu).map(|(_, first, kinds)| (*first, kinds.to_vec()))
+    }
+}
+
+static MENU_EQUIPMENT: Mutex<Option<Vec<(&'static str, usize, &'static [&'static str])>>> = Mutex::new(None);
+static MENU_EQUIPMENT_SINK: OnceLock<fn(&'static str, usize, &'static [&'static str])> = OnceLock::new();
+
+/// Tells the game side about every menu-equipment registration, those already made and those to come. Called once by the game-facing half.
+pub(crate) fn set_menu_equipment_sink(sink: fn(&'static str, usize, &'static [&'static str])) {
+    if MENU_EQUIPMENT_SINK.set(sink).is_ok() {
+        if let Ok(all) = MENU_EQUIPMENT.lock() {
+            for (menu, first, kinds) in all.iter().flatten() {
+                sink(menu, *first, kinds);
+            }
+        }
     }
 }
 

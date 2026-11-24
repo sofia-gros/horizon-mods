@@ -540,7 +540,7 @@ fn register_station(name: &'static str, input_count: usize) {
     // The menu carries the equipment as armor slots over the player's equipment (pluto-menu-
     // equipment): the layout's container slots end where the equipment starts, so the menu's
     // indices match the layout's and the clicks the layout's slots take reach them.
-    horizon_client::menu::pluto_menu_equipment::set_equipment(
+    pluto_lib::screen_handler_api_v1::ScreenHandlerRegistry::set_menu_equipment(
         Box::leak(format!("tconstruct:{name}").into_boxed_str()),
         input_count + 2,
         &EQUIPMENT_NAMES,

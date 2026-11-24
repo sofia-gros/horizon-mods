@@ -553,6 +553,10 @@ pub fn hooks() -> Box<dyn Hooks> {
             },
         );
     });
+    // A menu's equipment reaches the host's menu builder through the same sink shape as the
+    // item uses above: the consumer registers it against the pure screen API, and the host's
+    // own equipment registry takes it from here.
+    screen_handler_api_v1::set_menu_equipment_sink(horizon_client::menu::pluto_menu_equipment::set_equipment);
     // The pure advancement/recipe forwarders install into the native
     // inventory gates carried by the pluto_lib bundle; see
     // install_native_inventory_forwarders.
