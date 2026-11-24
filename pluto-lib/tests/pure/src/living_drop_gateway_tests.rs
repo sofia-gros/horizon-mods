@@ -17,7 +17,7 @@ impl Game<'_> {
     }
 }
 pub(crate) mod bridge {
-    use super::horizon_client;
+    use super::{horizon_client, horizon_world};
     include!("../../../mod/pluto-living-drops.rs");
 }
 include!("../../../mod/pluto-living-drops-head.rs");
