@@ -255,7 +255,7 @@ impl WeaponHit {
     /// `(ticks + 0.5) / (20 / speed)`, clamped to 0..=1 (the host's `attack_strength_scale` in
     /// `melee.rs`; a speed of 0 never charges, as the host's delay is then unbounded).
     pub fn attack_strength_scale(&self, attack_speed: f32) -> f32 {
-        ((f32::from(self.attack_ticks) + 0.5) / (20.0 / attack_speed)).clamp(0.0, 1.0)
+        ((self.attack_ticks as f32 + 0.5) / (20.0 / attack_speed)).clamp(0.0, 1.0)
     }
 
     /// Whether the swing was fully charged: the host's `scale > 0.9` (the "full" gate of
