@@ -112,6 +112,7 @@ let book = Book::new(
     vec![BookSection { name: "A".into(), icon: None, pages: vec![
         BookPage::Text { title: Some("Hi".into()), text: vec![BookText::plain("body")] },
         BookPage::Text { title: None, text: vec![BookText::plain("next")] },
+        BookPage::Text { title: None, text: vec![BookText::plain("more")] },
     ]}],
 );
 let view = BookView::new(book.id.clone());
@@ -319,7 +320,7 @@ assert!(BookRegistry::all().iter().any(|b| b.id == id));
 
 ### `BookView`
 
-Where a reader is in a book: the `book` and the flat `page` showing. `next_page` and `prev_page` turn one page and answer false at the ends; `goto_section` jumps to a section's first page; `section` says which section the current page is in.
+Where a reader is in a book: the `book` and the flat `page` showing. `next_page` and `prev_page` turn one spread and answer false at the ends; `goto_section` jumps to a section's first page; `section` says which section the current page is in.
 
 ```rust
 use pluto_lib::{Book, BookPage, BookSection, BookText, BookView, Identifier};
@@ -328,12 +329,13 @@ let book = Book::new(Identifier::parse("example:view_guide").unwrap(), vec![
     BookSection { name: "A".into(), icon: None, pages: vec![
         BookPage::Text { title: None, text: vec![BookText::plain("one")] },
         BookPage::Text { title: None, text: vec![BookText::plain("two")] },
+        BookPage::Text { title: None, text: vec![BookText::plain("three")] },
     ]},
 ]);
 let mut view = BookView::new(book.id.clone());
 assert_eq!(view.page, 0);
 assert!(view.next_page(&book));
-assert_eq!(view.page, 1);
+assert_eq!(view.page, 2);
 assert!(!view.next_page(&book));
 assert!(view.prev_page(&book));
 assert_eq!(view.page, 0);
@@ -782,7 +784,7 @@ assert_eq!(view.page, 0);
 
 ### `BookView::next_page`
 
-Turns to the next page with `fn next_page(&mut self, book: &Book) -> bool`; false when already on the last page, and the `page` does not move then.
+Turns to the next spread with `fn next_page(&mut self, book: &Book) -> bool`; false when already on the last spread, and the `page` does not move then.
 
 ```rust
 use pluto_lib::{Book, BookPage, BookSection, BookText, BookView, Identifier};
@@ -791,18 +793,19 @@ let book = Book::new(Identifier::parse("example:next_guide").unwrap(), vec![
     BookSection { name: "A".into(), icon: None, pages: vec![
         BookPage::Text { title: None, text: vec![BookText::plain("one")] },
         BookPage::Text { title: None, text: vec![BookText::plain("two")] },
+        BookPage::Text { title: None, text: vec![BookText::plain("three")] },
     ]},
 ]);
 let mut view = BookView::new(book.id.clone());
 assert!(view.next_page(&book));
-assert_eq!(view.page, 1);
+assert_eq!(view.page, 2);
 assert!(!view.next_page(&book));
-assert_eq!(view.page, 1);
+assert_eq!(view.page, 2);
 ```
 
 ### `BookView::prev_page`
 
-Turns to the previous page with `fn prev_page(&mut self, book: &Book) -> bool`; false when already on the first page, and the `page` does not move then.
+Turns to the previous spread with `fn prev_page(&mut self, book: &Book) -> bool`; false when already on the first spread, and the `page` does not move then.
 
 ```rust
 use pluto_lib::{Book, BookPage, BookSection, BookText, BookView, Identifier};
@@ -811,6 +814,7 @@ let book = Book::new(Identifier::parse("example:prev_guide").unwrap(), vec![
     BookSection { name: "A".into(), icon: None, pages: vec![
         BookPage::Text { title: None, text: vec![BookText::plain("one")] },
         BookPage::Text { title: None, text: vec![BookText::plain("two")] },
+        BookPage::Text { title: None, text: vec![BookText::plain("three")] },
     ]},
 ]);
 let mut view = BookView::new(book.id.clone());
@@ -855,6 +859,7 @@ let book = Book::new(Identifier::parse("example:section_guide").unwrap(), vec![
     ]},
     BookSection { name: "B".into(), icon: None, pages: vec![
         BookPage::Text { title: None, text: vec![BookText::plain("two")] },
+        BookPage::Text { title: None, text: vec![BookText::plain("three")] },
     ]},
 ]);
 let mut view = BookView::new(book.id.clone());

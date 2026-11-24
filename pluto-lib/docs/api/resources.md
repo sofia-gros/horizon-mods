@@ -275,6 +275,22 @@ if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("
 }
 ```
 
+
+
+### `RegistryLookup::from_parts`
+
+`fn from_parts(entries: &[String], tags: &[(String, Vec<String>)]) -> Result<Self, String>`. A registry snapshot built from its entries and tags: every tag member must be an entry, and a tag may not repeat. A malformed id, an unknown tag member or a duplicate tag rejects the whole snapshot.
+
+```rust
+use pluto_lib::{Identifier, RegistryLookup};
+
+let lookup = RegistryLookup::from_parts(
+    &["minecraft:stone".to_owned()],
+    &[("minecraft:logs".to_owned(), vec!["minecraft:stone".to_owned()])],
+).unwrap();
+assert!(lookup.contains(&Identifier::parse("minecraft:stone").unwrap()));
+assert_eq!(lookup.get_tag(&Identifier::parse("minecraft:logs").unwrap()).unwrap().len(), 1);
+```
 ### `ResourceManagerHelper::read_client_resource`
 
 `fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed, the id contains a non-plain path (empty, `.` or `..` segments), or the asset could not be read. This does not read server datapacks, and does not validate the file's format.

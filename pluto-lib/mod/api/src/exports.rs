@@ -4,7 +4,7 @@ pub use crate::pure::base;
 pub use crate::pure::base::event::{AllowAll, FirstNotPass, FirstSome, Unit};
 pub use crate::pure::base::support::{MATRIX, entries_with};
 pub use crate::pure::base::{
-    ActionResult, Callback, Nbt, NbtCompound, NbtCompoundExt, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry,
+    ActionResult, Callback, Nbt, NbtCompound, NbtCompoundExt, Combiner, DEFAULT_NAMESPACE, Event, Identifier, IdentifierError, PhaseOrderingCycle, Support, SupportEntry, compare_nbt,
     default_phase,
 };
 pub use crate::pure::block_api_v1::{
@@ -29,7 +29,7 @@ pub use crate::pure::dispense_api_v1::{self, DispenseBehavior, DispenseRegistry,
 pub use crate::pure::fishing_api_v1::{self, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, hook_damage_type, pull_delta, retrieve_damage};
 pub use crate::pure::fov_api_v1::{self, FovCallback, FovFacts, FovRegistry, FovSlot, FovStack, fov_multiplier};
 pub use crate::pure::highlight_api_v1::{self, HighlightFacts, HighlightProvider, HighlightRegistry, HighlightTarget, highlight_positions, block_reach_for_mode, MAX_HIGHLIGHTS, OUTLINE_ARGB, OUTLINE_WIDTH, SURVIVAL_BLOCK_REACH, CREATIVE_BLOCK_REACH};
-pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, CriticalHit, LivingJump, MovementInput, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, MobTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ExperienceDrop, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback};
+pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, CriticalHit, LivingJump, MovementInput, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, MobTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ExperienceDrop, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback, ATTACK_TICKS_CHARGED};
 pub use crate::pure::entity_type_api::{self, EntityTypeRegistry};
 pub use crate::pure::living_entity_drops::{self, LivingDropInfo, LivingEntityDrops, LivingEntityDropsCallback};
 pub use crate::pure::living_entity_behavior::{self, LivingEntityBehavior, LivingEntityBehaviors, JumpPowerContext, AttackDamageContext, CalculateFallDamageContext, CauseFallDamageContext, FallOutcome, EquipmentDropChanceContext, AttributeModifierOperation, TransientAttributeModifier, AttributeBaseValue, LivingEntityLoadContext};
@@ -55,7 +55,7 @@ pub use crate::pure::item_group_api_v1::{self, ItemGroup, ItemGroupEvents, ItemG
 pub use crate::pure::loot_api_v2::{self, LootDrops, LootEntityFacts, LootFunctionContext, LootTableContext, LootTableEvents, PlayerProfile};
 pub use crate::pure::map_api_v1::{self, MapTickCallback, MapTickRequest};
 pub use crate::pure::networking_api_v1::{self, PlayerConnection, ServerPlayConnectionEvents, ServerPlayNetworking, ClientPlayNetworking, ClientPlayConnectionEvents, MAX_PLAY_PAYLOAD};
-pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, InventoryTick, ItemBreak, KeyPress, MemoryPlayerOps, PlayerInventoryEvents, PlayerItemBreakEvents, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
+pub use crate::pure::player_api::{self, CustomModelData, EffectInstance, FoodStatus, InventoryTick, ItemBreak, KeyPress, MemoryPlayerOps, OpenedItemMenu, PlayerInventoryEvents, PlayerItemBreakEvents, PlayerKeyEvents, PlayerOps, ServerPlayer, StackData, with_ops};
 pub use crate::pure::potion_api_v1::{self, PotionEffectFact, Potions};
 pub use crate::pure::screen_handler_api_v1::{
     self, ContainerAccept, EquipmentSlotKind, LivingPreview, MenuButton, MenuAccess, NativeMenuClicked, NativeMenuClosed, NativeMenuEvents, NativeMenuInputClosed, SceneBlock, SceneEntity, SceneView, SlotAction, SlotClick, SlotSource, QuickMove, ScreenCanvas, ScreenClick, ScreenDraw, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, ScreenLayoutContext, ScreenScroll, ScreenTooltip, SlotRule,
@@ -67,7 +67,7 @@ pub use crate::pure::fluid_storage_api_v1::{self, BlockEntityStore, FluidStorage
 pub use crate::pure::item_storage_api_v1::{self, ItemStorage};
 pub use crate::pure::neighbour_api_v1::{self, MemoryNeighbourOps, NeighbourOps, NeighbourSlot, NeighbourTank, Neighbours, with_neighbours};
 pub use crate::pure::entity_api_v1::{self, EntityOps, EntityReach, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
-pub use crate::pure::world_api_v1::{self, BlockState, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, ParticleRecord, PlacementFacts, Region, SummonRecord, World, WorldOps, WorldView, placement_facts, set_placement_facts_lookup, with_ticking_dimension, with_world};
+pub use crate::pure::world_api_v1::{self, BlockState, BrushFallbackRecord, ExplosionInteraction, ExplosionRecord, MemoryWorldOps, ParticleRecord, PlacementFacts, PlacementFactsLookup, Region, SummonRecord, World, WorldOps, WorldView, placement_facts, set_placement_facts_lookup, with_ticking_dimension, with_world};
 pub use crate::pure::worldgen_api_v1::{self, ConfiguredFeature, FeatureContext, FeatureTypeRegistry, TreeDecoration, TreeDecorator, TreeDecoratorContext, TreeDecoratorTypeRegistry, WorldgenBindings, RootPlacementWorld, RootPlacementContext, RootPlacement, RootPlacementTypeRegistry, NativeTreeRoute, native_tree_route, ConfiguredStructure, StructureContext, StructurePiece, StructureStart, StructureTypeRegistry, StructureWorld, ConfiguredStructurePiece, StructureMarkerContext, StructureMirror, StructurePieceTemplate, StructurePieceTypeRegistry, StructurePieceWorld, StructureRotation};
 pub use crate::pure::resource_loader_v0::{self, ResourceImage, RegistryLookup, JsonResourceStack, ResourceManagerHelper, ResourceType, reload_event};
 pub use crate::pure::advancement_api_v1::{self, DispatchResult, EventMatcher, ItemSnapshot, PredicateCallback, PredicateRegistration, PredicateRequest, PredicateResult, QueuedEvent, RegistrationError, TagLookup};

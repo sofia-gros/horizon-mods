@@ -475,3 +475,27 @@ for row in entries_with(Support::Stub) {
     assert_eq!(row.support, Support::Stub);
 }
 ```
+
+### `Nbt::parse_snbt`
+
+`fn parse_snbt(text: &str) -> Result<Nbt, String>`. Parses SNBT text (the game's stringified NBT) into a value; the error says where the text stopped making sense.
+
+```rust
+use pluto_lib::Nbt;
+
+assert!(Nbt::parse_snbt("{count: 3, name: \"gem\"}").is_ok());
+assert!(Nbt::parse_snbt("{count: 3").is_err());
+```
+
+### `compare_nbt`
+
+`fn compare_nbt(expected: &Nbt, actual: Option<&Nbt>) -> bool`. Whether `actual` carries the pattern `expected` (the game's `NbtUtils.compareNbt` with the third argument true): the kinds must match exactly (a byte is not an int, and no number widens); a compound pattern matches when the data has at least its entries and every one matches; a list pattern matches when the data has at least its elements and every pattern element matches some data element; anything else must be equal. No data at all never matches.
+
+```rust
+use pluto_lib::{Nbt, compare_nbt};
+
+let pattern = Nbt::parse_snbt("{count: 3}").unwrap();
+let data = Nbt::parse_snbt("{count: 3, name: \"gem\"}").unwrap();
+assert!(compare_nbt(&pattern, Some(&data)));
+assert!(!compare_nbt(&pattern, None));
+```

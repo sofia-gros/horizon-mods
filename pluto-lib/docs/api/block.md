@@ -1202,3 +1202,72 @@ let place = BlockPlace::new(Some(42), "minecraft:overworld", [0, 64, 0],
     BlockState::parse("minecraft:water[level=0]").unwrap());
 assert!(block_place(&place));
 ```
+
+### `BlockPlace`
+
+A block about to be placed, heard through `ServerBlockEvents::BLOCK_PLACE` before the block lands: `placer` is the placer's uuid when a player places it (None for a placement no player owns), `dimension` the dimension, `pos` where the block would go, `state` the state that would be placed, `replaced` the state it replaces, and `cancel`, set to true to stop the placement.
+
+```rust
+use pluto_lib::{BlockPlace, BlockState};
+
+let place = BlockPlace::new(Some(42), "minecraft:overworld", [0, 64, 0],
+    BlockState::parse("minecraft:stone").unwrap(),
+    BlockState::parse("minecraft:water[level=0]").unwrap());
+assert!(!place.cancel.get());
+place.cancel.set(true);
+assert!(place.cancel.get());
+```
+
+### `BlockPlace::new`
+
+`fn new(placer: Option<u128>, dimension: &str, pos: BlockPos, state: BlockState, replaced: BlockState) -> BlockPlace`. A placement of `state` at `pos` in `dimension`, replacing `replaced`, by `placer`; `cancel` starts false.
+
+```rust
+use pluto_lib::{BlockPlace, BlockState};
+
+let place = BlockPlace::new(None, "minecraft:overworld", [1, 64, 1],
+    BlockState::parse("minecraft:stone").unwrap(),
+    BlockState::parse("minecraft:water[level=0]").unwrap());
+assert_eq!(place.dimension, "minecraft:overworld");
+assert_eq!(place.pos, [1, 64, 1]);
+assert!(place.placer.is_none());
+```
+
+### `ServerBlockEvents`
+
+The block events a server hears. Its one event today is `BLOCK_PLACE`, a block about to be placed by a player or a walk module.
+
+```rust
+use pluto_lib::ServerBlockEvents;
+
+ServerBlockEvents::BLOCK_PLACE.register(|place| {
+    if place.state.block.to_string() == "minecraft:bedrock" {
+        place.cancel.set(true);
+    }
+});
+```
+
+### `block_place`
+
+`fn block_place(place: &BlockPlace) -> bool`. Fires `ServerBlockEvents::BLOCK_PLACE` for `place`: whether any callback cancelled it.
+
+```rust
+use pluto_lib::{BlockPlace, BlockState, block_place};
+
+let place = BlockPlace::new(Some(42), "minecraft:overworld", [0, 64, 0],
+    BlockState::parse("minecraft:stone").unwrap(),
+    BlockState::parse("minecraft:water[level=0]").unwrap());
+assert!(!block_place(&place));
+```
+
+### `block_place_heard`
+
+`fn block_place_heard() -> bool`. Whether any callback hears `ServerBlockEvents::BLOCK_PLACE`, so a placer can skip building a `BlockPlace` when nobody listens.
+
+```rust
+use pluto_lib::{ServerBlockEvents, block_place_heard};
+
+assert!(!block_place_heard());
+ServerBlockEvents::BLOCK_PLACE.register(|_| {});
+assert!(block_place_heard());
+```

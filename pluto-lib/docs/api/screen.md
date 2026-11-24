@@ -954,3 +954,82 @@ use pluto_lib::{BlockEntityType, Identifier};
 let kind = BlockEntityType::new(Identifier::new("example", "crate").unwrap()).item_slots(27).menu("minecraft:generic_9x3");
 let _ = kind;
 ```
+
+### `NativeMenuClicked`
+
+A click in a menu a mod opened (a native menu), which moved nothing: `player` is the player who clicked, `window` the window the click was in, `slot` the menu slot clicked (the menu's own slots first, then the player's inventory, -999 outside), `button` the button used, and `mode` the click's mode (the `ClickType` id).
+
+```rust
+use pluto_lib::NativeMenuClicked;
+
+let click = NativeMenuClicked { player: 7, window: 1, slot: 0, button: 0, mode: 0 };
+assert_eq!(click.slot, 0);
+assert_eq!(click.window, 1);
+```
+
+### `NativeMenuClosed`
+
+A menu a mod opened closed, for any reason (the player closed it, the server, a mod or another menu did, or the player died or left): `player` is the player whose menu closed and `window` the window that closed.
+
+```rust
+use pluto_lib::NativeMenuClosed;
+
+let closed = NativeMenuClosed { player: 7, window: 1 };
+assert_eq!(closed.window, 1);
+```
+
+### `NativeMenuInputClosed`
+
+The input slots of a menu a mod opened as the player left them, on its closing: `player` is the player whose menu closed, `window` the window that closed, and `slots` the menu's input slots, in order, riding a `RefCell` — the slots a handler takes (`Option::take`) are what the mod keeps, and what stays goes back to the player. Heard before the menu's close event for the same window.
+
+```rust
+use pluto_lib::NativeMenuInputClosed;
+use std::cell::RefCell;
+
+let closed = NativeMenuInputClosed { player: 7, window: 1, slots: RefCell::new(vec![None]) };
+assert_eq!(closed.slots.borrow().len(), 1);
+```
+
+### `NativeMenuEvents`
+
+Clicks in menus a mod opened, and their closings: `CLICKED`, `CLOSED` and `INPUT_CLOSED`.
+
+```rust
+use pluto_lib::NativeMenuEvents;
+
+NativeMenuEvents::CLICKED.register(|click| println!("slot {}", click.slot));
+```
+
+### `NativeMenuEvents::CLICKED`
+
+A click in a menu a mod opened, which moved nothing (see `NativeMenuClicked`).
+
+```rust
+use pluto_lib::{NativeMenuClicked, NativeMenuEvents};
+
+NativeMenuEvents::CLICKED.register(|click| println!("slot {}", click.slot));
+NativeMenuEvents::CLICKED.invoke(&NativeMenuClicked { player: 7, window: 1, slot: 0, button: 0, mode: 0 });
+```
+
+### `NativeMenuEvents::CLOSED`
+
+A menu a mod opened closed, for any reason (see `NativeMenuClosed`).
+
+```rust
+use pluto_lib::{NativeMenuClosed, NativeMenuEvents};
+
+NativeMenuEvents::CLOSED.register(|closed| println!("window {}", closed.window));
+NativeMenuEvents::CLOSED.invoke(&NativeMenuClosed { player: 7, window: 1 });
+```
+
+### `NativeMenuEvents::INPUT_CLOSED`
+
+The input slots of a menu a mod opened as the player left them, on its closing (see `NativeMenuInputClosed`). Heard before the close event for the same window.
+
+```rust
+use pluto_lib::{NativeMenuEvents, NativeMenuInputClosed};
+use std::cell::RefCell;
+
+NativeMenuEvents::INPUT_CLOSED.register(|closed| println!("{} input slots", closed.slots.borrow().len()));
+NativeMenuEvents::INPUT_CLOSED.invoke(&NativeMenuInputClosed { player: 7, window: 1, slots: RefCell::new(Vec::new()) });
+```

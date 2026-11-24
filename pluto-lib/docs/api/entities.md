@@ -860,6 +860,17 @@ ServerLivingEntityEvents::MODIFY_VISIBILITY.register(|look| {
 
 NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`. `projectile_tool` is the stack the killing projectile was launched from; `looting_slot` the slot the killing blow claimed (an armor piece or the off hand, else the main hand).
 
+
+
+```rust
+use pluto_lib::{ExperienceDrop, ServerLivingEntityEvents};
+use std::cell::Cell;
+
+ServerLivingEntityEvents::EXPERIENCE_DROP.register(|drop| drop.experience.set(drop.experience.get() * 2));
+let drop = ExperienceDrop { entity: 4, kind: "minecraft:zombie".into(), player: None, effects: Vec::new(), projectile_tool: None, looting_slot: None, experience: Cell::new(5) };
+ServerLivingEntityEvents::EXPERIENCE_DROP.invoke(&drop);
+assert_eq!(drop.experience.get(), 10);
+```
 ### `ServerLivingEntityEvents::MODIFY_DAMAGE`
 
 NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount with `amount.set`. For a player's attack on the server it carries the stack used.
@@ -1007,6 +1018,13 @@ assert_eq!(ops.lifted, vec![2]);
 
 `fn add_effect(id: u64, effect: &str, duration: i32, amplifier: u8) -> bool`. Gives living entity `id` the mob effect for `duration` ticks at `amplifier` (level - 1).
 
+
+
+```rust
+use pluto_lib::EntityReach;
+
+assert!(!EntityReach::add_effect(4, "minecraft:speed", 100, 0), "no entity scope is open");
+```
 ### `EntityOps`
 
 `trait EntityOps`. The operations behind [`EntityReach`](#entityreach): `entities_in(min, max)`, `discard(id)`, `set_item(id, stack)`, `hurt(id, amount, damage_type)`, `position_of(id)` (default `None`), `effects_of(id)` (default empty), `velocity_of(id)` (default `None`), `bounds_of(id)` (default `None`), `set_velocity(id, velocity)` (default `false`), `teleport(id, pos)` (default `false`), `id_of_uuid(uuid)` (default `None`) and `kind_of(id)` (default `None`). An adapter implements it and opens it with `with_entities`.
@@ -1060,7 +1078,7 @@ assert!(facts.fire_immune && !facts.invulnerable && !facts.fire_resistant);
 
 ### `MemoryEntityOps`
 
-An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed`, `lifted`, `velocities` and `spun` recording the knockbacks, pushes, lifts, velocity sets and spins asked for, and `effect_lists` and `bounding_boxes` holding the effects and bounding box each entity answers with.
+An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed`, `lifted`, `velocities` and `spun` recording the knockbacks, pushes, lifts, velocity sets and spins asked for, and `effect_lists` and `bounding_boxes` holding the effects and bounding box each entity answers with. `boxes` sets the bounding box an entity answers with, by id, as [min corner, max corner]; an entity with no entry has no box.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
@@ -1101,4 +1119,189 @@ assert!(found.is_empty());
 assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty(), "the scope is closed again");
 ```
 
+### `LivingDamage::in_damage_type_tag`
 
+`fn in_damage_type_tag(&self, tag: &str) -> bool`. Whether the damage type is in the vanilla damage-type tag `tag` (`minecraft:<name>`), from the flattened vanilla table; false for a tag the table does not name.
+
+```rust
+use pluto_lib::LivingDamage;
+
+let hit = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:magic".into(), attacker: -1, direct: -1, amount: 3.0 };
+assert!(hit.in_damage_type_tag("minecraft:avoids_guardian_thorns"));
+assert!(!hit.in_damage_type_tag("minecraft:bypasses_effects"));
+```
+
+### `LivingDamage::is_direct_damage`
+
+`fn is_direct_damage(&self) -> bool`. Whether the hit is a direct one: an attacker caused it, what directly dealt it is the attacker or nothing named, and its type is not in `avoids_guardian_thorns`.
+
+```rust
+use pluto_lib::LivingDamage;
+
+let direct = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
+assert!(direct.is_direct_damage());
+let magic = LivingDamage { damage_type: "minecraft:magic".into(), ..direct };
+assert!(!magic.is_direct_damage());
+```
+
+### `ATTACK_TICKS_CHARGED`
+
+`pub const ATTACK_TICKS_CHARGED: u32 = 10_000`. The attack ticks a fresh or unknown attacker reads as: the host starts a player's ticker at 100 and a swing's delay is at most a few hundred ticks, so this is fully charged for any weapon.
+
+```rust
+use pluto_lib::ATTACK_TICKS_CHARGED;
+
+assert_eq!(ATTACK_TICKS_CHARGED, 10_000);
+```
+
+### `WeaponHit::attack_strength_scale`
+
+`fn attack_strength_scale(&self, attack_speed: f32) -> f32`. The swing's charge as a scale from 0 to 1: the attack ticks (plus a half) over the ticks a full charge takes at `attack_speed`, clamped.
+
+```rust
+use pluto_lib::WeaponHit;
+use std::cell::RefCell;
+
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+assert_eq!(hit.attack_strength_scale(4.0), 1.0);
+```
+
+### `WeaponHit::fully_charged`
+
+`fn fully_charged(&self, attack_speed: f32) -> bool`. Whether the swing was fully charged: the host's `scale > 0.9` gate over `attack_strength_scale`.
+
+```rust
+use pluto_lib::WeaponHit;
+use std::cell::RefCell;
+
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+assert!(hit.fully_charged(4.0));
+```
+
+### `CriticalHit`
+
+A player's melee hit about to be a critical hit, or not (NeoForge: `CriticalHitEvent`), heard through `ServerLivingEntityEvents::CRITICAL_HIT`: `attacker_entity` is the attacking player's entity id (-1 when the game names no acting player, as for a guest's hit on a LAN world), `attacker_on_ground` whether the attacker stands on the ground, `attacker_in_water` whether they stand in water, `target_kind` the target's entity type id, `vanilla_critical` vanilla's answer without a mod, `critical` whether the hit is critical now (change it with `set`), and `damage_multiplier` the multiplier now (change it with `set`), which scales the damage only while `critical` ends true.
+
+```rust
+use pluto_lib::CriticalHit;
+use std::cell::Cell;
+
+let hit = CriticalHit { attacker_entity: 1, attacker_on_ground: false, attacker_in_water: false, target_kind: "minecraft:zombie".into(), vanilla_critical: true, critical: Cell::new(true), damage_multiplier: Cell::new(1.5) };
+assert!(hit.critical.get());
+hit.critical.set(false);
+assert!(!hit.critical.get());
+```
+
+### `LivingJump`
+
+A living entity jumped (NeoForge: `LivingEvent.LivingJumpEvent`), heard through `ServerLivingEntityEvents::LIVING_JUMP` on both games: `entity` is the entity's numeric id and `kind` its type id. The event carries no host and no velocity, so a callback that needs to move the entity defers the push to the entity's next tick.
+
+```rust
+use pluto_lib::LivingJump;
+
+let jump = LivingJump { entity: 4, kind: "minecraft:player".into() };
+assert_eq!(jump.entity, 4);
+assert_eq!(jump.kind, "minecraft:player");
+```
+
+### `ExperienceDrop`
+
+Experience a mob killed by a player is about to drop, before the game splits the total into orbs (NeoForge: `LivingExperienceDropEvent`), heard through `ServerLivingEntityEvents::EXPERIENCE_DROP`: `entity` is the dying mob's id, `kind` its type id, `player` the player who killed it as (uuid, entity id) (None when the game names no player), `effects` the dying mob's effects as of the drop as (id, amplifier), `projectile_tool` the stack the killing projectile was launched from when a launch named its tool (None otherwise), `looting_slot` the slot the killing blow claimed (None when no weapon hit named one, and the main hand reads then), and `experience` the experience now, which callbacks change with `set` (0 or less drops no orbs).
+
+```rust
+use pluto_lib::ExperienceDrop;
+use std::cell::Cell;
+
+let drop = ExperienceDrop { entity: 4, kind: "minecraft:zombie".into(), player: Some((7, 1)), effects: Vec::new(), projectile_tool: None, looting_slot: None, experience: Cell::new(5) };
+drop.experience.set(12);
+assert_eq!(drop.experience.get(), 12);
+```
+
+### `ServerLivingEntityEvents::CRITICAL_HIT`
+
+NeoForge: `CriticalHitEvent`. A player's melee hit about to be a critical hit: `critical` starts as vanilla's answer and `damage_multiplier` at 1.5 for a vanilla critical, 1.0 otherwise; a callback may force or deny the critical and change the multiplier, which scales the damage only while `critical` ends true.
+
+```rust
+use pluto_lib::{CriticalHit, ServerLivingEntityEvents};
+use std::cell::Cell;
+
+ServerLivingEntityEvents::CRITICAL_HIT.register(|hit| {
+    if hit.target_kind == "minecraft:zombie" {
+        hit.critical.set(true);
+    }
+});
+let hit = CriticalHit { attacker_entity: 1, attacker_on_ground: false, attacker_in_water: false, target_kind: "minecraft:zombie".into(), vanilla_critical: false, critical: Cell::new(false), damage_multiplier: Cell::new(1.0) };
+ServerLivingEntityEvents::CRITICAL_HIT.invoke(&hit);
+assert!(hit.critical.get());
+```
+
+### `ServerLivingEntityEvents::LIVING_JUMP`
+
+NeoForge: `LivingEvent.LivingJumpEvent`. A living entity jumped, heard on both games; the event carries no host and no velocity.
+
+```rust
+use pluto_lib::{LivingJump, ServerLivingEntityEvents};
+
+ServerLivingEntityEvents::LIVING_JUMP.register(|jump| println!("{} jumped", jump.kind));
+ServerLivingEntityEvents::LIVING_JUMP.invoke(&LivingJump { entity: 4, kind: "minecraft:player".into() });
+```
+
+### `ServerLivingEntityEvents::MOVEMENT_INPUT`
+
+NeoForge: `MovementInputUpdateEvent`. The local player's movement input, after the game read it and before it applies it (client only): a callback may scale the impulses (an item's use slowdown) or read the jump key state (a double jump).
+
+```rust
+use pluto_lib::{MovementInput, ServerLivingEntityEvents};
+use std::cell::Cell;
+
+ServerLivingEntityEvents::MOVEMENT_INPUT.register(|input| {
+    if input.using_item {
+        input.forward.set(input.forward.get() * 0.5);
+    }
+});
+let input = MovementInput { entity: 4, forward: Cell::new(1.0), strafe: Cell::new(0.0), jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: None };
+ServerLivingEntityEvents::MOVEMENT_INPUT.invoke(&input);
+assert_eq!(input.forward.get(), 0.5);
+```
+
+### `LivingFall`
+
+A living entity is about to handle a fall, heard through `LivingFallEvents::FALL`: `entity` is the falling entity's id, `kind` its type, `distance` the fall distance in blocks and `multiplier` the damage multiplier (1 by default); a callback changes either by setting its cell, and answering `false` cancels the fall handling.
+
+```rust
+use pluto_lib::LivingFall;
+use std::cell::Cell;
+
+let fall = LivingFall { entity: 710_001, kind: "minecraft:player".into(), distance: Cell::new(9.0), multiplier: Cell::new(1.0) };
+fall.distance.set(0.0);
+fall.multiplier.set(0.0);
+assert_eq!(fall.distance.get(), 0.0);
+```
+
+### `LivingFallEvents`
+
+Events about a living entity's fall (the host's `LivingFallEvent`). Its one event is `FALL`.
+
+```rust
+use pluto_lib::LivingFallEvents;
+
+LivingFallEvents::FALL.register(|fall| {
+    if fall.kind == "minecraft:player" {
+        fall.multiplier.set(0.5);
+    }
+    true
+});
+```
+
+### `LivingFallEvents::FALL`
+
+A living entity is about to handle a fall, before the fall damage is applied. Answer `false` to cancel the fall handling (the block's own `fallOn` still runs with zero damage); one `false` is enough. Heard for the local player and for mobs, on both sides.
+
+```rust
+use pluto_lib::{LivingFall, LivingFallEvents};
+use std::cell::Cell;
+
+LivingFallEvents::FALL.register(|fall| fall.entity != 710_001);
+let fall = LivingFall { entity: 710_001, kind: "minecraft:player".into(), distance: Cell::new(9.0), multiplier: Cell::new(1.0) };
+assert!(!LivingFallEvents::FALL.invoke(&fall));
+```

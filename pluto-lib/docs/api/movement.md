@@ -25,7 +25,7 @@ speed-factor key, so the factors cannot ride in a block declaration; they ride h
 
 ## Reference
 
-### `MovementFactors`
+### MovementFactors
 
 The two movement factors of one block: `speed_factor` scales an entity's movement speed on the block,
 `jump_factor` its jump height. Both are 1.0 unless the block sets them.
@@ -38,7 +38,7 @@ assert_eq!(factors.speed_factor, 0.4);
 assert_eq!(factors.jump_factor, 0.5);
 ```
 
-### `register`
+### register
 
 Register the movement factors of one block, by its namespaced block ID. The factors must be finite and
 0 or more. Registering the same block with the same factors again is a no-op; registering it with
@@ -54,7 +54,7 @@ assert!(register("glass", 0.1, 1.0).is_err());
 assert!(register("example:glass", f32::NAN, 1.0).is_err());
 ```
 
-### `get`
+### get
 
 The factors registered for a block, if any. A block with no registration keeps its template's factors.
 
@@ -66,7 +66,7 @@ assert_eq!(get("example:cheese"), Some(MovementFactors { speed_factor: 0.4, jump
 assert_eq!(get("example:stone"), None);
 ```
 
-### `registered`
+### registered
 
 Every registration, in block-ID order, for the movement-table injection.
 
@@ -75,6 +75,7 @@ use pluto_lib::movement::{register, registered};
 
 register("example:zeta", 0.4, 0.5).unwrap();
 register("example:alpha", 0.2, 1.0).unwrap();
-let listed: Vec<&str> = registered().iter().map(|(block, _)| block.as_str()).collect();
+let all = registered();
+let listed: Vec<&str> = all.iter().map(|(block, _)| block.as_str()).collect();
 assert!(listed.windows(2).all(|pair| pair[0] < pair[1]));
 ```

@@ -1408,3 +1408,141 @@ assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&context), None);
 Mob splits are documented with the world events in [world.md](world.md).
 
 Spawn placements and the fishing registry are documented in [world.md](world.md).
+
+### `BlockExperienceContext`
+
+The experience a player's block break is about to drop (the experience half of NeoForge's `BlockEvent.BreakEvent`), heard through `PlayerBlockBreakEvents::EXPERIENCE`: `pos` is the block's position, `dimension` the dimension it is in (empty when the game does not name it), `player` the player who breaks it (None when the game names none), `player_entity` the breaking player's entity id (0 when the game names none), `held` the stack in the player's main hand as the drop is sampled (None for an empty hand), and `experience` the experience now, which callbacks change with `set`; each callback sees the last one's.
+
+```rust
+use pluto_lib::BlockExperienceContext;
+use std::cell::Cell;
+
+let context = BlockExperienceContext { pos: [0, 64, 0], dimension: "minecraft:overworld".into(), player: None, player_entity: 1, held: None, experience: Cell::new(3) };
+context.experience.set(7);
+assert_eq!(context.experience.get(), 7);
+```
+
+### `StateMatcher`
+
+One state test of a block predicate: `Exact` (the property must equal this value), `Range` (the property's value, read as an integer, must lie between the bounds; each bound absent means open — a value or bound that is not an integer fails the test) or `Never` (a test that never passes: a state entry the game cannot read).
+
+```rust
+use pluto_lib::StateMatcher;
+
+let matcher = StateMatcher::Range { min: Some("2".into()), max: None };
+assert!(matches!(matcher, StateMatcher::Range { .. }));
+assert_eq!(StateMatcher::Exact("true".into()), StateMatcher::Exact("true".into()));
+```
+
+### `AdventurePlacePredicate::never`
+
+`fn never() -> AdventurePlacePredicate`. A predicate that matches no block: what a malformed predicate becomes, so it is kept in the list (and fails) rather than dropped, which would let another predicate pass in its place.
+
+```rust
+use pluto_lib::{AdventurePlacePredicate, BlockState};
+
+let state = BlockState::parse("minecraft:stone").unwrap();
+assert!(!AdventurePlacePredicate::never().allows(&state, None, None));
+```
+
+### `AdventurePlacePredicate::from_nbt`
+
+`fn from_nbt(value: &Nbt) -> AdventurePlacePredicate`. One predicate from a `can_place_on` component value: a bare block id string, or a compound naming `blocks`, `state` tests and an `nbt` test, as the game's own `BlockPredicate` reads it.
+
+```rust
+use pluto_lib::{AdventurePlacePredicate, BlockState, Nbt};
+
+let predicate = AdventurePlacePredicate::from_nbt(&Nbt::String("minecraft:stone".into()));
+assert!(predicate.allows(&BlockState::parse("minecraft:stone").unwrap(), None, None));
+assert!(!predicate.allows(&BlockState::parse("minecraft:dirt").unwrap(), None, None));
+```
+
+### `AdventurePlacePredicate::allows`
+
+`fn allows(&self, mined: &BlockState, mined_block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool`. Whether this predicate accepts the mined block: its blocks name it, its state tests hold, and its NBT test matches the mined block's block entity. `blocks` resolves `#tag`s; None means no snapshot, so a tag names nothing.
+
+```rust
+use pluto_lib::{AdventurePlacePredicate, BlockState, Nbt};
+
+let predicate = AdventurePlacePredicate::from_nbt(&Nbt::String("#minecraft:logs".into()));
+let state = BlockState::parse("minecraft:oak_log").unwrap();
+assert!(!predicate.allows(&state, None, None), "no snapshot, so the tag names nothing");
+```
+
+### `adventure_place_predicates`
+
+`fn adventure_place_predicates(component: &Nbt) -> Vec<AdventurePlacePredicate>`. The block predicates of a `minecraft:can_place_on` component, in the order the tag lists them: a list of predicates, one compound predicate, or a bare block id (the shorthand the game's own text path reads as an id).
+
+```rust
+use pluto_lib::{Nbt, adventure_place_predicates};
+
+let predicates = adventure_place_predicates(&Nbt::String("minecraft:stone".into()));
+assert_eq!(predicates.len(), 1);
+```
+
+### `place_predicates_allow`
+
+`fn place_predicates_allow(predicates: &[AdventurePlacePredicate], mined: &BlockState, mined_block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool`. Whether any of the place tag's predicates accepts the mined block (the game's `AdventureModePredicate.test`), with the mined block's block entity for the NBT tests. An empty predicate list accepts nothing.
+
+```rust
+use pluto_lib::{BlockState, place_predicates_allow};
+
+let state = BlockState::parse("minecraft:stone").unwrap();
+assert!(!place_predicates_allow(&[], &state, None, None));
+```
+
+### `PlayerBlockBreakEvents::EXPERIENCE`
+
+The experience half of NeoForge's `BlockEvent.BreakEvent`: the `BlockExperienceContext` of a player's block break, heard as the game samples the drop on the player's own break path, before the game's silk-touch rule is applied to the sampled amount.
+
+```rust
+use pluto_lib::{BlockExperienceContext, PlayerBlockBreakEvents};
+use std::cell::Cell;
+
+PlayerBlockBreakEvents::EXPERIENCE.register(|context| context.experience.set(context.experience.get() + 1));
+let context = BlockExperienceContext { pos: [0, 64, 0], dimension: "minecraft:overworld".into(), player: None, player_entity: 1, held: None, experience: Cell::new(3) };
+PlayerBlockBreakEvents::EXPERIENCE.invoke(&context);
+assert_eq!(context.experience.get(), 4);
+```
+
+### `EntityReach::bounding_box_of`
+
+`fn bounding_box_of(id: u64) -> Option<[[f64; 3]; 2]>`. The box entity `id` occupies, as [min corner, max corner]; None outside a scope or when the host cannot reach it.
+
+```rust
+use pluto_lib::EntityReach;
+
+assert_eq!(EntityReach::bounding_box_of(4), None, "no entity scope is open");
+```
+
+### `EntityReach::has_scope`
+
+`fn has_scope() -> bool`. Whether an entity scope is open on this thread: the reach answers "nothing there" outside one, and a caller that must tell "nothing there" from "never looked" asks this.
+
+```rust
+use pluto_lib::EntityReach;
+
+assert!(!EntityReach::has_scope());
+```
+
+### `EntityReach::spin_attack`
+
+`fn spin_attack(id: u64) -> bool`. Starts the player `id`'s spin attack; whether the spin was accepted. False outside a scope.
+
+```rust
+use pluto_lib::EntityReach;
+
+assert!(!EntityReach::spin_attack(4), "no entity scope is open");
+```
+
+### `Grapple::starts_spin_attack`
+
+`fn starts_spin_attack(self) -> bool`. Whether a grapple of this kind starts the owner's spin attack when it pulls (the original's `pullGrapple`): only a drill does, on the landing pull and on the hooked-entity pull alike.
+
+```rust
+use pluto_lib::Grapple;
+
+assert!(Grapple::Drill.starts_spin_attack());
+assert!(!Grapple::Dash.starts_spin_attack());
+assert!(!Grapple::None.starts_spin_attack());
+```

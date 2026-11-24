@@ -646,7 +646,7 @@ assert!(!player.send_message("after")); // the scope is closed
 
 `entity_attachments` stores JSON by `(dimension, callback-local entity ID, attachment ID)`; tests simulating holder removal/ID reuse must clear the old holder themselves. `attachment_policies` records the immutable sync flag per attachment ID across holder kinds. These collections test routing and values, not native UUID ownership, save files or network delivery.
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)`, `selected_slot` the selected hotbar slot of every player (0 to 8), and `cooldowns` the item cooldowns started for each player by `(player, item id)` to ticks left (the memory backend does not tick them down), `released_uses` every player whose use a `release_use` ended and `stopped_uses` every player whose use a `stop_use` ended, both in order, and `attributes` the host attribute values set for a player by `(player, attribute)`.
+An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)`, `selected_slot` the selected hotbar slot of every player (0 to 8), and `cooldowns` the item cooldowns started for each player by `(player, item id)` to ticks left (the memory backend does not tick them down), `released_uses` every player whose use a `release_use` ended and `stopped_uses` every player whose use a `stop_use` ended, both in order, and `attributes` the host attribute values set for a player by `(player, attribute)`. `opened_item_menus` records every item menu a callback opened, in the order they opened.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -929,4 +929,73 @@ ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
         tick.remove_effects.borrow_mut().push("minecraft:poison".into());
     }
 });
+```
+
+### `ServerPlayer::stack_named`
+
+`fn stack_named(&self, slot: i32) -> Option<StackData>`. The stack the player carries in `slot` (the carried numbering, as in `set_stack`), with its custom data; None for an empty slot or outside a callback. Unlike `stack`, this names the player, so it answers in a packet receiver too, where the player's own turn is not open.
+
+```rust
+use pluto_lib::{MemoryPlayerOps, Nbt, ServerPlayer, StackData, with_ops};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None, enchantments: Default::default() };
+game.stacks.insert(1, vec![Some(tool)]);
+with_ops(&mut game, || {
+    assert_eq!(player.stack_named(0).unwrap().custom_data["level"], Nbt::Int(2));
+    assert!(player.stack_named(1).is_none());
+});
+```
+
+### `ServerPlayer::open_item_menu`
+
+`fn open_item_menu(&self, menu: &str, title: &str, items: Vec<Option<ItemSlot>>, extra: Vec<u8>) -> Option<i32>`. Opens a mod menu for the player's item (a content menu type, such as a tool's container) with `items` in its slots and `extra` as its menu-extra data, titled `title`; the window id, or None outside a callback, for an unknown player or menu type, or inside the player's own turn (the original opened such a menu only from a command or a packet handler).
+
+```rust
+use pluto_lib::{MemoryPlayerOps, ServerPlayer, with_ops};
+
+let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+let mut game = MemoryPlayerOps::default();
+with_ops(&mut game, || {
+    assert_eq!(player.open_item_menu("tconstruct:tool_container_3", "Tool", Vec::new(), Vec::new()), Some(1));
+});
+assert_eq!(game.opened_item_menus.len(), 1);
+assert_eq!(game.opened_item_menus[0].menu, "tconstruct:tool_container_3");
+assert_eq!(game.opened_item_menus[0].player, 1);
+```
+
+### `ItemBreak`
+
+A player's item broke (NeoForge's `PlayerDestroyItemEvent`), heard through `PlayerItemBreakEvents::EVENT` when the game's own wear breaks a player's stack: `player` is the player whose item broke, `item` the item that broke, and `slot` the equipment slot it broke in.
+
+```rust
+use pluto_lib::{ItemBreak, ServerPlayer, StackSlot};
+
+let broken = ItemBreak { player: ServerPlayer { uuid: 1, name: "Alex".into() }, item: "tconstruct:pickaxe".into(), slot: StackSlot::MainHand };
+assert_eq!(broken.item, "tconstruct:pickaxe");
+assert_eq!(broken.slot, StackSlot::MainHand);
+```
+
+### `PlayerItemBreakEvents::EVENT`
+
+The `ItemBreak` event: every callback runs, in registration order.
+
+```rust
+use pluto_lib::{ItemBreak, PlayerItemBreakEvents, ServerPlayer, StackSlot};
+
+PlayerItemBreakEvents::EVENT.register(|broken| println!("{} broke", broken.item));
+PlayerItemBreakEvents::EVENT.invoke(&ItemBreak { player: ServerPlayer { uuid: 1, name: "Alex".into() }, item: "tconstruct:pickaxe".into(), slot: StackSlot::MainHand });
+```
+
+### `OpenedItemMenu`
+
+An item menu opened through the memory backend, as `MemoryPlayerOps::opened_item_menus` records it: `player` is the player it opened for, `menu` the menu type, `title` the title shown, `items` the items in its slots, in order, and `extra` its menu-extra data.
+
+```rust
+use pluto_lib::OpenedItemMenu;
+
+let opened = OpenedItemMenu { player: 7, menu: "tconstruct:tool_container_3".into(), title: "Tool".into(), items: Vec::new(), extra: Vec::new() };
+assert_eq!(opened.player, 7);
+assert_eq!(opened.menu, "tconstruct:tool_container_3");
 ```

@@ -78,3 +78,14 @@ use pluto_lib::HudEquipment;
 let equipment = HudEquipment { right_handed: true, ..HudEquipment::default() };
 assert!(equipment.right_handed && equipment.legs.is_none() && equipment.main_hand.is_none());
 ```
+
+### `HudEffect`
+
+One of the local player's active effects, as the HUD needs it for the original's effect shift: `beneficial` is whether the effect's category is beneficial (a harmful or neutral effect is not), and `visible` whether the effect shows in the GUI (its icon flag as the host reports it; an effect the snapshot does not name counts as shown, as vanilla defaults the flag).
+
+```rust
+use pluto_lib::HudEffect;
+
+let effect = HudEffect { beneficial: true, visible: true };
+assert!(effect.beneficial && effect.visible);
+```

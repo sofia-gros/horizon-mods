@@ -689,6 +689,14 @@ assert_eq!(ops.brush_fallbacks[0].pos, [0, 64, 0]);
 
 One generic brush sound a `MemoryWorldOps` was asked to play, as it was asked: `dimension` and `pos`.
 
+
+
+```rust
+use pluto_lib::BrushFallbackRecord;
+
+let record = BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0] };
+assert_eq!(record.pos, [0, 64, 0]);
+```
 ### `ExplosionInteraction`
 
 What an explosion does to the blocks it reaches (Minecraft: `ExplosionInteraction`): `Keep` leaves them (Java: `NONE`), `Block` breaks them by the block-explosion rule (`BLOCK`), and `Tnt` breaks them by the tnt-explosion rule (`TNT`; the original's `DESTROY` is the same rule).
@@ -1259,4 +1267,27 @@ use pluto_lib::{Fishing, ServerPlayer};
 
 let player = ServerPlayer { uuid: 6, name: "Sam".into() };
 assert_eq!(Fishing::take_wear(&player), 0);
+```
+
+### `PlacementFactsLookup`
+
+`pub type PlacementFactsLookup = fn(&str) -> Option<PlacementFacts>`. A placement-facts lookup the host installs: the facts for a named block, if the game's table names it.
+
+```rust
+use pluto_lib::{PlacementFacts, PlacementFactsLookup};
+
+fn no_facts(_block: &str) -> Option<PlacementFacts> { None }
+let lookup: PlacementFactsLookup = no_facts;
+assert!(lookup("minecraft:stone").is_none());
+```
+
+### `WorldView::new`
+
+`fn new(world: &World, sky_darken: u8) -> WorldView`. A view over `world`, reading light against `sky_darken` (the host's `Level.getSkyDarken`): the view's brightness is the darkened one, while its `canSurvive` reads the undarkened one, as the host's own placement checks do.
+
+```rust
+use pluto_lib::{World, WorldView};
+
+let world = World::new("minecraft:overworld");
+let _view = WorldView::new(&world, 0);
 ```

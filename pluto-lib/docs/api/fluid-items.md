@@ -283,6 +283,13 @@ assert!(FluidItems::get("example:never_registered").is_none());
 
 `fn registered() -> Vec<FluidItemDef>`. Every definition registered so far, in registration order.
 
+
+
+```rust
+use pluto_lib::FluidItems;
+
+assert!(FluidItems::registered().is_empty(), "nothing is registered in a fresh process");
+```
 ### `FluidItems::is_container`
 
 `fn is_container(stack: &ItemSlot) -> bool`. Whether the stack's item holds or can be filled with fluid.

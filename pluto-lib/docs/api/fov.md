@@ -30,7 +30,7 @@ reads that count against its draw time. A callback that owns nothing in the fact
 
 ### `FovFacts`
 
-The facts of one field-of-view computation: `base` is the field-of-view modifier the game computed from the player's state before callbacks (the value a callback's factor multiplies), `flying` whether the player is flying, `walking_speed` the player's walking speed attribute, `movement_speed` the player's movement speed attribute, `stacks` the player's equipment stacks (each naming its slot; an empty slot is absent), and `using_ticks` how many ticks the player has been using the item in use, or None when the player is not using anything.
+The facts of one field-of-view computation: `base` is the field-of-view modifier the game computed from the player's state before callbacks (the value a callback's factor multiplies), `flying` whether the player is flying, `walking_speed` the player's walking speed attribute, `movement_speed` the player's movement speed attribute, `stacks` the player's equipment stacks (each naming its slot; an empty slot is absent), and `using_ticks` how many ticks the player has been using the item in use, or None when the player is not using anything. `keybind_zoom` says whether the worn-helmet keybind is held (a zoom module answers it with its keybind factor).
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -38,7 +38,7 @@ use pluto_lib::fov_api_v1::{FovFacts, FovSlot, FovStack};
 
 let stack = ItemSlot::new(Identifier::new("example", "goggles").unwrap(), 1);
 let stacks = [FovStack { slot: FovSlot::Head, stack: &stack }];
-let facts = FovFacts { base: 1.0, flying: false, walking_speed: 0.1, movement_speed: 0.1, stacks: &stacks, using_ticks: Some(12) };
+let facts = FovFacts { base: 1.0, flying: false, walking_speed: 0.1, movement_speed: 0.1, stacks: &stacks, using_ticks: Some(12), keybind_zoom: false };
 assert_eq!(facts.base, 1.0);
 assert_eq!(facts.stacks.len(), 1);
 assert_eq!(facts.using_ticks, Some(12));
@@ -122,4 +122,28 @@ assert_eq!(fov_multiplier(&facts), None, "a callback that never speaks changes n
 FovRegistry::register(|_| Some(1.05));
 FovRegistry::register(|_| Some(0.5));
 assert_eq!(fov_multiplier(&facts), Some(1.05 * 0.5));
+```
+
+### `FovRegistry::set_keybind_zoom`
+
+`fn set_keybind_zoom(held: bool)`. Records the helmet key as held (`true`) or released (`false`): the keybind zoom's half of the state, written by the armor interact hook's key tracking and read into `FovFacts::keybind_zoom` on each field-of-view computation.
+
+```rust
+use pluto_lib::fov_api_v1::{FovRegistry, keybind_zoom};
+
+FovRegistry::set_keybind_zoom(true);
+assert!(keybind_zoom());
+FovRegistry::set_keybind_zoom(false);
+assert!(!keybind_zoom());
+```
+
+### `keybind_zoom`
+
+`fn keybind_zoom() -> bool`. Whether the helmet key is held now, as the armor interact hook last reported it: the transport reads it into the facts on each field-of-view computation (see `FovRegistry::set_keybind_zoom`).
+
+```rust
+use pluto_lib::fov_api_v1::{FovRegistry, keybind_zoom};
+
+FovRegistry::set_keybind_zoom(false);
+assert!(!keybind_zoom());
 ```
