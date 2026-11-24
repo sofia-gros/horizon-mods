@@ -1,8 +1,8 @@
 // The equipment slots of a content mod's menu type (the original's station windows carry the
 // player's armor and offhand slots beside the block's own, "for convenience"): a menu type
 // id's equipment, in its layout's order, registered by the mod when it registers the window,
-// and inserted into the menu by `insert_equipment` at the menu's build — the native armor
-// behaviour then handles the clicks, with no pure handler.
+// and inserted into the menu by `insert_equipment` where a built menu is taken up for use —
+// the native armor behaviour then handles the clicks, with no pure handler.
 //
 // The menu's slot indices must match the layout's: the layout's container slots end where its
 // equipment starts, so the equipment is inserted at the registered first index, before the
@@ -55,18 +55,53 @@ fn piece(kind: &str) -> Option<(usize, Role)> {
     })
 }
 
-/// Inserts a menu type's registered equipment into the menu just built: the pieces at the
+/// Whether two roles are the same piece of equipment handling: `Role` derives
+/// neither `PartialEq` nor `Debug`, so the comparison is a pattern match.
+fn same_role(a: &Role, b: &Role) -> bool {
+    match (a, b) {
+        (Role::Armor(x), Role::Armor(y)) => x == y,
+        (Role::Plain, Role::Plain) => true,
+        _ => false,
+    }
+}
+
+/// Whether the menu already carries `pieces` at the layout's first equipment
+/// slot (clamped to the menu's end, as the insertion clamps it).
+fn carries(menu: &Menu, first: usize, pieces: &[(usize, Role)]) -> bool {
+    let at = first.min(menu.slots.len());
+    pieces.iter().enumerate().all(|(offset, (index, role))| {
+        menu.slots.get(at + offset).is_some_and(|slot| {
+            slot.container == super::PLAYER && slot.index == *index && same_role(&slot.role, role)
+        })
+    })
+}
+
+/// How many of a menu's registered equipment pieces are not in it yet — the
+/// kind's whole equipment when none are: a menu is counted before its pieces
+/// join it when a session counts a menu it built only for the count, and a
+/// menu already carrying them counts itself, so a menu's slot count is its
+/// layout's count either way.
+pub fn missing_equipment(menu: &Menu) -> usize {
+    let Kind::Mod(kind) = menu.kind else { return 0 };
+    let Some((first, kinds)) = equipment_for(kind.id) else { return 0 };
+    let pieces: Vec<(usize, Role)> = kinds.iter().copied().filter_map(piece).collect();
+    if carries(menu, first, &pieces) { 0 } else { pieces.len() }
+}
+
+/// Inserts a menu type's registered equipment into the menu: the pieces at the
 /// layout's first equipment slot, in layout order, before the player's inventory — so the
 /// menu's slot indices match the layout's, and the clicks the layout's slots take reach them.
 /// A first index past the end is clamped, so a bad registration cannot panic the game.
+/// A menu that already carries the pieces is left alone: a guest's menu is stored
+/// between operations and offered here again by every one of them.
 pub fn insert_equipment(menu: &mut Menu) {
     let Kind::Mod(kind) = menu.kind else { return };
     let Some((first, kinds)) = equipment_for(kind.id) else { return };
-    let mut at = first.min(menu.slots.len());
-    for piece_kind in kinds {
-        let Some((index, role)) = piece(piece_kind) else { continue };
-        menu.slots.insert(at, Slot { container: super::PLAYER, index, role });
-        at += 1;
+    let pieces: Vec<(usize, Role)> = kinds.iter().copied().filter_map(piece).collect();
+    if carries(menu, first, &pieces) { return; }
+    let at = first.min(menu.slots.len());
+    for (offset, (index, role)) in pieces.into_iter().enumerate() {
+        menu.slots.insert(at + offset, Slot { container: super::PLAYER, index, role });
     }
 }
 
@@ -111,5 +146,54 @@ mod tests {
         let mut again = Menu::new(kind);
         insert_equipment(&mut again);
         assert_eq!(again.slot_count(), 47, "registering again replaces the entry, it does not double-insert");
+    }
+
+    #[test]
+    fn a_menu_that_already_carries_its_equipment_is_left_alone() {
+        let kind = Kind::Mod(Box::leak(Box::new(crate::containers::ModMenuType {
+            id: "test:equipment-reused",
+            slots: 6,
+            data_slots: 0,
+            results: vec![5],
+            links: None,
+            crafting: None,
+        })));
+        set_equipment("test:equipment-reused", 5, &["head", "chest", "legs", "feet", "offhand"]);
+        // A guest's menu is stored between operations and offered again by each
+        // of them: the second and third offers must not equip it again.
+        let mut menu = Menu::new(kind);
+        insert_equipment(&mut menu);
+        insert_equipment(&mut menu);
+        insert_equipment(&mut menu);
+        assert_eq!(menu.slot_count(), 47, "the five equipment slots join the menu once");
+        assert_eq!(menu.slots[5].index, 39, "the head first, at the layout's index");
+        assert_eq!(menu.slots[9].index, 40, "the offhand last");
+        assert!(matches!(menu.slots[10].role, Role::ModResult), "the menu's own sixth slot rides along after them");
+    }
+
+    #[test]
+    fn the_missing_equipment_is_the_whole_set_until_the_pieces_join() {
+        let kind = Kind::Mod(Box::leak(Box::new(crate::containers::ModMenuType {
+            id: "test:equipment-count",
+            slots: 6,
+            data_slots: 0,
+            results: vec![5],
+            links: None,
+            crafting: None,
+        })));
+        set_equipment("test:equipment-count", 5, &["head", "chest", "legs", "feet", "offhand"]);
+        let mut menu = Menu::new(kind);
+        assert_eq!(missing_equipment(&menu), 5, "a menu counted before its build is finished misses all five");
+        insert_equipment(&mut menu);
+        assert_eq!(missing_equipment(&menu), 0, "a menu carrying its equipment misses none");
+        let unregistered = Menu::new(Kind::Mod(Box::leak(Box::new(crate::containers::ModMenuType {
+            id: "test:equipment-unregistered",
+            slots: 6,
+            data_slots: 0,
+            results: vec![5],
+            links: None,
+            crafting: None,
+        }))));
+        assert_eq!(missing_equipment(&unregistered), 0, "an unregistered menu type has no equipment to miss");
     }
 }

@@ -39,6 +39,16 @@ bindings = []
 # A content mod's menu type's equipment slots (a station window's armor and offhand): the mod
 # registers them with the window, and the menu carries them as armor slots over the player's
 # equipment, so the clicks the layout's slots take reach them through the native armor behaviour.
+# The equipment joins the menu where a built menu is taken up for use, not in Menu::new: a
+# RETURN on the constructor cannot name its result (the weaver cannot concretize Self), and
+# the session's own body refuses site seams, so the funnels that interpret a menu's slots
+# attach it instead — slot_count reports the layout's count for a menu counted before its
+# pieces join it, the session's first slot write inserts them before any slot is set, and
+# every guest menu operation inserts them as it loads the guest's inventory in, before the
+# operation runs (a guest's menu is stored and reused across operations, so
+# insert_equipment leaves a menu that already carries its equipment alone). The remote
+# client's wire mapping needs no menu object: pluto-menu-equipment-slot below already
+# counts the equipment in.
 [[module]]
 id = "pluto-menu-equipment"
 file = "crates/horizon-client/src/menu.rs"
@@ -47,18 +57,36 @@ source = "pluto-menu-equipment.rs"
 visibility = "pub"
 
 [[injection]]
-id = "pluto-menu-equipment-new"
-target = "horizon_client_lib::menu::Menu::new"
+id = "pluto-menu-equipment-slot-count"
+target = "horizon_client_lib::menu::Menu::slot_count"
 kind = "RETURN"
-helper = "pluto-menu-equipment-new.rs"
-bindings = [{ name = "menu", ty = "Menu", value = "$value" }]
+helper = "pluto-menu-equipment-slot-count.rs"
+bindings = [
+ { name = "value", ty = "usize", value = "$value" },
+ { name = "menu", ty = "&Menu", value = "&*self" }
+]
+
+[[injection]]
+id = "pluto-menu-equipment-set-slot"
+target = "horizon_client_lib::menu::Menu::set_slot"
+kind = "HEAD"
+helper = "pluto-menu-equipment-set-slot.rs"
+bindings = [{ name = "menu", ty = "&mut Menu", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-menu-equipment-guest-load"
+target = "horizon_client::game::lan_crafting::load_player"
+kind = "HEAD"
+helper = "pluto-menu-equipment-guest-load.rs"
+bindings = [{ name = "menu", ty = "&mut Menu", value = "&mut *menu" }]
 
 [[injection]]
 id = "pluto-menu-equipment-slot"
 target = "horizon_client::game::remote::Game<'_>::menu_slot"
-kind = "RETURN"
+kind = "HEAD"
+cancellable = true
 helper = "pluto-menu-equipment-slot.rs"
-bindings = [{ name = "value", ty = "Option<usize>", value = "$value" }, { name = "menu", ty = "&str", value = "menu" }, { name = "slot", ty = "i32", value = "slot" }]
+bindings = [{ name = "menu", ty = "&str", value = "menu" }, { name = "slot", ty = "i32", value = "slot" }]
 
 # Check every candidate, including results reached from a different clicked slot.
 [[injection]]
