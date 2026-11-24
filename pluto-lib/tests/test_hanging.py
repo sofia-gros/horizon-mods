@@ -50,7 +50,7 @@ class HangingTests(unittest.TestCase):
 
     def test_the_loader_applies_the_variant_rotation(self):
         load = self.injection('pluto-hanging-frame-from-nbt')
-        self.assertEqual(load['target'], 'horizon_client::entity_nbt::item_frame_from_nbt')
+        self.assertEqual(load['target'], 'horizon_client::entity_nbt::hanging::item_frame_from_nbt')
         self.assertEqual(load['kind'], 'HEAD')
         self.assertTrue(load['cancellable'])
         source = (BUNDLE / 'pluto-hanging-frame-from-nbt.rs').read_text(encoding='utf-8')
@@ -62,13 +62,18 @@ class HangingTests(unittest.TestCase):
         self.assertEqual(tick['target'], "horizon_client::game::frames::Game<'_>::tick_item_frames")
         self.assertEqual(tick['kind'], 'HEAD')
         analog = self.injection('pluto-hanging-frame-analog')
-        self.assertEqual(analog['target'], "horizon_client::game::GameLevel<'_>::item_frame_analog_output")
+        self.assertEqual(analog['target'], "horizon_client::game::<GameLevel<'_> as LevelAccess>::item_frame_analog_output")
         self.assertEqual(analog['kind'], 'HEAD')
         self.assertTrue(analog['cancellable'])
-        for kind in ('head', 'return'):
-            blast = self.injection(f'pluto-hanging-frame-explosion-{kind}')
-            self.assertEqual(blast['target'], "horizon_client::game::frames::Game<'_>::explosion_breaks_frames")
-            self.assertEqual(blast['kind'], kind.upper())
+        blast = self.injection('pluto-hanging-frame-explosion-head')
+        self.assertEqual(blast['target'], "horizon_client::game::frames::Game<'_>::explosion_breaks_frames")
+        self.assertEqual(blast['kind'], 'HEAD')
+        # The restore cannot be a RETURN on the frames pass (that body is
+        # not weaveable), so it rides the head of the decorations pass the
+        # explosion sequence makes after it, under the entry's original id.
+        restore = self.injection('pluto-hanging-frame-explosion-return')
+        self.assertEqual(restore['target'], "horizon_client::game::explosion::Game<'_>::explosion_breaks_decorations")
+        self.assertEqual(restore['kind'], 'HEAD')
         drops = self.injection('pluto-hanging-frame-drops')
         self.assertEqual(drops['target'], "horizon_client::game::frames::Game<'_>::drop_frame_items")
         self.assertTrue(drops['cancellable'])
