@@ -2849,7 +2849,11 @@ bindings = [
 # The stored map in a worn piece ticks while it is worn (Tinkers' minimap module): the head
 # and return halves bracket the maps tick itself, so the swap is in place for the exploration
 # sweep on the local player and on a LAN guest alike, and the offhand is restored before
-# anything else runs.
+# anything else runs. The return half hangs on the compass tick, not on the maps tick: the
+# maps tick's own body refuses a RETURN seam, and the compass tick is the first call after
+# it on both tick paths (the local player's equipment-compass pass opens with it, and a
+# guest's turn calls it directly), so the bracket still closes before anything — the
+# compass pass included — can read the offhand.
 [[module]]
 id = "pluto-map-tick-access"
 file = "crates/horizon-client/src/entry.rs"
@@ -2873,10 +2877,10 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 
 [[injection]]
 id = "pluto-map-tick-return"
-target = "horizon_client::game::maps::Game<'_>::tick_maps"
-kind = "RETURN"
+target = "horizon_client::game::maps::Game<'_>::tick_lodestone_compasses"
+kind = "HEAD"
 helper = "pluto-map-tick-return.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 # A piercing projectile's ignore list: the game's own list lives on the arrow (`pierced`), and a cancelled impact
 # re-flies the arrow as it was before the tick, without the victim — so a callback that re-deals a piercing hit
 # would meet the same entity again. The head on the native impact telling snapshots the list as the hit is told

@@ -3,7 +3,10 @@
 // it, and it goes back). The maps tick reads the offhand directly, so the swap brackets the
 // tick itself: the inventory-tick reach runs too early for a LAN guest (its maps tick runs
 // before its inventory ticks) and would leave the map in the offhand for a full tick. The
-// return half restores the offhand first, always, then sends a guest the update packet when
+// return half cannot hang on the maps tick itself (its body refuses a RETURN seam), so it
+// rides the compass tick — the first call after the maps tick on both tick paths, before
+// anything else runs (the compass pass itself reads the offhand and must find it restored):
+// it restores the offhand first, always, then sends a guest the update packet when
 // anything changed; the local player needs no packet (its client reads the map data live).
 use super::*;
 
@@ -39,14 +42,14 @@ pub(crate) fn tick_head(game: &mut Game<'_>) {
     });
 }
 
-/// After the maps tick returns: restores the offhand first, always, then sends a LAN guest
-/// the update packet when the tick changed anything. A packet is only ever pushed when
-/// `update_packet` returns one, so a guest's decorations are never erased by a packet that
-/// carries none. The `kind` closure reads the decoration type's registry id from
-/// `DECORATION_TYPES` by position: the table is in registry order for this pin, verified
-/// against `base-26.3/registries.json` (`minecraft:map_decoration_type`, protocol ids 0-39).
-pub(crate) fn tick_return(game: &mut Game<'_>, value: ()) {
-    let _ = value;
+/// As the compass tick opens (the first call after the maps tick on both tick paths):
+/// restores the offhand first, always, then sends a LAN guest the update packet when the
+/// tick changed anything. A packet is only ever pushed when `update_packet` returns one,
+/// so a guest's decorations are never erased by a packet that carries none. The `kind`
+/// closure reads the decoration type's registry id from `DECORATION_TYPES` by position:
+/// the table is in registry order for this pin, verified against
+/// `base-26.3/registries.json` (`minecraft:map_decoration_type`, protocol ids 0-39).
+pub(crate) fn tick_return(game: &mut Game<'_>) {
     let Some(swap) = crate::entry::pluto_map_tick_access::take_swap() else {
         return;
     };
