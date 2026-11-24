@@ -1204,7 +1204,7 @@ fn build_mob_tick(host: &dyn Host, entity_id: u32, kind: &str, dimension: &str) 
     let effects = host.entity_effects(entity).unwrap_or_default().into_iter().map(|(effect, ticks_left, amplifier)| (effect, amplifier, ticks_left)).collect();
     // The climb state the mob's own tick recorded (its climbing flag and whether it glides); an entity with no
     // record reads false for both, as the report read before.
-    let (climbing, gliding) = horizon_client::game::pluto_entity_climb_access::state(entity_id);
+    let (climbing, gliding) = horizon_client::mobs::pluto_entity_climb_access::state(entity_id);
     Some(entity_events_v1::MobTick {
         entity: entity_id as i32, kind: kind.to_owned(), dimension: dimension.to_owned(), position,
         velocity: host.entity_velocity(entity).unwrap_or([0.0; 3]),
@@ -5692,7 +5692,7 @@ impl Hooks for PlutoHooks {
     }
 
     fn entity_leave_level(&self, host: &mut dyn Host, event: &mut EntityLeaveLevelEvent<'_>) {
-        horizon_client::game::pluto_entity_climb_access::forget(event.entity);
+        horizon_client::mobs::pluto_entity_climb_access::forget(event.entity);
         scoped(host, || entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension));
     }
 

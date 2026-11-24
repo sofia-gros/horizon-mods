@@ -1727,7 +1727,7 @@ visibility = "pub"
 # read when the transport builds the report (see pluto-entity-climb-record).
 [[module]]
 id = "pluto-entity-climb-access"
-file = "crates/horizon-client/src/game.rs"
+file = "crates/horizon-client/src/mobs.rs"
 name = "pluto_entity_climb_access"
 source = "pluto-entity-climb-access.rs"
 visibility = "pub"
