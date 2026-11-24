@@ -5,13 +5,127 @@ on:
   workflow_call:
 concurrency:
   group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Never cancel an in-progress run: every suite must run to completion so a
+  # run always reports the full set of results (owner instruction, 2026-11-24).
+  cancel-in-progress: false
 permissions:
   contents: read
   actions: read
   pull-requests: read
+# All suite jobs below are independent (no needs between them), so GitHub runs
+# them in parallel and no suite's failure can skip or cancel another suite.
+# Multi-suite jobs run every suite step (if: always()) and fail only in a
+# final aggregate step that lists every failure. The summary job runs last
+# (if: always()) and turns the per-suite results into one overall signal.
 jobs:
-  test:
+  lint:
+    name: Lint (5 checks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: check_line_endings
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_line_endings.py || rc=$?
+          echo "check_line_endings=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_line_endings::check_line_endings.py exited with $rc"; fi
+      - name: check_docs_budget
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_docs_budget.py || rc=$?
+          echo "check_docs_budget=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_docs_budget::check_docs_budget.py exited with $rc"; fi
+      - name: check_api_docs
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_api_docs.py || rc=$?
+          echo "check_api_docs=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_api_docs::check_api_docs.py exited with $rc"; fi
+      - name: check_injection_ownership
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_injection_ownership.py || rc=$?
+          echo "check_injection_ownership=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_injection_ownership::check_injection_ownership.py exited with $rc"; fi
+      - name: lint_forbidden_api
+        if: always()
+        run: |
+          rc=0
+          python3 tools/lint_forbidden_api.py || rc=$?
+          echo "lint_forbidden_api=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=lint_forbidden_api::lint_forbidden_api.py exited with $rc"; fi
+      - name: Lint result
+        if: always()
+        run: |
+          echo 'Per-check exit codes:'
+          cat "$RUNNER_TEMP/lint-results"
+          if grep -vq '=0$' "$RUNNER_TEMP/lint-results"; then
+            echo 'FAILED checks:'
+            grep -v '=0$' "$RUNNER_TEMP/lint-results"
+            exit 1
+          fi
+          echo 'All 5 lint checks passed.'
+  census:
+    name: Census (port.py check + test_clean_port)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Validate clean Tinkers boundary (port.py check)
+        if: always()
+        run: |
+          rc=0
+          python3 tools/port.py check || rc=$?
+          echo "port_check=$rc" >> "$RUNNER_TEMP/census-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=port.py check::port.py check exited with $rc"; fi
+      - name: Census (test_clean_port.py)
+        if: always()
+        run: |
+          rc=0
+          python3 -m unittest discover -s tests -p test_clean_port.py -v || rc=$?
+          echo "census=$rc" >> "$RUNNER_TEMP/census-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=test_clean_port::test_clean_port.py exited with $rc"; fi
+      - name: Census result
+        if: always()
+        run: |
+          echo 'Per-suite exit codes:'
+          cat "$RUNNER_TEMP/census-results"
+          if grep -vq '=0$' "$RUNNER_TEMP/census-results"; then
+            echo 'FAILED suites:'
+            grep -v '=0$' "$RUNNER_TEMP/census-results"
+            exit 1
+          fi
+          echo 'port.py check and census both passed.'
+  package:
+    name: Package (development hnmod)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      # Independent of every test job on purpose: the package is always built
+      # and uploaded; the manager decides what ships.
+      - name: Build development package
+        run: python3 tools/port.py package --output .local/clean-port/ci-tconstruct.hnmod
+      - name: Upload checked development package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clean-tconstruct-development-${{ github.sha }}
+          path: .local/clean-port/ci-tconstruct.hnmod
+          include-hidden-files: true
+          if-no-files-found: error
+  python-tests:
+    name: Python tests (root + PlutoLib)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -22,23 +136,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - name: Validate clean Tinkers boundary and development package
-        run: |
-          python3 tools/port.py check
-          python3 -m unittest discover -s tests -p test_clean_port.py -v
-          python3 tools/port.py package --output .local/clean-port/ci-tconstruct.hnmod
       - name: Determine validation scope
         id: scope
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/ci_scope.py
-      - name: Forbidden-API lint
-        run: |
-          python3 tools/check_line_endings.py
-          python3 tools/check_docs_budget.py
-          python3 tools/check_api_docs.py
-          python3 tools/check_injection_ownership.py
-          python3 tools/lint_forbidden_api.py
       - name: Install build prerequisites
         if: steps.scope.outputs.docs_only != 'true'
         run: |
@@ -61,12 +163,196 @@ jobs:
             ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
       # Frozen Tinkers tests are not executed or counted as clean-port parity.
       # Retained root and PlutoLib contracts remain mandatory; gameplay is R2-R5.
-      - name: Test active package and PlutoLib contracts
+      - name: Root tests (tests/)
+        if: ${{ always() && steps.scope.outputs.docs_only != 'true' }}
+        run: |
+          rc=0
+          python3 -m unittest discover -s tests -v || rc=$?
+          echo "root_tests=$rc" >> "$RUNNER_TEMP/python-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=root tests::unittest discover -s tests exited with $rc"; fi
+      - name: PlutoLib Python tests (pluto-lib/tests)
+        if: ${{ always() && steps.scope.outputs.docs_only != 'true' }}
+        run: |
+          rc=0
+          PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v || rc=$?
+          echo "pluto_tests=$rc" >> "$RUNNER_TEMP/python-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=PlutoLib Python tests::unittest discover -s pluto-lib/tests exited with $rc"; fi
+      - name: Python tests result
+        if: always()
+        run: |
+          if [ ! -f "$RUNNER_TEMP/python-results" ]; then
+            echo 'No Python suites ran (docs-only scope).'
+            exit 0
+          fi
+          echo 'Per-suite exit codes:'
+          cat "$RUNNER_TEMP/python-results"
+          if grep -vq '=0$' "$RUNNER_TEMP/python-results"; then
+            echo 'FAILED suites:'
+            grep -v '=0$' "$RUNNER_TEMP/python-results"
+            exit 1
+          fi
+          echo 'All Python suites in this job passed.'
+  pure:
+    name: Pure suite (PlutoLib unit tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      - name: Install build prerequisites
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          python3 -m unittest discover -s tests -v
-          PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v
-          cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+          rustup component add rustfmt --toolchain 1.95.0
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # The unfiltered cargo test run also covered the doctests; they are the
+      # separate doctests job now (--lib here, --doc there).
+      - name: Pure suite (unit tests)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml --lib
+  doctests:
+    name: Doctests (API page examples)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      - name: Install build prerequisites
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+          rustup component add rustfmt --toolchain 1.95.0
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      - name: Doctests (API page examples)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml --doc
+  domain:
+    name: Domain suite (Tinkers)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      - name: Install build prerequisites
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+          rustup component add rustfmt --toolchain 1.95.0
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # This suite existed in the tree but was not run by this workflow
+      # before the parallel restructure; it runs here so CI covers it.
+      - name: Domain suite (tests/tconstruct-domain)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path tests/tconstruct-domain/Cargo.toml
+  mixins-validation:
+    name: Mixins validation (weave plan + guarded build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      - name: Install build prerequisites
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+          rustup component add rustfmt --toolchain 1.95.0
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
       - name: Fetch upstream sources
         if: steps.scope.outputs.docs_only != 'true'
         run: |
@@ -109,10 +395,44 @@ jobs:
             .local/clean-port/ci-native/game-entry-link.log
           include-hidden-files: true
           if-no-files-found: warn
-      - name: Upload checked development package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: clean-tconstruct-development-${{ github.sha }}
-          path: .local/clean-port/ci-tconstruct.hnmod
-          include-hidden-files: true
-          if-no-files-found: error
+  summary:
+    name: Summary (all suites)
+    if: always()
+    needs: [lint, census, package, python-tests, pure, doctests, domain, mixins-validation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      R_LINT: ${{ needs.lint.result }}
+      R_CENSUS: ${{ needs.census.result }}
+      R_PACKAGE: ${{ needs.package.result }}
+      R_PYTHON: ${{ needs.python-tests.result }}
+      R_PURE: ${{ needs.pure.result }}
+      R_DOCTESTS: ${{ needs.doctests.result }}
+      R_DOMAIN: ${{ needs.domain.result }}
+      R_MIXINS: ${{ needs.mixins-validation.result }}
+    steps:
+      - name: Suite summary
+        run: |
+          {
+            echo '## Suite results'
+            echo ''
+            echo '| Suite | Result |'
+            echo '| --- | --- |'
+            echo "| Lint (5 checks) | $R_LINT |"
+            echo "| Census (port.py check + test_clean_port) | $R_CENSUS |"
+            echo "| Package (development hnmod) | $R_PACKAGE |"
+            echo "| Python tests (root + PlutoLib) | $R_PYTHON |"
+            echo "| Pure suite (PlutoLib unit tests) | $R_PURE |"
+            echo "| Doctests (API page examples) | $R_DOCTESTS |"
+            echo "| Domain suite (Tinkers) | $R_DOMAIN |"
+            echo "| Mixins validation (weave plan + guarded build) | $R_MIXINS |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          for r in "$R_LINT" "$R_CENSUS" "$R_PACKAGE" "$R_PYTHON" "$R_PURE" "$R_DOCTESTS" "$R_DOMAIN" "$R_MIXINS"; do
+            if [ "$r" != 'success' ]; then failed=1; fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo 'At least one suite did not succeed; see the table above and the per-suite jobs.'
+            exit 1
+          fi
+          echo 'All suites succeeded.'
