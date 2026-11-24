@@ -32,7 +32,9 @@ pub trait MobSplitChild {
 }
 /// The inheritance view: the parent's facts the game does not carry over.
 /// Children arrive in the game's spawn order. Their size, position and
-/// persistence are already the game's own split work.
+/// persistence are already the game's own split work. The child boxes
+/// carry the view's lifetime: a bridge's view of a child may borrow the
+/// native child for the length of the pass.
 pub struct MobSplitInheritance<'a> {
     pub context:&'a MobSplitContext,
     /// The parent's head stack, if any. Children receive copies of it,
@@ -44,7 +46,7 @@ pub struct MobSplitInheritance<'a> {
     pub no_ai:bool,
     pub invulnerable:bool,
     pub random:&'a mut dyn MobSplitRandom,
-    pub children:&'a mut [Box<dyn MobSplitChild>],
+    pub children:&'a mut [Box<dyn MobSplitChild + 'a>],
 }
 /// A split observer. Both phases default to keeping the game's split.
 pub trait MobSplitCallback:Send+Sync {
@@ -121,7 +123,7 @@ mod tests {
         let gear1=std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
         let name0=std::rc::Rc::new(std::cell::RefCell::new(None));
         let child=|id,gear,name|Box::new(FakeChild {info:EntityInfo {id,kind:"split_test:parent".into(),dimension:"minecraft:overworld".into()},gear,name}) as Box<dyn MobSplitChild>;
-        let mut children=[child(8,gear0.clone(),name0.clone()),child(9,gear1.clone(),std::rc::Rc::new(std::cell::RefCell::new(None)))];
+        let mut children:[Box<dyn MobSplitChild + '_>;2]=[child(8,gear0.clone(),name0.clone()),child(9,gear1.clone(),std::rc::Rc::new(std::cell::RefCell::new(None)))];
         let mut random=FakeRandom;
         let head=StackData {item:"split_test:helm".into(),count:1,..Default::default()};
         let mut view=MobSplitInheritance {context:&context,head:Some(head),head_drop_chance:2.0,
