@@ -34,6 +34,10 @@ pub struct ProjectileImpact {
     pub entity: Option<u32>,
     /// The type of the entity it hit; empty if it hit a block.
     pub entity_kind: String,
+    /// The mob effects the entity it hit carries, by id (such as `tconstruct:enderference`); empty
+    /// if it hit a block, or when the host could not reach the target. Read off the live target, as
+    /// the original reads the target's effects to decide whether a projectile may hit it at all.
+    pub entity_effects: Vec<String>,
     /// The block it hit.
     pub block: BlockPos,
     /// The face it hit as a direction vector, `[0, 1, 0]` for the top.
@@ -454,6 +458,7 @@ mod tests {
                 owner: 1,
                 entity: None,
                 entity_kind: String::new(),
+                entity_effects: Vec::new(),
                 block: [4, 70, 4],
                 face: [0, 1, 0],
                 at: [4.5, 71.0, 4.5],
@@ -565,6 +570,7 @@ mod tests {
             owner: 3,
             entity: Some(12),
             entity_kind: "minecraft:zombie".into(),
+            entity_effects: Vec::new(),
             block: [4, 70, 4],
             face: [0, 1, 0],
             at: [4.5, 71.0, 4.5],
@@ -581,4 +587,5 @@ mod tests {
             "the queued action stays on the hit for the host to do"
         );
     }
+
 }

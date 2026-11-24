@@ -4471,8 +4471,15 @@ impl Hooks for PlutoHooks {
 
     fn projectile_impact(&self, host: &mut dyn Host, event: &mut ProjectileImpactEvent<'_>) -> Flow {
         // The native telling names the hit, not the projectile's flight: its motion and its saved data
-        // are read off the live entity while it is still here.
+        // are read off the live entity while it is still here. The target's effects are read the same
+        // way, off the entity it hit: the impact telling carries them so a callback can decide whether
+        // the target may be hit at all (the original's enderference gate).
         let entity = host.entity(event.projectile);
+        let entity_effects = event.entity
+            .and_then(|id| host.entity(id))
+            .and_then(|entity| host.entity_effects(entity))
+            .map(|effects| effects.into_iter().map(|(id, _, _)| id).collect())
+            .unwrap_or_default();
         let hit = ProjectileImpact {
             dimension: event.dimension.to_owned(),
             projectile: event.projectile,
@@ -4480,6 +4487,7 @@ impl Hooks for PlutoHooks {
             owner: i64::from(event.owner),
             entity: event.entity,
             entity_kind: event.entity_kind.to_owned(),
+            entity_effects,
             block: event.block,
             face: event.face,
             at: event.at,

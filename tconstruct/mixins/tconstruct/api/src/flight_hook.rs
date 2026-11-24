@@ -276,13 +276,22 @@ fn thrown_tool_flight(flight: &ProjectileFlight, thrown: &mut ThrownTool, profil
 fn on_impact(hit: &ProjectileImpact) -> bool {
     let Some(mut state) = take_flight(&hit.dimension, hit.projectile) else { return true };
     let profile = state.profile.clone();
-    // ToolEvents.projectileHit's enderference gate is the one read of the enderference mark
-    // with no port application yet: in the original, an entity hit runs the projectile's hit
-    // hooks only when the target can be hit with a projectile (not an enderman, or an enderman
-    // carrying the enderference effect) or when the projectile itself carries the mark
-    // (profile.enderference). The impact telling carries neither the target's kind nor its
-    // effects, and whether an enderman dodges a shot at all is the game's own behaviour, so
-    // the mark is carried and readable here but gates nothing.
+    // ToolEvents.projectileHit's enderference gate (TinkerEffects.canHitWithProjectile, plus the
+    // projectile's own mark): an entity hit runs the projectile's hit hooks only when the target can
+    // be hit with a projectile — not an enderman, or an enderman carrying the enderference effect —
+    // or when the projectile itself carries the mark (profile.enderference). A gated-out hit still
+    // lands as the game's own hit (the original does not cancel the event, it only skips the modifier
+    // hooks), so the flight is put back and the hit is allowed; a piercing arrow flies on to the next
+    // entity exactly as the original's uncancelled event lets it. Whether an enderman dodges a shot
+    // at all is the game's own behaviour, untouched by this gate.
+    if hit.entity.is_some()
+        && hit.entity_kind == "minecraft:enderman"
+        && !hit.entity_effects.iter().any(|effect| effect.as_str() == crate::teleport_dodge::ENDERFERENCE)
+        && !profile.enderference
+    {
+        put_flight(&hit.dimension, hit.projectile, state);
+        return true;
+    }
     // A shuriken's own hit replaces the game's (its damage is the tool's stat, not the type's).
     if let Some(shuriken) = &state.shuriken {
         let stack = shuriken.stack.clone();
@@ -432,5 +441,62 @@ mod tests {
         assert!(merged.efln);
         assert!(merged.enderference);
         assert!(!merged.is_empty(), "a lone enderference mark still binds a flight");
+    }
+
+    /// An impact for the gate tests: an attracted profile (the one hook whose firing is visible
+    /// without the world) bound under the projectile, meeting the named kind with the named effects.
+    fn gated_hit(dimension: &str, entity: Option<u32>, kind: &str, effects: Vec<String>, enderference: bool) -> ProjectileImpact {
+        bind(dimension, 7, InFlight { profile: tool_stack::FlightProfile { attracts: vec![(3.0, 0.5)], enderference, ..Default::default() }, ..Default::default() });
+        ProjectileImpact {
+            dimension: dimension.into(),
+            projectile: 7,
+            kind: "minecraft:arrow".into(),
+            owner: 1,
+            entity,
+            entity_kind: kind.into(),
+            entity_effects: effects,
+            block: [0, 64, 0],
+            face: [0, 1, 0],
+            at: [0.5, 64.5, 0.5],
+            motion: [0.0, 0.0, -1.0],
+            data: pluto_lib::NbtCompound::new(),
+            discard: std::cell::Cell::new(false),
+            motion_after: std::cell::RefCell::new(None),
+            actions: std::cell::RefCell::new(Vec::new()),
+        }
+    }
+
+    /// The attractions a hit queued in a dimension, drained so cases do not see each other.
+    fn queued_attractions(dimension: &str) -> Vec<([f64; 3], f32, f32)> {
+        let mut guard = PENDING_ATTRACTION.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        guard.get_or_insert_with(HashMap::new).remove(dimension).unwrap_or_default()
+    }
+
+    #[test]
+    fn the_enderference_gate_skips_the_hit_hooks_on_a_plain_enderman() {
+        // A plain enderman, a projectile without the mark: no hit hook fires, but the game's own hit
+        // still runs (the original does not cancel the event, it only skips the modifier hooks).
+        let dimension = "test:endergate-plain";
+        let hit = gated_hit(dimension, Some(9), "minecraft:enderman", Vec::new(), false);
+        assert!(on_impact(&hit), "a gated-out hit still lands as the game's own hit");
+        assert!(!hit.discard.get(), "nothing consumes the projectile");
+        assert!(queued_attractions(dimension).is_empty(), "no hit hook fired");
+    }
+
+    #[test]
+    fn the_enderference_gate_opens_for_the_mark_the_effect_and_other_kinds() {
+        // Each of the original's three openings runs the hooks: the projectile carries the mark, the
+        // enderman carries the effect, or the target is no enderman at all; a block hit has no target
+        // to gate on, so its hooks run too.
+        for (dimension, entity, kind, effects, mark) in [
+            ("test:endergate-mark", Some(9), "minecraft:enderman", Vec::new(), true),
+            ("test:endergate-effect", Some(9), "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], false),
+            ("test:endergate-zombie", Some(9), "minecraft:zombie", Vec::new(), false),
+            ("test:endergate-block", None, "", Vec::new(), false),
+        ] {
+            let hit = gated_hit(dimension, entity, kind, effects, mark);
+            assert!(on_impact(&hit), "{dimension}: the hit itself always lands");
+            assert_eq!(queued_attractions(dimension).len(), 1, "{dimension}: the hit hooks ran");
+        }
     }
 }
