@@ -45,6 +45,7 @@ fn pluto_player_hurt(game:&crate::game::Game<'_>,attacker:i32) {
             attacker,
             kind:mob.kind.id.to_string(),
             main_hand:mob.extra.main_hand_stack().cloned(),
+            off_hand:mob.extra.off_hand.as_ref().map(|item| crate::items::ItemStack {item:item.clone(),count:1,damage:0,extra:None}),
             chest,
             attack_damage:mob.attrs.attack_damage,
             on_ground:mob.on_ground,
