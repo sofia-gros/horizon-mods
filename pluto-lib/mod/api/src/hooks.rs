@@ -1715,6 +1715,15 @@ impl WorldOps for HostWorld {
         self.0.get().level_random(dimension).map(|random| random.next_float())
     }
 
+    fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> {
+        // The host's level handles read any loaded level (API 381): the lowest y and the
+        // height of the level, so the range is [min, min + height).
+        let host = self.0.get();
+        let level = host.level(dimension)?;
+        let (min_y, height) = host.level_height(level)?;
+        Some([min_y, min_y + height])
+    }
+
     fn block_state(&mut self, dimension: &str, pos: [i32; 3]) -> Option<String> {
         let host = self.0.get();
         let level = host.level(dimension)?;
@@ -5444,7 +5453,14 @@ impl Hooks for PlutoHooks {
         });
     }
 
-    fn level_tick_pre(&self, _host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
+    fn level_tick_pre(&self, host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
+        // Every loaded level ticks, so its build range stays published for the readers that run
+        // outside a world callback (a projectile's flight telling): the level's own [min, max).
+        if let Some(level) = host.level(&event.dimension) {
+            if let Some((min_y, height)) = host.level_height(level) {
+                world_api_v1::publish_level_height(&event.dimension, [min_y, min_y + height]);
+            }
+        }
         lifecycle_events_v1::world_tick(true, event.dimension);
     }
 

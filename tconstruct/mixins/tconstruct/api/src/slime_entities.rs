@@ -468,13 +468,15 @@ fn teleport_double() -> f64 { (teleport_draw() >> 11) as f64 / (1u64 << 53) as f
 
 /// TeleportHelper.randomNearbyTeleport's destination: diameter 16 around the origin, the vertical
 /// clamped to the dimension's own build range (the original clamps to the dimension's
-/// `minBuildHeight` and logical height: the overworld −64..319, the nether and the end 0..255).
+/// `minBuildHeight` and logical height). The range is the host's own for the dimension — any
+/// dimension, custom ones included — the vanilla table when it has not answered, so the vanilla
+/// dimensions keep their clamps (overworld −64..319, nether and end 0..255). The top here is the
+/// build limit less one; the original's logical height is not what the host reports (a dimension
+/// type may set it below its build height — the nether's own is 128, not 256 — so a top that
+/// exact still waits for a logical-height reach).
 pub(crate) fn teleport_destination(origin: [f64; 3], dimension: &str, dx: f64, dy: i32, dz: f64) -> [f64; 3] {
-    let (min_y, max_y) = match dimension {
-        "minecraft:the_nether" | "minecraft:the_end" => (0.0, 255.0),
-        _ => (-64.0, 319.0),
-    };
-    [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(min_y, max_y), origin[2] + (dz - 0.5) * 16.0]
+    let [min_y, max_y] = crate::mining_speed::level_build_height(dimension);
+    [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(min_y as f64, (max_y - 1) as f64), origin[2] + (dz - 0.5) * 16.0]
 }
 
 /// Whether a block is a liquid a teleport refuses to land in: the vanilla fluid blocks and
@@ -670,5 +672,21 @@ mod tests {
         for id in ["minecraft:air", "minecraft:stone", "tconstruct:earth_slime_block"] {
             assert!(!is_liquid(&Identifier::parse(id).unwrap()), "{id}");
         }
+    }
+
+    #[test]
+    fn teleport_destination_clamps_to_the_host_build_range() {
+        // The vanilla dimensions keep their clamps with no host range published.
+        assert_eq!(teleport_destination([0.0, 400.0, 0.0], "minecraft:overworld", 0.5, 0, 0.5), [0.0, 319.0, 0.0]);
+        assert_eq!(teleport_destination([0.0, -100.0, 0.0], "minecraft:overworld", 0.5, 0, 0.5), [0.0, -64.0, 0.0]);
+        assert_eq!(teleport_destination([0.0, 400.0, 0.0], "minecraft:the_nether", 0.5, 0, 0.5), [0.0, 255.0, 0.0]);
+        // A custom dimension reads the host's own range, not the overworld's.
+        let mut ops = MemoryWorldOps::default();
+        ops.build_heights.insert("example:custom".into(), [-32, 128]);
+        with_world(&mut ops, || {
+            assert_eq!(teleport_destination([0.0, 400.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 127.0, 0.0]);
+            assert_eq!(teleport_destination([0.0, -100.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, -32.0, 0.0]);
+            assert_eq!(teleport_destination([0.0, 64.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 64.0, 0.0], "inside the range it stands");
+        });
     }
 }

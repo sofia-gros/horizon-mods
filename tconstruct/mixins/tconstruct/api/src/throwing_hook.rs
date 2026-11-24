@@ -85,12 +85,13 @@ fn stat(stack: &StackData, stat: Stat) -> f32 {
 }
 
 /// A tool's conditional velocity for a holder at height `y` in `dimension`, for the dwarven velocity half
-/// (a thrown tool's holder is not digging, so no dig reports the level's build range); None for the height
+/// (a thrown tool's holder is not digging, so no dig reports the level's build range — the host's own
+/// range for the dimension answers, the vanilla table when it has not); None for the height
 /// leaves the dwarven arm at the stored value. 0 when the stack is not a whole tool.
 fn conditional_velocity(stack: &StackData, y: Option<f64>, dimension: &str) -> f32 {
     let holder = pluto_lib::EntityState { y, ..Default::default() };
     let entities = crate::entity_facts::Entities { attacker: Some(&holder), target: None };
-    let build_height = Some(crate::mining_speed::build_height_for(dimension));
+    let build_height = Some(crate::mining_speed::level_build_height(dimension));
     with_held_tool(stack, |env, tool| tool_stack::conditional_stat_at(&tool.custom_data, env, Stat::Velocity, &|_| false, &entities, build_height)).unwrap_or(0.0)
 }
 
