@@ -20,8 +20,7 @@
 //! TankModule's slot interaction in both directions, and overburn on the inventory tick (the
 //! holder's tick count and the game time are counted from the player tick there; the stack
 //! writes back through the player handle). What still stands open is named in tank_hook's
-//! header: the bucket module's world halves (no fluid block form is registered in the port)
-//! and splashing's item cooldown (it rides the item-cooldown surface of the sleeves work).
+//! header: splashing's item cooldown (it rides the item-cooldown surface of the sleeves work).
 use crate::{
     fluid_effects::{LevelingInt, LevelingValue},
     fluid_values::{OreRateType, BOTTLE, BUCKET},

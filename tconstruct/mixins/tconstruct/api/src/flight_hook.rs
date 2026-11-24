@@ -584,8 +584,15 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
     // the module's level. The profile carries a snapshot of the tank, and what the application
     // spends is spent from the snapshot — the firing tool itself is out of this telling's reach,
     // the standing shape of the launcher applications here. The original's damageDealt > 0 gate
-    // cannot be read at the impact telling, the same remainder as the tipped application above.
-    if hit.entity.is_some() && !profile.spilling.is_empty() {
+    // has no amount at the impact telling; a hit on a living target that can be hurt deals
+    // damage, so that is the gate (an invulnerable or non-living target deals none).
+    // A thrown tool's own impact never reaches this block (see the thrown-tool branch above),
+    // so its spilling stays unwired there — out of this lane's four items, noted for the next.
+    if hit.entity.is_some() && !profile.spilling.is_empty() && hit.entity.is_some_and(|id| {
+        EntityReach::in_box([hit.at[0] - 0.5, hit.at[1] - 0.5, hit.at[2] - 0.5], [hit.at[0] + 0.5, hit.at[1] + 0.5, hit.at[2] + 0.5])
+            .into_iter().find(|entity| entity.id == id as u64)
+            .is_some_and(|entity| entity.living.is_some_and(|facts| !facts.invulnerable))
+    }) {
         if let (Some(effects), Some(tags)) = (crate::common::fluid_effects(), crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.tags.clone()))) {
             let effects = effects.read().expect("fluid effects lock poisoned");
             let stack = state.thrown.as_ref().map(|thrown| crate::fluid_world::stack_of_data(&thrown.stack))

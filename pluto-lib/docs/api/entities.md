@@ -31,7 +31,7 @@ MobSpawnCallback::register(Identifier::parse("example:spawn_observer").unwrap(),
 }).unwrap();
 ```
 
-> **Use with Caution.** Dispatch, owned-action and RNG order are pure-tested. The runtime adapter targets the shared native spawn entry, retaining level/created/fixed yaw selection, individual RNG and UUID registration before join; a production-helper trace verifies these rules and the no-finalization/disabled fallback, but the changed attachment is not yet native-build/game verified. The other callers (runtime/natural, trial-spawner, patrol/raid, marked-structure, frog conversion), native provider forwarding and Mob-owned transient state are source-declared, not native validated; only the pinned frog conversion has the later finalize call, so other conversions must not select gear. A prepared action is consumed once and dropped on abort/error. Native source defers join/publication only for selected completion work; unselected mobs retain native join ordering, and inherited child/world effects are not rolled back after completion failure. Spawn reasons are backend labels (`natural`, `runtime`, `spawner`, `trial_spawner`, `patrol`, `event`, `structure`, `conversion`), not guaranteed Forge reason enums. Gear is a reduced `StackData` view; unsupported slots reject. Mob RNG and the world's enchantment RNG remain separate. Callback registration order is execution order; new callbacks affect subsequent spawns, never an existing prepared action.
+> **Use with Caution.** Dispatch, owned-action and RNG order are pure-tested; a production-helper trace verifies the rules and the no-finalization/disabled fallback, but the changed attachment is not yet native-build/game verified. The other callers (runtime/natural, trial-spawner, patrol/raid, marked-structure, frog conversion), native provider forwarding and Mob-owned transient state are source-declared, not native validated; only the pinned frog conversion has the later finalize call, so other conversions must not select gear. A prepared action is consumed once and dropped on abort/error; join/publication defer only for selected completion work, and callback order is execution order, with new callbacks affecting subsequent spawns only. Spawn reasons are backend labels, not guaranteed Forge reason enums; gear is a reduced `StackData` view, and Mob RNG and the world's enchantment RNG remain separate.
 
 ## Cancelling Damage
 
@@ -78,7 +78,7 @@ EntityTypeRegistry::register_derived(
 ).unwrap();
 ```
 
-> **Use with Caution.** Not a Rust entity factory or a spawn command. The source adapter appends derived rows to entity-types.json preserving inherited raw float fields, allocates matching network registry IDs and publishes command lists. Living factories also inherit their separate attributes.json DefaultAttributes suppliers, retaining exact bit strings without fake suppliers for nonliving factories; missing/invalid living suppliers reject the candidate. existing type IDs cannot be replaced. Validation of a declaration against the game's runtime policy (a factory whose exported row exists but whose model or consumers are missing) remains pending, and the export runs only as part of a content overlay, so a standalone install cannot publish declarations yet. Native execution/model validation, spawn rules, custom attributes, persistent/synchronized state and simulation callbacks remain incomplete or unverified. Invalid values and duplicate/late registrations error; no unrelated template is substituted.
+> **Use with Caution.** Not a Rust entity factory or a spawn command. The source adapter appends derived rows to entity-types.json (preserving inherited raw float fields), allocates matching network registry IDs and publishes command lists; living factories inherit their attributes.json DefaultAttributes suppliers, and missing/invalid living suppliers reject the candidate. Existing type IDs cannot be replaced. Validation against the game's runtime policy remains pending, and the export runs only as part of a content overlay, so a standalone install cannot publish declarations yet. Native execution/model validation, spawn rules, custom attributes, persistent/synchronized state and simulation callbacks remain incomplete or unverified; invalid values and duplicate/late registrations error.
 
 ## Entity-Class Query Methods
 
@@ -129,7 +129,7 @@ LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("exa
     })).unwrap();
 ```
 
-> **Use with Caution.** This source-only backend writes armor/toughness bases through their native instance observers, retaining modifiers; other base consumers reject and missing entity attributes are skipped. Duplicate or unsupported entries reject the batch before any base write. The source adapter forwards the join event's dimension, rejects a mismatched one before mutation and rechecks it after callback dispatch; an already-cancelled join skips initialization, Callback attachment/world side effects are not rolled back on failure: errors reject the join, and an in-place reload reports failure after the native data change, without rolling it back. Native Host forwarding, application/order, save/sync and gameplay remain unverified behind the native attachment gate.
+> **Use with Caution.** This source-only backend writes armor/toughness bases through their native instance observers, retaining modifiers; other base consumers reject and missing entity attributes are skipped. Duplicate or unsupported entries reject the batch before any base write. The adapter forwards the join event's dimension (rejecting a mismatch before mutation, rechecking after dispatch); an already-cancelled join skips initialization, and errors reject the join without rolling back attachment or world side effects. Native Host forwarding, application/order, save/sync and gameplay remain unverified behind the native attachment gate.
 
 ## Reaching the Entities Around a Ticker
 
@@ -552,7 +552,7 @@ ServerEntityEvents::ENTITY_LOAD.invoke(&EntityInfo { id: 5, kind: "minecraft:zom
 
 ### `LivingDamage`
 
-Damage about to be applied to a living entity. `entity` is the victim's id and `kind` its type. `damage_type` is the damage type id such as `minecraft:player_attack`. `attacker` is the id of the entity that caused it (negative if none) and `direct` the entity that dealt it directly, a projectile for example (negative if none). `amount` is the damage.
+Damage about to be applied to a living entity. `entity` is the victim's id and `kind` its type. `damage_type` is the damage type id such as `minecraft:player_attack`. `attacker` is the id of the entity that caused it (negative if none) and `direct` the entity that dealt it directly, a projectile for example (negative if none). `amount` is the damage. `in_damage_type_tag(tag)` reads the vanilla damage-type tags (the pinned game's memberships: `bypasses_effects` is only starvation), and `is_direct_damage()` is Tinkers' directness: a causer, no direct entity or the causer, and a type outside `minecraft:avoids_guardian_thorns`.
 
 ```rust
 use pluto_lib::{LivingDamage, ServerLivingEntityEvents};
@@ -565,6 +565,7 @@ let fall = LivingDamage {
     entity: 1, kind: "minecraft:player".into(), damage_type: "minecraft:fall".into(), attacker: -1, direct: -1, amount: 4.0,
 };
 assert!(!ServerLivingEntityEvents::ALLOW_DAMAGE.invoke(&fall));
+assert!(!fall.is_direct_damage());
 ```
 
 ## Events
@@ -828,14 +829,14 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 
 ### `WeaponHit`
 
-A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands.
+A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `damage_dealt` the damage the hit is about to deal, before armor takes its share (a hit the armor absorbs whole still reads pre-armor), `attack_ticks` the attacker's ticks since their last swing (a mob attacker reads as fully charged), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands. `fully_charged(attack_speed)` is the host's charge gate for the weapon's attack speed; the ticks are tracked from the player's ticks and reset on a swing and on a main-hand change.
 
 ```rust
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
-assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty());
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty() && hit.fully_charged(4.0));
 ```
 
 ### `WearerHit`

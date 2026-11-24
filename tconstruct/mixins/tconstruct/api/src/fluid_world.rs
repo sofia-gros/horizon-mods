@@ -218,6 +218,13 @@ const REPLACEABLE: [&str; 12] = [
     "minecraft:vine", "minecraft:glow_lichen",
 ];
 
+/// Whether a block state may be replaced without a tool (the REPLACEABLE set above, plus a fluid's
+/// own world blocks). Shared with the bucket place half, which reads the same set over a state it
+/// already holds.
+pub(crate) fn replaceable(state: &BlockState) -> bool {
+    REPLACEABLE.contains(&state.block.to_string().as_str()) || FluidWorld::is_world_fluid(&state.block)
+}
+
 /// The copper weathering chain (WeatheringCopper): each block that weathers, and the block it becomes;
 /// the last of each family (the oxidized forms) and every waxed form do not weather.
 const WEATHERING: [(&str, &str); 12] = [
@@ -339,9 +346,7 @@ impl WorldAccess for LiveWorld {
     }
 
     fn can_be_replaced(&self, pos: BlockPos) -> bool {
-        self.state_at(pos).map_or(false, |state| {
-            REPLACEABLE.contains(&state.block.to_string().as_str()) || FluidWorld::is_world_fluid(&state.block)
-        })
+        self.state_at(pos).map_or(false, |state| replaceable(&state))
     }
 
     fn within_world_border(&self, _pos: BlockPos) -> bool { true }
@@ -438,14 +443,7 @@ impl WorldAccess for LiveWorld {
     }
 
     fn fluid_block(&self, fluid: &Identifier) -> Option<BlockState> {
-        match fluid.to_string().as_str() {
-            "minecraft:water" => return Some(BlockState::new(fluid.clone())),
-            "minecraft:lava" => return Some(BlockState::new(fluid.clone())),
-            _ => {}
-        }
-        let definition = FluidRegistry::get(&fluid.to_string())?;
-        if !definition.world_blocks { return None; }
-        Some(FluidWorld::state(fluid, 0))
+        FluidWorld::source_block(fluid)
     }
 
     fn flowing_fluid_block(&self, fluid: &Identifier, level: i32) -> Option<BlockState> {

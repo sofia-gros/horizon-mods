@@ -210,12 +210,12 @@ fn on_release(release: &ReleaseUsing) {
 
 /// Registers the uses, the thrown shuriken type and the release callback. Called once from the
 /// product's hooks, after the edible and blocking hooks (this registration replaces theirs for the
-/// usable tool items, composing all of them: eat, block, brush, sling, throw, fireball, and the tank drinks and spits).
+/// usable tool items, composing all of them: eat, block, brush, sling, throw, fireball, and the tank drinks, spits and bucket pickup).
 pub(crate) fn register() {
     for path in edible_hook::USE_ITEMS {
         let Ok(item) = Identifier::new("tconstruct", path) else { continue };
         ItemUseRegistry::register_stack(item, StackUse::new(UseAction::None)
-            .can_use(|stack| eatable(stack) || blocking(stack) || brush(stack) || throwing(stack) || sling(stack) || fireball(stack) || crate::tank_hook::slurpable(stack).is_some() || crate::tank_hook::spittable(stack))
+            .can_use(|stack| eatable(stack) || blocking(stack) || brush(stack) || throwing(stack) || sling(stack) || fireball(stack) || crate::tank_hook::slurpable(stack).is_some() || crate::tank_hook::spittable(stack) || crate::tank_hook::bucket_pickupable(stack))
             .action_for(|stack| {
                 if eatable(stack) { return Some(UseAction::Eat); }
                 if blocking(stack) { return Some(UseAction::Block); }
@@ -224,14 +224,16 @@ pub(crate) fn register() {
                 if throwing(stack) { return Some(UseAction::Spear); }
                 if fireball(stack) { return Some(UseAction::None); }
                 if crate::tank_hook::slurpable(stack).is_some() { return Some(UseAction::Drink); }
-                crate::tank_hook::spittable(stack).then_some(UseAction::Bow)
+                if crate::tank_hook::spittable(stack) { return Some(UseAction::Bow); }
+                if crate::tank_hook::bucket_pickupable(stack) { return Some(UseAction::None); }
+                None
             })
             .use_time(|stack| {
                 if eatable(stack) { return edible_hook::eating(stack).map_or(0, |(_, duration)| edible::use_ticks(duration)); }
                 if blocking(stack) { return THROW_TICKS; }
                 if brush(stack) { return crate::brush::USE_DURATION; }
                 if let Some(duration) = crate::tank_hook::slurpable(stack) { return duration; }
-                if throwing(stack) || sling(stack) || fireball(stack) || crate::tank_hook::spittable(stack) { THROW_TICKS } else { 0 }
+                if throwing(stack) || sling(stack) || fireball(stack) || crate::tank_hook::spittable(stack) || crate::tank_hook::bucket_pickupable(stack) { THROW_TICKS } else { 0 }
             }));
     }
     if let Ok(item) = Identifier::new("tconstruct", SHURIKEN_ITEM) {

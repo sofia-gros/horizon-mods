@@ -475,6 +475,32 @@ assert_eq!(FluidWorld::level_of(&BlockState::parse("example:oil_fluid[level=5]")
 assert_eq!(FluidWorld::level_of(&BlockState::parse("minecraft:stone").unwrap(), &oil), None);
 ```
 
+### `FluidWorld::source_block`
+
+`fn source_block(fluid: &Identifier) -> Option<BlockState>`. The source block of a fluid that has a world form: water and lava (whose block id is the fluid's own id) and a registered fluid with world blocks (its block at level 0). `None` for a fluid with no world form, so a bucket module's world halves know the fluid cannot be placed. The forward half of the fluid's world-block form, with `fluid_of` as the reverse.
+
+```rust
+use pluto_lib::{FluidDef, FluidRegistry, FluidWorld, Identifier};
+
+let oil = Identifier::parse("example:oil").unwrap();
+FluidRegistry::register(FluidDef::new(oil.clone()).with_world_blocks().with_bucket());
+assert_eq!(FluidWorld::source_block(&oil).map(|state| state.to_string()), Some("example:oil_fluid[level=0]".to_owned()));
+assert_eq!(FluidWorld::source_block(&Identifier::parse("minecraft:water").unwrap()).map(|state| state.to_string()), Some("minecraft:water".to_owned()));
+assert!(FluidWorld::source_block(&Identifier::parse("example:potion").unwrap()).is_none());
+```
+
+### `FluidWorld::fluid_of`
+
+`fn fluid_of(state: &BlockState) -> Option<(Identifier, u8)>`. The fluid and level a block state holds, if it is a fluid's world form: a registered fluid's `<id>_fluid` block with its `level` (0 source, 1 to 7 flowing, 8 falling), or water and lava by their own block id (a missing `level` reads as a source; a vanilla level of 8 to 15 is a falling cell, the port's 8). `None` for any other block. The reverse half of the fluid's world-block form.
+
+```rust
+use pluto_lib::{BlockState, FluidWorld, Identifier};
+
+assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:water[level=0]").unwrap()), Some((Identifier::parse("minecraft:water").unwrap(), 0)));
+assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:water[level=12]").unwrap()), Some((Identifier::parse("minecraft:water").unwrap(), 8)));
+assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:stone").unwrap()), None);
+```
+
 ### `FluidWorld::is_world_fluid`
 
 `fn is_world_fluid(block: &Identifier) -> bool`. Whether `block` is the block (`<id>_fluid`) of a defined fluid with world blocks.

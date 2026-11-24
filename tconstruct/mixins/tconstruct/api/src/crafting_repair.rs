@@ -231,7 +231,7 @@ fn stacked_repair(
         rest.count -= 1;
         Some(rest)
     };
-    Decision::Apply { clicked: Some(repaired), carried, sound: Some(StackedSound { id: SAW_SOUND, volume: 1.0, pitch: 0.8 + 0.4 * request.random }) }
+    Decision::Apply { clicked: Some(repaired), carried, give: None, sound: Some(StackedSound { id: SAW_SOUND, volume: 1.0, pitch: 0.8 + 0.4 * request.random }) }
 }
 
 fn special_callback(grid: &GridFacts<'_>) -> Option<SpecialResult> {
@@ -446,10 +446,10 @@ mod tests {
             secondary: bool,
             allow: bool,
         ) -> StackedOnOtherRequest<'a> {
-            StackedOnOtherRequest { carried, clicked, secondary, allow_modification: allow, random: 0.5 }
+            StackedOnOtherRequest { carried, clicked, player: 0, secondary, allow_modification: allow, random: 0.5 }
         }
         // A repairing click: tool fixed, one kit taken, saw sound queued.
-        let Decision::Apply { clicked, carried, sound: played } = stacked_repair(
+        let Decision::Apply { clicked, carried, give: None, sound: played } = stacked_repair(
             &world.loaded, 3.0, &def, &in_tag, &request(&kit_slot, Some(&hurt), true, true),
         ) else {
             panic!("expected an applied repair");
