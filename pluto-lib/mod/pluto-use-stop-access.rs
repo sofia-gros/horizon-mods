@@ -14,7 +14,7 @@
 // player began before the seam runs; the window is the rest of that tick, and the
 // seam drains the queue every tick.
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// How a use ends, as the game's own ends split: a release runs the use's
 /// releaseUsing first (a mod's Stop may still skip that part, never the end
@@ -39,7 +39,7 @@ struct State {
     generations: HashMap<u128, u64>,
 }
 
-static STATE: Mutex<State> = Mutex::new(State { queue: Vec::new(), generations: HashMap::new() });
+static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| Mutex::new(State { queue: Vec::new(), generations: HashMap::new() }));
 
 /// Counts a new item use of `player` beginning: requests queued during their
 /// earlier uses go stale. A start the game then refuses still counts — no use

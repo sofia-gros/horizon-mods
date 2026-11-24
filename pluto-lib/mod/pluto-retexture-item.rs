@@ -14,7 +14,7 @@
 // land in.
 use std::{
     collections::{BTreeMap, HashMap},
-    sync::{Arc, OnceLock, RwLock},
+    sync::{Arc, LazyLock, OnceLock, RwLock},
 };
 use serde_json::Value;
 use super::{
@@ -45,7 +45,7 @@ pub fn set_provider(texture: Texture, matcher: Matcher) -> Result<(), &'static s
 // The particle sprite each texture item resolves to, by item id: a
 // texture's sprite cannot change while its models stand, and resolution
 // runs per drawn stack per frame.
-static PARTICLES: RwLock<HashMap<String, String>> = RwLock::new(HashMap::new());
+static PARTICLES: LazyLock<RwLock<HashMap<String, String>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
 fn particle_sprite(renderer: &ItemRenderer, texture: &str, env: &dyn ItemEnv) -> Option<String> {
     if let Some(sprite) = PARTICLES.read().ok()?.get(texture) {

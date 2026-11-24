@@ -5,15 +5,15 @@
 // until the API side reads one and the flight pass applies the other. A telling nobody listens to costs nothing:
 // the head that fills this only runs when the game dispatches an impact.
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 /// The entities a projectile has already gone through, by id, as the game reported them when the hit was told —
 // one entry per projectile, taken by the API side as it builds the hit.
-static SNAPSHOTS: Mutex<HashMap<u32, Vec<u32>>> = Mutex::new(HashMap::new());
+static SNAPSHOTS: LazyLock<Mutex<HashMap<u32, Vec<u32>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// The entities a projectile has passed through, by id, as a callback recorded them — one entry per projectile,
 // taken by the flight pass as the tick settles.
-static PENDING: Mutex<HashMap<u32, Vec<u32>>> = Mutex::new(HashMap::new());
+static PENDING: LazyLock<Mutex<HashMap<u32, Vec<u32>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Stash the ignore list the game reports for `projectile` when its hit is told, for the API side to read as it
 /// builds the hit. A projectile that is told again overwrites its own entry.
