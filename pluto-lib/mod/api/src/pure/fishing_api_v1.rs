@@ -13,8 +13,9 @@
 //! hook is a remote replica the host does not simulate), so the transport acts on a queued use for the
 //! local player's hook, whichever player queued it — in a LAN world a guest's rod use can therefore be
 //! the one acted on, the same local-only shape as the game's own fishing. What the transport cannot do
-//! is listed where it is decided: the vanilla catch at retrieve is the game's own, and the drill's spin
-//! attack has no host surface.
+//! is listed where it is decided: the vanilla catch at retrieve is the game's own. A drill grapple
+//! starts the owner's spin attack on the pull (`Player.startAutoSpinAttack(20)`, the trident spin:
+//! 20 ticks at 8 damage), through the local player's own spin fields.
 
 use super::base::Identifier;
 use super::player_api::{ServerPlayer, StackData};
@@ -32,6 +33,14 @@ pub enum Grapple {
     Dash,
     /// The owner is pulled toward the hook when it lands and when it hooks an entity.
     Drill,
+}
+
+impl Grapple {
+    /// Whether a grapple of this kind starts the owner's spin attack when it pulls (the original's
+    /// `pullGrapple`): only a drill does, on the landing pull and on the hooked-entity pull alike.
+    pub fn starts_spin_attack(self) -> bool {
+        matches!(self, Grapple::Drill)
+    }
 }
 
 /// The numbers a rod casts with, computed from the stack used (the original's `FishingModule` reads
@@ -232,6 +241,13 @@ mod tests {
         let near = grapple_delta(owner, [4.0, 64.0, 0.0]);
         assert!((near[0] - 1.16).abs() < 1e-9, "{near:?}");
         assert_eq!(grapple_delta(owner, owner), [0.0; 3]);
+    }
+
+    #[test]
+    fn only_a_drill_starts_the_spin_attack_on_the_pull() {
+        assert!(Grapple::Drill.starts_spin_attack());
+        assert!(!Grapple::Dash.starts_spin_attack());
+        assert!(!Grapple::None.starts_spin_attack());
     }
 
     #[test]

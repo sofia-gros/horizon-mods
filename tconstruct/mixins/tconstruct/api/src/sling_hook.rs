@@ -19,12 +19,10 @@
 //!   call that moves a player), so the wiring stands ready and keys its success effects
 //!   off the answer, as they key off the original's teleport event not being cancelled;
 //!   it lands the day the player move does.
-//! - The leap's slime bounce handler and a drill tool's spin attack.
-//!   SlimeBounceHandler is a per-tick momentum preservation, not a one-shot push: it
-//!   re-adds 97.5% of the former horizontal speed on every airborne tick and applies a
-//!   bounce velocity stored by the fall event one tick after landing, and
-//!   `startAutoSpinAttack` is its own call besides; no PlutoLib surface runs either
-//!   yet, so both still wait.
+//! - The leap's slime bounce handler and a drill tool's spin attack now run: the leap adds the
+//!   bounce handler (`crate::bounce::add_bounce_handler`, the momentum-only handler, which the
+//!   fall handler then drives), and a drill sling starts the spin attack (`EntityReach::spin_attack`)
+//!   when the leaping modifier is in the drill-attacks tag and the tool can perform the drill attack.
 //! - Exhaustion (0.2 per sling): the player telling reads food, it does not spend it.
 //! - The three-tick item cooldown: `ReleaseUsing::set_used` starts the item's own
 //!   content cooldown instead.
@@ -326,6 +324,16 @@ fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound
         EntityReach::push(holder_id, push);
         if *leave_ground {
             EntityReach::leave_ground(holder_id);
+        }
+        // The leap's slime bounce handler: the momentum-only handler, so the holder keeps their
+        // speed through the air after the launch (the fall handler drives it from there).
+        crate::bounce::add_bounce_handler(holder_id as i32);
+        // A drill sling's leap ends in a spin attack: the original starts one
+        // (`player.startAutoSpinAttack(20)`) when the leaping modifier is in the drill-attacks
+        // tag and the tool can perform the drill attack.
+        let drill = Identifier::parse("tconstruct:drill_attacks").expect("the drill-attacks tag id parses");
+        if env.modifiers.reverse_tags.get(id).is_some_and(|tags| tags.contains(&drill)) && tool_stack::can_perform_action(nbt, env, "drill_attack") {
+            EntityReach::spin_attack(holder_id);
         }
     }
     world.play_sound("tconstruct:slime_sling", release.position, 1.0, 1.0);

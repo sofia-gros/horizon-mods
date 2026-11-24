@@ -8,10 +8,10 @@
 // - a queued use with no hook out casts: the hook is the game's own `Hook`, built as its rod use
 //   builds it, but with the profile's luck and lure and the combat cast's velocity (per axis, the
 //   profile's velocity over the look vector's length plus a triangle spread of the inaccuracy).
-// - a queued use with the combat hook out retrieves: a grounded grapple pulls the owner first; a
-//   hooked entity is collected, hurt and pulled as the combat hook's `pullEntity` does; the catch
-//   and the plain cases go through the game's own `retrieve_hook`, loot and all; the rod's wear is
-//   reported to the mod, which damages its own tool (the game's `damage_held` would wear the item's
+// - a queued use with the combat hook out retrieves: a grounded grapple pulls the owner first (and starts the
+//   owner's spin attack when it is a drill); a hooked entity is collected, hurt and pulled as the combat hook's
+//   `pullEntity` does; the catch and the plain cases go through the game's own `retrieve_hook`, loot and all; the
+//   rod's wear is reported to the mod, which damages its own tool (the game's `damage_held` would wear the item's
 //   own damage, which is not where a mod tool keeps its wear).
 // - a queued use with a vanilla hook out reels it in at the vanilla cost.
 //
@@ -22,8 +22,7 @@
 // attacker (the game's hurt-by-entity call resolves an attacker by entity id, and the hook's owner
 // here is the local player, whose server id this code does not hold), so no kill credit or last-hurt
 // mark is set, and the launcher-hit modifier hooks do not run; a boat, cart or TNT is pulled but not
-// hurt (the hurt call reaches living beings and armour stands); the drill's spin attack has no game
-// surface and is not started; the wall-stick of a grapple hook (`onHitBlock`) has no hook state here,
+// hurt (the hurt call reaches living beings and armour stands); the wall-stick of a grapple hook (`onHitBlock`) has no hook state here,
 // so a grapple against a wall retrieves as a flying hook, not a grounded one.
 
 use super::{cast_direction, pull_item, Hook, State};
@@ -141,7 +140,7 @@ fn retrieve(game: &mut super::super::Game<'_>, uuid: u128, profile: access::UseP
     };
     let at = game.player.as_ref().map(|player| [player.position.x, player.position.y, player.position.z]);
     if grounded && profile.grapple != 0 {
-        grapple_pull(game, hook_pos);
+        grapple_pull(game, hook_pos, profile.grapple == 2);
     }
     let underlying = if let Some(target) = hooked {
         if let Some(hit) = access::take_hit() {
@@ -221,16 +220,23 @@ fn pull_entity(
         }
     }
     if profile.grapple == 2 {
-        grapple_pull(game, hook_pos);
+        grapple_pull(game, hook_pos, true);
     }
 }
 
 /// Pulls the owner toward the hook (`pullGrapple`): 0.58 / sqrt(distance) of the way, each component
-/// clamped as the game's own player push clamps it.
-fn grapple_pull(game: &mut super::super::Game<'_>, hook_pos: Vec3) {
+/// clamped as the game's own player push clamps it. A drill pull starts the owner's spin attack
+/// (`Player.startAutoSpinAttack(20)`, the trident spin: 20 ticks at 8 damage), whether the pull
+/// itself moves them or not.
+fn grapple_pull(game: &mut super::super::Game<'_>, hook_pos: Vec3, drill: bool) {
     let Some(player) = game.player.as_mut() else { return };
     if player.spectator {
         return;
+    }
+    if drill {
+        // Player.startAutoSpinAttack(20, 8, stack), as the trident's riptide sets it.
+        player.auto_spin_attack_ticks = 20;
+        player.auto_spin_attack_dmg = 8.0;
     }
     let delta = Vec3::new(hook_pos.x - player.position.x, hook_pos.y - player.position.y, hook_pos.z - player.position.z);
     let squared = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
