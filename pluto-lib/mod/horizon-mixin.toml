@@ -2247,7 +2247,8 @@ name = "pluto_use_stop_flush"
 source = "pluto-use-stop-flush.rs"
 visibility = "pub(crate)"
 
-# The break-completion seam (BLOCKITEM-3): the return of the game's own break reports the completed break
+# The break-completion seam (BLOCKITEM-3): the return of the break funnel (player_break_block, the one
+# caller every player break returns through) reports the completed break
 # to the bridge, so a break's AFTER runs inside the break instead of at the player's next tick; the same
 # return plays the arm swings and break broadcasts queued for the acting player, and the player tick plays
 # the ones queued outside a break. The head of the game's own break reads the mined block's block entity
@@ -2296,7 +2297,7 @@ visibility = "pub(crate)"
 
 [[injection]]
 id = "pluto-break-complete-return"
-target = "horizon_client::game::Game<'_>::break_block_as_player"
+target = "horizon_client::game::block_breaking::Game<'_>::player_break_block"
 kind = "RETURN"
 helper = "pluto-break-complete-return.rs"
 bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
