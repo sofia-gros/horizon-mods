@@ -1,7 +1,7 @@
 {
   "schema": 6,
   "horizon_revision": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
-  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics. One further reviewed attachment, pluto-damage-dragon, observes dragon damage for the damage-event reach; it creates, stores and ticks no clouds.",
+  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics. One further reviewed attachment, pluto-damage-dragon, observes dragon damage for the damage-event reach; it creates, stores and ticks no clouds. The live potion-facts module republishes the preserved potion/effect catalog (horizon_client_core::potions) read-only as pluto_potions for the API crate; it registers, applies and ticks no effects and creates, stores and ticks no clouds.",
   "sources": {
     "crates/horizon-client/src/game/potions.rs": "69328359c5df8e6dbff9fd76979d56b94f07b8c5789d946f28f670428157abd7",
     "crates/horizon-client/src/game/dragon.rs": "bd1ec0e7e76701f31e4080b380b6d58a4aee887cf7b50d7188b1744dbe627bc6",
@@ -47,6 +47,18 @@
       "bindings": [{"name": "dragon", "ty": "&Dragon", "value": "&*self"}],
       "helper_source": "pluto-damage-dragon.rs",
       "helper_sha256": "a4fdf2a2fb05b8e0a6323e7f2597bc1388437401a0152c05c60a1c2cda827856"
+    }
+  ],
+  "permitted_modules": [
+    {
+      "mod_id": "pluto_lib",
+      "module_id": "potion-facts",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_potions",
+      "visibility": "pub",
+      "fingerprint": "381460c2c39215a9a008e3085a8c6b62e0d9cb3e5bd269db9c4c1837691bbe3d",
+      "source_file": "potion-facts.rs",
+      "source_sha256": "ae683f232ad1e44b9239bf121474bfd520a83daf63f8f6c7fdfa7ab3a37b9d80"
     }
   ],
   "module_source": "pluto-contact-sound.rs",

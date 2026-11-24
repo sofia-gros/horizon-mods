@@ -78,13 +78,38 @@ def check_native(plan, workspace):
         if digest(raw) != expected['helper_sha256'] or entry.get('helper_source', '').encode() != raw:
             raise ValueError('Permitted cloud-boundary hook source differs')
         permitted_hooks.add(id(entry))
+    # Further reviewed module attachments whose names this boundary reserves
+    # (the contract's permitted_modules): when present, one must match its
+    # reviewed identity and packaged source bytes exactly, and it is then
+    # exempt from the ban below. Absence is not an error: such a module only
+    # republishes preserved catalog data read-only for the API crate; it is
+    # not part of what this guard preserves.
+    permitted_modules = set()
+    for expected in meta.get('permitted_modules', []):
+        selected = [entry for entry in plan.get('modules', [])
+                    if entry.get('module_id') == expected['module_id']]
+        if len(selected) > 1:
+            raise ValueError('Duplicated reviewed permitted cloud-boundary module')
+        if not selected:
+            continue
+        entry = selected[0]
+        contract = {k: v for k, v in expected.items()
+                    if k not in ('source_file', 'source_sha256', 'visibility')}
+        if any(entry.get(k) != value for k, value in contract.items()):
+            raise ValueError('Permitted cloud-boundary module identity differs')
+        if entry.get('visibility', 'pub(crate)') != expected['visibility']:
+            raise ValueError('Permitted cloud-boundary module visibility differs')
+        raw = (ROOT / 'mod' / expected['source_file']).read_bytes()
+        if digest(raw) != expected['source_sha256'] or entry.get('source', '').encode() != raw:
+            raise ValueError('Permitted cloud-boundary module source differs')
+        permitted_modules.add(id(entry))
     forbidden_names = {entry['name'] for entry in metadata()['modules']}
     prefixes = tuple(meta['protected_prefixes'])
     for section in ('modules', 'injections', 'states'):
         for entry in plan.get(section, []):
             if any(c.get('file') in meta['sources'] for c in entry.get('constructors', [])):
                 raise ValueError('State constructor changes a preserved native cloud source')
-            if entry is permitted.get(section) or id(entry) in permitted_hooks:
+            if entry is permitted.get(section) or id(entry) in permitted_hooks or id(entry) in permitted_modules:
                 continue
             if (entry.get('mod_id') == MOD_ID or entry.get('name') in forbidden_names
                     or entry.get('file') in meta['sources']

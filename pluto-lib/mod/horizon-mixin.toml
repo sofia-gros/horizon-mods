@@ -2404,6 +2404,17 @@ name = "pluto_stack_store"
 source = "pluto-stack-storage.rs"
 visibility = "pub"
 
+# Read-only potion/effect catalog facts over the host's own tables
+# (horizon_client_core::potions). Anchored at client_lib.rs, the
+# horizon-client-lib crate root, so the API crate reaches it as
+# horizon_client::pluto_potions through the library's glob re-export.
+[[module]]
+id = "potion-facts"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_potions"
+source = "potion-facts.rs"
+visibility = "pub"
+
 [[module]]
 id = "pluto-advancement-events"
 file = "crates/horizon-client/src/game.rs"
