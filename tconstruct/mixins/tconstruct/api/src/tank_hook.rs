@@ -1185,7 +1185,7 @@ impl pluto_lib::FluidTarget for ToolTankTarget<'_> {
                 if current.fluid != *wanted { return None; }
                 tool_tank::drain_fluid(self.nbt, &FluidStack { amount, ..current }, execute)
             }
-            None => tool_tank::drain(self.nbt, amount as i32, execute),
+            None => tool_tank::drain(self.nbt, amount.min(i32::MAX as u32) as i32, execute),
         }
     }
 }
