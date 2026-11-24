@@ -12,12 +12,10 @@
 //! (as wielded) plus the difference between the incoming damage and the *victim's* attack attribute, and
 //! the running damage starts from that base rather than from the incoming amount.
 //!
-//! Not carried over, each for a surface the port does not have: the melee capacity edits of a hit (the mob-stack-write surface could
-//! carry them — `EntityAction::EditStackData` now reaches a mob's held and worn stacks — but no lane has wired them yet), the melee
-//! instrument sound (no sound action), and the unarmed branch against a player victim (a player victim's attack attribute is not
-//! reported, so the quirk's base cannot be worked out and the hit is left alone). The smelting cook of a monster's melee hit and the
-//! enderporting swap's wear by 2 ride the mob-stack-write surface (`EntityAction::EditStackData` on the attacker, MainHand for a held
-//! weapon, Chest for the unarmed chest piece).
+//! Not carried over, each for a surface the port does not have: the melee instrument sound (no sound action), and the unarmed branch
+//! against a player victim (a player victim's attack attribute is not reported, so the quirk's base cannot be worked out and the hit is
+//! left alone). The smelting cook of a monster's melee hit, its melee capacity fills, and the enderporting swap's wear by 2 ride the
+//! mob-stack-write surface (`EntityAction::EditStackData` on the attacker, MainHand for a held weapon, Chest for the unarmed chest piece).
 use crate::{break_speed_hook::with_held_tool, common, config, melee_damage, melee_hook, protection_hook, tool_damage_hook, tool_stack, tool_stats::Stat, weapon_effect_hook};
 use pluto_lib::{ActionTarget, DamageModification, EntityAction, EntityState, Identifier, ServerLivingEntityEvents, StackData, StackSlot};
 
@@ -153,7 +151,11 @@ pub(crate) fn register() {
             // Smelting: the hit cooks the attacker's tool by the damage dealt, as the player's weapon-hit path does. The edits land
             // on the attacker's own stack through the mob-stack-write surface (the held weapon, or the chest piece for the unarmed
             // form), not on the victim.
-            let edits = tool_stack::smelting_edits(&tool.custom_data, env, dealt);
+            let mut edits = tool_stack::smelting_edits(&tool.custom_data, env, dealt);
+            // Melee capacity: the hit fills (or drains) the tool's capacity bars, as the player's weapon-hit path does (MeleeCapacityModule
+            // afterMeleeHit, heard here on the damage dispatch); the grant is flat per hit, gated by the target and attacker conditions,
+            // and rides the same EditStackData push as the cooking, on the same stack.
+            edits.extend(tool_stack::melee_capacity_edits(&tool.custom_data, env, &target_tag, &attacker_tag));
             if !edits.is_empty() {
                 actions.push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: attack.slot(), item: stack.item.clone(), edits });
             }
