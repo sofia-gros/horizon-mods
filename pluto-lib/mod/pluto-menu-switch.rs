@@ -70,7 +70,7 @@ impl Game<'_> {
             let (spectator, hand) = host.hub.guest(conn).map_or((false, None), |g| {
                 (g.spectator(), g.inventory.get(g.selected).cloned().flatten())
             });
-            let Some((uuid, guest_name)) = host.hub.guest(conn).map(|g| (g.uuid, g.name.clone())) else {
+            let Some((uuid, guest_name)) = host.hub.guest(conn).map(|g| (g.uuid, g.name.to_owned())) else {
                 continue;
             };
             let mut locked = self.container_locked_for(to, spectator, hand.as_ref());

@@ -56,8 +56,15 @@ RULES = [
         });
         let env = Env {
             items: self.items(),'''),
+            # The click session's random draw is taken before `maps` borrows
+            # the game through the structure-tag closure: at the scope call
+            # below the game is still borrowed, so the draw cannot happen
+            # there. Nothing else in the session draws from this stream
+            # before the call, so the stream order is unchanged.
+            ('''        let tag = |t: &str| self.structure_tag(t);''', '''        let pluto_click_random = self.world.random.next_float();
+        let tag = |t: &str| self.structure_tag(t);'''),
             ('''        let outcome = run(&mut menu, &env, &to_menu);''', '''        let (outcome, pluto_context) = horizon_client::menu::pluto_menu_actions::scope(
-            pluto_context, self.world.random.next_float(), || run(&mut menu, &env, &to_menu));'''),
+            pluto_context, pluto_click_random, || run(&mut menu, &env, &to_menu));'''),
             ('''        self.carried = carried;
         if !offhand_mapped {''', '''        self.carried = carried;
         if let Some(context) = pluto_context {

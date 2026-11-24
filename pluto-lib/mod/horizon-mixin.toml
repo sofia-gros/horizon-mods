@@ -1948,7 +1948,7 @@ bindings = [
     { name = "target", ty = "Option<Pos>", value = "target" },
     { name = "window", ty = "i32", value = "window" },
     { name = "menu", ty = "&str", value = "menu" },
-    { name = "extra", ty = "Option<horizon_protocol::menu_extra::Message>", value = "extra" },
+    { name = "extra", ty = "&Option<horizon_protocol::menu_extra::Message>", value = "&extra" },
 ]
 
 [[injection]]

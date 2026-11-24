@@ -9,10 +9,10 @@ fn before_open_native_screen(
     target: Option<Pos>,
     window: i32,
     menu: &str,
-    extra: Option<horizon_protocol::menu_extra::Message>,
+    extra: &Option<horizon_protocol::menu_extra::Message>,
 ) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    let Some(extra) = extra else { return Continue(()) };
+    let Some(extra) = extra.as_ref() else { return Continue(()) };
     if !extra.data.starts_with(b"PLUTO\x01") {
         return Continue(());
     }
@@ -39,7 +39,7 @@ fn before_open_native_screen(
     let mut screen = None;
     game.native_screen(menu, &mut screen);
     if let Some(screen) = screen {
-        game.mod_screen = Some(OpenNativeScreen { key, window, block: menu.to_owned(), screen, data: Vec::new(), extra: Some(extra) });
+        game.mod_screen = Some(OpenNativeScreen { key, window, block: menu.to_owned(), screen, data: Vec::new(), extra: Some(extra.clone()) });
         return Break(());
     }
     Continue(())
