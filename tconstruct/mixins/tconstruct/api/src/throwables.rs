@@ -207,8 +207,10 @@ mod tests {
             at: [block[0] as f64 + 0.5, block[1] as f64 + 0.5, block[2] as f64 + 0.5],
             motion: [0.0, 0.0, 0.0],
             data: NbtCompound::new(),
+            piercing_ignored: Vec::new(),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
+            ignore_entities: std::cell::RefCell::new(Vec::new()),
             actions: std::cell::RefCell::new(Vec::new()),
         }
     }

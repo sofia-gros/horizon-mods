@@ -8,8 +8,8 @@
 //! API 146), so PlutoLib reaches into the game's projectile tick itself to tell these two; flight behaviours — a fuse that
 //! burns down, gravity that returns after a hover, a stuck tool that pulls items toward it and flies back to its owner — are
 //! built from them, on top of what acts at the two ends: the impact reports the motion and the saved data the projectile
-//! arrived with and lets a callback discard it or send it flying on with a new motion, which is what pierce, bounce and an
-//! explosion where it lands are made of.
+//! arrived with and lets a callback discard it, send it flying on with a new motion, or tell the game which entities a
+//! piercing arrow has passed through, which is what pierce, bounce and an explosion where it lands are made of.
 
 use std::cell::{Cell, RefCell};
 
@@ -53,6 +53,15 @@ pub struct ProjectileImpact {
     /// its modifiers known when the shot lands puts them in the fired stack's data (see
     /// [`ProjectileEvents::AMMO`]); this is where they are read back.
     pub data: NbtCompound,
+    /// The entities a piercing arrow has already gone through, by id, as the game reports them when the
+    /// hit lands — the game's own ignore list (`piercingIgnoreEntityIds` in the original, the arrow's
+    /// `pierced` here). For a piercing arrow the entity this hit is on is already in it, the game adds
+    /// it before it tells the hit, so the list's length less one is how many it had passed through
+    /// before. Empty for a projectile the game reports none for (a non-piercing arrow, a thrown type),
+    /// or when the host could not reach the projectile. A callback that re-deals a piercing hit reads
+    /// this to know whether the arrow has spent its pierce, and writes the victim to
+    /// [`ProjectileImpact::ignore_entities`] so the game skips it next time.
+    pub piercing_ignored: Vec<u32>,
     /// Set to true to discard the projectile once the callbacks ran: the game removes it as the hook
     /// returns, before its own hit handling continues, so cancel the hit as well when the hit itself
     /// should not land. How a projectile that explodes where it lands consumes itself.
@@ -61,6 +70,13 @@ pub struct ProjectileImpact {
     /// when the projectile is not discarded. With a cancelled hit this is a bounce — reflect
     /// [`ProjectileImpact::motion`] yourself; the game does not reflect it for you.
     pub motion_after: RefCell<Option<[f64; 3]>>,
+    /// The entities this hit has passed through, by id, for the game to add to the projectile's ignore
+    /// list: applied as the tick settles, before the projectile flies its next tick, so a piercing
+    /// arrow does not meet the same entity again. A callback that re-deals a piercing hit writes the
+    /// entity it hit here — the game resets the list to what it was before the tick when a hit is
+    /// cancelled, so a victim recorded here is what keeps it from being met again. Only the entities
+    /// a callback writes are added; the rest of the list is left alone.
+    pub ignore_entities: RefCell<Vec<u32>>,
     /// The actions to do to the parties of the hit (`Victim` the entity it hit, `Attacker` the entity
     /// that threw it), which callbacks add to. They are done after the callbacks answer, whether the
     /// hit is cancelled or not, and only for a party the hit has: on a block hit there is no victim,
@@ -464,8 +480,10 @@ mod tests {
                 at: [4.5, 71.0, 4.5],
                 motion: [0.0, -1.5, 0.25],
                 data,
+                piercing_ignored: Vec::new(),
                 discard: Cell::new(false),
                 motion_after: RefCell::new(None),
+                ignore_entities: RefCell::new(Vec::new()),
                 actions: RefCell::new(Vec::new()),
             }
         };
@@ -576,8 +594,10 @@ mod tests {
             at: [4.5, 71.0, 4.5],
             motion: [0.0; 3],
             data: NbtCompound::new(),
+            piercing_ignored: Vec::new(),
             discard: Cell::new(false),
             motion_after: RefCell::new(None),
+            ignore_entities: RefCell::new(Vec::new()),
             actions: RefCell::new(Vec::new()),
         };
         assert!(impact(&hit));
@@ -585,6 +605,45 @@ mod tests {
             hit.actions.borrow().as_slice(),
             [EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:poison".into(), amplifier: 0, duration: 60 }],
             "the queued action stays on the hit for the host to do"
+        );
+    }
+
+    #[test]
+    fn a_piercing_hit_reports_its_ignore_list_and_a_callback_records_the_victim_on_it() {
+        ProjectileEvents::IMPACT.register(|hit| {
+            if hit.kind == "example:piercing_arrow" {
+                // The snapshot already holds the victim the game added before telling the hit.
+                assert_eq!(hit.piercing_ignored, vec![12], "the ignore list as the game reports it");
+                if let Some(victim) = hit.entity {
+                    hit.ignore_entities.borrow_mut().push(victim);
+                }
+            }
+            true
+        });
+        let hit = ProjectileImpact {
+            dimension: "minecraft:overworld".into(),
+            projectile: 9,
+            kind: "example:piercing_arrow".into(),
+            owner: 3,
+            entity: Some(12),
+            entity_kind: "minecraft:enderman".into(),
+            entity_effects: Vec::new(),
+            block: [4, 70, 4],
+            face: [0, 1, 0],
+            at: [4.5, 71.0, 4.5],
+            motion: [0.0; 3],
+            data: NbtCompound::new(),
+            piercing_ignored: vec![12],
+            discard: Cell::new(false),
+            motion_after: RefCell::new(None),
+            ignore_entities: RefCell::new(Vec::new()),
+            actions: RefCell::new(Vec::new()),
+        };
+        assert!(impact(&hit));
+        assert_eq!(
+            hit.ignore_entities.borrow().as_slice(),
+            [12],
+            "the recorded victim stays on the hit for the host to add to the game's list"
         );
     }
 

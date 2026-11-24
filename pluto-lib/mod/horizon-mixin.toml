@@ -2799,3 +2799,31 @@ target = "horizon_client::game::maps::Game<'_>::tick_maps"
 kind = "RETURN"
 helper = "pluto-map-tick-return.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+# A piercing projectile's ignore list: the game's own list lives on the arrow (`pierced`), and a cancelled impact
+# re-flies the arrow as it was before the tick, without the victim — so a callback that re-deals a piercing hit
+# would meet the same entity again. The head on the native impact telling snapshots the list as the hit is told
+# (the game adds the victim before it tells the hit), the API side carries it on the hit and records the victim a
+# callback passes through, and the flight pass adds the record to the live arrow as the tick settles.
+[[module]]
+id = "pluto-projectile-impact-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_projectile_impact_access"
+source = "pluto-projectile-impact-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-projectile-impact-game"
+file = "crates/horizon-client/src/game/creatures.rs"
+name = "pluto_projectile_impact_game"
+source = "pluto-projectile-impact-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-projectile-impact-head"
+target = "horizon_client::game::native_hooks::Game<'_>::native_projectile_impact"
+kind = "HEAD"
+helper = "pluto-projectile-impact-head.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "u32", value = "projectile" }
+]

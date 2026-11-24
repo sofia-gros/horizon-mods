@@ -770,8 +770,8 @@ mod tests {
             block: [0, 0, 0],
             face: [0, 1, 0],
             at: [0.5, 0.5, 0.5],
-            motion: [0.0; 3], data: NbtCompound::new(), discard: std::cell::Cell::new(false), motion_after: RefCell::new(None),
-            actions: RefCell::new(Vec::new()),
+            motion: [0.0; 3], data: NbtCompound::new(), piercing_ignored: Vec::new(), discard: std::cell::Cell::new(false), motion_after: RefCell::new(None),
+            ignore_entities: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()),
         };
         let actions = RefCell::new(Vec::new());
         let mut ops = MemoryEntityOps {
