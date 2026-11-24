@@ -1130,6 +1130,13 @@ name = "pluto_sleeves_takeover"
 source = "pluto-sleeves-takeover.rs"
 visibility = "pub(crate)"
 
+# A use's release asked for a drawtime cooldown: the release's dispatch holds no game
+# for its call, so the start queues in the cooldown module, and this RETURN on
+# Game::mod_release_using drains it after the host's own content cooldown, so the
+# drawtime wins the overwrite (the fireball's hand path:
+# GeneralInteractionModifierHook.addCooldown, speed factor 1). The module entry is
+# the sleeves trigger's item-cooldown surface, shared with its takeover provider
+# call; the drain helper is the fireball's own.
 [[module]]
 id = "pluto-item-cooldown"
 file = "crates/horizon-client/src/game.rs"
@@ -1162,6 +1169,13 @@ target = "horizon_client::game::item_actions::Game<'_>::interact_entity"
 kind = "RETURN"
 helper = "pluto-sleeves-takeover-entity-return.rs"
 bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-release-cooldown-drain"
+target = "horizon_client::game::item_use::Game<'_>::mod_release_using"
+kind = "RETURN"
+helper = "pluto-release-cooldown-drain.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 
 # A dig is worked out: the level's build range is published for the dig report the mods are
 # about to be asked for (dwarven reads the level's max build height).

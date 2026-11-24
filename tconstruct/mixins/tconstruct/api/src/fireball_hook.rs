@@ -25,9 +25,12 @@
 //! instead of ending it. The flight ends 64 past either build limit, as the original's
 //! checkBelowWorld ends it.
 //!
-//! What still has no surface: the general path's cooldown is the item's own content
-//! cooldown (`ReleaseUsing::set_used`), not the drawtime the original adds — the host
-//! names no per-item cooldown call for it. And the helmet path's ammo spend reads the
+//! The general path's cooldown is the original's `addCooldown`
+//! (GeneralInteractionModifierHook, speed factor 1): the tool's item cools down for
+//! the tool's drawtime, started through the item-cooldown surface — a release's
+//! dispatch holds no game, so the start queues for the release drain, which applies
+//! it after the host's own content cooldown, and the host's own use-start gate
+//! refuses the next use while it runs. And the helmet path's ammo spend reads the
 //! wearer's carried stacks through the acting player, which the packet receiver only
 //! reaches if the host names the sender there (a smoke item, not a compile one).
 use crate::{
@@ -81,6 +84,11 @@ fn on_release(release: &ReleaseUsing) {
     let _ = with_held_tool(&release.stack, |env, tool| {
         let Some((entry, id, module)) = tool_stack::fireball_module(&tool.custom_data, env) else { return };
         let Some(usage) = launch(&release.player, &release.dimension, release.position, release.look, release.creative, &release.stack, env, &tool.custom_data, &entry, &module) else { return };
+        // The original's addCooldown (GeneralInteractionModifierHook.addCooldown, speed
+        // factor 1): the tool's item cools down for the tool's drawtime. A release's
+        // dispatch holds no game, so the start queues for the release drain; the host's
+        // own use-start gate refuses the next use while it runs.
+        release.player.start_item_cooldown(&release.stack.item, general_cooldown_ticks(&tool.custom_data, env));
         if release.creative {
             release.set_used();
         } else if usage > 0 {
@@ -89,6 +97,12 @@ fn on_release(release: &ReleaseUsing) {
             release.set_used();
         }
     });
+}
+
+/// The general path's cooldown in ticks (FireballModule.onToolUse's addCooldown, speed
+/// factor 1): the tool's drawtime.
+fn general_cooldown_ticks(nbt: &NbtCompound, env: &tool_stack::Environment) -> i32 {
+    tool_stack::drawtime(nbt, env, &crate::entity_facts::Entities::default(), 1.0)
 }
 
 /// The shot's modifier list (FireballModule.shoot): the tool's saved entries, plus the module's
@@ -368,6 +382,22 @@ mod tests {
         let option = &module.options[0];
         let merged = merged_modifiers(&tool_nbt(&[("tconstruct:spiny", 1)]), &module, option);
         assert_eq!(merged.entries(), &[Entry::new(id("tconstruct:spiny"), 3), Entry::new(id("tconstruct:bounce"), 1)], "levels add for a duplicate id, as ModifierNBT.Builder.add does");
+    }
+
+    #[test]
+    fn the_general_path_cools_down_for_the_tool_drawtime() {
+        // A bare environment reads the stored stat: no definition, no modifiers.
+        let registry = crate::modifiers::Registry::default();
+        let materials = crate::materials::Definitions::default();
+        let env = tool_stack::Environment { definition: None, has_materials: false, materials: &materials, modifiers: &registry, item_tags_loaded: true, item: None, item_tags: None };
+        let stats = |draw_speed: f32| {
+            let mut nbt = NbtCompound::new();
+            nbt.insert(tool_stack::TAG_STATS.into(), Nbt::Compound([("tconstruct:draw_speed".to_owned(), Nbt::Float(draw_speed))].into_iter().collect()));
+            nbt
+        };
+        assert_eq!(general_cooldown_ticks(&stats(2.0), &env), 10, "draw speed 2.0 cools down for ten ticks, as addCooldown with speed factor 1");
+        assert_eq!(general_cooldown_ticks(&stats(1.0), &env), 20);
+        assert_eq!(general_cooldown_ticks(&NbtCompound::new(), &env), 20, "a tool with no stored draw speed defaults to 1.0");
     }
 
     #[test]
