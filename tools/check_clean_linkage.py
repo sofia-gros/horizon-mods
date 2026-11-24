@@ -105,13 +105,28 @@ fn main() {
 
 def check(prepared):
     stage, inputs = prepare(prepared)
-    # --keep-going: report every independent crate's errors in one run;
-    # the exit code is unchanged.
-    command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
-               str(stage / 'Cargo.toml'), '-p', 'pluto-clean-linkage', '--keep-going']
-    code = subprocess.run(command).returncode
+    # Seed the local registry with the staged workspace's resolved closure
+    # before checking offline. The consumers staged above declare exact
+    # dependencies the pinned host lock does not carry (serde_json =1.0.154;
+    # toml =0.8.23, whose toml_edit 0.22.27 requires toml_write), and the
+    # offline check can only resolve crates the registry already holds.
+    # CI seeds the registry from the host lock alone, so without this fetch
+    # the resolution silently depends on whatever unrelated jobs happened
+    # to leave in the shared cargo cache (round 9: toml_write missing).
+    # This mirrors CI's "Fetch locked host dependencies" step, but for the
+    # staged workspace, which only exists after prepare(). The check itself
+    # stays offline and the re-run below still enforces --locked; the fetch
+    # only downloads crates, it does not relax what is verified.
+    code = subprocess.run(['cargo', '+1.95.0', 'fetch', '--manifest-path',
+                           str(stage / 'Cargo.toml')]).returncode
     if code == 0:
-        code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode
+        # --keep-going: report every independent crate's errors in one run;
+        # the exit code is unchanged.
+        command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
+                   str(stage / 'Cargo.toml'), '-p', 'pluto-clean-linkage', '--keep-going']
+        code = subprocess.run(command).returncode
+        if code == 0:
+            code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode
     (prepared / 'consumer-check.json').write_text(newline='\n', data=json.dumps({
         'exit': code, 'consumer_inputs': inputs,
         'launcher_integration_checked': False, 'binary_linked': False,
