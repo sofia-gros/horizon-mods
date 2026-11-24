@@ -32,10 +32,14 @@ pub trait MobSplitChild {
 }
 /// The inheritance view: the parent's facts the game does not carry over.
 /// Children arrive in the game's spawn order. Their size, position and
-/// persistence are already the game's own split work. The child boxes
-/// carry the view's lifetime: a bridge's view of a child may borrow the
-/// native child for the length of the pass.
-pub struct MobSplitInheritance<'a> {
+/// persistence are already the game's own split work. Two lifetimes, kept
+/// apart on purpose: 'a is the pass's own borrow region (the context and
+/// the random stream), while 'c is the child views' own region — a
+/// bridge's view of a child may borrow the native child for the length of
+/// the pass. Coupling 'c to 'a would make the destructor of any local
+/// collection of child boxes a use of 'a, forcing every other pass local
+/// to outlive that collection's drop at every construction site.
+pub struct MobSplitInheritance<'a,'c> {
     pub context:&'a MobSplitContext,
     /// The parent's head stack, if any. Children receive copies of it,
     /// never the original stack object.
@@ -46,7 +50,7 @@ pub struct MobSplitInheritance<'a> {
     pub no_ai:bool,
     pub invulnerable:bool,
     pub random:&'a mut dyn MobSplitRandom,
-    pub children:&'a mut [Box<dyn MobSplitChild + 'a>],
+    pub children:&'a mut [Box<dyn MobSplitChild + 'c>],
 }
 /// A split observer. Both phases default to keeping the game's split.
 pub trait MobSplitCallback:Send+Sync {
@@ -54,7 +58,7 @@ pub trait MobSplitCallback:Send+Sync {
     /// to its own range) or cancel the split outright.
     fn prepare(&self,_context:&MobSplitContext,_count:&mut u32,_cancel:&mut bool)->Result<(),String> {Ok(())}
     /// Dress the spawned children before any of them is published.
-    fn inherit(&self,_view:&mut MobSplitInheritance<'_>)->Result<(),String> {Ok(())}
+    fn inherit(&self,_view:&mut MobSplitInheritance<'_, '_>)->Result<(),String> {Ok(())}
 }
 type Callback=Arc<dyn MobSplitCallback>;
 static CALLBACKS:Mutex<Vec<(String,Callback)>>=Mutex::new(Vec::new());
@@ -75,7 +79,7 @@ impl MobSplitCallbacks {
         for callback in Self::snapshot() {callback.prepare(context,count,cancel)?;}
         Ok(())
     }
-    pub(crate) fn inherit(view:&mut MobSplitInheritance<'_>)->Result<(),String> {
+    pub(crate) fn inherit(view:&mut MobSplitInheritance<'_, '_>)->Result<(),String> {
         for callback in Self::snapshot() {callback.inherit(view)?;}
         Ok(())
     }
@@ -103,7 +107,7 @@ mod tests {
             if context.parent.kind=="split_test:parent" {*count=3;}
             Ok(())
         }
-        fn inherit(&self,view:&mut MobSplitInheritance<'_>)->Result<(),String> {
+        fn inherit(&self,view:&mut MobSplitInheritance<'_, '_>)->Result<(),String> {
             if view.context.parent.kind!="split_test:parent" {return Ok(());}
             let head=view.head.clone().unwrap();
             view.children[1].set_equipment("head",head)?;
@@ -123,7 +127,7 @@ mod tests {
         let gear1=std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
         let name0=std::rc::Rc::new(std::cell::RefCell::new(None));
         let child=|id,gear,name|Box::new(FakeChild {info:EntityInfo {id,kind:"split_test:parent".into(),dimension:"minecraft:overworld".into()},gear,name}) as Box<dyn MobSplitChild>;
-        let mut children:[Box<dyn MobSplitChild + '_>;2]=[child(8,gear0.clone(),name0.clone()),child(9,gear1.clone(),std::rc::Rc::new(std::cell::RefCell::new(None)))];
+        let mut children:[Box<dyn MobSplitChild>;2]=[child(8,gear0.clone(),name0.clone()),child(9,gear1.clone(),std::rc::Rc::new(std::cell::RefCell::new(None)))];
         let mut random=FakeRandom;
         let head=StackData {item:"split_test:helm".into(),count:1,..Default::default()};
         let mut view=MobSplitInheritance {context:&context,head:Some(head),head_drop_chance:2.0,

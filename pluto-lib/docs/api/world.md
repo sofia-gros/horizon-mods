@@ -927,7 +927,7 @@ impl MobSplitChild for Child {
 let context = MobSplitContext { parent: EntityInfo { id: 7, kind: "example:parent".into(), dimension: "minecraft:overworld".into() },
     position: [1.0, 64.0, 2.0], size: 4, child_size: 2 };
 let mut random = Fixed;
-let mut children: Vec<Box<dyn MobSplitChild + '_>> = vec![Box::new(Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } })];
+let mut children: Vec<Box<dyn MobSplitChild>> = vec![Box::new(Child { info: EntityInfo { id: 8, kind: "example:parent".into(), dimension: "minecraft:overworld".into() } })];
 let view = MobSplitInheritance { context: &context, head: None, head_drop_chance: 0.085,
     custom_name: None, no_ai: false, invulnerable: false, random: &mut random, children: &mut children };
 assert_eq!(view.children.len(), 1);
