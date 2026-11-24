@@ -21,9 +21,10 @@
 //!
 //! Not wired: the draw-speed cooldown the fishing rod's wear carries (updateFishingRod's
 //! applyCooldown: the cooldown surface is the sleeves item cooldown, not yet merged — the wear
-//! lands, the cooldown waits); the monster-held swap's wear by 2 (a mob's held stack cannot be
-//! written — see smelting_hook's notes); a thrown tool's enderporting hit (the flight's
-//! thrown-tool branch answers the hit itself before the enderporting block runs).
+//! lands, the cooldown waits); a thrown tool's enderporting hit (the flight's
+//! thrown-tool branch answers the hit itself before the enderporting block runs). The monster-held
+//! swap's wear by 2 rides the mob-stack-write surface (an `EntityAction::EditStackData` on the
+//! attacker's main hand, queued with the swap).
 use crate::{break_speed_hook::with_held_tool, common, slime_entities, tool_stack};
 use pluto_lib::{ActionTarget, DamageModification, EntityAction, Identifier, PlayerBlockBreakEvents, PlayerTick, ServerLivingEntityEvents, StackSlot, UseItemOnBlockContext, World};
 use std::collections::HashMap;
@@ -104,14 +105,15 @@ pub(crate) fn plant_harvest(used: &UseItemOnBlockContext, held: &pluto_lib::Stac
 /// EnderportingModifier's monster-held form: a monster's melee hit with an enderporting weapon
 /// trades the attacker and the victim (the original's MonsterMeleeHit hook). The hit's positions
 /// are the parties' own standing places, so no landing test is needed (the player form's
-/// precedent). The wear by 2 has no surface: a mob's held stack cannot be written (see
-/// smelting_hook's notes), so the swap lands unworn. Returns whether the swap was queued.
+/// precedent). The wear by 2 rides the mob-stack-write surface with the swap, as an
+/// `EntityAction::EditStackData` on the attacker's main hand. Returns whether the swap was queued.
 pub(crate) fn monster_swap(hit: &DamageModification) -> bool {
     let Some(held) = hit.attacker_main_hand.as_ref() else { return false; };
     if !carries(held) { return false; }
     let (Some(attacker), Some(target)) = (hit.attacker_position, hit.target_position) else { return false; };
     hit.actions.borrow_mut().push(EntityAction::Teleport { target: ActionTarget::Attacker, position: target });
     hit.actions.borrow_mut().push(EntityAction::Teleport { target: ActionTarget::Victim, position: attacker });
+    if let Some(action) = wear(held, 2) { hit.actions.borrow_mut().push(action); }
     true
 }
 

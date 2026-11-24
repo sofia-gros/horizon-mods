@@ -2754,8 +2754,32 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             EntityAction::EditStackData { target, slot, item, edits } => {
                 // Only the player acting in this hook has a stack the host hands out; a hit on a player lands on that player's own tick.
                 let id = id_of(target);
-                let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) else { continue };
-                edit_player_stack(host, selected, slot, &item, &edits);
+                if let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) {
+                    edit_player_stack(host, selected, slot, &item, &edits);
+                    continue;
+                }
+                // A mob's stack is written through the living handle's equipment write (API 382, the `/item replace entity` path):
+                // read the slot as it is when the action lands, edit its custom data, and put the whole stack back, so wear that
+                // happened in between stays. A player that is not the acting one (a LAN guest) is not reached here — their tick
+                // applies their own actions. A mob's off hand keeps only the item, not the stack's count and components, so an
+                // off-hand edit could never land and is skipped.
+                let Ok(mob) = u32::try_from(id) else { continue };
+                let Some(entity) = host.entity(mob) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                let Some(living) = host.living(entity) else { continue };
+                let native = match slot {
+                    entity_events_v1::StackSlot::MainHand => EquipmentSlot::MainHand,
+                    entity_events_v1::StackSlot::OffHand => continue,
+                    entity_events_v1::StackSlot::Feet => EquipmentSlot::Feet,
+                    entity_events_v1::StackSlot::Legs => EquipmentSlot::Legs,
+                    entity_events_v1::StackSlot::Chest => EquipmentSlot::Chest,
+                    entity_events_v1::StackSlot::Head => EquipmentSlot::Head,
+                };
+                let Some(stack) = living.equipment(host, native) else { continue };
+                if &*stack.item != item || stack.count == 0 { continue; }
+                let Some(mut held) = slot_of(&stack) else { continue };
+                if !entity_events_v1::edit_custom_data(&mut held.custom_data, edits) { continue; }
+                living.set_equipment(host, native, native_slot(Some(held)));
             }
             EntityAction::Hurt { target, amount, damage_type } => {
                 // A player or a mob, hurt with no attacker; the host refuses an entity it cannot hurt (a creative player, a dead mob).

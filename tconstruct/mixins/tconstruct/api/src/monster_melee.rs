@@ -12,19 +12,23 @@
 //! (as wielded) plus the difference between the incoming damage and the *victim's* attack attribute, and
 //! the running damage starts from that base rather than from the incoming amount.
 //!
-//! Not carried over, each for a surface the port does not have: the melee capacity edits of a hit (no
-//! action writes a mob's held stack; the player's land through EditStackData on the acting player only),
-//! the melee instrument sound (no sound action), and the unarmed branch against a player victim (a player
-//! victim's attack attribute is not reported, so the quirk's base cannot be worked out and the hit is left
-//! alone).
+//! Not carried over, each for a surface the port does not have: the melee capacity edits of a hit (the mob-stack-write surface could
+//! carry them — `EntityAction::EditStackData` now reaches a mob's held and worn stacks — but no lane has wired them yet), the melee
+//! instrument sound (no sound action), and the unarmed branch against a player victim (a player victim's attack attribute is not
+//! reported, so the quirk's base cannot be worked out and the hit is left alone). The smelting cook of a monster's melee hit and the
+//! enderporting swap's wear by 2 ride the mob-stack-write surface (`EntityAction::EditStackData` on the attacker, MainHand for a held
+//! weapon, Chest for the unarmed chest piece).
 use crate::{break_speed_hook::with_held_tool, common, config, melee_damage, melee_hook, protection_hook, tool_damage_hook, tool_stack, tool_stats::Stat, weapon_effect_hook};
-use pluto_lib::{ActionTarget, DamageModification, EntityAction, EntityState, Identifier, ServerLivingEntityEvents, StackData};
+use pluto_lib::{ActionTarget, DamageModification, EntityAction, EntityState, Identifier, ServerLivingEntityEvents, StackData, StackSlot};
 
 /// Which tool of the mob's the hit is made with.
 enum Attack<'a> { Weapon(&'a StackData), Unarmed(&'a StackData) }
 
 impl<'a> Attack<'a> {
     fn stack(&self) -> &'a StackData { match self { Attack::Weapon(stack) | Attack::Unarmed(stack) => stack } }
+
+    /// The stack the hit's edits land on: the held weapon, or the chest piece for the unarmed form.
+    fn slot(&self) -> StackSlot { match self { Attack::Weapon(_) => StackSlot::MainHand, Attack::Unarmed(_) => StackSlot::Chest } }
 }
 
 /// Whether `stack`'s item is in the item tag `tag`, from the captured item registry.
@@ -108,9 +112,9 @@ pub(crate) fn register() {
         if dealt <= 0.0 { return; }
         let stack = attack.stack();
         // EnderportingModifier's monster-held form: a monster's melee hit with an enderporting
-        // weapon trades the attacker and the victim (the wear by 2 has no surface — see
-        // enderporting_hook). Only a held weapon swaps; the unarmed form's chest piece is no
-        // weapon.
+        // weapon trades the attacker and the victim (the wear by 2 rides the mob-stack-write
+        // surface with the swap — see enderporting_hook). Only a held weapon swaps; the unarmed
+        // form's chest piece is no weapon.
         if matches!(&attack, Attack::Weapon(_)) {
             crate::enderporting_hook::monster_swap(hit);
         }
@@ -146,6 +150,13 @@ pub(crate) fn register() {
             let blacklisted = Identifier::new("tconstruct", "necrotic_blacklist").is_ok_and(|tag| target_tag(&tag));
             let heal = tool_stack::lifesteal_heal(&tool.custom_data, env, dealt, blacklisted, &attacker_tag, &target_tag);
             if heal > 0.0 { actions.push(EntityAction::Heal { target: ActionTarget::Attacker, amount: heal }); }
+            // Smelting: the hit cooks the attacker's tool by the damage dealt, as the player's weapon-hit path does. The edits land
+            // on the attacker's own stack through the mob-stack-write surface (the held weapon, or the chest piece for the unarmed
+            // form), not on the victim.
+            let edits = tool_stack::smelting_edits(&tool.custom_data, env, dealt);
+            if !edits.is_empty() {
+                actions.push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: attack.slot(), item: stack.item.clone(), edits });
+            }
             actions
         }) else { return; };
         hit.actions.borrow_mut().extend(done);
