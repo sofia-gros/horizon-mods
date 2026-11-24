@@ -208,6 +208,101 @@ pub(crate) fn totals(pieces: impl IntoIterator<Item = (Identifier, i32)>) -> BTr
     sums
 }
 
+/// One worn piece's claim on an armor stat: its key, the modifier that makes it, the
+/// entry's effective level, the leveling value, and whether the claim is a max-armor one
+/// (largest level counts once) rather than a plain one (every piece adds up).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ArmorStatClaim { pub key: String, pub modifier: Identifier, pub level: f32, pub flat: f32, pub each: f32, pub max: bool }
+
+fn armor_stat_number(fields: &Map<String, Value>, key: &str) -> Result<f32, String> {
+    match fields.get(key).filter(|value| !value.is_null()) {
+        None => Ok(0.0),
+        Some(value) => value.as_f64().map(|value| value as f32).ok_or_else(|| format!("{key} must be a number")),
+    }
+}
+
+fn armor_stat_amount(fields: &Map<String, Value>) -> Result<(f32, f32), String> {
+    // The original's LevelingValue rides as a nested `amount` object; the port's data
+    // normalizes it to top-level `flat` / `each_level`, as the max armor attribute does.
+    // Top-level fields win when both are written.
+    if fields.contains_key("flat") || fields.contains_key("each_level") {
+        return Ok((armor_stat_number(fields, "flat")?, armor_stat_number(fields, "each_level")?));
+    }
+    match fields.get("amount").filter(|value| !value.is_null()) {
+        None => Ok((0.0, 0.0)),
+        Some(Value::Object(amount)) => Ok((armor_stat_number(amount, "flat")?, armor_stat_number(amount, "each_level")?)),
+        Some(_) => Err("amount must be a leveling value".into()),
+    }
+}
+
+/// ArmorStatModule: a float stat the worn pieces add up under a TinkerDataKey (the original's
+/// deprecated `tconstruct:armor_stat`, whose formulas still read the key — the critical damage,
+/// jump boost and use item speed of ModifierEvents and ToolClientEvents). A held tool
+/// (`held_tag`) is not counted, as the player tick lists worn armor only. Skips a broken
+/// piece unless `allow_broken`.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ArmorStat { key: Identifier, flat: f32, each: f32, allow_broken: bool }
+
+impl ArmorStat {
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        let key = Identifier::parse(fields.get("key").and_then(Value::as_str).ok_or("key missing")?).map_err(|e| e.to_string())?;
+        let (flat, each) = armor_stat_amount(fields)?;
+        Ok(Self { key, flat, each, allow_broken: allow_broken(fields)? })
+    }
+
+    /// The claim a worn piece makes, when the modifier's conditions hold and the piece is not broken (or the module allows it).
+    pub(crate) fn claim(&self, entry: &Entry, condition: bool, broken: bool) -> Option<ArmorStatClaim> {
+        (condition && (!broken || self.allow_broken)).then(|| ArmorStatClaim {
+            key: self.key.to_string(), modifier: entry.id.clone(), level: entry.effective_level(), flat: self.flat, each: self.each, max: false,
+        })
+    }
+}
+
+/// MaxArmorStatModule: the same float stat, but the largest level of its modifier among the
+/// worn pieces counts once (the original's deprecated `tconstruct:max_armor_stat`, whose
+/// holder value is the amount computed at that largest level).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct MaxArmorStat { key: Identifier, flat: f32, each: f32, allow_broken: bool }
+
+impl MaxArmorStat {
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Self, String> {
+        let key = Identifier::parse(fields.get("key").and_then(Value::as_str).ok_or("key missing")?).map_err(|e| e.to_string())?;
+        let (flat, each) = armor_stat_amount(fields)?;
+        Ok(Self { key, flat, each, allow_broken: allow_broken(fields)? })
+    }
+
+    /// The claim a worn piece makes, when the modifier's conditions hold and the piece is not broken (or the module allows it).
+    pub(crate) fn claim(&self, entry: &Entry, condition: bool, broken: bool) -> Option<ArmorStatClaim> {
+        (condition && (!broken || self.allow_broken)).then(|| ArmorStatClaim {
+            key: self.key.to_string(), modifier: entry.id.clone(), level: entry.effective_level(), flat: self.flat, each: self.each, max: true,
+        })
+    }
+}
+
+/// What the wearer gets for the armor-stat claims of every worn piece, as (key, amount):
+/// plain claims add up over the pieces; for a max claim the largest level of one modifier
+/// counts once, and different modifiers' amounts on one key add up, as in [`strongest`].
+/// A zero amount is not applied (the original adds no stat for it).
+pub(crate) fn armor_stat_totals(claims: impl IntoIterator<Item = ArmorStatClaim>) -> Vec<(String, f64)> {
+    let mut best: BTreeMap<(Identifier, String), ArmorStatClaim> = BTreeMap::new();
+    let mut totals: BTreeMap<String, f64> = BTreeMap::new();
+    for claim in claims {
+        if claim.max {
+            let key = (claim.modifier.clone(), claim.key.clone());
+            match best.get(&key) { Some(held) if held.level >= claim.level => {} _ => { best.insert(key, claim); } }
+        } else {
+            let amount = f64::from(claim.flat + claim.each * claim.level);
+            if amount != 0.0 { *totals.entry(claim.key).or_insert(0.0) += amount; }
+        }
+    }
+    for claim in best.into_values() {
+        if claim.level <= 0.0 { continue; }
+        let amount = f64::from(claim.flat + claim.each * claim.level);
+        if amount != 0.0 { *totals.entry(claim.key).or_insert(0.0) += amount; }
+    }
+    totals.into_iter().collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -331,6 +426,43 @@ mod tests {
         assert!(golden_totals([claim.clone()]).is_empty(), "a declared attribute is no base addition");
         assert_eq!(golden_custom([claim]), vec![("tconstruct:generic.chrysophilite".to_owned(), pluto_lib::AttributeOperation::Addition, 3.0)]);
         assert!(GoldenAttribute::decode(json!({"attribute":"minecraft:generic.max_health","operation":"multiply_total","flat":4.0,"each_level":4.0}).as_object().unwrap()).unwrap().is_none());
+    }
+
+    #[test]
+    fn armor_stat_decoding_reads_top_level_and_nested_amounts() {
+        let plain = ArmorStat::decode(json!({"key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05}).as_object().unwrap()).unwrap();
+        assert_eq!(plain.key.to_string(), "tconstruct:critical_damage");
+        assert_eq!((plain.flat, plain.each), (0.1, 0.05));
+        let nested = ArmorStat::decode(json!({"key":"tconstruct:jump_boost","amount":{"flat":0.0,"each_level":0.5},"allow_broken":true}).as_object().unwrap()).unwrap();
+        assert_eq!((nested.flat, nested.each, nested.allow_broken), (0.0, 0.5, true));
+        assert!(ArmorStat::decode(json!({"flat":0.1}).as_object().unwrap()).is_err(), "the key is required");
+        assert!(MaxArmorStat::decode(json!({"key":"tconstruct:use_item_speed","each_level":0.1}).as_object().unwrap()).is_ok());
+    }
+
+    #[test]
+    fn armor_stat_totals_add_plain_claims_and_count_a_max_level_once() {
+        let key = "tconstruct:critical_damage".to_owned();
+        let plain = ArmorStat::decode(json!({"key":"tconstruct:critical_damage","each_level":0.05}).as_object().unwrap()).unwrap();
+        let other = Entry::new(Identifier::parse("tconstruct:other").unwrap(), 2);
+        let claims = vec![
+            plain.claim(&entry(2), true, false).unwrap(),
+            plain.claim(&entry(3), true, false).unwrap(),
+            plain.claim(&other, true, false).unwrap(),
+        ];
+        assert_eq!(claims.len(), 3, "every worn piece claims");
+        let amounts = armor_stat_totals(claims);
+        assert_eq!(amounts, vec![(key.clone(), 0.35)], "0.05 each at levels 2, 3 and 2, summed: {amounts:?}");
+        let max = MaxArmorStat::decode(json!({"key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05}).as_object().unwrap()).unwrap();
+        let max_claims = [1, 3, 2].map(|level| max.claim(&entry(level), true, false).unwrap());
+        let amounts = armor_stat_totals(max_claims);
+        assert_eq!(amounts.len(), 1, "{amounts:?}");
+        assert!((amounts[0].1 - 0.25).abs() < 1e-6, "0.1 flat and 0.05 a level at the largest level 3: {amounts:?}");
+        // A broken piece claims nothing unless broken is allowed, and a failed condition claims nothing.
+        assert!(plain.claim(&entry(2), true, true).is_none());
+        assert!(plain.claim(&entry(2), false, false).is_none());
+        let lenient = ArmorStat::decode(json!({"key":"tconstruct:critical_damage","each_level":0.05,"allow_broken":true}).as_object().unwrap()).unwrap();
+        assert!(lenient.claim(&entry(2), true, true).is_some());
+        assert!(armor_stat_totals(Vec::new()).is_empty(), "no pieces, no stat");
     }
 
     #[test]

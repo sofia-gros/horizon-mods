@@ -13,6 +13,11 @@
 //! the golden amount out from the worn pieces. Bouncy is read by the fall handler, the
 //! critical damage, jump boost, jump count and use item speed by the attribute hooks, and
 //! the self-destructing movement-speed payload is folded into the base value on the tick.
+//! The armor-stat totals the formulas read (critical damage, jump boost, use item speed)
+//! are worked out on the same tick from the worn pieces' armor-stat modules and kept by
+//! entity id, alongside the attribute values. A guest client has no server tick, so the tick
+//! publishes the changed values over a control packet (`tconstruct:attributes/v1`, in
+//! attribute_sync) and the guest reads the synced copy instead.
 //! The experience multiplier still has no surface: the host has no hook for the experience
 //! a block break or a death drops, so its value is computed and kept here and nothing reads
 //! it until that reach exists. The original's percent and multiplier registrations do not
@@ -150,6 +155,28 @@ fn golden_total(pieces: &[(String, StackData)]) -> Option<i32> {
     present.then(|| pieces.iter().filter(|(_, piece)| max_armor::is_golden(piece)).count() as i32)
 }
 
+/// The TinkerDataKeys whose armor-stat modules feed the formulas: critical damage, jump boost,
+/// use item speed and experience (the original's TinkerDataKeys floats). No shipped modifier
+/// carries one, so the totals only ever come from datapack modifiers.
+pub(crate) const ARMOR_STAT_KEYS: &[&str] = &["tconstruct:critical_damage", "tconstruct:jump_boost", "tconstruct:use_item_speed", "tconstruct:experience"];
+
+/// The armor-stat totals of the worn `pieces`, as (key, amount): the plain claims added up
+/// over the pieces and the max claims at their largest level once, per key.
+pub(crate) fn armor_stat_totals_for(pieces: &[(String, StackData)]) -> Vec<(String, f64)> {
+    let mut claims = Vec::new();
+    for (_, piece) in pieces {
+        if let Ok(piece_claims) = with_held_tool(piece, |env, stack| tool_stack::armor_stat_claims(&stack.custom_data, env)) {
+            claims.extend(piece_claims);
+        }
+    }
+    max_armor::armor_stat_totals(claims)
+}
+
+/// The armor-stat total of the worn `pieces` under `key`: 0 when no piece claims it.
+pub(crate) fn armor_stat(pieces: &[(String, StackData)], key: &str) -> f64 {
+    armor_stat_totals_for(pieces).into_iter().find(|(named, _)| named == key).map(|(_, amount)| amount).unwrap_or(0.0)
+}
+
 /// Every contribution the worn `pieces`, the held `hands` and the active `effects` (as
 /// (effect id, level)) make to the declared attributes, by attribute id: the plain attribute
 /// modules of each stack for its slot, the max armor claims at their largest level, the
@@ -230,11 +257,42 @@ pub(crate) fn scaled_duration(duration: i32, multiplier: f64) -> i32 {
 /// that differ from their default are kept.
 static VALUES: Mutex<BTreeMap<i32, BTreeMap<String, f64>>> = Mutex::new(BTreeMap::new());
 
-/// An entity's custom attribute value as of its last tick (a player's or a mob's), or the
-/// declared default when the tick kept none (the entity is not one the ticks cover, or
-/// nothing bends the attribute). 0 for an attribute nobody declared.
+/// The players' armor-stat totals as of their last tick, by entity id and key: only the
+/// non-zero totals are kept.
+static ARMOR_STATS: Mutex<BTreeMap<i32, BTreeMap<String, f64>>> = Mutex::new(BTreeMap::new());
+
+/// The values a guest client last received over the sync packet, by entity id: the attribute
+/// values and the armor-stat totals, as (attributes, armor stats). The server tick keeps
+/// VALUES and ARMOR_STATS; a guest client has no server tick, so it reads these instead.
+static SYNCED: Mutex<BTreeMap<i32, (BTreeMap<String, f64>, BTreeMap<String, f64>)>> = Mutex::new(BTreeMap::new());
+
+/// The position of `attribute` in the declarations, for the sync codec: the packet names an
+/// attribute by this index.
+pub(crate) fn declared_index(attribute: &str) -> Option<u8> {
+    DECLARED.iter().position(|(id, _, _, _)| *id == attribute).map(|index| index as u8)
+}
+
+/// The attribute declared at `index`, for the sync codec.
+pub(crate) fn declared_at(index: u8) -> Option<&'static str> {
+    DECLARED.get(index as usize).map(|(id, _, _, _)| *id)
+}
+
+/// How many attributes are declared, for the sync codec's bounds.
+pub(crate) fn declared_count() -> usize { DECLARED.len() }
+
+/// The declared default of `attribute`, for the sync codec: a value that fell back to its
+/// default goes out as the default, so the guest forgets the old one.
+pub(crate) fn declared_default(attribute: &str) -> Option<f64> {
+    DECLARED.iter().find(|(id, _, _, _)| *id == attribute).map(|(_, default, _, _)| *default)
+}
+
+/// A player's custom attribute value as of their last tick, or the declared default when the
+/// tick kept none (the reader's entity is not a player the tick covers, or nothing bends the
+/// attribute). On a guest client, where no server tick runs, the value last synced from the
+/// server instead. 0 for an attribute nobody declared.
 pub(crate) fn value(entity: i32, attribute: &str) -> f64 {
     if let Some(stored) = VALUES.lock().ok().and_then(|values| values.get(&entity).and_then(|attributes| attributes.get(attribute).copied())) { return stored; }
+    if let Some(synced) = SYNCED.lock().ok().and_then(|synced| synced.get(&entity).and_then(|(attributes, _)| attributes.get(attribute).copied())) { return synced; }
     AttributeRegistry::get(attribute).map(|def| def.default).unwrap_or(0.0)
 }
 
@@ -251,6 +309,27 @@ fn store_values(entity: i32, contributions: &BTreeMap<String, Vec<AttributeContr
     }
 }
 
+/// A player's armor-stat total under `key` as of their last tick, or the value last synced
+/// from the server on a guest client. 0 when nothing claims it.
+pub(crate) fn armor_stat_for(entity: i32, key: &str) -> f64 {
+    if let Some(kept) = ARMOR_STATS.lock().ok().and_then(|kept| kept.get(&entity).and_then(|stats| stats.get(key).copied())) { return kept; }
+    if let Some(synced) = SYNCED.lock().ok().and_then(|synced| synced.get(&entity).and_then(|(_, stats)| stats.get(key).copied())) { return synced; }
+    0.0
+}
+
+/// Replaces the values a guest client holds for `entity` with the ones the server just
+/// synced: the attribute values and the armor-stat totals. Both empty clears the entry.
+pub(crate) fn apply_synced(entity: i32, attributes: BTreeMap<String, f64>, armor_stats: BTreeMap<String, f64>) {
+    if let Ok(mut synced) = SYNCED.lock() {
+        if attributes.is_empty() && armor_stats.is_empty() { synced.remove(&entity); } else { synced.insert(entity, (attributes, armor_stats)); }
+    }
+}
+
+/// Drops every value a guest client holds: the server is gone, so nothing it synced stands.
+pub(crate) fn clear_synced() {
+    if let Ok(mut synced) = SYNCED.lock() { synced.clear(); }
+}
+
 /// Registers the callbacks. Called once from the product's hooks, after the melee hook (the
 /// knockback callback here scales the strength the tool's modules have already shaped).
 pub(crate) fn register() {
@@ -265,7 +344,22 @@ pub(crate) fn register() {
         } else { None };
         let effects: Vec<(String, i32)> = tick.effects.iter().map(|(id, amplifier, _)| (id.clone(), amplifier + 1)).collect();
         let contributions = collect(&tick.armor, &tick.hands, &effects, total_gold);
-        store_values(tick.entity, &contributions);
+        let mut stored = BTreeMap::new();
+        for def in AttributeRegistry::registered() {
+            let value = pluto_lib::attribute_value(&def, contributions.get(&def.id.to_string()).map(Vec::as_slice).unwrap_or(&[]));
+            if value != def.default { stored.insert(def.id.to_string(), value); }
+        }
+        let armor_stats = armor_stat_totals_for(&tick.armor);
+        if let Ok(mut kept) = ARMOR_STATS.lock() {
+            if armor_stats.is_empty() { kept.remove(&tick.entity); } else { kept.insert(tick.entity, armor_stats.iter().cloned().collect()); }
+        }
+        // A guest client has no server tick, so it never computes these values itself: the
+        // changed ones go out over the sync packet for its own reads (use-item speed, the
+        // jump-press gating, the armor-stat terms).
+        crate::attribute_sync::publish(tick.player, tick.entity, &stored, &armor_stats);
+        if let Ok(mut values) = VALUES.lock() {
+            if stored.is_empty() { values.remove(&tick.entity); } else { values.insert(tick.entity, stored); }
+        }
         tick.attribute_additions.borrow_mut().extend(vanilla_effect_additions(&effects));
         // The self-destructing effect's movement-speed payload folds into the base value (a
         // multiply-total cannot ride a base move): the action lands at the end of the tick, and
@@ -339,6 +433,32 @@ mod tests {
             1.0,
             "being taken off this tick, unfold"
         );
+    }
+
+    #[test]
+    fn armor_stat_and_value_reads_fall_back_to_the_synced_copy() {
+        assert_eq!(armor_stat_for(7707, "tconstruct:jump_boost"), 0.0, "nothing kept or synced yet");
+        assert_eq!(value(7707, JUMP_COUNT), 1.0, "the declared default while nothing is kept or synced");
+        assert_eq!(armor_stat(&[head("tconstruct:helmet")], "tconstruct:jump_boost"), 0.0, "a plain piece claims nothing");
+        let mut attributes = BTreeMap::new();
+        attributes.insert(JUMP_COUNT.to_owned(), 2.0);
+        let mut armor_stats = BTreeMap::new();
+        armor_stats.insert("tconstruct:jump_boost".to_owned(), 0.5);
+        apply_synced(7707, attributes, armor_stats);
+        assert_eq!(value(7707, JUMP_COUNT), 2.0, "the synced value stands in for the missing tick");
+        assert_eq!(armor_stat_for(7707, "tconstruct:jump_boost"), 0.5);
+        assert_eq!(armor_stat_for(7707, "tconstruct:critical_damage"), 0.0, "a key the sync never named is 0");
+        clear_synced();
+        assert_eq!(value(7707, JUMP_COUNT), 1.0, "the sync is dropped when the server is gone");
+        assert_eq!(armor_stat_for(7707, "tconstruct:jump_boost"), 0.0);
+    }
+
+    #[test]
+    fn the_sync_codec_names_declared_attributes_by_index() {
+        assert_eq!(declared_index(JUMP_COUNT), Some(9));
+        assert_eq!(declared_at(9), Some(JUMP_COUNT));
+        assert_eq!(declared_at(DECLARED.len() as u8), None, "past the last declaration, no attribute");
+        assert_eq!(declared_index("tconstruct:player.nope"), None);
     }
 
     #[test]

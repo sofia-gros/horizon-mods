@@ -390,6 +390,8 @@ mod material_render;
 mod crafting_repair;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/custom_attributes.rs"]
 mod custom_attributes;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/attribute_sync.rs"]
+mod attribute_sync;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/attribute_hooks.rs"]
 mod attribute_hooks;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/experience_hook.rs"]

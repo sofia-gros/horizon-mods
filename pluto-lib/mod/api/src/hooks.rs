@@ -6006,12 +6006,20 @@ impl Hooks for PlutoHooks {
         // the acting player; the entity reach is not open here, so a callback that needs to move
         // the player defers the push to the next tick. The native hook is a `&self` method, so
         // the host arrives immutable (unlike the `&mut self` hooks, which get `&mut dyn Host`).
+        // The stack being used rides along for the use-item speed its stats carry: the held
+        // (main-hand) stack while the player uses an item, none otherwise. An off-hand use has
+        // no surface here — the native hook names no hand — so it reads as the main hand's stack.
         let acting = host.acting_player();
         let (entity, using_item) = match &acting {
             Some(player) => (player.entity_id, player.using_item),
             None => (-1, false),
         };
-        let input = entity_events_v1::MovementInput { entity, forward: std::cell::Cell::new(event.forward), strafe: std::cell::Cell::new(event.strafe), jump: std::cell::Cell::new(event.jump), sneak: std::cell::Cell::new(event.sneak), using_item };
+        let using = if using_item {
+            acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack))
+        } else {
+            None
+        };
+        let input = entity_events_v1::MovementInput { entity, forward: std::cell::Cell::new(event.forward), strafe: std::cell::Cell::new(event.strafe), jump: std::cell::Cell::new(event.jump), sneak: std::cell::Cell::new(event.sneak), using_item, using };
         entity_events_v1::movement_input(&input);
         event.forward = input.forward.get();
         event.strafe = input.strafe.get();

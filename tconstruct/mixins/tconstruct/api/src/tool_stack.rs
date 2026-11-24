@@ -568,6 +568,14 @@ pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crat
     })
 }
 
+/// The claims a worn armor piece makes on armor stats through armor stat modules (plain and max), in modifier order.
+pub(crate) fn armor_stat_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crate::max_armor::ArmorStatClaim> {
+    let broken = is_broken(nbt);
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.armor_stat_modules().filter_map(move |module| module.armor_stat_claim(entry, facts, broken)).collect::<Vec<_>>()).collect()
+    })
+}
+
 /// Whether a worn armor piece carries a golden attribute module.
 pub(crate) fn has_golden_modules(nbt: &NbtCompound, env: &Environment) -> bool {
     saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.golden_attribute_modules().next().is_some())
@@ -1843,6 +1851,26 @@ mod tests {
         let both = needs.with_modifier(Identifier::parse("test:base").unwrap(), 1).unwrap();
         nbt.insert(TAG_MODIFIERS.into(), both.to_nbt());
         assert_eq!(try_validate(&nbt, &env), None, "the requirement reads the tool's full modifier list");
+    }
+    #[test]
+    fn armor_stat_claims_read_worn_pieces_for_their_tinker_data_keys() {
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:light").unwrap(), json!({"modules":[{"type":"tconstruct:armor_stat","key":"tconstruct:jump_boost","each_level":0.5,"hooks":["tconstruct:equipment_change"]}]})),
+            (Identifier::parse("test:heavy").unwrap(), json!({"modules":[{"type":"tconstruct:max_armor_stat","key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05,"hooks":["tconstruct:equipment_change"]}]})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let mut nbt = NbtCompound::new();
+        let list = List::default()
+            .with_modifier(Identifier::parse("test:light").unwrap(), 2).unwrap()
+            .with_modifier(Identifier::parse("test:heavy").unwrap(), 3).unwrap();
+        nbt.insert(TAG_MODIFIERS.into(), list.to_nbt());
+        let claims = armor_stat_claims(&nbt, &env);
+        assert_eq!(claims.len(), 2, "{claims:?}");
+        let totals = crate::max_armor::armor_stat_totals(claims);
+        assert_eq!(totals, vec![("tconstruct:critical_damage".to_owned(), 0.25), ("tconstruct:jump_boost".to_owned(), 1.0)], "0.1 flat and 0.05 a level at 3, and 0.5 a level at 2: {totals:?}");
     }
     #[test]
     fn unready_environment_changes_nothing() {

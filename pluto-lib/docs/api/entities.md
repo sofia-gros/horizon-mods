@@ -665,6 +665,19 @@ tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".int
 assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
 ```
 
+### `MovementInput`
+
+The local player's movement input, after the game read it and before it applies it (client only). `entity` is the local player's entity id, or -1 when the game names no acting player; `forward` and `strafe` are the impulses now (each a `Cell`: change it with `set`); `jump` and `sneak` whether the keys are held (each a `Cell`); `using_item` whether the player is using an item; `using` the stack being used, the held (main-hand) stack, `None` when nothing is used or no player is named — an off-hand use reads as the main hand's stack, as the native hook names no hand. A callback may scale the impulses (an item's use slowdown) or read the jump key state (a double jump); it may not reach the player themselves, so a motion change is deferred to the player's next tick.
+
+```rust
+use pluto_lib::MovementInput;
+use std::cell::Cell;
+
+let input = MovementInput { entity: 4, forward: Cell::new(1.0), strafe: Cell::new(0.4), jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: None };
+input.forward.set(input.forward.get() * 0.5);
+assert_eq!((input.forward.get(), input.using.is_none()), (0.5, true));
+```
+
 ### `VisibilityModification`
 
 How far a mob sees a player, for a callback to scale: `wearer` is the player's uuid, `observer` the type id of the mob that is looking, `armor` the pieces the player wore as of their last tick (as (slot, stack); only those carrying custom data), `armor_revision` a number that changes whenever what any player wears changes (never 0; keep what you worked out from `armor` while it stays the same) and `multiplier` the factor on the range now (a `Cell`: 1 leaves it whole, 0.5 halves it).

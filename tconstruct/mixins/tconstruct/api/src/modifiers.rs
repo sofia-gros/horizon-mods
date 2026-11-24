@@ -317,6 +317,10 @@ impl Modifier {
     pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_max_armor_attribute())
     }
+    /// The armor stat modules (plain and max).
+    pub fn armor_stat_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_armor_stat())
+    }
     /// The golden attribute modules.
     pub fn golden_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_golden_attribute())
