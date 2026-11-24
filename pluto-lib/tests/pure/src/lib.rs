@@ -6,6 +6,9 @@ mod exports;
 
 pub use exports::*;
 
+/// Block movement factors (speed and jump) for mod blocks.
+pub use pluto_movement_api as movement;
+
 /// Harness-only fixtures: construct through the real snapshot validator without
 /// exposing a production API or duplicating its registry-membership rules.
 pub mod fixtures {
@@ -247,4 +250,5 @@ mod api_pages {
     page!(Commands, "commands.md");
     page!(Particles, "particles.md");
     page!(Sky, "sky.md");
+    page!(Movement, "movement.md");
 }
