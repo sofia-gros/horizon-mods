@@ -2,10 +2,22 @@
 // retained by a provider. Concrete collection/counter ownership stays native.
 use std::sync::OnceLock;
 use horizon_client::items::ItemStack;
+use horizon_world::loot::LootEntity;
 // Native built-in MobType IDs may be bare; declared types already carry a
 // namespace. LootEntity::new does not normalize either representation.
 pub fn entity_kind(kind:&str)->std::borrow::Cow<'_,str> {
     if kind.contains(':') {kind.into()} else {format!("minecraft:{kind}").into()}
+}
+/// The main-hand Looting level on a killer `LootEntity`: the main-hand stack
+/// the host resolved into its equipment (`Game::killer_loot_entity` in the
+/// pinned host — the local player's hand for a local kill, the guest's own
+/// hand, read through `as_guest`, for a LAN guest's kill), whose
+/// enchantments survive the `to_loot` conversion. Main hand only, as
+/// `EnchantmentHelper.getMobLooting` reads it; 0 when the killer holds
+/// nothing there or no Looting.
+pub fn killer_mainhand_looting(killer:&LootEntity)->i32 {
+    killer.item("mainhand").map_or(0,|stack|stack.enchantments.iter()
+        .find(|(name,_)|name=="minecraft:looting").map_or(0,|(_,level)|*level))
 }
 #[derive(Clone,Debug)]
 pub struct Info {
