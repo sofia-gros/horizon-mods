@@ -177,6 +177,8 @@ mod station_layout_order;
 mod tool_actions;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_action_hook.rs"]
 mod tool_action_hook;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/place_fire_hook.rs"]
+mod place_fire_hook;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_slot.rs"]
 mod tool_slot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/edible.rs"]

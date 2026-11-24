@@ -100,6 +100,7 @@
     "api/src/damageable_recycling.rs",
     "api/src/tool_actions.rs",
     "api/src/tool_action_hook.rs",
+    "api/src/place_fire_hook.rs",
     "api/src/walk_hook.rs",
     "api/src/replace_fluid.rs",
     "api/src/tool_slot.rs",

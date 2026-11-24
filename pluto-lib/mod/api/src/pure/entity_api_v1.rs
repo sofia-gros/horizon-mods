@@ -128,6 +128,15 @@ pub trait EntityOps {
     fn leave_ground(&mut self, _id: u64) -> bool {
         false
     }
+    /// Ignites the creeper `id`, as flint and steel does: the creeper's own
+    /// ignited flag is set, so its fuse starts and it explodes at max swell.
+    /// Only a creeper is ignited. A host may apply an accepted ignite at its
+    /// next rider synchronisation rather than instantly, as
+    /// [`EntityOps::knockback`] describes. Hosts that predate the call
+    /// answer false.
+    fn ignite_creeper(&mut self, _id: u64) -> bool {
+        false
+    }
 }
 
 thread_local! {
@@ -251,6 +260,12 @@ impl EntityReach {
     pub fn leave_ground(id: u64) -> bool {
         with_current(false, |ops| ops.leave_ground(id))
     }
+
+    /// Ignites the creeper `id`, as flint and steel does (see [`EntityOps::ignite_creeper`]);
+    /// whether the ignite was accepted. False outside a scope.
+    pub fn ignite_creeper(id: u64) -> bool {
+        with_current(false, |ops| ops.ignite_creeper(id))
+    }
 }
 
 /// A small world of entities, for tests: the entities stand at fixed positions, and what was done to them is kept.
@@ -273,11 +288,13 @@ pub struct MemoryEntityOps {
     pub pushed: Vec<(u64, [f64; 3])>,
     /// The players lifted off the ground, in order.
     pub lifted: Vec<u64>,
+    /// The creepers ignited, in order.
+    pub ignited_creepers: Vec<u64>,
 }
 
 impl Default for MemoryEntityOps {
     fn default() -> Self {
-        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new() }
+        Self { entities: Vec::new(), discarded: Vec::new(), left: Vec::new(), hurt: Vec::new(), hurts_land: true, mounts: Vec::new(), knocked: Vec::new(), pushed: Vec::new(), lifted: Vec::new(), ignited_creepers: Vec::new() }
     }
 }
 
@@ -379,6 +396,14 @@ impl EntityOps for MemoryEntityOps {
         self.lifted.push(id);
         true
     }
+
+    fn ignite_creeper(&mut self, id: u64) -> bool {
+        if !self.entities.iter().any(|(_, entity)| entity.id == id && entity.living.is_some() && entity.kind.to_string() == "minecraft:creeper") {
+            return false;
+        }
+        self.ignited_creepers.push(id);
+        true
+    }
 }
 
 #[cfg(test)]
@@ -408,6 +433,7 @@ mod tests {
         assert!(!EntityReach::knockback(2, 1.0, 1.0, 0.0));
         assert!(!EntityReach::push(2, [0.0, 1.0, 0.0]));
         assert!(!EntityReach::leave_ground(2));
+        assert!(!EntityReach::ignite_creeper(2));
     }
 
     #[test]
@@ -484,6 +510,21 @@ mod tests {
         assert_eq!(ops.knocked, vec![(2, 1.5, -0.5, 0.25)]);
         assert_eq!(ops.pushed, vec![(3, [0.1, 0.4, -0.2])]);
         assert_eq!(ops.lifted, vec![2]);
+    }
+
+    #[test]
+    fn an_ignite_is_recorded_for_a_creeper_only() {
+        let mut ops = MemoryEntityOps::default();
+        ops.entities = vec![
+            ([1.5, 64.5, 1.5], WorldEntity { id: 2, kind: id("minecraft:creeper"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
+            ([2.5, 64.5, 2.5], WorldEntity { id: 3, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
+        ];
+        with_entities(&mut ops, || {
+            assert!(EntityReach::ignite_creeper(2), "the creeper ignites");
+            assert!(!EntityReach::ignite_creeper(3), "a zombie is not a creeper");
+            assert!(!EntityReach::ignite_creeper(99), "no such entity");
+        });
+        assert_eq!(ops.ignited_creepers, vec![2]);
     }
 
     #[test]

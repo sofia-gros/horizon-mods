@@ -16,12 +16,10 @@
 //! candle or candle cake is lit, a TNT block is primed and cleared, and otherwise fire is placed at
 //! the clicked face where fire can be placed, one durability per success. Clicking fire itself is
 //! spent without wear, as the original answers success for the click that targets fire (its offset
-//! target behind the fire is what the block-break veto in block_break_hook protects). Two of the
-//! original's paths stay unimplemented, on the record: the volatile area of effect (only the clicked
-//! block is treated, the standing reduction above), and the creeper ignite in afterEntityUse —
-//! PlutoLib's entity reach names no verb to ignite a creeper, and the pinned host exposes no
-//! ignited-state entry a pure surface could write (its only ignite surface is the block fire-odds
-//! read), so that sub-path waits on a PlutoLib reach this lane does not build. The TNT prime rides
+//! target behind the fire is what the block-break veto in block_break_hook protects). One of the
+//! original's paths stays unimplemented, on the record: the volatile area of effect (only the clicked
+//! block is treated, the standing reduction above). The creeper ignite in afterEntityUse lives in
+//! place_fire_hook.rs on the entity reach's ignite verb. The TNT prime rides
 //! the world summon reach with an empty tag, the host's own fuse defaults: if the summon is refused
 //! the TNT is left standing and nothing ignites, rather than the block being cleared with no primed
 //! entity behind it. No game event is emitted for a lighting: the world operations name none.

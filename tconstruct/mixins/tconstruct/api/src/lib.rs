@@ -114,6 +114,7 @@ mod hud;
 mod edible_hook;
 mod fishing_hook;
 mod tool_action_hook;
+mod place_fire_hook;
 mod tool_slot;
 mod tool_station;
 mod station_menu;
@@ -241,6 +242,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     mob_equipment::register();
     dragon_scales::register();
     tool_action_hook::register();
+    place_fire_hook::register();
     harvest_hook::register();
     protection_hook::register();
     tool_damage_hook::register();

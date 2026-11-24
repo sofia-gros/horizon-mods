@@ -208,6 +208,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/fireball_hook.rs',
                 'mixins/tconstruct_native/api/src/potion_contents.rs',
                 'mixins/tconstruct_native/api/src/tool_action_hook.rs',
+                'mixins/tconstruct_native/api/src/place_fire_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_actions.rs',
                 'mixins/tconstruct_native/api/src/tool_behavior_hook.rs',
                 'mixins/tconstruct_native/api/src/tool_build.rs',
