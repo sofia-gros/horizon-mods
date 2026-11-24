@@ -1,5 +1,6 @@
-// What the game tells the mods when a mob hurts the player: the mob's state and the damage. The mods answer with the status
-// effects to put on the mob (an armor's counter-attack).
+// What the game tells the mods when a mob hurts the player: the mob's state and the damage, as the knockback scope names them
+// (the damage type and the amount are not worked out yet). The hit is noted for the damage event that follows, which resolves
+// the type before the mods hear it; the status effects an armor's counter-attack puts on the mob are answered there.
 use std::sync::OnceLock;
 #[derive(Clone,Debug)]
 pub struct PlayerHurt {

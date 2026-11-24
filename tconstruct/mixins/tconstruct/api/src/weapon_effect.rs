@@ -340,6 +340,30 @@ mod tests {
     }
 
     #[test]
+    fn a_counter_naming_the_damage_type_lands_only_on_the_resolved_hit() {
+        // The wearer-hit transport resolves the type at the damage event that follows the hurt report, so a counter that names
+        // the type (or its tags) is answered by the real hit, not the generic stand-in the report starts with.
+        let tags = melee_tags();
+        let arrow = Identifier::parse("minecraft:arrow").unwrap();
+        let mob_attack = Identifier::parse("minecraft:mob_attack").unwrap();
+        // An arrow's hit is indirect (its shooter caused it) and a projectile; a melee hit is neither.
+        let shot = crate::protection::DamageSource { damage_type: &arrow, indirect: true, tags: &tags, attacker_in_tag: &no_tags, entities: Default::default() };
+        let melee = source(&mob_attack, &tags, &all_tags);
+        let by_type = WeaponEffect::decode_counter(json!({"effect":"minecraft:slowness","level":{"flat":1.0},"time":{"flat":100.0},
+            "damage_source":{"type":"mantle:damage_type","name":"minecraft:arrow"}}).as_object().unwrap()).unwrap().unwrap();
+        assert!(by_type.grant_counter(&entry(1), true, &shot, &all_tags, &mut || 0.0).is_some(), "the resolved arrow hit lands");
+        assert!(by_type.grant_counter(&entry(1), true, &melee, &all_tags, &mut || 0.0).is_none(), "a melee hit is not an arrow");
+        let by_tag = WeaponEffect::decode_counter(json!({"effect":"minecraft:slowness","level":{"flat":1.0},"time":{"flat":100.0},
+            "damage_source":{"type":"mantle:tag","tag":"minecraft:is_projectile"}}).as_object().unwrap()).unwrap().unwrap();
+        assert!(by_tag.grant_counter(&entry(1), true, &shot, &all_tags, &mut || 0.0).is_some(), "an arrow is a projectile");
+        assert!(by_tag.grant_counter(&entry(1), true, &melee, &all_tags, &mut || 0.0).is_none(), "a melee hit is not a projectile");
+        let indirect = WeaponEffect::decode_counter(json!({"effect":"minecraft:slowness","level":{"flat":1.0},"time":{"flat":100.0},
+            "damage_source":{"type":"mantle:is_indirect"}}).as_object().unwrap()).unwrap().unwrap();
+        assert!(indirect.grant_counter(&entry(1), true, &shot, &all_tags, &mut || 0.0).is_some(), "an arrow's hit is indirect");
+        assert!(indirect.grant_counter(&entry(1), true, &melee, &all_tags, &mut || 0.0).is_none(), "a melee hit is direct");
+    }
+
+    #[test]
     fn the_holder_and_target_conditions_ask_what_the_entities_were_doing() {
         let burning = decode(json!({"effect":"minecraft:poison","level":{"flat":1.0},"time":{"flat":100.0},"target":"mantle:on_fire","holder":"mantle:sprinting"})).unwrap();
         let state_only = |tag: &Identifier| tag.namespace() == crate::melee_damage::STATE_NAMESPACE;
