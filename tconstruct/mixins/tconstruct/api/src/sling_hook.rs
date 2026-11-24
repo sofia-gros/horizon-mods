@@ -90,8 +90,11 @@ fn release_with(release: &ReleaseUsing) {
             return;
         }
         let holder = holder_state(release);
-        let holder_entity = pluto_lib::EntityState { on_ground: holder.on_ground, ..Default::default() };
+        // The holder's height, for the dwarven velocity half of the sling power; the build range of
+        // the level they stand in, since a shot's holder is not digging and no dig reports it.
+        let holder_entity = pluto_lib::EntityState { on_ground: holder.on_ground, y: Some(release.position[1]), ..Default::default() };
         let entities = crate::entity_facts::Entities { attacker: Some(&holder_entity), target: None };
+        let build_height = Some(crate::mining_speed::build_height_for(&release.dimension));
         let active = slings[0].1.clone();
         for (entry, id, module) in &slings {
             let charge = charge(release.ticks_used, drawtime(nbt, env, &entities, module));
@@ -99,9 +102,9 @@ fn release_with(release: &ReleaseUsing) {
                 continue;
             }
             match module {
-                Sling::Knockback { damage_multiplier, .. } => knockback(release, env, nbt, entry, id, module, *damage_multiplier, charge, &holder, &entities, &active),
-                Sling::Leap { .. } => leap(release, env, nbt, entry, id, module, charge, &holder, &entities, &active),
-                Sling::Teleport { .. } => teleport(release, env, nbt, entry, id, module, charge, &holder, &entities, &active),
+                Sling::Knockback { damage_multiplier, .. } => knockback(release, env, nbt, entry, id, module, *damage_multiplier, charge, &holder, &entities, &active, build_height),
+                Sling::Leap { .. } => leap(release, env, nbt, entry, id, module, charge, &holder, &entities, &active, build_height),
+                Sling::Teleport { .. } => teleport(release, env, nbt, entry, id, module, charge, &holder, &entities, &active, build_height),
             }
         }
     });
@@ -211,7 +214,7 @@ pub(crate) fn spend(release: &ReleaseUsing, amount: i32, cause: &Identifier) {
 
 /// SlingKnockbackModule.sling: bonk the living entity in front of the holder.
 #[allow(clippy::too_many_arguments)]
-fn knockback(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound, entry: &Entry, id: &Identifier, module: &Sling, damage_multiplier: f32, charge: f32, holder: &LivingState, entities: &crate::entity_facts::Entities, active: &Identifier) {
+fn knockback(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound, entry: &Entry, id: &Identifier, module: &Sling, damage_multiplier: f32, charge: f32, holder: &LivingState, entities: &crate::entity_facts::Entities, active: &Identifier, build_height: Option<[i32; 2]>) {
     let world = release.world();
     // ProjectileUtil.getEntityHitResult: the nearest living entity the look ray passes,
     // inside the search box the original builds from the eye along the look, grown by one.
@@ -262,7 +265,7 @@ fn knockback(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCom
         }
     }
     let multiplier = charge * module.force_multiplier(entry);
-    let force = tool_stack::sling_force(nbt, env, entities, holder, &target_state, id, tool_stack::sling_power(nbt, env, entities) * multiplier, multiplier);
+    let force = tool_stack::sling_force(nbt, env, entities, holder, &target_state, id, tool_stack::sling_power(nbt, env, entities, build_height) * multiplier, multiplier);
     if force > 0.0 {
         // The knockback itself: `target.knockback(force, angle)` with the inaccuracy
         // spread, through the entity reach — the game's own knockback applies the
@@ -282,11 +285,14 @@ fn knockback(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCom
     world.send_particles("tconstruct:bonk", &ParticleData::Plain, [target_position[0], target_position[1] + 0.9, target_position[2]], [0.0, 0.0, 0.0], 0.0, 1);
     world.play_sound("tconstruct:bonk", release.position, 1.0, 0.5);
     spend(release, 1, id);
+    // SmeltingModule.afterSlingLaunch: the power becomes the force but is halved when applied, so double it, and
+    // divide by the sling's own multiplier.
+    crate::smelting_hook::cook_release(release, force * 2.0 / multiplier);
 }
 
 /// SlingLeapModule.sling: launch the holder.
 #[allow(clippy::too_many_arguments)]
-fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound, entry: &Entry, id: &Identifier, module: &Sling, charge: f32, holder: &LivingState, entities: &crate::entity_facts::Entities, active: &Identifier) {
+fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound, entry: &Entry, id: &Identifier, module: &Sling, charge: f32, holder: &LivingState, entities: &crate::entity_facts::Entities, active: &Identifier, build_height: Option<[i32; 2]>) {
     let world = release.world();
     if !module.target().matches(holder) {
         fail(release, active, id, "tconstruct:slime_sling", 0.5);
@@ -294,7 +300,7 @@ fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound
     }
     let computed = module.force_multiplier(entry);
     let multiplier = charge * computed.abs();
-    let force = tool_stack::sling_force(nbt, env, entities, holder, holder, id, tool_stack::sling_power(nbt, env, entities) * multiplier, multiplier);
+    let force = tool_stack::sling_force(nbt, env, entities, holder, holder, id, tool_stack::sling_power(nbt, env, entities, build_height) * multiplier, multiplier);
     if force <= 0.0 {
         fail(release, active, id, "tconstruct:slime_sling", 0.5);
         return;
@@ -338,18 +344,19 @@ fn leap(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound
     }
     world.play_sound("tconstruct:slime_sling", release.position, 1.0, 1.0);
     spend(release, 1, id);
+    crate::smelting_hook::cook_release(release, force * 2.0 / multiplier);
 }
 
 /// SlingTeleportModule.sling: move the holder along the look.
 #[allow(clippy::too_many_arguments)]
-fn teleport(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound, entry: &Entry, id: &Identifier, module: &Sling, charge: f32, holder: &LivingState, entities: &crate::entity_facts::Entities, active: &Identifier) {
+fn teleport(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtCompound, entry: &Entry, id: &Identifier, module: &Sling, charge: f32, holder: &LivingState, entities: &crate::entity_facts::Entities, active: &Identifier, build_height: Option<[i32; 2]>) {
     let world = release.world();
     if !module.target().matches(holder) {
         fail(release, active, id, "tconstruct:slime_sling.teleport", 0.5);
         return;
     }
     let multiplier = charge * module.force_multiplier(entry);
-    let force = tool_stack::sling_force(nbt, env, entities, holder, holder, id, tool_stack::sling_power(nbt, env, entities) * multiplier, multiplier);
+    let force = tool_stack::sling_force(nbt, env, entities, holder, holder, id, tool_stack::sling_power(nbt, env, entities, build_height) * multiplier, multiplier);
     if force <= 0.0 {
         fail(release, active, id, "tconstruct:slime_sling.teleport", 0.5);
         return;
@@ -401,4 +408,5 @@ fn teleport(release: &ReleaseUsing, env: &tool_stack::Environment, nbt: &NbtComp
     world.send_particles("minecraft:portal", &ParticleData::Plain, release.position, [0.5, 0.5, 0.5], 0.5, 32);
     world.play_sound("tconstruct:slime_sling.teleport", release.position, 1.0, 1.0);
     spend(release, 1, id);
+    crate::smelting_hook::cook_release(release, force * 2.0 / multiplier);
 }

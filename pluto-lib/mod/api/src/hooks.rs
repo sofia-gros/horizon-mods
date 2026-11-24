@@ -5794,6 +5794,8 @@ impl Hooks for PlutoHooks {
         let attacker_position = u32::try_from(event.causing).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity))
             .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
                 .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.position));
+        // The same places, remembered for the damage event that follows in the same call.
+        entity_events_v1::hit_positions(event.entity, attacker_position, target_position);
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),

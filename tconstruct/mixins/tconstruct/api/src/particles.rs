@@ -21,7 +21,32 @@
 //!   types are declared and shipped but nothing sends them. What the behaviour block cannot express
 //!   of the original's attack particle: its full-bright light, its random grey tint, and the size it
 //!   takes from the swing's look vector.
+//! - `edible_crumb_<namespace>_<path>` (this lane): one crumb type per representative item an edible
+//!   tool names, registered lazily on first use by `edible_crumb` — the port's particle spawn carries
+//!   no per-spawn item, so the item's crumbs need a type of their own. Their consumer is
+//!   `edible_hook`'s eating bursts.
 use pluto_lib::{Identifier, ParticleFactory, ParticleTypeRegistry, StackData};
+use std::collections::HashSet;
+use std::sync::Mutex;
+
+/// The crumb particle types registered lazily for edible representatives, by id: the registry
+/// outlives a reload of this module's callers, so the set is the record of what is already there
+/// (re-registering a name replaces its factory, so a second registration would be harmless but
+/// wasteful on every burst).
+static EDIBLE_CRUMBS: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+
+/// The particle type for the crumbs of `item`, registered lazily on first use: the port's particle
+/// spawn carries no per-spawn item, so each representative item gets its own crumb type, an
+/// item-crumb factory of that item, named `tconstruct:edible_crumb_<namespace>_<path>`.
+pub(crate) fn edible_crumb(item: &Identifier) -> Identifier {
+    let name = format!("edible_crumb_{}_{}", item.namespace(), item.path().replace('/', "_"));
+    let id = Identifier::new("tconstruct", &name).expect("edible crumb particle id");
+    let fresh = EDIBLE_CRUMBS.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).insert(id.to_string());
+    if fresh {
+        let _ = ParticleTypeRegistry::register(id.clone(), ParticleFactory::ItemCrumb(StackData { item: item.to_string(), count: 1, ..Default::default() }));
+    }
+    id
+}
 
 pub(crate) fn register() {
     // The slime types first: the entity overrides point at their item-crumb factories.
@@ -51,5 +76,21 @@ pub(crate) fn register() {
             ParticleFactory::SpriteSet { always_spawn: true },
         )
         .unwrap_or_else(|error| panic!("registering particle type tconstruct:{particle}: {error}"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn edible_crumb_names_the_item_and_registers_it_once() {
+        let item = Identifier::new("tconstruct", "cheese_ingot").expect("valid id");
+        let crumb = edible_crumb(&item);
+        assert_eq!(crumb.to_string(), "tconstruct:edible_crumb_tconstruct_cheese_ingot");
+        // A second call names the same type (the registration is not repeated).
+        assert_eq!(edible_crumb(&item), crumb);
+        let slashed = Identifier::new("example", "a/b").expect("valid id");
+        assert_eq!(edible_crumb(&slashed).to_string(), "tconstruct:edible_crumb_example_a_b");
     }
 }

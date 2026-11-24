@@ -28,7 +28,7 @@
 use crate::{break_speed_hook::with_held_tool, projectile_modules::clamp_to, slime_entities, tool_damage_hook, tool_stack};
 use pluto_lib::{
     ActionTarget, EntityAction, EntityReach, ExplosionInteraction, FlightAction, ItemSlot, KnockbackDirection,
-    NbtCompoundExt, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData,
+    NbtCompoundExt, ProjectileEvents, ProjectileFlight, ProjectileImpact, ProjectileSpawned, StackData, StackSlot,
 };
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -41,6 +41,10 @@ pub(crate) struct InFlight {
     bounces_used: HashMap<String, i32>,
     gravity_restored: bool,
     fuse_done: bool,
+    /// Whether this shot is a multishot volley's extra arrow (the original's SECONDARY_ARROW mark):
+    /// a secondary arrow never swaps its thrower (EnderportingModifier skips it) and never wears the
+    /// launcher on the shot. The primary is the volley's middle arrow (see `volley_primary`).
+    secondary: bool,
     thrown: Option<ThrownTool>,
     shuriken: Option<ThrownShuriken>,
 }
@@ -71,6 +75,42 @@ static PENDING_ATTRACTION: Mutex<Option<HashMap<String, Vec<([f64; 3], f32, f32)
 
 /// The ammunition profile the AMMO pass last read, per shooting player: consumed by the shot pass.
 static LAST_AMMO: Mutex<Option<HashMap<u128, tool_stack::FlightProfile>>> = Mutex::new(None);
+
+/// The volleys in progress, per shooting player: (shots seen, volley size). A crossbow with multishot
+/// fires its volley as consecutive shots; the primary is the volley's middle arrow (the original's
+/// `primaryIndex = ammo.getCount() / 2`, the loaded ammo's count being the volley size: 1 normally,
+/// 3 with multishot). The shot telling carries no volley index or count, so the port counts the
+/// consecutive shots itself, keyed by the shooter, and the count self-corrects within one volley if a
+/// shot is missed (the size is recorded at the volley's first shot).
+static VOLLEYS: Mutex<Option<HashMap<u128, (u8, u8)>>> = Mutex::new(None);
+
+/// Whether the shot just fired is the volley's primary, advancing the player's volley count. A
+/// volley of one is its own primary; a volley of three makes the middle shot primary.
+fn volley_primary(player: u128, size: u8) -> bool {
+    let size = size.max(1);
+    let mut guard = VOLLEYS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let volleys = guard.get_or_insert_with(HashMap::new);
+    let (seen, known) = volleys.get(&player).copied().unwrap_or((0, size));
+    let primary = seen == known / 2;
+    let seen = seen + 1;
+    if seen >= known { volleys.remove(&player); } else { volleys.insert(player, (seen, known)); }
+    primary
+}
+
+/// The volley size of a bow stack: a crossbow fires one arrow plus two per multishot level, a
+/// longbow one. The bow path fires exactly one arrow, so only a crossbow's enchantment is read.
+fn volley_size(stack: &StackData) -> u8 {
+    if matches!(stack.item.as_str(), "tconstruct:crossbow" | "minecraft:crossbow") {
+        (1 + 2 * stack.enchantment_level("minecraft:multishot").max(0)).min(255).max(1) as u8
+    } else {
+        1
+    }
+}
+
+/// Whether the stack is a bow or a crossbow (a Tinkers one or a vanilla one).
+fn is_bow(stack: &StackData) -> bool {
+    matches!(stack.item.as_str(), "tconstruct:longbow" | "tconstruct:crossbow" | "minecraft:bow" | "minecraft:crossbow")
+}
 
 fn with_flights<R>(run: impl FnOnce(&mut HashMap<(String, u32), InFlight>) -> R) -> R {
     let mut guard = FLIGHTS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -176,11 +216,31 @@ fn on_shot(shot: &pluto_lib::BowShot) {
         weapon = merge(weapon, profile_of(hand));
     }
     let profile = merge(ammo, weapon);
+    // The volley count advances on every shot, whether or not this one binds a flight: the
+    // primary is a property of the volley, not of the profile. The weapon hand is the bow (the
+    // main hand first); its multishot level sizes the volley, and its own enderporting — not the
+    // ammunition's — decides the launch wear.
+    let weapon_hand = [(&shot.main_hand, StackSlot::MainHand), (&shot.off_hand, StackSlot::OffHand)]
+        .into_iter()
+        .find_map(|(hand, slot)| hand.as_ref().filter(|hand| is_bow(hand)).map(|hand| (slot, hand)));
+    let primary = volley_primary(shot.player, weapon_hand.as_ref().map(|(_, hand)| volley_size(hand)).unwrap_or(1));
+    if primary {
+        if let Some((slot, hand)) = &weapon_hand {
+            if profile_of(hand).enderporting {
+                // EnderportingModifier.onProjectileLaunch: the launcher is worn by 10 on a primary shot.
+                if let Ok(edits) = with_held_tool(hand, |_env, tool| tool_stack::damage_edits(&tool.custom_data, 10)) {
+                    if !edits.is_empty() {
+                        shot.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: *slot, item: hand.item.clone(), edits });
+                    }
+                }
+            }
+        }
+    }
     if profile.is_empty() { return; }
     // The shot pass does not carry the dimension; flights are keyed with it, so the shot is bound
     // under every dimension key lazily: the flight and impact passes look their own dimension up,
     // and a shot's binding is stored under the empty key and adopted on first sight.
-    with_flights(|flights| { flights.insert((String::new(), shot.projectile), InFlight { profile, ..Default::default() }); });
+    with_flights(|flights| { flights.insert((String::new(), shot.projectile), InFlight { profile, secondary: !primary, ..Default::default() }); });
 }
 
 /// Takes the flight bound to a projectile in a dimension, adopting a shot's dimension-less binding.
@@ -345,6 +405,21 @@ fn on_flight(flight: &ProjectileFlight) {
                 actions.push(FlightAction::PullEntities { center: flight.position, radius: f64::from(*radius), strength: f64::from(*strength) });
             }
             drop(actions);
+            // EnderportingModifier.onProjectileFuseFinish: the owner is moved to the expired
+            // projectile. The reach cannot move a player (the host has no call for it), so a
+            // player owner is queued for the next player tick (see enderporting_hook); a mob
+            // owner moves at once. A fishing rod's bobber wears its rod by 10 here too
+            // (updateFishingRod with the draw-speed cooldown, whose surface is the sleeves
+            // cooldown — not yet merged — so the wear alone is queued, the cooldown waits).
+            if profile.enderporting && !state.secondary && flight.owner >= 0 {
+                let owner = flight.owner as u64;
+                if !EntityReach::teleport(owner, flight.position) {
+                    crate::enderporting_hook::queue_fuse_teleport(owner, &flight.dimension, flight.position);
+                }
+                if flight.kind == "minecraft:fishing_bobber" {
+                    crate::enderporting_hook::queue_rod_wear(owner, 10);
+                }
+            }
             flight.discard.set(true);
             return;
         }
@@ -457,25 +532,32 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
     // EnderportingModifier's projectile hit: the thrower trades places with what the shot met —
     // each move through the landing test the ender slime's teleport states — and a block hit puts
     // the thrower on the block beyond the face. The hit itself still lands. A projectile that is
-    // not an arrow or a trident is spent by the move, as the original discards it; the secondary
-    // arrow mark that would spare a multishot's extras is not set here (the launch telling does
-    // not tell the extras apart), so every shot of an enderporting launcher swaps.
-    if profile.enderporting && hit.owner >= 0 {
+    // not an arrow or a trident is spent by the move, as the original discards it. A secondary
+    // arrow of a multishot volley never swaps (the launch pass marks it), and a fishing rod's
+    // bobber wears its rod by 10 on a swap that lands (updateFishingRod; the draw-speed cooldown
+    // waits for the sleeves surface — see the fuse branch above).
+    if profile.enderporting && !state.secondary && hit.owner >= 0 {
         let owner = hit.owner as u64;
         let world = hit.world();
         if let Some(victim) = hit.entity {
             let positions = (EntityReach::position_of(owner), EntityReach::position_of(u64::from(victim)));
             if let (Some(owner_pos), Some(victim_pos)) = positions {
                 if slime_entities::teleport_lands(&world, victim_pos) && slime_entities::teleport_lands(&world, owner_pos) {
-                    EntityReach::teleport(owner, victim_pos);
-                    EntityReach::teleport(u64::from(victim), owner_pos);
+                    let swapped = EntityReach::teleport(owner, victim_pos) && EntityReach::teleport(u64::from(victim), owner_pos);
+                    if swapped && hit.kind == "minecraft:fishing_bobber" {
+                        crate::enderporting_hook::queue_rod_wear(owner, 10);
+                    }
                 }
             }
         } else {
             let dest = [f64::from(hit.block[0] + hit.face[0]) + 0.5, f64::from(hit.block[1] + hit.face[1]), f64::from(hit.block[2] + hit.face[2]) + 0.5];
-            if slime_entities::teleport_lands(&world, dest) && EntityReach::teleport(owner, dest)
-                && !matches!(hit.kind.as_str(), "minecraft:arrow" | "minecraft:spectral_arrow" | "minecraft:trident") {
-                hit.discard.set(true);
+            if slime_entities::teleport_lands(&world, dest) && EntityReach::teleport(owner, dest) {
+                if hit.kind == "minecraft:fishing_bobber" {
+                    crate::enderporting_hook::queue_rod_wear(owner, 10);
+                }
+                if !matches!(hit.kind.as_str(), "minecraft:arrow" | "minecraft:spectral_arrow" | "minecraft:trident") {
+                    hit.discard.set(true);
+                }
             }
         }
     }
@@ -864,5 +946,26 @@ mod tests {
             assert!(dealt_hurts(&hit).is_empty(), "{dimension}");
             assert!(!hit.discard.get(), "{dimension}");
         }
+    }
+
+    #[test]
+    fn volley_primary_is_the_middle_arrow_of_three_and_the_only_arrow_of_one() {
+        // A volley of three: the first and third are secondary, the middle primary.
+        let player = 4242u128;
+        assert!(!volley_primary(player, 3));
+        assert!(volley_primary(player, 3));
+        assert!(!volley_primary(player, 3));
+        // The volley is spent: the next shot starts a new one.
+        assert!(volley_primary(player, 1));
+    }
+
+    #[test]
+    fn volley_size_is_three_for_a_multishot_crossbow_and_one_otherwise() {
+        let crossbow = StackData { item: "tconstruct:crossbow".into(), enchantments: [("minecraft:multishot".to_string(), 1)].into_iter().collect(), ..Default::default() };
+        assert_eq!(volley_size(&crossbow), 3);
+        let plain = StackData { item: "tconstruct:crossbow".into(), ..Default::default() };
+        assert_eq!(volley_size(&plain), 1);
+        let bow = StackData { item: "tconstruct:longbow".into(), enchantments: [("minecraft:multishot".to_string(), 1)].into_iter().collect(), ..Default::default() };
+        assert_eq!(volley_size(&bow), 1, "a bow fires one arrow whatever its enchantments say");
     }
 }

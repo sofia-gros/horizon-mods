@@ -124,7 +124,13 @@ pub(crate) fn register() {
             if pos != used.pos && harvest(&world, &held.item, pos, used.face) { harvested += 1; }
         }
         if harvested > 0 {
-            if !used.creative { wear(used, held, harvested); }
+            // EnderportingModifier.afterHarvest: a harvest with an enderporting tool pulls the
+            // holder onto the clicked block's centre (queued for their next tick, as the use
+            // telling carries no entity id), and wears the tool by 2. The two wears are one call:
+            // the slot lookup keys on the pre-wear stack, so a second wear with the same held
+            // would not find the slot after the first.
+            let teleported = crate::enderporting_hook::plant_harvest(used, held, harvested);
+            if !used.creative { wear(used, held, harvested + if teleported { 2 } else { 0 }); }
             cook(used, held, harvested);
         }
         // The click is consumed whenever the clicked block is harvestable, harvested or not.

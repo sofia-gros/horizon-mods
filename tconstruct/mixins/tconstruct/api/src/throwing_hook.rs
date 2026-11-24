@@ -76,6 +76,16 @@ fn stat(stack: &StackData, stat: Stat) -> f32 {
     with_held_tool(stack, |_env, tool| tool_stack::stat(&tool.custom_data, stat)).unwrap_or(0.0)
 }
 
+/// A tool's conditional velocity for a holder at height `y` in `dimension`, for the dwarven velocity half
+/// (a thrown tool's holder is not digging, so no dig reports the level's build range); None for the height
+/// leaves the dwarven arm at the stored value. 0 when the stack is not a whole tool.
+fn conditional_velocity(stack: &StackData, y: Option<f64>, dimension: &str) -> f32 {
+    let holder = pluto_lib::EntityState { y, ..Default::default() };
+    let entities = crate::entity_facts::Entities { attacker: Some(&holder), target: None };
+    let build_height = Some(crate::mining_speed::build_height_for(dimension));
+    with_held_tool(stack, |env, tool| tool_stack::conditional_stat_at(&tool.custom_data, env, Stat::Velocity, &|_| false, &entities, build_height)).unwrap_or(0.0)
+}
+
 /// The hand a released stack was in, and the edit that empties it (a creative player keeps the tool:
 /// the original leaves it in the hand and marks the thrown copy creative-only pickup, which the
 /// flight's drop does not distinguish — a creative throw duplicates the tool where it lands, a
@@ -115,7 +125,7 @@ fn throw_tool(release: &ReleaseUsing) {
     if stat(stack, Stat::AttackDamage) > 0.0 { speed *= stat(stack, Stat::AttackSpeed); }
     let drawtime = (20.0 / speed.max(f32::MIN_POSITIVE)).ceil();
     let charge = charge(release.ticks_used, drawtime);
-    let velocity = stat(stack, Stat::Velocity);
+    let velocity = conditional_velocity(stack, Some(release.position[1]), &release.dimension);
     let power = f64::from(charge * velocity * 2.0);
     let motion = [release.look[0] * power, release.look[1] * power, release.look[2] * power];
     let world = release.world();
@@ -133,9 +143,11 @@ fn throw_tool(release: &ReleaseUsing) {
 }
 
 /// Fires one shuriken of `stack` from `eye` along `look` and binds its flight (the spawn half of
-/// ModifiableShurikenItem.use); false when the thrown type could not be summoned.
-fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3], owner: u128, stack: &StackData) -> bool {
-    let velocity = f64::from(stat(stack, Stat::Velocity));
+/// ModifiableShurikenItem.use); false when the thrown type could not be summoned. `holder_y` is the
+/// holder's height for the dwarven velocity half; None when the caller does not know it (a stored
+/// stack thrown from a worn piece's inventory), which leaves the dwarven arm at the stored value.
+fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3], owner: u128, stack: &StackData, holder_y: Option<f64>) -> bool {
+    let velocity = f64::from(conditional_velocity(stack, holder_y, dimension));
     let motion = [look[0] * velocity, look[1] * velocity, look[2] * velocity];
     let thrown = Identifier::parse(&format!("tconstruct:{SHURIKEN_ENTITY}")).expect("valid thrown type");
     let Some(id) = pluto_lib::spawn_thrown(world, &thrown, eye, motion, Some(owner), pluto_lib::NbtCompound::new()) else { return false };
@@ -163,13 +175,13 @@ pub(crate) fn throw_stored_shuriken(player: &ServerPlayer, dimension: &str, eye:
         enchantments: thrown.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(),
     };
     if !shuriken(&stack) { return false; }
-    spawn_shuriken(&World::new(dimension), dimension, eye, look, player.uuid, &stack)
+    spawn_shuriken(&World::new(dimension), dimension, eye, look, player.uuid, &stack, None)
 }
 
 /// Throws one shuriken (ModifiableShurikenItem.use: instant, the stack shrinks by one).
 fn throw_shuriken(release: &ReleaseUsing) {
     let stack = &release.stack;
-    if !spawn_shuriken(&release.world(), &release.dimension, release.eye, release.look, release.player.uuid, stack) { return; }
+    if !spawn_shuriken(&release.world(), &release.dimension, release.eye, release.look, release.player.uuid, stack, Some(release.position[1])) { return; }
     if !release.creative {
         // Spend one from the hand the shuriken was thrown from.
         let same = |slot: &ItemSlot| slot.item.to_string() == release.stack.item && slot.custom_data == release.stack.custom_data;

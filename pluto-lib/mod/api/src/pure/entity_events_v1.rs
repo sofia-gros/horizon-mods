@@ -630,6 +630,12 @@ pub struct DamageModification {
     /// The damaged entity's `minecraft:attack_damage` attribute as the game reports it (a mob victim's); None
     /// when not reported.
     pub target_attack_damage: Option<f32>,
+    /// Where the causing entity stands (its feet position) as the hit landed, and where the damaged entity
+    /// stands; None when the game did not report them. The weapon-hit report names both for a player's
+    /// weapon hit; a mob's synchronous attack names them from the same report. A hit no report covered
+    /// (the environment) names neither.
+    pub attacker_position: Option<[f64; 3]>,
+    pub target_position: Option<[f64; 3]>,
     /// The actions to do to the damaged player (`Victim`), which callbacks add to; they land on the player's next tick (only for a player
     /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped. On a player's attack
     /// (`attacker_stack` is set) the actions for `Attacker` land on the attacking player's next tick instead. An action for a
@@ -1176,6 +1182,7 @@ pub(crate) fn after_death(death: &LivingDamage) {
 thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
     static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>, std::time::Instant)>> = const { RefCell::new(None) };
+    static PENDING_POSITIONS: RefCell<Option<(i32, Option<[f64; 3]>, Option<[f64; 3]>, std::time::Instant)>> = const { RefCell::new(None) };
 }
 
 /// How long the states of a hit stay good: the damage event follows in the same call, so a few milliseconds is plenty, and a longer gap
@@ -1205,6 +1212,48 @@ pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Opt
         }
         *pending = Some((entity, attacker, target, std::time::Instant::now()));
     });
+}
+
+/// A hit is landing on `entity`: where the attacker and the target stand (their feet positions), remembered for the
+/// damage that follows in the same call, in the same 100 ms window as [`hit_states`]. A hit is reported more than
+/// once and one report may know a position where another does not: the reports of one hit complement each other
+/// there, and the newest report stands otherwise.
+pub(crate) fn hit_positions(entity: i32, attacker: Option<[f64; 3]>, target: Option<[f64; 3]>) {
+    PENDING_POSITIONS.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        if let Some((old_entity, old_attacker, old_target, at)) = &*pending {
+            if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME {
+                let attacker = attacker.or(*old_attacker);
+                let target = target.or(*old_target);
+                *pending = Some((entity, attacker, target, std::time::Instant::now()));
+                return;
+            }
+        }
+        *pending = Some((entity, attacker, target, std::time::Instant::now()));
+    });
+}
+
+/// The positions of the hit on `entity` as the game reported it most recently, if any (attacker, target); stale after 100 ms.
+fn pending_positions(entity: i32) -> (Option<[f64; 3]>, Option<[f64; 3]>) {
+    PENDING_POSITIONS.with(|pending| {
+        let pending = pending.borrow();
+        if let Some((old_entity, attacker, target, at)) = &*pending {
+            if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME { return (*attacker, *target); }
+        }
+        (None, None)
+    })
+}
+
+/// Takes the positions of the hit on `entity` (attacker, target) for the damage event that follows; stale after 100 ms.
+fn take_pending_positions(entity: i32) -> (Option<[f64; 3]>, Option<[f64; 3]>) {
+    PENDING_POSITIONS.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match pending.take() {
+            Some((old_entity, attacker, target, at)) if old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME => (attacker, target),
+            Some((old_entity, _, _, at)) if old_entity == entity || at.elapsed() >= HIT_STATES_LIFETIME => (None, None),
+            other => { *pending = other; (None, None) }
+        }
+    })
 }
 
 /// The state of each player wearing armor that carries custom data, as of their last tick, by entity id: the damage event that
@@ -1477,7 +1526,8 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     // A mob's worn pieces come with the hit's own report of it, when that report ran (a player's weapon hit reads the
     // mob's saved data); a player's pieces are the remembered ones above.
     let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
-    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, actions: RefCell::new(Vec::new()) };
+    let (attacker_position, target_position) = take_pending_positions(damage.entity);
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_DAMAGE.invoke(&modification);
     queue_damage_actions(damage, &modification);
@@ -1499,7 +1549,8 @@ pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
     // A mob's worn pieces come with the hit's own report of it, when that report ran (a player's weapon hit reads the
     // mob's saved data); a player's pieces are the remembered ones above.
     let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
-    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, actions: RefCell::new(Vec::new()) };
+    let (attacker_position, target_position) = pending_positions(damage.entity);
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_HURT.invoke(&modification);
     queue_damage_actions(damage, &modification);
@@ -2281,5 +2332,20 @@ mod tests {
         let tick = MobTick { entity: 7171, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: true, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
         mob_tick(&tick);
         assert_eq!(SEEN.lock().unwrap().clone(), vec![(7171, true, 1)]);
+    }
+
+    #[test]
+    fn modify_damage_carries_the_positions_the_hit_reported() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 9191 { log.lock().unwrap().push((hit.attacker_position, hit.target_position)); });
+        hit_positions(9191, Some([1.0, 64.0, 2.0]), None);
+        // A second report of the same hit that knows only the target's place complements the first.
+        hit_positions(9191, None, Some([4.0, 64.0, 5.0]));
+        let hurt = LivingDamage { entity: 9191, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), attacker: 3, direct: 3, amount: 5.0 };
+        modify_damage(&hurt);
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0], (Some([1.0, 64.0, 2.0]), Some([4.0, 64.0, 5.0])));
     }
 }
