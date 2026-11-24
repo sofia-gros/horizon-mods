@@ -2443,3 +2443,34 @@ helper = "pluto-projectile-flight-return.rs"
 bindings = [
  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }
 ]
+
+# The throw sound: the game plays the vanilla snowball throw for every thrown type (Game::throw_item), where
+# Java plays the type's own sound (tconstruct:throw.throwball / throw.shuriken, NEUTRAL, 0.5, pitch
+# 0.4 / (random * 0.4 + 0.8)). The game's volume and pitch already are Java's, so only the event id is swapped:
+# the store of `sound` in throw_item is replaced with the thrown type's registered throw sound, when it has one.
+[[module]]
+id = "pluto-throw-sound-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_throw_sound_access"
+source = "pluto-throw-sound-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-throw-sound-game"
+file = "crates/horizon-client/src/game/creatures.rs"
+name = "pluto_throw_sound"
+source = "pluto-throw-sound-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-throw-sound"
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+kind = "MODIFY_VARIABLE"
+variable = { name = "sound", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-throw-sound.rs"
+bindings = [
+ { name = "value", ty = "&'static str", value = "$value" },
+ { name = "kind", ty = "&crate::projectiles::ProjectileKind", value = "&kind" }
+]

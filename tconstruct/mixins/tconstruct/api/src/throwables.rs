@@ -38,8 +38,10 @@
 //!   documented deviation the fluid explosion effect carries.
 //! - Sounds: Java plays `tconstruct:throw.throwball` / `tconstruct:throw.shuriken` (Sounds.java,
 //!   NEUTRAL, 0.5 volume, pitch `0.4F / (random * 0.4F + 0.8F)`); the game picks the throw sound
-//!   by projectile kind and plays the vanilla snowball throw for thrown types, so the custom
-//!   sounds are not heard — a documented reduction.
+//!   by projectile kind and plays the vanilla snowball throw for thrown types, so each type
+//!   registers its throw sound on its [`ThrownType`] and PlutoLib's throw-sound reach
+//!   (`pluto-throw-sound`, a MODIFY_VARIABLE on the game's `throw_item`) plays that sound
+//!   instead — the volume and pitch the game already plays are Java's.
 //! - Dispensers: Java registers a `ShootProjectileDispenserBehavior` (power 1.1, inaccuracy
 //!   6.0) for all four items, and they are registered the same way below, in PlutoLib's
 //!   [`DispenseRegistry`]: the host's `dispense_item` hook (API 67) asks its mods before it
@@ -65,17 +67,21 @@ pub(crate) const DISPENSE_INACCURACY: f32 = 6.0;
 /// `damage`/`knockback` are ShurikenEntityBase's `getDamage()`/`getKnockback()` (flint 3.0/0.6,
 /// quartz 5.0/0.4); the balls deal no damage (GlowballEntity and EFLNEntity override no
 /// `onHitEntity` damage; the EFLN's harm is its explosion, size 4.0, damage 8.0, knockback 1).
+/// `throw_sound` is the Java throw sound: `throw.throwball` for the balls (GlowBallItem.use,
+/// EFLNItem.use), `throw.shuriken` for the shurikens (ShurikenItem.use).
 pub(crate) struct Thrown {
     pub name: &'static str,
     pub damage: f32,
     pub knockback: f32,
+    /// The sound a hand throw of this type plays, instead of the vanilla snowball throw.
+    pub throw_sound: &'static str,
 }
 
 pub(crate) const THROWABLES: [Thrown; 4] = [
-    Thrown { name: "glow_ball", damage: 0.0, knockback: 0.0 },
-    Thrown { name: "efln_ball", damage: 0.0, knockback: 0.0 },
-    Thrown { name: "flint_shuriken", damage: 3.0, knockback: 0.6 },
-    Thrown { name: "quartz_shuriken", damage: 5.0, knockback: 0.4 },
+    Thrown { name: "glow_ball", damage: 0.0, knockback: 0.0, throw_sound: "tconstruct:throw.throwball" },
+    Thrown { name: "efln_ball", damage: 0.0, knockback: 0.0, throw_sound: "tconstruct:throw.throwball" },
+    Thrown { name: "flint_shuriken", damage: 3.0, knockback: 0.6, throw_sound: "tconstruct:throw.shuriken" },
+    Thrown { name: "quartz_shuriken", damage: 5.0, knockback: 0.4, throw_sound: "tconstruct:throw.shuriken" },
 ];
 
 fn id(name: &str) -> Identifier {
@@ -87,8 +93,12 @@ pub(crate) fn register() {
     ONCE.call_once(|| {
         for thrown in &THROWABLES {
             let item = id(thrown.name);
-            ThrownTypeRegistry::register(ThrownType::new(item.clone(), item.clone(), thrown.damage).expect("a valid thrown type"))
-                .expect("Tinkers thrown type registration failed");
+            ThrownTypeRegistry::register(
+                ThrownType::new(item.clone(), item.clone(), thrown.damage)
+                    .expect("a valid thrown type")
+                    .throw_sound(Identifier::parse(thrown.throw_sound).expect("a valid throw sound")),
+            )
+            .expect("Tinkers thrown type registration failed");
             // The item's own entity type is its projectile, under the same id (TinkerGadgets registers
             // the ShootProjectileDispenserBehavior with the item's entity for each of the four).
             DispenseRegistry::register(item.clone(), DispenseBehavior::Shoot { entity: item, power: DISPENSE_POWER, inaccuracy: DISPENSE_INACCURACY });
@@ -213,12 +223,22 @@ mod tests {
     }
 
     #[test]
-    fn the_thrown_types_carry_the_entity_classes_damage() {
+    fn the_thrown_types_carry_the_entity_classes_damage_and_throw_sound() {
         for thrown in &THROWABLES {
             let item = id(thrown.name);
-            let made = ThrownType::new(item.clone(), item, thrown.damage).expect("the row validates");
+            let made = ThrownType::new(item.clone(), item, thrown.damage)
+                .expect("the row validates")
+                .throw_sound(Identifier::parse(thrown.throw_sound).expect("the row's sound validates"));
             let _ = ThrownTypeRegistry::register(made);
-            assert_eq!(ThrownTypeRegistry::get(&id(thrown.name)).map(|t| t.damage), Some(thrown.damage), "{}", thrown.name);
+            let registered = ThrownTypeRegistry::get(&id(thrown.name)).expect("the type is registered");
+            assert_eq!(registered.damage, thrown.damage, "{}", thrown.name);
+            let expected = if thrown.name.ends_with("shuriken") { "tconstruct:throw.shuriken" } else { "tconstruct:throw.throwball" };
+            assert_eq!(
+                registered.throw_sound.as_ref().map(|sound| sound.to_string()),
+                Some(expected.to_owned()),
+                "{}",
+                thrown.name
+            );
         }
         assert_eq!(THROWABLES[2].knockback, 0.6, "flint knockback");
         assert_eq!(THROWABLES[3].knockback, 0.4, "quartz knockback");

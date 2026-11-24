@@ -197,10 +197,13 @@ let shuriken = ThrownType::new(
     Identifier::parse("example:shuriken_thrown").unwrap(),
     Identifier::parse("example:shuriken").unwrap(),
     4.0,
-).unwrap();
+).unwrap().throw_sound(Identifier::parse("example:throw.shuriken").unwrap());
 ThrownTypeRegistry::register(shuriken).unwrap();
 assert_eq!(ThrownTypeRegistry::get(&Identifier::parse("example:shuriken_thrown").unwrap()).unwrap().damage, 4.0);
+assert_eq!(ThrownTypeRegistry::throw_sound(&Identifier::parse("example:shuriken_thrown").unwrap()).map(|sound| sound.to_string()), Some("example:throw.shuriken".to_owned()));
 ```
+
+A hand throw of a thrown type plays the game's snowball throw unless the type carries a throw sound: `.throw_sound(...)` registers the sound the throw plays instead. The game's volume (0.5) and pitch (`0.4 / (random * 0.4 + 0.8)`) already match Java's, so only the event id changes; a type with no throw sound keeps the game's own sound.
 
 > **Use with Caution.** Registration is the trait-mod source of truth, validated as the game validates the content form; delivery to the game's own registry is a wall. The game fills its thrown-type registry once, at startup, from content mods' entity types alone, and no entry or provider seam reaches it for a trait mod, so a type registered here must also be declared in the mod's content entity types to fly in the game. `ThrownTypeRegistry::declarations()` hands over exactly what that declaration needs: each type's id, its `item` and its `damage`, on the `minecraft:snowball` template.
 
@@ -223,7 +226,7 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 ### `ThrownType`
 
-A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item` and `damage`. `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
+A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item`, `damage` and `throw_sound`, the sound a hand throw plays instead of the game's snowball throw (`None` keeps the game's own). `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType};
@@ -232,6 +235,7 @@ let thrown = ThrownType::new(Identifier::parse("example:rock_thrown").unwrap(), 
 assert_eq!(thrown.id.to_string(), "example:rock_thrown");
 assert_eq!(thrown.item.to_string(), "example:rock");
 assert_eq!(thrown.damage, 2.0);
+assert_eq!(thrown.throw_sound, None);
 ```
 
 ### `ThrownTypeRegistry`
@@ -292,6 +296,20 @@ assert_eq!(ops.summons[0].kind, "example:dart_thrown");
 assert_eq!(spawn_thrown(&world, &Identifier::parse("example:unregistered_thrown").unwrap(), [0.0; 3], [0.0; 3], None, NbtCompound::new()), None);
 ```
 
+### `throw_sound_for`
+
+`fn throw_sound_for(id: &str) -> Option<&'static str>`. The sound a thrown type throws with, for the host's throw-sound sink: the registered type's throw sound, if it carries one. None keeps the game's own snowball throw.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry, throw_sound_for};
+
+assert_eq!(throw_sound_for("example:unregistered_thrown"), None);
+let id = Identifier::parse("example:chime_thrown").unwrap();
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:chime").unwrap(), 0.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.chime").unwrap())).unwrap();
+assert_eq!(throw_sound_for("example:chime_thrown"), Some("example:throw.chime"));
+```
+
 ### `uuid_int_array`
 
 `fn uuid_int_array(uuid: u128) -> [i32; 4]`. A uuid as the four ints entity data holds it in (`UUIDUtil.uuidToIntArray`), most significant first.
@@ -313,6 +331,18 @@ assert!(ThrownType::new(Identifier::parse("example:ok_thrown").unwrap(), Identif
 assert!(ThrownType::new(Identifier::parse("minecraft:arrow").unwrap(), Identifier::parse("minecraft:arrow").unwrap(), 1.0).is_err());
 assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identifier::parse("example:bad").unwrap(), -1.0).is_err());
 assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identifier::parse("example:bad").unwrap(), f32::NAN).is_err());
+```
+
+### `ThrownType::throw_sound`
+
+`fn throw_sound(self, sound: Identifier) -> ThrownType`. The same thrown type, throwing with `sound` instead of the vanilla snowball throw.
+
+```rust
+use pluto_lib::{Identifier, ThrownType};
+
+let thrown = ThrownType::new(Identifier::parse("example:ball_thrown").unwrap(), Identifier::parse("example:ball").unwrap(), 0.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.throwball").unwrap());
+assert_eq!(thrown.throw_sound.unwrap().to_string(), "example:throw.throwball");
 ```
 
 ### `ThrownTypeRegistry::register`
@@ -338,6 +368,20 @@ let id = Identifier::parse("example:orb_thrown").unwrap();
 assert!(ThrownTypeRegistry::get(&id).is_none());
 ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:orb").unwrap(), 5.0).unwrap()).unwrap();
 assert_eq!(ThrownTypeRegistry::get(&id).unwrap().item.to_string(), "example:orb");
+```
+
+### `ThrownTypeRegistry::throw_sound`
+
+`fn throw_sound(id: &Identifier) -> Option<Identifier>`. The throw sound registered for `id`, if the type carries one.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+let id = Identifier::parse("example:shard_thrown").unwrap();
+assert_eq!(ThrownTypeRegistry::throw_sound(&id), None);
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:shard").unwrap(), 1.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.shard").unwrap())).unwrap();
+assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), Some("example:throw.shard".to_owned()));
 ```
 
 ### `ThrownTypeRegistry::declarations`

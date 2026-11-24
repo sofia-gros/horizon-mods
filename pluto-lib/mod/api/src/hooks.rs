@@ -37,6 +37,7 @@ use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
 use crate::pure::book_api_v1::{self, BookOps, BookView};
+use crate::pure::projectile_api_v1;
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
@@ -215,6 +216,9 @@ pub fn hooks() -> Box<dyn Hooks> {
             }
         },
     }).expect("PlutoLib projectile flight sink installs once");
+    horizon_client::entry::pluto_throw_sound_access::set_sink(horizon_client::entry::pluto_throw_sound_access::Sink {
+        throw_sound: projectile_api_v1::throw_sound_for,
+    }).expect("PlutoLib throw sound sink installs once");
     horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
         .expect("PlutoLib block entity predicate installs once before native initialization");
     horizon_client::entry::pluto_block_entity_access::set_cache_generation_provider(crate::pure::render_cache::generation)
