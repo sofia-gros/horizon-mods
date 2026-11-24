@@ -6,7 +6,7 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. The Deco tab is here with its retextured variants (their stacks carry the
 //! texture record, so one taken from the tab places with its texture kept; the variant pictures wait on the same
-//! model-data surface as every retexture). Not here: food (the cakes and the cheese, which are here), glass (but the clear, stained and soul glass, which are here; the clear tinted glass is in the smeltery tab), platforms, the books and
+//! model-data surface as every retexture). Not here: food (the cakes and the cheese, which are here), glass (but the clear, stained, tinted and soul glass, which are here), platforms, the books and
 //! the gadgets of the general tab (the piggyback and the fancy frames and armor stands are here; the throwables are in no tab, as in the original),
 //! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
 //! of the world tab.
@@ -159,12 +159,13 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(["molten_tin_bucket", "molten_aluminum_bucket", "molten_lead_bucket", "molten_silver_bucket", "molten_nickel_bucket", "molten_zinc_bucket", "molten_platinum_bucket", "molten_tungsten_bucket", "molten_osmium_bucket", "molten_uranium_bucket", "molten_chromium_bucket", "molten_cadmium_bucket"].map(str::to_owned));
     rest.extend(["molten_bronze_bucket", "molten_brass_bucket", "molten_electrum_bucket", "molten_invar_bucket", "molten_constantan_bucket", "molten_pewter_bucket", "molten_nicrosil_bucket", "molten_enderium_bucket", "molten_lumium_bucket", "molten_signalum_bucket", "molten_refined_glowstone_bucket", "molten_refined_obsidian_bucket", "molten_duralumin_bucket", "molten_bendalloy_bucket", "molten_steeleaf_bucket", "fiery_liquid_bucket", "potion_bucket"].map(str::to_owned));
     // The rest of the tab's declared items: the foods, the bones, the dragon scale, the silky cloth and the creative
-    // slot, the reinforcements, the plating dummies, the soulsteel set, the clear tinted glass, the nahuatl fence
-    // gate and the splash and lingering bottles.
+    // slot, the reinforcements, the plating dummies, the nahuatl fence gate and the splash and lingering bottles.
+    // Not here: the soulsteel set (the original leaves it for the future, in no tab) and the clear tinted glass
+    // (the original puts it in the general tab only, where this port's GENERAL list already carries it).
     rest.extend(["bacon", "jeweled_apple", "necrotic_bone", "venombone", "blazing_bone", "necronium_bone", "dragon_scale", "silky_cloth", "creative_slot",
         "emerald_reinforcement", "slimesteel_reinforcement", "iron_reinforcement", "seared_reinforcement", "gold_reinforcement", "cobalt_reinforcement", "obsidian_reinforcement",
         "boots_plating_dummy", "chestplate_plating_dummy", "helmet_plating_dummy", "leggings_plating_dummy",
-        "soulsteel_block", "soulsteel_ingot", "soulsteel_nugget", "clear_tinted_glass", "nahuatl_fence_gate", "splash_bottle", "lingering_bottle"].map(str::to_owned));
+        "nahuatl_fence_gate", "splash_bottle", "lingering_bottle"].map(str::to_owned));
     entries.extend(rest.iter().map(|name| item(name)));
     smeltery.entries(entries)
 }
