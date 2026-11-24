@@ -24,7 +24,7 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ## What the callback receives
 
-`size` is the window's size in GUI pixels; hotbar-relative art anchors to its centre and bottom, as the example does. `inventory` is the local player's inventory as the client last saw it synced — the hotbar first, then the main inventory, 36 slots — and `equipment` what the player wears and holds: `head`, `chest`, `legs`, `feet`, `offhand`, `main_hand`, and `right_handed` for which side the offhand slot sits on. `spectator` tells whether the local player is a spectator (the original draws none of its HUD then). Everything is the client's own view: nothing here reaches the server, and before the first sync the inventory and equipment simply read empty.
+`size` is the window's size in GUI pixels; hotbar-relative art anchors to its centre and bottom, as the example does. `inventory` is the local player's inventory as the client last saw it synced — the hotbar first, then the main inventory, 36 slots — and `equipment` what the player wears and holds: `head`, `chest`, `legs`, `feet`, `offhand`, `main_hand`, and `right_handed` for which side the offhand slot sits on. `spectator` tells whether the local player is a spectator (the original draws none of its HUD then). `effects` is the player's active effects, each with whether it is beneficial and whether its icon shows — the original's effect shift counts exactly the ones that show. Everything is the client's own view: nothing here reaches the server, and before the first sync the inventory and equipment simply read empty.
 
 ## Reference
 
@@ -57,7 +57,7 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudDraw`
 
-What a HUD draw callback receives: `canvas` (a [`ScreenCanvas`](screen.md), in GUI pixels from the window's top left), `size`, `inventory`, `equipment` and `spectator`, as described above.
+What a HUD draw callback receives: `canvas` (a [`ScreenCanvas`](screen.md), in GUI pixels from the window's top left), `size`, `inventory`, `equipment`, `spectator` and `effects`, as described above.
 
 ```rust
 use pluto_lib::{HudDraw, HudRegistry};

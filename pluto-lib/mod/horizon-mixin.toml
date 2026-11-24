@@ -2827,3 +2827,30 @@ bindings = [
  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
  { name = "projectile", ty = "u32", value = "projectile" }
 ]
+
+# The local player's active effects' icon flags (vanilla's MobEffectInstance.showIcon),
+# published at the head of every HUD draw so the effect read can carry them: the host's
+# effect read (NativeEffect) has no icon flag, and the HUD shift counts exactly the effects
+# that show their icon (ModifierClientEvents.getEffectOffset). The snapshot is the local
+# player's own list, taken where the draw is about to run; the API side reads it by effect
+# id and defaults an unnamed effect to shown, as vanilla does.
+[[module]]
+id = "pluto-effect-icon-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_effect_icon_access"
+source = "pluto-effect-icon-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-effect-icon"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_effect_icon"
+source = "pluto-effect-icon.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-effect-icon-head"
+target = "horizon_client::game::native_hooks::Game<'_>::native_hud"
+kind = "HEAD"
+helper = "pluto-effect-icon-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

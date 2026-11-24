@@ -300,6 +300,10 @@ fn inventory_tick(tick: &pluto_lib::InventoryTick) {
                     duration: 2,
                     ambient: true,
                     particles: false,
+                    // The original's six-argument construction (ambient, no particles,
+                    // icon shown) renders a custom carry icon and counts in the HUD's
+                    // effect shift, so the icon stays shown here.
+                    show_icon: true,
                 });
                 trim_to(&chain, chest_stack.count as usize);
             }

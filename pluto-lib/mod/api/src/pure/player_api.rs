@@ -318,12 +318,17 @@ pub struct EffectInstance {
     pub ambient: bool,
     /// Whether the effect shows particles.
     pub particles: bool,
+    /// Whether the effect's icon shows in the GUI (vanilla's `MobEffectInstance.showIcon`,
+    /// `/effect`'s default true). This is the read's flag, published by PlutoLib's
+    /// effect-icon reach at the head of every HUD draw: giving an effect always shows its
+    /// icon, as the host's add path carries no flag and defaults it to shown.
+    pub show_icon: bool,
 }
 
 impl EffectInstance {
-    /// An effect of level I lasting `duration` ticks (20 are one second; -1 never ends), with particles.
+    /// An effect of level I lasting `duration` ticks (20 are one second; -1 never ends), with particles and its icon showing.
     pub fn new(id: &str, duration: i32) -> Self {
-        Self { id: id.to_owned(), amplifier: 0, duration, ambient: false, particles: true }
+        Self { id: id.to_owned(), amplifier: 0, duration, ambient: false, particles: true, show_icon: true }
     }
 
     /// The same effect at another level (0 is level I).
@@ -1116,6 +1121,16 @@ mod tests {
         assert_eq!(left, 3);
         assert_eq!(ops.told, [(7, "hi".to_owned())]);
         assert_eq!(ops.given, [(7, "minecraft:stick".to_owned(), 5)]);
+    }
+
+    #[test]
+    fn an_effect_carries_whether_its_icon_shows() {
+        assert!(EffectInstance::new("minecraft:speed", 100).show_icon, "a fresh effect shows its icon, as vanilla defaults it");
+        let mut ops = MemoryPlayerOps::default();
+        with_ops(&mut ops, || {
+            assert!(player().add_effect(&EffectInstance { show_icon: false, ..EffectInstance::new("minecraft:darkness", 100) }));
+            assert_eq!(player().effects().iter().map(|effect| effect.show_icon).collect::<Vec<_>>(), [false], "the read keeps a hidden effect hidden");
+        });
     }
 
     #[test]
