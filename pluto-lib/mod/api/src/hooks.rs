@@ -1368,9 +1368,9 @@ fn native_split_inherit(host:&mut dyn Host,info:&horizon_client::entry::pluto_mo
     children:&mut [Box<dyn horizon_client::entry::pluto_mob_split::Child>])->Result<(),String> {
     let context=split_context(info);
     let head=info.head.as_ref().map(read_stack);
-    let mut views:Vec<Box<dyn crate::pure::mob_split_api::MobSplitChild>>=children.iter_mut().map(|child|
+    let mut views:Vec<Box<dyn crate::pure::mob_split_api::MobSplitChild + '_>>=children.iter_mut().map(|child|
         Box::new(SplitChildView { native:child,kind:info.entity_type.clone(),dimension:info.dimension.clone() })
-            as Box<dyn crate::pure::mob_split_api::MobSplitChild>).collect();
+            as Box<dyn crate::pure::mob_split_api::MobSplitChild + '_>).collect();
     let mut split_random=SplitRandom(random);
     let mut view=crate::pure::mob_split_api::MobSplitInheritance {
         context:&context,head,head_drop_chance:info.head_drop_chance,
