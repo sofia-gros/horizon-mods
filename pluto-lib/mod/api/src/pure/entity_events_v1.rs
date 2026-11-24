@@ -493,6 +493,14 @@ pub struct DamageModification {
     /// The stack in the causing entity's main hand, for an attacker of any kind; None for an empty hand or when
     /// the game did not report it. For a player's attack this is the same stack as `attacker_stack`.
     pub attacker_main_hand: Option<StackData>,
+    /// The hand that fired the arrow of this hit, when the shot's weapon is still held in it: the
+    /// hit's opening names both hands as the hit lands, and the ammunition telling names the weapon that was
+    /// shot. None for another hit — a trident's shot names no weapon, so its hit names no hand — or when
+    /// neither hand holds that weapon any more.
+    pub attacker_launcher_hand: Option<StackSlot>,
+    /// The launcher's stack as the hit landed (the bow or crossbow in `attacker_launcher_hand`); None when the
+    /// hand is.
+    pub attacker_launcher_stack: Option<StackData>,
     /// The stack on the causing entity's chest, for an attacker of any kind; None for an empty chest slot or when
     /// the game did not report it. Only a mob's synchronous attack reports it.
     pub attacker_chest: Option<StackData>,
@@ -805,11 +813,17 @@ pub(crate) fn entity_tick_heard() -> bool {
 /// What the game names of the entity behind a synchronous attack (a mob's melee swing) as the attack is
 /// delivered: its type, what it holds and wears, its attack attribute and the state the hit hooks read. The
 /// game names the attacker before the hit lands (its knockback scope), so the facts belong to the attack in
-/// flight; a damage event reads them matched by the attacker's entity id, and only briefly.
+/// flight; a damage event reads them matched by the attacker's entity id, and only briefly. A player's hit
+/// names both hands instead (`off_hand`): the shot's weapon says which of them launched, so a launcher's
+/// hit can name its hand; the rest of a player's note stays neutral (no attack attribute, chest piece or
+/// state a mob's note carries), and the damage event reads only its hands.
 #[derive(Clone, Debug)]
 pub(crate) struct AttackerFacts {
     pub kind: String,
     pub main_hand: Option<StackData>,
+    /// The stack in the causing entity's off hand; None for an empty hand, a mob (whose note names no off
+    /// hand) or when the game did not report it.
+    pub off_hand: Option<StackData>,
     pub chest: Option<StackData>,
     pub attack_damage: f32,
     pub state: EntityState,
@@ -873,12 +887,28 @@ fn victim_facts(entity: i32) -> Option<VictimFacts> {
 fn fill_damage_facts(modification: &mut DamageModification) {
     let damage = modification.damage.clone();
     if let Some(facts) = attacker_facts(damage.attacker) {
-        modification.attacker_kind = facts.kind;
-        modification.attacker_main_hand = facts.main_hand;
-        modification.attacker_chest = facts.chest;
-        modification.attacker_attack_damage = Some(facts.attack_damage);
-        if modification.attacker_state.is_none() { modification.attacker_state = Some(facts.state); }
-        modification.attacker_is_player = Some(false);
+        if facts.kind == "minecraft:player" {
+            // The player's hit: the opening names both hands, and the shot's weapon says which launched. The
+            // rest of the snapshot is a mob's (an attack attribute, a chest piece, a state the hit hooks read),
+            // so a player's note carries none of it and the hit's own report stands where it exists.
+            modification.attacker_kind = facts.kind;
+            modification.attacker_is_player = Some(true);
+            if damage.damage_type.as_str() == "minecraft:arrow" {
+                // Only an arrow's shot names a weapon: a trident's shot names none, so any match
+                // there would be a bow left over from an earlier shot, not the trident.
+                if let Some((hand, stack)) = super::projectile_events_v1::launcher_for(&facts.main_hand, &facts.off_hand) {
+                    modification.attacker_launcher_hand = Some(hand);
+                    modification.attacker_launcher_stack = Some(stack);
+                }
+            }
+        } else {
+            modification.attacker_kind = facts.kind;
+            modification.attacker_main_hand = facts.main_hand;
+            modification.attacker_chest = facts.chest;
+            modification.attacker_attack_damage = Some(facts.attack_damage);
+            if modification.attacker_state.is_none() { modification.attacker_state = Some(facts.state); }
+            modification.attacker_is_player = Some(false);
+        }
     }
     if modification.attacker_main_hand.is_none() { modification.attacker_main_hand = modification.attacker_stack.clone(); }
     if modification.attacker_stack.is_some() { modification.attacker_is_player = Some(true); }
@@ -1229,7 +1259,7 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     // mob's saved data); a player's pieces are the remembered ones above.
     let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
     let (attacker_position, target_position) = take_pending_positions(damage.entity);
-    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_DAMAGE.invoke(&modification);
     queue_damage_actions(damage, &modification);
@@ -1252,7 +1282,7 @@ pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
     // mob's saved data); a player's pieces are the remembered ones above.
     let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
     let (attacker_position, target_position) = pending_positions(damage.entity);
-    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_HURT.invoke(&modification);
     queue_damage_actions(damage, &modification);
@@ -1385,7 +1415,7 @@ mod tests {
         });
         let sword = StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
         let plate = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
-        note_attacker_facts(77, AttackerFacts { kind: "minecraft:zombie".into(), main_hand: Some(sword), chest: Some(plate), attack_damage: 3.0,
+        note_attacker_facts(77, AttackerFacts { kind: "minecraft:zombie".into(), main_hand: Some(sword), off_hand: None, chest: Some(plate), attack_damage: 3.0,
             state: EntityState { kind: "minecraft:zombie".into(), on_ground: true, ..EntityState::default() } });
         note_victim_facts(6060, VictimFacts { health: 14.5, attack_damage: Some(2.0) });
         let hurt = LivingDamage { entity: 6060, kind: "minecraft:pig".into(), damage_type: "minecraft:mob_attack".into(), attacker: 77, direct: 77, amount: 4.0 };
@@ -1396,6 +1426,60 @@ mod tests {
         assert_eq!(*seen.lock().unwrap(), vec![
             ("minecraft:zombie".to_string(), Some(false), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
             ("minecraft:zombie".to_string(), Some(true), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn a_players_arrow_hit_names_the_hand_that_launched_it() {
+        use super::super::projectile_events_v1::{AmmoRequest, ammo};
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| {
+            if hit.damage.entity == 61616 {
+                log.lock().unwrap().push((hit.attacker_kind.clone(), hit.attacker_is_player,
+                    hit.attacker_launcher_hand, hit.attacker_launcher_stack.as_ref().map(|stack| stack.item.clone())));
+            }
+        });
+        let mut bow_data = NbtCompound::new();
+        bow_data.insert("tic_level".into(), Nbt::Int(2));
+        let bow = StackData { item: "example:longbow".into(), count: 1, custom_data: bow_data, ..StackData::default() };
+        let sword = StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
+        let shield = StackData { item: "example:shield".into(), count: 1, ..StackData::default() };
+        // The shot's weapon, as the ammunition telling named it.
+        ammo(&AmmoRequest {
+            player: Some(9), name: "archer".into(), entity: None, kind: "minecraft:player".into(), weapon: bow.clone(),
+            vanilla: None, carried: Vec::new(), supplied: RefCell::new(None), edits: RefCell::new(Vec::new()),
+        });
+        let player_state = || EntityState { kind: "minecraft:player".into(), on_ground: true, ..EntityState::default() };
+        let arrow = |attacker: i32| LivingDamage { entity: 61616, kind: "minecraft:zombie".into(), damage_type: "minecraft:arrow".into(), attacker, direct: 0, amount: 4.0 };
+        // The bow in the off hand: the hit names the off hand and the bow.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(sword.clone()), off_hand: Some(bow.clone()), chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&arrow(0));
+        // The bow in the main hand instead: the hit names the main hand.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(bow.clone()), off_hand: None, chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&arrow(0));
+        // The bow in neither hand (swapped away after the shot): no launcher is named.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(sword.clone()), off_hand: Some(shield), chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&arrow(0));
+        // A melee hit with the bow in hand: the launcher telling stays silent (it is only for arrows).
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(bow.clone()), off_hand: None, chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&LivingDamage { damage_type: "minecraft:player_attack".into(), ..arrow(0) });
+        // A trident hit with the bow still in hand: the bow is a stale note from an earlier shot, not the
+        // trident's launcher, so no hand is named.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(bow.clone()), off_hand: None, chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&LivingDamage { damage_type: "minecraft:trident".into(), ..arrow(0) });
+        // A mob's arrow: the mob's snapshot stands (its main hand, no launcher), as before.
+        let plate = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
+        note_attacker_facts(77, AttackerFacts { kind: "minecraft:zombie".into(), main_hand: Some(sword), off_hand: None, chest: Some(plate), attack_damage: 3.0,
+            state: EntityState { kind: "minecraft:zombie".into(), on_ground: true, ..EntityState::default() } });
+        modify_damage(&arrow(77));
+        assert_eq!(*seen.lock().unwrap(), vec![
+            ("minecraft:player".to_string(), Some(true), Some(StackSlot::OffHand), Some("example:longbow".to_string())),
+            ("minecraft:player".to_string(), Some(true), Some(StackSlot::MainHand), Some("example:longbow".to_string())),
+            ("minecraft:player".to_string(), Some(true), None, None),
+            ("minecraft:player".to_string(), Some(true), None, None),
+            ("minecraft:player".to_string(), Some(true), None, None),
+            ("minecraft:zombie".to_string(), Some(false), None, None),
         ]);
     }
 

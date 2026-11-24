@@ -275,7 +275,7 @@ pub fn hooks() -> Box<dyn Hooks> {
                 ..entity_events_v1::EntityState::default()
             };
             entity_events_v1::note_attacker_facts(facts.attacker, entity_events_v1::AttackerFacts {
-                kind: facts.kind.clone(), main_hand: facts.main_hand.as_ref().map(read_stack), chest: facts.chest.as_ref().map(read_stack),
+                kind: facts.kind.clone(), main_hand: facts.main_hand.as_ref().map(read_stack), off_hand: facts.off_hand.as_ref().map(read_stack), chest: facts.chest.as_ref().map(read_stack),
                 attack_damage: facts.attack_damage, state,
             });
         },

@@ -1,14 +1,16 @@
 // What the game tells the mods about the parties of a hit as it is delivered: the entity behind a synchronous
 // attack (a mob's melee swing) is named as the attack opens, with what it holds and wears, and a damaged mob
 // or the ender dragon is named with the health the hit found. The mod answers nothing here; the facts are
-// remembered for the damage events of the same hit. Drops a damage callback asks for at an entity are queued
-// here too, for the game to spawn at that entity (see pluto-damage-drop-apply).
+// remembered for the damage events of the same hit. A player's opening names both hands, so a shot's weapon
+// says which of them launched; the rest of a player's note stays neutral. Drops a damage callback asks for at
+// an entity are queued here too, for the game to spawn at that entity (see pluto-damage-drop-apply).
 use std::sync::{Mutex, OnceLock};
 #[derive(Clone, Debug)]
 pub struct AttackerFacts {
     pub attacker: i32,
     pub kind: String,
     pub main_hand: Option<crate::items::ItemStack>,
+    pub off_hand: Option<crate::items::ItemStack>,
     pub chest: Option<crate::items::ItemStack>,
     pub attack_damage: f32,
     pub on_ground: bool,
