@@ -8,7 +8,7 @@
 // on the LAN station button's return) applies a guest's switch through the host's guest
 // container open, mirroring `lan_open_container`'s tail for a mod menu.
 use super::Game;
-use super::lan::LanHost;
+use crate::game::lan::LanHost;
 use horizon_client::lan::menu::Slots;
 
 impl Game<'_> {

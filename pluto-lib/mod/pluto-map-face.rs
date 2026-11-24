@@ -13,7 +13,7 @@ use horizon_client::hud::HudBatch;
 impl Game<'_> {
     pub(crate) fn draw_queued_map_faces(&mut self, batch: &mut HudBatch) {
         for face in horizon_client::game::pluto_map_face::take_queued() {
-            let Some(id) = super::maps::map_id(&face.stack) else { continue; };
+            let Some(id) = crate::game::maps::map_id(&face.stack) else { continue; };
             let face_texture = self.map_texture(id);
             let scale = face.rect[2] / 128.0;
             let x = face.rect[0];
@@ -82,7 +82,7 @@ impl Game<'_> {
             };
             batch.quad(
                 pose_corners(
-                    super::maps::decoration_pose_at(d.x, d.y, d.rot, 0.0),
+                    crate::game::maps::decoration_pose_at(d.x, d.y, d.rot, 0.0),
                     x,
                     y,
                     scale,
@@ -97,8 +97,8 @@ impl Game<'_> {
 /// Decoration `d`'s corners on screen, for a map drawn at `(x, y)` with
 /// `scale` GUI pixels per map pixel: (-1, 1), (1, 1), (1, -1), (-1, -1)
 /// under `MapRenderer.render`'s pose.
-fn decoration_corners(d: &super::maps::Decoration, x: f32, y: f32, scale: f32) -> [[f32; 2]; 4] {
-    pose_corners(super::maps::decoration_pose(d, 0.0), x, y, scale)
+fn decoration_corners(d: &crate::game::maps::Decoration, x: f32, y: f32, scale: f32) -> [[f32; 2]; 4] {
+    pose_corners(crate::game::maps::decoration_pose(d, 0.0), x, y, scale)
 }
 
 /// The corners of a decoration drawn under `pose` (`decoration_pose`), like
