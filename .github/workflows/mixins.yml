@@ -575,8 +575,52 @@ jobs:
           key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
-      - name: Fetch upstream sources
+      # The two upstream source trees are pure functions of the pinned
+      # revisions in tconstruct/compatibility.json (the content at a
+      # git SHA is immutable), so they are cached under an
+      # exact-revision key below and the network fetch runs only on a
+      # cache miss. The revisions are published to $GITHUB_ENV here
+      # because the cache key needs them before the restore step runs.
+      - name: Read pinned upstream revisions
+        id: upstream-pins
         if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          echo "HORIZON_REVISION=$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')" >> "$GITHUB_ENV"
+          echo "MIXINS_REVISION=$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')" >> "$GITHUB_ENV"
+      # Split restore/save, as with the toolchain and CLI caches: the
+      # combined actions/cache saves only in a post step gated on
+      # success(), and this job is exactly the one that may fail (the
+      # guarded build below), so a combined cache could never be
+      # populated. The save step further down runs under always() once
+      # the fetch itself has succeeded.
+      - name: Cache upstream sources
+        id: upstream-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ${{ github.workspace }}/../horizon-official
+            ${{ github.workspace }}/../horizon-mixins
+          key: ${{ runner.os }}-upstream-src-${{ env.HORIZON_REVISION }}-${{ env.MIXINS_REVISION }}-v1
+      # A cache hit is trusted only if both restored trees are actually
+      # detached at the pinned revisions; anything else (a stale or
+      # partial restore) falls through to the fetch step, which
+      # rebuilds the trees from scratch.
+      - name: Verify restored upstream sources
+        id: upstream-verify
+        if: steps.scope.outputs.docs_only != 'true' && steps.upstream-cache.outputs.cache-hit == 'true'
+        run: |
+          verified=true
+          if [ "$(git -C ../horizon-official rev-parse HEAD 2>/dev/null || true)" != "$HORIZON_REVISION" ]; then
+            verified=false
+          fi
+          if [ "$(git -C ../horizon-mixins rev-parse HEAD 2>/dev/null || true)" != "$MIXINS_REVISION" ]; then
+            verified=false
+          fi
+          echo "verified=$verified" >> "$GITHUB_OUTPUT"
+      - name: Fetch upstream sources
+        id: upstream-fetch
+        if: steps.scope.outputs.docs_only != 'true' && (steps.upstream-cache.outputs.cache-hit != 'true' || steps.upstream-verify.outputs.verified != 'true')
         env:
           # A failed fetch must surface as a clean error, never as an
           # interactive credential prompt (CI rounds 10/10b died with
@@ -584,34 +628,53 @@ jobs:
           # fetch was answered with a GitHub 401 auth challenge).
           GIT_TERMINAL_PROMPT: "0"
         run: |
-          # Authenticate with the workflow token: anonymous git
-          # fetches from shared runner IPs intermittently draw a 401
-          # challenge even for these public repos (rounds 10/10b).
-          # Each fetch retries up to 3 times so a single blip does not
-          # kill the job. What is fetched is unchanged: the pinned
-          # revisions from tconstruct/compatibility.json, depth 1,
-          # detached checkout.
+          # Anonymous fetch of the two public upstream repos. Do NOT
+          # authenticate with the workflow token: GITHUB_TOKEN is
+          # scoped to this repository, and GitHub answers a credential
+          # that cannot see another owner's repository with a
+          # deterministic existence-hiding 404 ("Repository not
+          # found", round 10c). Anonymous fetches succeeded in rounds
+          # 1-9; from shared runner IPs they intermittently draw a 401
+          # challenge (rounds 10/10b), so each fetch retries up to 5
+          # times and GIT_TERMINAL_PROMPT=0 makes a challenge fail
+          # fast instead of dying on a prompt. On a verified cache hit
+          # this step is skipped entirely (see the cache steps above).
+          # What is fetched is unchanged: the pinned revisions from
+          # tconstruct/compatibility.json, depth 1, detached checkout.
           fetch_pinned() {
-            for attempt in 1 2 3; do
+            for attempt in 1 2 3 4 5; do
               if git -C "$1" fetch --depth 1 origin "$2"; then
                 return 0
               fi
-              if [ "$attempt" -lt 3 ]; then
-                sleep 10
+              if [ "$attempt" -lt 5 ]; then
+                sleep 15
               fi
             done
             return 1
           }
+          rm -rf ../horizon-official ../horizon-mixins
           git init ../horizon-official
-          git -C ../horizon-official remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/horizon-rust/horizon.git"
-          HORIZON_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')"
+          git -C ../horizon-official remote add origin "https://github.com/horizon-rust/horizon.git"
           fetch_pinned ../horizon-official "$HORIZON_REVISION"
           git -C ../horizon-official checkout --detach FETCH_HEAD
           git init ../horizon-mixins
-          git -C ../horizon-mixins remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/horizon-rust/horizon-mixins.git"
-          MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
+          git -C ../horizon-mixins remote add origin "https://github.com/horizon-rust/horizon-mixins.git"
           fetch_pinned ../horizon-mixins "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
+      # Split save, mirroring the restore above: runs under always()
+      # so the cache is populated even when a later step (the guarded
+      # build) fails, but only when the fetch itself succeeded.
+      # continue-on-error keeps a cache-service failure from changing
+      # the job's conclusion.
+      - name: Save upstream sources cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.upstream-cache.outputs.cache-hit != 'true' && steps.upstream-fetch.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ${{ github.workspace }}/../horizon-official
+            ${{ github.workspace }}/../horizon-mixins
+          key: ${{ runner.os }}-upstream-src-${{ env.HORIZON_REVISION }}-${{ env.MIXINS_REVISION }}-v1
       - name: Read pinned revisions
         id: pins
         run: |
