@@ -2,3 +2,4 @@
 pub mod matching;
 pub mod assembly;
 pub mod ingredients;
+pub mod special;

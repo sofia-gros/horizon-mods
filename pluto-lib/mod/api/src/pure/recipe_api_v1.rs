@@ -423,6 +423,14 @@ impl SpecialRegistry {
     fn has_providers(&self) -> bool {
         !self.0.read().unwrap_or_else(|e| e.into_inner()).is_empty()
     }
+    fn ids(&self) -> Vec<&'static str> {
+        self.0
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .keys()
+            .copied()
+            .collect()
+    }
     fn evaluate(&self, grid: &GridFacts<'_>) -> Option<(&'static str, SpecialResult)> {
         let callbacks: Vec<_> = self
             .0
@@ -445,7 +453,13 @@ static SPECIAL_RECIPES: SpecialRegistry = SpecialRegistry::new();
 pub fn register_special_recipe(
     entry: SpecialRecipeRegistration,
 ) -> Result<(), RegistrationError> {
-    SPECIAL_RECIPES.register(entry)
+    SPECIAL_RECIPES.register(entry)?;
+    if let Ok(slot) = SPECIAL_RECIPE_SINK.read() {
+        if let Some(sink) = *slot {
+            sink(entry.id);
+        }
+    }
+    Ok(())
 }
 pub fn has_special_recipes() -> bool {
     SPECIAL_RECIPES.has_providers()
@@ -455,6 +469,28 @@ pub fn evaluate_special_recipe(
     grid: &GridFacts<'_>,
 ) -> Option<(&'static str, SpecialResult)> {
     SPECIAL_RECIPES.evaluate(grid)
+}
+/// The ids of every registered special recipe, in lexical order. The
+/// game glue mirrors each id into the native inventory registry so a
+/// provider can be resolved under its own recipe name.
+pub fn special_recipe_ids() -> Vec<&'static str> {
+    SPECIAL_RECIPES.ids()
+}
+
+/// The sink notified with the id of each special recipe as it
+/// registers: the game glue's mirror into the native inventory
+/// registry. Registrations from before the sink was installed are
+/// covered by [`special_recipe_ids`].
+pub type SpecialRecipeSink = fn(&'static str);
+
+static SPECIAL_RECIPE_SINK: RwLock<Option<SpecialRecipeSink>> = RwLock::new(None);
+
+/// Install the special-recipe registration sink, once during startup.
+/// There is no uninstall.
+pub fn set_special_recipe_sink(sink: SpecialRecipeSink) {
+    if let Ok(mut slot) = SPECIAL_RECIPE_SINK.write() {
+        *slot = Some(sink);
+    }
 }
 pub fn has_assembly_providers() -> bool {
     ASSEMBLERS.has_providers()
@@ -695,6 +731,21 @@ mod tests {
             Err(RegistrationError::DuplicateId)
         );
         assert_eq!(r.evaluate(&special_grid(&[])), Some(("one", special_result("test:any"))));
+        assert_eq!(r.ids(), vec!["one"]);
+    }
+
+    #[test]
+    fn special_recipe_sink_and_ids_track_registrations() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<&'static str>> = Mutex::new(Vec::new());
+        fn record(id: &'static str) {
+            SEEN.lock().unwrap().push(id);
+        }
+        set_special_recipe_sink(record);
+        register_special_recipe(SpecialRecipeRegistration { id: "sinktest:one", callback: pass_special })
+            .unwrap();
+        assert!(special_recipe_ids().contains(&"sinktest:one"));
+        assert!(SEEN.lock().unwrap().contains(&"sinktest:one"));
     }
 
     #[test]

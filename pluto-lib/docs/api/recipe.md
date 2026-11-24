@@ -711,6 +711,41 @@ assert_eq!(name, "example:apple_pie");
 assert_eq!(result.count, 1);
 ```
 
+### `special_recipe_ids`
+
+`fn special_recipe_ids() -> Vec<&'static str>`. The ids of every registered special recipe, in lexical order. The game glue mirrors each id into the native inventory registry so a provider can be resolved under its own recipe name.
+
+```rust
+use pluto_lib::recipe_api_v1::{SpecialRecipeRegistration, register_special_recipe, special_recipe_ids};
+
+register_special_recipe(SpecialRecipeRegistration { id: "example:apple_pie", callback: |_| None }).unwrap();
+assert_eq!(special_recipe_ids(), vec!["example:apple_pie"]);
+```
+
+### `SpecialRecipeSink`
+
+`type SpecialRecipeSink = fn(&'static str)`. The sink notified with the id of each special recipe as it registers: the game glue's mirror into the native inventory registry.
+
+```rust
+use pluto_lib::recipe_api_v1::SpecialRecipeSink;
+
+fn record(_id: &'static str) {}
+let sink: SpecialRecipeSink = record;
+sink("example:apple_pie");
+```
+
+### `set_special_recipe_sink`
+
+`fn set_special_recipe_sink(sink: SpecialRecipeSink)`. Install the special-recipe registration sink, once during startup; there is no uninstall. Registrations from before the sink was installed are covered by `special_recipe_ids`.
+
+```rust
+use pluto_lib::recipe_api_v1::{SpecialRecipeRegistration, register_special_recipe, set_special_recipe_sink};
+
+fn record(_id: &'static str) {}
+set_special_recipe_sink(record);
+register_special_recipe(SpecialRecipeRegistration { id: "example:apple_pie", callback: |_| None }).unwrap();
+```
+
 ## Cooking lookups
 
 ### `CookingRecipe`
