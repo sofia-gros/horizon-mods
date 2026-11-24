@@ -3,9 +3,10 @@
 An entity-inside callback queues what it does to the entity (fire, an
 effect, a hurt) into the contact transport; the queue drains where the
 game applies the mob effects — after a hit and on the player's tick.
-These checks pin that a queued hurt lands through the game's own hurt
-call in both drains instead of being dropped, and that the two Tinkers
-consumers (the punji, the knightmetal bite) queue theirs.
+These checks pin that a queued hurt lands through the generalized hurt
+reach in both drains instead of being dropped — living targets through
+the game's own hurt call — and that the two Tinkers consumers (the
+punji, the knightmetal bite) queue theirs.
 """
 from pathlib import Path
 import unittest
@@ -20,8 +21,14 @@ class ContactHurtTests(unittest.TestCase):
         for name in ('pluto-mob-effect-apply.rs', 'pluto-mob-effect-apply-tick.rs'):
             source = (BUNDLE / name).read_text(encoding='utf-8')
             self.assertIn('Contact::Hurt(damage_type,amount)', source)
-            self.assertIn('game.native_hurt_entity(game.dim.id(),entity,amount,&damage_type,None)', source)
+            self.assertIn('pluto_entity_hurt_game::hurt_any(game,entity,amount,&damage_type)', source)
             self.assertNotIn('dropped: no hurt reach', source)
+        # The generalized reach (ENT-W9) still lands a living target through
+        # the game's own hurt call, with the same arguments the drains used
+        # to pass directly: this dimension, the entity, the amount, the
+        # damage type and no attacker.
+        reach = (BUNDLE / 'pluto-entity-hurt-game.rs').read_text(encoding='utf-8')
+        self.assertIn('game.native_hurt_entity(game.dim.id(), entity, amount, damage_type, None)', reach)
 
     def test_the_transport_still_carries_a_hurt(self):
         source = (BUNDLE / 'pluto-contact-access.rs').read_text(encoding='utf-8')
