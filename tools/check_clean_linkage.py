@@ -105,8 +105,10 @@ fn main() {
 
 def check(prepared):
     stage, inputs = prepare(prepared)
+    # --keep-going: report every independent crate's errors in one run;
+    # the exit code is unchanged.
     command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
-               str(stage / 'Cargo.toml'), '-p', 'pluto-clean-linkage']
+               str(stage / 'Cargo.toml'), '-p', 'pluto-clean-linkage', '--keep-going']
     code = subprocess.run(command).returncode
     if code == 0:
         code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode

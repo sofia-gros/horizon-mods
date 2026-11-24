@@ -145,7 +145,8 @@ def link(prepared, target):
         raise ValueError('link evidence already exists; preserve it')
     command = ['cargo', '+1.95.0', 'build', '--offline', '--locked', '--manifest-path',
                str(stage / 'Cargo.toml'), '--target-dir', str(target), '-p', PACKAGE,
-               '--bin', 'horizon-client', '--message-format=json-render-diagnostics']
+               '--bin', 'horizon-client', '--message-format=json-render-diagnostics',
+               '--keep-going']
     env = dict(os.environ, CARGO_INCREMENTAL='0')
     result = subprocess.run(command, capture_output=True, text=True, env=env)
     (prepared / 'game-entry-link.log').write_text(newline='\n', data=result.stdout + '\n' + result.stderr, encoding='utf-8')
@@ -181,8 +182,11 @@ def link(prepared, target):
 
 def check(prepared):
     stage = prepare(prepared)
+    # --keep-going: report every independent crate's errors in one run;
+    # the exit code is unchanged.
     command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
-               str(stage / 'Cargo.toml'), '-p', PACKAGE, '--bin', 'horizon-client']
+               str(stage / 'Cargo.toml'), '-p', PACKAGE, '--bin', 'horizon-client',
+               '--keep-going']
     code = subprocess.run(command).returncode
     inputs = None
     if code == 0:
