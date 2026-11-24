@@ -18,6 +18,12 @@
 //! 10 ticks as a `use_cooldown` of half a second). The host's own instant throw is not used: it fixes
 //! the speed at 1.5 and the damage at the type's registration, where the original's numbers come from
 //! the tool's stats.
+//!
+//! The throws play their canon sounds: the shuriken's is `tconstruct:throw.shuriken`
+//! (ModifiableShurikenItem.use, NEUTRAL, 0.5, pitch `0.4F / (random * 0.4F + 0.8F)`), played here
+//! because the spawn itself is silent; a throwing tool's is the vanilla trident throw
+//! (ThrowingModule.onStoppedUsing, PLAYERS, 1, 1). Both go through `World::play_sound`, which plays
+//! in the block category where Java plays NEUTRAL/PLAYERS.
 use crate::{break_speed_hook::with_held_tool, edible, edible_hook, flight_hook, tool_stack, tool_stats::Stat};
 use pluto_lib::{
     CarriedEdit, CarriedSlot, Identifier, ItemEvents, ItemSlot, ItemUseRegistry, Nbt, ProjectileSpawn,
@@ -30,6 +36,8 @@ const THROW_TICKS: i32 = 72000;
 const SHURIKEN_ENTITY: &str = "thrown_shuriken";
 /// The shuriken item.
 const SHURIKEN_ITEM: &str = "shuriken";
+/// The shuriken throw sound (ModifiableShurikenItem.use: Sounds.SHURIKEN_THROW, NEUTRAL, 0.5).
+const SHURIKEN_THROW_SOUND: &str = "tconstruct:throw.shuriken";
 
 /// Whether the stack is a whole Tinkers tool whose modifiers carry the blocking module.
 fn blocking(stack: &StackData) -> bool {
@@ -115,6 +123,26 @@ pub(crate) fn charge(ticks_used: u32, drawtime: f32) -> f32 {
     ((charge * charge + charge * 2.0) / 3.0).min(1.0)
 }
 
+/// The pitch of Java's throw sounds (ShurikenItem.use, GlowBallItem.use, EFLNItem.use,
+/// ModifiableShurikenItem.use): `0.4F / (random * 0.4F + 0.8F)` for a draw in [0, 1).
+fn throw_pitch(random: f32) -> f32 {
+    0.4 / (random * 0.4 + 0.8)
+}
+
+/// Plays the shuriken throw sound for a thrown shuriken: the spawn itself is silent, so the throw
+/// plays it at the eye, pitched from the level's own random stream (the mean pitch when the stream
+/// is not handed over). The host's own throw sound is the block category through `World::play_sound`,
+/// where Java plays NEUTRAL; the event, volume and pitch match.
+fn play_shuriken_throw(world: &World, at: [f64; 3]) {
+    world.play_sound(SHURIKEN_THROW_SOUND, at, 0.5, throw_pitch(world.random_float().unwrap_or(0.5)));
+}
+
+/// Plays the trident throw for a thrown tool: the arrow summon is silent, so the throw plays it at
+/// the eye. Same block-category note as `play_shuriken_throw`, where Java plays PLAYERS.
+fn play_thrown_tool_throw(world: &World, at: [f64; 3]) {
+    world.play_sound("minecraft:item.trident.throw", at, 1.0, 1.0);
+}
+
 /// Throws the tool (ThrowingModule.onStoppedUsing past ten ticks).
 fn throw_tool(release: &ReleaseUsing) {
     if release.ticks_used <= 10 { return; }
@@ -132,6 +160,7 @@ fn throw_tool(release: &ReleaseUsing) {
     let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:arrow").expect("valid kind"), release.eye, motion)
         .owner(release.player.uuid);
     let Some(id) = spawn_projectile(&world, &spawn) else { return };
+    play_thrown_tool_throw(&world, release.eye);
     let mut carried = stack.clone();
     carried.count = 1;
     let profile = flight_hook::profile_of(stack);
@@ -151,6 +180,7 @@ fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3],
     let motion = [look[0] * velocity, look[1] * velocity, look[2] * velocity];
     let thrown = Identifier::parse(&format!("tconstruct:{SHURIKEN_ENTITY}")).expect("valid thrown type");
     let Some(id) = pluto_lib::spawn_thrown(world, &thrown, eye, motion, Some(owner), pluto_lib::NbtCompound::new()) else { return false };
+    play_shuriken_throw(world, eye);
     let mut carried = stack.clone();
     carried.count = 1;
     // The knockback a shot's modules added rides the fired stack's persistent data, when present.
@@ -241,8 +271,14 @@ pub(crate) fn register() {
             .can_use(|stack| shuriken(stack))
             .use_time(|_| THROW_TICKS));
     }
-    if let (Ok(entity), Ok(item)) = (Identifier::new("tconstruct", SHURIKEN_ENTITY), Identifier::new("tconstruct", SHURIKEN_ITEM)) {
-        let _ = ThrownTypeRegistry::register(ThrownType::new(entity, item, 0.0).expect("a valid thrown type"));
+    if let (Ok(entity), Ok(item), Ok(sound)) = (
+        Identifier::new("tconstruct", SHURIKEN_ENTITY),
+        Identifier::new("tconstruct", SHURIKEN_ITEM),
+        Identifier::parse(SHURIKEN_THROW_SOUND),
+    ) {
+        let _ = ThrownTypeRegistry::register(
+            ThrownType::new(entity, item, 0.0).expect("a valid thrown type").throw_sound(sound),
+        );
     }
     ItemEvents::RELEASE_USING.register(on_release);
 }
@@ -250,6 +286,7 @@ pub(crate) fn register() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pluto_lib::{MemoryWorldOps, with_world};
 
     #[test]
     fn the_charge_curve_is_the_bows() {
@@ -257,5 +294,29 @@ mod tests {
         assert!((charge(10, 20.0) - 0.4167).abs() < 0.001, "half draw: (0.25 + 1) / 3");
         assert_eq!(charge(20, 20.0), 1.0);
         assert_eq!(charge(60, 20.0), 1.0, "capped at a full charge");
+    }
+
+    #[test]
+    fn the_throw_pitch_is_javas() {
+        assert_eq!(throw_pitch(0.0), 0.5);
+        assert_eq!(throw_pitch(0.5), 0.4);
+        assert!((throw_pitch(1.0) - (0.4 / 1.2)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_thrown_shuriken_and_a_thrown_tool_play_their_canon_sounds() {
+        let mut ops = MemoryWorldOps::default();
+        with_world(&mut ops, || {
+            let world = World::new("minecraft:overworld");
+            play_shuriken_throw(&world, [1.0, 64.0, 1.0]);
+            play_thrown_tool_throw(&world, [2.0, 64.0, 2.0]);
+        });
+        assert_eq!(
+            ops.sounds,
+            [
+                ("tconstruct:throw.shuriken".to_string(), [1.0, 64.0, 1.0]),
+                ("minecraft:item.trident.throw".to_string(), [2.0, 64.0, 2.0]),
+            ]
+        );
     }
 }
