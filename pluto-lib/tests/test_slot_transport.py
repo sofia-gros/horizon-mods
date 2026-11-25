@@ -89,6 +89,10 @@ mod horizon_client {
     pub mod mod_api {
         #[derive(Clone, Debug, PartialEq)]
         pub struct LootStack { pub item: String, pub count: i32, pub damage: i32, pub components: Vec<(String, crate::serde_json::Value)>, pub enchantments: Vec<(String, i32)> }
+        // The launch-stack noting in the adapter slice reads the launch event's entity and
+        // player; the name and kind ride along as the host's event carries them.
+        #[derive(Clone, Debug, PartialEq)]
+        pub struct ProjectileLaunchEvent<'a> { pub entity: u32, pub player: Option<u128>, pub name: &'a str, pub kind: &'a str }
     }
 }
 fn nbt_from_json(value:&serde_json::Value)->NbtCompound {
@@ -110,6 +114,8 @@ trait Host {
     fn acting_player(&mut self) -> Option<ServerPlayer>;
     fn entity(&mut self, id: u32) -> Option<u32>;
     fn entity_nbt(&mut self, entity: u32) -> Option<NbtCompound>;
+    fn held_stack(&mut self, player: u128) -> Option<ItemStack>;
+    fn entity_by_uuid(&mut self, uuid: u128) -> Option<(u32, u32, u32)>;
 }
 mod loot_api_v2 {
     #[derive(Clone, Debug, Default, PartialEq)]
@@ -117,6 +123,14 @@ mod loot_api_v2 {
     #[derive(Clone, Debug, Default, PartialEq)]
     pub struct LootEntityFacts { pub player: Option<PlayerProfile> }
     pub fn facts_from_saved(_compound: &crate::NbtCompound, _kind: &str) -> LootEntityFacts { LootEntityFacts::default() }
+}
+// The launch-stack noting rides along in the adapter slice (note_launch_stack sits between
+// the slot conversion's own functions in hooks.rs) but is not exercised here; these doubles
+// only let it compile.
+mod entity_events_v1 {
+    pub fn stack_from_saved_item(_stack: &crate::NbtCompound) -> Option<crate::PublicData> { None }
+    pub fn saved_mainhand(_data: &crate::NbtCompound) -> Option<crate::PublicData> { None }
+    pub fn note_projectile_tool(_projectile: u32, _tool: crate::PublicData) {}
 }
 /* PUBLIC */
 /* ADAPTER */
