@@ -718,7 +718,7 @@ A player's weapon hit on a mob, heard again after its damage landed: `hit` the h
 use pluto_lib::WeaponHitDealt;
 use std::cell::RefCell;
 
-let dealt = WeaponHitDealt { hit: pluto_lib::WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) }, dealt: 0.0 };
+let dealt = WeaponHitDealt { hit: pluto_lib::WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) }, dealt: 0.0 };
 assert!(dealt.dealt == 0.0 && dealt.hit.damage_dealt == 5.0 && dealt.hit.fully_charged(4.0));
 ```
 
