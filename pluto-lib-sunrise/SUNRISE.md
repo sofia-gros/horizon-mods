@@ -9,24 +9,29 @@ API; only PlutoLib has two trees.
 
 ## Pinned target
 
-- Sunrise revision: **ffb8601b02db279261c4e9bbfd977b4b2e3892ab**
-  (latest Mod SDK release `sdk-ffb8601b…`, 2026-11-25; game "26.3").
-  The tree was seeded against the previous SDK release
-  `3d34bbe63d71bb24c098c1e4021ef866be12fe2d` (2026-11-24) and retargeted to
-  ffb8601b by the checkpoint below; per owner decision (2026-11-25) only the
-  latest SDK is supported — older generations are dropped. Per the
-  Sunrise-latest research, the porting unit is an SDK release, not raw main.
-- SDK evidence (`sdk.json` of ffb8601b): every pin field is identical to
-  3d34bbe — `mixins.rev = e59da9094f0c2fdda6c627fe9eff22dec6a906f0` (the
-  same horizon-mixins pin as the Horizon variant) + mixins patch
-  `c4a46bf9…`; `toolchain.rust = 1.99.1` (this repo's Horizon toolchain is
-  1.95.0 — do not confuse them); `content_api = "0.2"`;
-  `package_format = 6`. The delta is API surface only (~2,128
-  `surface.changes` entries: Attachments rework, mass hook-version bumps,
-  capability-provider rework, some moved mixin targets).
+- Sunrise revision: **6a02076f89cd189d74d63492dda5b023fa85a38f**
+  (latest Mod SDK release `sdk-6a02076f…`, 2026-11-25; game "26.3").
+  The tree was seeded against SDK release
+  `3d34bbe63d71bb24c098c1e4021ef866be12fe2d` (2026-11-24), retargeted to
+  ffb8601b by the checkpoint below, and re-based onto 6a02076f by the L1
+  foundation section below (2026-11-26); per owner decision (2026-11-25)
+  only the latest SDK is supported — older generations are dropped. Per
+  the Sunrise-latest research, the porting unit is an SDK release, not
+  raw main.
+- SDK evidence (`sdk.json` of 6a02076f, read 2026-11-26): every pin field
+  is identical to 3d34bbe and ffb8601b — `mixins.rev =
+  e59da9094f0c2fdda6c627fe9eff22dec6a906f0` (the same horizon-mixins pin
+  as the Horizon variant) + mixins patch `c4a46bf9…`;
+  `toolchain.rust = 1.99.1` (this repo's Horizon toolchain is 1.95.0 — do
+  not confuse them); `content_api = "0.2"`; `package_format = 6`. The
+  deltas between SDK releases are API surface only (3d34bbe → ffb8601b:
+  ~2,128 `surface.changes` entries — Attachments rework, mass
+  hook-version bumps, capability-provider rework, some moved mixin
+  targets; ffb8601b → 6a02076f: 7 breaking / 6 conditional / 34 additive,
+  itemised in the L1 section below).
 - Release naming (owner rule, 2026-11-25): the Sunrise variant's release
   name carries "sunrise":
-  **`pluto-lib-sunrise-v0.1.0-sunrise.ffb8601b-mixins.e59da909`**.
+  **`pluto-lib-sunrise-v0.1.0-sunrise.6a02076f-mixins.e59da909`**.
   Signing on Sunrise is GitHub artifact attestation + `.sigstore.json`
   produced by the registry's shared workflow — authors hold no keys;
   the Horizon variant's minisign plan does NOT carry over.
@@ -70,9 +75,9 @@ API; only PlutoLib has two trees.
 - Repo lints on the combined tree: check_api_docs 0 problems,
   check_injection_ownership 0 problems, check_line_endings 0 problems
   (after normalising the seeded tree to LF — the repo convention).
-  check_docs_budget (46) and lint_forbidden_api (26) flag the new tree
+  check_docs_budget (47) and lint_forbidden_api (25) flagged the new tree
   through path-keyed baselines and allowlists written for `pluto-lib/`
-  only — tooling adaptation is item R6.
+  only — adapted by R6 in the L1 section below (both now 0).
 
 ## ffb8601b checkpoint (2026-11-25, branch `pluto-lib-sunrise/sunrise-ffb8601b-mixins-e59da909`)
 
@@ -133,7 +138,8 @@ replaceable-list.txt, sdk-diff.txt, STATUS.md).
   and game-type adaptation moves from hooks.rs into the modules/helpers**.
   The pure registries already live in the API, so the inversion is
   systematic; it is the next lane after this checkpoint.
-- **R6 — still open** (path-keyed tooling baselines, as above).
+- **R6 — baselines done by L1** (2026-11-26, see the L1 section below);
+  the tools/ Sunrise mode remains open there.
 - **R7 — partially scoped**: `cargo sunrise-mod check` release notes flag
   icon.png, license and page.toml as missing; the prose pass is still open.
 - **R8 — not started** (registry v2 registration + release; only the
@@ -159,18 +165,352 @@ replaceable-list.txt, sdk-diff.txt, STATUS.md).
   `convert.py --sync-check` + a delta pass; nothing in this checkpoint
   pre-empts it.
 
+## L1 foundation (2026-11-26): SDK 6a02076f + frozen worklist
+
+This section freezes the worklist for the implementation lanes (L2–L7).
+Sources: the design lane's `DESIGN.md` / `GAPS.md`
+(`~/workspace/sunrise-design/`), re-confirmed against SDK 6a02076f here.
+Lane record: `~/workspace/sunrise-l1/STATUS.md`. The classification below
+is the version of record; lanes update it in place as verification moves
+rows between classes.
+
+### SDK re-confirmation
+
+- Releases API re-crawled 2026-11-26 (the design lane's same-day attempt
+  hit a GitHub 403; the L1 retry succeeded). Newest SDK release is
+  **`sdk-6a02076f89cd189d74d63492dda5b023fa85a38f`** (2026-11-25T14:22:58Z),
+  two releases after ffb8601b (intermediate: `bdad86d2d398…`,
+  2026-11-25T04:16:45Z).
+- Pins are identical across 3d34bbe / ffb8601b / bdad86d2 / 6a02076f
+  (sdk.json read directly for each): game "26.3", mixins `e59da909` +
+  patch `c4a46bf9`, rust 1.99.1, content_api "0.2", package_format 6.
+  No structural re-evaluation is needed; the delta is digested here.
+- `cargo sunrise-mod sdk diff ffb8601b… 6a02076f…` (run on the PC,
+  exit 0): surface **breaking — 7 breaking / 6 conditional / 34
+  additive, 0 breaking without a note**.
+- Delta against this tree (git grep over `pluto-lib-sunrise/`,
+  2026-11-26):
+  - No references to `render_name_tag` / `RenderNameTag` / `HookId::` /
+    `player_destroyed_block` / `register_render_pipelines` /
+    `PlayerRef::place_block` — the name-tag rename, the destroyed-block
+    v2, the place_block signature change and the WGSL→GLSL pipeline
+    change do not touch the seed code.
+  - No `hook_version` pins anywhere in the tree — the conditional
+    version bumps (entity_place v2, player_destroyed_block v2) stay
+    inert until L2 records `uses`.
+  - **New hook `fluid_passage`** (server-side, close-only, asked exactly
+    where `FlowingFluid.canMaybePassThrough` is checked) is the
+    primitive upstream gap **G9** asked for → **G9 is resolved at
+    6a02076f** (L5 verifies in-tree and closes the loop on #5087).
+  - New `BlockPart::on_place` / hook `on_place`, hook
+    `play_break_sound`, hook `is_valid_book_shelf`; **`Registrar` now
+    also requires `EnchantingTableOffsetsRegistrar`** (L2: scaffold
+    Registrar impls gain the super-trait); `BlockEntityRef::remove`
+    added; `ClientViewClientHost::tick_rate` + `ClientTickRate` added.
+  - Host content wire changed: `type:Block` wire layout and
+    `BlockProperties.spawn_rule` (a code-declared BlockProperties
+    literal without `..Default::default()` needs `spawn_rule: None`).
+    PlutoLib's own public `BlockProperties` (`src/lib.rs`) is
+    unaffected; L2/L3 watch the content-pipeline (a) rows.
+  - `player_destroyed_block` v2 is heard on both sides (client: the
+    local player's predicted break, ClientHost, oldState,
+    block_entity always none). GAPS A4's destroy surface grew, but it
+    is still a notification, not a cancellable destroy event with full
+    context — the A4 disposition stands.
+- No frozen-table row changes class on this delta alone. The table
+  below is the design lane's Appendix A verbatim, with the two
+  upstream-gap closures (G7 at ffb8601b, G9 at 6a02076f) recorded in
+  the gap digest.
+
+### Frozen classification of the 125 plan-failing rows
+
+Method and yardstick are the design lane's (DESIGN §2.1): (a) native
+mod-API substitution removes the row, (b) it still weaves after a
+`#[replaceable]` retarget / module re-anchor / helper fold-in,
+(c) primitive decomposition + Sunrise-side issue (the largest subgroup
+is expected to fall to (a) under verification), (d) unreachable.
+Counts: **(a) 37 / (b) 14 / (c) 74 / (d) 0**. Plan error codes:
+NR = E_MIXIN_NOT_REPLACEABLE, TM = E_MIXIN_TARGET_MISSING,
+MD = E_MIXIN_MODULE_DESTINATION.
+
+| id | plan | 処遇 | 根拠 |
+|---|---|---|---|
+| api | MD | (b) | 畳み込み: 消費ヘルパーのいる sunrise_client 側へ（Items access） |
+| pluto-attachment-transient | MD | (a) | Attachments 再設計（Descriptor/Key）が公式の移行先 |
+| pluto-block-entity-client-level | MD | (c) | game/remote.rs 消滅。remote/session 系へ再導出 |
+| pluto-living-drop-state-module | MD | (b) | 再アンカー: items/combat.rs か mobs/combat.rs |
+| pluto-living-drops-game | MD | (c) | game/creatures.rs 消滅。分割先（death_weapon 等）へ再導出 |
+| pluto-map-tick | MD | (c) | game/maps.rs 消滅。LevelRef のマップ面で (a) 化の可能性 |
+| pluto-projectile-flight-game | MD | (c) | 同上（projectile 系の分割先へ再導出） |
+| pluto-projectile-impact-game | MD | (c) | 同上 |
+| pluto-reload-registry-access | MD | (b) | 再アンカー: クライアント側レジストリ面の消費者位置へ |
+| pluto-reload-registry-source | MD | (b) | 再アンカー: game/interface/chat.rs（census で特定） |
+| pluto-skull-model-access | MD | (b) | 畳み込み: skull ヘルパー側へ |
+| pluto-structure-command | MD | (b) | 再アンカー: game/administration/commands/place.rs |
+| pluto-throw-sound-game | MD | (c) | 同上 |
+| recipe-book-invalidation | MD | (b) | 再アンカー: recipe_book 移転先（census 候補あり） |
+| recipe-book-preview | MD | (b) | 同上 |
+| recipe-placement-attempt | MD | (b) | 同上 |
+| wire-read | MD | (b) | 畳み込み: 同上（item_data access） |
+| advancement-item-predicate | NR | (c) | 進捗述語の公開面の粒度を確認 |
+| block-color-world-tint | NR | (b) | RETARGET: Mesher::face → Mesher::mesh（mesh は replaceable、census 確認） |
+| crafting-match-veto | NR | (c) | Recipes 内部の置換は crafting hook の粒度確認から |
+| crafting-special | NR | (c) | 同上 |
+| drops | NR | (c) | ItemPart の drops 面の網羅を確認（GAPS B3-1） |
+| max-damage | NR | (c) | スタック同期（LAN guest 変換）の形を再導出 |
+| movement-table | NR | (b) | RETARGET: game::api_values::block_state::bind（索引に実在） |
+| pluto-block-after-fall | NR | (c) | G12/G4（既存 issue）合流＋呼び出し側付け替え検討 |
+| pluto-block-entity-factory | NR | (a) | Registrar/BlockEntityPart の登録へ（工場の織り込みは廃止） |
+| pluto-block-entity-revision | NR | (c) | BE 同期リビジョンの公開面を確認 |
+| pluto-block-fall-damage | NR | (c) | 同上 |
+| pluto-block-inside-motion | NR | (c) | 同上 |
+| pluto-block-settings-gameplay | NR | (a) | content 宣言（mod_content の上書きは宣言化） |
+| pluto-crafting-match-veto | NR | (c) | 同上 |
+| pluto-creative-rebuild | NR | (c) | built_creative_tabs 面で代替可否を確認 |
+| pluto-entity-particle-kind | NR | (c) | 着地イベント＋ParticleBatch の組合せを検証 |
+| pluto-entity-spawn-add | NR | (a) | finalize_spawn / mob_spawned イベントへ |
+| pluto-entity-spawn-conversion | NR | (c) | 変換イベント面を確認 |
+| pluto-hanging-stand-tick-head | NR | (a) | EntityTickPre/PostEvent（種別フィルタ） |
+| pluto-head-loot-gate | NR | (c) | loot の roll 面を確認（LootDropsEvent の実在確認と対） |
+| pluto-item-after-fall | NR | (c) | 同上 |
+| pluto-item-color-layers | NR | (c) | ItemRenderer の色レイヤー面を確認（SpecialModel 系で代替の可能性） |
+| pluto-item-enchantability | NR | (c) | ItemPart の enchantable 面を確認 |
+| pluto-item-ender-mask | NR | (c) | エンダーマン視線面を確認 |
+| pluto-item-inside-motion | NR | (c) | 同上 |
+| pluto-item-placement-export-write | NR | (a) | content 宣言＋パッケージ構造の領分 |
+| pluto-item-placement-root-gate | NR | (a) | 同上 |
+| pluto-item-placement-root-path | NR | (a) | 同上 |
+| pluto-item-predicate | NR | (c) | 同上 |
+| pluto-item-prototypes | NR | (c) | Items::load_with の呼び出し側／登録面を確認（GAPS B3-1） |
+| pluto-living-attributes-amount | NR | (c) | 属性確定パイプラインの hook 面を検証（(c) 最大の不確定塊） |
+| pluto-living-attributes-base | NR | (c) | 同上 |
+| pluto-living-attributes-compute | NR | (c) | 同上 |
+| pluto-living-attributes-has | NR | (c) | 同上 |
+| pluto-living-attributes-remove | NR | (c) | 同上 |
+| pluto-living-cause-fall | NR | (c) | living hook の版上げ形への追随可否を検証 |
+| pluto-living-entity-attack | NR | (c) | 同上 |
+| pluto-living-entity-fall | NR | (c) | 同上 |
+| pluto-living-entity-jump | NR | (c) | 同上 |
+| pluto-menu-actions | NR | (a) | MenuPart::menu_clicked 系（book 確認） |
+| pluto-menu-actions-local | NR | (a) | MenuScreen へ（OVERWRITE は廃止） |
+| pluto-menu-equipment-set-slot | NR | (a) | MenuPart のスロット面 |
+| pluto-menu-equipment-slot-count | NR | (a) | MenuPart のスロット面 |
+| pluto-menu-pick-all | NR | (a) | MenuPart のスロット面 |
+| pluto-mob-after-fall | NR | (c) | 同上 |
+| pluto-mob-effect-apply-tick | NR | (c) | プレイヤー属性更新の面を確認 |
+| pluto-mob-fall-damage | NR | (c) | 同上 |
+| pluto-mob-inside-motion | NR | (c) | G12/G4 と隣接 |
+| pluto-mob-split-children | NR | (a) | mob_split hook v4（event.child/children） |
+| pluto-path-node-type | NR | (c) | パス探索の型面を確認 |
+| pluto-player-visibility | NR | (c) | 視認率の公開面を確認 |
+| pluto-retexture-layer | NR | (b) | 同上 |
+| pluto-skull-document-parts-return | NR | (a) | SpecialModelFactory |
+| pluto-skull-extents | NR | (a) | SpecialModelFactory（selector_bounds への RETARGET は意味が違うため不採用） |
+| pluto-skull-parts-return | NR | (a) | SpecialModelFactory |
+| pluto-skull-special-decode | NR | (a) | SpecialModelFactory（book 確認） |
+| pluto-skull-submit | NR | (a) | SpecialModelFactory |
+| pluto-structure-generation-start | NR | (c) | worldgen フックが最弱。プリミティブ分解（GAPS B3-1） |
+| pluto-structure-natural-start | NR | (c) | 同上 |
+| pluto-structure-saved-piece | NR | (c) | 同上 |
+| pluto-structure-sources | NR | (c) | 同上 |
+| pluto-structure-start | NR | (c) | 同上 |
+| protection-arm | NR | (c) | 装甲文脈からの level 取得はイベント文脈で代替可否を検証 |
+| protection-kernel | NR | (c) | ダメージイベント（V2/V3）確認で (a) 見込み |
+| protection-player-scope | NR | (c) | ダメージイベント確認で (a) 見込み |
+| protection-project | NR | (c) | 状態効果の保護面を確認 |
+| recipe-placement-definition | NR | (c) | 同上 |
+| speed | NR | (c) | ItemPart の mining-speed 面の網羅を確認（GAPS B3-1） |
+| station-ingredient-parser | NR | (c) | IngredientEvent の粒度を確認（IngredientTestEvent 欠落と対） |
+| tool-decode | NR | (c) | 同上（from_network 側） |
+| tool-encode | NR | (c) | 同上 |
+| pluto-block-bonemeal-perform | TM | (a) | BlockPart の bonemeal 面（native_hooks::base の trait が内部形） |
+| pluto-block-bonemeal-success | TM | (a) | 同上 |
+| pluto-block-bonemeal-valid | TM | (a) | 同上 |
+| pluto-block-entity-client-tick | TM | (a) | BlockEntityTick 面＋公開ループ block_entities.tick |
+| pluto-block-entity-container-reach | TM | (a) | MenuPart／コンテナ capability（book 確認） |
+| pluto-block-facts-head | TM | (c) | break-speed 面の新名を確認（G7 隣接） |
+| pluto-block-facts-publish | TM | (c) | 本体が他クレートを名指しし複写不可。呼び出し側か reload 面へ付け替え |
+| pluto-block-fire-odds | TM | (a) | LevelHost 駆動の fire-odds hook 面（mod_api_host 実装が索引に実在） |
+| pluto-block-may-place-on | TM | (a) | BlockPart の配置面 |
+| pluto-block-placement | TM | (a) | BlockPart の配置面 |
+| pluto-block-random-tick | TM | (a) | BlockPart の tick 面 |
+| pluto-block-scheduled-tick | TM | (a) | BlockPart の tick 面 |
+| pluto-block-survive | TM | (a) | BlockPart の survive 面 |
+| pluto-block-update-shape | TM | (a) | BlockPart の shape 面 |
+| pluto-break-context-head | TM | (c) | GAPS A4（破壊イベント）と対で処理 |
+| pluto-damage-dragon | TM | (a) | LivingIncomingDamage イベント群（対象種別で分岐） |
+| pluto-damage-victim | TM | (c) | LivingIncomingDamageV3Event の実在確認で (a) 見込み |
+| pluto-effect-icon-head | TM | (c) | GAPS A2（HUD コールバック）が受け皿 |
+| pluto-entity-spawn-converted | TM | (c) | 変換完了のイベント面を確認 |
+| pluto-entity-spawn-natural | TM | (b) | RETARGET 候補が索引に実在（natural_spawning::GameLevel 側） |
+| pluto-entity-spawn-runtime | TM | (c) | スポーン内部の再導出（creatures 分割先） |
+| pluto-hanging-frame-from-nbt | TM | (c) | 額縁 NBT 構築の移転先を再導出（同名関数は索引に無い） |
+| pluto-hanging-frame-hit | TM | (c) | 額縁の対話面を再導出 |
+| pluto-item-indestructible | TM | (c) | アイテムエンティティの環境 tick。G15 と隣接 |
+| pluto-item-menu-open | TM | (a) | register_menu_screen / open_mod_menu（book 確認） |
+| pluto-item-particle-factory | TM | (a) | register_particle_type / ParticleBatch（book 確認） |
+| pluto-living-preview-flush | TM | (c) | ScreenRenderPostEvent で足りるか検証 |
+| pluto-map-face-flush | TM | (c) | 同上 |
+| pluto-mob-effect-apply | TM | (c) | 同上（V2/V3 確認） |
+| pluto-open-item-screen | TM | (a) | MenuScreen / open_mod_menu（book 確認） |
+| pluto-player-animate-tick | TM | (c) | PlayerTickEvent の実在確認で (a) 見込み |
+| pluto-player-hurt | TM | (c) | ノックバック面。G1（既存 issue）へ合流 |
+| pluto-reload-before-tables-reload | TM | (c) | GAPS A6（リロード実体型）と対 |
+| pluto-reload-registry | TM | (c) | 同上 |
+| send-custom-data | TM | (c) | NetFromClient/ServerEvent の実在確認 |
+| world-fluid-neighbor | TM | (a) | 同上（update-shape と共有ターゲット） |
+| world-fluid-tick | TM | (a) | 同上（scheduled-tick と共有ターゲット） |
+
+Drift watch on the 296 passing rows (GAPS §B1): 19 rows sit in
+hook-version-bump territory (mob-split, attributes-join,
+projectile-impact, menu, BE tick) and stay "passing, re-verify" until
+L2 re-checks their meaning; the 2 passing OVERWRITE rows
+(`pluto-menu-actions-guest`, `pluto-entity-spawn-spawner-add`) need a
+fingerprint re-derivation on every SDK move. Weather / tick-rate /
+Renderer / ParticleEngine moves touch 0 passing rows.
+
+The ~40 unverified inline mod_api references (GAPS §A12) are L2's
+first compile pass: each is confirmed against 6a02076f or folded into
+a §A unit. `LivingIncomingDamageV3Event`, `LivingKnockbackV2Event`
+and `PlayerTickEvent` are the named candidates that would drop the
+damage-victim / mob-effect-apply / player-hurt / player-animate-tick
+(c) rows to (a).
+
+### Gap digest (from GAPS.md; dispositions frozen)
+
+mod_api surface (§A — 43 missing names in 9 units, 7 present-but-changed,
+~40 unverified inline):
+
+- **A1 fluids (8)** — no fill/drain observe/change/cancel events for BE
+  tanks. New upstream issue (title in GAPS §A1). Until it lands, the
+  fluid face keeps its woven reach; public API shape unchanged.
+- **A2 menus/screens (11)** — mostly a mapping table onto present
+  Menu/Screen events. True gaps: HUD render callback and DisplayContext
+  — new upstream issue(s).
+- **A3 interaction V2 (4)** — mapping-table work in L2 (V1 names exist);
+  an issue only if a counterpart proves absent.
+- **A4 block lifecycle (5)** — destroy_progress covers the query side;
+  a cancellable destroy event with context is the true gap (check
+  #3938's current state first; join rather than duplicate).
+- **A5 commands/config entities (5)** — registration exists, execution
+  and file handles do not. New upstream issue (A6 may merge into it).
+- **A6 reload (3)** — `AddServerReloadListenersEvent` exists; listener
+  objects + apply-completion notification are the gap.
+- **A7 client/input (3)** — join existing issues (#5072 / #4746 / #5076).
+- **A8 loot/ingredient (2)** — granularity check first (L5); at most one
+  small hook request.
+- **A9 other (2)** — `NativeItemEntity`, `WorldPrimitivesEvent`: L2
+  verifies EntityRef / render-primitive coverage.
+- **A10 non-gaps** — `RegisterCmds` is a rename residue
+  (`RegisterCommandsEvent as RegisterCmds`, L2 busywork);
+  `AttachmentType` is the Attachments redesign (Descriptor/Key), not a
+  gap.
+- **A11 present-but-changed (7)** — open_menu/close_menu removed,
+  mob_split v4, entity_join_level v5, projectile_impact v3,
+  chunk_data v4, typed capability providers, Part `state_key()`.
+  L2 follows all seven in the bridge (own work, no issues).
+
+Weave side (§B3): the only row groups that become upstream issues are
+the lower-crate non-replaceable cluster (items table functions /
+worldgen structure-start — two issues, or joins if hook requests
+already exist) — everything else is own redesign. Vanished-home
+modules (creatures/remote/maps/attachments) are re-derivation, not
+upstream defects.
+
+Existing upstream gaps (§E, from the Create port): G1–G16 + N1.
+**G7 is resolved** (`PlayerRef::destroy_progress`, #5030, already at
+ffb8601b) and **G9 is resolved at 6a02076f** (`fluid_passage`, above).
+The rest are joins with a PlutoLib example, not new issues — except
+**N1** (a published entity-tick / render-prep loop), which is a new
+loop request. Filing list (frozen): 5 new issues (A1 fluids, A2 HUD,
+A4 destroy, A5 commands/config, N1 loop) + the §E joins + the §B3 pair
+if no hook request exists yet.
+
+Non-code deltas (§D, 12 items — package format, manifest generation,
+attestation signing, registry v2, tag shape, …) carry no issues; they
+are folded into the release procedure (DESIGN §5).
+
+### R6 — tooling adaptation (outcome)
+
+- **Baselines: done** (commit `0315d9e5b`). Measured on this tree
+  before: docs budget 47 problems, forbidden-API 25 violations.
+  Adaptations: `tools/check_docs_budget.py` ALLOWED gained the Sunrise
+  tree's entries (README, this ledger, the docs/ mirrors, docs/api/*);
+  `tools/forbidden_api_baseline.json` gained the 23
+  `pluto-lib-sunrise/` python-write-text-newline entries at the exact
+  counts of their `pluto-lib/` conversion twins (measured identical);
+  `tools/lint_forbidden_api.py` gained `RULE_PATH_EXEMPTIONS` scoping
+  the zero-tolerance cargo-git rule off inside `pluto-lib-sunrise/`
+  only (that tree's host is sunrise-org; its two git deps point at the
+  official Sunrise repository — the rule still applies everywhere
+  else, and the lint's unit tests cover both sides). Verified after:
+  **docs budget 0, forbidden-API 0, api-docs 0, injection-ownership 0,
+  line endings 0, tests/test_lint_forbidden_api.py 6/6**.
+  (Line endings needed no baseline: the index was already LF; this
+  worktree's 66 CRLF working copies were renormalised in place.)
+- **Tools Sunrise mode: still open, by design.** The fixture tooling
+  under `pluto-lib-sunrise/tools/` (~20 `prepare_*.py` +
+  `check_cloud_host_boundary.py`) takes `--horizon-source` and emits
+  `horizon_source` / `horizon_revision` evidence keys, and its fixtures
+  are derived from Horizon host facts. A Sunrise mode is therefore not
+  a rename: each fixture family must be re-derived from the Sunrise
+  source (SDK api-source or the sunrise-src clones) and its boundary
+  checks re-validated. Owner of the work: the first lane that runs a
+  given boundary family against Sunrise (expected L2 for the
+  direct-host family, L5 for the plan families), one family at a time,
+  keeping the Horizon mode working (the master tree uses the same
+  scripts from `pluto-lib/tools/`).
+
+### Lane handover
+
+- **L2 bridge inversion** (the critical path): registration-direction
+  reversal, game-type adaptation into modules/helpers,
+  `[[native.bridge]]` conversion of the 42 `*access` modules, the
+  44-missing-name mapping (DESIGN §3.2 table), the A11 follow-ups, the
+  A12 inline verification, the `RegisterCmds` alias, the Attachments
+  Descriptor/Key rewrite, and the new `EnchantingTableOffsetsRegistrar`
+  super-trait on Registrar impls. State rows (10) go to module-owned
+  statics (L6), not Attachments.
+- **L3 (a) substitution**: the 37 (a) rows by cluster — menu group →
+  MenuPart / MenuScreen / register_menu_screen; BE group → Registrar /
+  Parts + the published `block_entities.tick` loop; skull group →
+  SpecialModelFactory; spawn/damage events; content-pipeline rows →
+  content declarations; native_hooks entry group → Parts / LevelHost.
+- **L4 (b) retargets**: the 14 (b) rows — Mesher::face → Mesher::mesh,
+  movement-table → `game::api_values::block_state::bind`, the 6 module
+  re-anchors (recipe-book ×3, chat, commands/place, combat), the 4
+  helper fold-ins (api, skull access, wire-read, living-drop module).
+- **L5 (c) verification**: the 74 (c) rows, split L5a living/motion,
+  L5b items/crafting, L5c worldgen/structures; verify G9's
+  `fluid_passage` in-tree; draft the primitive decompositions and the
+  join comments for the frozen filing list.
+- **L6 finishers**: R4 statics (10 state rows), R7 prose pass +
+  package files (icon.png, license, page.toml) for the release.
+- **S1 sync** (manager's lane, prerequisite for L7): the seed base is
+  pre-fix-wave (`a5375a643`); PlutoLib v1.0.0's master delta comes in
+  via `convert.py --sync-check` + a hand pass.
+- **L7 integration + release**: plan all-green → build → scoped tests
+  (pure / domain / doctests) → DESIGN §5 release procedure. Registry
+  v2's live status is re-checked first (GAPS D6).
+- This freeze also exists as branch
+  `pluto-lib-sunrise/sunrise-6a02076f-mixins-e59da909`; base follow-up
+  work on it (the ffb8601b-named branch is kept for history).
+
+
 ## Remaining (precise; in dependency order)
 
 - **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is
   DONE and verified retargets are applied (see the checkpoint above). What
-  remains is the 125-row redesign list: 40 module rows anchored outside
+  remains is the 125-row redesign list (frozen and classified in
+  the L1 section above): 40 module rows anchored outside
   `sunrise_client` (fold into helpers or re-anchor), 21 non-replaceable
   lower-crate targets (retarget to a replaceable caller/callee or a
   mod_api primitive), ~12 `native_*` entry points (re-derive or
   substitute), and the anchorless rows (creatures/remote/maps/attachments).
 - **R2 — Weave plan / build.** The merged `cargo sunrise-mod` project
   exists and the plan verdict stands at 296/421 rows (checkpoint above).
-  What remains is burning down the 125-row redesign list in clusters with
+  What remains is burning down the 125-row redesign list (frozen in the L1
+  section) in clusters with
   the pinned Sunrise source as canon, then the full build.
 - **R3 — OVERWRITE fingerprints.** Done for the rows the plan reaches
   (checkpoint above); re-derive any remainder from `E_FINGERPRINT`'s `got`
@@ -199,11 +539,11 @@ replaceable-list.txt, sdk-diff.txt, STATUS.md).
   that would retire each is listed in the Sunrise-latest report §4
   (G1–G16, N1) — join the existing upstream issues rather than filing new
   ones (N1 excepted).
-- **R6 — Tooling adaptation.** Line-ending/docs-budget/forbidden-API
-  baselines are keyed to `pluto-lib/` paths; add the Sunrise tree's entries
-  or give the tree its own baseline set. The plan/boundary tooling under
-  `pluto-lib-sunrise/tools/` still speaks Horizon (`horizon_source`
-  arguments, `.local/upstream` layout) and needs its Sunrise mode.
+- **R6 — Tooling adaptation.** Baselines done by L1 (docs budget /
+  forbidden-API / line endings all 0; see the L1 section above). The
+  plan/boundary tooling under `pluto-lib-sunrise/tools/` still speaks
+  Horizon (`--horizon-source` arguments) — its Sunrise mode is scoped
+  in the L1 section and stays open.
 - **R7 — Prose pass.** Capital-H "Horizon" naming the game in docs/comments
   (hundreds of mentions) — editorial, human-reviewed; historical references
   stay. The `horizon_cit` fixture namespace and `__horizon_mixins_*`
