@@ -18,9 +18,9 @@
 
 | | |
 |---|---|
-| **[PlutoLib](pluto-lib/README.md)**（[API ページ](pluto-lib/docs/api/index.md)） | Horizon における Fabric API の counterpart：他の Mod から呼ばれる独立したライブラリ Mod。Fabric に倣った名前と挙動を持ち、Horizon のバージョンごとにリリースされます。 |
-| **[Tinkers' Construct for Horizon](tconstruct/README.md)** | 原作 Java 版 Tinkers' Construct のクリーンな移植。PlutoLib の公開 API のみで書かれています：部品から道具を作り、金属を溶かして鋳造し、装備を改造できます。 |
-| **[Pipes](pipes/)** | クリーン実装のパイプ Mod：Tinkers の炉・タンク・チェストをつなぐアイテムパイプ。レッドストーン駆動の抽出に対応します。 |
+| **[PlutoLib](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)**（[API ページ](pluto-lib/docs/api/index.md)） | Horizon における Fabric API の counterpart：他の Mod から呼ばれる独立したライブラリ Mod。Fabric に倣った名前と挙動を持ち、Horizon のバージョンごとにリリースされます。 |
+| **[Tinkers' Construct for Horizon](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)** | 原作 Java 版 Tinkers' Construct のクリーンな移植。PlutoLib の公開 API のみで書かれています：部品から道具を作り、金属を溶かして鋳造し、装備を改造できます。 |
+| **[Pipes](https://github.com/sofia-gros/horizon-mods/releases/tag/pipes-v1.0.0-beta)** | クリーン実装のパイプ Mod：Tinkers の炉・タンク・チェストをつなぐアイテムパイプ。レッドストーン駆動の抽出に対応します。 |
 | **[Stellarsky](https://github.com/sofia-gros/horizon-mods/releases/tag/stellarsky-v1.0.0-beta)** | 実在の星空を再現する Mod：実在の星カタログ、ESO パノラマによる天の川（暗黒帯まで）、黄道光と大気光、そして射手座A* のブラックホール。 |
 
 ## 現状：v1.0.0-beta リリース済み

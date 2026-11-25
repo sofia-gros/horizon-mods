@@ -18,9 +18,9 @@ Four projects share this repository. Everything is built on **PlutoLib**, which 
 
 | | |
 |---|---|
-| **[PlutoLib](pluto-lib/README.md)** ([API pages](pluto-lib/docs/api/index.md)) | Horizon's counterpart of the Fabric API: an independent library mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
-| **[Tinkers' Construct for Horizon](tconstruct/README.md)** | A clean port of the original Java Tinkers' Construct, written against PlutoLib's public API only: build tools from parts, smelt and cast metals, modify your equipment. |
-| **[Pipes](pipes/)** | A clean-implementation pipe mod: item pipes that connect Tinkers furnaces, tanks and chests, with redstone-powered extraction. |
+| **[PlutoLib](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)** ([API pages](pluto-lib/docs/api/index.md)) | Horizon's counterpart of the Fabric API: an independent library mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
+| **[Tinkers' Construct for Horizon](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)** | A clean port of the original Java Tinkers' Construct, written against PlutoLib's public API only: build tools from parts, smelt and cast metals, modify your equipment. |
+| **[Pipes](https://github.com/sofia-gros/horizon-mods/releases/tag/pipes-v1.0.0-beta)** | A clean-implementation pipe mod: item pipes that connect Tinkers furnaces, tanks and chests, with redstone-powered extraction. |
 | **[Stellarsky](https://github.com/sofia-gros/horizon-mods/releases/tag/stellarsky-v1.0.0-beta)** | A realistic-sky mod: a real star catalogue, the Milky Way from ESO's panorama with its dark lanes, zodiacal light and airglow, and a black hole at Sagittarius A*. |
 
 ## Status: v1.0.0-beta released
