@@ -706,7 +706,7 @@ A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `atta
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty() && hit.fully_charged(4.0));
 ```
 
@@ -794,7 +794,7 @@ use pluto_lib::{DamageModification, LivingDamage};
 use std::cell::Cell;
 
 let damage = LivingDamage { entity: 4, kind: "minecraft:zombie".into(), damage_type: "minecraft:player_attack".into(), attacker: 1, direct: 1, amount: 3.0 };
-let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new(), attacker_state: None, target_state: None, attacker_kind: "".into(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position: None, target_position: None, actions: Default::default() };
+let hit = DamageModification { damage, amount: Cell::new(3.0), attacker_stack: None, armor: Vec::new(), attacker_state: None, target_state: None, attacker_kind: "".into(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_player: None, target_attack_damage: None, attacker_position: None, target_position: None, actions: Default::default() };
 hit.amount.set(hit.amount.get() + 2.0);
 ```
 
@@ -1188,7 +1188,7 @@ assert_eq!(ATTACK_TICKS_CHARGED, 10_000);
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 ```
 
@@ -1200,7 +1200,7 @@ assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.fully_charged(4.0));
 ```
 

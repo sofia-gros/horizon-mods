@@ -158,7 +158,7 @@ mod tests {
             attacker_state: None, target_state: health.map(|health| pluto_lib::EntityState { health: Some(health), ..Default::default() }),
             attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None,
             attacker_launcher_stack: None, attacker_chest: None,
-            attacker_attack_damage: None, target_health: None, target_attack_damage: None,
+            attacker_attack_damage: None, target_health: None, target_player: None, target_attack_damage: None,
             attacker_position: None, target_position: None, actions: Default::default(),
         }
     }

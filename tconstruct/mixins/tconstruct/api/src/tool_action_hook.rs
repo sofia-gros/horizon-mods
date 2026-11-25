@@ -24,7 +24,7 @@
 //! the TNT is left standing and nothing ignites, rather than the block being cleared with no primed
 //! entity behind it. No game event is emitted for a lighting: the world operations name none.
 use crate::{break_speed_hook::with_held_tool, tool_actions::{replaceable_above, ToolAction}, tool_slot, tool_stack};
-use pluto_lib::{ActionResult, BlockState, Direction, Identifier, ItemSlot, NbtCompound, StackData, UseItemOnBlockCallback, UseItemOnBlockContext, World};
+use pluto_lib::{ActionResult, BlockState, Direction, Identifier, ItemSlot, NbtCompound, StackData, StackSlot, UseItemOnBlockCallback, UseItemOnBlockContext, World};
 
 /// Finds the player's hotbar or inventory slot holding exactly the stack that was used.
 fn find_slot(used: &UseItemOnBlockContext, held: &StackData) -> Option<i32> {
@@ -184,13 +184,22 @@ pub(crate) fn register() {
                 let worn = with_held_tool(held, |env, stack| {
                     let mut worn: ItemSlot = stack.clone();
                     let mut applied = false;
-                    if performed.is_some() { applied |= tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).is_ok(); }
-                    if fire_worn { applied |= tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).is_ok(); }
-                    if let Some((amount, cause)) = &glow_wear { applied |= tool_slot::damage_slot(&mut worn, env, *amount, true, true, Some(cause), &mut random).is_ok(); }
-                    applied.then_some(worn)
+                    let mut broke = false;
+                    if performed.is_some() { let outcome = tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random); applied |= outcome.is_ok(); if let Ok(outcome) = outcome { broke |= outcome.broke; } }
+                    if fire_worn { let outcome = tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random); applied |= outcome.is_ok(); if let Ok(outcome) = outcome { broke |= outcome.broke; } }
+                    if let Some((amount, cause)) = &glow_wear { let outcome = tool_slot::damage_slot(&mut worn, env, *amount, true, true, Some(cause), &mut random); applied |= outcome.is_ok(); if let Ok(outcome) = outcome { broke |= outcome.broke; } }
+                    applied.then_some((worn, broke))
                 });
-                if let Ok(Some(worn)) = worn {
-                    used.player.update_stack(slot, &StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() });
+                if let Ok(Some((worn, broke))) = worn {
+                    let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() };
+                    // Each of the three wears announces a break it causes in the original (the
+                    // transform, ignite and glow modules broadcast by hand); at most one can break
+                    // the tool — the ones after it meet a broken tool and do nothing — so one
+                    // announcement covers the click. The use names no hand, so the break is
+                    // announced only when the found slot is the selected one, the main hand's place.
+                    if used.player.update_stack(slot, &back) && broke && slot == used.player.selected_slot().unwrap_or(-1) {
+                        used.player.broadcast_item_break(StackSlot::MainHand, &back);
+                    }
                 }
             }
         }

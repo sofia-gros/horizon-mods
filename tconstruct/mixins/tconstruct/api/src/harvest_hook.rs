@@ -18,7 +18,7 @@
 //! hooks of other modifiers (enderporting's plant form) do not run: no callback here can
 //! move the holder.
 use crate::{break_speed_hook::with_held_tool, tool_damage_hook, tool_slot, tool_stack};
-use pluto_lib::{ActionResult, Direction, Identifier, ItemSlot, Nbt, StackData, UseItemOnBlockCallback, UseItemOnBlockContext, World};
+use pluto_lib::{ActionResult, Direction, Identifier, ItemSlot, Nbt, StackData, StackSlot, UseItemOnBlockCallback, UseItemOnBlockContext, World};
 
 /// The block tag of everything the module harvests (TinkerTags.Blocks.HARVESTABLE).
 const HARVESTABLE: &str = "tconstruct:harvestable";
@@ -91,10 +91,18 @@ fn wear(used: &UseItemOnBlockContext, held: &StackData, amount: i32) {
     let Some(slot) = slot else { return; };
     let worn = with_held_tool(held, |env, stack| {
         let mut worn: ItemSlot = stack.clone();
-        tool_slot::damage_slot(&mut worn, env, amount, true, true, None, &mut tool_damage_hook::random).ok().map(|_| worn)
+        tool_slot::damage_slot(&mut worn, env, amount, true, true, None, &mut tool_damage_hook::random).ok().map(|outcome| (worn, outcome.broke))
     });
-    if let Ok(Some(worn)) = worn {
-        used.player.update_stack(slot, &StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() });
+    if let Ok(Some((worn, broke))) = worn {
+        let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() };
+        // HarvestModule wears the tool with plain damage per block and broadcasts once at the end
+        // when it broke (the enderporting after-harvest wear folded into this same amount is
+        // animated in the original too, and lands in the same click, so one announcement covers
+        // both). The use names no hand, so the break is announced only when the found slot is the
+        // selected one, the main hand's place.
+        if used.player.update_stack(slot, &back) && broke && slot == used.player.selected_slot().unwrap_or(-1) {
+            used.player.broadcast_item_break(StackSlot::MainHand, &back);
+        }
     }
 }
 

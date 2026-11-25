@@ -36,7 +36,17 @@ fn infinity(request: &AmmoRequest) {
     let Some(carried) = request.carried.iter().find(|carried| matches!(carried.slot, CarriedSlot::Equipment(StackSlot::MainHand | StackSlot::OffHand)) && same_stack(&carried.stack, &request.weapon)) else { return };
     let mut worn = carried.stack.clone();
     let damaged = with_held_tool(&request.weapon, |env, _tool| tool_slot::damage_slot(&mut worn, env, usage, true, true, Some(&cause), &mut crate::tool_damage_hook::random));
-    if damaged.is_ok() { request.edits.borrow_mut().push(CarriedEdit { slot: carried.slot, stack: worn }); }
+    let broke = matches!(&damaged, Ok(Ok(outcome)) if outcome.broke);
+    if damaged.is_ok() {
+        // InfinityModule pays the usage with damageAnimated at the used hand: a shot that broke
+        // the launcher announces it, at the hand that fired.
+        if broke {
+            if let (Some(uuid), CarriedSlot::Equipment(slot)) = (request.player, carried.slot) {
+                pluto_lib::ServerPlayer { uuid, name: request.name.clone() }.broadcast_item_break(slot, &crate::brush_hook::stack_of(&worn));
+            }
+        }
+        request.edits.borrow_mut().push(CarriedEdit { slot: carried.slot, stack: worn });
+    }
 }
 
 /// Registers the callbacks. Called once from the product's hooks.

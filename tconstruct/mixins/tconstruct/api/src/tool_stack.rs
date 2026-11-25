@@ -1176,16 +1176,21 @@ pub(crate) fn harvests(nbt: &NbtCompound, env: &Environment) -> bool {
 /// The stack edits of wearing this tool by `amount` (ToolDamageUtil.damageTool, as the repair and
 /// swap flows apply it directly): the damage value, and the broken mark when the wear breaks it.
 /// Empty when the wear does not land (a broken or unbreakable tool, or nothing to wear).
-pub(crate) fn damage_edits(nbt: &NbtCompound, amount: i32) -> Vec<pluto_lib::StackDataEdit> {
+/// The edits of a deterministic wear (no modifier randomness: the enderporting wears), and the
+/// tool's data after the wear when the wear broke it — the caller announcing the break reads the
+/// broken stack from it. The second value is None when the tool stands.
+pub(crate) fn damage_edits(nbt: &NbtCompound, amount: i32) -> (Vec<pluto_lib::StackDataEdit>, Option<NbtCompound>) {
     let mut work = nbt.clone();
     let damaged = crate::tool_damage::damage_tool(&mut work, amount, true, true);
-    if damaged.applied <= 0 { return Vec::new(); }
+    if damaged.applied <= 0 { return (Vec::new(), None); }
     let mut edits = vec![pluto_lib::StackDataEdit { path: vec![TAG_DAMAGE.to_string()], value: Some(Nbt::Int(crate::tool_stack::damage_raw(&work))) }];
+    let mut broken = None;
     if damaged.broke {
         crate::tool_damage::break_tool(&mut work);
         edits.push(pluto_lib::StackDataEdit { path: vec![TAG_BROKEN.to_string()], value: Some(Nbt::Byte(1)) });
+        broken = Some(work);
     }
-    edits
+    (edits, broken)
 }
 
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one
