@@ -19,6 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 # (port.BUNDLE): <mod>/mixins/<mod>/{horizon-mixin.toml, api/}.
 PIPES_BUNDLE = Path('pipes/mixins/pipes')
 
+# The stellarsky consumer bundle, same layout again.
+STELLARSKY_BUNDLE = Path('stellarsky/mixins/stellarsky')
+
 
 def prepare(prepared):
     prepared = prepared.resolve()
@@ -35,8 +38,9 @@ def prepare(prepared):
         raise ValueError('workspace member declaration changed')
     consumer = stage / 'native-api/tconstruct'
     pipes_consumer = stage / 'native-api/pipes'
+    stellarsky_consumer = stage / 'native-api/stellarsky'
     probe = stage / 'native-api/clean-linkage'
-    if consumer.exists() or pipes_consumer.exists() or probe.exists():
+    if consumer.exists() or pipes_consumer.exists() or stellarsky_consumer.exists() or probe.exists():
         raise ValueError('consumer check already staged; preserve its evidence')
     manifest = files['api/Cargo.toml'].decode('utf-8')
     parsed = tomllib.loads(manifest)
@@ -78,6 +82,24 @@ def prepare(prepared):
                                      'pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }\n')
     shutil.copytree(pipes_source, pipes_consumer)
     (pipes_consumer / 'Cargo.toml').write_text(''.join(pipes_lines), encoding='utf-8', newline='\n')
+    # Third consumer (build-test composition): the stellarsky mod's API
+    # crate, staged with the same host rewrite and bundle edge. Its manifest
+    # carries the same reviewed dependency allowlist.
+    stellarsky_source = ROOT / STELLARSKY_BUNDLE / 'api'
+    stellarsky_manifest = (stellarsky_source / 'Cargo.toml').read_text(encoding='utf-8')
+    stellarsky_parsed = tomllib.loads(stellarsky_manifest)
+    if stellarsky_parsed['package']['name'] != 'mod-stellarsky':
+        raise ValueError('stellarsky API package name changed; review launcher projection')
+    if stellarsky_parsed['dependencies'] != {'horizon-client': expected, 'serde_json': '=1.0.154', 'toml': '=0.8.23'}:
+        raise ValueError('stellarsky consumer dependencies changed; review launcher projection')
+    stellarsky_lines = stellarsky_manifest.splitlines(keepends=True)
+    stellarsky_indexes = [i for i, line in enumerate(stellarsky_lines) if line.startswith('horizon-client = ')]
+    if len(stellarsky_indexes) != 1:
+        raise ValueError('ambiguous stellarsky consumer host dependency')
+    stellarsky_lines[stellarsky_indexes[0]] = ('horizon-client = { path = "../../crates/horizon-client", default-features = false }\n'
+                                               'pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }\n')
+    shutil.copytree(stellarsky_source, stellarsky_consumer)
+    (stellarsky_consumer / 'Cargo.toml').write_text(''.join(stellarsky_lines), encoding='utf-8', newline='\n')
     (probe / 'src').mkdir(parents=True)
     (probe / 'Cargo.toml').write_text(newline='\n', data='''[package]
 name = "pluto-clean-linkage"
@@ -89,16 +111,17 @@ horizon-client = { path = "../../crates/horizon-client", default-features = fals
 pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }
 tconstruct = { package = "mod-tconstruct", path = "../tconstruct" }
 pipes = { package = "mod-pipes", path = "../pipes" }
+stellarsky = { package = "mod-stellarsky", path = "../stellarsky" }
 ''', encoding='utf-8')
     (probe / 'src/main.rs').write_text(newline='\n', data='''// Diagnostic type composition only; never launch this as the game.
 fn main() {
     let _mods: horizon_client::mod_api::Mods = vec![
-        pluto_lib::hooks(), tconstruct::hooks(), pipes::hooks(),
+        pluto_lib::hooks(), tconstruct::hooks(), pipes::hooks(), stellarsky::hooks(),
     ].into();
 }
 ''', encoding='utf-8')
     workspace.write_text(newline='\n', data=original.replace('members = [\n',
-        'members = [\n    "native-api/tconstruct",\n    "native-api/pipes",\n    "native-api/clean-linkage",\n', 1),
+        'members = [\n    "native-api/tconstruct",\n    "native-api/pipes",\n    "native-api/stellarsky",\n    "native-api/clean-linkage",\n', 1),
         encoding='utf-8')
     return stage, {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
 
