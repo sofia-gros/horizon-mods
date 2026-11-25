@@ -79,6 +79,9 @@ const EQUIPMENT_KINDS: [EquipmentSlotKind; 5] = [EquipmentSlotKind::Head, Equipm
 const EQUIPMENT_NAMES: [&str; 5] = ["head", "chest", "legs", "feet", "offhand"];
 /// The selected layout's name in the block entity's data; absent is the main layout.
 const SELECTED: &str = "layout";
+/// The ticker's settled fingerprint in the block entity's data (see `settled_fingerprint`):
+/// a hash of everything the ticker's full pass reads, kept from its last run.
+const FINGERPRINT: &str = "tconstruct:station_fingerprint";
 /// The window's textures: the station sheet and the shared icon sheet, both 256x256.
 const TINKER: &str = "tconstruct:gui/tinker";
 const ICONS: &str = "tconstruct:gui/icons";
@@ -169,6 +172,96 @@ fn preview_of(items: &[Option<ItemSlot>], input_count: usize) -> Option<ItemSlot
     with_context(|ctx, resolver| station::preview(&menu, ctx, input_count, resolver)).and_then(Result::ok).and_then(|outcome| match outcome {
         Outcome::Crafted(Crafted { result, .. }) => Some(result), _ => None,
     })
+}
+
+/// A running FNV-1a hash over what the station ticker's full pass reads. Two passes over the
+/// same inputs settle on the same fingerprint; any staged change moves it.
+struct Fingerprint(u64);
+
+impl Fingerprint {
+    fn new() -> Self { Self(0xcbf2_9ce4_8422_2325) }
+    fn byte(&mut self, byte: u8) { self.0 = (self.0 ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01b3); }
+    fn bytes(&mut self, bytes: &[u8]) { for &byte in bytes { self.byte(byte); } }
+    fn text(&mut self, text: &str) { self.u64(text.len() as u64); self.bytes(text.as_bytes()); }
+    fn u32(&mut self, value: u32) { self.bytes(&value.to_le_bytes()); }
+    fn u64(&mut self, value: u64) { self.bytes(&value.to_le_bytes()); }
+    fn i32(&mut self, value: i32) { self.bytes(&value.to_le_bytes()); }
+    fn i64(&mut self, value: i64) { self.bytes(&value.to_le_bytes()); }
+    fn boolean(&mut self, value: bool) { self.byte(u8::from(value)); }
+    fn nbt(&mut self, value: &Nbt) {
+        match value {
+            Nbt::Byte(v) => { self.byte(1); self.bytes(&v.to_le_bytes()); }
+            Nbt::Short(v) => { self.byte(2); self.bytes(&v.to_le_bytes()); }
+            Nbt::Int(v) => { self.byte(3); self.i32(*v); }
+            Nbt::Long(v) => { self.byte(4); self.i64(*v); }
+            Nbt::Float(v) => { self.byte(5); self.u32(v.to_bits()); }
+            Nbt::Double(v) => { self.byte(6); self.u64(v.to_bits()); }
+            Nbt::ByteArray(v) => { self.byte(7); self.u64(v.len() as u64); self.bytes(v); }
+            Nbt::String(v) => { self.byte(8); self.text(v); }
+            Nbt::List(v) => { self.byte(9); self.u64(v.len() as u64); for item in v { self.nbt(item); } }
+            Nbt::Compound(v) => { self.byte(10); self.compound(v); }
+            Nbt::IntArray(v) => { self.byte(11); self.u64(v.len() as u64); for item in v { self.i32(*item); } }
+            Nbt::LongArray(v) => { self.byte(12); self.u64(v.len() as u64); for item in v { self.i64(*item); } }
+        }
+    }
+    fn compound(&mut self, compound: &NbtCompound) {
+        self.u64(compound.len() as u64);
+        for (key, value) in compound { self.text(key); self.nbt(value); }
+    }
+    fn stack(&mut self, stack: &ItemSlot) {
+        self.text(&stack.item.to_string());
+        self.u32(stack.count);
+        self.u32(stack.damage);
+        match stack.max_damage { Some(v) => { self.boolean(true); self.i32(v); } None => self.boolean(false) }
+        self.compound(&stack.custom_data);
+        match &stack.tool { Some(v) => { self.boolean(true); self.compound(v); } None => self.boolean(false) }
+        match &stack.attribute_modifiers {
+            Some(v) => { self.boolean(true); self.u64(v.len() as u64); for compound in v { self.compound(compound); } }
+            None => self.boolean(false),
+        }
+        match &stack.enchantments {
+            Some(v) => { self.boolean(true); self.u64(v.len() as u64); for (key, level) in v { self.text(key); self.i32(*level); } }
+            None => self.boolean(false),
+        }
+        match &stack.custom_model_data {
+            Some(v) => {
+                self.boolean(true);
+                self.u64(v.strings.len() as u64); for text in &v.strings { self.text(text); }
+                self.u64(v.floats.len() as u64); for float in &v.floats { self.u32(float.to_bits()); }
+                self.u64(v.flags.len() as u64); for flag in &v.flags { self.boolean(*flag); }
+                self.u64(v.colors.len() as u64); for color in &v.colors { self.i32(*color); }
+            }
+            None => self.boolean(false),
+        }
+        match &stack.profile { Some(v) => { self.boolean(true); self.compound(v); } None => self.boolean(false) }
+        match stack.map_id { Some(v) => { self.boolean(true); self.i32(v); } None => self.boolean(false) }
+        match &stack.can_place_on { Some(v) => { self.boolean(true); self.nbt(v); } None => self.boolean(false) }
+    }
+}
+
+/// The ticker's settled fingerprint: the staged stacks (the tool, the inputs and the result
+/// slot), the selected layout's name, and a stamp of the layout the window would show (its
+/// name, its slot positions and pattern codes, and the packed tab list). A tick whose
+/// fingerprint matches the stored one would preview the same result and publish the same
+/// menu data as the tick that stored it, so it has nothing to do.
+fn settled_fingerprint(items: &[Option<ItemSlot>], slots: usize, selected: Option<&str>, layout: &Layout, main: &Layout, packed: &[usize], input_count: usize) -> i64 {
+    let mut hash = Fingerprint::new();
+    hash.u64(slots as u64);
+    for stack in items.iter().take(slots) {
+        match stack { Some(stack) => { hash.boolean(true); hash.stack(stack); } None => hash.boolean(false) }
+    }
+    match selected { Some(name) => { hash.boolean(true); hash.text(name); } None => hash.boolean(false) }
+    hash.text(&layout.name.to_string());
+    for position in layout.positions(main, input_count) {
+        match position { Some((x, y)) => { hash.boolean(true); hash.i32(x); hash.i32(y); } None => hash.boolean(false) }
+    }
+    for layout_slot in layout.slots(main, input_count) {
+        let code = layout_slot.and_then(|layout_slot| layout_slot.icon.as_ref()).map_or(0, station_layouts::pattern_sprite_code);
+        hash.i32(code);
+    }
+    hash.u64(packed.len() as u64);
+    for full in packed { hash.u64(*full as u64); }
+    hash.0 as i64
 }
 
 /// Keeps the result slot equal to the current preview. Returns whether anything changed.
@@ -619,14 +712,6 @@ fn register_station(name: &'static str, input_count: usize) {
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(id).item_slots(slot_count as u32).menu(&format!("tconstruct:{name}")).on_place(crate::retextured::keep_texture).ticker(move |tick| {
-            // A stack can reach a slot with its material data but without the model data the item
-            // definitions select on (a `/give` naming only `custom_data`, another mod's stack, an
-            // older save): it then renders as the untextured base sprite. Keep the staged stacks
-            // in step, as the original's model loader reads the material from the stack itself.
-            for slot in tick.items.iter_mut().take(input_count + 1).flatten() {
-                crate::tool_materials::heal_model(slot);
-            }
-            refresh_result(tick.items, input_count);
             let selected = selected_of(tick.data);
             let main = common::station_layouts().and_then(|layouts| layouts.read().ok().map(|layouts| layouts.main_for(name)))
                 .unwrap_or_else(|| station_layouts::baked_main(name));
@@ -648,6 +733,24 @@ fn register_station(name: &'static str, input_count: usize) {
                 layout = main.clone();
                 active_full = 0;
             }
+            // A settled station has nothing to do: the original recomputes the result when
+            // the inventory changes and caches it in between (LazyResultContainer), so the
+            // full pass below — the recipe search behind the preview, the layout publish and
+            // the neighbouring-table scan — runs on a change, not twenty times a second
+            // (#367: the per-tick pass is the frame cost of an open station window, and of
+            // every loaded station besides). The neighbours' strip is part of the pass, so
+            // it refreshes on the next change, as the original's strip is gathered when the
+            // menu opens rather than kept live.
+            if tick.data.get(FINGERPRINT).and_then(|value| value.as_i64())
+                == Some(settled_fingerprint(tick.items, result_slot + 1, selected.as_deref(), &layout, &main, &packed, input_count)) { return; }
+            // A stack can reach a slot with its material data but without the model data the item
+            // definitions select on (a `/give` naming only `custom_data`, another mod's stack, an
+            // older save): it then renders as the untextured base sprite. Keep the staged stacks
+            // in step, as the original's model loader reads the material from the stack itself.
+            for slot in tick.items.iter_mut().take(input_count + 1).flatten() {
+                crate::tool_materials::heal_model(slot);
+            }
+            refresh_result(tick.items, input_count);
             let active_packed = packed.iter().position(|&full| full == active_full).unwrap_or(0);
             tick.set_menu_data(DATA_TAB, active_packed as i32);
             tick.set_menu_data(tabs_at, packed.len() as i32);
@@ -683,6 +786,11 @@ fn register_station(name: &'static str, input_count: usize) {
             // The neighbouring tables' strip (tabs only; the station family has no side
             // inventory in the original).
             crate::tabbed_tables::publish(tick, tabbed_at, false);
+            // Keep the fingerprint of what the pass settled on (the healed stacks and the
+            // restaged result among them), so the next tick can tell a settled station from
+            // one whose stacks just arrived.
+            let settled = settled_fingerprint(tick.items, result_slot + 1, selected.as_deref(), &layout, &main, &packed, input_count);
+            tick.data.insert(FINGERPRINT.to_owned(), Nbt::Long(settled));
         }),
     );
 }
@@ -777,5 +885,34 @@ mod tests {
         let station_packed: Vec<usize> = (0..TAB_ICONS.len()).filter(|&full| full == 0 || TAB_INPUT_NEED[full - 1] <= 3).collect();
         assert_eq!(station_packed.len(), 13, "main plus the twelve layouts of at most three inputs");
         assert!(station_packed.iter().all(|&full| full == 0 || TAB_INPUT_NEED[full - 1] <= 3));
+    }
+
+    #[test]
+    fn the_settled_fingerprint_tracks_the_staged_stacks_and_the_selection() {
+        let main = station_layouts::baked_main("tinker_station");
+        let packed: Vec<usize> = (0..TAB_ICONS.len()).filter(|&full| full == 0 || TAB_INPUT_NEED[full - 1] <= 3).collect();
+        let slots = 5; // the tool, three inputs and the result of a tinker station
+        let empty: Vec<Option<ItemSlot>> = vec![None; slots];
+        let settled = settled_fingerprint(&empty, slots, None, &main, &main, &packed, 3);
+        assert_eq!(settled, settled_fingerprint(&empty, slots, None, &main, &main, &packed, 3), "the same state settles the same");
+        // A stack arriving, changing count or changing data moves the fingerprint.
+        let mut staged = empty.clone();
+        staged[1] = Some(ItemSlot::new(Identifier::parse("tconstruct:pick_head").unwrap(), 1));
+        let one = settled_fingerprint(&staged, slots, None, &main, &main, &packed, 3);
+        assert_ne!(settled, one, "an arriving stack is a change");
+        staged[1].as_mut().unwrap().count = 2;
+        assert_ne!(one, settled_fingerprint(&staged, slots, None, &main, &main, &packed, 3), "a count change is a change");
+        let mut dataful = staged.clone();
+        dataful[1].as_mut().unwrap().custom_data.insert("Material".to_owned(), Nbt::String("tconstruct:wood".to_owned()));
+        assert_ne!(settled_fingerprint(&staged, slots, None, &main, &main, &packed, 3),
+            settled_fingerprint(&dataful, slots, None, &main, &main, &packed, 3), "a data change is a change");
+        // The result slot is part of the state: losing it to an outside write is a change.
+        let mut resulted = staged.clone();
+        resulted[4] = Some(ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1));
+        assert_ne!(settled_fingerprint(&staged, slots, None, &main, &main, &packed, 3),
+            settled_fingerprint(&resulted, slots, None, &main, &main, &packed, 3), "the result slot is covered");
+        // Picking a layout tab is a change even with the same stacks.
+        assert_ne!(settled, settled_fingerprint(&empty, slots, Some("tconstruct:sword"), &main, &main, &packed, 3),
+            "a selection change is a change");
     }
 }
