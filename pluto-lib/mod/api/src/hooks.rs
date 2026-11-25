@@ -4368,12 +4368,16 @@ impl Hooks for PlutoHooks {
         // survival is the recorded default, so the reach is current in practice.
         let block_reach = highlight_api_v1::block_reach_for_mode(horizon_client::entry::pluto_highlight_mode::mode());
         // The world border the original checks each outlined block against: the
-        // host states it for the player's dimension, and states none off a server
-        // (a remote client has no border of its own) — where there is none, every
-        // position counts as inside, as the original's border is the world's own.
-        // The check is the original's `isWithinBounds` (the border is two
-        // dimensional; height is never checked).
-        let border = host.world_border(player.dimension);
+        // host states it for the player's dimension on a server, for the three
+        // vanilla dimensions. Where it states none — a remote client, and a
+        // dimension it does not name — the border is the game's own for the
+        // level in place (on a remote client, the one its server syncs to it),
+        // recorded as the game ticks by the pluto-highlight-border reach; where
+        // neither states one (before the game first ticks), every position
+        // counts as inside. The check is the original's `isWithinBounds` (the
+        // border is two dimensional; height is never checked).
+        let border = host.world_border(player.dimension)
+            .or_else(|| horizon_client::entry::pluto_highlight_border::border());
         let in_world_border = move |pos: [i32; 3]| {
             let Some([min_x, min_z, max_x, max_z]) = border else { return true };
             (f64::from(pos[0]) + 1.0) > min_x && f64::from(pos[0]) < max_x && (f64::from(pos[2]) + 1.0) > min_z && f64::from(pos[2]) < max_z
