@@ -105,7 +105,16 @@ impl Tank {
 
     /// `FluidType.getLightLevel` of the held fluid, the value of the block's `light` state.
     pub(crate) fn light(&self) -> u8 {
-        self.fluid.as_ref().and_then(|fluid| FluidRegistry::get(&fluid.fluid.to_string())).map_or(0, |def| def.attributes.luminance.min(15))
+        let Some(fluid) = &self.fluid else { return 0 };
+        match FluidRegistry::get(&fluid.fluid.to_string()) {
+            Some(def) => def.attributes.luminance.min(15),
+            // A vanilla fluid has no def in the registry, so its own light level answers: lava's
+            // fluid type lights to 15, water's to 0. Without this a tank holding a bucket of lava
+            // read as dark and looked empty (finding NEW-2).
+            None => {
+                if fluid.fluid.to_string() == "minecraft:lava" { 15 } else { 0 }
+            }
+        }
     }
 }
 
@@ -216,6 +225,19 @@ mod tests {
         tank.drain(None, 9999, true);
         assert_eq!(tank.fluid, None, "an emptied tank holds no fluid at all");
         assert_eq!(tank.fill(&id("minecraft:water"), 10, true), 10, "and takes any fluid again");
+    }
+
+    #[test]
+    fn a_tank_of_vanilla_lava_lights_at_lavas_own_level() {
+        // Vanilla fluids have no def in the registry: the light falls back to the fluid's own
+        // level (lava 15, water 0), where a registered fluid's luminance answers instead.
+        let mut lava = Tank::empty(4000);
+        lava.fill(&id("minecraft:lava"), 1000, true);
+        assert_eq!(lava.light(), 15);
+        let mut water = Tank::empty(4000);
+        water.fill(&id("minecraft:water"), 1000, true);
+        assert_eq!(water.light(), 0);
+        assert_eq!(Tank::empty(4000).light(), 0);
     }
 
     #[test]
