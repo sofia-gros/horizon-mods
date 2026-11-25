@@ -24,7 +24,7 @@ impl std::fmt::Display for Identifier {
     fn fmt(&self, f:&mut std::fmt::Formatter<'_>)->std::fmt::Result { f.write_str(&self.0) }
 }
 mod pure {
-    pub mod base { pub(crate) use crate::Identifier; }
+    pub mod base { pub(crate) use crate::{Identifier, Nbt}; }
     pub mod player_api {
         // Only the stack's own custom_model_data matters to slots; the fixture stacks carry none.
         #[derive(Clone, Debug, PartialEq, Default)]
@@ -60,13 +60,26 @@ impl ItemStack {
     fn data_mut(&mut self)->&mut Extra { &mut self.extra }
     fn tidy(&mut self) {}
 }
-struct PublicData { count:u32, damage:u32, max_damage:Option<i32>, custom_data:NbtCompound, custom_model_data:Option<pure::player_api::CustomModelData> }
-fn read_stack(s:&ItemStack)->PublicData { PublicData {count:s.count,damage:s.damage,max_damage:s.extra.max,custom_data:s.extra.custom.clone(),custom_model_data:None} }
+struct PublicData { count:u32, damage:u32, max_damage:Option<i32>, custom_data:NbtCompound, custom_model_data:Option<pure::player_api::CustomModelData>, can_place_on:Option<Nbt> }
+fn read_stack(s:&ItemStack)->PublicData { PublicData {count:s.count,damage:s.damage,max_damage:s.extra.max,custom_data:s.extra.custom.clone(),custom_model_data:None,can_place_on:read_can_place_on(s)} }
 fn read_custom_model_data(_:&ItemStack)->Option<pure::player_api::CustomModelData> { None }
 fn custom_model_data_tag(_:&Option<pure::player_api::CustomModelData>)->Option<Tag> { None }
 fn compound_to_tag(c:&NbtCompound)->NbtCompound { c.clone() }
 // The adapter reads the optional minecraft:profile component the same way; the fixture stacks carry none.
 fn read_profile(_:&ItemStack)->Option<NbtCompound> { None }
+// The stack data's can_place_on is read the same way in production read_stack; the fixture stacks carry none.
+fn read_can_place_on(_:&ItemStack)->Option<Nbt> { None }
+// The adapter writes a slot's can_place_on back through tag_from_nbt. The fixture's Tag carries
+// only the int/list/compound shapes and no fixture stack carries the component, so this double is
+// shaped on the production conversion but never exercised.
+fn tag_from_nbt(nbt:&Nbt)->Tag {
+    match nbt {
+        Nbt::Int(value) => Tag::Int(*value),
+        Nbt::List(values) => Tag::List(values.iter().map(tag_from_nbt).collect()),
+        Nbt::Compound(compound) => Tag::Compound(compound_to_tag(compound)),
+        _ => Tag::Int(0),
+    }
+}
 // The loot transport rides along in the adapter slice (its functions sit between the slot
 // conversion's own in hooks.rs) but is not exercised here; these doubles only let it compile.
 mod serde_json {
