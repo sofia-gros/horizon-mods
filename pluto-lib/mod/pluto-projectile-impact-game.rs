@@ -1,6 +1,7 @@
-// The game side of a piercing projectile's ignore list (pluto-projectile-impact-access): the head on the native
-// impact telling reads the arrow's own list off the live projectile and stashes it for the API side, which builds
-// the hit from it. The write-back runs the other way, in the flight pass (pluto-projectile-flight-game): the
+// The game side of a piercing projectile's lists (pluto-projectile-impact-access): the head on the native
+// impact telling reads the arrow's own ignore list off the live projectile, the killed list PlutoLib keeps for
+// it, and the punch the shot was fired with, and stashes them for the API side, which builds the hit from
+// them. The write-back runs the other way, in the flight pass (pluto-projectile-flight-game): the
 // entities a callback recorded are added to the live arrow's list as the tick settles, before it flies again.
 use crate::entry::pluto_projectile_impact_access as access;
 use crate::mobs::Who;
@@ -20,10 +21,20 @@ fn pierced_ids(game: &crate::game::Game<'_>, p: &crate::projectiles::Projectile)
         .collect()
 }
 
-/// A projectile's hit is being told: stash the ignore list the game has for it now. The game adds the entity this
-/// hit is on to the list before it tells the hit, so the snapshot already holds the victim; a callback that re-deals
-/// a piercing hit reads it to know whether the arrow has spent its pierce.
+/// A projectile's hit is being told: stash what the game has for it now. The game adds the entity this
+/// hit is on to its ignore list before it tells the hit, so the snapshot already holds the victim; a callback that re-deals
+/// a piercing hit reads it to know whether the arrow has spent its pierce. The killed list is the one
+/// PlutoLib keeps for the arrow (the game keeps none), and the shot's punch is the shooter's bow bonus
+/// the game recorded on the projectile at the shot — the punch a skeleton's enchanted bow contributes,
+/// which the arrow's save does not name.
 pub(crate) fn on_impact(game: &mut crate::game::Game<'_>, projectile: u32) {
     let Some(p) = game.creatures.projectiles.iter().find(|p| p.id == projectile) else { return };
-    access::stash(projectile, pierced_ids(game, p));
+    access::stash(
+        projectile,
+        access::Snapshot {
+            pierced: pierced_ids(game, p),
+            killed: access::killed(projectile),
+            shot_punch: i32::try_from(p.bonus.punch).unwrap_or(i32::MAX),
+        },
+    );
 }

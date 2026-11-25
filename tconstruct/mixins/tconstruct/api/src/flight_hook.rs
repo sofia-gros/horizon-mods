@@ -357,29 +357,45 @@ fn arrow_hit_damage(motion: [f64; 3], base_damage: f64, critical: bool, roll: &m
 /// The punch level of the bow or crossbow that fired the arrow, read off the saved data: the
 /// arrow's save carries no knockback of its own, but it carries the weapon that fired it (`weapon`,
 /// as the game saves it, with the weapon's enchantments under `components.minecraft:enchantments`),
-/// and the game's own arrow hit reads punch off that weapon. Zero for an arrow no weapon fired
-/// (a skeleton's, a dispenser's) — the game's own hit reads no punch for those either, unless the
-/// shooter held an enchanted bow, which no save records.
-fn arrow_punch(data: &pluto_lib::NbtCompound) -> i32 {
-    data.get_compound("weapon")
-        .and_then(|weapon| weapon.get_compound("components"))
+/// and the game's own arrow hit reads punch off that weapon. `None` for an arrow no weapon is saved
+/// for (a skeleton's, a dispenser's): the game's own hit then falls back to the punch the shot was
+/// fired with, which the hit reports as [`ProjectileImpact::shot_punch`] — a skeleton holding an
+/// enchanted bow contributes its punch that way, though no save records its weapon.
+fn arrow_punch(data: &pluto_lib::NbtCompound) -> Option<i32> {
+    let weapon = data.get_compound("weapon")?;
+    let punch = weapon
+        .get_compound("components")
         .and_then(|components| components.get_compound("minecraft:enchantments"))
         .map(|enchantments| enchantments.get_int("minecraft:punch", 0))
-        .unwrap_or(0)
-        .clamp(0, i64::from(i32::MAX)) as i32
+        .unwrap_or(0);
+    Some(punch.clamp(0, i64::from(i32::MAX)) as i32)
+}
+
+/// The push the original's punch deals on a hit: along the arrow's horizontal motion, normalized
+/// and scaled by punch × 0.6, and up by a fixed 0.1 (`target.push(knockbackVec.x, 0.1D,
+/// knockbackVec.z)`) — a push, not a knockback, so the lift is 0.1 however strong the punch is,
+/// and no knockback resistance is taken off it. None when the arrow has no horizontal motion to
+/// push along (the original checks the scaled vector's length the same way).
+fn punch_push(motion: [f64; 3], punch: i32) -> Option<[f64; 3]> {
+    let length = motion[0].hypot(motion[2]);
+    if !(length.is_finite() && length >= 1.0e-5) { return None; }
+    let scale = f64::from(punch) * 0.6 / length;
+    Some([motion[0] * scale, 0.1, motion[2] * scale])
 }
 
 /// Deals ModifierEvents' reimplemented arrow hit on the impact's target: the arrow's own damage
-/// as the melee type, the punch knockback the original adds, the target lit for 5 seconds when the
+/// as the melee type, the punch push the original adds, the target lit for 5 seconds when the
 /// arrow burns, and the arrow spent unless it pierces. A piercing arrow flies on, and the victim is
 /// written to the game's ignore list, so it does not meet the same enderman again; an arrow that
 /// has already passed through as many as its pierce allows is spent instead, and deals nothing.
 /// The arrow's numbers are read off its saved data, as the game saves them: `damage` the base
 /// damage (2.0 when the save names none, the game's own default), `crit`, `PierceLevel`, and
-/// `Fire` the ticks it has left burning. Two reductions against the original remain: the killed
-/// list (`piercedAndKilledEntities`, which feeds the crossbow-kill criterion) has no home in the
-/// game to write to, and the knockback is the port's own action, so it lifts by the strength
-/// rather than the original's fixed 0.1 and runs whether or not the hurt landed, as the fire does.
+/// `Fire` the ticks it has left burning. The killed list (`piercedAndKilledEntities`, which feeds
+/// the crossbow-kill criterion) is kept for the arrow by PlutoLib and reported on the hit as
+/// [`ProjectileImpact::pierced_and_killed`]; a kill this hit deals joins it as the hit settles. One
+/// reduction against the original remains: the punch push is one of the port's actions, so it
+/// lands whether or not the hurt did, as the fire does, where the original pushes only on a hurt
+/// that landed.
 fn deal_arrow_override(hit: &ProjectileImpact) {
     let pierce = hit.data.get_int("PierceLevel", 0);
     if pierce > 0 {
@@ -403,16 +419,13 @@ fn deal_arrow_override(hit: &ProjectileImpact) {
     });
     let mut actions = hit.actions.borrow_mut();
     actions.push(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: MELEE_ARROW_DAMAGE.into() });
-    let punch = arrow_punch(&hit.data);
+    let punch = arrow_punch(&hit.data).unwrap_or(hit.shot_punch);
     if punch > 0 {
-        // The original pushes along the arrow's horizontal motion, by punch × 0.6, and up by 0.1;
-        // the knockback action takes its direction negated, so the negated motion pushes the way the
-        // arrow flew (see `EntityAction::Knockback`).
-        actions.push(EntityAction::Knockback {
-            target: ActionTarget::Victim,
-            strength: f64::from(punch) * 0.6,
-            direction: KnockbackDirection::Vector { x: -hit.motion[0], z: -hit.motion[2] },
-        });
+        // The original pushes along the arrow's horizontal motion, by punch × 0.6, and up by a
+        // fixed 0.1: a push, not a knockback, so the lift does not grow with the punch.
+        if let Some(velocity) = punch_push(hit.motion, punch) {
+            actions.push(EntityAction::Push { target: ActionTarget::Victim, velocity });
+        }
     }
     if hit.data.get_int("Fire", 0) > 0 {
         actions.push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
@@ -834,6 +847,8 @@ mod tests {
             motion: [0.0, 0.0, -1.0],
             data: pluto_lib::NbtCompound::new(),
             piercing_ignored: Vec::new(),
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
             ignore_entities: std::cell::RefCell::new(Vec::new()),
@@ -871,6 +886,8 @@ mod tests {
             motion: [0.0, 0.0, -1.0],
             data: pluto_lib::NbtCompound::new(),
             piercing_ignored: Vec::new(),
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
             ignore_entities: std::cell::RefCell::new(Vec::new()),
@@ -1024,6 +1041,8 @@ mod tests {
             motion: [0.0, 0.0, -3.0],
             data,
             piercing_ignored,
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
             ignore_entities: std::cell::RefCell::new(Vec::new()),
@@ -1039,10 +1058,10 @@ mod tests {
         }).collect()
     }
 
-    /// The knockbacks an impact dealt, as (strength, direction) pairs.
-    fn dealt_knockbacks(hit: &ProjectileImpact) -> Vec<(f64, KnockbackDirection)> {
+    /// The pushes an impact dealt, as velocity vectors.
+    fn dealt_pushes(hit: &ProjectileImpact) -> Vec<[f64; 3]> {
         hit.actions.borrow().iter().filter_map(|action| match action {
-            EntityAction::Knockback { strength, direction, .. } => Some((*strength, *direction)),
+            EntityAction::Push { velocity, .. } => Some(*velocity),
             _ => None,
         }).collect()
     }
@@ -1096,28 +1115,64 @@ mod tests {
     }
 
     #[test]
-    fn a_punch_arrow_knocks_its_target_back_along_its_flight() {
-        // Punch II on the bow: the original pushes by 2 × 0.6 along the arrow's motion.
+    fn a_punch_arrow_pushes_its_target_along_its_flight_with_a_fixed_lift() {
+        // Punch II on the bow: the original pushes by 2 × 0.6 along the arrow's motion and up by
+        // a fixed 0.1 — a push, not a knockback, so the lift is 0.1, not min(0.4, 1.2).
         let hit = arrow_hit("test:enderarrow-punch", "minecraft:arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 0, 0, 2, Vec::new(), false);
         assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
         assert_eq!(dealt_hurts(&hit), vec![(MELEE_ARROW_DAMAGE.to_owned(), 6.0)]);
-        assert_eq!(
-            dealt_knockbacks(&hit),
-            vec![(1.2, KnockbackDirection::Vector { x: 0.0, z: 3.0 })],
-            "the push runs along the arrow's flight, at punch × 0.6"
-        );
+        let pushes = dealt_pushes(&hit);
+        assert_eq!(pushes.len(), 1, "one push is dealt");
+        let [x, y, z] = pushes[0];
+        assert!(x.abs() < 1.0e-9 && (z + 1.2).abs() < 1.0e-9, "the push runs along the arrow's flight, at punch × 0.6: {pushes:?}");
+        assert_eq!(y, 0.1, "the lift is the original's fixed 0.1");
     }
 
     #[test]
-    fn an_arrow_without_punch_deals_no_knockback() {
+    fn a_skeletons_enchanted_bow_contributes_its_punch() {
+        // No weapon is saved on a skeleton's arrow, so the punch comes from the shot's own
+        // recorded bonus, as the game's own hit falls back to it: Punch II pushes the same way.
+        let mut hit = arrow_hit("test:enderarrow-skeleton-punch", "minecraft:arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 0, 0, 0, Vec::new(), false);
+        hit.shot_punch = 2;
+        assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
+        let pushes = dealt_pushes(&hit);
+        assert_eq!(pushes.len(), 1, "the skeleton's punch pushes too");
+        assert_eq!(pushes[0][1], 0.1, "with the same fixed lift");
+        assert!((pushes[0][2] + 1.2).abs() < 1.0e-9, "at punch × 0.6 along the flight: {pushes:?}");
+    }
+
+    #[test]
+    fn a_saved_weapons_punch_wins_over_the_shots_recorded_punch() {
+        // The game's own hit reads the weapon when one is saved and the shot's bonus only when
+        // none is: Punch I on the saved bow governs, not the recorded Punch II.
+        let mut hit = arrow_hit("test:enderarrow-weapon-wins", "minecraft:arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 0, 0, 1, Vec::new(), false);
+        hit.shot_punch = 2;
+        assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
+        let pushes = dealt_pushes(&hit);
+        assert_eq!(pushes.len(), 1);
+        assert!((pushes[0][2] + 0.6).abs() < 1.0e-9, "the push is punch I's, 1 × 0.6 along the flight: {pushes:?}");
+    }
+
+    #[test]
+    fn the_punch_push_runs_along_the_horizontal_motion_only() {
+        // A purely vertical shot has nothing to push along; a diagonal is normalized first, and
+        // the vertical part of the flight never enters the push.
+        assert!(punch_push([0.0, -3.0, 0.0], 2).is_none());
+        let push = punch_push([3.0, -1.0, 4.0], 1).expect("a diagonal pushes");
+        assert!((push[0] - 0.36).abs() < 1.0e-9 && push[1] == 0.1 && (push[2] - 0.48).abs() < 1.0e-9, "{push:?}");
+    }
+
+    #[test]
+    fn an_arrow_without_punch_deals_no_push() {
         let hit = arrow_hit("test:enderarrow-no-punch", "minecraft:arrow", "minecraft:enderman", vec![crate::teleport_dodge::ENDERFERENCE.to_owned()], 2.0, false, 0, 0, 0, Vec::new(), false);
         assert!(!on_impact(&hit), "the reimplementation replaces the game's hit");
-        assert!(dealt_knockbacks(&hit).is_empty(), "no punch on the weapon, no push");
+        assert!(dealt_pushes(&hit).is_empty(), "no punch on the weapon or the shot, no push");
     }
 
     #[test]
     fn punch_is_read_off_the_weapon_that_fired_the_arrow() {
-        // The weapon's enchantments, as the game saves them; an arrow no weapon fired reads zero.
+        // The weapon's enchantments, as the game saves them; an arrow no weapon is saved for
+        // reads None, so the caller falls back to the shot's recorded punch.
         let mut weapon = pluto_lib::NbtCompound::new();
         let mut components = pluto_lib::NbtCompound::new();
         let mut enchantments = pluto_lib::NbtCompound::new();
@@ -1126,11 +1181,11 @@ mod tests {
         weapon.insert("components".into(), pluto_lib::Nbt::Compound(components));
         let mut data = pluto_lib::NbtCompound::new();
         data.insert("weapon".into(), pluto_lib::Nbt::Compound(weapon));
-        assert_eq!(arrow_punch(&data), 1);
-        assert_eq!(arrow_punch(&pluto_lib::NbtCompound::new()), 0, "an arrow no weapon fired");
+        assert_eq!(arrow_punch(&data), Some(1));
+        assert_eq!(arrow_punch(&pluto_lib::NbtCompound::new()), None, "an arrow no weapon is saved for");
         let mut bare = pluto_lib::NbtCompound::new();
         bare.insert("weapon".into(), pluto_lib::Nbt::Compound(pluto_lib::NbtCompound::new()));
-        assert_eq!(arrow_punch(&bare), 0, "a weapon with no enchantments");
+        assert_eq!(arrow_punch(&bare), Some(0), "a weapon with no enchantments");
     }
 
     #[test]

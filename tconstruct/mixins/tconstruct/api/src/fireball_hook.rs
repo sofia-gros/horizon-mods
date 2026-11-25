@@ -487,6 +487,8 @@ mod tests {
             motion: [0.0; 3],
             data: NbtCompound::new(),
             piercing_ignored: Vec::new(),
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: Cell::new(false),
             motion_after: RefCell::new(None),
             ignore_entities: RefCell::new(Vec::new()),

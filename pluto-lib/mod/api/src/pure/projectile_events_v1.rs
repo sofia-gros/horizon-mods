@@ -63,6 +63,20 @@ pub struct ProjectileImpact {
     /// this to know whether the arrow has spent its pierce, and writes the victim to
     /// [`ProjectileImpact::ignore_entities`] so the game skips it next time.
     pub piercing_ignored: Vec<u32>,
+    /// The entities a piercing arrow has pierced and killed so far, by id, as the game reports them when the
+    /// hit lands (`piercedAndKilledEntities` in the original): the list the crossbow-kill criterion is fed
+    /// from. The list lives on the arrow in the original; the game keeps no such list, so PlutoLib keeps it
+    /// itself, one per projectile, from the kills its impacts settle — a piercing arrow whose hit kills the
+    /// entity it was told on joins that entity here from the next hit on. Empty for a projectile that has
+    /// killed nothing it pierced, a non-piercing arrow, or when the host could not reach the projectile.
+    pub pierced_and_killed: Vec<u32>,
+    /// The punch (knockback) level the shot was fired with, as the game reports it when the hit is told:
+    /// the shooter's bow bonus, recorded on the projectile at the shot — what a shooter holding an
+    /// enchanted bow contributes to its arrow even when no weapon is saved on the arrow itself, as for a
+    /// skeleton's shot, whose save names no weapon. Zero when the game reports none (a shot with no bow
+    /// bonus, a projectile that is no arrow, or one the host could not reach). A callback re-dealing an
+    /// arrow's hit reads the punch off the saved weapon when the save names one and falls back to this.
+    pub shot_punch: i32,
     /// Set to true to discard the projectile once the callbacks ran: the game removes it as the hook
     /// returns, before its own hit handling continues, so cancel the hit as well when the hit itself
     /// should not land. How a projectile that explodes where it lands consumes itself.
@@ -559,6 +573,8 @@ mod tests {
                 motion: [0.0, -1.5, 0.25],
                 data,
                 piercing_ignored: Vec::new(),
+                pierced_and_killed: Vec::new(),
+                shot_punch: 0,
                 discard: Cell::new(false),
                 motion_after: RefCell::new(None),
                 ignore_entities: RefCell::new(Vec::new()),
@@ -683,6 +699,8 @@ mod tests {
             motion: [0.0; 3],
             data: NbtCompound::new(),
             piercing_ignored: Vec::new(),
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: Cell::new(false),
             motion_after: RefCell::new(None),
             ignore_entities: RefCell::new(Vec::new()),
@@ -722,6 +740,8 @@ mod tests {
             motion: [0.0; 3],
             data: NbtCompound::new(),
             piercing_ignored: vec![12],
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: Cell::new(false),
             motion_after: RefCell::new(None),
             ignore_entities: RefCell::new(Vec::new()),

@@ -218,6 +218,8 @@ mod tests {
             motion: [0.0, 0.0, 0.0],
             data: NbtCompound::new(),
             piercing_ignored: Vec::new(),
+            pierced_and_killed: Vec::new(),
+            shot_punch: 0,
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
             ignore_entities: std::cell::RefCell::new(Vec::new()),
