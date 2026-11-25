@@ -257,6 +257,29 @@ pub fn placement_facts(block: &str) -> Option<PlacementFacts> {
     lookup(block)
 }
 
+/// A hardness lookup the host installs: the named block's destroy speed (`BlockState.getDestroySpeed`),
+/// as the game's own block table reports it. The table answers by block name, so a block whose states
+/// differ answers with its first state. A block that cannot be broken answers -1.
+pub type HardnessLookup = fn(&str) -> Option<f32>;
+
+static HARDNESS_LOOKUP: RwLock<Option<HardnessLookup>> = RwLock::new(None);
+
+/// Installs the hardness lookup. Called by the host adapter at startup.
+pub fn set_hardness_lookup(lookup: HardnessLookup) {
+    if let Ok(mut slot) = HARDNESS_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// The named block's destroy speed (its hardness), when the game's table answers for the block:
+/// -1 for a block that cannot be broken, 0 for one that breaks instantly. `None` when no lookup
+/// is installed or the table has no answer for the block.
+pub fn block_hardness(block: &str) -> Option<f32> {
+    let guard = HARDNESS_LOOKUP.read().ok()?;
+    let lookup = (*guard)?;
+    lookup(block)
+}
+
 /// The build range each level last published on its tick, by dimension: what a reader outside a
 /// world callback reads the level's range from (a projectile's flight telling runs in none). A
 /// level publishes its range every tick it runs, so the entry for a loaded dimension is its own
@@ -1304,6 +1327,18 @@ mod tests {
         assert_eq!(ice.classes[0], "FrostedIceBlock");
         assert_eq!(placement_facts("minecraft:stone").unwrap().solid_render, true);
         assert_eq!(placement_facts("minecraft:unknown_block"), None);
+    }
+
+    #[test]
+    fn block_hardness_comes_from_the_installed_lookup() {
+        set_hardness_lookup(|block| match block {
+            "minecraft:bedrock" => Some(-1.0),
+            "minecraft:stone" => Some(1.5),
+            _ => None,
+        });
+        assert_eq!(block_hardness("minecraft:bedrock"), Some(-1.0), "an unbreakable block answers -1");
+        assert_eq!(block_hardness("minecraft:stone"), Some(1.5));
+        assert_eq!(block_hardness("minecraft:unknown_block"), None);
     }
 
     #[test]

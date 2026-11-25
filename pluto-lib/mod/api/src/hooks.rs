@@ -575,6 +575,7 @@ pub fn hooks() -> Box<dyn Hooks> {
         full_collision: facts.full_collision,
         solid_render: facts.solid_render,
     }));
+    world_api_v1::set_hardness_lookup(|block| horizon_client::entry::pluto_block_facts::for_block(block).map(|facts| facts.hardness));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -4382,6 +4383,10 @@ impl Hooks for PlutoHooks {
         let in_tag_at = |pos: [i32; 3], tag: &Identifier| {
             block_at(pos).is_some_and(|block| host.block_name_in_tag(&block.to_string(), &tag.to_string()).unwrap_or(false))
         };
+        // The published hardness of the block at a position, for the default block
+        // predicate's hardness clause: the game's block table answers by block name,
+        // as it answers the dig report (pluto_block_facts).
+        let hardness_at = |pos: [i32; 3]| block_at(pos).and_then(|block| world_api_v1::block_hardness(&block.to_string()));
         let facts = highlight_api_v1::HighlightFacts {
             main_hand: main_hand.as_ref(),
             target,
@@ -4391,6 +4396,7 @@ impl Hooks for PlutoHooks {
             in_world_border: &in_world_border,
             block_at: &block_at,
             in_tag_at: &in_tag_at,
+            hardness_at: &hardness_at,
         };
         for pos in highlight_api_v1::highlight_positions(&facts) {
             let min = [f64::from(pos[0]), f64::from(pos[1]), f64::from(pos[2])];

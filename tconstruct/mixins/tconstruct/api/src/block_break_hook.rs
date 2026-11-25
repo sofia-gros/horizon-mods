@@ -126,13 +126,25 @@ fn restore_harvest_enchantments(broken: &BlockBreakContext) {
     player.update_stack(slot, &stack);
 }
 
+/// The hardness clause of the original's default block predicate (AreaOfEffectIterator.isEffective):
+/// a candidate whose hardness is -1 (unbreakable), or more than three times the origin block's
+/// hardness, is rejected before effectiveness is asked; an origin of hardness 0 passes only
+/// candidates of hardness 0. The hardnesses are the ones the game published from its block table
+/// (pluto_lib::world_api_v1::block_hardness); where the table has no answer for either block the
+/// clause cannot be evaluated and the candidate is kept, as it was before the reach existed.
+fn hardness_allows(origin: Option<f32>, candidate: Option<f32>) -> bool {
+    let (Some(origin), Some(candidate)) = (origin, candidate) else { return true };
+    if candidate == -1.0 { return false; }
+    if origin == 0.0 { candidate == 0.0 } else { candidate / origin <= 3.0 }
+}
+
 /// ToolHarvestLogic.runBlockBreak's area half: when the tool is effective on the block being broken, its
 /// definition's AOE iterator (computed now, before the break, as the original computes it) selects the
-/// extra blocks and the break takes them with it. Box and circle candidates still owe the effectiveness
-/// half of the default block predicate — vein and tree select by their own block rules, as their
-/// getBlocks takes no predicate — and air is skipped, as the original skips it. The predicate's hardness
-/// clause has no surface here (see aoe.rs). A break whose face the game did not report has no plane to
-/// expand over, so it stays single-block.
+/// extra blocks and the break takes them with it. Box and circle candidates are filtered by the
+/// default block predicate — vein and tree select by their own block rules, as their
+/// getBlocks takes no predicate — air is skipped, as the original skips it, and the predicate's
+/// hardness clause is read from the hardness the game published (see hardness_allows). A break whose
+/// face the game did not report has no plane to expand over, so it stays single-block.
 fn area_break(broken: &BlockBreakContext) {
     let (Some(held), Some(face), Some(state)) = (broken.held.as_ref(), broken.face, broken.state.as_ref()) else { return; };
     let Some(world) = World::ticking() else { return; };
@@ -142,6 +154,7 @@ fn area_break(broken: &BlockBreakContext) {
         let effective_on = |state: &pluto_lib::BlockState| env.definition.and_then(|definition| definition.effective())
             .is_some_and(|effective| tool_mining::is_effective(effective, &tier, &|tag: &Identifier| state.is_in_tag(&tag.to_string())));
         if !effective_on(state) { return Vec::new(); }
+        let origin_hardness = pluto_lib::world_api_v1::block_hardness(&state.block.to_string());
         let expanded = match stack.custom_data.get(tool_stack::TAG_VOLATILE) {
             Some(Nbt::Compound(volatile)) => crate::modifier_entries::nbt_int(volatile.get("tconstruct:expanded")),
             _ => 0,
@@ -150,7 +163,7 @@ fn area_break(broken: &BlockBreakContext) {
         let in_tag_at = |pos: [i32; 3], tag: &Identifier| world.get_block_state(pos).is_some_and(|state| state.is_in_tag(&tag.to_string()));
         let positions = iterator.positions(broken.pos, face, broken.yaw, broken.pitch, expanded, &block_at, &in_tag_at);
         if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
-            positions.into_iter().filter(|pos| world.get_block_state(*pos).as_ref().is_some_and(|state| state.block.to_string() != "minecraft:air" && effective_on(state))).collect()
+            positions.into_iter().filter(|pos| world.get_block_state(*pos).as_ref().is_some_and(|state| state.block.to_string() != "minecraft:air" && hardness_allows(origin_hardness, pluto_lib::world_api_v1::block_hardness(&state.block.to_string())) && effective_on(state))).collect()
         } else {
             positions
         }
@@ -403,9 +416,9 @@ fn exchange_after(broken: &BlockBreakContext) {
 /// reach, as the brush's is. Box and circle candidates are filtered to the effective ones, as the
 /// break hook filters its area; vein, tree and conditional positions ride as the break hook takes
 /// them, so only when the tool is effective on the aimed block itself — otherwise a brush tool's
-/// vein would outline blocks its stroke never breaks. The hardness clause of the predicate (a
-/// neighbour more than three times as hard as the aim, or unbreakable) has no surface here, as in
-/// the break hook (see aoe.rs): the outlined set is the break set.
+/// vein would outline blocks its stroke never breaks. The predicate's hardness clause (a
+/// neighbour unbreakable, or more than three times as hard as the aim) is applied from the
+/// frame's published hardness reads, as in the break hook: the outlined set is the break set.
 fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
     let Some(slot) = facts.main_hand else { return Vec::new() };
     let Some(target) = &facts.target else { return Vec::new() };
@@ -424,9 +437,10 @@ fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
             _ => 0,
         };
         let face = Direction::from_offset(target.face).unwrap_or(Direction::Up);
+        let origin_hardness = (facts.hardness_at)(target.pos);
         let positions = iterator.positions(target.pos, face, facts.yaw, facts.pitch, expanded, facts.block_at, facts.in_tag_at);
         if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
-            positions.into_iter().filter(|pos| (facts.block_at)(*pos).is_some_and(|block| block.to_string() != "minecraft:air") && effective_on(*pos)).collect()
+            positions.into_iter().filter(|pos| (facts.block_at)(*pos).is_some_and(|block| block.to_string() != "minecraft:air") && hardness_allows(origin_hardness, (facts.hardness_at)(*pos)) && effective_on(*pos)).collect()
         } else if effective_on(target.pos) {
             positions
         } else {
@@ -788,6 +802,27 @@ mod tests {
         let offhand = stack("minecraft:stone", 1);
         with_ops(&mut ops, || apply_exchange_consume(&player, &held, Some(&offhand), &exchange, false));
         assert!(!ops.carried.contains_key(&(1, -106)));
+    }
+
+    #[test]
+    fn the_hardness_clause_rejects_unbreakable_and_far_harder_neighbours() {
+        // AreaOfEffectIterator.isEffective: hardness -1 never passes, whatever the origin.
+        assert!(!hardness_allows(Some(1.5), Some(-1.0)));
+        assert!(!hardness_allows(Some(-1.0), Some(-1.0)));
+        // More than three times the origin's hardness is rejected; exactly three times passes.
+        assert!(!hardness_allows(Some(1.5), Some(4.6)));
+        assert!(hardness_allows(Some(1.5), Some(4.5)));
+        assert!(hardness_allows(Some(1.5), Some(1.5)));
+        // An origin of hardness 0 passes only candidates of hardness 0.
+        assert!(hardness_allows(Some(0.0), Some(0.0)));
+        assert!(!hardness_allows(Some(0.0), Some(0.5)));
+        // An unbreakable origin passes every breakable candidate (the ratio is never positive).
+        assert!(hardness_allows(Some(-1.0), Some(50.0)));
+        // Where the game's table has no answer for either block, the clause cannot be
+        // evaluated and the candidate is kept.
+        assert!(hardness_allows(None, Some(-1.0)));
+        assert!(hardness_allows(Some(1.5), None));
+        assert!(hardness_allows(None, None));
     }
 
     #[test]

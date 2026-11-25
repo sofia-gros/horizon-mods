@@ -53,12 +53,12 @@ assert_eq!(target.distance, 2.5);
 
 ### `HighlightFacts`
 
-The facts of one frame's outline ask: `main_hand` is the stack in the player's main hand (a tool's modifiers and persistent data ride in its custom data), or None when the hand is empty or its stack cannot be named; `target` is the block the view rests on, or None when it rests on nothing; `yaw` and `pitch` are the player's look in degrees; `block_reach` is the block reach the distance gate uses (the `minecraft:block_interaction_range` attribute's base value for the player's game mode: 4.5 in survival, 5.0 in creative); `in_world_border` answers whether a position sits inside the world border (positions outside it are never outlined, and do not spend one of the sixty slots); `block_at` reads the block at a position near the view (None where nothing is loaded); and `in_tag_at` answers whether the block at a position is in a block tag.
+The facts of one frame's outline ask: `main_hand` is the stack in the player's main hand (a tool's modifiers and persistent data ride in its custom data), or None when the hand is empty or its stack cannot be named; `target` is the block the view rests on, or None when it rests on nothing; `yaw` and `pitch` are the player's look in degrees; `block_reach` is the block reach the distance gate uses (the `minecraft:block_interaction_range` attribute's base value for the player's game mode: 4.5 in survival, 5.0 in creative); `in_world_border` answers whether a position sits inside the world border (positions outside it are never outlined, and do not spend one of the sixty slots); `block_at` reads the block at a position near the view (None where nothing is loaded); `in_tag_at` answers whether the block at a position is in a block tag; and `hardness_at` answers the destroy speed (hardness) of the block at a position as the game's block table publishes it (-1 for a block that cannot be broken; None where the table has no answer), the read the default block predicate's hardness clause compares a neighbour's hardness against the target's by.
 
 ```rust
 use pluto_lib::highlight_api_v1::HighlightFacts;
 
-let facts = HighlightFacts { main_hand: None, target: None, yaw: 90.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false };
+let facts = HighlightFacts { main_hand: None, target: None, yaw: 90.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false, hardness_at: &|_| None };
 assert!(facts.main_hand.is_none());
 assert!(facts.target.is_none());
 assert_eq!(facts.yaw, 90.0);
@@ -76,7 +76,7 @@ use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightProvider};
 
 fn nothing(_: &HighlightFacts<'_>) -> Vec<[i32; 3]> { Vec::new() }
 let provider: HighlightProvider = nothing;
-let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false };
+let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false, hardness_at: &|_| None };
 assert!(provider(&facts).is_empty());
 ```
 
@@ -88,7 +88,7 @@ The registry of highlight providers. Register once during startup; the transport
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry, highlight_positions};
 
 HighlightRegistry::register(|_| vec![[1, 64, -3]]);
-let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false };
+let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false, hardness_at: &|_| None };
 assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]]);
 ```
 
@@ -103,7 +103,7 @@ fn one(_: &HighlightFacts<'_>) -> Vec<[i32; 3]> { vec![[1, 64, -3]] }
 let provider: HighlightProvider = one;
 HighlightRegistry::register(provider);
 HighlightRegistry::register(provider);
-let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false };
+let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false, hardness_at: &|_| None };
 assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]], "registered once, drawn once");
 ```
 
@@ -114,7 +114,7 @@ assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]], "registered once, dra
 ```rust
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry, highlight_positions};
 
-let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false };
+let facts = HighlightFacts { main_hand: None, target: None, yaw: 0.0, pitch: 0.0, block_reach: 5.0, in_world_border: &|_| true, block_at: &|_| None, in_tag_at: &|_, _| false, hardness_at: &|_| None };
 HighlightRegistry::register(|_| vec![[1, 64, -3], [1, 64, -3]]);
 assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]], "each position is drawn once");
 ```
