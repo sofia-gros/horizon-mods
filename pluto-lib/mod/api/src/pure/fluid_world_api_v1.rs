@@ -496,6 +496,13 @@ fn swap_held(used: &super::events_interaction_v0::UseItemOnBlockContext, held: &
     }
 }
 
+/// The game's own fluids and their bucket items. Nobody registers water or lava (the game already has them),
+/// so no fluid registration ever builds their containers — yet their buckets are containers like any fluid's:
+/// a lava bucket empties into a tank and an empty bucket fills from one, as the original's tank interaction
+/// (`FluidTransferHelper.interactWithTank`) does with every bucket the platform knows. They ride along with
+/// every bucket registration below, so the shared empty bucket rebuilt there always knows them too.
+const VANILLA_BUCKETS: [(&str, &str); 2] = [("minecraft:water", "minecraft:water_bucket"), ("minecraft:lava", "minecraft:lava_bucket")];
+
 /// Registers the bucket of a fluid as a container and makes the buckets work on blocks. Called by [`FluidRegistry::register`] for a fluid
 /// with a bucket.
 pub(crate) fn register_bucket(def: &FluidDef) {
@@ -508,12 +515,23 @@ pub(crate) fn register_bucket(def: &FluidDef) {
     } else {
         FluidItems::register(FluidItemDef::constant(bucket_item, def.id.clone(), 1000, Some(empty_bucket.clone())));
     }
-    let fluids: Vec<(Identifier, Identifier, bool)> = FluidRegistry::registered()
+    for (fluid, bucket) in VANILLA_BUCKETS {
+        let fluid = Identifier::parse(fluid).expect("a fixed id");
+        let bucket = Identifier::parse(bucket).expect("a fixed id");
+        FluidItems::register(FluidItemDef::constant(bucket, fluid, 1000, Some(empty_bucket.clone())));
+    }
+    let mut fluids: Vec<(Identifier, Identifier, bool)> = FluidRegistry::registered()
         .into_iter()
         .filter(|other| other.bucket && other.id != def.id)
         .chain(std::iter::once(def.clone()))
         .map(|other| (other.id.clone(), FluidWorld::bucket_id(&other.id), other.bucket_carries_tag))
         .collect();
+    for (fluid, bucket) in VANILLA_BUCKETS {
+        let fluid = Identifier::parse(fluid).expect("a fixed id");
+        if !fluids.iter().any(|(known, _, _)| *known == fluid) {
+            fluids.push((fluid, Identifier::parse(bucket).expect("a fixed id"), false));
+        }
+    }
     let mut buckets = fluids.into_iter();
     if let Some((first, first_bucket, first_tagged)) = buckets.next() {
         let mut item = if first_tagged {
@@ -689,6 +707,21 @@ mod tests {
         // a fluid without world blocks gets no block behaviour
         FluidRegistry::register(FluidDef::new(id("flow_test:potion")).with_bucket());
         assert!(BlockBehaviors::get("flow_test:potion_fluid").is_none());
+    }
+
+    #[test]
+    fn a_bucket_registration_also_makes_the_vanilla_buckets_containers() {
+        FluidRegistry::register(FluidDef::new(id("flow_test:bucketed")).with_bucket());
+        let empty = super::super::block_entity_api_v1::ItemSlot::new(id("minecraft:bucket"), 1);
+        // The empty bucket fills with the game's own fluids and becomes their buckets; a filled vanilla
+        // bucket reads as its fluid and drains back to an empty bucket.
+        for (fluid, bucket) in [("minecraft:lava", "minecraft:lava_bucket"), ("minecraft:water", "minecraft:water_bucket")] {
+            let filled = FluidItems::fill(&empty, &super::super::block_entity_api_v1::FluidStack { fluid: id(fluid), amount: 1000, tag: None });
+            assert_eq!((filled.amount, filled.container.item.to_string()), (1000, bucket.to_owned()), "{fluid}");
+            assert_eq!(FluidItems::contents(&filled.container).map(|held| (held.fluid.to_string(), held.amount)), Some((fluid.to_owned(), 1000)));
+            let drained = FluidItems::drain(&filled.container, None, 1000).unwrap();
+            assert_eq!((drained.fluid.fluid.to_string(), drained.container.unwrap().item.to_string()), (fluid.to_owned(), "minecraft:bucket".to_owned()));
+        }
     }
 
     #[test]

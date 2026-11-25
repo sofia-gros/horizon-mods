@@ -202,6 +202,28 @@ mod tests {
     }
 
     #[test]
+    fn a_held_vanilla_bucket_trades_with_a_tank_too() {
+        crate::fluids::register();
+        register();
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut used = BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: Some(stack("minecraft:lava_bucket", 1)), sneaking: false, give: Vec::new() };
+        // the lava bucket empties into the tank and the hand keeps an empty bucket
+        assert_eq!(use_tank(&mut used, 4000), ActionResult::Success);
+        assert_eq!(used.fluid(0), Some(fluid("minecraft:lava", 1000)));
+        assert_eq!(used.held.as_ref().map(|held| held.item.to_string()), Some("minecraft:bucket".to_owned()), "the bucket is empty now");
+        // the empty bucket takes the lava back as a lava bucket
+        assert_eq!(use_tank(&mut used, 4000), ActionResult::Success);
+        assert_eq!(used.fluid(0), None);
+        assert_eq!(used.held.as_ref().map(|held| held.item.to_string()), Some("minecraft:lava_bucket".to_owned()));
+        // water trades the same way
+        used.held = Some(stack("minecraft:water_bucket", 1));
+        assert_eq!(use_tank(&mut used, 4000), ActionResult::Success);
+        assert_eq!(used.fluid(0), Some(fluid("minecraft:water", 1000)));
+        assert_eq!(used.held.as_ref().map(|held| held.item.to_string()), Some("minecraft:bucket".to_owned()));
+    }
+
+    #[test]
     fn the_bottles_give_their_effects_and_the_original_foods_are_registered() {
         register();
         assert_eq!(drunk_effects("tconstruct:venom_bottle"), &[("minecraft:strength", 600, 0), ("minecraft:poison", 250, 0)]);
