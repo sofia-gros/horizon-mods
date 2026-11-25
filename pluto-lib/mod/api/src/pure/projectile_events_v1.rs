@@ -396,6 +396,17 @@ pub(crate) fn launched(launch: &ProjectileLaunch) {
     LAUNCH.invoke(launch);
 }
 
+/// Remembers the stack `projectile` (an entity id a spawn handed back) was launched from, for
+/// the experience drop of a mob it goes on to kill: the drop reads the projectile's recorded
+/// experience float from this stack instead of the credited player's held tool. The game names
+/// the launcher's stack itself for the launches it makes (a shot from a bow, a dispenser's
+/// shot, a mob's shot); a launch a mod makes with a stack the game never held at the launch —
+/// a tool thrown from the hand, whose hand is already empty when the launch is reported —
+/// names it here, with the stack as launched (a thrown tool: the one stack thrown).
+pub fn note_launch_stack(projectile: u32, stack: StackData) {
+    super::entity_events_v1::note_projectile_tool(projectile, stack);
+}
+
 /// The actions the callbacks queued for the player who shot.
 pub(crate) fn shot(shot: &BowShot) -> Vec<EntityAction> {
     SHOOT_BOW.invoke(shot);

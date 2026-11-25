@@ -299,6 +299,16 @@ assert_eq!(ops.summons[0].kind, "example:dart_thrown");
 assert_eq!(spawn_thrown(&world, &Identifier::parse("example:unregistered_thrown").unwrap(), [0.0; 3], [0.0; 3], None, NbtCompound::new()), None);
 ```
 
+### `note_launch_stack`
+
+`fn note_launch_stack(projectile: u32, stack: StackData)`. Remembers the stack the projectile with this entity id (one a spawn handed back) was launched from, for the experience drop of a mob it goes on to kill (see `ExperienceDrop` in [entities](entities.md)): the drop reads the projectile's recorded experience float from this stack instead of the credited player's held tool. The game names the launcher's stack itself for the launches it makes — a shot from a bow, a dispenser's shot, a mob's shot; a launch a mod makes with a stack the game never held at the launch — a tool thrown from the hand, whose hand is already empty when the launch is reported — names it here, with the stack as launched (a thrown tool: the one stack thrown).
+
+```rust
+use pluto_lib::{StackData, note_launch_stack};
+
+note_launch_stack(12, StackData { item: "example:throwing_knife".into(), count: 1, ..StackData::default() });
+```
+
 ### `throw_sound_for`
 
 `fn throw_sound_for(id: &str) -> Option<&'static str>`. The sound a thrown type throws with, for the host's throw-sound sink: the registered type's throw sound, if it carries one. None keeps the game's own snowball throw.

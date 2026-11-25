@@ -825,14 +825,17 @@ pub struct ExperienceDrop {
     /// The dying mob's effects as of the drop, as (id, amplifier).
     pub effects: Vec<(String, i32)>,
     /// The stack the killing projectile was launched from, when the killing blow was a projectile
-    /// a player launched and the launch named its tool; None otherwise (a melee kill, a projectile
-    /// no launch named, or a projectile the game did not report). The consumer reads the
-    /// projectile's recorded experience float from it instead of the held tool's.
+    /// whose launch named one — the weapon a shot was fired from, the stack a dispenser shot, the
+    /// tool a throw left the hand with, whoever launched it; None otherwise (a melee kill, or a
+    /// projectile no launch named). The consumer reads the projectile's recorded experience float
+    /// from it instead of the held tool's.
     pub projectile_tool: Option<StackData>,
     /// The looting slot the killing blow's attack claimed (canon's `ModifierLootingHandler`:
     /// the slot the attacking tool came from, usually the main hand, an armor piece when the
-    /// blow was struck with one); None when no weapon hit named one, and the main hand reads
-    /// then. The consumer reads the tool in this slot instead of the main hand.
+    /// blow was struck with one). A claim stands only for the one blow that follows it — the
+    /// damage the attack itself deals — so this is Some only when the killing damage is that
+    /// blow; None when no weapon hit named one, and the main hand reads then. The consumer
+    /// reads the tool in this slot instead of the main hand.
     pub looting_slot: Option<StackSlot>,
     /// The experience now, which callbacks may change with `set` (0 or less drops no orbs);
     /// each callback sees the last one's.
@@ -964,6 +967,15 @@ pub(crate) fn note_experience_attacker(entity: i32, player: u128) {
     EXPERIENCE_ATTACKER.with(|pending| *pending.borrow_mut() = Some((entity, player, std::time::Instant::now())));
 }
 
+/// Forgets the killer named for `entity`, if it is the one pending: the entity left, or a fresh
+/// entity took its id, and the name belongs to the old one.
+pub(crate) fn forget_experience_attacker(entity: i32) {
+    EXPERIENCE_ATTACKER.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        if matches!(*pending, Some((who, _, _)) if who == entity) { *pending = None; }
+    });
+}
+
 /// The killer `note_experience_attacker` named for this mob, taken; a stale name is dropped.
 pub(crate) fn take_experience_attacker(entity: i32) -> Option<u128> {
     EXPERIENCE_ATTACKER.with(|pending| {
@@ -976,9 +988,9 @@ pub(crate) fn take_experience_attacker(entity: i32) -> Option<u128> {
     })
 }
 
-/// How long a killing blow's direct entity waits for its victim's death, and a looting slot waits
-/// for its attack's kill; a blow whose victim drops no experience leaves a name that is dropped
-/// unread once it is this old.
+/// How long a killing blow's direct entity waits for its victim's death. The death follows the
+/// blow in the same call, so this only bounds a note whose victim drops no experience; the note
+/// also dies with its victim (see `forget_attribution_notes`).
 const KILLING_NOTE_LIFETIME: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// The direct entity of the last blow that landed on each victim, by victim entity id: a projectile
@@ -1004,18 +1016,18 @@ pub(crate) fn take_killing_direct(victim: i32) -> Option<i32> {
     }
 }
 
-/// How long a launched projectile's tool waits for a kill: a projectile flies for seconds at most,
-/// and an entry older than this is dropped unread (an entity id reused by another projectile after
-/// the first left the world must not lend it its launcher's tool).
+/// How long a launched projectile's tool waits for a kill. A note is forgotten when its
+/// projectile leaves and when a launch reuses its entity id (see `forget_projectile_tool`), so
+/// this only bounds a note whose projectile neither kills nor leaves in the ordinary way.
 const PROJECTILE_TOOL_LIFETIME: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// The most launched projectiles remembered at once; past it the oldest launch is forgotten rather
 /// than letting a broken caller grow the map without bound.
 const MAX_PROJECTILE_TOOLS: usize = 4096;
 
-/// The stack each player's projectile was launched from, by projectile entity id: the death report
-/// names the killing projectile, not its float, and the launch is the only moment the tool is in
-/// hand. A launch no player made (a dispenser, a mob) names no tool.
+/// The stack each projectile was launched from, by projectile entity id: the death report names
+/// the killing projectile, not its float, and the launch is the only moment the stack is known —
+/// whoever launched it (a player's hand or bow, a mob's bow, a dispenser's shot, a throw).
 static PROJECTILE_TOOLS: std::sync::Mutex<std::collections::BTreeMap<u32, (StackData, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
 /// Remembers the stack `projectile` was launched from.
@@ -1029,6 +1041,13 @@ pub(crate) fn note_projectile_tool(projectile: u32, tool: StackData) {
     tools.insert(projectile, (tool, now));
 }
 
+/// Forgets the stack noted for `projectile`: the projectile left, or a launch under its entity
+/// id names a new projectile, and the old note is not the new one's.
+pub(crate) fn forget_projectile_tool(projectile: u32) {
+    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return };
+    tools.remove(&projectile);
+}
+
 /// The stack `projectile` was launched from, taken; a stale one is dropped.
 pub(crate) fn take_projectile_tool(projectile: u32) -> Option<StackData> {
     let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return None };
@@ -1038,27 +1057,71 @@ pub(crate) fn take_projectile_tool(projectile: u32) -> Option<StackData> {
     }
 }
 
-/// The looting slot each player's last weapon hit claimed, by player uuid: the slot the attacking
-/// tool came from (canon's `ModifierLootingHandler`, which claims it at attack time and resets it
-/// after the hit). A kill within the lifetime of a claim reads the claimed slot's tool instead of
-/// the main hand's; a kill after it reads the main hand.
-static LOOTING_SLOTS: std::sync::Mutex<std::collections::BTreeMap<u128, (StackSlot, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
-
-/// Claims the looting slot `slot` for `player`'s next kill.
-pub(crate) fn note_looting_slot(player: u128, slot: StackSlot) {
-    let Ok(mut slots) = LOOTING_SLOTS.lock() else { return };
-    let now = std::time::Instant::now();
-    slots.retain(|_, (_, at)| at.elapsed() < KILLING_NOTE_LIFETIME);
-    slots.insert(player, (slot, now));
+/// A looting slot claim an attack has made on a victim, keyed by the victim's entity id: the
+/// slot the attacking tool came from. Canon's `ModifierLootingHandler` claims the slot inside
+/// `ToolAttackUtil.performAttack`, immediately before the victim is hurt, and resets it
+/// immediately after the hurt returns, so a claim lives exactly for the one hurt call that
+/// follows it and for no other kill — there is no window. A claim starts unconfirmed; the first
+/// damage that lands on the victim confirms it when it is the claim's own blow, and ends the
+/// claim otherwise, and any damage after the confirming one ends it too: the experience drop
+/// of a kill the confirming blow dealt is worked out during that blow's own processing, before
+/// any later damage can land on the victim.
+#[derive(Clone, Copy)]
+struct LootingClaim {
+    /// The attacking player the claim is for.
+    player: u128,
+    /// The attacking player's entity id: the damage the claim belongs to names them as its cause.
+    attacker: i32,
+    /// The claimed slot.
+    slot: StackSlot,
+    /// Whether the claim's own blow has landed (see `resolve_looting_claim`).
+    confirmed: bool,
 }
 
-/// The looting slot `player`'s last weapon hit claimed, taken; a stale claim is dropped.
-pub(crate) fn take_looting_slot(player: u128) -> Option<StackSlot> {
-    let Ok(mut slots) = LOOTING_SLOTS.lock() else { return None };
-    match slots.remove(&player) {
-        Some((slot, at)) if at.elapsed() < KILLING_NOTE_LIFETIME => Some(slot),
-        _ => None,
+static LOOTING_CLAIMS: std::sync::Mutex<std::collections::BTreeMap<i32, LootingClaim>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Claims the looting slot `slot` on `victim` for the attack `attacker` (the attacking player's
+/// entity id) is making, on behalf of `player`: the claim stands for the damage that attack
+/// goes on to deal, and for nothing else. A fresh claim replaces any claim still standing on
+/// the victim.
+pub(crate) fn note_looting_slot(player: u128, victim: i32, attacker: i32, slot: StackSlot) {
+    let Ok(mut claims) = LOOTING_CLAIMS.lock() else { return };
+    claims.insert(victim, LootingClaim { player, attacker, slot, confirmed: false });
+}
+
+/// Settles the looting claim on `victim` against the damage now landing on it, dealt by
+/// `causing` through `direct` (the damage's direct entity; the causing entity itself, or a
+/// non-positive id, when the damage is direct — see `LivingDamage::is_direct_damage`). The
+/// claim's own blow — its attacker dealing direct damage — confirms the claim; any other
+/// damage ends it, as does any damage after the confirming blow.
+pub(crate) fn resolve_looting_claim(victim: i32, causing: i32, direct: i32) {
+    let Ok(mut claims) = LOOTING_CLAIMS.lock() else { return };
+    let Some(claim) = claims.get(&victim).copied() else { return };
+    if !claim.confirmed && claim.attacker == causing && (direct <= 0 || direct == causing) {
+        claims.insert(victim, LootingClaim { confirmed: true, ..claim });
+    } else {
+        claims.remove(&victim);
     }
+}
+
+/// The looting slot the confirmed claim on `victim` named for `player`, taken. A claim the
+/// damage never confirmed, or another player's claim, is not taken; it is left standing, to
+/// end with the victim's next damage or its leaving.
+pub(crate) fn take_looting_slot(player: u128, victim: i32) -> Option<StackSlot> {
+    let Ok(mut claims) = LOOTING_CLAIMS.lock() else { return None };
+    let claim = claims.get(&victim).copied()?;
+    if claim.confirmed && claim.player == player {
+        claims.remove(&victim);
+        Some(claim.slot)
+    } else {
+        None
+    }
+}
+
+/// Ends the looting claim on `victim`, if any: the victim left, or a fresh entity took its id.
+pub(crate) fn forget_looting_claim(victim: i32) {
+    let Ok(mut claims) = LOOTING_CLAIMS.lock() else { return };
+    claims.remove(&victim);
 }
 
 /// The looting slot an attack with `weapon` claims when the attacker wears `armor` and holds
@@ -1287,11 +1350,24 @@ pub(crate) fn modify_item_damage(wear: &ItemDamage) -> Option<(i32, Option<ItemS
     if wear.cancel.get() { None } else { Some((wear.amount.get(), wear.replacement.borrow_mut().take(), wear.edits.borrow_mut().drain(..).collect())) }
 }
 
+/// An entity's experience attribution notes die with it, and a fresh entity under its id starts
+/// with none: the killer a death named, the killing blow's direct entity, a looting claim made
+/// on it and the stack a projectile under the id was launched from all belong to the entity
+/// that left, not to the one that takes its id.
+fn forget_attribution_notes(id: u32) {
+    forget_projectile_tool(id);
+    if let Ok(mut blows) = KILLING_DIRECT.lock() { blows.remove(&(id as i32)); }
+    forget_looting_claim(id as i32);
+    forget_experience_attacker(id as i32);
+}
+
 pub(crate) fn entity_loaded(id: u32, kind: &str, dimension: &str) {
+    forget_attribution_notes(id);
     ENTITY_LOAD.invoke(&EntityInfo { id, kind: kind.to_owned(), dimension: dimension.to_owned() });
 }
 
 pub(crate) fn entity_unloaded(id: u32, kind: &str, dimension: &str) {
+    forget_attribution_notes(id);
     ENTITY_UNLOAD.invoke(&EntityInfo { id, kind: kind.to_owned(), dimension: dimension.to_owned() });
 }
 
@@ -1679,6 +1755,33 @@ fn saved_armor_stack(equipment: &super::base::NbtCompound, slot: &str) -> Option
 
 /// `LivingEntity.getArmorCoverPercentage` for `filled` of the four armor slots.
 pub(crate) fn armor_coverage(filled: usize) -> f32 { filled.min(4) as f32 / 4.0 }
+
+/// A stack from its saved form (the game's item save layout: `id`, `count`, and a `components`
+/// compound holding `minecraft:custom_data`, `minecraft:damage` and `minecraft:max_damage`) —
+/// the form a projectile's saved data holds the weapon it was fired from and its own stack in,
+/// and an entity's saved `equipment` holds its held stacks in. Unlike `saved_armor_stack`, a
+/// stack carrying no custom data still reads: the stack itself is the fact wanted. None when
+/// the data names no item, or air.
+pub(crate) fn stack_from_saved_item(stack: &super::base::NbtCompound) -> Option<StackData> {
+    use super::base::Nbt;
+    let Some(Nbt::String(id)) = stack.get("id") else { return None };
+    if id == "minecraft:air" { return None; }
+    let count = stack.get("count").and_then(number).map(|count| count as u32).unwrap_or(1);
+    let components = match stack.get("components") { Some(Nbt::Compound(components)) => Some(components), _ => None };
+    let custom_data = components.and_then(|components| match components.get("minecraft:custom_data") { Some(Nbt::Compound(data)) => Some(data.clone()), _ => None }).unwrap_or_default();
+    let damage = components.and_then(|components| components.get("minecraft:damage")).and_then(number).map(|damage| damage as u32).unwrap_or(0);
+    let max_damage = components.and_then(|components| components.get("minecraft:max_damage")).and_then(number).map(|max_damage| max_damage as i32);
+    Some(StackData { item: id.clone(), count, damage, max_damage, custom_data, ..StackData::default() })
+}
+
+/// The stack in the main hand of the entity whose saved data this is, from its saved
+/// `equipment` compound; None when it saved no equipment or its main hand is empty.
+pub(crate) fn saved_mainhand(data: &super::base::NbtCompound) -> Option<StackData> {
+    use super::base::Nbt;
+    let Some(Nbt::Compound(equipment)) = data.get("equipment") else { return None };
+    let Some(Nbt::Compound(stack)) = equipment.get("mainhand") else { return None };
+    stack_from_saved_item(stack)
+}
 
 /// A player is attacking `entity` with `stack`: remembered for the damage that follows in the same call.
 pub(crate) fn attack_started(entity: i32, stack: Option<StackData>) {
@@ -2784,11 +2887,81 @@ mod tests {
     }
 
     #[test]
-    fn a_looting_slot_claim_is_remembered_until_its_kill() {
-        note_looting_slot(11, StackSlot::Chest);
-        assert_eq!(take_looting_slot(11), Some(StackSlot::Chest));
-        assert_eq!(take_looting_slot(11), None, "taken once");
-        assert_eq!(take_looting_slot(12), None, "another player's claim is not taken");
+    fn a_looting_slot_claim_lives_only_for_its_own_blow() {
+        let (player, victim, attacker) = (11u128, 51i32, 5i32);
+        note_looting_slot(player, victim, attacker, StackSlot::Chest);
+        assert_eq!(take_looting_slot(player, victim), None, "a claim the damage has not confirmed is not taken");
+        note_looting_slot(player, victim, attacker, StackSlot::Chest);
+        resolve_looting_claim(victim, attacker, attacker);
+        assert_eq!(take_looting_slot(player, victim), Some(StackSlot::Chest), "the claim's own blow confirms it, and its kill takes it");
+        assert_eq!(take_looting_slot(player, victim), None, "taken once");
+        note_looting_slot(player, victim, attacker, StackSlot::Chest);
+        resolve_looting_claim(victim, 9, 9);
+        assert_eq!(take_looting_slot(player, victim), None, "damage from another attacker ends the claim");
+        note_looting_slot(player, victim, attacker, StackSlot::Chest);
+        resolve_looting_claim(victim, attacker, 77);
+        assert_eq!(take_looting_slot(player, victim), None, "the attacker's own projectile is not the claim's blow");
+        note_looting_slot(player, victim, attacker, StackSlot::Chest);
+        resolve_looting_claim(victim, attacker, -1);
+        resolve_looting_claim(victim, attacker, attacker);
+        assert_eq!(take_looting_slot(player, victim), None, "damage after the confirming blow ends the claim");
+        note_looting_slot(12, victim, attacker, StackSlot::OffHand);
+        assert_eq!(take_looting_slot(player, victim), None, "another player's claim is not taken");
+        note_looting_slot(player, victim, attacker, StackSlot::MainHand);
+        resolve_looting_claim(victim, attacker, attacker);
+        assert_eq!(take_looting_slot(player, victim), Some(StackSlot::MainHand), "the latest claim on the victim is the one its blow confirms");
+        assert_eq!(take_looting_slot(player, 52), None, "no claim stands on another victim");
+    }
+
+    #[test]
+    fn a_reused_entity_id_inherits_no_attribution() {
+        let tool = StackData { item: "tconstruct:bow".into(), count: 1, ..StackData::default() };
+        note_projectile_tool(21, tool.clone());
+        note_killing_direct(21, 7);
+        note_looting_slot(11, 21, 5, StackSlot::Chest);
+        resolve_looting_claim(21, 5, 5);
+        entity_unloaded(21, "minecraft:arrow", "minecraft:overworld");
+        assert_eq!(take_projectile_tool(21), None, "a leaving projectile's tool dies with it");
+        assert_eq!(take_killing_direct(21), None, "a leaving victim's killing blow dies with it");
+        assert_eq!(take_looting_slot(11, 21), None, "a leaving victim's looting claim dies with it");
+        note_projectile_tool(22, tool);
+        entity_loaded(22, "minecraft:arrow", "minecraft:overworld");
+        assert_eq!(take_projectile_tool(22), None, "a fresh entity under the id starts clean");
+    }
+
+    #[test]
+    fn a_stack_reads_from_its_saved_form() {
+        let mut custom_data = NbtCompound::new();
+        custom_data.insert("mark".into(), Nbt::Int(3));
+        let mut components = NbtCompound::new();
+        components.insert("minecraft:custom_data".into(), Nbt::Compound(custom_data));
+        components.insert("minecraft:damage".into(), Nbt::Int(7));
+        components.insert("minecraft:max_damage".into(), Nbt::Int(250));
+        let mut saved = NbtCompound::new();
+        saved.insert("id".into(), Nbt::String("tconstruct:bow".into()));
+        saved.insert("count".into(), Nbt::Int(1));
+        saved.insert("components".into(), Nbt::Compound(components));
+        let stack = stack_from_saved_item(&saved).expect("a saved stack reads");
+        assert_eq!(stack.item, "tconstruct:bow");
+        assert_eq!(stack.count, 1);
+        assert_eq!(stack.damage, 7);
+        assert_eq!(stack.max_damage, Some(250));
+        assert_eq!(stack.custom_data.get("mark"), Some(&Nbt::Int(3)), "the custom data rides along");
+        let mut bare = NbtCompound::new();
+        bare.insert("id".into(), Nbt::String("minecraft:arrow".into()));
+        let stack = stack_from_saved_item(&bare).expect("a stack with no components still reads");
+        assert_eq!(stack.count, 1, "a count the save omits is one");
+        assert!(stack.custom_data.is_empty(), "no components, no custom data");
+        let mut air = NbtCompound::new();
+        air.insert("id".into(), Nbt::String("minecraft:air".into()));
+        assert_eq!(stack_from_saved_item(&air), None, "air is no stack");
+        assert_eq!(stack_from_saved_item(&NbtCompound::new()), None, "no id, no stack");
+        let mut equipment = NbtCompound::new();
+        equipment.insert("mainhand".into(), Nbt::Compound(saved));
+        let mut data = NbtCompound::new();
+        data.insert("equipment".into(), Nbt::Compound(equipment));
+        assert_eq!(saved_mainhand(&data).map(|stack| stack.item), Some("tconstruct:bow".to_string()), "the main hand reads from the saved equipment");
+        assert_eq!(saved_mainhand(&NbtCompound::new()), None, "no equipment saved, no main hand");
     }
 
     #[test]
