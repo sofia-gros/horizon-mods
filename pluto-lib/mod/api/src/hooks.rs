@@ -4781,9 +4781,20 @@ impl Hooks for PlutoHooks {
         if !block_entity_api_v1::has_use_hook(&block) {
             return Flow::Continue;
         }
-        let Some(player) = host.acting_player() else { return Flow::Continue };
+        // The host names the acting player only for a guest's action; the world's own player is the only one logged in
+        // then (as in use_item_on), so they are who a click with no named actor belongs to.
+        let (player_uuid, player_dimension, player_position) = match host.acting_player() {
+            Some(player) => (player.uuid, player.dimension, player.position),
+            None => match sole_player() {
+                Some((uuid, _)) => {
+                    let position = host.entity_by_uuid(uuid).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.entity_position(entity)).unwrap_or([0.0; 3]);
+                    (uuid, host.dimension().to_string(), position)
+                }
+                None => return Flow::Continue,
+            },
+        };
         let slot = if matches!(event.hand, Hand::Off) { EquipmentSlot::OffHand } else { EquipmentSlot::MainHand };
-        let held = host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
+        let held = host.player_equipment(player_uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
         let sneaking = host.sneaking();
         let mut outcome = None;
         let mut hand = Some(held.clone());
@@ -4808,21 +4819,21 @@ impl Hooks for PlutoHooks {
         let Some(outcome) = outcome else { return Flow::Continue };
         host.block_entity_sync(pos);
         if outcome.held != held {
-            let living = host.entity_by_uuid(player.uuid).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.living(entity));
+            let living = host.entity_by_uuid(player_uuid).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.living(entity));
             if let Some(living) = living {
                 living.set_equipment(host, slot, native_slot(outcome.held.clone()));
             }
         }
         for given in outcome.give {
             let Some(stack) = native_slot(Some(given)) else { continue };
-            let Some(left) = host.give_stack(player.uuid, stack) else { continue };
+            let Some(left) = host.give_stack(player_uuid, stack) else { continue };
             // The inventory is full: the rest lands at the player's feet.
             let mut item = NbtCompound::new();
             item.insert("id".to_owned(), Nbt::String(left.item.to_string()));
             item.insert("count".to_owned(), Nbt::Int(left.count.min(i32::MAX as u32) as i32));
             let mut nbt = NbtCompound::new();
             nbt.insert("Item".to_owned(), Nbt::Compound(item));
-            host.summon(&player.dimension, "minecraft:item", player.position, compound_to_tag(&nbt));
+            host.summon(&player_dimension, "minecraft:item", player_position, compound_to_tag(&nbt));
         }
         if matches!(outcome.result, ActionResult::Pass) { Flow::Continue } else { Flow::Cancel }
     }
