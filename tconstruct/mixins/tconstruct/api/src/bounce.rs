@@ -526,7 +526,7 @@ mod tests {
         assert_eq!(fall.multiplier.get(), 0.0);
         assert_eq!(world.sounds, vec![("tconstruct:slimy_bounce".to_owned(), [0.0, 64.0, 0.0])], "the bounce sounds at the landing");
         let mut ops = MemoryEntityOps::default();
-        ops.entities = vec![([0.5, 64.5, 0.0], WorldEntity { id: 710_001, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) })];
+        ops.entities = vec![([0.5, 64.5, 0.0], WorldEntity { id: 710_001, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) })];
         with_entities(&mut ops, || {
             ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(710_001, [0.5, 64.5, 0.0], false, false, true));
         });
@@ -600,7 +600,7 @@ mod tests {
         assert_eq!(fall.multiplier.get(), 0.0);
         assert_eq!(world.sounds, vec![("tconstruct:slimy_bounce".to_owned(), [0.0, 64.0, 0.0])], "the bounce sounds at the landing");
         let mut ops = MemoryEntityOps::default();
-        ops.entities = vec![([0.5, 64.5, 0.0], WorldEntity { id: 710_101, kind: Identifier::parse("minecraft:zombie").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) })];
+        ops.entities = vec![([0.5, 64.5, 0.0], WorldEntity { id: 710_101, kind: Identifier::parse("minecraft:zombie").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) })];
         with_entities(&mut ops, || {
             ServerLivingEntityEvents::MOB_TICK.invoke(&mob_tick_for(710_101, [0.5, 64.5, 0.0], [0.5, -3.0, 0.0], true, false));
         });

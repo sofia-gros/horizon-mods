@@ -113,7 +113,7 @@ ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
     id: 7,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     let found = EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]);
@@ -582,7 +582,7 @@ assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing)
 
 ### `EntityAction`
 
-What a callback does to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; a hit on a player's, on that player's next tick. Each action is guarded; one the target cannot take is skipped silently: `SetFire { target, seconds }` sets it burning for `seconds` when longer than it burns (a fire-immune mob is skipped; a player only when reachable); `Heal { target, amount }` heals a mob or player by `amount`, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, its fire goes out; never a player or a freeze-immune kind); `Knockback { target, strength, direction }` pushes a mob horizontally (and up when it stands on the ground), as `LivingEntity.knockback` does, without the mob's knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the shooter or shearer is reached by uuid, the world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target carries in [`slot`](#stackslot), but only when that stack is still of `item`, and to the stack as it is when the action lands, so wear in between stays. It reaches the acting player of the hit (the world owner included) and a mob, through its living equipment write; a mob's off hand is edited through the off-hand transport at the rider synchronisation, on the whole stack kept there. A slot holding another item and an edit that changes nothing are skipped. `Hurt { target, amount, damage_type }` deals a player or mob `amount` damage of `damage_type` with no attacker, through the host's hurt call: armor, effects, invulnerability time and the damage hooks all apply and hear it, and a creative player or a dead mob is skipped. `SetEffectDuration { target, effect, duration }` sets the ticks left of an effect a player has, keeping level and flags (shortening too); an effect the player lacks, a non-positive duration and a mob are skipped. `Teleport { target, position }` moves the target to `position` (`Entity.teleportTo`): a mob's navigation stops and its fall distance resets, as the game's own teleport does, and another entity keeps its facing; a player is moved by the game's own server teleport, queued for the rider synchronisation, landing by the next tick. `DropItem { target, stack }` drops `stack` at the target on its next tick. `Summon { target, kind }` summons `kind` at the target.
+What a callback does to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions land just before its damage; a hit on a player's, on that player's next tick. Each action is guarded; one the target cannot take is skipped silently: `SetFire { target, seconds }` sets it burning for `seconds` when that is longer (a fire-immune mob is skipped; a player only when reachable); `Heal { target, amount }` heals a mob or player by `amount`, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, its fire goes out; never a player or a freeze-immune kind); `Knockback { target, strength, direction }` pushes a mob horizontally (and up when it stands on the ground), as `LivingEntity.knockback` does, without the mob's knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the shooter or shearer is reached by uuid, the world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target carries in [`slot`](#stackslot), but only when that stack is still of `item`, applied to the stack as it lands, so wear in between stays. It reaches the acting player of the hit (the world owner included) and a mob, through its living equipment write; a mob's off hand is edited through the off-hand transport at the rider synchronisation, on the whole stack kept there. A slot holding another item and an edit that changes nothing are skipped. `Hurt { target, amount, damage_type }` deals a player or mob `amount` damage of `damage_type` with no attacker, through the host's hurt call: armor, effects, invulnerability time and the damage hooks all apply and hear it, and a creative player or a dead mob is skipped. `SetEffectDuration { target, effect, duration }` sets the ticks left of an effect a player has, keeping level and flags (shortening too); an effect the player lacks, a non-positive duration and a mob are skipped. `Teleport { target, position }` moves the target to `position` (`Entity.teleportTo`): a mob's navigation stops and its fall distance resets, as the game's own teleport does, and another entity keeps its facing; a player is moved by the game's own server teleport, queued for the rider synchronisation, landing by the next tick. `DropItem { target, stack }` drops `stack` at the target on its next tick. `Summon { target, kind }` summons `kind` at the target.
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, KnockbackDirection, ServerLivingEntityEvents};
@@ -949,7 +949,7 @@ ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert_eq!(EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]).len(), 1);
@@ -970,7 +970,7 @@ ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || assert!(EntityReach::knockback(2, 1.5, -0.5, 0.25)));
 assert_eq!(ops.knocked, vec![(2, 1.5, -0.5, 0.25)]);
@@ -989,7 +989,7 @@ ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || assert!(EntityReach::push(2, [0.1, 0.4, -0.2])));
 assert_eq!(ops.pushed, vec![(2, [0.1, 0.4, -0.2])]);
@@ -1007,7 +1007,7 @@ ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || assert!(EntityReach::leave_ground(2)));
 assert_eq!(ops.lifted, vec![2]);
@@ -1050,7 +1050,7 @@ with_entities(&mut world, || {
 
 ### `WorldEntity`
 
-`struct WorldEntity { id: u64, kind: Identifier, item: Option<ItemSlot>, living: Option<LivingFacts> }`. One entity in a box: an item entity carries its `item` stack and no living facts, a living entity carries `living` facts and no stack, anything else neither.
+`struct WorldEntity { id: u64, kind: Identifier, item: Option<ItemSlot>, living: Option<LivingFacts> }`. One entity in a box: an item entity carries its `item` stack only, a living entity its `living` facts only, anything else neither.
 
 ```rust
 use pluto_lib::{Identifier, LivingFacts, WorldEntity};
@@ -1059,7 +1059,7 @@ let zombie = WorldEntity {
     id: 7,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 };
 assert_eq!(zombie.id, 7);
 assert!(zombie.item.is_none() && zombie.living.is_some());
@@ -1067,18 +1067,18 @@ assert!(zombie.item.is_none() && zombie.living.is_some());
 
 ### `LivingFacts`
 
-`struct LivingFacts { fire_immune: bool, invulnerable: bool, fire_resistant: bool }`. The facts about a living entity a consumer's rules read: it does not burn, it cannot be hurt by the damage being dealt, and it has fire resistance.
+`struct LivingFacts { fire_immune: bool, invulnerable: bool, fire_resistant: bool, spectator: bool }`. The facts about a living entity a consumer's rules read: it does not burn, it cannot be hurt by the damage being dealt, it has fire resistance, and it is a spectator, who never blocks a placement.
 
 ```rust
 use pluto_lib::LivingFacts;
 
-let facts = LivingFacts { fire_immune: true, invulnerable: false, fire_resistant: false };
+let facts = LivingFacts { fire_immune: true, invulnerable: false, fire_resistant: false, spectator: false };
 assert!(facts.fire_immune && !facts.invulnerable && !facts.fire_resistant);
 ```
 
 ### `MemoryEntityOps`
 
-An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed`, `lifted`, `velocities` and `spun` recording the knockbacks, pushes, lifts, velocity sets and spins asked for, and `effect_lists` and `bounding_boxes` holding the effects and bounding box each entity answers with. `boxes` sets the bounding box an entity answers with, by id, as [min corner, max corner]; an entity with no entry has no box.
+An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed`, `lifted`, `velocities` and `spun` recording the knockbacks, pushes, lifts, velocity sets and spins asked for, and `effect_lists` and `bounding_boxes` holding the effects and bounding box each entity answers with. `boxes` sets an entity's bounding box by id, as [min corner, max corner]; no entry, no box.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
@@ -1089,7 +1089,7 @@ for (id, kind) in [(2, "minecraft:zombie"), (3, "minecraft:cow"), (4, "minecraft
         id,
         kind: Identifier::parse(kind).unwrap(),
         item: None,
-        living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+        living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
     }));
 }
 with_entities(&mut ops, || {

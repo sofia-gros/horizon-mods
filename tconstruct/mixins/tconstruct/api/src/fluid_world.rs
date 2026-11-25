@@ -779,7 +779,7 @@ mod tests {
                 id: 1,
                 kind: id("minecraft:zombie"),
                 item: None,
-                living: Some(pluto_lib::LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+                living: Some(pluto_lib::LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
             })],
             ..MemoryEntityOps::default()
         };

@@ -281,7 +281,7 @@ mod tests {
             id: 2,
             kind: Identifier::parse("minecraft:zombie").unwrap(),
             item: None,
-            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
         }));
         entities.boxes.push((2, [[0.2, 63.0, 0.2], [0.8, 64.8, 0.8]]));
         with_world(&mut ops, || {

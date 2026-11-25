@@ -575,6 +575,22 @@ pub fn hooks() -> Box<dyn Hooks> {
         full_collision: facts.full_collision,
         solid_render: facts.solid_render,
     }));
+    world_api_v1::set_survival_facts_lookup(|block| horizon_client::entry::pluto_block_facts::survival_for(block).map(|facts| world_api_v1::SurvivalFacts {
+        solid: facts.solid,
+        sturdy_center: facts.sturdy_center,
+        sturdy_rigid: facts.sturdy_rigid,
+        full_faces: facts.full_faces,
+        nonempty_faces: facts.nonempty_faces,
+        dynamic_shape: facts.dynamic_shape,
+        liquid: facts.liquid,
+        ignite_odds: facts.ignite_odds,
+        fluid_lava: facts.fluid_lava,
+        fluid_empty: facts.fluid_empty,
+        fluid_supports_lily_pad: facts.fluid_supports_lily_pad,
+        fluid_supports_frogspawn: facts.fluid_supports_frogspawn,
+        fluid_supports_sugar_cane_adjacently: facts.fluid_supports_sugar_cane_adjacently,
+        support_blocks: facts.support_blocks.iter().map(|name| name.to_string()).collect(),
+    }));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -2261,6 +2277,7 @@ impl EntityOps for HostEntities {
                     invulnerable: matches!(player.game_mode, 1 | 3),
                     fire_resistant: host.effects(player.uuid)
                         .is_some_and(|effects| effects.iter().any(|effect| is_fire_resistance(&effect.id))),
+                    spectator: player.game_mode == 3,
                 })
             } else {
                 // A mob or another living kind: its saved data says whether it is alive (a health it still has)
@@ -2274,6 +2291,7 @@ impl EntityOps for HostEntities {
                         .any(|(key, tag)| key.to_string_lossy() == "Invulnerable" && matches!(tag, Tag::Byte(value) if *value != 0))),
                     fire_resistant: host.entity_effects(entity)
                         .is_some_and(|effects| effects.iter().any(|(effect, _, _)| is_fire_resistance(effect))),
+                    spectator: false,
                 })
             };
             found.push(entity_api_v1::WorldEntity { id: u64::from(id), kind: kind_id, item: None, living });

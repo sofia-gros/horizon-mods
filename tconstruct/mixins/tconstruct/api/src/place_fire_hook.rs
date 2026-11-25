@@ -103,7 +103,7 @@ mod tests {
             id,
             kind: Identifier::parse("minecraft:creeper").unwrap(),
             item: None,
-            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
         })
     }
 

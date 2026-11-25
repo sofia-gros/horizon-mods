@@ -15,7 +15,7 @@ use super::base::Identifier;
 use super::entity_events_v1::EntityAction;
 use super::block_entity_api_v1::BlockPos;
 use super::item_group_api_v1::ItemStack;
-use super::world_api_v1::{BlockState, PlacementFacts};
+use super::world_api_v1::{BlockState, PlacementFacts, SurvivalFacts};
 
 #[path = "block_path.rs"]
 mod path_nodes;
@@ -166,6 +166,10 @@ pub trait BlockView {
     /// its class chain and shape flags, as the block table reports them. None when this view
     /// has no block table (a memory view that was not given them).
     fn placement_facts(&self, _state: &BlockState) -> Option<super::world_api_v1::PlacementFacts> { None }
+    /// The game's own survival facts for a supplied state: the solidity, support, shape,
+    /// fire and fluid facts `canSurvive`'s arms read, as the block table reports them.
+    /// None when this view has no block table (a memory view that was not given them).
+    fn survival_facts(&self, _state: &BlockState) -> Option<super::world_api_v1::SurvivalFacts> { None }
     /// The light at `pos` from the sky and from blocks, 0 to 15 (Minecraft: `getMaxLocalRawBrightness`).
     fn brightness(&self, pos: BlockPos) -> u8;
     /// The light at `pos` with no sky darkening applied (Minecraft: `getRawBrightness(pos, 0)`): the
@@ -215,6 +219,9 @@ pub struct MemoryBlockView {
     /// Explicit placement facts by block id (the class chain and shape flags), for
     /// `can_survive` to read without a game table.
     pub placement_facts: BTreeMap<String, PlacementFacts>,
+    /// Explicit survival facts by block id (the solidity, support, shape, fire and fluid
+    /// facts), for `can_survive` to read without a game table.
+    pub survival_facts: BTreeMap<String, SurvivalFacts>,
     /// The light of each position; positions not listed have 15 (open sky).
     pub light: BTreeMap<BlockPos, u8>,
     /// Positions that hold a full source of water.
@@ -261,6 +268,9 @@ impl BlockView for MemoryBlockView {
     }
     fn placement_facts(&self, state: &BlockState) -> Option<PlacementFacts> {
         self.placement_facts.get(&state.block.to_string()).cloned()
+    }
+    fn survival_facts(&self, state: &BlockState) -> Option<SurvivalFacts> {
+        self.survival_facts.get(&state.block.to_string()).cloned()
     }
 
     fn brightness(&self, pos: BlockPos) -> u8 {
@@ -926,10 +936,10 @@ pub(crate) fn survives(block: &str, context: &SurviveContext<'_>) -> Option<bool
 /// host's `Sim::can_survive` answers it (horizon-world `level/survive.rs`, host rev 441f49d):
 /// a behaviour registered for the block answers first (the host's `before_can_survive` seam),
 /// then the vanilla class chain, most specific first, decides. `Some(true)` survives,
-/// `Some(false)` does not, `None` where the view cannot say — a fact the game's table does not
-/// publish (the SOLID flag, the CENTER and RIGID sturdy bits, the fire odds, the multiface
-/// attach table, a shape face) or a tag the view has no registry for. A caller that places on
-/// `None` keeps the pre-check behaviour: the check only ever adds refusals it can prove.
+/// `Some(false)` does not, `None` where the view cannot say — a cell whose answer lives in
+/// a block entity (a moving piston's carried block, which no published table carries), a
+/// position-dependent shape's faces, or a fact the view was not given. A caller that places
+/// on `None` keeps the pre-check behaviour: the check only ever adds refusals it can prove.
 pub fn can_survive(state: &BlockState, pos: BlockPos, view: &dyn BlockView) -> Option<bool> {
     if let Some(answer) = survives(&state.block.to_string(), &SurviveContext { state: state.clone(), pos, view }) {
         return Some(answer);
@@ -980,6 +990,64 @@ fn and_opt(a: bool, b: Option<bool>) -> Option<bool> {
     if a { b } else { Some(false) }
 }
 
+/// A moving piston's support answers live in its block entity (the block it carries and
+/// how far it has moved), which no published table carries: every support question about
+/// the cell is unknown rather than the table's empty shape for the piston itself.
+fn is_moving_piston(state: &BlockState) -> bool { is_block(state, "minecraft:moving_piston") }
+
+/// `Sim::sturdy`: the FULL support of the block at `pos` in `face`, with the host's dynamic
+/// paths — a moving piston's cell answers through its block entity, so it is unknown here.
+/// A shulker box reads as its published shape (a closed cube), as the game's own table
+/// reads it; the lid's animation is not published.
+fn support_full(view: &dyn BlockView, pos: BlockPos, face: Direction) -> Option<bool> {
+    let state = view.block_state(pos)?;
+    if is_moving_piston(&state) { return None; }
+    view.face_sturdy(pos, face)
+}
+
+/// `Sim::can_support_center`: the CENTER support of the block at `pos` in `face`, from the
+/// published sturdy bits. A block in `unstable_bottom_center` never centres from below,
+/// and a moving piston's cell is unknown, as in [`support_full`].
+fn support_center(view: &dyn BlockView, pos: BlockPos, face: Direction) -> Option<bool> {
+    let state = view.block_state(pos)?;
+    if is_moving_piston(&state) { return None; }
+    if face == Direction::Down
+        && view.is_state_in_tag(&state, "minecraft:unstable_bottom_center") == Some(true)
+    {
+        return Some(false);
+    }
+    let facts = view.survival_facts(&state)?;
+    Some(facts.sturdy_center & (1 << face as u8) != 0)
+}
+
+/// `Sim::can_support_rigid_block`: the RIGID support of the block at `pos` from below,
+/// from the published sturdy bits; a moving piston's cell is unknown, as in
+/// [`support_full`].
+fn support_rigid(view: &dyn BlockView, pos: BlockPos) -> Option<bool> {
+    let state = view.block_state(pos)?;
+    if is_moving_piston(&state) { return None; }
+    let facts = view.survival_facts(&state)?;
+    Some(facts.sturdy_rigid & (1 << Direction::Up as u8) != 0)
+}
+
+/// `MultifaceBlock.canAttachTo` for the block at `pos` and a face reaching it in
+/// `direction`: the block's face on the attaching side is sturdy for the full support
+/// type or full across the whole cell.
+fn multiface_attach(view: &dyn BlockView, pos: BlockPos, direction: Direction) -> Option<bool> {
+    let face = direction.opposite();
+    let state = view.block_state(pos)?;
+    let full = view.survival_facts(&state).map(|facts| facts.full_faces & (1 << face as u8) != 0);
+    or_opt(view.face_sturdy(pos, face), full)
+}
+
+/// `FireBlock.canBurn` over the published facts: ignite odds above zero, and a
+/// waterlogged state never burns.
+fn can_burn(view: &dyn BlockView, state: &BlockState) -> Option<bool> {
+    if prop_true(state, "waterlogged") { return Some(false); }
+    let facts = view.survival_facts(state)?;
+    Some(facts.ignite_odds > 0)
+}
+
 fn can_survive_at(classes: &[String], depth: usize, state: &BlockState, pos: BlockPos, view: &dyn BlockView) -> Option<bool> {
     for (index, class) in classes.iter().enumerate().skip(depth) {
         match can_survive_class(class, index, classes, state, pos, view) {
@@ -999,22 +1067,89 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
     Some(match class {
         "AmethystClusterBlock" | "ShelfMushroomBlock" | "BaseCoralWallFanBlock" => {
             let Some(facing) = facing_of(state) else { return Some(None) };
-            view.face_sturdy(facing.opposite().relative(pos), facing)
+            support_full(view, facing.opposite().relative(pos), facing)
         }
         "BambooSaplingBlock" | "BambooStalkBlock" => {
             let Some(below_state) = view.block_state(below(pos)) else { return Some(None) };
             view.is_state_in_tag(&below_state, "minecraft:supports_bamboo")
         }
-        // `is_solid` is the SOLID flag of the host's behaviour table, which the published
-        // facts do not carry; `legacy_solid` (`BlockState.isSolid`) is a different field
-        // and is not substituted.
-        "BannerBlock" | "CakeBlock" | "CandleCakeBlock" | "StandingSignBlock" | "CactusBlock" | "FarmlandBlock" | "PathBlock"
-        | "WallBannerBlock" | "WallSignBlock" => None,
-        "BaseCoralPlantTypeBlock" | "LeafLitterBlock" => view.face_sturdy(below(pos), Direction::Up),
-        // `canSupportRigidBlock` and `canSupportCenter` need the CENTER and RIGID sturdy
-        // bits, which the published facts do not carry (only FULL is published).
-        "BasePressurePlateBlock" | "BaseRailBlock" | "BaseTorchBlock" | "CandleBlock" | "DiodeBlock" | "LanternBlock"
-        | "SporeBlossomBlock" | "CeilingHangingSignBlock" => None,
+        // `is_solid` is the SOLID flag of the host's behaviour table, which the survival
+        // facts carry; `legacy_solid` (`BlockState.isSolid`) is a different field and is
+        // not substituted.
+        "BannerBlock" | "CakeBlock" | "CandleCakeBlock" | "StandingSignBlock" => {
+            let Some(below_state) = view.block_state(below(pos)) else { return Some(None) };
+            let Some(facts) = view.survival_facts(&below_state) else { return Some(None) };
+            Some(facts.solid)
+        }
+        "WallBannerBlock" | "WallSignBlock" => {
+            let Some(facing) = facing_of(state) else { return Some(None) };
+            let target_pos = facing.opposite().relative(pos);
+            let Some(target) = view.block_state(target_pos) else { return Some(None) };
+            let Some(facts) = view.survival_facts(&target) else { return Some(None) };
+            Some(facts.solid)
+        }
+        "CactusBlock" => {
+            for direction in [Direction::North, Direction::South, Direction::West, Direction::East] {
+                let at = direction.relative(pos);
+                let Some(neighbour) = view.block_state(at) else { return Some(None) };
+                let Some(facts) = view.survival_facts(&neighbour) else { return Some(None) };
+                if facts.solid || facts.fluid_lava {
+                    return Some(Some(false));
+                }
+            }
+            let Some(below_state) = view.block_state(below(pos)) else { return Some(None) };
+            let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+            let Some(above_facts) = view.survival_facts(&above_state) else { return Some(None) };
+            match or_known(is_block(&below_state, &block),
+                view.is_state_in_tag(&below_state, "minecraft:supports_cactus"))
+            {
+                Some(true) => Some(!above_facts.liquid),
+                other => other,
+            }
+        }
+        "FarmlandBlock" => {
+            let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+            let Some(facts) = view.survival_facts(&above_state) else { return Some(None) };
+            if !facts.solid {
+                return Some(Some(true));
+            }
+            view.is_state_in_tag(&above_state, "minecraft:maintains_farmland")
+        }
+        "PathBlock" => {
+            let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+            let Some(facts) = view.survival_facts(&above_state) else { return Some(None) };
+            if !facts.solid {
+                return Some(Some(true));
+            }
+            let Some(above_facts) = view.placement_facts(&above_state) else { return Some(None) };
+            Some(above_facts.classes.iter().any(|class| class == "FenceGateBlock"))
+        }
+        "BaseCoralPlantTypeBlock" | "LeafLitterBlock" => support_full(view, below(pos), Direction::Up),
+        // `canSupportRigidBlock` and `canSupportCenter` read the CENTER and RIGID sturdy
+        // bits, which the survival facts carry.
+        "BasePressurePlateBlock" => or_opt(
+            support_rigid(view, below(pos)),
+            support_center(view, below(pos), Direction::Up),
+        ),
+        "BaseRailBlock" | "DiodeBlock" => support_rigid(view, below(pos)),
+        "BaseTorchBlock" | "CandleBlock" => support_center(view, below(pos), Direction::Up),
+        "LanternBlock" => {
+            let direction = if prop_true(state, "hanging") { Direction::Up } else { Direction::Down };
+            support_center(view, direction.relative(pos), direction.opposite())
+        }
+        "SporeBlossomBlock" => {
+            match support_center(view, above(pos), Direction::Down) {
+                Some(true) => Some(!view.is_water(pos)),
+                other => other,
+            }
+        }
+        "CeilingHangingSignBlock" => {
+            // The host reads the static table's CENTER bit here (`is_face_sturdy_center`),
+            // not `canSupportCenter`: no tag exception and no dynamic path.
+            let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+            let Some(facts) = view.survival_facts(&above_state) else { return Some(None) };
+            Some(facts.sturdy_center & (1 << Direction::Down as u8) != 0)
+        }
         "BellBlock" => {
             let connection = match state.property("attachment") {
                 Some("floor") => Direction::Up,
@@ -1025,9 +1160,9 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
                 }
             };
             if connection == Direction::Up {
-                None
+                support_center(view, above(pos), Direction::Down)
             } else {
-                view.face_sturdy(connection.relative(pos), connection.opposite())
+                support_full(view, connection.relative(pos), connection.opposite())
             }
         }
         "BigDripleafBlock" => {
@@ -1172,33 +1307,61 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
                 }
             };
             let direction = connected.opposite();
-            view.face_sturdy(direction.relative(pos), connected)
+            support_full(view, direction.relative(pos), connected)
         }
         "GrindstoneBlock" => Some(true),
         "PistonHeadBlock" => {
             let Some(facing) = facing_of(state) else { return Some(None) };
             let Some(base) = view.block_state(facing.opposite().relative(pos)) else { return Some(None) };
             let Some(base_facing) = facing_of(&base) else { return Some(None) };
-            let fitting = (is_block(&base, "minecraft:piston") || is_block(&base, "minecraft:sticky_piston"))
+            // The base must be the piston the head's own type names (the sticky piston
+            // for a sticky head), extended and facing the head's way — or a moving
+            // piston facing the same way.
+            let expected = if state.property("type") == Some("sticky") { "minecraft:sticky_piston" } else { "minecraft:piston" };
+            let fitting = is_block(&base, expected)
                 && prop_true(&base, "extended")
                 && base_facing == facing;
             Some(fitting || (is_block(&base, "minecraft:moving_piston") && base_facing == facing))
         }
         "FireBlock" => {
-            // The second disjunct (`isValidFireLocation`) needs the fire odds, which the
-            // published facts do not carry: a sturdy face below decides true, anything else
-            // is unknown rather than false.
-            match view.face_sturdy(below(pos), Direction::Up) {
+            // `sturdy below || isValidFireLocation`: any neighbour that can burn holds
+            // the fire, where a neighbour burns when its ignite odds are above zero.
+            match support_full(view, below(pos), Direction::Up) {
                 Some(true) => Some(true),
-                _ => None,
+                sturdy => {
+                    let mut unknown = sturdy.is_none();
+                    for direction in Direction::ALL {
+                        let Some(neighbour) = view.block_state(direction.relative(pos)) else { return Some(None) };
+                        match can_burn(view, &neighbour) {
+                            Some(true) => return Some(Some(true)),
+                            Some(false) => {}
+                            None => unknown = true,
+                        }
+                    }
+                    if unknown { None } else { Some(false) }
+                }
             }
         }
         "SoulFireBlock" => {
             let Some(below_state) = view.block_state(below(pos)) else { return Some(None) };
             view.is_state_in_tag(&below_state, "minecraft:soul_fire_base_blocks")
         }
-        // Frogspawn needs the fluid tag `supports_frogspawn`, which no view answers.
-        "FrogspawnBlock" => None,
+        "FrogspawnBlock" => {
+            // `frogspawn_may_place_on`: the fluid in the cell is in the fluid tag
+            // `supports_frogspawn`, or the block in the cell is in the block tag, and
+            // the fluid above is empty.
+            let Some(here) = view.block_state(pos) else { return Some(None) };
+            let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+            let Some(here_facts) = view.survival_facts(&here) else { return Some(None) };
+            let Some(above_facts) = view.survival_facts(&above_state) else { return Some(None) };
+            if !above_facts.fluid_empty {
+                return Some(Some(false));
+            }
+            if here_facts.fluid_supports_frogspawn {
+                return Some(Some(true));
+            }
+            view.is_state_in_tag(&here, "minecraft:supports_frogspawn")
+        }
         "GrowingPlantBlock" => {
             // The growth direction is the block's own data in the host; the chain names
             // the family (kelp and twisting vines grow up, weeping vines and cave vines
@@ -1225,13 +1388,64 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
                 view.face_sturdy(attached_pos, growth),
             )
         }
-        // The multiface attach table is not published, so neither HangingMoss, Multiface
-        // nor Vine can be decided.
-        "HangingMossBlock" | "MultifaceBlock" | "VineBlock" => None,
-        "HangingRootsBlock" => view.face_sturdy(above(pos), Direction::Down),
+        "HangingMossBlock" => {
+            let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+            or_known(is_block(&above_state, &block), multiface_attach(view, above(pos), Direction::Up))
+        }
+        "MultifaceBlock" => {
+            let mut any = false;
+            for direction in Direction::ALL {
+                if prop_true(state, direction.name()) {
+                    match multiface_attach(view, direction.relative(pos), direction) {
+                        Some(true) => any = true,
+                        Some(false) => return Some(Some(false)),
+                        None => return Some(None),
+                    }
+                }
+            }
+            Some(any)
+        }
+        "VineBlock" => {
+            // `VineBlock.getUpdatedState` first: each face the vine claims is retested
+            // against what now holds it, and the vine survives while one face is left.
+            let mut faces = 0;
+            if prop_true(state, "up") {
+                match multiface_attach(view, above(pos), Direction::Down) {
+                    Some(true) => faces += 1,
+                    Some(false) => {}
+                    None => return Some(None),
+                }
+            }
+            for direction in [Direction::North, Direction::South, Direction::West, Direction::East] {
+                if !prop_true(state, direction.name()) {
+                    continue;
+                }
+                // `vine_can_support_at_face`: the face's own block holds it, or the
+                // vine above carries the same face down.
+                let attach = multiface_attach(view, direction.relative(pos), direction);
+                let supported = match attach {
+                    Some(true) => Some(true),
+                    _ => {
+                        let Some(above_state) = view.block_state(above(pos)) else { return Some(None) };
+                        if is_block(&above_state, &block) && prop_true(&above_state, direction.name()) {
+                            Some(true)
+                        } else {
+                            attach
+                        }
+                    }
+                };
+                match supported {
+                    Some(true) => faces += 1,
+                    Some(false) => {}
+                    None => return Some(None),
+                }
+            }
+            Some(faces > 0)
+        }
+        "HangingRootsBlock" => support_full(view, above(pos), Direction::Down),
         "LadderBlock" => {
             let Some(facing) = facing_of(state) else { return Some(None) };
-            view.face_sturdy(facing.opposite().relative(pos), facing)
+            support_full(view, facing.opposite().relative(pos), facing)
         }
         "MangrovePropaguleBlock" => {
             if prop_true(state, "hanging") {
@@ -1262,11 +1476,11 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
         }
         "RedstoneWallTorchBlock" | "WallTorchBlock" => {
             let Some(facing) = facing_of(state) else { return Some(None) };
-            view.face_sturdy(facing.opposite().relative(pos), facing)
+            support_full(view, facing.opposite().relative(pos), facing)
         }
         "RedstoneWireBlock" => {
             let Some(below_state) = view.block_state(below(pos)) else { return Some(None) };
-            or_known(is_block(&below_state, "minecraft:hopper"), view.face_sturdy(below(pos), Direction::Up))
+            or_known(is_block(&below_state, "minecraft:hopper"), support_full(view, below(pos), Direction::Up))
         }
         "ScaffoldingBlock" => {
             let Some(below_state) = view.block_state(below(pos)) else { return Some(None) };
@@ -1312,9 +1526,18 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
                 Some(true) => Some(false),
                 Some(false) => match view.is_state_in_tag(&below_state, "minecraft:support_override_snow_layer") {
                     Some(true) => Some(true),
-                    // The remaining case needs the below block's full up face, a shape
-                    // fact the published facts do not carry.
-                    _ => None,
+                    Some(false) => {
+                        // The shape case: the below block's full up face holds the layer,
+                        // or eight layers of snow itself do. A position-dependent shape's
+                        // faces are not published, so those stay unknown.
+                        let Some(facts) = view.survival_facts(&below_state) else { return Some(None) };
+                        if facts.dynamic_shape {
+                            return Some(None);
+                        }
+                        Some(facts.full_faces & (1 << Direction::Up as u8) != 0
+                            || (is_block(&below_state, &block) && prop_int(&below_state, "layers") == Some(8)))
+                    }
+                    None => None,
                 },
                 None => None,
             }
@@ -1340,13 +1563,15 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
                 Some(true) => {
                     let mut unknown = false;
                     for direction in [Direction::North, Direction::South, Direction::West, Direction::East] {
-                        let Some(adjacent) = view.block_state(direction.relative(below(pos))) else { return Some(None) };
-                        // The fluid half of the check needs the fluid tag
-                        // `supports_sugar_cane_adjacently`, which no view answers; only the
-                        // block-tag half can decide a direction.
-                        match view.is_state_in_tag(&adjacent, "minecraft:supports_sugar_cane_adjacently") {
+                        let at = direction.relative(below(pos));
+                        let Some(adjacent) = view.block_state(at) else { return Some(None) };
+                        // Either half of the check decides a direction: the fluid beside
+                        // the ground in the fluid tag `supports_sugar_cane_adjacently`,
+                        // or the block there in the block tag of the same name.
+                        let fluid = view.survival_facts(&adjacent).map(|facts| facts.fluid_supports_sugar_cane_adjacently);
+                        match or_opt(fluid, view.is_state_in_tag(&adjacent, "minecraft:supports_sugar_cane_adjacently")) {
                             Some(true) => return Some(Some(true)),
-                            Some(false) => unknown = true,
+                            Some(false) => {}
                             None => unknown = true,
                         }
                     }
@@ -1359,7 +1584,7 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
             if !matches!(facing, Direction::North | Direction::South | Direction::West | Direction::East) {
                 return Some(Some(false));
             }
-            view.face_sturdy(facing.opposite().relative(pos), facing)
+            support_full(view, facing.opposite().relative(pos), facing)
         }
         "VegetationBlock" => {
             let Some(ground) = view.block_state(below(pos)) else { return Some(None) };
@@ -1372,7 +1597,7 @@ fn can_survive_class(class: &str, index: usize, classes: &[String], state: &Bloc
 /// `VegetationBlock.mayPlaceOn` for `state`'s block, as the host's `Sim::may_place_on` answers
 /// it: a behaviour registered for the block answers first, then the first matching class in
 /// the chain decides. `None` where no class matches, or where a fact the view lacks is needed
-/// (a block's own support tag, a fluid tag, a shape face).
+/// (a fluid tag, a shape face the table does not publish).
 pub fn vegetation_may_place_on(state: &BlockState, ground: &BlockState, ground_pos: BlockPos, view: &dyn BlockView) -> Option<bool> {
     if let Some(answer) = may_place_on(&state.block.to_string(), &PlaceOnContext { state: state.clone(), ground: ground.clone(), ground_pos, view }) {
         return Some(answer);
@@ -1380,30 +1605,37 @@ pub fn vegetation_may_place_on(state: &BlockState, ground: &BlockState, ground_p
     let facts = view.placement_facts(state)?;
     for class in &facts.classes {
         match class.as_str() {
-            // A stem's support tag is the block's own data, which the published facts do
-            // not carry.
-            "AttachedStemBlock" | "NetherFungusBlock" | "NetherRootsBlock" | "StemBlock" => return None,
+            // A stem's support set is the block's own data, which the survival facts
+            // publish by name: the ground's block must be in the set.
+            "AttachedStemBlock" | "NetherFungusBlock" | "NetherRootsBlock" | "StemBlock" => {
+                let Some(facts) = view.survival_facts(state) else { return None };
+                return Some(facts.support_blocks.iter().any(|name| name == &ground.block.to_string()));
+            }
             "AzaleaBlock" => return view.is_state_in_tag(ground, "minecraft:supports_azalea"),
             "CactusFlowerBlock" => {
                 return match view.is_state_in_tag(ground, "minecraft:support_override_cactus_flower") {
                     Some(true) => Some(true),
-                    // The other half needs the CENTER sturdy bit, which is not published.
-                    _ => None,
+                    _ => {
+                        let Some(facts) = view.survival_facts(ground) else { return None };
+                        Some(facts.sturdy_center & (1 << Direction::Up as u8) != 0)
+                    }
                 };
             }
             "CropBlock" | "PitcherCropBlock" => return view.is_state_in_tag(ground, "minecraft:supports_crops"),
             "DryVegetationBlock" => return view.is_state_in_tag(ground, "minecraft:supports_dry_vegetation"),
             "LilyPadBlock" => {
+                // The fluid in the ground cell is in the fluid tag `supports_lily_pad`
+                // or the ground block is in the block tag, and the fluid above is empty.
                 let Some(above_state) = view.block_state(above(ground_pos)) else { return None };
-                let above_empty = !is_block(&above_state, "minecraft:water")
-                    && !is_block(&above_state, "minecraft:lava")
-                    && !prop_true(&above_state, "waterlogged");
-                return match view.is_state_in_tag(ground, "minecraft:supports_lily_pad") {
-                    // The fluid half needs the fluid tag `supports_lily_pad`, which no view
-                    // answers; only a known-true block tag decides.
-                    Some(true) => Some(above_empty),
-                    _ => None,
-                };
+                let Some(above_facts) = view.survival_facts(&above_state) else { return None };
+                if !above_facts.fluid_empty {
+                    return Some(false);
+                }
+                let Some(ground_facts) = view.survival_facts(ground) else { return None };
+                if ground_facts.fluid_supports_lily_pad {
+                    return Some(true);
+                }
+                return view.is_state_in_tag(ground, "minecraft:supports_lily_pad");
             }
             "MangrovePropaguleBlock" => return view.is_state_in_tag(ground, "minecraft:supports_mangrove_propagule"),
             "MushroomBlock" => {
@@ -1413,12 +1645,16 @@ pub fn vegetation_may_place_on(state: &BlockState, ground: &BlockState, ground_p
             "NetherSproutsBlock" => return view.is_state_in_tag(ground, "minecraft:supports_nether_sprouts"),
             "NetherWartBlock" => return view.is_state_in_tag(ground, "minecraft:supports_nether_wart"),
             "SeaPickleBlock" => {
-                // The shape half (`nonempty_faces`) is not published; only a sturdy face
-                // below decides.
-                return match view.face_sturdy(ground_pos, Direction::Up) {
-                    Some(true) => Some(true),
+                // The shape half: the ground's up face is not empty, unless its shape is
+                // position-dependent and the face is not published; the sturdy half is
+                // the static FULL bit, as the host reads it here.
+                let shape = match view.survival_facts(ground) {
+                    Some(facts) if !facts.dynamic_shape => {
+                        Some(facts.nonempty_faces & (1 << Direction::Up as u8) != 0)
+                    }
                     _ => None,
                 };
+                return or_opt(shape, view.face_sturdy(ground_pos, Direction::Up));
             }
             "SeagrassBlock" | "TallSeagrassBlock" => {
                 return match (view.face_sturdy(ground_pos, Direction::Up), view.is_state_in_tag(ground, "minecraft:cannot_support_seagrass")) {
@@ -1836,6 +2072,115 @@ mod tests {
         assert_eq!(at("minecraft:sugar_cane", &view), None, "no tagged neighbour beside the sand yet");
         view.blocks.insert([1, 63, 0], BlockState::parse("minecraft:sand").unwrap());
         assert_eq!(at("minecraft:sugar_cane", &view), Some(true), "tagged sand beside the sand below");
+    }
+
+    fn survival_block_facts(block: &str) -> SurvivalFacts {
+        match block {
+            "minecraft:stone" => SurvivalFacts { solid: true, sturdy_center: 0b111111, sturdy_rigid: 0b111111, full_faces: 0b111111, nonempty_faces: 0b111111, fluid_empty: true, ..Default::default() },
+            "minecraft:glass" => SurvivalFacts { fluid_empty: true, ..Default::default() },
+            "minecraft:air" => SurvivalFacts { fluid_empty: true, ..Default::default() },
+            "minecraft:oak_log" => SurvivalFacts { solid: true, sturdy_center: 0b111111, sturdy_rigid: 0b111111, full_faces: 0b111111, nonempty_faces: 0b111111, ignite_odds: 5, fluid_empty: true, ..Default::default() },
+            "minecraft:water" => SurvivalFacts { liquid: true, fluid_supports_lily_pad: true, fluid_supports_frogspawn: true, fluid_supports_sugar_cane_adjacently: true, ..Default::default() },
+            "minecraft:oak_slab" => SurvivalFacts { full_faces: 0b000001, nonempty_faces: 0b111111, fluid_empty: true, ..Default::default() },
+            "minecraft:melon_stem" => SurvivalFacts { support_blocks: vec!["minecraft:farmland".to_owned()], ..Default::default() },
+            _ => SurvivalFacts::default(),
+        }
+    }
+
+    fn survival_view_with_facts() -> MemoryBlockView {
+        let mut view = survival_view();
+        for block in ["minecraft:stone", "minecraft:glass", "minecraft:air", "minecraft:oak_log", "minecraft:water", "minecraft:oak_slab", "minecraft:melon_stem"] {
+            view.survival_facts.insert(block.to_owned(), survival_block_facts(block));
+        }
+        view.placement_facts.insert("minecraft:white_banner".to_owned(), survival_facts(&["BannerBlock", "Block"]));
+        view.placement_facts.insert("minecraft:oak_pressure_plate".to_owned(), survival_facts(&["PressurePlateBlock", "BasePressurePlateBlock", "Block"]));
+        view.placement_facts.insert("minecraft:rail".to_owned(), survival_facts(&["RailBlock", "BaseRailBlock", "Block"]));
+        view.placement_facts.insert("minecraft:vine".to_owned(), survival_facts(&["VineBlock", "Block"]));
+        view.placement_facts.insert("minecraft:lily_pad".to_owned(), survival_facts(&["LilyPadBlock", "Block"]));
+        view.placement_facts.insert("minecraft:melon_stem".to_owned(), survival_facts(&["StemBlock", "BushBlock", "Block"]));
+        view.placement_facts.insert("minecraft:sea_pickle".to_owned(), survival_facts(&["SeaPickleBlock", "BushBlock", "Block"]));
+        view
+    }
+
+    #[test]
+    fn survival_reads_solidity_and_the_center_and_rigid_bits() {
+        let mut view = survival_view_with_facts();
+        view.blocks.insert([0, 63, 0], BlockState::parse("minecraft:stone").unwrap());
+        let at = |state: &str, view: &MemoryBlockView| can_survive(&BlockState::parse(state).unwrap(), [0, 64, 0], view);
+        // A standing torch is held by the CENTER bit of the stone below.
+        assert_eq!(at("minecraft:torch", &view), Some(true));
+        // A banner stands on a solid block.
+        assert_eq!(at("minecraft:white_banner", &view), Some(true));
+        // A pressure plate takes RIGID or CENTER support; a rail takes RIGID only.
+        assert_eq!(at("minecraft:oak_pressure_plate", &view), Some(true));
+        assert_eq!(at("minecraft:rail", &view), Some(true));
+        view.blocks.insert([0, 63, 0], BlockState::parse("minecraft:glass").unwrap());
+        assert_eq!(at("minecraft:torch", &view), Some(false), "glass centres nothing");
+        assert_eq!(at("minecraft:white_banner", &view), Some(false), "glass is not solid");
+        assert_eq!(at("minecraft:oak_pressure_plate", &view), Some(false));
+        assert_eq!(at("minecraft:rail", &view), Some(false));
+        // A moving piston's support lives in its block entity: unknown, not the table's no.
+        view.blocks.insert([0, 63, 0], BlockState::parse("minecraft:moving_piston[facing=up]").unwrap());
+        assert_eq!(at("minecraft:torch", &view), None);
+        view.blocks.insert([-1, 64, 0], BlockState::parse("minecraft:moving_piston[facing=east]").unwrap());
+        assert_eq!(at("minecraft:wall_torch[facing=east]", &view), None);
+    }
+
+    #[test]
+    fn survival_reads_shape_faces_fire_odds_and_the_attach_table() {
+        let mut view = survival_view_with_facts();
+        view.blocks.insert([0, 63, 0], BlockState::parse("minecraft:stone").unwrap());
+        view.state_tags.insert("minecraft:stone".to_owned(), BTreeSet::new());
+        let at = |state: &str, view: &MemoryBlockView| can_survive(&BlockState::parse(state).unwrap(), [0, 64, 0], view);
+        // A snow layer is held by the stone's full up face.
+        assert_eq!(at("minecraft:snow[layers=1]", &view), Some(true));
+        view.blocks.insert([0, 63, 0], BlockState::parse("minecraft:oak_slab[type=bottom]").unwrap());
+        view.state_tags.insert("minecraft:oak_slab".to_owned(), BTreeSet::new());
+        assert_eq!(at("minecraft:snow[layers=1]", &view), Some(false), "a bottom slab's up face is not full");
+        view.blocks.remove(&[0, 63, 0]);
+        // Fire with nothing below survives beside a block that can burn, and only there.
+        assert_eq!(at("minecraft:fire", &view), Some(false), "air on every side burns nothing");
+        view.blocks.insert([1, 64, 0], BlockState::parse("minecraft:oak_log").unwrap());
+        assert_eq!(at("minecraft:fire", &view), Some(true), "the log's ignite odds hold the fire");
+        view.blocks.insert([1, 64, 0], BlockState::parse("minecraft:oak_log[waterlogged=true]").unwrap());
+        assert_eq!(at("minecraft:fire", &view), Some(false), "a waterlogged log never burns");
+        view.blocks.remove(&[1, 64, 0]);
+        // A vine keeps the face that the block above still holds.
+        view.blocks.insert([0, 65, 0], BlockState::parse("minecraft:stone").unwrap());
+        assert_eq!(at("minecraft:vine[up=true]", &view), Some(true));
+        view.blocks.remove(&[0, 65, 0]);
+        assert_eq!(at("minecraft:vine[up=true]", &view), Some(false), "nothing above holds the face");
+    }
+
+    #[test]
+    fn survival_reads_fluid_tags_and_support_sets() {
+        let mut view = survival_view_with_facts();
+        let ground = [0, 63, 0];
+        // A lily pad floats on a fluid in its fluid tag, under empty fluid.
+        view.blocks.insert(ground, BlockState::parse("minecraft:water[level=0]").unwrap());
+        let pad = BlockState::parse("minecraft:lily_pad").unwrap();
+        assert_eq!(vegetation_may_place_on(&pad, &BlockState::parse("minecraft:water[level=0]").unwrap(), ground, &view), Some(true));
+        view.blocks.insert([0, 64, 0], BlockState::parse("minecraft:water[level=0]").unwrap());
+        assert_eq!(vegetation_may_place_on(&pad, &BlockState::parse("minecraft:water[level=0]").unwrap(), ground, &view), Some(false), "fluid above the pad refuses it");
+        view.blocks.remove(&[0, 64, 0]);
+        // A stem stands only on the blocks of its own support set.
+        let stem = BlockState::parse("minecraft:melon_stem").unwrap();
+        assert_eq!(vegetation_may_place_on(&stem, &BlockState::parse("minecraft:farmland").unwrap(), ground, &view), Some(true));
+        assert_eq!(vegetation_may_place_on(&stem, &BlockState::parse("minecraft:stone").unwrap(), ground, &view), Some(false));
+        // A sea pickle takes a ground whose up face is not empty, sturdy or not.
+        view.blocks.insert(ground, BlockState::parse("minecraft:oak_slab[type=bottom]").unwrap());
+        view.weak.insert(ground);
+        let pickle = BlockState::parse("minecraft:sea_pickle").unwrap();
+        assert_eq!(vegetation_may_place_on(&pickle, &BlockState::parse("minecraft:oak_slab[type=bottom]").unwrap(), ground, &view), Some(true));
+    }
+
+    #[test]
+    fn survival_matches_a_piston_head_to_its_own_base() {
+        let mut view = survival_view();
+        let at = |state: &str, view: &MemoryBlockView| can_survive(&BlockState::parse(state).unwrap(), [0, 64, 0], view);
+        view.blocks.insert([0, 64, 1], BlockState::parse("minecraft:sticky_piston[facing=north,extended=true]").unwrap());
+        assert_eq!(at("minecraft:piston_head[facing=north,type=sticky]", &view), Some(true), "a sticky head on its sticky base");
+        assert_eq!(at("minecraft:piston_head[facing=north]", &view), Some(false), "a plain head does not fit a sticky base");
     }
 
     #[test]

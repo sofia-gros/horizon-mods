@@ -806,9 +806,48 @@ assert!(placement_facts("minecraft:torch").is_some());
 assert_eq!(placement_facts("minecraft:glass"), None);
 ```
 
+### `SurvivalFacts`
+
+`struct SurvivalFacts { solid: bool, sturdy_center: u8, sturdy_rigid: u8, full_faces: u8, nonempty_faces: u8, dynamic_shape: bool, liquid: bool, ignite_odds: i32, fluid_lava: bool, fluid_empty: bool, fluid_supports_lily_pad: bool, fluid_supports_frogspawn: bool, fluid_supports_sugar_cane_adjacently: bool, support_blocks: Vec<String> }`. What the game's behaviour table says about a block for survival checks, beyond the placement facts: `solid` is the table's SOLID flag (`BlockState.isSolid`), `sturdy_center` and `sturdy_rigid` pack the CENTER and RIGID sturdy bits by Direction ordinal, `full_faces` and `nonempty_faces` pack the collision shape's full and non-empty faces the same way, and `dynamic_shape` says the shape depends on the position or a block entity, so the face bits do not describe it. `liquid` says the state holds a fluid of its own, `ignite_odds` is the block's fire odds (`FireBlock.getIgniteOdds`), and the fluid fields read the state's own fluid: `fluid_lava` (in the `lava` fluid tag), `fluid_empty` (no fluid at all) and `fluid_supports_lily_pad`, `fluid_supports_frogspawn` and `fluid_supports_sugar_cane_adjacently` for the fluid tags of those names. `support_blocks` names the blocks this block may stand on by its own support set, empty when it has none. Published from the game's behaviour tables by the block facts module once the world loads, by block name, so a block whose states differ answers with its first state.
+
+```rust
+use pluto_lib::world_api_v1::SurvivalFacts;
+
+let facts = SurvivalFacts { solid: true, sturdy_center: 0b111111, ..Default::default() };
+assert!(facts.solid);
+assert_eq!(facts.sturdy_center & (1 << 1), 1 << 1, "the up face centres");
+```
+
+### `set_survival_facts_lookup`
+
+`fn set_survival_facts_lookup(lookup: SurvivalFactsLookup)`. Installs the survival-facts lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::world_api_v1::{SurvivalFacts, set_survival_facts_lookup};
+
+set_survival_facts_lookup(|block| if block == "minecraft:stone" {
+    Some(SurvivalFacts { solid: true, sturdy_center: 0b111111, sturdy_rigid: 0b111111, ..Default::default() })
+} else { None });
+```
+
+### `survival_facts`
+
+`fn survival_facts(block: &str) -> Option<SurvivalFacts>`. The published survival facts for the named block. `None` when no lookup is installed or the table has no answer for the block.
+
+```rust
+use pluto_lib::world_api_v1::{SurvivalFacts, set_survival_facts_lookup, survival_facts};
+
+assert_eq!(survival_facts("minecraft:stone"), None, "no lookup installed yet");
+set_survival_facts_lookup(|block| if block == "minecraft:stone" {
+    Some(SurvivalFacts { solid: true, ..Default::default() })
+} else { None });
+assert!(survival_facts("minecraft:stone").is_some_and(|facts| facts.solid));
+assert_eq!(survival_facts("minecraft:glass"), None);
+```
+
 ### `World::can_survive`
 
-`fn can_survive(&self, state: &BlockState, pos: [i32; 3], sky_darken: u8) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it: the same class-chain dispatch the game runs, over the world view, so a torch needs a sturdy face below, a wall torch the face it leans on, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (the solid flag, the centre and rigid support bits, fire odds, the multiface attach table): a placement check must treat `None` as "cannot say", not as a refusal.
+`fn can_survive(&self, state: &BlockState, pos: [i32; 3], sky_darken: u8) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it: the same class-chain dispatch the game runs, over the world view, so a torch needs a sturdy face below, a wall torch the face it leans on, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (a moving piston's carried block, a position-dependent shape's faces, a block the game's table does not name): a placement check must treat `None` as "cannot say", not as a refusal.
 
 ```rust
 use pluto_lib::world_api_v1::{MemoryWorldOps, PlacementFacts, World, set_placement_facts_lookup, with_world};
@@ -1278,6 +1317,18 @@ use pluto_lib::{PlacementFacts, PlacementFactsLookup};
 
 fn no_facts(_block: &str) -> Option<PlacementFacts> { None }
 let lookup: PlacementFactsLookup = no_facts;
+assert!(lookup("minecraft:stone").is_none());
+```
+
+### `SurvivalFactsLookup`
+
+`pub type SurvivalFactsLookup = fn(&str) -> Option<SurvivalFacts>`. A survival-facts lookup the host installs: the facts for a named block, if the game's table names it.
+
+```rust
+use pluto_lib::{SurvivalFacts, SurvivalFactsLookup};
+
+fn no_facts(_block: &str) -> Option<SurvivalFacts> { None }
+let lookup: SurvivalFactsLookup = no_facts;
 assert!(lookup("minecraft:stone").is_none());
 ```
 

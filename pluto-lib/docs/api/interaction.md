@@ -596,7 +596,7 @@ ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:creeper").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || assert!(EntityReach::ignite_creeper(2)));
 assert_eq!(ops.ignited_creepers, vec![2]);
@@ -775,13 +775,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     let found = EntityReach::in_box([0.0, 60.0, 0.0], [4.0, 70.0, 4.0]);
@@ -807,13 +807,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert!(EntityReach::discard(1));
@@ -841,13 +841,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     let left = ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 1);
@@ -876,13 +876,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert!(EntityReach::hurt(2, 5.0, "minecraft:in_fire"));
@@ -909,13 +909,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 assert_eq!(EntityReach::position_of(2), None, "outside a scope");
 with_entities(&mut ops, || {
@@ -936,7 +936,7 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.effect_lists.push((2, vec![("tconstruct:magnetic".to_owned(), 0, 120)]));
 assert!(EntityReach::effects_of(2).is_empty(), "outside a scope");
@@ -958,7 +958,7 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.velocities.push((2, [0.0, 0.3, 0.0]));
 assert_eq!(EntityReach::velocity_of(2), None, "outside a scope");
@@ -980,7 +980,7 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.bounding_boxes.push((2, [[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]]));
 assert_eq!(EntityReach::bounds_of(2), None, "outside a scope");
@@ -1031,13 +1031,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert!(EntityReach::teleport(2, [7.5, 70.0, -3.5]));
@@ -1072,7 +1072,7 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 assert_eq!(EntityReach::kind_of(2), None, "outside a scope");
 with_entities(&mut ops, || {
@@ -1099,13 +1099,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert!(EntityReach::passengers_of(3).is_empty());
@@ -1132,13 +1132,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert_eq!(EntityReach::vehicle_of(2), None);
@@ -1165,13 +1165,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert!(EntityReach::start_riding(2, 3), "the zombie mounts the cow");
@@ -1200,13 +1200,13 @@ ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
     id: 2,
     kind: Identifier::parse("minecraft:zombie").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 ops.entities.push(([9.5, 64.5, 9.5], WorldEntity {
     id: 3,
     kind: Identifier::parse("minecraft:cow").unwrap(),
     item: None,
-    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
 }));
 with_entities(&mut ops, || {
     assert!(EntityReach::start_riding(2, 3));
