@@ -19,8 +19,9 @@ use crate::{
     tank::{Fluid, Tank},
 };
 use pluto_lib::{
-    BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, Direction, FluidFilter, FluidForward, FluidStack, Identifier,
-    ItemFilter, ItemForward, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Neighbours, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
+    ActionResult, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, BlockPos, Direction, FluidFilter, FluidForward,
+    FluidItems, FluidStack, FluidTarget, Identifier, ItemFilter, ItemForward, ItemSlot, Nbt, NbtCompound, NbtCompoundExt, NeighbourTank, Neighbours, ScreenHandlerRegistry,
+    ScreenHandlerType, ScreenLayout, TransferDirection,
 };
 
 const DUCT_BACKGROUND: &str = "tconstruct:gui/duct";
@@ -171,11 +172,56 @@ fn tick_drain(tick: &mut BlockEntityTick<'_>) {
     set_display(tick.data, first);
 }
 
+/// The storage a drain's use trades with: its master's tank, reached through the drain's own fluid
+/// forwarding, as the bucket trade on a clicked block reaches its storage (the neighbour drain takes
+/// the first fluid it finds and cannot be asked first, so a drain that names its fluid reads the
+/// tanks for its answer and an executed drain of a different fluid is put straight back).
+struct DrainTarget {
+    pos: BlockPos,
+    face: Direction,
+}
+
+impl FluidTarget for DrainTarget {
+    fn fill(&mut self, stack: &FluidStack, execute: bool) -> u32 {
+        Neighbours::fill_fluid(self.pos, self.face, stack, execute)
+    }
+
+    fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
+        if !execute {
+            let tanks = Neighbours::fluid_tanks(self.pos, self.face)?;
+            return tanks.into_iter().find_map(|tank| {
+                let held = tank.fluid?;
+                wanted.is_none_or(|wanted| *wanted == held.fluid).then(|| FluidStack { amount: held.amount.min(amount), ..held })
+            });
+        }
+        let drained = Neighbours::drain_fluid(self.pos, self.face, amount)?;
+        if wanted.is_some_and(|wanted| *wanted != drained.fluid) {
+            Neighbours::fill_fluid(self.pos, self.face, &drained, true);
+            return None;
+        }
+        Some(drained)
+    }
+}
+
+/// `SearedDrainBlock.use`: the held container trades with the tank the drain forwards to
+/// (`FluidTransferHelper.interactWithTank` at the drain's position, the handler on the side its
+/// facing turns away from); `Success` when a transfer happened, `Pass` when none did, so a click
+/// holding anything else — a faucet to place against the drain, above all — goes on to the item's
+/// own handling. A drain with no master forwards nowhere, so its clicks all pass.
+fn use_drain(used: &mut BlockEntityUse<'_>) -> ActionResult {
+    let facing = Neighbours::block_state(used.pos).and_then(|state| state.property("facing").and_then(Direction::parse)).unwrap_or(Direction::North);
+    let mut target = DrainTarget { pos: used.pos, face: facing.opposite() };
+    let Some(done) = FluidItems::interact(used.held.as_ref(), &mut target, TransferDirection::Auto) else { return ActionResult::Pass };
+    used.held = done.held;
+    used.give.extend(done.give);
+    ActionResult::Success
+}
+
 pub(crate) fn register() {
     for name in DRAINS {
         let block = Identifier::new("tconstruct", name).expect("valid drain id");
         // a drain answers with the whole tank of its master, and shows its first fluid
-        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().on_place(crate::retextured::keep_texture).ticker(tick_drain).fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().on_place(crate::retextured::keep_texture).ticker(tick_drain).fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })).on_use(use_drain));
     }
     for name in CHUTES {
         let block = Identifier::new("tconstruct", name).expect("valid chute id");
@@ -323,6 +369,50 @@ mod tests {
             });
         }
         assert_eq!(display_of(&freed), None);
+    }
+
+    #[test]
+    fn a_drain_use_trades_a_held_container_with_its_masters_tank_and_passes_any_other_click() {
+        crate::fluids::register();
+        crate::fluid_items::register();
+        let mut world = world();
+        let mut data = master_data(Some([0, 1, 0]));
+        let mut items: Vec<Option<ItemSlot>> = Vec::new();
+        let mut reach = Reach(&mut world);
+        // a faucet in hand is no fluid container: nothing moves and the click passes, so the faucet
+        // goes on to be placed against the drain instead of being swallowed (#370)
+        let passed = pluto_lib::with_neighbours(&mut reach, || {
+            let mut used = BlockEntityUse { pos: [1, 1, 0], data: &mut data, items: &mut items, held: Some(ItemSlot::new(id("tconstruct:seared_faucet"), 1)), sneaking: false, give: Vec::new() };
+            (use_drain(&mut used), used.held.map(|held| held.item.to_string()))
+        });
+        assert_eq!(passed, (ActionResult::Pass, Some("tconstruct:seared_faucet".to_owned())));
+        // an empty bucket fills with the controller's first fluid through the drain
+        let filled = pluto_lib::with_neighbours(&mut reach, || {
+            let mut used = BlockEntityUse { pos: [1, 1, 0], data: &mut data, items: &mut items, held: Some(ItemSlot::new(id("minecraft:bucket"), 1)), sneaking: false, give: Vec::new() };
+            (use_drain(&mut used), used.held.map(|held| held.item.to_string()))
+        });
+        assert_eq!(filled, (ActionResult::Success, Some("tconstruct:molten_iron_bucket".to_owned())));
+        // a filled bucket empties into the same tank through the drain
+        let emptied = pluto_lib::with_neighbours(&mut reach, || {
+            let mut used = BlockEntityUse { pos: [1, 1, 0], data: &mut data, items: &mut items, held: Some(ItemSlot::new(id("minecraft:lava_bucket"), 1)), sneaking: false, give: Vec::new() };
+            (use_drain(&mut used), used.held.map(|held| held.item.to_string()))
+        });
+        assert_eq!(emptied, (ActionResult::Success, Some("minecraft:bucket".to_owned())));
+        drop(reach);
+        let (tag, _) = world.read([0, 1, 0]).unwrap();
+        let mut tank = SmelteryTank::default();
+        tank.read(tag.get_compound("tank").unwrap());
+        let amounts: Vec<(String, i32)> = tank.fluids().iter().filter(|fluid| fluid.amount > 0).map(|fluid| (fluid.fluid.to_string(), fluid.amount)).collect();
+        assert_eq!(amounts, vec![("tconstruct:molten_gold".to_owned(), 1000), ("minecraft:lava".to_owned(), 1000)], "the iron left in the bucket, the lava arrived, the gold is untouched");
+        // a freed drain forwards nowhere: even a container click passes
+        world.write([1, 1, 0], master_data(None), Vec::new());
+        let mut freed = master_data(None);
+        let mut reach = Reach(&mut world);
+        let passed = pluto_lib::with_neighbours(&mut reach, || {
+            let mut used = BlockEntityUse { pos: [1, 1, 0], data: &mut freed, items: &mut items, held: Some(ItemSlot::new(id("minecraft:bucket"), 1)), sneaking: false, give: Vec::new() };
+            use_drain(&mut used)
+        });
+        assert_eq!(passed, ActionResult::Pass);
     }
 
     /// A neighbour reach that answers from the fluid storage of the world: what the host's adapter has to do.
