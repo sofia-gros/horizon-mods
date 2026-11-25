@@ -22,15 +22,21 @@
 //! spyglass use and stop sounds. The receiver has no position or dimension to play one at, so it queues
 //! the sound for the player and the player tick — which carries both — plays it on its next tick.
 //!
-//! Two pieces of the original are not reproduced here, with the evidence. The equip sound's id is
-//! unverified against canon (the original's `startInteract` sound could not be re-fetched — see the
-//! lane report), so the receiver plays `minecraft:item.armor.equip_generic` for the strap and belt when
-//! their sound condition holds; a packet receiver names no position or dimension, so the sound is queued
-//! and the player tick below plays it at the wearer's place, a tick later at most. The minimap's
-//! selection message (`MinimapModule.onInventorySelect`) is not sent either: its lang key could not be
-//! re-fetched, and no text is invented for it — the selection itself is written back. The spectator
-//! skip of the original's handler has no player surface to read it from (only the local HUD knows
-//! whether the local player is a spectator), so a spectator's keypress runs the interact like anyone's.
+//! Three details an earlier lane left open were re-checked against the pinned original for
+//! issue #1159, and all three are reproduced now. The equip sound is the original's
+//! `SoundEvents.ARMOR_EQUIP_GENERIC` (`minecraft:item.armor.equip_generic`, played by both
+//! ShieldStrapModule.startInteract and ToolBeltModule.startInteract at volume and pitch 1.0 —
+//! and the id the host itself falls back to when a piece names no equip sound of its own);
+//! a packet receiver names no position or dimension, so the sound is queued and the player
+//! tick below plays it at the wearer's place, a tick later at most. The minimap's selection
+//! message is sent (MinimapModule.onInventorySelect / onDisableSelection), as a chat line in
+//! the player's language where the original uses the action bar — the reduction sleeves_hook
+//! documents for its own selection messages — and the cycle follows
+//! InventorySelectionModule.selectNext exactly, disabled position included. The spectator
+//! skip is the receiver's first check: InteractionHandler wraps both startArmorInteract and
+//! stopArmorInteract in `if (!player.isSpectator())`, and the receiver reads the flag the
+//! player tick below records for every player (a player who has not ticked yet counts as no
+//! spectator, as a freshly joined player would read in the original).
 //!
 //! One form needs no exchange and does run: SelfDestructiveModifier primes its wearer from the
 //! helmet key (shift held — the packet's tooltip key is Shift exactly then, which is the
@@ -45,7 +51,7 @@
 //! and stops them through tank_hook on the plain tooltip key, ahead of the exchange drop.
 use crate::{break_speed_hook::with_held_tool, modifier_modules::ZoomStyle, tool_container_menu, tool_inventory::{slot_of, stack_of, with_snapshot_items, MenuKey, ToolInventory}, tool_stack::{self, InteractPlan}};
 use pluto_lib::fov_api_v1::FovRegistry;
-use pluto_lib::{player_api::ServerPlayer, ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
+use pluto_lib::{player_api::ServerPlayer, ActionTarget, ClientPlayNetworking, EntityAction, ExplosionInteraction, I18n, Identifier, ItemSlot, Nbt, NbtCompound, PlayerKeyEvents, ServerLivingEntityEvents, ServerPlayNetworking, StackData, World};
 use std::collections::BTreeSet;
 use std::sync::Mutex;
 
@@ -111,22 +117,54 @@ fn belt_swap(inventory: &ToolInventory, persistent: &mut NbtCompound, main: &mut
     did_change
 }
 
-/// MinimapModule.startInteract's selection cycle (InventorySelectionModule.selectNext): the selection
-/// moves to the next slot holding a stack, wrapping around the inventory, and the new selection is
-/// written to the persistent data. None when no other slot holds a stack — the selection then stays
-/// where it was, and the module does not answer.
-fn select_next(inventory: &ToolInventory, persistent: &mut NbtCompound) -> Option<usize> {
+/// The message a minimap selection step shows (MinimapModule's two selection callbacks).
+#[derive(Debug, PartialEq)]
+pub(crate) enum Selection {
+    /// onDisableSelection: the selection landed on the disabled position.
+    Disabled,
+    /// onInventorySelect: the newly selected stack and its slot (shown 1-based, with its map id).
+    Selected { stack: ItemSlot, index: usize },
+}
+
+/// InventorySelectionModule.selectNext, as MinimapModule.startInteract runs it: the selection
+/// advances by one, wrapping past the last slot onto the disabled position (one past the end),
+/// skipping empty slots; the disabled position itself is a landing spot, not skipped. The new
+/// selection is written to the persistent data and the message for it returned; None when the
+/// selection cannot move (already at the disabled position with nothing before it to land on)
+/// — the module then does not answer.
+fn select_next(inventory: &ToolInventory, persistent: &mut NbtCompound) -> Option<Selection> {
     let slots = inventory.slots();
-    if slots == 0 { return None; }
-    let current = persistent.get("tconstruct:minimap_selected").and_then(Nbt::as_i64).unwrap_or(0).max(0) as usize % slots;
-    for step in 1..slots {
-        let next = (current + step) % slots;
-        if inventory.stack(persistent, next).is_some() {
-            persistent.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(next as i32));
-            return Some(next);
+    let current = persistent.get("tconstruct:minimap_selected").and_then(Nbt::as_i64).unwrap_or(0).max(0) as usize;
+    let mut next = (current + 1) % (slots + 1);
+    while next < slots && inventory.stack(persistent, next).is_none() { next += 1; }
+    if next == current { return None; }
+    let selection = if next == slots { Selection::Disabled } else { Selection::Selected { stack: inventory.stack(persistent, next)?, index: next } };
+    persistent.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(next as i32));
+    Some(selection)
+}
+
+/// The minimap selection message keys (MinimapModule.onInventorySelect / onDisableSelection).
+const MINIMAP_DISABLED_KEY: &str = "modifier.tconstruct.minimap.disabled";
+const MINIMAP_SELECTED_KEY: &str = "modifier.tconstruct.minimap.selected";
+
+/// The action-bar texts of the original, in the player's language, for the chat line
+/// `apply_outcome` sends: the message surface PlutoLib offers is ServerPlayer::send_message
+/// (a chat line, where the original's displayClientMessage(..., true) is the action bar), and
+/// the selected stack's hover name is approximated by its item name's translation — the same
+/// two reductions sleeves_hook documents for its selection messages. The selected message's
+/// arguments are the original's own: the stack's name, its map id, and the slot shown 1-based.
+fn selection_text(player: &ServerPlayer, selection: &Selection) -> String {
+    I18n::use_language(Some(&player.language()));
+    let text = match selection {
+        Selection::Disabled => I18n::translate(MINIMAP_DISABLED_KEY),
+        Selection::Selected { stack, index } => {
+            let name = I18n::translate(&format!("item.{}", stack.item));
+            let map = stack.map_id.unwrap_or(0).to_string();
+            I18n::translate_args(MINIMAP_SELECTED_KEY, &[&name, &map, &(index + 1).to_string()])
         }
-    }
-    None
+    };
+    I18n::use_language(None);
+    text
 }
 
 /// What an armor interact did, in the original's terms.
@@ -137,9 +175,9 @@ pub(crate) enum Outcome {
     Strap { piece: StackData, offhand: Option<ItemSlot>, sound: bool },
     /// A tool belt swapped: the piece, the main inventory's changed slots, and the sound condition.
     Belt { piece: StackData, main: Vec<(usize, Option<ItemSlot>)>, sound: bool },
-    /// A minimap cycled its selection: the piece with the new selection in its data, and the slot now
-    /// selected (MinimapModule.onInventorySelect shows the selection message for it).
-    Select { piece: StackData, selected: usize },
+    /// A minimap cycled its selection: the piece with the new selection in its data, and the
+    /// selection message to show for where it landed.
+    Select { piece: StackData, selection: Selection },
     /// An inventory menu module answered the key: the piece's inventory screen is what would open.
     Menu,
 }
@@ -176,11 +214,11 @@ pub(crate) fn interact(piece: &StackData, key: MenuKey, offhand: Option<ItemSlot
                 }
                 InteractPlan::MinimapSelect { inventory } if matches!(key, MenuKey::Normal | MenuKey::Control) => {
                     // MinimapModule.startInteract answers the normal and control tooltip keys.
-                    let selected = tool_stack::with_persistent(&mut data, |persistent| select_next(&inventory, persistent));
-                    if let Some(selected) = selected {
+                    let selection = tool_stack::with_persistent(&mut data, |persistent| select_next(&inventory, persistent));
+                    if let Some(selection) = selection {
                         let mut piece = piece.clone();
                         piece.custom_data = data;
-                        return Outcome::Select { piece, selected };
+                        return Outcome::Select { piece, selection };
                     }
                 }
                 InteractPlan::Menu { key: menu_key } if menu_key.opens_on_keybind(key) => return Outcome::Menu,
@@ -238,8 +276,9 @@ fn take_zoom_sound(player: u128) -> Option<&'static str> {
     Some(sounds.remove(at).1)
 }
 
-/// The armor equip sound the strap and belt play when their sound condition holds (see the module
-/// notes: the id is unverified against canon).
+/// The armor equip sound the strap and belt play when their sound condition holds:
+/// `SoundEvents.ARMOR_EQUIP_GENERIC` in both modules of the pinned original, whose registry
+/// name is this id (the host's own generic fallback in player_equip agrees).
 const EQUIP_SOUND: &str = "minecraft:item.armor.equip_generic";
 
 /// The equip sounds a keybind interact queued, by player: a packet receiver names no position or
@@ -273,8 +312,9 @@ fn apply_outcome(player: &ServerPlayer, carried: i32, piece: &StackData, outcome
             }
             if sound { queue_sound(player.uuid); }
         }
-        Outcome::Select { piece, .. } => {
+        Outcome::Select { piece, selection } => {
             let _ = player.set_stack(carried, Some(&piece));
+            player.send_message(&selection_text(player, &selection));
         }
         Outcome::Menu => {
             let _ = tool_container_menu::open_tool_menu(player, piece, carried);
@@ -297,6 +337,12 @@ fn apply_interact(player: u128, slot: u8, key: MenuKey) {
 
 /// The players whose primed sound has played for the effect they currently carry, by uuid.
 static PRIMED: Mutex<BTreeSet<u128>> = Mutex::new(BTreeSet::new());
+
+/// The players the player tick last reported as spectators, by uuid: the receiver's
+/// spectator skip reads it (InteractionHandler checks `player.isSpectator()` on the packet,
+/// and the tick is the surface that carries the flag; the packet and the tick name the same
+/// players, and the flag changes at most a tick before the receiver sees it).
+static SPECTATORS: Mutex<BTreeSet<u128>> = Mutex::new(BTreeSet::new());
 
 /// Registers the client key tracking, the packet send and the server receiver. Called once from the
 /// product's hooks.
@@ -322,6 +368,9 @@ pub(crate) fn register() {
     });
     if let Err(error) = ServerPlayNetworking::register_global_receiver(channel(), |player, data| {
         let Some((slot, key, start)) = decode(data) else { return; };
+        // InteractionHandler's spectator skip wraps both halves of the handler, so a
+        // spectator's keypress runs nothing — not even the stop half's effect removal.
+        if SPECTATORS.lock().map(|spectators| spectators.contains(&player)).unwrap_or(false) { return; }
         if !start {
             // SelfDestructiveModifier.stopInteract is the one stop half with work to do.
             if slot == SLOT_HEAD { self_destructive_stop(player); }
@@ -367,6 +416,12 @@ pub(crate) fn register() {
     // and the removal when the helmet that primes it is no longer worn. Queued equip sounds
     // play here too, at the wearer's place (the packet receiver names none).
     ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
+        // The spectator record the receiver's skip reads.
+        if tick.spectator {
+            let _ = SPECTATORS.lock().map(|mut spectators| spectators.insert(tick.player));
+        } else {
+            let _ = SPECTATORS.lock().map(|mut spectators| spectators.remove(&tick.player));
+        }
         // A keybind zoom sound the receiver queued for this player: the tick carries the position
         // and dimension the receiver never had, so it plays here, on the next tick.
         if let Some(sound) = take_zoom_sound(tick.player) {
@@ -515,15 +570,18 @@ mod tests {
     }
 
     #[test]
-    fn applying_a_selection_outcome_writes_only_the_piece() {
+    fn applying_a_selection_outcome_writes_the_piece_and_sends_the_message() {
         use pluto_lib::player_api::{with_ops, MemoryPlayerOps};
         let mut ops = MemoryPlayerOps::default();
         let player = ServerPlayer { uuid: 9, name: "Alex".into() };
         let mut piece = StackData { item: "tconstruct:helmet".into(), count: 1, ..StackData::default() };
         piece.custom_data.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(2));
-        with_ops(&mut ops, || apply_outcome(&player, 103, &piece, Outcome::Select { piece: piece.clone(), selected: 2 }));
+        let outcome = Outcome::Select { piece: piece.clone(), selection: Selection::Selected { stack: stack("minecraft:filled_map", 1), index: 2 } };
+        with_ops(&mut ops, || apply_outcome(&player, 103, &piece, outcome));
         assert_eq!(ops.carried.get(&(9, 103)), Some(&piece), "the piece carries the new selection");
         assert_eq!(ops.carried.get(&(9, -106)), None, "the off hand is untouched");
+        assert_eq!(ops.told.len(), 1, "the selection message is sent");
+        assert_eq!(ops.told[0].0, 9, "to the wearer");
     }
 
     #[test]
@@ -541,23 +599,32 @@ mod tests {
     }
 
     #[test]
-    fn the_minimap_selection_cycles_to_the_next_stored_map_and_wraps() {
+    fn the_minimap_selection_cycles_through_the_disabled_position_and_wraps() {
         let module = Inventory::decode(json!({"slots": {"flat": 3}}).as_object().unwrap()).unwrap().unwrap();
         let part = Part::new(module, Entry::new(id("tconstruct:minimap"), 1), true, true);
         let inventory = ToolInventory::new(vec![part]);
         let mut persistent = NbtCompound::new();
         inventory.set_stack(&mut persistent, 0, Some(&stack("minecraft:filled_map", 1)));
         inventory.set_stack(&mut persistent, 2, Some(&stack("minecraft:filled_map", 1)));
-        assert_eq!(select_next(&inventory, &mut persistent), Some(2), "from the first map to the next stored one");
+        // From the first map to the next stored one, skipping the empty slot between.
+        assert_eq!(select_next(&inventory, &mut persistent), Some(Selection::Selected { stack: stack("minecraft:filled_map", 1), index: 2 }));
         assert_eq!(persistent.get("tconstruct:minimap_selected").and_then(Nbt::as_i64), Some(2), "the selection is written");
-        assert_eq!(select_next(&inventory, &mut persistent), Some(0), "and around again");
-        // A single stored map leaves the selection where it is: the module does not answer.
+        // Past the last slot is the disabled position: a landing spot, not skipped.
+        assert_eq!(select_next(&inventory, &mut persistent), Some(Selection::Disabled));
+        assert_eq!(persistent.get("tconstruct:minimap_selected").and_then(Nbt::as_i64), Some(3), "the disabled position is one past the end");
+        // And from there the cycle wraps to the first stored map.
+        assert_eq!(select_next(&inventory, &mut persistent), Some(Selection::Selected { stack: stack("minecraft:filled_map", 1), index: 0 }));
+        // A single stored map: from its own slot the cycle still moves, onto the disabled position.
         let mut single = NbtCompound::new();
         inventory.set_stack(&mut single, 1, Some(&stack("minecraft:filled_map", 1)));
         single.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(1));
-        assert_eq!(select_next(&inventory, &mut single), None);
-        // An empty inventory answers nothing either.
-        assert_eq!(select_next(&inventory, &mut NbtCompound::new()), None);
+        assert_eq!(select_next(&inventory, &mut single), Some(Selection::Disabled));
+        // An empty inventory already at the disabled position cannot move: no answer.
+        let mut empty = NbtCompound::new();
+        empty.insert("tconstruct:minimap_selected".to_owned(), Nbt::Int(3));
+        assert_eq!(select_next(&inventory, &mut empty), None);
+        // But from a slot position it advances onto the disabled position, as the original does.
+        assert_eq!(select_next(&inventory, &mut NbtCompound::new()), Some(Selection::Disabled));
     }
 
     #[test]

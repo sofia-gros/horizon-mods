@@ -17,6 +17,28 @@ impl Game<'_> {
         extra: Vec<u8>,
     ) -> Option<i32> {
         let conn = self.native_conn(uuid)?;
+        // A comparable snapshot of a guest's open menu, for telling a fresh open from the menu
+        // that was already there. Window ids cycle 1..=100 (the hub assigns
+        // `next_window % 100 + 1`), so a fresh open can land on the very id the previous menu
+        // had — about one open in a hundred — and the id alone cannot say whether anything
+        // opened (issue #1159). `hidden` is left out of the snapshot: `set_native_store`
+        // rewrites it for the menu this open installs.
+        let mark = |m: &horizon_client::lan::menu::Menu| {
+            (
+                m.window,
+                m.kind,
+                m.pos,
+                m.slots,
+                m.size,
+                m.state,
+                m.sent.clone(),
+                m.sent_data.clone(),
+                m.drag.clone(),
+                m.craft.clone(),
+                m.links.len(),
+                m.mod_type.is_some(),
+            )
+        };
         let before = self
             .lan
             .as_ref()?
@@ -25,7 +47,7 @@ impl Game<'_> {
             .iter()
             .find(|g| g.conn == conn)
             .and_then(|g| g.menu.as_ref())
-            .map(|m| m.window);
+            .map(|m| mark(m));
         let size = items.len();
         let mut host = self.lan.take()?;
         host.hub.open_container(
@@ -37,22 +59,30 @@ impl Game<'_> {
             items.clone(),
             Some(extra),
         );
-        host.hub.set_native_menu(conn, items);
-        host.hub.set_native_store(conn, NativeStore::Input(0..size));
-        let after = host
+        let opened = host
             .hub
             .guests
             .iter()
             .find(|g| g.conn == conn)
             .and_then(|g| g.menu.as_ref())
-            .map(|m| m.window);
-        self.lan = Some(host);
-        // `open_container` returns nothing and leaves the menu alone for an unknown menu type, so
-        // an unchanged window is the only sign it did not open (a fresh window id is assigned each
-        // open, and the old menu is closed first).
-        if after.is_none() || after == before {
-            return None;
+            .map(|m| (m.window, mark(m)));
+        // `open_container` returns nothing and leaves the menu alone for an unknown menu type,
+        // so the open counts only when the guest's menu afterwards differs from the one before
+        // (or there was none): a fresh open closes the old menu and installs a new one whose
+        // contents were just sent, which the snapshot tells apart even when the window id
+        // wrapped onto the same number. Only a counted open has the native menu and store set,
+        // so a failed open leaves a menu the guest already had untouched.
+        match opened {
+            Some((window, after)) if Some(&after) != before.as_ref() => {
+                host.hub.set_native_menu(conn, items);
+                host.hub.set_native_store(conn, NativeStore::Input(0..size));
+                self.lan = Some(host);
+                Some(window)
+            }
+            _ => {
+                self.lan = Some(host);
+                None
+            }
         }
-        after
     }
 }
