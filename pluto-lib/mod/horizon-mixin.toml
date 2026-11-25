@@ -3006,6 +3006,28 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_hud"
 kind = "HEAD"
 helper = "pluto-effect-icon-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+# The write side of the effect icon flag: the host's add path (NativeEffect) carries no
+# icon flag and defaults it to shown, so the API side records the flag of the effect it
+# is giving (pluto-effect-apply-access) and the store of the built instance in the host's
+# own effect construction rewrites it with the flag on — an effect given with its icon
+# hidden is given hidden. The record lives only across the one synchronous host add and
+# the API side clears it after, so a refused add never leaks it onto a later one.
+[[module]]
+id = "pluto-effect-apply-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_effect_apply_access"
+source = "pluto-effect-apply-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-effect-apply-head"
+target = "horizon_client::game::native_player_state::instance"
+kind = "MODIFY_VARIABLE"
+variable = { name = "e", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-effect-apply-head.rs"
+bindings = [{ name = "value", ty = "horizon_client::effects::EffectInstance", value = "$value" }]
 # The throw sound: the game plays the vanilla snowball throw for every thrown type (Game::throw_item), where
 # Java plays the type's own sound (tconstruct:throw.throwball / throw.shuriken, NEUTRAL, 0.5, pitch
 # 0.4 / (random * 0.4 + 0.8)). The game's volume and pitch already are Java's, so only the event id is swapped:

@@ -334,9 +334,10 @@ pub struct EffectInstance {
     /// Whether the effect shows particles.
     pub particles: bool,
     /// Whether the effect's icon shows in the GUI (vanilla's `MobEffectInstance.showIcon`,
-    /// `/effect`'s default true). This is the read's flag, published by PlutoLib's
-    /// effect-icon reach at the head of every HUD draw: giving an effect always shows its
-    /// icon, as the host's add path carries no flag and defaults it to shown.
+    /// `/effect`'s default true). The read's flag is published by PlutoLib's effect-icon
+    /// reach at the head of every HUD draw; giving an effect records the flag through
+    /// PlutoLib's effect-apply reach, and the game puts it on the instance as the host's
+    /// add merges it, so an effect can be given with its icon hidden.
     pub show_icon: bool,
 }
 
