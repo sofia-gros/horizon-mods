@@ -1,9 +1,9 @@
 //! MeleeInstrumentModule, from SlimeKnights (MIT; see LICENSE): a successful melee hit plays an
 //! instrument. The instrument is the one the tool's horn material names (its variant, with the first dot
 //! turned into a colon, is the instrument's ID); when no material of the tool matches, a random instrument
-//! of the module's tag is played instead. The sound is chosen here exactly as the original chooses it, but
-//! playing it needs where the attacker stands and the level to play it in, which PlutoLib's weapon hit
-//! event does not report, so no hook calls this yet.
+//! of the module's tag is played instead. The sound is chosen here exactly as the original chooses it;
+//! the hooks turn it into an `EntityAction::PlaySound` on the attacker, which the game plays where the
+//! attacker stands when the action lands (a player's weapon hit, and a monster's melee hit).
 use crate::{instrument_tags, melee_damage::TargetCondition, tool_materials::MaterialVariant};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};

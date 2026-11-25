@@ -125,6 +125,18 @@ pub(crate) fn register() {
         let Some(held) = hit.weapon.as_ref() else { return; };
         // Effects the tool puts on its own holder as it swings (MobEffectModule.ToolUsage).
         hit.actions.borrow_mut().extend(usage_actions(&[&hit.weapon], crate::weapon_effect::Usage::MeleeHit));
+        // Melee instrument: the hit plays the tool's instrument (MeleeInstrumentModule, whose melee hit hook the original
+        // hears before the hit lands), at the attacker, in the records category the original plays it in.
+        let player_kind = Identifier::parse("minecraft:player").ok();
+        let attacker_in_tag = |tag: &Identifier| {
+            if tag.namespace() == melee_damage::STATE_NAMESPACE { return melee_damage::state_in_tag(tag, hit.attacker_state.as_ref(), hit.target_state.as_ref()); }
+            melee_hook::target_in_tag(entities.as_deref(), player_kind.as_ref(), tag)
+        };
+        if let Ok(sounds) = with_held_tool(held, |env, stack| tool_stack::melee_instrument_sound(&stack.custom_data, env, &attacker_in_tag, &in_tag, tool_damage_hook::random())) {
+            for play in sounds {
+                hit.actions.borrow_mut().push(EntityAction::PlaySound { target: ActionTarget::Attacker, sound: play.event, volume: play.volume, pitch: 1.0, source: 2 });
+            }
+        }
         // Insatiable: a melee hit feeds the holder's insatiable (melee) effect a level (the grant is
         // the original's own effect, landed like the kinetic feed lands its armor effect).
         if let Ok(Some(grant)) = with_held_tool(held, |env, stack| tool_stack::insatiable_hit_grant(&stack.custom_data, env, hit.attacker_state.as_ref())) {

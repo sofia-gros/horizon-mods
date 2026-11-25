@@ -514,6 +514,12 @@ pub enum EntityAction {
     /// loaded from its data, projectiles and lightning included). A target the host cannot name, or a
     /// kind the game does not know, spawns nothing.
     Summon { target: ActionTarget, kind: String },
+    /// Plays the sound event `sound` at the target, at the position it stands at when the action lands
+    /// (the game's own sound at an entity), at `volume` and `pitch`, in the sound source (category)
+    /// `source` names: the vanilla ordinals 0 master, 1 music, 2 records, 3 weather, 4 blocks,
+    /// 5 hostile, 6 neutral, 7 players, 8 ambient, 9 voice. A sound the game does not know, and a
+    /// target it can no longer name, play nothing.
+    PlaySound { target: ActionTarget, sound: String, volume: f32, pitch: f32, source: u8 },
 }
 
 /// Which stack of a player or a mob an [`EntityAction::EditStackData`] edits.
@@ -712,7 +718,9 @@ pub struct DamageModification {
     /// The damaged entity's health as the hit arrived, before this hit's damage; None when the game did not
     /// report it (a player victim's health is not reported at this stage).
     pub target_health: Option<f32>,
-    /// The damaged entity's `minecraft:attack_damage` attribute as the game reports it (a mob victim's); None
+    /// The damaged entity's `minecraft:attack_damage` attribute as the game reports it: a mob victim's
+    /// from the hit's own victim snapshot, a player victim's as remembered from their last tick (the
+    /// transport reads it there, as it reads their armor, because the damage hooks get no host); None
     /// when not reported.
     pub target_attack_damage: Option<f32>,
     /// Where the causing entity stands (its feet position) as the hit landed, and where the damaged entity
@@ -1426,7 +1434,10 @@ fn fill_damage_facts(modification: &mut DamageModification) {
     }
     modification.target_health = modification.target_state.as_ref().and_then(|state| state.health)
         .or_else(|| victim_facts(damage.entity).map(|facts| facts.health));
-    modification.target_attack_damage = victim_facts(damage.entity).and_then(|facts| facts.attack_damage);
+    // A mob victim's attack attribute rides its victim snapshot; a player victim has no snapshot (a
+    // player's health is not named at this stage), so theirs is the one remembered from their tick.
+    modification.target_attack_damage = victim_facts(damage.entity).and_then(|facts| facts.attack_damage)
+        .or_else(|| if damage.kind == "minecraft:player" { player_attack_damage(damage.entity) } else { None });
 }
 
 /// True when the damage may be applied.
@@ -1801,6 +1812,26 @@ pub(crate) fn forget_armor(uuid: u128) {
     }
 }
 
+/// What each player's `minecraft:attack_damage` attribute was at their last tick, by entity id: a hit
+/// on a player reads the victim's attack attribute (the unarmed quirk of a monster's melee), and the
+/// damage hooks get no host to read it with, so the transport remembers it beside the armor.
+static PLAYER_ATTACK_DAMAGE: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, f32)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records a player's attack attribute at their tick.
+pub(crate) fn remember_attack_damage(uuid: u128, entity: i32, attack_damage: f32) {
+    if let Ok(mut remembered) = PLAYER_ATTACK_DAMAGE.lock() { remembered.insert(entity, (uuid, attack_damage)); }
+}
+
+/// Forgets a player who left.
+pub(crate) fn forget_attack_damage(uuid: u128) {
+    if let Ok(mut remembered) = PLAYER_ATTACK_DAMAGE.lock() { remembered.retain(|_, (known, _)| *known != uuid); }
+}
+
+/// A player victim's attack attribute, as remembered from their last tick.
+fn player_attack_damage(entity: i32) -> Option<f32> {
+    PLAYER_ATTACK_DAMAGE.lock().ok()?.get(&entity).map(|(_, attack)| *attack)
+}
+
 /// The amount after the callbacks; the stack of the attack that is being applied to `damage.entity`, if there is one.
 pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     let attacker_stack = PENDING_ATTACK.with(|pending| {
@@ -1897,7 +1928,7 @@ fn action_target(action: &EntityAction) -> ActionTarget {
         EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
         | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
         | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } | EntityAction::DropItem { target, .. }
-        | EntityAction::Summon { target, .. } | EntityAction::MultiplyAttribute { target, .. } => *target,
+        | EntityAction::Summon { target, .. } | EntityAction::MultiplyAttribute { target, .. } | EntityAction::PlaySound { target, .. } => *target,
     }
 }
 
@@ -2002,6 +2033,32 @@ mod tests {
             ("minecraft:zombie".to_string(), Some(false), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
             ("minecraft:zombie".to_string(), Some(true), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
         ]);
+    }
+
+    #[test]
+    fn a_player_victims_attack_damage_is_remembered_from_their_tick() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_HURT.register(move |hit| {
+            if hit.damage.entity == 4243 && hit.damage.kind == "minecraft:player" { log.lock().unwrap().push(hit.target_attack_damage); }
+        });
+        let seen_mob = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log_mob = seen_mob.clone();
+        ServerLivingEntityEvents::MODIFY_HURT.register(move |hit| {
+            if hit.damage.entity == 4243 && hit.damage.kind == "minecraft:pig" { log_mob.lock().unwrap().push(hit.target_attack_damage); }
+        });
+        let hurt = LivingDamage { entity: 4243, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 77, direct: 77, amount: 4.0 };
+        // No tick has named the player yet: the attribute is not reported, as before.
+        modify_hurt(&hurt);
+        remember_attack_damage(99, 4243, 6.5);
+        modify_hurt(&hurt);
+        // A mob victim never reads a player's remembered attribute, even at the same entity id.
+        let mob = LivingDamage { entity: 4243, kind: "minecraft:pig".into(), damage_type: "minecraft:mob_attack".into(), attacker: 77, direct: 77, amount: 4.0 };
+        modify_hurt(&mob);
+        forget_attack_damage(99);
+        modify_hurt(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![None, Some(6.5), None]);
+        assert_eq!(*seen_mob.lock().unwrap(), vec![None]);
     }
 
     #[test]

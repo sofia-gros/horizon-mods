@@ -12,10 +12,11 @@
 //! (as wielded) plus the difference between the incoming damage and the *victim's* attack attribute, and
 //! the running damage starts from that base rather than from the incoming amount.
 //!
-//! Not carried over, each for a surface the port does not have: the melee instrument sound (no sound action), and the unarmed branch
-//! against a player victim (a player victim's attack attribute is not reported, so the quirk's base cannot be worked out and the hit is
-//! left alone). The smelting cook of a monster's melee hit, its melee capacity fills, and the enderporting swap's wear by 2 ride the
-//! mob-stack-write surface (`EntityAction::EditStackData` on the attacker, MainHand for a held weapon, Chest for the unarmed chest piece).
+//! The melee instrument sound rides the same hit as an `EntityAction::PlaySound` on the attacker, and the unarmed branch runs
+//! against a player victim too: PlutoLib's transport remembers a player victim's attack attribute from their tick, so the quirk's
+//! base can be worked out for them as for a mob victim. The smelting cook of a monster's melee hit, its melee capacity fills, and
+//! the enderporting swap's wear by 2 ride the mob-stack-write surface (`EntityAction::EditStackData` on the attacker, MainHand for a
+//! held weapon, Chest for the unarmed chest piece).
 use crate::{break_speed_hook::with_held_tool, common, config, melee_damage, melee_hook, protection_hook, tool_damage_hook, tool_stack, tool_stats::Stat, weapon_effect_hook};
 use pluto_lib::{ActionTarget, DamageModification, EntityAction, EntityState, Identifier, ServerLivingEntityEvents, StackData, StackSlot};
 
@@ -148,6 +149,11 @@ pub(crate) fn register() {
             let blacklisted = Identifier::new("tconstruct", "necrotic_blacklist").is_ok_and(|tag| target_tag(&tag));
             let heal = tool_stack::lifesteal_heal(&tool.custom_data, env, dealt, blacklisted, &attacker_tag, &target_tag);
             if heal > 0.0 { actions.push(EntityAction::Heal { target: ActionTarget::Attacker, amount: heal }); }
+            // Melee instrument: the hit plays the tool's instrument (MeleeInstrumentModule, on the monster melee hit hook the
+            // original hears in livingDamage), at the attacker, in the records category the original plays it in.
+            for play in tool_stack::melee_instrument_sound(&tool.custom_data, env, &attacker_tag, &target_tag, tool_damage_hook::random()) {
+                actions.push(EntityAction::PlaySound { target: ActionTarget::Attacker, sound: play.event, volume: play.volume, pitch: 1.0, source: 2 });
+            }
             // Smelting: the hit cooks the attacker's tool by the damage dealt, as the player's weapon-hit path does. The edits land
             // on the attacker's own stack through the mob-stack-write surface (the held weapon, or the chest piece for the unarmed
             // form), not on the victim.
