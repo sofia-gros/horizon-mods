@@ -3367,6 +3367,12 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 let Some(position) = host.entity_position(entity) else { continue };
                 host.summon(dimension, &kind, position, compound_to_tag(&NbtCompound::new()));
             }
+            EntityAction::PlaySound { target, sound, volume, pitch, source } => {
+                // At the target as it stands when the action lands, in the sound source (category)
+                // the action names: the host's play_sound takes the vanilla ordinal (2 is records).
+                let Some(position) = position_of(host, id_of(target)) else { continue };
+                host.play_sound(&sound, position, usize::from(source), volume, pitch);
+            }
         }
     }
 }
@@ -5644,6 +5650,12 @@ impl Hooks for PlutoHooks {
         let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
         entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
+        // The player's attack attribute, for the damage events of a hit on them (a monster's unarmed
+        // melee reads the victim's, as the original's quirk does): the same host read the attribute
+        // additions below use, remembered beside the armor for the hostless damage hooks.
+        if let Some((_, attack_damage)) = host.attribute(player.uuid, "minecraft:attack_damage") {
+            entity_events_v1::remember_attack_damage(player.uuid, player.entity_id, attack_damage as f32);
+        }
         // The attack ticker the weapon hits read: it advances each tick and resets when the held item changes.
         entity_events_v1::note_attack_tick(player.uuid, &main_hand);
         entity_events_v1::remember_offhand(player.uuid, player.entity_id, hands.iter().find(|(name, _)| name == "offhand").map(|(_, stack)| stack.clone()));
@@ -5716,6 +5728,7 @@ impl Hooks for PlutoHooks {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
         entity_events_v1::forget_armor(uuid);
+        entity_events_v1::forget_attack_damage(uuid);
         entity_events_v1::forget_aim(uuid);
         entity_events_v1::forget_attack_ticks(uuid);
         // The base values are saved with the player, so what the armor added is taken off before they go (best effort: the host may no longer reach them).
