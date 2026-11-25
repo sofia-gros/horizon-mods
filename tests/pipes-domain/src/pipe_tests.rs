@@ -476,6 +476,38 @@ fn the_registered_types_open_one_inbox_slot_per_face_and_refuse_takes() {
     assert_eq!(tanks[0].capacity, fluid_pipe::CAPACITY);
 }
 
+#[test]
+fn a_broken_pipe_spills_the_stacks_riding_it_and_only_those() {
+    item_pipe::register();
+    fluid_pipe::register();
+    // A pipe mid-run: two stacks in transit (kept in its data, outside its slots) and one
+    // stack still sitting in an inbox slot.
+    let mut state = PipeState::default();
+    state.transit.push(Transit { stack: stack("minecraft:iron_ingot", 12), from: Direction::West, to: Direction::East, ticks: 2, retries: 0 });
+    state.transit.push(Transit { stack: stack("minecraft:gold_ingot", 3), from: Direction::Down, to: Direction::North, ticks: 4, retries: 1 });
+    let mut data = NbtCompound::new();
+    state.save(&mut data);
+    let inbox = stack("minecraft:copper_ingot", 7);
+    let mut items: Vec<Option<ItemSlot>> = vec![Some(inbox.clone()), None, None, None, None, None];
+    for block in ["pipes:item_pipe", "pipes:extraction_pipe"] {
+        let mut slots = items.clone();
+        let drops = BlockEntityTypeRegistry::remove_block(block, [4, 64, 4], &data, &mut slots);
+        assert_eq!(
+            drops,
+            vec![stack("minecraft:iron_ingot", 12), stack("minecraft:gold_ingot", 3)],
+            "{block}: what rides the pipe is answered as drops"
+        );
+        assert_eq!(slots, items, "{block}: the inbox slot is left untouched — the game spills it, so it must not drop twice");
+    }
+    // An idle pipe drops nothing of its own.
+    let mut slots: Vec<Option<ItemSlot>> = vec![None; 6];
+    let drops = BlockEntityTypeRegistry::remove_block("pipes:item_pipe", [4, 64, 4], &NbtCompound::new(), &mut slots);
+    assert!(drops.is_empty(), "an empty pipe spills nothing");
+    // A type without the hook (the fluid pipe keeps nothing outside its tank) answers nothing.
+    let drops = BlockEntityTypeRegistry::remove_block("pipes:fluid_pipe", [4, 64, 4], &data, &mut slots);
+    assert!(drops.is_empty(), "a type with no removal hook is untouched");
+}
+
 // --- Transit rendering: the picture the renderers draw, from the same saved state. ---
 
 use crate::render;

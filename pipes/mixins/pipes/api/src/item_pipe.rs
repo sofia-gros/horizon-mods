@@ -23,8 +23,8 @@
 //! the casting output slot as takeable once the tank is empty.
 use crate::common::{face_index, is_item_pipe, stack_from_nbt, stack_to_nbt, EXTRACTION_PIPE, ITEM_PIPE, NAMESPACE};
 use pluto_lib::{
-    BlockEntitySignal, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, Direction, Identifier,
-    ItemSlot, NeighbourSlot, Neighbours, Nbt, NbtCompound, NbtCompoundExt, SidedAccess, TransferMode,
+    BlockEntityRemove, BlockEntitySignal, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, Direction,
+    Identifier, ItemSlot, NeighbourSlot, Neighbours, Nbt, NbtCompound, NbtCompoundExt, SidedAccess, TransferMode,
 };
 
 /// Ticks a stack spends inside one pipe before it is delivered onward.
@@ -303,6 +303,17 @@ pub(crate) fn signal_pipe(signal: &mut BlockEntitySignal<'_>) {
     state.save(signal.data);
 }
 
+/// The pipe is being removed: the stacks riding it are kept in its data, outside the slots the
+/// game spills itself, so they are answered as drops — a broken pipe spills what it carries,
+/// as the classic pipes do. Stacks still sitting in an inbox slot are not answered here: the
+/// game spills the slots of a container itself, and answering them too would drop them twice.
+pub(crate) fn remove_pipe(removal: &mut BlockEntityRemove<'_>) {
+    let state = PipeState::load(removal.data);
+    for transit in state.transit {
+        removal.drops.push(transit.stack);
+    }
+}
+
 pub fn register() {
     for (name, kind) in [(ITEM_PIPE, Kind::Transport), (EXTRACTION_PIPE, Kind::Extraction)] {
         let block = Identifier::new(NAMESPACE, name).expect("valid pipe id");
@@ -312,6 +323,7 @@ pub fn register() {
             // transit (see `crate::render`); the fluid pipe types already sync theirs.
             .sync_data()
             .ticker(move |tick| tick_pipe(tick, kind))
+            .on_remove(remove_pipe)
             // One inbox slot per face, inserts only; nothing may be taken out of a pipe.
             .sided_access(|face| SidedAccess { insert: vec![face_index(face)], take: Vec::new() })
             .item_transfer_rule(|transfer| {
