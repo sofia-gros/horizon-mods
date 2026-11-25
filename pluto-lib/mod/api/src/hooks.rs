@@ -5415,10 +5415,12 @@ impl Hooks for PlutoHooks {
         // report in the same call named (see the note in `loot_drops`).
         let attacker = entity_events_v1::take_experience_attacker(event.entity as i32);
         // The killing blow's direct entity, remembered from the damage that landed it: a
-        // projectile there names the stack it was launched from, taken before the heard check
-        // like the attacker above, so an unheard drop leaves no note behind.
+        // projectile there names the stack it was launched from. The direct note is taken
+        // before the heard check like the attacker above, so an unheard drop leaves no note
+        // behind; the projectile's own note is only read, as a piercing projectile kills
+        // again and the original records its float on every victim.
         let direct = entity_events_v1::take_killing_direct(event.entity as i32);
-        let projectile_tool = direct.filter(|direct| *direct >= 0).and_then(|direct| u32::try_from(direct).ok()).and_then(entity_events_v1::take_projectile_tool);
+        let projectile_tool = direct.filter(|direct| *direct >= 0).and_then(|direct| u32::try_from(direct).ok()).and_then(entity_events_v1::projectile_tool);
         if !entity_events_v1::experience_drop_heard() { return; }
         let player = attacker.and_then(|uuid| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (uuid, player.entity_id)));
         let looting_slot = player.and_then(|(uuid, _)| entity_events_v1::take_looting_slot(uuid));

@@ -1029,11 +1029,13 @@ pub(crate) fn note_projectile_tool(projectile: u32, tool: StackData) {
     tools.insert(projectile, (tool, now));
 }
 
-/// The stack `projectile` was launched from, taken; a stale one is dropped.
-pub(crate) fn take_projectile_tool(projectile: u32) -> Option<StackData> {
-    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return None };
-    match tools.remove(&projectile) {
-        Some((tool, at)) if at.elapsed() < PROJECTILE_TOOL_LIFETIME => Some(tool),
+/// The stack `projectile` was launched from, read without taking: a piercing projectile kills
+/// more than once, and the original records its float on every victim, so the note stays until
+/// its lifetime runs out; a stale one is dropped.
+pub(crate) fn projectile_tool(projectile: u32) -> Option<StackData> {
+    let Ok(tools) = PROJECTILE_TOOLS.lock() else { return None };
+    match tools.get(&projectile) {
+        Some((tool, at)) if at.elapsed() < PROJECTILE_TOOL_LIFETIME => Some(tool.clone()),
         _ => None,
     }
 }
@@ -2775,12 +2777,12 @@ mod tests {
     }
 
     #[test]
-    fn a_launched_projectiles_tool_is_remembered_until_its_kill() {
+    fn a_launched_projectiles_tool_is_remembered_for_every_kill() {
         let tool = StackData { item: "tconstruct:bow".into(), count: 1, ..StackData::default() };
         note_projectile_tool(9, tool.clone());
-        assert_eq!(take_projectile_tool(9), Some(tool), "the launcher's stack is taken");
-        assert_eq!(take_projectile_tool(9), None, "taken once");
-        assert_eq!(take_projectile_tool(10), None, "another projectile's tool is not taken");
+        assert_eq!(projectile_tool(9), Some(tool.clone()), "the launcher's stack is read");
+        assert_eq!(projectile_tool(9), Some(tool), "a piercing projectile's second kill reads it again");
+        assert_eq!(projectile_tool(10), None, "another projectile's tool is not read");
     }
 
     #[test]
