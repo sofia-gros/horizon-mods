@@ -303,6 +303,18 @@ fn the_sky_slimes_bounce_and_the_head_cap_follow_the_original() {
     assert_eq!(head_drop_chance(&chance(Some(4), 2.0)), Some(0.25));
     assert_eq!(head_drop_chance(&chance(Some(1), 2.0)), None);
     assert_eq!(head_drop_chance(&chance(Some(4), 0.1)), None);
+    // The cap is on the recorded chance alone: the killer's Looting neither
+    // raises nor lowers the class chance the callback returns. The game
+    // stores that chance unadjusted and the host's equipment_drops effect
+    // adds looting*0.01 exactly once, so a Looting III kill rolls against
+    // 0.25 + 3*0.01 = 0.28 (issue #1163; folding looting into the stored
+    // chance as well rolled at 0.31).
+    let looting_chance = |size: Option<i32>, chance: f32, looting: i32| EquipmentDropChanceContext {
+        entity_type: Identifier::parse("tconstruct:sky_slime").unwrap(), slot: "head".into(), slime_size: size, chance, looting,
+    };
+    let capped = head_drop_chance(&looting_chance(Some(4), 2.0, 3)).expect("the cap applies under Looting III");
+    assert_eq!(capped, 0.25);
+    assert!((capped + 3.0 * 0.01 - 0.28).abs() < 1e-6, "canon effective chance is 0.28, got {}", capped + 3.0 * 0.01);
 }
 
 struct ScriptedRandom { floats: VecDeque<f32>, ints: VecDeque<i32> }
