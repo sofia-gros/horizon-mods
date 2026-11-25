@@ -148,14 +148,16 @@ pub trait WorldOps {
     fn brush_block(&mut self, _dimension: &str, _pos: BlockPos, _face: BlockPos) -> bool {
         false
     }
-    /// Plays the generic brush sound (`minecraft:item.brush.brushing.generic`) for a stroke that
-    /// brushed nothing at `pos` (BrushModule.onUsingTick's `damage == 0` fallback): the sound the
-    /// brushing player alone hears, on their client. Queued and answered like
+    /// The fallback effect of a stroke that brushed nothing at `pos`, aimed through `face`
+    /// (a unit offset): BrushModule.onUsingTick's `damage == 0` fallback, its `brushEffects`
+    /// with `SoundEvents.BRUSH_GENERIC` — the dust of the block at `pos` on `face` and the
+    /// generic brush sound (`minecraft:item.brush.brushing.generic`), for the brushing
+    /// player alone, on their client. Queued and answered like
     /// [`WorldOps::brush_block`]: the host adapter queues the request and the game's brush seam
     /// plays it in the level in place — for the acting player alone, unshared when they are the
     /// local player and sent to them alone when they are a guest — so a true answer means the
-    /// sound is accepted, a tick late at most. The default host cannot play it.
-    fn brush_fallback_sound(&mut self, _dimension: &str, _pos: BlockPos) -> bool {
+    /// effect is accepted, a tick late at most. The default host cannot play it.
+    fn brush_fallback(&mut self, _dimension: &str, _pos: BlockPos, _face: BlockPos) -> bool {
         false
     }
     /// Sets the block at `pos` to the state given as text at the level's next tick seam, in request order among the queued block
@@ -451,14 +453,16 @@ impl World {
         with_current(false, |ops| ops.brush_block(&self.dimension, pos, face))
     }
 
-    /// Minecraft: `BrushItem`'s generic brush sound for a stroke that brushed nothing at `pos`:
-    /// `BrushModule.onUsingTick` plays `SoundEvents.BRUSH_GENERIC` when a stroke's damage is 0,
-    /// on the client only. The host adapter queues the request and the game's brush seam plays it
-    /// in the level in place, for the brushing player alone. True means the sound is accepted, a
-    /// tick late at most. False outside a callback that carries a world, or when the host cannot
-    /// play it.
-    pub fn brush_fallback_sound(&self, pos: BlockPos) -> bool {
-        with_current(false, |ops| ops.brush_fallback_sound(&self.dimension, pos))
+    /// Minecraft: `BrushModule`'s fallback effect for a stroke that brushed nothing at `pos`,
+    /// aimed through `face` (a unit offset): when a stroke's damage is 0, `onUsingTick` runs
+    /// `brushEffects` with `SoundEvents.BRUSH_GENERIC` — the dust of the block at `pos` on
+    /// `face` and the generic brush sound (`minecraft:item.brush.brushing.generic`) — on the
+    /// client only. The host adapter queues the request and the game's brush seam plays it
+    /// in the level in place, for the brushing player alone. True means the effect is
+    /// accepted, a tick late at most. False outside a callback that carries a world, or when
+    /// the host cannot play it.
+    pub fn brush_fallback(&self, pos: BlockPos, face: BlockPos) -> bool {
+        with_current(false, |ops| ops.brush_fallback(&self.dimension, pos, face))
     }
 
     /// Minecraft: `setBlockState`, at the level's next tick seam: the write joins the queued block actions (see
@@ -884,14 +888,16 @@ pub struct BrushRecord {
     pub face: BlockPos,
 }
 
-/// One generic brush sound a [`MemoryWorldOps`] was asked for, as it was asked: a stroke
-/// that brushed nothing at `pos`.
+/// One brush fallback a [`MemoryWorldOps`] was asked for, as it was asked: a stroke
+/// that brushed nothing at `pos`, aimed through `face`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BrushFallbackRecord {
     /// The dimension the stroke was in.
     pub dimension: String,
     /// The block the stroke aimed at.
     pub pos: BlockPos,
+    /// The face the stroke aimed through, as a unit offset.
+    pub face: BlockPos,
 }
 
 /// An in-memory world for tests: every block set is remembered, every other position reads as air.
@@ -913,7 +919,7 @@ pub struct MemoryWorldOps {
     pub particles: Vec<ParticleRecord>,
     /// The brush strokes asked for so far, in order.
     pub brushes: Vec<BrushRecord>,
-    /// The generic brush sounds asked for so far, in order: one per stroke that brushed nothing.
+    /// The brush fallbacks asked for so far, in order: one per stroke that brushed nothing.
     pub brush_fallbacks: Vec<BrushFallbackRecord>,
     /// The build ranges published per dimension, for [`World::build_height`] in tests.
     pub build_heights: BTreeMap<String, [i32; 2]>,
@@ -970,8 +976,8 @@ impl WorldOps for MemoryWorldOps {
         matches!(name, "minecraft:suspicious_sand" | "minecraft:suspicious_gravel")
     }
 
-    fn brush_fallback_sound(&mut self, dimension: &str, pos: BlockPos) -> bool {
-        self.brush_fallbacks.push(BrushFallbackRecord { dimension: dimension.to_owned(), pos });
+    fn brush_fallback(&mut self, dimension: &str, pos: BlockPos, face: BlockPos) -> bool {
+        self.brush_fallbacks.push(BrushFallbackRecord { dimension: dimension.to_owned(), pos, face });
         true
     }
 
@@ -1196,18 +1202,18 @@ mod tests {
     }
 
     #[test]
-    fn fallback_brush_sounds_reach_the_ops_and_are_recorded() {
+    fn brush_fallbacks_reach_the_ops_and_are_recorded() {
         let world = World::new("minecraft:overworld");
-        assert!(!world.brush_fallback_sound([0, 64, 0]), "outside a scope nothing sounds");
+        assert!(!world.brush_fallback([0, 64, 0], [0, 1, 0]), "outside a scope nothing is played");
         let mut ops = MemoryWorldOps::default();
         with_world(&mut ops, || {
-            assert!(world.brush_fallback_sound([0, 64, 0]));
-            assert!(world.brush_fallback_sound([1, 64, 0]));
+            assert!(world.brush_fallback([0, 64, 0], [0, 1, 0]));
+            assert!(world.brush_fallback([1, 64, 0], [0, 0, -1]));
         });
         assert_eq!(ops.brush_fallbacks, vec![
-            BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0] },
-            BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [1, 64, 0] },
-        ], "every empty stroke's sound is recorded, in order");
+            BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0], face: [0, 1, 0] },
+            BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [1, 64, 0], face: [0, 0, -1] },
+        ], "every empty stroke's fallback is recorded, in order");
         // A host that does not implement the fallback keeps the default answer.
         struct NoFallback;
         impl WorldOps for NoFallback {
@@ -1215,7 +1221,7 @@ mod tests {
             fn set_block_state(&mut self, _: &str, _: BlockPos, _: &str) -> bool { false }
             fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
         }
-        with_world(&mut NoFallback, || assert!(!world.brush_fallback_sound([0, 64, 0])));
+        with_world(&mut NoFallback, || assert!(!world.brush_fallback([0, 64, 0], [0, 1, 0])));
     }
 
     #[test]

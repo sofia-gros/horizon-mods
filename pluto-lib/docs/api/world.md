@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every generic brush sound asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every brush fallback asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -666,35 +666,36 @@ assert_eq!(record.pos, [0, 64, 0]);
 assert_eq!(record.face, [0, 1, 0]);
 ```
 
-### `World::brush_fallback_sound`
+### `World::brush_fallback`
 
-`fn brush_fallback_sound(&self, pos: BlockPos) -> bool`. The generic brush sound (`minecraft:item.brush.brushing.generic`) for a stroke that brushed nothing at `pos`: `BrushModule.onUsingTick` plays `SoundEvents.BRUSH_GENERIC` when a stroke's damage is 0, on the client only. Returns whether the sound was accepted (over Horizon, queued for the game's brush seam to play within the tick, for the brushing player alone — unshared when they are the local player, sent to them alone when they are a guest). False outside a callback that carries a world.
+`fn brush_fallback(&self, pos: BlockPos, face: BlockPos) -> bool`. The fallback effect for a stroke that brushed nothing at `pos`, aimed through `face`: `BrushModule.onUsingTick` runs `brushEffects` with `SoundEvents.BRUSH_GENERIC` when a stroke's damage is 0, on the client only — the dust of the block at `pos` on `face` and the generic brush sound (`minecraft:item.brush.brushing.generic`). Returns whether the effect was accepted (over Horizon, queued for the game's brush seam to play within the tick, for the brushing player alone — the dust for the local player, the sound unshared when they are the local player and sent to them alone when they are a guest). False outside a callback that carries a world.
 
-> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` queues the request on `pluto_brush_access` (its fallback queue); the game's creature tick seam (`pluto_brush_flush`, in the game's own brush module) drains it after the strokes and plays the generic sound for the acting player alone.
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. `HostWorld` in `hooks.rs` queues the request on `pluto_brush_access` (its fallback queue); the game's creature tick seam (`pluto_brush_flush`, in the game's own brush module) drains it after the strokes, dusts the aimed block for the local player and plays the generic sound for the acting player alone.
 
 ```rust
 use pluto_lib::{with_world, MemoryWorldOps, World};
 
 let world = World::new("minecraft:overworld");
-assert!(!world.brush_fallback_sound([0, 64, 0]), "outside a world scope");
+assert!(!world.brush_fallback([0, 64, 0], [0, 1, 0]), "outside a world scope");
 let mut ops = MemoryWorldOps::default();
 with_world(&mut ops, || {
-    assert!(world.brush_fallback_sound([0, 64, 0]));
+    assert!(world.brush_fallback([0, 64, 0], [0, 1, 0]));
 });
 assert_eq!(ops.brush_fallbacks.len(), 1);
 assert_eq!(ops.brush_fallbacks[0].pos, [0, 64, 0]);
+assert_eq!(ops.brush_fallbacks[0].face, [0, 1, 0]);
 ```
 
 ### `BrushFallbackRecord`
 
-One generic brush sound a `MemoryWorldOps` was asked to play, as it was asked: `dimension` and `pos`.
+One brush fallback a `MemoryWorldOps` was asked to play, as it was asked: `dimension`, `pos` and `face`.
 
 
 
 ```rust
 use pluto_lib::BrushFallbackRecord;
 
-let record = BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0] };
+let record = BrushFallbackRecord { dimension: "minecraft:overworld".into(), pos: [0, 64, 0], face: [0, 1, 0] };
 assert_eq!(record.pos, [0, 64, 0]);
 ```
 ### `ExplosionInteraction`

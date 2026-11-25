@@ -17,11 +17,13 @@
 //! The range the strokes aim over is the player's block-interaction-range attribute as the
 //! game computes it (`LivingEntity.getAttributeValue`, read through PlutoLib's player
 //! surface), falling back to the attribute's base values (4.5 in survival, 5 in creative)
-//! when the game cannot answer. And a stroke that brushes nothing plays the generic brush
-//! sound for the acting player alone (`SoundEvents.BRUSH_GENERIC`): the hook queues it
-//! through the world's fallback call and the game's brush seam plays it — unshared for the
-//! local player, sent to them alone for a guest — as the original plays it on the
-//! brushing player's client only.
+//! when the game cannot answer. And a stroke that brushes nothing plays the fallback
+//! effect for the acting player alone (`BrushModule.brushEffects` with
+//! `SoundEvents.BRUSH_GENERIC`): the dust of the centre block and the generic sound. The
+//! hook queues it through the world's fallback call and the game's brush seam plays it —
+//! the dust for the local player, as the game's own brush dusts every local stroke, and
+//! the sound unshared for the local player, sent to them alone for a guest — as the
+//! original plays it on the brushing player's client only.
 //!
 //! Not carried over, exactly:
 //! - The AOE highlight (`shouldHighlight`) is drawn through PlutoLib's highlight surface: while the
@@ -29,9 +31,6 @@
 //!   `brush_hook`'s highlight), and a mining tool's effective neighbours are outlined too (the
 //!   DISPLAY predicate's other half — see `block_break_hook`'s highlight), each outlined block
 //!   inside the world border and within the frame's block reach for the player's game mode.
-//! - The dust of the fallback effect: the original's `brushEffects` spawns dust particles at the
-//!   centre block with the generic sound, and the game's own brush dusts every local stroke; this
-//!   port dusts brushable strokes only, so a stroke on plain blocks sounds but shows no dust.
 use pluto_lib::World;
 
 /// BrushModule.getUseDuration: the use lasts 200 ticks.
@@ -143,9 +142,10 @@ pub(crate) fn stroke(world: &World, hit: [i32; 3], face: [i32; 3], neighbours: &
     damage
 }
 
-/// Whether a stroke whose wear is `damage` plays the generic fallback sound: one that
-/// brushed nothing (`BrushModule.onUsingTick`'s `damage == 0`, on the client side — the
-/// client-side half is the seam's, which plays it for the acting player alone).
+/// Whether a stroke whose wear is `damage` plays the fallback effect (the centre
+/// block's dust and the generic sound): one that brushed nothing
+/// (`BrushModule.onUsingTick`'s `damage == 0`, on the client side — the client-side
+/// half is the seam's, which plays it for the acting player alone).
 pub(crate) fn fallback(damage: i32) -> bool {
     damage == 0
 }
@@ -187,8 +187,8 @@ mod tests {
 
     #[test]
     fn only_an_empty_stroke_plays_the_generic_fallback() {
-        assert!(fallback(0), "nothing brushed: the generic sound");
-        assert!(!fallback(1) && !fallback(2), "a brushed block plays its own sound, not the generic");
+        assert!(fallback(0), "nothing brushed: the fallback effect");
+        assert!(!fallback(1) && !fallback(2), "a brushed block plays its own effect, not the fallback");
     }
 
     #[test]

@@ -1886,11 +1886,11 @@ impl WorldOps for HostWorld {
         horizon_client::entry::pluto_brush_access::push(dimension, pos, face)
     }
 
-    fn brush_fallback_sound(&mut self, dimension: &str, pos: [i32; 3]) -> bool {
-        // The generic brush sound of a stroke that brushed nothing rides the same queue as
-        // the strokes: the game's brush seam plays it in that dimension, for the acting
-        // player alone (see pluto_brush_access).
-        horizon_client::entry::pluto_brush_access::push_fallback(dimension, pos)
+    fn brush_fallback(&mut self, dimension: &str, pos: [i32; 3], face: [i32; 3]) -> bool {
+        // The fallback of a stroke that brushed nothing (its dust and generic sound)
+        // rides the same queue as the strokes: the game's brush seam plays it in that
+        // dimension, for the acting player alone (see pluto_brush_access).
+        horizon_client::entry::pluto_brush_access::push_fallback(dimension, pos, face)
     }
 
     fn send_particles(&mut self, _dimension: &str, particle: &str, data: &crate::pure::particle_api_v1::ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
