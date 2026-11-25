@@ -170,6 +170,10 @@ fn throw_tool(release: &ReleaseUsing) {
     play_thrown_tool_throw(&world, [release.position[0], release.eye[1] - 0.1, release.position[2]]);
     let mut carried = stack.clone();
     carried.count = 1;
+    // The thrown tool is the stack the projectile was launched from, for the experience drop
+    // of a mob it kills: the launch the game reports names the hand the throw left empty (a
+    // single tool is gone from it), so the throw names the stack itself.
+    pluto_lib::note_launch_stack(id, carried.clone());
     let profile = flight_hook::profile_of(stack);
     flight_hook::bind(&release.dimension, id, flight_hook::thrown_flight(profile, carried, velocity, charge, !release.creative));
     if !release.creative {
@@ -192,6 +196,8 @@ fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3],
     play_shuriken_throw(world, feet);
     let mut carried = stack.clone();
     carried.count = 1;
+    // As in `throw_tool`: the thrown shuriken is its own launch stack for the experience drop.
+    pluto_lib::note_launch_stack(id, carried.clone());
     // The knockback a shot's modules added rides the fired stack's persistent data, when present.
     let knockback = carried.custom_data.get(tool_stack::TAG_PERSISTENT)
         .and_then(|data| if let Nbt::Compound(data) = data { data.get("tconstruct:knockback").and_then(Nbt::as_f64) } else { None })

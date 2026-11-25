@@ -3537,6 +3537,48 @@ fn loot_entity_facts(host: &mut dyn Host, id: u32, kind: &str) -> Option<loot_ap
     Some(loot_api_v2::facts_from_saved(&compound_from_tag(&data), kind))
 }
 
+/// Remembers the stack a launched projectile was launched from, for the experience drop of a
+/// mob it goes on to kill (see `entity_events_v1::note_projectile_tool`). The game's own record
+/// of the launch is read first: an arrow fired from a weapon carries that weapon in its saved
+/// data (a player's bow or crossbow shot). A launch the game names a player for reads the
+/// stack in their hand. A launch whose owner the saved data names — a mob's shot — reads the
+/// owner's main hand from its own saved data. Anything else falls back to the projectile's own
+/// stack: the arrow a dispenser shot, the item a throw left the hand with.
+fn note_launch_stack(host: &mut dyn Host, event: &horizon_client::mod_api::ProjectileLaunchEvent<'_>, data: &NbtCompound) {
+    if let Some(Nbt::Compound(weapon)) = data.get("weapon") {
+        if let Some(tool) = entity_events_v1::stack_from_saved_item(weapon) {
+            entity_events_v1::note_projectile_tool(event.entity, tool);
+            return;
+        }
+    }
+    if let Some(player) = event.player {
+        if let Some(tool) = host.held_stack(player).map(|stack| read_stack(&stack)) {
+            entity_events_v1::note_projectile_tool(event.entity, tool);
+            return;
+        }
+    } else if let Some(owner) = uuid_from_saved(data, "Owner").or_else(|| uuid_from_saved(data, "Thrower")) {
+        let launcher = host.entity_by_uuid(owner).and_then(|(_, id, _)| host.entity(id)).and_then(|entity| host.entity_nbt(entity))
+            .map(|saved| compound_from_tag(&saved)).and_then(|saved| entity_events_v1::saved_mainhand(&saved));
+        if let Some(tool) = launcher {
+            entity_events_v1::note_projectile_tool(event.entity, tool);
+            return;
+        }
+    }
+    if let Some(Nbt::Compound(item)) = data.get("item").or_else(|| data.get("Item")) {
+        if let Some(tool) = entity_events_v1::stack_from_saved_item(item) {
+            entity_events_v1::note_projectile_tool(event.entity, tool);
+        }
+    }
+}
+
+/// The uuid an entity's saved data holds under `key`, in the game's numeric codec (four ints,
+/// most significant first — the layout `projectile_api_v1::uuid_int_array` writes).
+fn uuid_from_saved(data: &NbtCompound, key: &str) -> Option<u128> {
+    let Some(Nbt::IntArray(parts)) = data.get(key) else { return None };
+    let [a, b, c, d] = parts.as_slice() else { return None };
+    Some((u128::from(*a as u32) << 96) | (u128::from(*b as u32) << 64) | (u128::from(*c as u32) << 32) | u128::from(*d as u32))
+}
+
 /// Restore the source stack, not the destination's components, then apply public edits.
 fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     let item = slot.item.to_string();
@@ -5267,20 +5309,25 @@ impl Hooks for PlutoHooks {
     }
 
     fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
-        // The launcher's tool is remembered for the kill its projectile may make: the death
-        // report names the projectile, not its float, and the launch is the only moment the
-        // tool is in hand. A launch no player made (a dispenser, a mob) names no tool.
-        if let Some(player) = event.player {
-            if let Some(tool) = host.held_stack(player).map(|stack| read_stack(&stack)) {
-                entity_events_v1::note_projectile_tool(event.entity, tool);
-            }
-        }
-        if !projectile_events_v1::launch_heard() { return; }
+        let launch_heard = projectile_events_v1::launch_heard();
+        let drop_heard = entity_events_v1::experience_drop_heard();
+        if !launch_heard && !drop_heard { return; }
         let entity = host.entity(event.entity);
+        let data = entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default();
+        if drop_heard {
+            // The stack the projectile was launched from is remembered for the kill it may
+            // make: the death report names the projectile, not its float, and the launch is
+            // the only moment the stack is known. A launch under this entity id starts clean:
+            // an id the game reuses names a new projectile, and a note a previous one left
+            // under it is not this one's.
+            entity_events_v1::forget_projectile_tool(event.entity);
+            note_launch_stack(host, event, &data);
+        }
+        if !launch_heard { return; }
         let launch = projectile_events_v1::ProjectileLaunch {
             player: event.player, name: event.name.to_owned(), projectile: event.entity, kind: event.kind.to_owned(),
             motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
-            data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+            data,
         };
         scoped(host, || projectile_events_v1::launched(&launch));
     }
@@ -5501,7 +5548,7 @@ impl Hooks for PlutoHooks {
         let projectile_tool = direct.filter(|direct| *direct >= 0).and_then(|direct| u32::try_from(direct).ok()).and_then(entity_events_v1::take_projectile_tool);
         if !entity_events_v1::experience_drop_heard() { return; }
         let player = attacker.and_then(|uuid| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (uuid, player.entity_id)));
-        let looting_slot = player.and_then(|(uuid, _)| entity_events_v1::take_looting_slot(uuid));
+        let looting_slot = player.and_then(|(uuid, _)| entity_events_v1::take_looting_slot(uuid, event.entity as i32));
         let effects = host.entity(event.entity).and_then(|entity| host.entity_effects(entity)).unwrap_or_default().into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect();
         let drop = entity_events_v1::ExperienceDrop {
             entity: event.entity as i32, kind: event.kind.to_owned(), player, effects,
@@ -5844,7 +5891,13 @@ impl Hooks for PlutoHooks {
         let mut nbt = NbtCompound::new();
         nbt.insert("Motion".to_owned(), Nbt::List(motion.into_iter().map(Nbt::Double).collect()));
         nbt.insert("Item".to_owned(), Nbt::Compound(item));
-        host.summon(event.dimension, &entity.to_string(), origin, compound_to_tag(&nbt))?;
+        let shot = host.summon(event.dimension, &entity.to_string(), origin, compound_to_tag(&nbt))?;
+        // The shot is remembered as launched from the dispensed stack itself, for the
+        // experience drop of a mob it kills: the launch the summon reports carries only the
+        // item's name (the NBT above), so the full stack is named here, over that note.
+        if entity_events_v1::experience_drop_heard() {
+            entity_events_v1::note_projectile_tool(shot, stack.clone());
+        }
         // One item was shot: what stays is the stack less one (nothing, when it was the last), and the
         // event played is the game's projectile launch (level event 1002).
         let rest = if stack.count > 1 {
@@ -6181,6 +6234,10 @@ impl Hooks for PlutoHooks {
         // `living_experience_drop`). A blow with no direct entity overwrites, so a later
         // non-projectile kill does not inherit an earlier projectile's float.
         entity_events_v1::note_killing_direct(event.entity, event.direct);
+        // The looting claim a weapon hit made on this victim is settled against the damage
+        // now landing: the claim's own blow confirms it, any other damage ends it (canon's
+        // claim lives only for the hurt call that follows it; see `note_looting_slot`).
+        entity_events_v1::resolve_looting_claim(event.entity, event.causing, event.direct);
         let damage = LivingDamage {
             entity: event.entity,
             kind: event.kind.to_owned(),
@@ -6367,7 +6424,7 @@ impl Hooks for PlutoHooks {
         // a player's attack claims one; a mob's weapon matches nothing it wears.
         if let Some(uuid) = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.uuid)
             .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing).map(|player| player.uuid)) {
-            entity_events_v1::note_looting_slot(uuid, entity_events_v1::looting_slot(hit.weapon.as_ref(), &hit.armor, entity_events_v1::offhand_worn_by(event.causing).as_ref()));
+            entity_events_v1::note_looting_slot(uuid, event.entity, event.causing, entity_events_v1::looting_slot(hit.weapon.as_ref(), &hit.armor, entity_events_v1::offhand_worn_by(event.causing).as_ref()));
         }
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {
