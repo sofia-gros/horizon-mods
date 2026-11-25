@@ -21,9 +21,9 @@
 // picked up on contact, and the discard-on-failed-pickup list is not applied; the hurt carries no
 // attacker (the game's hurt-by-entity call resolves an attacker by entity id, and the hook's owner
 // here is the local player, whose server id this code does not hold), so no kill credit or last-hurt
-// mark is set, and the launcher-hit modifier hooks do not run; a boat, cart or TNT is pulled but not
-// hurt (the hurt call reaches living beings and armour stands); the wall-stick of a grapple hook (`onHitBlock`) has no hook state here,
-// so a grapple against a wall retrieves as a flying hook, not a grounded one.
+// mark is set, and the launcher-hit modifier hooks do not run; the wall-stick of a grapple hook
+// (`onHitBlock`) has no hook state here, so a grapple against a wall retrieves as a flying hook,
+// not a grounded one.
 
 use super::{cast_direction, pull_item, Hook, State};
 use crate::entry::pluto_fishing_access as access;
@@ -201,7 +201,10 @@ fn pull_entity(
                 mob.kind.id == "minecraft:enderman" && mob.extra.effects.iter().any(|effect| effect.0 == "tconstruct:enderference")
             });
             let damage_type = if exposed { "tconstruct:melee_fishing_hook" } else { "tconstruct:fishing_hook" };
-            game.native_hurt_entity(game.dim.id(), target, damage, damage_type, None);
+            // The hurt goes through the entity-generic hurt, as the original's `target.hurt`
+            // lands on any damageable entity: living targets keep the game's own hurt call,
+            // the rest (a boat, a cart, TNT) go through the game's damage hurt.
+            crate::game::pluto_entity_hurt_game::hurt_any(game, target, damage, damage_type);
         }
     }
     // The pull: a tenth of the way to the owner, plus the knockback bonus.
