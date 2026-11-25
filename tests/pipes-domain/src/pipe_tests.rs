@@ -475,3 +475,217 @@ fn the_registered_types_open_one_inbox_slot_per_face_and_refuse_takes() {
     assert_eq!(tanks.len(), 1);
     assert_eq!(tanks[0].capacity, fluid_pipe::CAPACITY);
 }
+
+// --- Transit rendering: the picture the renderers draw, from the same saved state. ---
+
+use crate::render;
+use pluto_lib::{BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, ItemDisplayContext, Nbt};
+
+/// A canvas that records what a renderer draws, in the shape of PlutoLib's own canvas tests.
+#[derive(Default)]
+struct Recorder {
+    log: Vec<String>,
+    partial: Option<f32>,
+    props: Vec<(String, String)>,
+}
+
+impl BlockEntityCanvas for Recorder {
+    fn state_property(&self, name: &str) -> Option<String> {
+        self.props.iter().find(|(key, _)| key == name).map(|(_, value)| value.clone())
+    }
+    fn partial_tick(&self) -> Option<f32> {
+        self.partial
+    }
+    fn push(&mut self) {
+        self.log.push("push".into());
+    }
+    fn pop(&mut self) {
+        self.log.push("pop".into());
+    }
+    fn translate(&mut self, by: [f32; 3]) {
+        self.log.push(format!("translate {by:?}"));
+    }
+    fn rotate_about(&mut self, _: [f32; 3], _: f32, _: [f32; 3]) {}
+    fn scale(&mut self, by: [f32; 3]) {
+        self.log.push(format!("scale {by:?}"));
+    }
+    fn quad(&mut self, sprite: &str, _: [[f32; 3]; 4], _: [f32; 4], _: u32) -> bool {
+        self.log.push(format!("quad {sprite}"));
+        true
+    }
+    fn cube(&mut self, _: [f32; 3], _: [f32; 3], sprite: &str, _: u32) -> bool {
+        self.log.push(format!("cube {sprite}"));
+        true
+    }
+    fn block(&mut self, block: &str, _: &[(&str, &str)]) -> bool {
+        self.log.push(format!("block {block}"));
+        true
+    }
+    fn item(&mut self, item: &ItemSlot) -> bool {
+        self.log.push(format!("item {}", item.item));
+        true
+    }
+    fn item_with_context(&mut self, item: &ItemSlot, context: ItemDisplayContext) -> bool {
+        self.log.push(format!("item {} {context:?}", item.item));
+        true
+    }
+    fn model(&mut self, model: &str, _: u32) -> bool {
+        self.log.push(format!("model {model}"));
+        true
+    }
+    fn keep(&mut self) {
+        self.log.push("keep".into());
+    }
+}
+
+fn riding(stack: ItemSlot, from: Direction, to: Direction, ticks: i32) -> Transit {
+    Transit { stack, from, to, ticks, retries: 0 }
+}
+
+fn assert_point(actual: [f32; 3], expected: [f32; 3]) {
+    for (actual, expected) in actual.iter().zip(expected) {
+        assert!((actual - expected).abs() < 1e-6, "point {actual:?} is not {expected:?}");
+    }
+}
+
+#[test]
+fn a_riding_stack_is_drawn_from_its_entry_face_through_the_centre_to_its_exit() {
+    let stack = stack("minecraft:iron_ingot", 1);
+    // Just in through the west face: at the face itself.
+    assert_point(render::transit_position(&riding(stack.clone(), Direction::West, Direction::East, 4), 0.0), [0.0, 0.5, 0.5]);
+    // Two ticks spent of the five the ride takes: 2/5 along, most of the way to the centre.
+    assert_point(render::transit_position(&riding(stack.clone(), Direction::West, Direction::East, 2), 0.0), [0.4, 0.5, 0.5]);
+    // About to be delivered: past the centre, most of the way to the east face.
+    assert_point(render::transit_position(&riding(stack.clone(), Direction::West, Direction::East, 0), 0.0), [0.8, 0.5, 0.5]);
+    // The partial tick moves the drawing between tick steps, never past the exit face.
+    let eased = render::transit_position(&riding(stack.clone(), Direction::West, Direction::East, 0), 0.5);
+    assert!(eased[0] > 0.8 && eased[0] < 1.0, "partial tick eases toward the exit: {eased:?}");
+    // Vertical rides work the same way.
+    assert_point(render::transit_position(&riding(stack, Direction::Down, Direction::Up, 4), 0.0), [0.5, 0.0, 0.5]);
+}
+
+#[test]
+fn the_item_renderer_draws_each_riding_stack_once_at_its_place() {
+    let mut state = PipeState::default();
+    state.transit.push(riding(stack("minecraft:iron_ingot", 3), Direction::West, Direction::East, 2));
+    state.transit.push(riding(stack("minecraft:gold_ingot", 1), Direction::Down, Direction::Up, 4));
+    let mut data = NbtCompound::new();
+    state.save(&mut data);
+    let mut canvas = Recorder { partial: Some(0.0), ..Recorder::default() };
+    let items: Vec<Option<ItemSlot>> = Vec::new();
+    let mut render = BlockEntityRender { pos: [0, 64, 0], block: "pipes:item_pipe", data: &data, items: &items, canvas: &mut canvas };
+    render::render_item_pipe(&mut render);
+    let drawn: Vec<&String> = canvas.log.iter().filter(|line| line.starts_with("item ")).collect();
+    assert_eq!(drawn.len(), 2, "one drawing per stack in transit: {:?}", canvas.log);
+    assert!(canvas.log.contains(&"item minecraft:iron_ingot None".to_owned()), "{:?}", canvas.log);
+    assert!(canvas.log.contains(&"item minecraft:gold_ingot None".to_owned()), "{:?}", canvas.log);
+    assert!(canvas.log.contains(&"translate [0.4, 0.5, 0.5]".to_owned()), "the iron rides at its counted place: {:?}", canvas.log);
+    // An empty pipe draws nothing.
+    let mut data = NbtCompound::new();
+    PipeState::default().save(&mut data);
+    let mut canvas = Recorder::default();
+    let mut render = BlockEntityRender { pos: [0, 64, 0], block: "pipes:item_pipe", data: &data, items: &items, canvas: &mut canvas };
+    render::render_item_pipe(&mut render);
+    assert!(canvas.log.is_empty(), "nothing in transit, nothing drawn: {:?}", canvas.log);
+}
+
+#[test]
+fn the_fluid_renderer_draws_the_held_fluid_in_the_centre_and_along_connected_arms() {
+    let tank_data = |fluid: &str, amount: i32| {
+        let mut tank = NbtCompound::new();
+        tank.insert("Fluid".to_owned(), Nbt::String(fluid.to_owned()));
+        tank.insert("Amount".to_owned(), Nbt::Int(amount));
+        let mut data = NbtCompound::new();
+        data.insert("fluids".to_owned(), Nbt::List(vec![Nbt::Compound(tank)]));
+        data
+    };
+    // Water, connected north only: the centre and the north arm.
+    let data = tank_data("minecraft:water", 500);
+    let mut canvas = Recorder { props: vec![("north".to_owned(), "true".to_owned())], ..Recorder::default() };
+    let items: Vec<Option<ItemSlot>> = Vec::new();
+    let mut render = BlockEntityRender { pos: [0, 64, 0], block: "pipes:fluid_pipe", data: &data, items: &items, canvas: &mut canvas };
+    render::render_fluid_pipe(&mut render);
+    let blocks: Vec<&String> = canvas.log.iter().filter(|line| line.starts_with("block ")).collect();
+    assert_eq!(blocks.len(), 2, "centre plus the one connected arm: {:?}", canvas.log);
+    assert!(blocks.iter().all(|line| *line == "block minecraft:water"), "{blocks:?}");
+    // A mod fluid is drawn as its own world block; an empty tank draws nothing.
+    let data = tank_data("tconstruct:molten_iron", 250);
+    let mut canvas = Recorder::default();
+    let mut render = BlockEntityRender { pos: [0, 64, 0], block: "pipes:fluid_pipe", data: &data, items: &items, canvas: &mut canvas };
+    render::render_fluid_pipe(&mut render);
+    assert_eq!(canvas.log.iter().filter(|line| line.starts_with("block ")).count(), 1, "{:?}", canvas.log);
+    assert!(canvas.log.contains(&"block tconstruct:molten_iron_fluid".to_owned()), "{:?}", canvas.log);
+    let data = tank_data("minecraft:empty", 0);
+    let mut canvas = Recorder::default();
+    let mut render = BlockEntityRender { pos: [0, 64, 0], block: "pipes:fluid_pipe", data: &data, items: &items, canvas: &mut canvas };
+    render::render_fluid_pipe(&mut render);
+    assert!(canvas.log.is_empty(), "an empty pipe draws no fluid: {:?}", canvas.log);
+    assert_eq!(render::fluid_block(&id("minecraft:lava")), "minecraft:lava");
+}
+
+#[test]
+fn all_four_pipes_have_renderers() {
+    render::register();
+    for block in ["pipes:item_pipe", "pipes:extraction_pipe", "pipes:fluid_pipe", "pipes:fluid_extraction_pipe"] {
+        assert!(BlockEntityRendererRegistry::has(block), "{block} has a renderer");
+    }
+}
+
+#[test]
+fn a_stack_in_transit_counts_down_and_arrives_on_the_fifth_tick() {
+    let (pipe, dest) = ([1, 64, 0], [2, 64, 0]);
+    let mut sim = SimOps::default();
+    sim.add_item_pipe(pipe, "pipes:item_pipe");
+    sim.add_chest(dest, "minecraft:chest", vec![None]);
+    // A stack lands in the pipe's west inbox, as a delivery from a neighbour would put it.
+    sim.pipe_items.get_mut(&pipe).unwrap()[face_index(Direction::West)] = Some(stack("minecraft:iron_ore", 1));
+    sim.tick_item(pipe, item_pipe::Kind::Transport);
+    let state = PipeState::load(sim.pipe_data.get(&pipe).unwrap());
+    assert_eq!(state.transit.len(), 1, "the stack is in transit");
+    assert_eq!(state.transit[0].ticks, item_pipe::TRAVEL_TICKS - 1, "and its first tick is spent");
+    for _ in 0..3 {
+        sim.tick_item(pipe, item_pipe::Kind::Transport);
+    }
+    let state = PipeState::load(sim.pipe_data.get(&pipe).unwrap());
+    assert_eq!(state.transit[0].ticks, 0, "four ticks spent: drawn at the exit, not yet delivered");
+    assert_eq!(sim.item_total(dest, "minecraft:iron_ore"), 0);
+    sim.tick_item(pipe, item_pipe::Kind::Transport);
+    assert_eq!(sim.item_total(dest, "minecraft:iron_ore"), 1, "the fifth tick delivers it, exactly once");
+    assert!(PipeState::load(sim.pipe_data.get(&pipe).unwrap()).transit.is_empty());
+}
+
+#[test]
+fn removing_the_destination_mid_transit_never_loses_the_stack() {
+    let (chest, extraction, pipe, dest) = ([0, 64, 0], [1, 64, 0], [2, 64, 0], [3, 64, 0]);
+    let mut sim = SimOps::default();
+    sim.add_chest(chest, "minecraft:chest", vec![Some(stack("minecraft:iron_ore", 3))]);
+    sim.add_item_pipe(extraction, "pipes:extraction_pipe[facing=west]");
+    sim.add_item_pipe(pipe, "pipes:item_pipe");
+    sim.add_chest(dest, "minecraft:chest", vec![None, None]);
+    sim.power_item(extraction, true);
+    let mut riding = false;
+    for _ in 0..40 {
+        sim.tick_item(extraction, item_pipe::Kind::Extraction);
+        sim.tick_item(pipe, item_pipe::Kind::Transport);
+        if !PipeState::load(sim.pipe_data.get(&pipe).unwrap()).transit.is_empty() {
+            riding = true;
+            break;
+        }
+    }
+    assert!(riding, "a stack is riding the plain pipe toward the destination");
+    // The destination vanishes while the stack is in transit.
+    sim.states.remove(&dest);
+    sim.chests.remove(&dest);
+    for _ in 0..80 {
+        sim.tick_item(extraction, item_pipe::Kind::Extraction);
+        sim.tick_item(pipe, item_pipe::Kind::Transport);
+    }
+    // Conservation: every ore is still somewhere in the system — back in the source chest,
+    // in a pipe's inbox, or still riding — and none was duplicated.
+    let mut total = sim.item_total(chest, "minecraft:iron_ore");
+    for pos in [extraction, pipe] {
+        total += PipeState::load(sim.pipe_data.get(&pos).unwrap()).transit.iter().map(|transit| transit.stack.count).sum::<u32>();
+        total += sim.pipe_items.get(&pos).unwrap().iter().flatten().map(|stack| stack.count).sum::<u32>();
+    }
+    assert_eq!(total, 3, "no stack was voided or duplicated when its destination vanished mid-transit");
+}

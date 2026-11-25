@@ -7,10 +7,12 @@ mod common;
 mod connections;
 mod fluid_pipe;
 mod item_pipe;
+mod render;
 
 pub fn hooks() -> pluto_lib::ModHooks {
     item_pipe::register();
     fluid_pipe::register();
     connections::register();
+    render::register();
     pluto_lib::no_hooks()
 }
