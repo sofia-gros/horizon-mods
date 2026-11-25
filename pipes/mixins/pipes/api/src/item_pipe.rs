@@ -308,6 +308,9 @@ pub fn register() {
         let block = Identifier::new(NAMESPACE, name).expect("valid pipe id");
         let mut entity_type = BlockEntityType::new(block)
             .item_slots(6)
+            // Clients are sent the saved data so the renderer can draw the stacks in
+            // transit (see `crate::render`); the fluid pipe types already sync theirs.
+            .sync_data()
             .ticker(move |tick| tick_pipe(tick, kind))
             // One inbox slot per face, inserts only; nothing may be taken out of a pipe.
             .sided_access(|face| SidedAccess { insert: vec![face_index(face)], take: Vec::new() })

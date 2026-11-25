@@ -7,5 +7,7 @@ mod item_pipe;
 mod fluid_pipe;
 #[path = "../../../pipes/mixins/pipes/api/src/connections.rs"]
 mod connections;
+#[path = "../../../pipes/mixins/pipes/api/src/render.rs"]
+mod render;
 
 mod pipe_tests;
