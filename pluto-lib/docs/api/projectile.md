@@ -208,7 +208,7 @@ assert_eq!(ThrownTypeRegistry::get(&Identifier::parse("example:shuriken_thrown")
 assert_eq!(ThrownTypeRegistry::throw_sound(&Identifier::parse("example:shuriken_thrown").unwrap()).map(|sound| sound.to_string()), Some("example:throw.shuriken".to_owned()));
 ```
 
-A hand throw of a thrown type plays the game's snowball throw unless the type carries a throw sound: `.throw_sound(...)` registers the sound the throw plays instead. The game's volume (0.5) and pitch (`0.4 / (random * 0.4 + 0.8)`) already match Java's, so only the event id changes; a type with no throw sound keeps the game's own sound.
+A hand throw of a thrown type plays the game's snowball throw unless the type carries a throw sound: `.throw_sound(...)` registers the sound the throw plays instead. The game's volume (0.5) and pitch (`0.4 / (random * 0.4 + 0.8)`) already match Java's; a throw with a registered sound also plays where and as Java plays it — at the thrower's feet (the game plays its own throw at the eye) and on the NEUTRAL source (the game files a modded event under MASTER) — through the throw-position and throw-source reaches. A type with no throw sound keeps the game's own sound, position and source.
 
 > **Use with Caution.** Registration is the trait-mod source of truth, validated as the game validates the content form; delivery to the game's own registry is a wall. The game fills its thrown-type registry once, at startup, from content mods' entity types alone, and no entry or provider seam reaches it for a trait mod, so a type registered here must also be declared in the mod's content entity types to fly in the game. `ThrownTypeRegistry::declarations()` hands over exactly what that declaration needs: each type's id, its `item` and its `damage`, on the `minecraft:snowball` template.
 
@@ -325,6 +325,20 @@ ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("exam
 assert_eq!(throw_sound_for("example:chime_thrown"), Some("example:throw.chime"));
 ```
 
+### `is_throw_sound_event`
+
+`fn is_throw_sound_event(event: &str) -> bool`. Whether `event` is a registered thrown type's throw sound, for the host's throw-source sink: the game asks by event when it files a played sound under a source, and a throw belongs to NEUTRAL.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry, is_throw_sound_event};
+
+assert!(!is_throw_sound_event("example:throw.bell"));
+let id = Identifier::parse("example:bell_thrown").unwrap();
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:bell").unwrap(), 0.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.bell").unwrap())).unwrap();
+assert!(is_throw_sound_event("example:throw.bell"));
+```
+
 ### `uuid_int_array`
 
 `fn uuid_int_array(uuid: u128) -> [i32; 4]`. A uuid as the four ints entity data holds it in (`UUIDUtil.uuidToIntArray`), most significant first.
@@ -397,6 +411,20 @@ assert_eq!(ThrownTypeRegistry::throw_sound(&id), None);
 ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:shard").unwrap(), 1.0).unwrap()
     .throw_sound(Identifier::parse("example:throw.shard").unwrap())).unwrap();
 assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), Some("example:throw.shard".to_owned()));
+```
+
+### `ThrownTypeRegistry::is_throw_sound`
+
+`fn is_throw_sound(event: &str) -> bool`. Whether `event` is the throw sound of some registered thrown type. The game picks the source a played sound belongs to from its event, and a throw plays on NEUTRAL, so the throw-source reach asks by event rather than by type.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+assert!(!ThrownTypeRegistry::is_throw_sound("example:throw.pebble"));
+let id = Identifier::parse("example:pebble_thrown").unwrap();
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:pebble").unwrap(), 1.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.pebble").unwrap())).unwrap();
+assert!(ThrownTypeRegistry::is_throw_sound("example:throw.pebble"));
 ```
 
 ### `ThrownTypeRegistry::declarations`
