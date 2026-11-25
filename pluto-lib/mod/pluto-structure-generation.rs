@@ -140,7 +140,7 @@ impl Decoration {
                                     None => Ok(false),
                                 }
                             };
-                        if placement::place_in_chunk(
+                        if let Err(error) = placement::place_in_chunk(
                             data,
                             start,
                             world,
@@ -149,10 +149,12 @@ impl Decoration {
                             random,
                             chunk_box,
                             &mut place_feature,
-                        )
-                        .is_err()
-                        {
+                        ) {
                             structure_errors += 1;
+                            log::warn!(
+                                "pluto_lib: structure placement failed for {} at chunk {}, {}: {error:?}",
+                                start.name, start.chunk.x, start.chunk.z
+                            );
                         }
                     }
                 }

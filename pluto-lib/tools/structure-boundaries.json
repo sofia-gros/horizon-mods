@@ -218,7 +218,7 @@
       "name": "pluto_structure_generation",
       "visibility": "pub",
       "source_file": "pluto-structure-generation.rs",
-      "source_sha256": "47c955874ca11303260c405d7df43646b990aeb76c5d430d12af7da055f3608d"
+      "source_sha256": "019d2fbb96ed4aa7ec527f43a2910dfaa84e14fdf6dedb8445255163eb6fc62f"
     },
     {
       "module_id": "pluto-structure-generation-placement",
@@ -234,7 +234,7 @@
       "name": "pluto_structure_natural",
       "visibility": "pub",
       "source_file": "pluto-structure-natural.rs",
-      "source_sha256": "bebce7e86f1ebfa21db0f75f49e55126efebebd80db75a1ebb7cb3b4d1b4acf3"
+      "source_sha256": "3e73f8b2b90a1c3f4254c523b6aa637e9cb78bcece387c73675cfdbfc48863bf"
     },
     {
       "module_id": "pluto-structure-access",
@@ -533,7 +533,7 @@
         { "name": "structures", "ty": "Option<&super::generator_structures::StructureState>", "value": "structures" }
       ],
       "source_file": "pluto-structure-generation-head.rs",
-      "source_sha256": "3791b8bc535aeb311561d2fa5c278d0624bd4afe1fd3bb90af379b25e1fa7485"
+      "source_sha256": "12a7164be31f846accc3935362334b87acb2436d871a7c24d322b138d053a0c9"
     },
     {
       "injection_id": "pluto-structure-natural-start",
