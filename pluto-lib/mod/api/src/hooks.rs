@@ -3167,6 +3167,15 @@ fn queue_player_teleport(host: &mut dyn Host, dimension: &str, id: i32, pos: [f6
 
 /// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
 /// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
+/// Whether the entity `id` is dead, read off its saved data the way the entity scope reads aliveness:
+/// a living entity is one whose data names a health above zero, so a kill is positively a health named
+/// and no longer above zero. An entity the host cannot reach, or whose data names no health, is not
+/// counted dead — a kill is recorded only on positive evidence.
+fn entity_dead(host: &dyn Host, id: u32) -> bool {
+    let Some(entity) = host.entity(id) else { return false };
+    host.entity_nbt(entity).is_some_and(|data| data.iter().any(|(key, tag)| key.to_string_lossy() == "Health" && matches!(tag, Tag::Float(bits) if f32::from_bits(*bits) <= 0.0)))
+}
+
 fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
     use entity_events_v1::{ActionTarget, EntityAction, KnockbackDirection};
     let id_of = |target: ActionTarget| if target == ActionTarget::Attacker { attacker } else { victim };
@@ -3229,6 +3238,12 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 };
                 let on_ground = host.entity_on_ground(entity).unwrap_or(false);
                 if let Some(delta) = entity_events_v1::knockback_delta(strength, x, z, on_ground) { host.entity_push(entity, delta); }
+            }
+            EntityAction::Push { target, velocity } => {
+                // `Entity.push`: the delta lands whole, as the caller shaped it (a fixed lift stays fixed).
+                let Some(entity) = u32::try_from(id_of(target)).ok().and_then(|id| host.entity(id)) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                if let Some(delta) = entity_events_v1::push_delta(velocity) { host.entity_push(entity, delta); }
             }
             EntityAction::EditStackData { target, slot, item, edits } => {
                 // Only the player acting in this hook has a stack the host hands out; a hit on a player lands on that player's own tick.
@@ -5132,6 +5147,9 @@ impl Hooks for PlutoHooks {
             .and_then(|entity| host.entity_effects(entity))
             .map(|effects| effects.into_iter().map(|(id, _, _)| id).collect())
             .unwrap_or_default();
+        // What the game-side head stashed when the hit was told: the arrow's own ignore list, the
+        // killed list PlutoLib keeps for it, and the punch the shot was fired with.
+        let snapshot = horizon_client::entry::pluto_projectile_impact_access::take(event.projectile);
         let hit = ProjectileImpact {
             dimension: event.dimension.to_owned(),
             projectile: event.projectile,
@@ -5145,7 +5163,9 @@ impl Hooks for PlutoHooks {
             at: event.at,
             motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
             data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
-            piercing_ignored: horizon_client::entry::pluto_projectile_impact_access::take(event.projectile).unwrap_or_default(),
+            piercing_ignored: snapshot.as_ref().map(|snapshot| snapshot.pierced.clone()).unwrap_or_default(),
+            pierced_and_killed: snapshot.as_ref().map(|snapshot| snapshot.killed.clone()).unwrap_or_default(),
+            shot_punch: snapshot.map(|snapshot| snapshot.shot_punch).unwrap_or(0),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
             ignore_entities: std::cell::RefCell::new(Vec::new()),
@@ -5159,10 +5179,24 @@ impl Hooks for PlutoHooks {
         let dimension = event.dimension.to_owned();
         let allowed = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || projectile_events_v1::impact(&hit)));
         let actions: Vec<entity_events_v1::EntityAction> = hit.actions.borrow_mut().drain(..).collect();
+        let dealt_hurt = actions.iter().any(|action| matches!(action, entity_events_v1::EntityAction::Hurt { target: entity_events_v1::ActionTarget::Victim, .. }));
         if !actions.is_empty() {
             let victim = event.entity.and_then(|id| i32::try_from(id).ok()).unwrap_or(-1);
             let attacker = i32::try_from(event.owner).ok().unwrap_or(-1);
             apply_entity_actions(host, event.dimension, attacker, victim, actions);
+        }
+        // A piercing arrow's killed list (`piercedAndKilledEntities` in the original, which the game
+        // keeps no home for, so PlutoLib keeps it in the impact access): when a hurt this hit dealt
+        // left the entity it was told on dead, the hit killed it, and the kill joins the arrow's list
+        // for the next hit's snapshot. A discarded projectile's list dies with it.
+        if hit.discard.get() {
+            horizon_client::entry::pluto_projectile_impact_access::forget_killed(event.projectile);
+        } else if dealt_hurt && hit.data.get_int("PierceLevel", 0) > 0 {
+            if let Some(victim) = event.entity {
+                if entity_dead(host, victim) {
+                    horizon_client::entry::pluto_projectile_impact_access::record_killed(event.projectile, victim);
+                }
+            }
         }
         // What the callbacks settled on the projectile itself, done as the hook returns: a discard
         // removes it (the game's own remove call, which discards projectiles), a new motion sends it

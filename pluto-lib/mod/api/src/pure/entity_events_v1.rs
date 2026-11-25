@@ -477,6 +477,11 @@ pub enum EntityAction {
     /// `LivingEntity.knockback`: pushes a mob with `strength` along the horizontal plane, and up when it stands on the ground. Mobs only
     /// (the host cannot push a player); the mob's own knockback resistance is not applied.
     Knockback { target: ActionTarget, strength: f64, direction: KnockbackDirection },
+    /// `Entity.push`: adds `velocity` to the target's motion, exactly as given — no ground cap, no resistance and no
+    /// normalising, unlike [`EntityAction::Knockback`]'s `LivingEntity.knockback`. What a push with a fixed lift is
+    /// made of: an arrow's punch push lifts by 0.1 however strong the punch is. Mobs only, as `Knockback` is (the
+    /// host cannot push a player).
+    Push { target: ActionTarget, velocity: [f64; 3] },
     /// `LivingEntity.addEffect`: puts a status effect on the target, a player or a mob. An effect id the game does not know is skipped;
     /// `amplifier` is the level less one and `duration` is in ticks, and an effect with a negative amplifier or no duration is not given.
     AddEffect { target: ActionTarget, effect: String, amplifier: i32, duration: i32 },
@@ -622,6 +627,15 @@ pub(crate) fn knockback_delta(strength: f64, x: f64, z: f64, on_ground: bool) ->
     let length = x.hypot(z);
     if !(strength.is_finite() && strength > 0.0 && length.is_finite() && length >= 1.0e-5) { return None; }
     Some([-x / length * strength, if on_ground { strength.min(0.4) } else { 0.0 }, -z / length * strength])
+}
+
+/// The motion a push adds, exactly as given: `Entity.push` adds its vector whole — no ground cap, no
+/// normalising — so the only shaping is the finiteness a delta must have to land at all. What a push with a
+/// fixed lift needs, which [`knockback_delta`] cannot express (its lift is the strength, capped at 0.4 on
+/// the ground): an arrow's punch push lifts by 0.1 however strong the punch is. None when any component
+/// is not a finite number.
+pub(crate) fn push_delta(velocity: [f64; 3]) -> Option<[f64; 3]> {
+    velocity.iter().all(|component| component.is_finite()).then_some(velocity)
 }
 
 /// The direction (x, z) `Entity.knockback` takes for a push against the way something faces at `yaw` degrees: (-sin, cos).
@@ -1895,7 +1909,7 @@ fn queue_damage_actions(damage: &LivingDamage, modification: &DamageModification
 fn action_target(action: &EntityAction) -> ActionTarget {
     match action {
         EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
-        | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
+        | EntityAction::Push { target, .. } | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
         | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } | EntityAction::DropItem { target, .. }
         | EntityAction::Summon { target, .. } | EntityAction::MultiplyAttribute { target, .. } => *target,
     }
@@ -2328,6 +2342,16 @@ mod tests {
         assert!(dx.abs() < 1e-12 && (dz + 1.0).abs() < 1e-12, "a mob facing south is pushed north");
         let (x, z) = facing_direction(90.0);
         assert!((x + 1.0).abs() < 1e-12 && z.abs() < 1e-9, "yaw 90 faces west");
+    }
+
+    #[test]
+    fn a_push_adds_its_vector_whole() {
+        // The lift stays what the caller gave it, however strong the push: a punch push lifts by 0.1
+        // where knockback_delta would lift by min(0.4, strength).
+        assert_eq!(push_delta([0.6, 0.1, -0.8]), Some([0.6, 0.1, -0.8]));
+        assert_eq!(push_delta([0.0, 0.1, 0.0]), Some([0.0, 0.1, 0.0]), "a push with no horizontal part still lifts");
+        assert!(push_delta([f64::NAN, 0.1, 0.0]).is_none());
+        assert!(push_delta([0.0, f64::INFINITY, 0.0]).is_none());
     }
 
     #[test]

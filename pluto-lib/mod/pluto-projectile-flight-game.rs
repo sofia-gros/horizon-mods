@@ -67,6 +67,10 @@ fn owner_position(game: &crate::game::Game<'_>, p: &Projectile) -> Option<[f64; 
 
 /// A projectile joining the flying list, before its first tick: the spawn pass (the head reach on `add_projectile`).
 pub(crate) fn on_spawn(game: &mut crate::game::Game<'_>, p: &mut Projectile) {
+    // A newborn projectile starts with no kills of its own: entity ids are reused, and the killed list
+    // PlutoLib keeps per projectile (pluto-projectile-impact-access) must not hand a dead arrow's kills
+    // to the one born under its id.
+    crate::entry::pluto_projectile_impact_access::forget_killed(p.id);
     if !access::hears_spawn() {
         return;
     }
