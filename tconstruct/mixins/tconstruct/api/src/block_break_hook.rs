@@ -290,7 +290,7 @@ fn stack_data_of_slot(slot: &pluto_lib::ItemSlot) -> StackData {
         max_damage: slot.max_damage,
         custom_data: slot.custom_data.clone(),
         custom_model_data: slot.custom_model_data.clone(),
-        enchantments: slot.enchantments.clone().unwrap_or_default(),
+        enchantments: slot.enchantments.clone().unwrap_or_default(), can_place_on: slot.can_place_on.clone(),
     }
 }
 
@@ -548,13 +548,13 @@ mod tests {
     use serde_json::json;
 
     fn stack(item: &str, count: u32) -> StackData {
-        StackData { item: item.into(), count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), custom_model_data: None, enchantments: Default::default() }
+        StackData { item: item.into(), count, damage: 0, max_damage: None, custom_data: NbtCompound::new(), custom_model_data: None, can_place_on: None, enchantments: Default::default() }
     }
 
     fn tool_stack(item: &str) -> StackData {
         let mut data = NbtCompound::new();
         data.insert(tool_stack::TAG_MATERIALS.into(), Nbt::List(Vec::new()));
-        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data: data, custom_model_data: None, enchantments: Default::default() }
+        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data: data, custom_model_data: None, can_place_on: None, enchantments: Default::default() }
     }
 
     fn lookup(names: &[&str]) -> RegistryLookup {

@@ -1414,7 +1414,7 @@ assert_eq!(release.world().dimension, "minecraft:the_nether");
 
 ### `UseTick`
 
-One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`). `stack` is the stack in use, `player` the player using it and `dimension` the dimension they are in; `position` is where the player stands (their feet), `eye` where their eyes are and `look` the direction they look, as a unit vector (where a use that aims, such as a brush's strokes, traces from), and `creative` whether they are in creative mode. `ticks_used` is how many ticks the use has run (the use's full time less the ticks left, so the first ticks of a use read near 0 and the last near the end) and `duration` the use's full time in ticks, as the stack's use gives it. The tick itself changes nothing: a callback acts through the player and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's drain). A use that ran its time out is finished, not ticked past its end.
+One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`). `stack` is the stack in use, `player` the player using it and `dimension` the dimension they are in; `position` is where the player stands (their feet), `eye` where their eyes are and `look` the direction they look, as a unit vector (where a use that aims, such as a brush's strokes, traces from), and `creative` whether they are in creative mode, and `game_mode` their game mode as the game numbers it (0 survival, 1 creative, 2 adventure, 3 spectator). `ticks_used` is how many ticks the use has run (the use's full time less the ticks left, so the first ticks of a use read near 0 and the last near the end) and `duration` the use's full time in ticks, as the stack's use gives it. The tick itself changes nothing: a callback acts through the player and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's drain). A use that ran its time out is finished, not ticked past its end.
 
 ```rust
 use pluto_lib::{ServerPlayer, StackData};
@@ -1428,6 +1428,7 @@ let tick = UseTick {
     eye: [0.5, 65.62, 0.5],
     look: [0.0, 0.0, 1.0],
     creative: false,
+    game_mode: 0,
     ticks_used: 8,
     duration: 32,
 };
@@ -1451,6 +1452,7 @@ let tick = UseTick {
     eye: [0.0, 1.62, 0.0],
     look: [0.0, 0.0, 1.0],
     creative: false,
+    game_mode: 0,
     ticks_used: 0,
     duration: 20,
 };

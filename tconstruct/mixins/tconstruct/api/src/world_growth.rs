@@ -526,6 +526,7 @@ fn shrink_seed(used: &UseItemOnBlockContext) {
             max_damage: stack.max_damage,
             custom_data: stack.custom_data.clone(),
             custom_model_data: stack.custom_model_data.clone(),
+            can_place_on: stack.can_place_on.clone(),
             enchantments: stack.enchantments.clone(),
         });
         return;

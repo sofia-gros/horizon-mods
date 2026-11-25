@@ -46,7 +46,7 @@ include!("../../../mod/pluto-entity-particle-event.rs");
 fn actual_factory_head_delegates_once_with_own_game_model_stack_position_velocity_and_native_result() {
     bridge::set_provider(crate::pure::particle_factory_registry::item_from_host).unwrap();
     let data=StackData {item:"example:crumb_item".into(),count:2,damage:7,max_damage:Some(30),
-        custom_data:[("test:kept".into(),Nbt::Int(3))].into_iter().collect(),custom_model_data:None,enchantments:Default::default()};
+        custom_data:[("test:kept".into(),Nbt::Int(3))].into_iter().collect(),custom_model_data:None,can_place_on:None,enchantments:Default::default()};
     ParticleFactoryRegistry::register_item(Identifier::parse("example:crumb_factory").unwrap(),data.clone()).unwrap();
     let at=[-2.0,70.5,19.0];let velocity=[0.25,-0.1,0.75];
     let request=ParticleOptions {mod_particle:Some("example:crumb_factory".into()),item:None,model_owner:0};

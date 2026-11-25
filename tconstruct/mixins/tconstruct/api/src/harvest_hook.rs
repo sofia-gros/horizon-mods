@@ -94,7 +94,7 @@ fn wear(used: &UseItemOnBlockContext, held: &StackData, amount: i32) {
         tool_slot::damage_slot(&mut worn, env, amount, true, true, None, &mut tool_damage_hook::random).ok().map(|outcome| (worn, outcome.broke))
     });
     if let Ok(Some((worn, broke))) = worn {
-        let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() };
+        let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), can_place_on: held.can_place_on.clone(), enchantments: held.enchantments.clone() };
         // HarvestModule wears the tool with plain damage per block and broadcasts once at the end
         // when it broke (the enderporting after-harvest wear folded into this same amount is
         // animated in the original too, and lands in the same click, so one announcement covers

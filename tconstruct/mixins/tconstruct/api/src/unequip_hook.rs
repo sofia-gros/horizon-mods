@@ -70,7 +70,7 @@ mod tests {
     fn piece(item: &str, modifiers: i32) -> StackData {
         let mut custom_data = NbtCompound::new();
         custom_data.insert(tool_stack::TAG_MODIFIERS.into(), Nbt::Int(modifiers));
-        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data, custom_model_data: None, enchantments: Default::default() }
+        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data, custom_model_data: None, can_place_on: None, enchantments: Default::default() }
     }
 
     #[test]

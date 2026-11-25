@@ -1,6 +1,6 @@
 # Entity types and events
 
-Declare types derived from existing Minecraft implementations; listen for entities entering/leaving worlds, damage and death. Declarations are published into the game's own entity tables by the overlay export (see Derived Entity Types); what remains open is runtime policy validation and standalone distribution, not loading.
+Declare types derived from existing Minecraft implementations; listen for entities entering/leaving worlds, damage and death. Declarations are published into the game's own entity tables by the overlay export (see Derived Entity Types); runtime policy validation and standalone distribution remain open.
 
 ## Basic Example
 
@@ -31,7 +31,7 @@ MobSpawnCallback::register(Identifier::parse("example:spawn_observer").unwrap(),
 }).unwrap();
 ```
 
-> **Use with Caution.** Dispatch, owned-action and RNG order are pure-tested; a production-helper trace verifies the rules and the no-finalization/disabled fallback, but the changed attachment is not yet native/game verified. The other callers (runtime/natural, trial-spawner, patrol/raid, marked-structure, frog conversion), native provider forwarding and Mob-owned transient state are source-declared, not native validated; only the pinned frog conversion has the later finalize call, so other conversions must not select gear. A prepared action is consumed once, dropped on abort/error; join/publication defer only for selected completion work; callback order is execution order; new callbacks affect later spawns only. Spawn reasons are backend labels, not guaranteed Forge enums; gear is a reduced `StackData` view; Mob and world enchantment RNGs stay separate.
+> **Use with Caution.** Dispatch, owned-action and RNG order are pure-tested; a production-helper trace verifies the rules and the no-finalization/disabled fallback; the changed attachment is not yet native/game verified. The other callers (runtime/natural, trial-spawner, patrol/raid, marked-structure, frog conversion), native provider forwarding and Mob-owned transient state are source-declared only; only the pinned frog conversion has the later finalize call, so other conversions must not select gear. A prepared action is consumed once, dropped on abort/error; join/publication defer for selected completion work; callback order is execution order; new callbacks affect later spawns only. Spawn reasons are backend labels, not guaranteed Forge enums; gear is a reduced `StackData` view; Mob and world enchantment RNGs stay separate.
 
 ## Cancelling Damage
 
@@ -95,7 +95,7 @@ let query = JumpPowerContext { entity: 7, entity_type: kind, slime_size: Some(4)
 assert_eq!(LivingEntityBehaviors::jump_power(&query), Some(0.25));
 ```
 
-> **Use with Caution.** The native no-argument jump query and cube contact-damage query are source-wired only; their signatures/sites await native attachment plan/validation. The jump factor is the native block factor and `slime_size` a subtype capability, not a generic scale; neither an attribute nor Jump Boost is added after an explicit override. Fall calculation has a separate source-declared LOAD after the living-fall event and class math, before block effects; cancelled/fall-immune paths do not reach it, and `Some(0)` replaces only the calculation, not the surrounding lifecycle or passenger propagation. Callbacks run outside the registry lock; duplicates reject without replacement; absent/poisoned registration falls back to inheritance.
+> **Use with Caution.** The native no-argument jump query and cube contact-damage query are source-wired only; their signatures/sites await native plan/validation. The jump factor is the native block factor and `slime_size` a subtype capability, not a generic scale; neither an attribute nor Jump Boost is added after an explicit override. Fall calculation has a separate source-declared LOAD after the living-fall event and class math, before block effects; cancelled/fall-immune paths do not reach it, and `Some(0)` replaces only the calculation, not the surrounding lifecycle or passenger propagation. Callbacks run outside the registry lock; duplicates reject without replacement; absent/poisoned registration falls back to inheritance.
 
 ## Transient Class Attributes
 
@@ -103,7 +103,7 @@ The class-attribute prose and reference sections moved to [attributes.md](attrib
 
 ## Reaching the Entities Around a Ticker
 
-A block entity ticker can reach the entities around it through [`EntityReach`](#entityreach): list entities in a box, replace or discard a dropped item, hurt a living entity under a damage type of the mod's choosing, read where one stands, or move one. The reach answers only while a host scope is open; outside one, nothing and every action fails. An entity is either an item (its stack) or a living thing (the facts a consumer's rules read: fire immunity, invulnerability, fire resistance); anything else is listed with neither.
+A block entity ticker can reach the entities around it through [`EntityReach`](#entityreach): list entities in a box, replace or discard a dropped item, hurt a living entity under a damage type the mod chooses, read where one stands, or move one. The reach answers only while a host scope is open; outside one, nothing and every action fails. An entity is either an item (its stack) or a living thing (the facts a consumer's rules read: fire immunity, invulnerability, fire resistance); anything else is listed with neither.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
@@ -123,7 +123,7 @@ with_entities(&mut ops, || {
 assert_eq!(ops.hurt.len(), 1);
 ```
 
-> **Use with Caution.** The pure rules and in-memory world are tested. The host adapter is written, not yet compiled or game-verified: `HostEntities` in `hooks.rs` lists the dimension's entities, discards a dropped item by aging it out through the host's entity data merge, replaces an item's stack by merging its `Item` id and count (components stay), hurts via the host's damage call under the type's own name. The generated `Host` signatures are checkable only by a native build.
+> **Use with Caution.** The pure rules and in-memory world are tested. The host adapter is written, not yet compiled or game-verified: `HostEntities` in `hooks.rs` lists the dimension's entities, discards a dropped item by aging it out through the host's entity data merge, replaces an item's stack by merging its `Item` id and count (components stay), hurts via the host's damage call under the type's name. The generated `Host` signatures are checkable only by a native build.
 
 ## Riding and Entity Ticks
 
@@ -133,13 +133,13 @@ The reach is open not only while a block entity ticker runs, but also during the
 
 An entity's own tick is heard through `ServerEntityEvents::ENTITY_TICK_PRE` and `ENTITY_TICK_POST`, for every kind the game ticks, derived types included. A type declared with `EntityTypeRegistry` carries no code of its own; these events, keyed by kind, are its tick behaviour surface. Return `false` from an `ENTITY_TICK_PRE` callback to cancel that entity's tick (the post event is then not heard).
 
-> **Use with Caution.** The pure rules and in-memory world are tested, including the refusal rules. The host side is written, not yet compiled or game-verified: the adapter answers ride questions from a snapshot rebuilt at each rider synchronisation, queues requests for that synchronisation to apply through the game's own mount paths, and answers `Game::seat` for the local player so a mob riding them is kept and seated. Remote players as vehicles are not in the snapshot: only the local player, mobs, armor stands, displays and interactions are.
+> **Use with Caution.** The pure rules and in-memory world are tested, including the refusal rules. The host side is written, not yet compiled or game-verified: the adapter answers ride questions from a snapshot rebuilt at each rider synchronisation, queues requests for it to apply through the game's own mount paths, and answers `Game::seat` for the local player so a mob riding them is kept and seated. Remote players as vehicles are not in the snapshot: only the local player, mobs, armor stands, displays and interactions are.
 
 ## Knocking Back, Pushing and Lifting
 
 The reach can also move a living entity as the game does: `EntityReach::knockback(id, strength, x, z)` is `LivingEntity.knockback`, `EntityReach::push(id, delta)` is `Entity.push`, `EntityReach::leave_ground(id)` the launch hop of the original's sling leap, `EntityReach::set_velocity(id, velocity)` `Entity.setDeltaMovement` (documented with the mob tick, on the interaction page). A player is reached by all of them, their client told the new motion. A true answer means the request was taken: the host applies it at its next rider synchronisation, so the motion shows from the next tick; an entity gone or not living by then is not moved. The reference sections below give each call's exact terms.
 
-> **Use with Caution.** The pure rules and in-memory world are tested (the requests are recorded). The host side is written, not yet compiled or game-verified: the adapter queues the requests; a drain woven at the head of the game's rider synchronisation applies a mob's knockback through `Mob::knockback` with a sourceless damage source (the original's bare `knockback` call carries none), a player's through the game's own player knockback with the velocity marked for their client, and a guest's through the game's guest motion path. Armor stands and other non-living kinds are not reached.
+> **Use with Caution.** The pure rules and in-memory world are tested (the requests are recorded). The host side is written, not yet compiled or game-verified: the adapter queues the requests; a drain woven at the head of the game's rider synchronisation applies a mob's knockback through `Mob::knockback` with a sourceless damage source (the original's bare `knockback` call carries none), a player's through the game's player knockback with the velocity marked for their client, and a guest's through the game's guest motion path. Armor stands and other non-living kinds are not reached.
 
 ## Reference
 
@@ -279,7 +279,7 @@ assert_eq!(LivingEntityBehaviors::attack_damage(&query), None);
 
 ### `MobSpawnInfo`
 
-Owned spawn origin metadata: `entity_type: Identifier`, `dimension: Identifier`, `position: [f64; 3]` and backend `reason: String`. No temporary numeric entity ID is a handle here. Native source stores pending work in the Mob's owned Navigation, whose private fields avoid the pinned validator's ban on adding state to externally constructible Mob. The adapter checks a Mob-owned identity token before writing equipment: a replacement world/entity with the same numeric ID cannot receive the old work. Consumed or aborted native state cannot be prepared again; render/network clones start without it. This route still needs native attachment plan/validation.
+Owned spawn origin metadata: `entity_type: Identifier`, `dimension: Identifier`, `position: [f64; 3]` and backend `reason: String`. No temporary numeric entity ID is a handle here. Native source stores pending work in the Mob's owned Navigation, whose private fields avoid the pinned validator's ban on adding state to externally constructible Mob. The adapter checks a Mob-owned identity token before writing equipment: a replacement world/entity with the same numeric ID cannot receive the old work. Consumed or aborted native state cannot be prepared again; render/network clones start without it. This route still needs native plan/validation.
 
 ```rust
 use pluto_lib::{Identifier, MobSpawnInfo};
@@ -384,7 +384,7 @@ MobSpawnCallback::register(Identifier::parse("example:no_completion").unwrap(), 
 
 ### `MobSpawnCallback::register`
 
-`fn register(id: Identifier, prepare: impl Fn(&mut dyn MobSpawnPreparation) -> Result<Option<MobSpawnAction>, String> + Send + Sync + 'static) -> Result<(), String>`. Duplicate IDs fail without replacement. `None` means no pending completion, not undoing RNG. Runtime/natural, normal/trial-spawner, patrol/raid, marked-structure and finalizing frog-conversion callers are source-wired; full caller review/native validation pending. Selected conversion completes before join, skipping the later inherited-finalize call; unselected conversions keep native ordering. NBT-loaded spawner mobs, ordinary saved mobs and NBT summons without the native finalize marker do not select again. Registration alone does not make a game feature work.
+`fn register(id: Identifier, prepare: impl Fn(&mut dyn MobSpawnPreparation) -> Result<Option<MobSpawnAction>, String> + Send + Sync + 'static) -> Result<(), String>`. Duplicate IDs fail without replacement. `None` means no pending completion, not undoing RNG. Runtime/natural, normal/trial-spawner, patrol/raid, marked-structure and finalizing frog-conversion callers are source-wired; full caller review/native validation pending. Selected conversion completes before join, skipping the later inherited-finalize call; unselected conversions keep native ordering. NBT-loaded spawner mobs, ordinary saved mobs and NBT summons without the native finalize marker do not select again.
 
 ```rust
 use pluto_lib::{Identifier, MobSpawnCallback};
@@ -523,7 +523,7 @@ assert_eq!((push.strength.get(), push.cancel.get()), (0.8, false));
 
 ### `ItemDamage`
 
-A player's item about to lose durability, for a callback to change or cancel. `player` the uuid, `name` the player's name; `item` the id of the item worn, `stack` the stack as held or worn (`None` when none is found). `amount` the wear now (a `Cell`: change with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `slot` the stack as an item slot, with its components; `replacement` a whole new stack a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data, after which the game wears it by 0. A stack outside the main inventory (worn armor) is not rewritten; the game wears it by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left. `holder` what the player was doing as the stack wore, as an [`EntityState`](#entitystate); `None` when the game did not name the player.
+A player's item about to lose durability, for a callback to change or cancel. `player` the uuid, `name` the player's name; `item` the id of the item worn, `stack` the stack as held or worn (`None` when none found). `amount` the wear now (a `Cell`: change with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `slot` the stack as an item slot, with its components; `replacement` a whole new stack a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data, after which the game wears it by 0. A stack outside the main inventory (worn armor) is not rewritten; the game wears it by `amount`, so setting `replacement` also sets `amount` to the wear left. `holder` what the player was doing as the stack wore, as an [`EntityState`](#entitystate); `None` when the game did not name the player.
 
 ```rust
 use pluto_lib::ItemDamage;
@@ -582,7 +582,7 @@ assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing)
 
 ### `EntityAction`
 
-What a callback does to one party of a hit, pushed onto the hit's `actions` — a weapon hit's land just before its damage, a hit on a player's on their next tick. Each is guarded; one the target cannot take is skipped silently: `SetFire { target, seconds }` sets it burning for `seconds` when longer than it burns (fire-immune mobs skipped; a player only when reachable); `Heal { target, amount }` heals a mob or player by `amount`, cut to their maximum; `Freeze { target, ticks }` freezes a mob (frozen ticks become the larger of 140 and what it has, plus `ticks`, its fire goes out; never a player or freeze-immune kind); `Knockback { target, strength, direction }` pushes a mob horizontally (and up on the ground), as `LivingEntity.knockback` does, without its knockback resistance (a player is not pushed: the host has no call for it). `Push { target, velocity }` adds `velocity` to a mob's motion as `Entity.push` does: uncapped, unresisted — for fixed lifts like an arrow's punch (lift 0.1). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or mob (`amplifier` the level less one, `duration` in ticks; an unknown id, negative amplifier or no duration gives nothing; the shooter or shearer is reached by uuid, world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target carries in [`slot`](#stackslot), only when still of `item`, as it is when the action lands, so wear in between stays. It reaches the hit's acting player (world owner included) and a mob, through its living equipment write — a mob's off hand through the off-hand transport at the rider synchronisation, on the whole stack kept there. A slot holding another item, and an edit changing nothing, are skipped. `Hurt { target, amount, damage_type }` deals a player or mob `amount` damage of `damage_type` with no attacker, through the host's hurt call: armor, effects, invulnerability time and the damage hooks all apply and hear it; a creative player or dead mob is skipped. `SetEffectDuration { target, effect, duration }` sets the ticks left of a player's effect, keeping level and flags (shortening too); an effect the player lacks, a non-positive duration and a mob are skipped. `Teleport { target, position }` moves the target to `position` (`Entity.teleportTo`): a mob's navigation stops, its fall distance resets, as the game's own teleport does, another entity keeps its facing; a player goes by the game's server teleport, queued for the rider synchronisation, landing by the next tick. `DropItem { target, stack }` drops `stack` at the target on its next tick. `Summon { target, kind }` summons `kind` at the target. `PlaySound { target, sound, volume, pitch, source }` plays `sound` at the target in the sound source (category) `source` names (2 records, 4 blocks).
+What a callback does to one party of a hit, pushed onto the hit's `actions` — a weapon hit's land just before its damage, a hit on a player's on the next tick. Each is guarded; one the target cannot take is skipped silently: `SetFire { target, seconds }` sets it burning for `seconds` when longer than it burns (fire-immune mobs skipped; a player only when reachable); `Heal { target, amount }` heals a mob or player by `amount`, cut to their maximum; `Freeze { target, ticks }` freezes a mob (frozen ticks become the larger of 140 and what it has, plus `ticks`, its fire goes out; never a player or freeze-immune kind); `Knockback { target, strength, direction }` pushes a mob horizontally (and up on the ground), as `LivingEntity.knockback` does, without its knockback resistance (a player is not pushed: the host has no call for it). `Push { target, velocity }` adds `velocity` to a mob's motion as `Entity.push` does: uncapped, unresisted — for fixed lifts like an arrow's punch (lift 0.1). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or mob (`amplifier` the level less one, `duration` in ticks; an unknown id, negative amplifier or no duration gives nothing; the shooter or shearer is reached by uuid, world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target carries in [`slot`](#stackslot), only when still of `item`, as it is when the action lands, so wear in between stays. It reaches the hit's acting player (world owner included) and a mob through its living equipment write — a mob's off hand through the off-hand transport at rider synchronisation, on the whole stack kept there. A slot holding another item, and an edit changing nothing, are skipped. `Hurt { target, amount, damage_type }` deals a player or mob `amount` damage of `damage_type` with no attacker, through the host's hurt call: armor, effects, invulnerability time and the damage hooks all apply and hear it; a creative player or dead mob is skipped. `SetEffectDuration { target, effect, duration }` sets the ticks left of a player's effect, keeping level and flags (shortening too); an effect the player lacks, a non-positive duration and a mob are skipped. `Teleport { target, position }` moves the target to `position` (`Entity.teleportTo`): a mob's navigation stops, its fall distance resets, as the game's own teleport does, another entity keeps its facing; a player goes by the game's server teleport, queued for the rider synchronisation, landing by the next tick. `DropItem { target, stack }` drops `stack` at the target on its next tick. `Summon { target, kind }` summons `kind` at the target. `PlaySound { target, sound, volume, pitch, source }` plays `sound` at the target in the sound source (category) `source` names (2 records, 4 blocks).
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, KnockbackDirection, ServerLivingEntityEvents};
@@ -700,13 +700,13 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 
 ### `WeaponHit`
 
-A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (damage, max damage and custom data; None for an empty hand), `damage_dealt` the damage about to be dealt, before armor takes its share (a hit armor absorbs whole still reads pre-armor), `attack_ticks` the attacker's ticks since their last swing (a mob attacker reads as fully charged), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the player's worn pieces as of their last tick ((slot, stack): `feet`, `legs`, `chest`, `head`; custom-data only; empty when the player is unknown), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands. `fully_charged(attack_speed)` is the host's charge gate for that attack speed; ticks are tracked from the player's ticks, reset on a swing and on a main-hand change.
+A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (damage, max damage and custom data; None for an empty hand), `damage_dealt` the damage about to be dealt, before armor takes its share (a hit armor absorbs whole still reads pre-armor), `attack_ticks` the attacker's ticks since their last swing (a mob attacker reads as fully charged), `attacker_game_mode` the attacker's game mode as the game numbers it (-1 when not a named player), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the player's worn pieces as of their last tick ((slot, stack): `feet`, `legs`, `chest`, `head`; custom-data only; empty when the player is unknown), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands. `fully_charged(attack_speed)` is the host's charge gate for that attack speed; ticks are tracked from the player's ticks, reset on a swing and on a main-hand change.
 
 ```rust
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty() && hit.fully_charged(4.0));
 ```
 
@@ -718,13 +718,13 @@ A player's weapon hit on a mob, heard again after its damage landed: `hit` the h
 use pluto_lib::WeaponHitDealt;
 use std::cell::RefCell;
 
-let dealt = WeaponHitDealt { hit: pluto_lib::WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) }, dealt: 0.0 };
+let dealt = WeaponHitDealt { hit: pluto_lib::WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) }, dealt: 0.0 };
 assert!(dealt.dealt == 0.0 && dealt.hit.damage_dealt == 5.0 && dealt.hit.fully_charged(4.0));
 ```
 
 ### `WearerHit`
 
-A mob hurting the player: `attacker` the mob's id, `kind` its type id, `damage_type`/`amount` the type and amount the game works the hit out as, both resolved at the damage event, `direct` what directly dealt it (the attacker for a melee hit), `attacker_state` what the mob was doing, `attacker_position` its position, `armor` the player's worn pieces (custom-data only), `effects` the effects for the mob, `self_effects` the ones for the wearer, `counter_damage` the damage for the mob, and `actions` the [`EntityAction`](#entityaction)s for the mob (`Attacker`) or the wearer (`Victim`), landing on the player's next tick.
+A mob hurting the player: `attacker` the mob's id, `kind` its type id, `damage_type`/`amount` the type and amount the hit resolves to, both at the damage event, `direct` what directly dealt it (the attacker for a melee hit), `attacker_state` what the mob was doing, `attacker_position` its position, `armor` the player's worn pieces (custom-data only), `effects` the effects for the mob, `self_effects` the ones for the wearer, `counter_damage` the damage for the mob, and `actions` the [`EntityAction`](#entityaction)s for the mob (`Attacker`) or the wearer (`Victim`), landing on the player's next tick.
 
 ```rust
 use pluto_lib::{EntityState, WearerHit};
@@ -748,7 +748,7 @@ assert!(state.health.unwrap() < state.max_health.unwrap());
 assert_eq!((state.crouching, state.y, state.block_light), (false, Some(64.0), None));
 ```
 
-> **Use with Caution.** A mob's health, maximum and armor come from its saved data (maximum only with a saved `minecraft:max_health` attribute, armor only with saved equipment); a player's, from the server's player list and equipment. Temperature is a table of the vanilla biomes with the game's cooling above y 80 (noise term at most ~0.01; the frozen-biome noise left out); a data pack biome has `biome` but no temperature. `rain_exposed` is: raining, full sky light at its block, a biome that rains rather than snows or stays dry (an unknown biome counts as rain). `eyes_in_water` reads the block at the eyes: water, a bubble column, kelp, seagrass or a waterlogged block. When a hit on a player wearing custom-data armor brings no target state, `DamageModification::target_state` is the player's as of their last tick (health, height and light up to a tick old). A player's `crouching` is the server's sneak flag, their `y` their feet height; a mob's `y` from its position, its light from its block; `sky_darken` is 0 in the Nether and the End, which have no weather or sky light.
+> **Use with Caution.** A mob's health, maximum and armor come from its saved data (maximum only with a saved `minecraft:max_health` attribute, armor only with saved equipment); a player's, from the server's player list and equipment. Temperature tabulates the vanilla biomes with the game's cooling above y 80 (noise at most ~0.01; frozen-biome noise left out); a data pack biome has `biome` but no temperature. `rain_exposed` is: raining, full sky light at its block, a biome that rains rather than snows or stays dry (unknown biomes count as rain). `eyes_in_water` reads the block at the eyes: water, a bubble column, kelp, seagrass or a waterlogged block. When a hit on a player wearing custom-data armor brings no target state, `DamageModification::target_state` is the player's as of their last tick (health, height and light up to a tick old). A player's `crouching` is the server's sneak flag, their `y` their feet height; a mob's `y` from its position, its light from its block; `sky_darken` is 0 in the Nether and End, which have no weather or sky light.
 
 ### `EntityState::effect_level`
 
@@ -787,7 +787,7 @@ assert_eq!(effect_category("example:unknown"), None);
 
 ### `DamageModification`
 
-Damage about to be applied, for a callback to change. `damage` the hit, `amount` the amount now (a `Cell`), `attacker_stack` the stack a player attacked with (None when no player's attack caused it). `armor` a player's worn pieces as of their last tick, (slot, stack) for the four (custom-data only). It fires after protection. `attacker_state`/`target_state` say what the parties were doing as the hit landed. Any attacker is reported (`attacker_kind`, `attacker_is_player`, `attacker_main_hand`, `attacker_chest`, `attacker_attack_damage`), the victim's health and attack attribute (`target_health`/`target_attack_damage`), and where they stand (`attacker_position`/`target_position`, their feet). An arrow hit names the launching hand (`attacker_launcher_hand`, `attacker_launcher_stack`); `None` for another hit (a trident's shot names no weapon) or when neither hand holds it any more. `actions` takes [`EntityAction`](#entityaction)s for the damaged player (`ActionTarget::Victim`), landing on their next tick; only a custom-data-armor player is served by it, a mob party's actions kept for its next tick.
+Damage about to be applied, for a callback to change. `damage` the hit, `amount` the amount now (a `Cell`), `attacker_stack` the stack a player attacked with (None when no player's attack caused it). `armor` a player's worn pieces as of their last tick, (slot, stack) for the four (custom-data only). It fires after protection. `attacker_state`/`target_state` say what the parties were doing as the hit landed. Any attacker is reported (`attacker_kind`, `attacker_is_player`, `attacker_main_hand`, `attacker_chest`, `attacker_attack_damage`), the victim's health and attack attribute (`target_health`/`target_attack_damage`), and where they stand (`attacker_position`/`target_position`, their feet). An arrow hit names the launching hand (`attacker_launcher_hand`, `attacker_launcher_stack`); `None` for another hit (a trident's shot names no weapon) or when neither hand still holds it. `actions` takes [`EntityAction`](#entityaction)s for the damaged player (`ActionTarget::Victim`), landing on their next tick; only a custom-data-armor player is served by it, a mob party's actions kept for its next tick.
 
 ```rust
 use pluto_lib::{DamageModification, LivingDamage};
@@ -800,7 +800,7 @@ hit.amount.set(hit.amount.get() + 2.0);
 
 ### `ServerLivingEntityEvents::WEARER_HIT`
 
-A mob hurting the player, heard on a server as the damage arrives, with the type the damage event resolves. It carries the mob's id, type and state, the damage type and amount, and the armor worn as of the player's last tick; push status effects on the mob with `effects` (the game puts them on it), on the wearer with `self_effects`, or damage to the mob with `counter_damage` (an armor's thorns, as hurt by the player) — the last two land on the player's next tick; set it on fire, freeze it or knock it back with `actions`, landing then too. The hit is heard once per attacker per tick, only when the mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
+A mob hurting the player, heard on a server as the damage arrives, with the type the damage event resolves. It carries the mob's id, type and state, the damage type and amount, and the armor worn as of the player's last tick; push status effects on the mob with `effects` (the game applies them), on the wearer with `self_effects`, or damage it with `counter_damage` (an armor's thorns, as hurt by the player) — the last two land on the player's next tick; set it on fire, freeze it or knock it back with `actions`, landing then too. The hit is heard once per attacker per tick, only when the mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
 
 ```rust
 use pluto_lib::{EffectGrant, ServerLivingEntityEvents};
@@ -870,7 +870,7 @@ ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
 
 ### `ServerLivingEntityEvents::MODIFY_VISIBILITY`
 
-NeoForge: `LivingVisibilityEvent`. Heard on a server each time a mob works out how far it sees a player wearing custom-data armor; the game's own factors (sneaking, invisibility, worn heads) are already counted, and a callback scales the range further with `multiplier.set` (a disguise). Nothing is heard for a player wearing no such armor; the factor never blocks a mob already targeting.
+NeoForge: `LivingVisibilityEvent`. Heard on a server each time a mob works out how far it sees a player wearing custom-data armor; the game's factors (sneaking, invisibility, worn heads) are already counted; a callback scales the range further with `multiplier.set` (a disguise). Nothing is heard for a player wearing no such armor; the factor never blocks a mob already targeting.
 
 ```rust
 use pluto_lib::ServerLivingEntityEvents;
@@ -925,7 +925,7 @@ ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
 
 ### `ServerLivingEntityEvents::MODIFY_HURT`
 
-NeoForge: `LivingIncomingDamageEvent`. Called as damage that goes ahead arrives, before armor and enchantment protection take a share and before `MODIFY_DAMAGE` hears of it: the amount as it arrives, changeable with `amount.set`. It carries the same `DamageModification` as the damage event (armor worn, the hit's states, the attacking stack); its actions queue the same way, for wearer or attacker, and the damage event that follows reads the same hit, only later.
+NeoForge: `LivingIncomingDamageEvent`. Called as damage that goes ahead arrives, before armor and enchantment protection take a share and before `MODIFY_DAMAGE` hears of it: the amount as it arrives, changeable with `amount.set`. It carries the same `DamageModification` as the damage event (armor worn, the hit's states, the attacking stack); its actions queue the same way, for wearer or attacker, and the damage event that follows reads the same hit later.
 
 ```rust
 use pluto_lib::ServerLivingEntityEvents;
@@ -986,7 +986,7 @@ with_entities(&mut ops, || {
 
 ### `EntityReach::knockback`
 
-`fn knockback(id: u64, strength: f64, x: f64, z: f64) -> bool`. Knocks entity `id` back with `strength` along (`x`, `z`), as `LivingEntity.knockback` does: its knockback resistance scales the strength, its horizontal motion is halved against the push, and it rises by the strength (at most 0.4) on the ground. A player is knocked back the same way, their client told the new motion. Only a living entity or player can be knocked back. A host may apply an accepted knockback at its next rider synchronisation rather than instantly; a refusal there (entity gone, or not living) is final. False outside a scope.
+`fn knockback(id: u64, strength: f64, x: f64, z: f64) -> bool`. Knocks entity `id` back with `strength` along (`x`, `z`), as `LivingEntity.knockback` does: its knockback resistance scales the strength, its horizontal motion is halved against the push, and it rises by the strength (at most 0.4) on the ground. A player is knocked back the same way, their client told the new motion. Only a living entity or player can be knocked back. A host may apply an accepted knockback at its next rider synchronisation rather than instantly; a refusal there (entity gone, not living) is final. False outside a scope.
 
 ```rust
 use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
@@ -1188,7 +1188,7 @@ assert_eq!(ATTACK_TICKS_CHARGED, 10_000);
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 ```
 
@@ -1200,13 +1200,13 @@ assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.fully_charged(4.0));
 ```
 
 ### `CriticalHit`
 
-A player's melee hit about to be a critical hit, or not (NeoForge: `CriticalHitEvent`), heard through `ServerLivingEntityEvents::CRITICAL_HIT`: `attacker_entity` the attacking player's entity id (-1 when the game names no acting player, as for a guest's hit on a LAN world), `attacker_on_ground` whether the attacker stands on the ground, `attacker_in_water` whether in water, `target_kind` the target's type id, `vanilla_critical` vanilla's answer without a mod, `critical` whether the hit is critical now (change with `set`), and `damage_multiplier` the multiplier now (change with `set`), scaling the damage only while `critical` ends true.
+A player's melee hit about to be a critical hit, or not (NeoForge: `CriticalHitEvent`), heard through `ServerLivingEntityEvents::CRITICAL_HIT`: `attacker_entity` the attacking player's entity id (-1 when the game names no acting player, as for a guest's LAN hit), `attacker_on_ground` whether the attacker stands on the ground, `attacker_in_water` whether in water, `target_kind` the target's type id, `vanilla_critical` vanilla's answer without a mod, `critical` whether the hit is critical now (change with `set`), and `damage_multiplier` the multiplier now (change with `set`), scaling the damage only while `critical` ends true.
 
 ```rust
 use pluto_lib::CriticalHit;

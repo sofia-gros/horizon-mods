@@ -52,7 +52,7 @@ pub(crate) fn stack_of_slot(slot: &ItemSlot) -> Stack {
     Stack {
         item: slot.item.clone(),
         count: slot.count as i32,
-        nbt: if slot.custom_data.is_empty() { None } else { Some(nbt_to_value(&slot.custom_data)) },
+        nbt: engine_nbt(&slot.custom_data, slot.can_place_on.as_ref()),
     }
 }
 
@@ -62,8 +62,26 @@ pub(crate) fn stack_of_data(stack: &pluto_lib::StackData) -> Stack {
     Stack {
         item: Identifier::parse(&stack.item).unwrap_or_else(|_| Identifier::new("minecraft", "air").expect("valid id")),
         count: stack.count as i32,
-        nbt: if stack.custom_data.is_empty() { None } else { Some(nbt_to_value(&stack.custom_data)) },
+        nbt: engine_nbt(&stack.custom_data, stack.can_place_on.as_ref()),
     }
+}
+
+/// The `minecraft:can_place_on` component an engine stack's NBT carries under its own key (see
+/// `engine_nbt`), as a consumer stack's component; None when it carries none.
+fn engine_can_place_on(stack: &Stack) -> Option<Nbt> {
+    stack.nbt.as_ref().and_then(|nbt| nbt.get("minecraft:can_place_on")).and_then(|value| value_to_nbt_value(value))
+}
+
+/// An engine stack's NBT for a consumer stack: its custom data, with its `minecraft:can_place_on`
+/// component riding under its own key (the key the place gate's predicate reads), as the game's own
+/// stack keeps the component apart from the custom data. No custom data and no component is no NBT.
+fn engine_nbt(custom_data: &NbtCompound, can_place_on: Option<&Nbt>) -> Option<Value> {
+    if custom_data.is_empty() && can_place_on.is_none() { return None; }
+    let mut value = nbt_to_value(custom_data);
+    if let Some(component) = can_place_on {
+        value.as_object_mut().expect("a compound's JSON form is an object").insert("minecraft:can_place_on".to_owned(), nbt_value(component));
+    }
+    Some(value)
 }
 
 /// The original's FluidEffects.spawnParticles: the fluid's own sprite particles around a point —
@@ -82,15 +100,21 @@ pub(crate) fn slot_write_back(slot: &mut Option<ItemSlot>, stack: &Stack) {
         *slot = None;
         return;
     }
-    let custom_data = stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default();
+    // The place component rides in the engine stack's NBT under its own key (see `engine_nbt`); it
+    // comes back out as the slot's component, not as part of its custom data.
+    let mut nbt = stack.nbt.clone();
+    let can_place_on = nbt.as_mut().and_then(|value| value.as_object_mut()).and_then(|object| object.remove("minecraft:can_place_on")).and_then(|value| value_to_nbt_value(&value));
+    let custom_data = nbt.as_ref().and_then(value_to_nbt).unwrap_or_default();
     match slot {
         Some(existing) if existing.item == stack.item => {
             existing.count = stack.count.max(0) as u32;
             existing.custom_data = custom_data;
+            existing.can_place_on = can_place_on;
         }
         _ => {
             let mut fresh = ItemSlot::new(stack.item.clone(), stack.count.max(0) as u32);
             fresh.custom_data = custom_data;
+            fresh.can_place_on = can_place_on;
             *slot = Some(fresh);
         }
     }
@@ -384,6 +408,7 @@ impl WorldAccess for LiveWorld {
                 max_damage: None,
                 custom_data: spec.stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default(),
                 custom_model_data: None,
+                can_place_on: engine_can_place_on(&spec.stack),
                 enchantments: Default::default(),
             };
             let tagged = Identifier::parse(&held.item).is_ok_and(|item| durability_tagged(&item, self.items.as_deref()));
@@ -515,6 +540,7 @@ impl WorldAccess for LiveWorld {
             max_damage: None,
             custom_data: stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default(),
             custom_model_data: None,
+            can_place_on: engine_can_place_on(&stack),
             enchantments: Default::default(),
         };
         if let Some((_modifier, provided, _wear)) =

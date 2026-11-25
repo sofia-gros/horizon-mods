@@ -64,7 +64,7 @@ fn ignite(used: &UseItemOnEntityContext, held: &StackData, fires: bool) -> Actio
                     Some((worn, outcome.broke))
                 });
                 if let Ok(Some((worn, broke))) = worn {
-                    let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() };
+                    let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), can_place_on: held.can_place_on.clone(), enchantments: held.enchantments.clone() };
                     // damageAnimated's other half: an ignite that broke the tool announces it, at
                     // the hand the use names.
                     if player.update_stack(slot, &back) && broke {
@@ -117,6 +117,7 @@ mod tests {
             entity: 5, kind: kind.into(), hand: Hand::Main,
             held: Some(StackData { item: "tconstruct:pickaxe".into(), count: 1, ..Default::default() }),
             player: None, dimension: "minecraft:overworld".into(), player_dimension: "minecraft:overworld".into(), creative,
+            game_mode: if creative { 1 } else { 0 },
             actions: RefCell::new(Vec::new()),
         }
     }

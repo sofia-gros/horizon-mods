@@ -81,6 +81,8 @@ pub(crate) struct PlayerFacts {
     pub armor: Vec<(String, StackData)>,
     /// The player's ticks as this consumer counted them (one per player tick heard).
     pub tick: i32,
+    /// The player's game mode as the game numbers it (0 survival, 1 creative, 2 adventure, 3 spectator).
+    pub game_mode: i32,
 }
 
 static PLAYERS: Mutex<BTreeMap<u128, PlayerFacts>> = Mutex::new(BTreeMap::new());
@@ -135,12 +137,19 @@ fn simulate_entity(dimension: &str, fluid: &FluidStack, level: f32, holder: Hold
 }
 
 /// The holder a tank's user makes for an application: themselves, with the tank tool as the
-/// context's stack.
-fn self_holder(entity: i32, player: bool, stack: &StackData, position: [f64; 3], player_uuid: Option<u128>) -> Holder {
+/// context's stack. `game_mode` is the user's game mode as the game numbers it (0 survival,
+/// 1 creative, 2 adventure, 3 spectator; -1 when the telling names none): the engine's place and
+/// break gates read the holder's build permission and adventure flag, which the mode decides —
+/// survival and creative build, adventure and spectator do not, and an unnamed mode keeps the
+/// holder's default of may-build, as before the facts were carried.
+fn self_holder(entity: i32, player: bool, game_mode: i32, stack: &StackData, position: [f64; 3], player_uuid: Option<u128>) -> Holder {
     let mut holder = fluid_world::holder(fluid_world::stack_of_data(stack), None, position);
     holder.entity = Some(entity);
     holder.player = player;
     holder.player_uuid = player_uuid;
+    holder.may_build = !matches!(game_mode, 2 | 3);
+    holder.adventure = game_mode == 2;
+    holder.creative = game_mode == 1;
     holder
 }
 
@@ -179,7 +188,7 @@ fn stack_data_of(after: &ItemSlot) -> StackData {
     StackData {
         item: after.item.to_string(), count: after.count, damage: after.damage, max_damage: after.max_damage,
         custom_data: after.custom_data.clone(), custom_model_data: after.custom_model_data.clone(),
-        enchantments: after.enchantments.clone().unwrap_or_default(),
+        enchantments: after.enchantments.clone().unwrap_or_default(), can_place_on: after.can_place_on.clone(),
     }
 }
 
@@ -216,7 +225,7 @@ fn data_of(slot: &ItemSlot) -> StackData {
     StackData {
         item: slot.item.to_string(), count: slot.count, damage: slot.damage, max_damage: slot.max_damage,
         custom_data: slot.custom_data.clone(), custom_model_data: slot.custom_model_data.clone(),
-        enchantments: slot.enchantments.clone().unwrap_or_default(),
+        enchantments: slot.enchantments.clone().unwrap_or_default(), can_place_on: slot.can_place_on.clone(),
     }
 }
 
@@ -255,7 +264,7 @@ fn on_weapon_hit_dealt(dealt: &WeaponHitDealt) {
         let attacker_is_player = hit.attacker_state.as_ref().map_or(false, |state| state.kind == "minecraft:player");
         let position = hit.target_position.unwrap_or([0.0, 0.0, 0.0]);
         for level in &modules.spilling {
-            let holder = self_holder(hit.attacker, attacker_is_player, weapon, hit.attacker_position.unwrap_or(position), hit.attacker_player);
+            let holder = self_holder(hit.attacker, attacker_is_player, hit.attacker_game_mode, weapon, hit.attacker_position.unwrap_or(position), hit.attacker_player);
             let mut target = LiveTarget::party(hit.entity, &hit.kind, position, &hit.actions, ActionTarget::Victim);
             let consumed = apply_entity(&hit.dimension, &fluid, *level, holder, &mut target, position);
             if consumed > 0 {
@@ -300,7 +309,11 @@ fn use_fluid_on_hit(
         if tool_damage_hook::random() >= chance { return false; }
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return false };
         if !describe(&fluid).map_or(false, |(has_block, has_entity, _)| has_block || has_entity) { return false; }
-        let holder = self_holder(wearer.0, true, piece, wearer.1, None);
+        // The wearer's game mode is not carried: the damage tellings that reach this form are built
+        // without the player list (the bridge's damage handlers hold no host handle), so the holder
+        // keeps the default facts. The form applies entity effects only, where the engine's place
+        // and break gates are never consulted.
+        let holder = self_holder(wearer.0, true, -1, piece, wearer.1, None);
         let consumed = apply_entity(dimension, &fluid, 1.0, holder, target, target_position);
         if consumed <= 0 { return false; }
         fluid_world::spawn_fluid_particles(&World::new(dimension), &fluid, target_position, 10);
@@ -379,12 +392,13 @@ fn on_player_tick(tick: &PlayerTick) {
     if let Ok(mut heard) = TICKS_HEARD.lock() { *heard += 1; }
     if let Ok(mut players) = PLAYERS.lock() {
         let facts = players.entry(tick.player).or_insert_with(|| PlayerFacts {
-            entity: tick.entity, dimension: tick.dimension.clone(), position: tick.position, armor: tick.armor.clone(), tick: 0,
+            entity: tick.entity, dimension: tick.dimension.clone(), position: tick.position, armor: tick.armor.clone(), tick: 0, game_mode: tick.game_mode,
         });
         facts.entity = tick.entity;
         facts.dimension = tick.dimension.clone();
         facts.position = tick.position;
         facts.armor = tick.armor.clone();
+        facts.game_mode = tick.game_mode;
         facts.tick += 1;
     }
 }
@@ -397,7 +411,7 @@ fn finish_drink(work: &mut NbtCompound, stack: &StackData, entry: &Entry, slurpi
     let world = World::new(&facts.dimension);
     drink_sound(&world, facts.position);
     fluid_world::spawn_fluid_particles(&world, &fluid, facts.position, 16);
-    let holder = self_holder(facts.entity, true, stack, facts.position, None);
+    let holder = self_holder(facts.entity, true, facts.game_mode, stack, facts.position, None);
     let mut target = LiveTarget::direct(facts.entity, "minecraft:player", facts.position);
     let consumed = apply_entity(&facts.dimension, &fluid, slurping.strength(entry), holder, &mut target, facts.position);
     if consumed > 0 { tool_tank::consume(work, consumed); }
@@ -504,7 +518,7 @@ fn on_use_tick(tick: &pluto_lib::UseTick) {
         let Some((entry, slurping)) = modules.slurping.first() else { return };
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return };
         let Some(entity) = EntityReach::id_of_uuid(tick.player.uuid) else { return };
-        let holder = self_holder(entity as i32, true, &tick.stack, tick.position, Some(tick.player.uuid));
+        let holder = self_holder(entity as i32, true, tick.game_mode, &tick.stack, tick.position, Some(tick.player.uuid));
         let mut target = LiveTarget::direct(entity as i32, "minecraft:player", tick.position);
         if simulate_entity(&tick.dimension, &fluid, slurping.strength(entry), holder, &mut target, tick.position) > 0 {
             drink_sound(&tick.world(), tick.position);
@@ -523,7 +537,7 @@ fn on_use_finish(done: &pluto_lib::UseItemFinishContext) {
         drink_sound(&world, done.position);
         fluid_world::spawn_fluid_particles(&world, &fluid, done.position, 16);
         let entity = EntityReach::id_of_uuid(done.player.uuid).map_or(0, |id| id as i32);
-        let holder = self_holder(entity, true, &done.stack, done.position, Some(done.player.uuid));
+        let holder = self_holder(entity, true, done.game_mode, &done.stack, done.position, Some(done.player.uuid));
         let mut target = LiveTarget::direct(entity, "minecraft:player", done.position);
         let consumed = apply_entity(&done.dimension, &fluid, slurping.strength(entry), holder, &mut target, done.position);
         if consumed > 0 && !done.creative {
@@ -741,7 +755,7 @@ pub(crate) fn armor_start(player: u128, packet_slot: u8) -> bool {
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return false };
         let mut work = tool.custom_data.clone();
         for (entry, slurping) in &modules.slurping {
-            let holder = self_holder(facts.entity, true, &piece, facts.position, Some(player));
+            let holder = self_holder(facts.entity, true, facts.game_mode, &piece, facts.position, Some(player));
             let mut target = LiveTarget::direct(facts.entity, "minecraft:player", facts.position);
             if simulate_entity(&facts.dimension, &fluid, slurping.strength(entry), holder, &mut target, facts.position) > 0 {
                 tool_stack::with_persistent(&mut work, |persistent| slurping.armor_start(persistent, entry, facts.tick));
@@ -884,7 +898,7 @@ fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
             if working.amount == 0 { break; }
             let level = splashing.strength(entry);
             let mut targets = 0;
-            let holder = self_holder(player_entity, true, held, player_position, Some(player.uuid));
+            let holder = self_holder(player_entity, true, click.game_mode, held, player_position, Some(player.uuid));
             let mut target = LiveTarget::direct(click.entity, &click.kind, target_position);
             let consumed = apply_entity(&click.dimension, &working, level, holder, &mut target, target_position);
             if consumed > 0 {
@@ -902,7 +916,7 @@ fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
                     let Some(position) = EntityReach::position_of(entity.id) else { continue };
                     let delta = [position[0] - target_position[0], position[1] - target_position[1], position[2] - target_position[2]];
                     if delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2] >= range * range { continue; }
-                    let holder = self_holder(player_entity, true, held, player_position, Some(player.uuid));
+                    let holder = self_holder(player_entity, true, click.game_mode, held, player_position, Some(player.uuid));
                     let mut target = LiveTarget::direct(entity.id as i32, &entity.kind.to_string(), position);
                     let consumed = apply_entity(&click.dimension, &working, level, holder, &mut target, position);
                     if consumed > 0 {
@@ -1009,7 +1023,7 @@ fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_sta
     for (entry, splashing) in &modules.splashing {
         if working.amount == 0 { break; }
         let level = splashing.strength(entry);
-        let holder = self_holder(player_entity, true, stack, player_position, Some(click.player.uuid));
+        let holder = self_holder(player_entity, true, click.game_mode, stack, player_position, Some(click.player.uuid));
         let consumed = apply_block(&click.dimension, &working, level, holder, click.pos, face, location);
         if consumed <= 0 { continue; }
         let mut targets = 1;
@@ -1025,7 +1039,7 @@ fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_sta
                 for pos in iterator.positions(click.pos, face, 0.0, 0.0, expanded, &block_at, &in_tag_at) {
                     if working.amount == 0 { break; }
                     if pos == click.pos { continue; }
-                    let holder = self_holder(player_entity, true, stack, player_position, Some(click.player.uuid));
+                    let holder = self_holder(player_entity, true, click.game_mode, stack, player_position, Some(click.player.uuid));
                     let at = [pos[0] as f64 + 0.5, pos[1] as f64 + 0.5, pos[2] as f64 + 0.5];
                     let consumed = apply_block(&click.dimension, &working, level, holder, pos, face, at);
                     if consumed > 0 {

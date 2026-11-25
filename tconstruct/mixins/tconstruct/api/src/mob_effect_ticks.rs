@@ -389,6 +389,7 @@ mod tests {
             position,
             look: [0.0, 0.0, 1.0],
             creative: false,
+            game_mode: 0,
             on_ground: true,
             sneaking: false,
             gliding: false,

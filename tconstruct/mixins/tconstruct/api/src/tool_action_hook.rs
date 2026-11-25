@@ -191,7 +191,7 @@ pub(crate) fn register() {
                     applied.then_some((worn, broke))
                 });
                 if let Ok(Some((worn, broke))) = worn {
-                    let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() };
+                    let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), can_place_on: held.can_place_on.clone(), enchantments: held.enchantments.clone() };
                     // Each of the three wears announces a break it causes in the original (the
                     // transform, ignite and glow modules broadcast by hand); at most one can break
                     // the tool — the ones after it meet a broken tool and do nothing — so one

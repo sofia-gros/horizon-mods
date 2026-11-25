@@ -2430,6 +2430,7 @@ mod tests {
             max_damage: Some(60),
             custom_data: NbtCompound::new(),
             custom_model_data: None,
+            can_place_on: None,
             enchantments: Default::default(),
         })]);
         // The selected-slot op the held-item commands rely on.

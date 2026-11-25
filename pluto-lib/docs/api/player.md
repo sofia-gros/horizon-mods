@@ -375,7 +375,7 @@ assert!(!player.swing_hand(Hand::Off)); // no running game: nothing happens
 use pluto_lib::{NbtCompound, ServerPlayer, StackData, StackSlot};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
-let stack = StackData { item: "minecraft:iron_pickaxe".into(), count: 1, damage: 250, max_damage: Some(250), custom_data: NbtCompound::new(), custom_model_data: None, enchantments: Default::default() };
+let stack = StackData { item: "minecraft:iron_pickaxe".into(), count: 1, damage: 250, max_damage: Some(250), custom_data: NbtCompound::new(), custom_model_data: None, can_place_on: None, enchantments: Default::default() };
 assert!(!player.broadcast_item_break(StackSlot::MainHand, &stack)); // no running game: nothing happens
 ```
 
@@ -413,12 +413,12 @@ with_ops(&mut game, || {
 
 ### `StackData`
 
-An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod keeps its materials and stats here. `custom_model_data` is the stack's `minecraft:custom_model_data` component (see `CustomModelData`), None for none: an item model definition selects its sprite from it, and the game reads and writes it with the stack.
+An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod keeps its materials and stats here. `custom_model_data` is the stack's `minecraft:custom_model_data` component (see `CustomModelData`), None for none: an item model definition selects its sprite from it, and the game reads and writes it with the stack. `can_place_on` is the stack's `minecraft:can_place_on` component (the adventure-mode placement predicates: a list of block predicates) as NBT, None for none: the game reads it when an adventure-mode player places with the stack, and a fluid effect that places blocks reads it for its place gate.
 
 ```rust
 use pluto_lib::{Nbt, StackData};
 
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("durability".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, enchantments: Default::default() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("durability".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, can_place_on: None, enchantments: Default::default() };
 assert_eq!(tool.custom_data["durability"], Nbt::Int(60));
 assert_eq!((tool.count, tool.damage), (1, 0));
 ```
@@ -491,7 +491,7 @@ use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None, enchantments: Default::default() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None, can_place_on: None, enchantments: Default::default() };
 game.stacks.insert(1, vec![Some(tool)]);
 with_ops(&mut game, || {
     assert_eq!(player.stack(0).unwrap().custom_data["level"], Nbt::Int(2));
@@ -508,7 +508,7 @@ use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into(), custom_model_data: None, enchantments: Default::default() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 0, max_damage: Some(60), custom_data: [("level".to_owned(), Nbt::Int(1))].into(), custom_model_data: None, can_place_on: None, enchantments: Default::default() };
 with_ops(&mut game, || {
     assert_eq!(player.give_stack(tool), None);
     assert_eq!(player.stack(0).unwrap().max_damage, Some(60));
@@ -892,13 +892,13 @@ assert_eq!((aim.dimension.as_str(), aim.position[1], aim.look[2], aim.creative),
 
 ### `PlayerTick`
 
-A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `look` the direction the player faces (a unit vector), `creative` whether they are in creative mode, `on_ground` whether they stand on the ground, `sneaking` whether they hold sneak, `gliding` whether they glide, `spectator` whether they spectate, `in_water` whether their feet block holds water, `on_climbable` whether on a climbable block (a gliding player passing a block it can glide through never counts), `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go, and while the player carries a mob effect, so an effect's per-tick behaviour runs even with no gear. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
+A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `look` the direction the player faces (a unit vector), `creative` whether they are in creative mode, `game_mode` their game mode as the game numbers it (0 survival, 1 creative, 2 adventure, 3 spectator), `on_ground` whether they stand on the ground, `sneaking` whether they hold sneak, `gliding` whether they glide, `spectator` whether they spectate, `in_water` whether their feet block holds water, `on_climbable` whether on a climbable block (a gliding player passing a block it can glide through never counts), `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go, and while the player carries a mob effect, so an effect's per-tick behaviour runs even with no gear. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
 
 ```rust
 use pluto_lib::PlayerTick;
 use std::cell::RefCell;
 
-let tick = PlayerTick { player: 1, entity: 4, dimension: "minecraft:overworld".into(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 15, sky_darken: 0, effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let tick = PlayerTick { player: 1, entity: 4, dimension: "minecraft:overworld".into(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, game_mode: 0, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 15, sky_darken: 0, effects: vec![("minecraft:poison".into(), 0, 100)], remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 tick.remove_effects.borrow_mut().push("minecraft:poison".into());
 tick.attribute_additions.borrow_mut().push(("minecraft:knockback_resistance".into(), 0.1));
 assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
@@ -940,7 +940,7 @@ use pluto_lib::{MemoryPlayerOps, Nbt, ServerPlayer, StackData, with_ops};
 
 let player = ServerPlayer { uuid: 1, name: "Alex".into() };
 let mut game = MemoryPlayerOps::default();
-let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None, enchantments: Default::default() };
+let tool = StackData { item: "example:pickaxe".into(), count: 1, damage: 3, max_damage: None, custom_data: [("level".to_owned(), Nbt::Int(2))].into(), custom_model_data: None, can_place_on: None, enchantments: Default::default() };
 game.stacks.insert(1, vec![Some(tool)]);
 with_ops(&mut game, || {
     assert_eq!(player.stack_named(0).unwrap().custom_data["level"], Nbt::Int(2));

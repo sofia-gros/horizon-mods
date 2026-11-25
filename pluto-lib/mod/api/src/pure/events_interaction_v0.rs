@@ -59,6 +59,9 @@ pub struct UseItemOnBlockContext {
     pub player: ServerPlayer,
     /// Whether the player is in creative mode (nothing is used up).
     pub creative: bool,
+    /// The player's game mode as the game numbers it: 0 survival, 1 creative, 2 adventure, 3 spectator;
+    /// -1 when the game did not say (the world's own player, whom the host does not name for this action).
+    pub game_mode: i32,
     /// Whether the player is sneaking as they click.
     pub sneaking: bool,
     /// The stack that was used, with its damage, max damage and custom data (a tool a mod made keeps its state there).
@@ -187,6 +190,9 @@ pub struct UseItemFinishContext {
     pub position: [f64; 3],
     /// Whether the player is in creative mode (nothing is used up).
     pub creative: bool,
+    /// The player's game mode as the game numbers it: 0 survival, 1 creative, 2 adventure, 3 spectator;
+    /// -1 when the game did not say.
+    pub game_mode: i32,
 }
 
 /// A player attacked an entity.
@@ -218,6 +224,9 @@ pub struct UseItemOnEntityContext {
     pub player_dimension: String,
     /// Whether the player is in creative mode (nothing is used up).
     pub creative: bool,
+    /// The player's game mode as the game numbers it: 0 survival, 1 creative, 2 adventure, 3 spectator;
+    /// -1 when the game names no player for the interaction.
+    pub game_mode: i32,
     /// What to do to the player (`ActionTarget::Attacker`), which callbacks add to; the game does it right after the callbacks ran.
     pub actions: RefCell<Vec<EntityAction>>,
 }
@@ -864,6 +873,7 @@ mod tests {
         UseItemFinishContext {
             item: item.into(), player: ServerPlayer { uuid: 7, name: "Alex".into() }, stack: data, hand: Hand::Off, slot: Some(slot),
             replacement: RefCell::new(None), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], creative,
+            game_mode: if creative { 1 } else { 0 },
         }
     }
 
@@ -966,7 +976,7 @@ mod tests {
         let click = |kind: &str, item: &str| UseItemOnEntityContext {
             entity: 5, kind: kind.into(), dimension: String::new(), hand: Hand::Main,
             held: Some(StackData { item: item.into(), count: 1, ..Default::default() }),
-            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false,
+            player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false, game_mode: 0,
             actions: RefCell::new(Vec::new()),
         };
         assert!(use_item_on_entity_heard());
@@ -987,7 +997,7 @@ mod tests {
         });
         let click = UseItemOnEntityContext {
             entity: 5, kind: "minecraft:creeper".into(), hand: Hand::Main,
-            held: None, player: None, dimension: "minecraft:overworld".into(), player_dimension: "minecraft:overworld".into(), creative: true,
+            held: None, player: None, dimension: "minecraft:overworld".into(), player_dimension: "minecraft:overworld".into(), creative: true, game_mode: 1,
             actions: RefCell::new(Vec::new()),
         };
         assert!(!use_item_on_entity(&click));
