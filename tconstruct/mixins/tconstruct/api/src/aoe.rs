@@ -2,11 +2,12 @@
 //! breaks, the extra blocks it takes with it. Box, circle, vein, conditional and tree iterators, decoded
 //! from the definition modules and evaluated against block states read through the world handle.
 //!
-//! One clause of the original's default block predicate cannot be evaluated here: it rejects blocks
-//! whose hardness is -1 or more than three times the origin's (AreaOfEffectIterator.defaultBlockPredicate),
-//! and no surface in this port reports a block's hardness. The iterators therefore select by geometry,
-//! same-block rules and the tool's effectiveness (which the caller applies, as the predicate does); the
-//! hardness clause is the documented remainder. SlimeKnights (MIT; see LICENSE).
+//! The iterators select by geometry and their own block rules; the original's default block
+//! predicate (AreaOfEffectIterator.defaultBlockPredicate) is the caller's to apply, as the
+//! original applies it inside its box and circle iterators: it rejects air, blocks whose
+//! hardness is -1 or more than three times the origin's, and blocks the tool is not effective
+//! on. The hardness half reads the hardness the game published from its block table
+//! (pluto_lib::world_api_v1::block_hardness). SlimeKnights (MIT; see LICENSE).
 use pluto_lib::{Direction, Identifier};
 use serde_json::{Map, Value};
 use std::collections::{HashSet, VecDeque};
@@ -134,7 +135,7 @@ impl Iterator {
 
     /// The extra positions this iterator selects around `origin`, in the original's iteration order.
     /// `expanded` is the tool's EXPANDED volatile level; `face` the hit face; `yaw`/`pitch` the player's
-    /// look. Box and circle positions still owe the caller the effectiveness half of the default block
+    /// look. Box and circle positions still owe the caller the default block
     /// predicate (see the module notes); vein, tree and conditional apply their own block rules here.
     pub(crate) fn positions(&self, origin: [i32; 3], face: Direction, yaw: f32, pitch: f32, expanded: i32, block_at: &BlockAt<'_>, in_tag_at: &InTagAt<'_>) -> Vec<[i32; 3]> {
         match self {

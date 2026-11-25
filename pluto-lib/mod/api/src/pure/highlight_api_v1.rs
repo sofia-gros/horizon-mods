@@ -15,8 +15,9 @@
 //! as the aim that causes it. Here the transport asks every registered
 //! provider once a frame while the world is drawn, with the facts of
 //! the local player's view at that moment — its block reach for the
-//! player's game mode, and whether a position sits inside the world
-//! border — and draws the merged set:
+//! player's game mode, whether a position sits inside the world
+//! border, and the published hardness of the blocks around the
+//! target — and draws the merged set:
 //! a provider's answer is one frame's outline set, refreshed by being
 //! asked again and gone the first frame it stops answering. A provider
 //! that owns nothing in the facts answers an empty set.
@@ -101,6 +102,12 @@ pub struct HighlightFacts<'a> {
     pub block_at: &'a dyn Fn([i32; 3]) -> Option<Identifier>,
     /// Whether the block at a position is in a block tag.
     pub in_tag_at: &'a dyn Fn([i32; 3], &Identifier) -> bool,
+    /// The destroy speed (hardness) of the block at a position, as the
+    /// game's own block table publishes it (-1 for a block that cannot
+    /// be broken), or None when the table has no answer for the block:
+    /// the read the default block predicate's hardness clause compares
+    /// a neighbour's hardness against the target's by.
+    pub hardness_at: &'a dyn Fn([i32; 3]) -> Option<f32>,
 }
 
 /// Answers the extra block positions one mod's hooks highlight under
@@ -159,8 +166,12 @@ mod tests {
         false
     }
 
+    fn no_hardness(_: [i32; 3]) -> Option<f32> {
+        None
+    }
+
     fn facts<'a>(main_hand: Option<&'a ItemSlot>, target: Option<HighlightTarget>) -> HighlightFacts<'a> {
-        HighlightFacts { main_hand, target, yaw: 0.0, pitch: 0.0, block_reach: CREATIVE_BLOCK_REACH, in_world_border: &|_| true, block_at: &no_block, in_tag_at: &no_tag }
+        HighlightFacts { main_hand, target, yaw: 0.0, pitch: 0.0, block_reach: CREATIVE_BLOCK_REACH, in_world_border: &|_| true, block_at: &no_block, in_tag_at: &no_tag, hardness_at: &no_hardness }
     }
 
     fn two(_: &HighlightFacts<'_>) -> Vec<[i32; 3]> {

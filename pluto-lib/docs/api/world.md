@@ -846,6 +846,47 @@ assert!(survival_facts("minecraft:stone").is_some_and(|facts| facts.solid));
 assert_eq!(survival_facts("minecraft:glass"), None);
 ```
 
+### `HardnessLookup`
+
+`type HardnessLookup = fn(&str) -> Option<f32>`. A hardness lookup the host installs: the named block's destroy speed, as the game's own block table reports it. The table answers by block name, so a block whose states differ answers with its first state. A block that cannot be broken answers -1.
+
+```rust
+use pluto_lib::world_api_v1::HardnessLookup;
+
+let lookup: HardnessLookup = |block| if block == "minecraft:bedrock" { Some(-1.0) } else { None };
+assert_eq!(lookup("minecraft:bedrock"), Some(-1.0));
+assert_eq!(lookup("minecraft:stone"), None);
+```
+
+### `set_hardness_lookup`
+
+`fn set_hardness_lookup(lookup: HardnessLookup)`. Installs the hardness lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::world_api_v1::{block_hardness, set_hardness_lookup};
+
+set_hardness_lookup(|block| if block == "minecraft:stone" { Some(1.5) } else { None });
+assert_eq!(block_hardness("minecraft:stone"), Some(1.5));
+```
+
+### `block_hardness`
+
+`fn block_hardness(block: &str) -> Option<f32>`. The named block's destroy speed (its hardness), when the game's table answers for the block: -1 for a block that cannot be broken, 0 for one that breaks instantly. `None` when no lookup is installed or the table has no answer for the block.
+
+```rust
+use pluto_lib::world_api_v1::{block_hardness, set_hardness_lookup};
+
+assert_eq!(block_hardness("minecraft:stone"), None, "no lookup installed yet");
+set_hardness_lookup(|block| match block {
+    "minecraft:bedrock" => Some(-1.0),
+    "minecraft:stone" => Some(1.5),
+    _ => None,
+});
+assert_eq!(block_hardness("minecraft:bedrock"), Some(-1.0));
+assert_eq!(block_hardness("minecraft:stone"), Some(1.5));
+assert_eq!(block_hardness("minecraft:glass"), None);
+```
+
 ### `World::can_survive`
 
 `fn can_survive(&self, state: &BlockState, pos: [i32; 3], sky_darken: u8) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it: the same class-chain dispatch the game runs, over the world view, so a torch needs a sturdy face below, a wall torch the face it leans on, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (a moving piston's carried block, a position-dependent shape's faces, a block the game's table does not name): a placement check must treat `None` as "cannot say", not as a refusal.
