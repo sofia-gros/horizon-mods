@@ -1,3 +1,7 @@
 {
-  "parent": "tconstruct:block/smeltery/tinted_glass"
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "tconstruct:block/smeltery/tinted_glass",
+    "particle": "tconstruct:block/smeltery/tinted_glass"
+  }
 }
