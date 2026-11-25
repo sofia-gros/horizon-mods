@@ -15,6 +15,10 @@ ALLOWED = [
     'docs/architecture.md', 'docs/development.md', 'docs/releasing.md', 'docs/roadmap.md', 'docs/codex.md', 'docs/migration/pr-classification.md',
     'pluto-lib/README.md', 'pluto-lib/docs/design-principles.md', 'pluto-lib/docs/fabric-api-design.md',
     'pluto-lib/docs/fabric-api-hook-map.md', 'pluto-lib/docs/support-matrix.md', 'pluto-lib/docs/api/*.md',
+    # the Sunrise variant tree mirrors pluto-lib's documents; SUNRISE.md is its ledger (R6 tooling adaptation)
+    'pluto-lib-sunrise/README.md', 'pluto-lib-sunrise/SUNRISE.md',
+    'pluto-lib-sunrise/docs/design-principles.md', 'pluto-lib-sunrise/docs/fabric-api-design.md',
+    'pluto-lib-sunrise/docs/fabric-api-hook-map.md', 'pluto-lib-sunrise/docs/api/*.md',
     'tconstruct/README.md',
     # licence and attribution notices are legal text, not documentation
     '*NOTICE.md', '*NOTICES.md', '*LICENSE.md',

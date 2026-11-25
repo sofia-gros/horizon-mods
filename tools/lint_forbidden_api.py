@@ -33,6 +33,15 @@ RULES = [
 ]
 
 
+# Path-scoped exemptions: the Sunrise variant tree's host is sunrise-org, not
+# horizon-rust, so its git dependencies on the official Sunrise repository are
+# correct there and the zero-tolerance git rule does not apply inside that
+# tree (R6 tooling adaptation; the rule still applies everywhere else).
+RULE_PATH_EXEMPTIONS = {
+    'cargo-git-not-official': ('pluto-lib-sunrise/*',),
+}
+
+
 # Files that quote the forbidden patterns in order to define or test them.
 SELF = {'tools/lint_forbidden_api.py', 'tests/test_lint_forbidden_api.py', 'tools/classify_prs.py'}
 
@@ -49,6 +58,8 @@ def scan():
             continue
         for rule, glob, pattern, _, _ in RULES:
             if not fnmatch(rel, glob):
+                continue
+            if any(fnmatch(rel, g) for g in RULE_PATH_EXEMPTIONS.get(rule, ())):
                 continue
             try:
                 text = (ROOT / rel).read_text(encoding='utf-8', errors='replace')
