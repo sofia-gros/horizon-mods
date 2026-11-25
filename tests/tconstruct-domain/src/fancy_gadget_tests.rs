@@ -28,7 +28,8 @@ fn the_frame_and_stand_items_are_declared_on_their_vanilla_templates() {
 
 #[test]
 fn the_frames_and_stands_sit_in_the_general_tab_in_the_original_order() {
-    // TinkerGadgets.addTabItems, called by the general tab after the tables: bamboo stand, clear frame,
+    // TinkerGadgets.addTabItems, called by the general tab (TinkerCommons.addTabItems) after its own
+    // tables, books, food, glass, bars and platforms sections: bamboo stand, clear frame,
     // clear stand, bone stand, necrotic bone stand, then the gold, reversed gold, diamond, manyullyn and
     // netherite frames (punji before them and the cakes after them are not declared at this point).
     let general = crate::creative::GENERAL;
@@ -36,9 +37,9 @@ fn the_frames_and_stands_sit_in_the_general_tab_in_the_original_order() {
     assert_eq!(gadgets, ["bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand",
         "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame"]);
     let pattern = general.iter().position(|name| *name == "pattern").unwrap();
-    let first = general.iter().position(|name| *name == "bamboo_armor_stand").unwrap();
     let soul = general.iter().position(|name| *name == "soul_glass").unwrap();
-    assert!(pattern < first && first < soul, "the gadgets follow the pattern and precede the soul glass");
+    let first = general.iter().position(|name| *name == "bamboo_armor_stand").unwrap();
+    assert!(pattern < soul && soul < first, "the gadgets follow the pattern and the soul glass");
 }
 
 #[test]
