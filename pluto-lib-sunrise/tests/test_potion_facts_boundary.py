@@ -15,11 +15,11 @@ ARCHIVED = ROOT / 'legacy/2026-11-14'
 
 
 def normalize(source):
-    for prefix in ('horizon_client_core::potions::', 'sunrise_client::brewing::', 'sunrise_client::pluto_potions::'):
+    for prefix in ('sunrise_client_core::potions::', 'sunrise_client::brewing::', 'sunrise_client::pluto_potions::'):
         for method in ('potion', 'effect'):
             source = source.replace(prefix + method + '(', '<' + method + '>(')
         source = source.replace(prefix + 'is_mod_effect(', '<custom>(').replace(prefix + 'has_custom_namespace(', '<custom>(')
-    source = source.replace('known.canonical_id', 'horizon_client_core::potions::namespaced(known.id)')
+    source = source.replace('known.canonical_id', 'sunrise_client_core::potions::namespaced(known.id)')
     return source.replace('.raw_id', '.id').replace('.color_rgb', '.color').replace('.name_suffix', '.name')
 
 
@@ -44,7 +44,7 @@ class PotionFactsBoundary(unittest.TestCase):
             with self.subTest(path=row['path']):
                 source = (ARCHIVED / row['path']).read_text()
                 self.assertEqual(hashlib.sha256(normalize_composition(source, row).encode()).hexdigest(), row['policy_sha256'])
-                self.assertNotIn('horizon_client_core::potions::', source)
+                self.assertNotIn('sunrise_client_core::potions::', source)
                 self.assertNotIn('sunrise_client::brewing::', source)
                 self.assertIn('sunrise_client::pluto_potions::', source)
 
@@ -85,7 +85,7 @@ class PotionFactsBoundary(unittest.TestCase):
             self.assertIn(token, color)
         self.assertIn('EffectInstance::new(id, duration, amplifier)', (root / 'source-slurping.rs').read_text())
         self.assertIn('mob.add_effect(id, duration, amplifier)', (root / 'source-spilling.rs').read_text())
-        self.assertIn('horizon_client_core::potions::effects_color', (root / 'source-fluid-cloud.rs').read_text())
+        self.assertIn('sunrise_client_core::potions::effects_color', (root / 'source-fluid-cloud.rs').read_text())
 
     def test_catalog_fixture_uses_only_its_exact_local_package_exception(self):
         path = ROOT / 'pluto-lib/tools/prepare_render_fixture.py'

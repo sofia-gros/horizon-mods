@@ -91,7 +91,7 @@ mod game {
         fn remote_menu_id(&self) -> i32 {
             0
         }
-        fn send(&mut self, _: horizon_protocol::packets::play::Serverbound) {
+        fn send(&mut self, _: sunrise_protocol::packets::play::Serverbound) {
             self.packets += 1;
         }
         fn menu_session(

@@ -4,7 +4,7 @@
 use std::{collections::{BTreeMap, HashMap}, sync::Arc};
 use serde_json::{json, Value};
 mod sunrise_world { pub mod item_defaults { pub type Defaults = std::collections::BTreeMap<String, serde_json::Value>; } }
-mod horizon_client_core { pub mod scoreboard { pub fn json_to_tag(value: &serde_json::Value) -> serde_json::Value { value.clone() } } }
+mod sunrise_client_core { pub mod scoreboard { pub fn json_to_tag(value: &serde_json::Value) -> serde_json::Value { value.clone() } } }
 #[derive(Default)]
 struct ItemInfo { custom_components: BTreeMap<String, Value>, max_damage: u32 }
 include!("../../../mod/pluto-item-prototypes.rs");

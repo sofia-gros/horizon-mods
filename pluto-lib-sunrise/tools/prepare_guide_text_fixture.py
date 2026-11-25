@@ -14,7 +14,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 OFFICIAL = "https://github.com/sunrise-org/sunrise.git"
-TEXT_SOURCE = "crates/horizon-client-core/src/text.rs"
+TEXT_SOURCE = "crates/sunrise-client-core/src/text.rs"
 LOCAL = {("pluto-guide-text-tests", "0.0.0", None, None), ("pluto-inventory-api", "0.1.0", None, None)}
 
 
@@ -83,13 +83,13 @@ def prepare(host, output, include_payload=False, include_correlation=False):
     source = ROOT / "mixins/pluto_native_creative"
     shutil.copytree(source / "inventory-api", output / "inventory-api", ignore=shutil.ignore_patterns("Cargo.lock", "target"))
     shutil.copyfile(source / "guide-text.rs", output / "guide-text.rs")
-    (output / "lib.rs").write_text('pub use horizon_client_core::text;\npub use pluto_inventory_api as pluto_inventory;\n#[path="guide-text.rs"] pub mod guide_text;\n')
-    manifest = '[package]\nname="pluto-guide-text-tests"\nversion="0.0.0"\nedition="2024"\n[workspace]\n[lib]\npath="lib.rs"\n[dependencies]\npluto-inventory-api={path="inventory-api"}\nhorizon-client-core={path=' + json.dumps(str(host / "crates/horizon-client-core")) + '}\n'
+    (output / "lib.rs").write_text('pub use sunrise_client_core::text;\npub use pluto_inventory_api as pluto_inventory;\n#[path="guide-text.rs"] pub mod guide_text;\n')
+    manifest = '[package]\nname="pluto-guide-text-tests"\nversion="0.0.0"\nedition="2024"\n[workspace]\n[lib]\npath="lib.rs"\n[dependencies]\npluto-inventory-api={path="inventory-api"}\nhorizon-client-core={path=' + json.dumps(str(host / "crates/sunrise-client-core")) + '}\n'
     if include_payload:
         shutil.copyfile(source / "client-payload.rs", output / "client-payload.rs")
         with (output / "lib.rs").open("a") as file:
             file.write('#[path="client-payload.rs"] pub mod client_payload;\n')
-        manifest += 'horizon-protocol={path=' + json.dumps(str(host / "crates/horizon-protocol")) + '}\n'
+        manifest += 'sunrise-protocol={path=' + json.dumps(str(host / "crates/sunrise-protocol")) + '}\n'
     if include_correlation:
         shutil.copyfile(ROOT / "tests/native/guide_request_projection.rs", output / "guide-request-projection.rs")
         with (output / "lib.rs").open("a") as file:
@@ -109,7 +109,7 @@ def prepare(host, output, include_payload=False, include_correlation=False):
     evidence = {"official_source": str(host), "official_revision": pin,
         "official_text_sha256": digest((host / TEXT_SOURCE).read_bytes()),
         "official_extra_sha256": {name: digest((host/name).read_bytes()) for name in
-            (["crates/horizon-protocol/src/packets/play.rs", "crates/horizon-protocol/src/packets/configuration.rs"] if include_payload else [])},
+            (["crates/sunrise-protocol/src/packets/play.rs", "crates/sunrise-protocol/src/packets/configuration.rs"] if include_payload else [])},
         "official_lock_sha256": digest((host / "Cargo.lock").read_bytes()),
         "files_sha256": {str(p.relative_to(output)): digest(p.read_bytes()) for p in output.rglob("*") if p.is_file()},
         "scope": "Actual official Text, actual packaged API and production semantic converter" + (" plus actual play-packet projection" if include_payload else "") + (" plus explicit in-process request correlation" if include_correlation else "") + "; no native package apply, observer-phase, screen or network runtime."}

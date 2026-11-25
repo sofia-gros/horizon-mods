@@ -4,7 +4,7 @@ use super::*;
 use sunrise_world::level::pluto_block_access::{self as transport, InsideMotion, StateInfo};
 
 fn dispatch(item: &mut ItemEntity, world: &World, registry: &sunrise_world::registry::BlockRegistry,
-    pos: horizon_core::position::BlockPos, state: sunrise_world::registry::BlockStateId, server: bool) {
+    pos: sunrise_core::position::BlockPos, state: sunrise_world::registry::BlockStateId, server: bool) {
     if !server { return; }
     let Some(sink) = transport::landing_sink() else { return };
     let Some(definition) = registry.state(state) else { return };

@@ -1,15 +1,20 @@
-[mod]
-id = "pluto_items_b2"
+id = "unknown"
+name = "unknown"
 version = "0.1.0"
-priority = 100
-[compatibility]
-horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
-[[module]]
+api = "0.2"
+side = "both"
+
+[native]
+game = "26.3"
+sunrise = "3d34bbe63d71bb24c098c1e4021ef866be12fe2d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
+
+[[native.module]]
 id = "adapter"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_item_adapter_b2"
 source = "adapter.rs"
-[[injection]]
+[[native.mixin]]
 id = "use"
 target = "sunrise_client::game::Game<'_>::use_tool"
 kind = "HEAD"
@@ -20,7 +25,7 @@ bindings = [
  { name = "stack", ty = "&sunrise_client::items::ItemStack", value = "stack" },
  { name = "allow_block_actions", ty = "bool", value = "allow_block_actions" },
 ]
-[[injection]]
+[[native.mixin]]
 id = "tooltip"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_tooltip"
 kind = "HEAD"

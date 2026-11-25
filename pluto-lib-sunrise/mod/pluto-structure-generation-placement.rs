@@ -3,7 +3,7 @@ use super::*;
 use crate::level::pluto_block_access::{self,LevelView,LevelEdit,StateInfo,RootBindings,RootEdit,RootCallback,TreeCallback,TreeStep,PlannedTreeCallback,MAX_FEATURE_DEPTH};
 use crate::level::pluto_structure_access::MarkerWorld;
 use crate::worldgen::structure::{start::{StructureStart,Piece},legacy::{PieceContext,SolidRender},StructureResources,pluto_registered_piece};
-use horizon_core::random::RandomSource;
+use sunrise_core::random::RandomSource;
 use std::cell::RefCell;
 
 type Random=WorldgenRandom<XoroshiroRandom>;
@@ -212,7 +212,7 @@ impl MarkerWorld for Editor<'_,'_> {
         if let Some(answer)=pluto_block_access::dispatch_survival(self,state,pos)? {return Ok(answer)}
         let world=self.world.borrow();
         let behaviours=world.behaviours.ok_or("generation plant classification unavailable")?;
-        let mut level=ShapeLevel {world:&world,random:horizon_core::random::LegacyRandom::new(0)};
+        let mut level=ShapeLevel {world:&world,random:sunrise_core::random::LegacyRandom::new(0)};
         let mut ticks=crate::level::Ticks::new(0);
         Ok(behaviours.can_survive(&mut level,&mut ticks,BlockPos::new(pos[0],pos[1],pos[2]),id))
     }

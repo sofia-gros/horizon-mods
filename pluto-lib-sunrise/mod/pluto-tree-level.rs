@@ -4,7 +4,7 @@ use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, R
 use crate::registry::BlockStateId;
 use crate::worldgen::{feature_graph::{FeatureDefinition, FeatureExecutionError}, placement::PlacementQueryError};
 use crate::worldgen::live::pluto_tree_catalog;
-use horizon_core::{position::BlockPos, random::{LegacyRandom, RandomSource}};
+use sunrise_core::{position::BlockPos, random::{LegacyRandom, RandomSource}};
 use serde_json::Value;
 
 fn at([x, y, z]: [i32; 3]) -> BlockPos { BlockPos::new(x, y, z) }
@@ -55,7 +55,7 @@ impl<L: LevelAccess + ?Sized> LevelView for TreeEditor<'_, '_, '_, L> {
     }
     fn light_passes_up(&self, pos: [i32; 3]) -> bool {
         use super::data::state_flags::{CAN_OCCLUDE, SHAPE_OCCLUSION};
-        use horizon_core::geometry::Direction;
+        use sunrise_core::geometry::Direction;
         let b = self.world.sim.b;
         let state = self.world.sim.state(at(pos));
         let above = self.world.sim.state(at([pos[0], pos[1].wrapping_add(1), pos[2]]));

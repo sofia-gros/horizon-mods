@@ -1,7 +1,7 @@
 // Internal official-host construction only. This module does not spawn a cloud.
 use super::{Breath, CloudSettings, PotionCloud};
 use sunrise_client::{pluto_cloud::{Attribution, Label, Validated}, text::Text};
-use horizon_client_core::who::Who;
+use sunrise_client_core::who::Who;
 
 /// A native object with no world association or allocated entity ID. Its fields
 /// stay private; only the game-private insertion boundary consumes the object.

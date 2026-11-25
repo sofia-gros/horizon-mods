@@ -2,7 +2,7 @@
 // Host doubles expose only calls the production adapter needs. Native hurt is
 // deliberately observable and moves both positions, like an immediate teleport.
 extern crate self as sunrise_world;
-extern crate self as horizon_core;
+extern crate self as sunrise_core;
 use std::sync::Arc;
 #[derive(Clone, Copy, Debug)]
 struct Vec3 { x: f64, y: f64, z: f64 }

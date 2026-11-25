@@ -18,7 +18,7 @@
     "crates/horizon-client/src/game.rs": "cdfc9247cce139c00e5a36266812c7f7f42ccbb565d67705a896520b4b62b22c",
     "crates/horizon-client/src/client_lib.rs": "7bf90075afa0638e3fc97d51ed7191d9abcbe10b5da079fcb65f3efea207b206",
     "crates/horizon-client-render/src/world.rs": "a07c959b494471e5e034894522f807929375f1cf267339f670a35ce2043bf068",
-    "crates/horizon-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772"
+    "crates/sunrise-client-core/src/potions.rs": "2a3243f8aa1f3188c45d5e27f778f7b60edb03ed4ce6c205de9fc3f89ddb7772"
   },
   "modules": [
     {
@@ -77,7 +77,7 @@
     "crates/horizon-client/src/game/dragon.rs",
     "crates/horizon-client/src/game/potions.rs",
     "crates/horizon-client-render/src/world.rs",
-    "crates/horizon-client-core/src/potions.rs"
+    "crates/sunrise-client-core/src/potions.rs"
   ],
   "protected_target_prefixes": [
     "sunrise_client::game::native_lifecycle::",
@@ -93,7 +93,7 @@
     "sunrise_client::game::potions::",
     "sunrise_client_lib::mod_api::",
     "sunrise_client_render::world::",
-    "horizon_client_core::potions::"
+    "sunrise_client_core::potions::"
   ],
   "protected_state_files": [
     "crates/horizon-client/src/game.rs",

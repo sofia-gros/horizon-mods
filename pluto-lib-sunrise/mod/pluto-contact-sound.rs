@@ -27,7 +27,7 @@ pub(crate) fn flush_world(game: &mut Game<'_>) {
 }
 
 pub(crate) fn item_tick(game: &mut Game<'_>, item: &mut sunrise_client::entities::ItemEntity,
-    escape_speed: Option<f32>, entity_boxes: &[horizon_core::geometry::Aabb], client: bool,
+    escape_speed: Option<f32>, entity_boxes: &[sunrise_core::geometry::Aabb], client: bool,
     splash: &mut dyn FnMut(sunrise_client::entities::ItemSplash)) -> (bool, bool) {
     let server = !client && game.native_authoritative();
     let tick = game.world.game_time;

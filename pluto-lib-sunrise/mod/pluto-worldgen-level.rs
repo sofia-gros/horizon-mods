@@ -1,7 +1,7 @@
 // PlutoLib's live configured-feature boundary. Generation workers are a separate path.
 // Keep native level/RNG semantics here, never in a consumer mod.
 use super::{Behaviours, LevelAccess, Ticks};
-use horizon_core::position::BlockPos;
+use sunrise_core::position::BlockPos;
 use serde_json::Value;
 
 // The editor contract is below the client crate, shared with native tree callbacks.

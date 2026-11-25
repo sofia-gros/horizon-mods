@@ -120,10 +120,10 @@ pub mod fixture_support {
 }
 '''
     (native / "advancements.rs").write_bytes(original + suffix)
-    (native / "lib.rs").write_text('pub use horizon_client_core::{potions as brewing, nbt_path};\npub mod advancements;\n')
+    (native / "lib.rs").write_text('pub use sunrise_client_core::{potions as brewing, nbt_path};\npub mod advancements;\n')
     (native / "Cargo.toml").write_text('[package]\nname="pluto-projection-native-fixture"\nversion="0.0.0"\nedition="2024"\n[lib]\npath="lib.rs"\n[dependencies]\n'
         'serde_json="1"\nlog="0.4"\npluto-inventory-api={path="../inventory-api"}\n'
-        'horizon-client-core={path=' + json.dumps(str(host / "crates/horizon-client-core")) + '}\n'
+        'sunrise-client-core={path=' + json.dumps(str(host / "crates/sunrise-client-core")) + '}\n'
         'horizon-world={path=' + json.dumps(str(host / "crates/horizon-world")) + '}\n')
     (output / "Cargo.toml").write_text('[package]\nname="pluto-advancement-projection-tests"\nversion="0.0.0"\nedition="2024"\n[workspace]\n[lib]\npath="lib.rs"\n[dependencies]\nserde_json="1"\n'
         'pluto-inventory-api={path="inventory-api"}\npluto-projection-native-fixture={path="native"}\n')

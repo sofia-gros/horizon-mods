@@ -1,18 +1,21 @@
-[mod]
-id = "pluto_transport_demo"
+id = "unknown"
+name = "unknown"
 version = "0.1.0"
-priority = 100
+api = "0.2"
+side = "both"
 
-[compatibility]
-horizon_revision = "aa60eb76ea82bd66c29fea352e3ab5771e62ab26"
+[native]
+game = "26.3"
+sunrise = "3d34bbe63d71bb24c098c1e4021ef866be12fe2d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
 
-[[module]]
+[[native.module]]
 id = "demo"
 file = "crates/sunrise-client/src/entry.rs"
 name = "pluto_transport_demo"
 source = "demo.rs"
 
-[[injection]]
+[[native.mixin]]
 id = "prepare-demo"
 target = "sunrise_client::entry::main"
 kind = "HEAD"

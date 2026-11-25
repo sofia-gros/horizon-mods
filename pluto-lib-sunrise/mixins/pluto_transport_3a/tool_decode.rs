@@ -4,7 +4,7 @@ fn pluto_tool_decode(
     builtin: &Builtin,
     synced: &Dynamic,
 ) -> ItemStack {
-    use horizon_protocol::item::Component;
+    use sunrise_protocol::item::Component;
     const TOOL: i32 = 28;
     if source.removed.contains(&TOOL)
         || source.added.iter().filter(|(id, _)| *id == TOOL).count() != 1

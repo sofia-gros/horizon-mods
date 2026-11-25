@@ -1,0 +1,70 @@
+# Quarantined from sunrise-mod.toml during the Sunrise conversion.
+# [[state]]/[[state.constructor]]: REFUSED by the Sunrise package reader
+# (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
+# [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
+# of the native build. Kept verbatim for the migration work.
+
+[[state]]
+id = "pluto-entity-spawn-state"
+target = "sunrise_client_lib::mobs::nav::Navigation"
+ty = "crate::mobs::nav::pluto_entity_spawn_state::SpawnState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_lib::mobs::nav::<Navigation as Default>::default"
+selector = "Self"
+require = 1
+
+# Explicit custom block-entity types preempt native name/template factories once.
+# Source-integrated; actual attachment planning and native verification remain pending.
+[[state]]
+id = "pluto-block-entity-client-state"
+target = "sunrise_client_render::chunk::block_entity::ModBlockEntity"
+ty = "crate::pluto_client_block_entity_state::ClientState<sunrise_world::nbt::Compound>"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_render::chunk::block_entity::ModBlockEntity::new"
+selector = "Self"
+require = 1
+
+# Cache entries remember the registration epoch captured before drawing; native
+# revisions also include committed client data, without changing saved fields.
+[[state]]
+id = "pluto-block-entity-cache-generation"
+target = "sunrise_client::game::native_block_entity_draw::KeptEntry"
+ty = "u64"
+initial = "crate::game::pluto_block_entity_cache::frame_generation()"
+
+[[state.constructor]]
+target = "sunrise_client::game::native_block_entity_draw::KeptGeometry::keep"
+selector = "KeptEntry"
+require = 1
+
+[[state]]
+id = "pluto-living-drop-state"
+target = "sunrise_client::game::combat::CombatTracker"
+ty = "crate::game::combat::pluto_living_drop_state::HeadDeaths"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client::game::combat::Game<'_>::mob_death_message"
+selector = "CombatTracker"
+require = 1
+
+[[crate]]
+id = "pluto-inventory-api"
+path = "inventory-api"
+dependent = "sunrise-client-lib"
+
+[[state]]
+id = "pluto-advancement-tags"
+target = "sunrise_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_advancement_tag_state::TagState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+

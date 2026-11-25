@@ -23,8 +23,8 @@
 use super::Game;
 use sunrise_client::{entry::pluto_spawn_placement as access,mobs::{Mob,Species}};
 use sunrise_client::mobs::spawn_rules::SpawnLevel;
-use horizon_core::geometry::Vec3;
-use horizon_core::random::RandomSource;
+use sunrise_core::geometry::Vec3;
+use sunrise_core::random::RandomSource;
 
 /// The facts of one candidate position, read once from the game's own level view.
 fn candidate_facts(game:&Game<'_>,level:&impl SpawnLevel,entity:&str,species:Species,x:i32,y:i32,z:i32)->access::Facts {

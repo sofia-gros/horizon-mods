@@ -2,7 +2,7 @@
 use super::{Game, GameLevel, GuestUse};
 use super::pluto_world_fluid_query::{cell, View};
 use sunrise_client::{first_person::UseResult, items::ItemStack};
-use horizon_core::position::BlockPos;
+use sunrise_core::position::BlockPos;
 use sunrise_world::{
     level::{flags, ticks::Ticks, LevelAccess, Spread},
     registry::BlockStateId,

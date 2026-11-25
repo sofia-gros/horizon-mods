@@ -10,7 +10,7 @@ fn pluto_item_prototypes(
             // Keep even malformed non-compounds: the reload snapshot validator
             // must reject them rather than inventing an empty default compound.
             item.custom_components.insert("minecraft:custom_data".into(),
-                horizon_client_core::scoreboard::json_to_tag(data));
+                sunrise_client_core::scoreboard::json_to_tag(data));
         }
     }
     value

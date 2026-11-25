@@ -1,0 +1,11 @@
+# Quarantined from sunrise-mod.toml during the Sunrise conversion.
+# [[state]]/[[state.constructor]]: REFUSED by the Sunrise package reader
+# (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
+# [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
+# of the native build. Kept verbatim for the migration work.
+
+[[crate]]
+id = "api"
+path = "api"
+dependent = "sunrise-client"
+

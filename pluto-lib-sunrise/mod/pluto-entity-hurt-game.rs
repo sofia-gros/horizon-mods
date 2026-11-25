@@ -31,7 +31,7 @@ pub(crate) fn hurt_any(game: &mut super::Game<'_>, entity: u32, amount: f32, dam
 fn dropped_indestructible(game: &super::Game<'_>, id: u32) -> bool {
     let Some(item) = game.dropped.iter().find(|item| item.id == id) else { return false };
     let data = match item.stack.data().and_then(|d| d.other("minecraft:custom_data")) {
-        Some(tag @ sunrise_world::nbt::Tag::Compound(_)) => horizon_client_core::scoreboard::tag_to_json(tag),
+        Some(tag @ sunrise_world::nbt::Tag::Compound(_)) => sunrise_client_core::scoreboard::tag_to_json(tag),
         _ => serde_json::Value::Object(serde_json::Map::new()),
     };
     sunrise_world::level::pluto_item_behavior_access::indestructible(&item.stack.item, &data) == Some(true)

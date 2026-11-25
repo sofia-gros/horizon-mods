@@ -1,4 +1,4 @@
-fn pluto_item_after_fall(value: f64, item: &mut crate::entities::ItemEntity, world: &crate::world::World, collision: &sunrise_world::block_collision::BlockCollisionRegistry<'_>, contact: Option<horizon_core::position::BlockPos>) -> f64 {
+fn pluto_item_after_fall(value: f64, item: &mut crate::entities::ItemEntity, world: &crate::world::World, collision: &sunrise_world::block_collision::BlockCollisionRegistry<'_>, contact: Option<sunrise_core::position::BlockPos>) -> f64 {
     // Wrap only vertical restitution. The caller retains collision, native
     // contact/discard handlers, fluid/block effects, drag and tracker ordering.
     use sunrise_world::level::pluto_block_access::{self as transport, AfterFall, StateInfo};

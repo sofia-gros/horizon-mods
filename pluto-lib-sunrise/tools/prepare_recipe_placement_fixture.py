@@ -117,7 +117,7 @@ def prepare(host, output):
     g += 'fn place_recipe(&mut self,book:BookType,index:usize,all:bool){if let std::ops::ControlFlow::Continue(())=pluto_recipe_placement_click(self,book,index){self.native_place_recipe(book,index,all)}}\n}\n'
     (output / "native_game.rs").write_text(g)
     manifest='[package]\nname="pluto-recipe-placement-tests"\nversion="0.0.0"\nedition="2024"\n[workspace]\n[lib]\npath="lib.rs"\n[dependencies]\nserde_json="1"\npluto-inventory-api={path="inventory-api"}\n'
-    for name in ("horizon-items","horizon-world","horizon-core","horizon-protocol"):
+    for name in ("horizon-items","horizon-world","sunrise-core","sunrise-protocol"):
         manifest += name+'={path='+json.dumps(str(host / "crates" / name))+'}\n'
     manifest += '\n[patch.crates-io]\n'
     for name, patch in tomllib.loads((host / "Cargo.toml").read_text()).get("patch",{}).get("crates-io",{}).items():

@@ -10,6 +10,6 @@ fn pluto_client_data(game: &crate::game::Game<'_>, source: &Option<ItemStack>) -
         |registry, name| remote.builtin.get(registry).and_then(|ids| ids.id(name)).or_else(|| remote.registries.id(registry, name)),
         source,
     );
-    if let Some(stack) = result.as_mut() { stack.added.push((horizon_protocol::item::component::CUSTOM_DATA, horizon_protocol::item::Component::Nbt(custom))); }
+    if let Some(stack) = result.as_mut() { stack.added.push((sunrise_protocol::item::component::CUSTOM_DATA, sunrise_protocol::item::Component::Nbt(custom))); }
     Break(result)
 }

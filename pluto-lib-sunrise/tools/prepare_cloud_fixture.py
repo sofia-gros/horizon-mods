@@ -29,7 +29,7 @@ def prepare(horizon: Path, output: Path):
     (output / "Cargo.toml").write_text(
         '[package]\nname = "pluto-cloud-descriptor"\nversion = "0.0.0"\nedition = "2024"\n'
         '[workspace]\n[lib]\npath = "lib.rs"\n'
-        '[dependencies]\nhorizon-client-core = { path = ' + json.dumps(str(horizon / 'crates/horizon-client-core')) + ' }\n')
+        '[dependencies]\nhorizon-client-core = { path = ' + json.dumps(str(horizon / 'crates/sunrise-client-core')) + ' }\n')
     patches = tomllib.loads((horizon / "Cargo.toml").read_text()).get("patch", {}).get("crates-io", {})
     with (output / "Cargo.toml").open("a") as manifest:
         manifest.write("\n[patch.crates-io]\n")

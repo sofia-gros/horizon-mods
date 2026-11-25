@@ -7,7 +7,7 @@ fn pluto_shear_mob(game: &mut Game<'_>, index: usize, item: &str) -> std::ops::C
     // body under the vanilla name, so its loot, sound and tool damage stay the game's.
     let granted = game.held().is_some_and(|stack| {
         let data = match stack.data().and_then(|d| d.other("minecraft:custom_data")) {
-            Some(tag @ sunrise_world::nbt::Tag::Compound(_)) => horizon_client_core::scoreboard::tag_to_json(tag),
+            Some(tag @ sunrise_world::nbt::Tag::Compound(_)) => sunrise_client_core::scoreboard::tag_to_json(tag),
             _ => serde_json::Value::Object(serde_json::Map::new()),
         };
         sunrise_world::level::pluto_item_behavior_access::tool_action(&stack.item, &data, "shears_harvest") == Some(true)

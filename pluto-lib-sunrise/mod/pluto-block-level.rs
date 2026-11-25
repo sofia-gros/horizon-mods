@@ -1,8 +1,8 @@
 // PlutoLib's block behaviours inside the game: the one place that answers `canSurvive`, `getStateForPlacement` and `updateShape` for
 // blocks that have a behaviour registered through the API crate (block_api_v1). Other blocks are left to the game and to other hooks.
 use super::*;
-use horizon_core::geometry::Direction;
-use horizon_core::random::RandomSource;
+use sunrise_core::geometry::Direction;
+use sunrise_core::random::RandomSource;
 use crate::entry::pluto_block::{self, LevelEdit, LevelView, Placement, PlacementAnswer, ShapeUpdate, StateInfo};
 
 struct View<'a, 'g> {
@@ -315,7 +315,7 @@ impl LevelEdit for Edit<'_, '_> {
         // cave vine) ask nothing more of the player.
         let player = sunrise_world::level::PlayerContext { yaw: 0.0, pitch: 0.0, may_build: true, can_eat: false, game_master: false };
         let behaviours = self.level.behaviours;
-        let result = behaviours.use_item_on(&mut *self.level, ticks, at(pos), face, horizon_core::geometry::Vec3::new(hit[0], hit[1], hit[2]), player, item);
+        let result = behaviours.use_item_on(&mut *self.level, ticks, at(pos), face, sunrise_core::geometry::Vec3::new(hit[0], hit[1], hit[2]), player, item);
         Some(result.consumes_action())
     }
 

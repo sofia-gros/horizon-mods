@@ -63,6 +63,6 @@ pub(crate) fn tick_return(game: &mut Game<'_>) {
         })
     });
     if let Some(packet) = packet {
-        game.guest_packets.push(horizon_protocol::packets::play::Clientbound::MapItemData(packet));
+        game.guest_packets.push(sunrise_protocol::packets::play::Clientbound::MapItemData(packet));
     }
 }

@@ -1,6 +1,6 @@
 // Extend the host encoder without changing an existing component or cached patch.
 fn add_max_damage(mut value: Option<Stack>, source: &Option<ItemStack>) -> Option<Stack> {
-    use horizon_protocol::item::{component, Component};
+    use sunrise_protocol::item::{component, Component};
     let (Some(out), Some(data)) = (
         value.as_mut(),
         source.as_ref().and_then(|stack| stack.data()),

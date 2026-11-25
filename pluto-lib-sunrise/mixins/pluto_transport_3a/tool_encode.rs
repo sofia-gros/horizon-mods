@@ -3,7 +3,7 @@ fn pluto_tool_encode(
     source: &Option<ItemStack>,
     registry: &impl Fn(&str, &str) -> Option<i32>,
 ) -> Option<Stack> {
-    use horizon_protocol::item::Component;
+    use sunrise_protocol::item::Component;
     const TOOL: i32 = 28;
     let (Some(out), Some(data)) = (value.as_mut(), source.as_ref().and_then(|s| s.data())) else {
         return value;

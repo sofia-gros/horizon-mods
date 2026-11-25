@@ -1,5 +1,5 @@
 // Native packet projection only. The installed RETURN hook establishes phase.
-use horizon_protocol::packets::play::Clientbound as Packet;
+use sunrise_protocol::packets::play::Clientbound as Packet;
 use pluto_inventory_api::client_payload as api;
 
 pub fn observe(packet: &Packet) {
@@ -31,7 +31,7 @@ mod tests {
     }
     #[test]
     fn actual_packet_projection_borrows_without_modifying_or_observing_other_variants() {
-        use horizon_protocol::packets::configuration::CustomPayload;
+        use sunrise_protocol::packets::configuration::CustomPayload;
         api::register("fixture:packet_projection", "fixture:payload", 3, record).unwrap();
         CALLS.store(0, Ordering::SeqCst);
         observe(&Packet::Unknown(-1, vec![0, 255, 128]));

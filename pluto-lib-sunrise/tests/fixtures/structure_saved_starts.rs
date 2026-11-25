@@ -1,6 +1,6 @@
 // Trace-only host double: executes the production adapter, not a world generator.
 // It checks saved-source routing and candidate ownership, not gameplay parity.
-extern crate self as horizon_core;
+extern crate self as sunrise_core;
 use std::{collections::BTreeMap, sync::{Arc, Mutex, OnceLock, TryLockError}};
 
 pub mod random {

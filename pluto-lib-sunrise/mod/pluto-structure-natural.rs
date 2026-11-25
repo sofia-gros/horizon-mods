@@ -2,7 +2,7 @@
 // Registered markers execute through the typed generation-world adapter.
 use super::*;
 use crate::level::pluto_structure_access;
-use horizon_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
+use sunrise_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
 use std::ops::ControlFlow;
 
 fn attempt(state:&StructureState,context:&mut impl StartContext,index:usize,chunk:ChunkPos)->Option<StructureStart> {

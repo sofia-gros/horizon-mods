@@ -1,7 +1,7 @@
 //! Run as an example of the pinned Horizon client library; see docs/component-transport.md.
 //! The registry and wire round trip follow Horizon's item_sync tests.
 use sunrise_client_lib::{item_sync, items::ItemStack, lan::guest::stack_to_network};
-use horizon_protocol::{
+use sunrise_protocol::{
     buf::{Codec, Reader, Writer},
     item::{component, DelimitedSlot, Slot},
     registry::{Builtin, Dynamic, Ids},
@@ -16,7 +16,7 @@ mod item_data {
 }
 mod tool_encoder {
     use sunrise_client_lib::items::ItemStack;
-    use horizon_protocol::item::Stack;
+    use sunrise_protocol::item::Stack;
     include!("../mixins/pluto_transport_3a/tool_encode.rs");
     pub fn apply(
         value: Option<Stack>,
@@ -28,7 +28,7 @@ mod tool_encoder {
 }
 mod tool_decoder {
     use sunrise_client_lib::items::ItemStack;
-    use horizon_protocol::{
+    use sunrise_protocol::{
         item::Stack,
         registry::{Builtin, Dynamic},
     };
@@ -45,7 +45,7 @@ mod tool_decoder {
 
 mod max_damage_adapter {
     use sunrise_client_lib::items::ItemStack;
-    use horizon_protocol::item::Stack;
+    use sunrise_protocol::item::Stack;
     include!("../mixins/pluto_transport_3a/max.rs");
     pub fn apply(value: Option<Stack>, source: &Option<ItemStack>) -> Option<Stack> {
         add_max_damage(value, source)
@@ -228,13 +228,13 @@ fn main() {
     let mut supplied_tool = wire.clone();
     supplied_tool
         .added
-        .push((28, horizon_protocol::item::Component::Raw(tool_bytes.data)));
+        .push((28, sunrise_protocol::item::Component::Raw(tool_bytes.data)));
     let mut bytes = Writer::new();
     Slot::write(&Some(supplied_tool), &mut bytes);
     let received = Slot::read(&mut Reader::new(&bytes.data)).unwrap().unwrap();
     assert!(matches!(
         received.component(28),
-        Some(horizon_protocol::item::Component::Raw(_))
+        Some(sunrise_protocol::item::Component::Raw(_))
     ));
     let decoded = item_sync::from_network(&received, &builtin, &Dynamic::default());
     assert!(decoded
@@ -621,12 +621,12 @@ fn main() {
                 let mut official = wire.clone();
                 official
                     .added
-                    .push((28, horizon_protocol::item::Component::Raw(encoded.clone())));
+                    .push((28, sunrise_protocol::item::Component::Raw(encoded.clone())));
                 let mut raw = Writer::new();
                 Slot::write(&Some(official), &mut raw);
                 let read = Slot::read(&mut Reader::new(&raw.data)).unwrap().unwrap();
                 assert!(
-                    matches!(read.component(28), Some(horizon_protocol::item::Component::Raw(v)) if *v == encoded)
+                    matches!(read.component(28), Some(sunrise_protocol::item::Component::Raw(v)) if *v == encoded)
                 );
                 let decoded_tool =
                     pluto_tool_codec::decode(&encoded, &|_| None).expect("tool decode");
@@ -648,7 +648,7 @@ fn main() {
                 assert_eq!(all.added.iter().filter(|(id, _)| *id == 28).count(), 1);
                 let mut all = all;
                 all.added
-                    .push((component::RARITY, horizon_protocol::item::Component::Int(2)));
+                    .push((component::RARITY, sunrise_protocol::item::Component::Int(2)));
                 all.removed.push(component::ITEM_NAME);
                 let mut guest_wire = Writer::new();
                 DelimitedSlot::write(&Some(all.clone()), &mut guest_wire);

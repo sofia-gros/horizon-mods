@@ -9,7 +9,7 @@ fn before_open_native_screen(
     target: Option<Pos>,
     window: i32,
     menu: &str,
-    extra: &Option<horizon_protocol::menu_extra::Message>,
+    extra: &Option<sunrise_protocol::menu_extra::Message>,
 ) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
     let Some(extra) = extra.as_ref() else { return Continue(()) };

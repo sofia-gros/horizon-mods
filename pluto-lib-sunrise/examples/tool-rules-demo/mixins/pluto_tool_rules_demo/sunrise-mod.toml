@@ -1,24 +1,27 @@
-[mod]
-id = "pluto_tool_rules_demo"
+id = "unknown"
+name = "unknown"
 version = "0.1.0"
-priority = 100
+api = "0.2"
+side = "both"
 
-[compatibility]
-horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
+[native]
+game = "26.3"
+sunrise = "3d34bbe63d71bb24c098c1e4021ef866be12fe2d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
 
-[[module]]
+[[native.module]]
 id = "demo"
 file = "crates/sunrise-client/src/entry.rs"
 name = "pluto_tool_rules_demo"
 source = "demo.rs"
 
-[[injection]]
+[[native.mixin]]
 id = "prepare-demo"
 target = "sunrise_client::entry::main"
 kind = "HEAD"
 helper = "prepare.rs"
 
-[[injection]]
+[[native.mixin]]
 id = "demo-creative-slot-guard"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_creative_slot"
 kind = "HEAD"

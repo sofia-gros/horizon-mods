@@ -12,7 +12,7 @@ class CloudBoundary(unittest.TestCase):
     def test_descriptor_uses_one_catalog_owner_and_no_game_or_source_policy(self):
         source = (NATIVE / 'cloud-descriptor.rs').read_text()
         self.assertIn('use sunrise_client::pluto_potions;', source)
-        for forbidden in ('horizon_client_core::potions', 'Game<', 'tconstruct:', 'impl Default', 'take_entity_id', 'breath_clouds', 'lan_acting'):
+        for forbidden in ('sunrise_client_core::potions', 'Game<', 'tconstruct:', 'impl Default', 'take_entity_id', 'breath_clouds', 'lan_acting'):
             self.assertNotIn(forbidden, source)
         self.assertIn('pub attribution: Attribution', source)
         self.assertIn('ConflictingFlags', source)

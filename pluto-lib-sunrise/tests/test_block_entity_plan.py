@@ -173,7 +173,7 @@ class BlockEntityPlan(unittest.TestCase):
     def test_reload_registry_aliases_require_native_attachment_review(self):
         for entry, section in [
             ({'injection_id': 'alias', 'target': GUARD.RELOAD_TARGET}, 'injections'),
-            ({'module_id': 'alias', 'file': 'crates/horizon-client-core/src/registries.rs', 'name': 'alias'}, 'modules'),
+            ({'module_id': 'alias', 'file': 'crates/sunrise-client-core/src/registries.rs', 'name': 'alias'}, 'modules'),
             ({'module_id': 'alias', 'file': 'crates/horizon-client/src/game/chat.rs', 'name': 'alias'}, 'modules'),
             ({'injection_id': 'alias', 'target': 'sunrise_items::items::Items::load_with'}, 'injections'),
             ({'module_id': 'alias', 'file': 'crates/horizon-items/src/items.rs', 'name': 'alias'}, 'modules'),

@@ -10,7 +10,7 @@
 use super::*;
 use crate::pluto_hanging_access as access;
 use sunrise_client::{entities::{ArmorStand, ItemFrame}, items::ItemStack};
-use horizon_core::{geometry::Vec3, position::BlockPos, random::RandomSource};
+use sunrise_core::{geometry::Vec3, position::BlockPos, random::RandomSource};
 use sunrise_world::nbt::Tag;
 use std::{cell::RefCell, collections::HashMap};
 
@@ -105,7 +105,7 @@ fn frame_survives(game: &Game<'_>, f: &ItemFrame) -> bool {
         return true;
     }
     let (lo, hi) = f.bounds();
-    let bounds = horizon_core::geometry::Aabb::new(
+    let bounds = sunrise_core::geometry::Aabb::new(
         Vec3::new(lo[0], lo[1], lo[2]),
         Vec3::new(hi[0], hi[1], hi[2]),
     );
@@ -248,7 +248,7 @@ fn click_through(game: &mut Game<'_>, i: usize) -> bool {
     let f = &game.item_frames[i];
     let step = f.step();
     let behind = [f.pos[0] - step[0], f.pos[1] - step[1], f.pos[2] - step[2]];
-    let face = horizon_core::geometry::Direction::ALL[(f.facing as usize).min(5)];
+    let face = sunrise_core::geometry::Direction::ALL[(f.facing as usize).min(5)];
     let at = Vec3::new(
         f64::from(behind[0]) + 0.5 + f64::from(step[0]) * 0.5,
         f64::from(behind[1]) + 0.5 + f64::from(step[1]) * 0.5,
@@ -689,11 +689,11 @@ pub(super) fn tick_fancy_stands(game: &mut Game<'_>, after: bool) {
 pub(super) fn dispense_fancy_stand(
     game: &mut Game<'_>,
     pos: (i32, i32, i32),
-    facing: horizon_core::geometry::Direction,
+    facing: sunrise_core::geometry::Direction,
     stack: &ItemStack,
     facts: &access::StandFacts,
 ) -> sunrise_client::Result<(Option<ItemStack>, i32)> {
-    use horizon_core::geometry::Direction;
+    use sunrise_core::geometry::Direction;
     let step = match facing {
         Direction::Down => [0, -1, 0],
         Direction::Up => [0, 1, 0],

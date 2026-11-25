@@ -31,7 +31,7 @@ fn observe(payload: api::Payload<'_>) {
 }
 #[test]
 fn actual_protocol_projection_preserves_borrow_with_explicit_correlation() {
-    use horizon_protocol::packets::{configuration::CustomPayload, play::Clientbound as Packet};
+    use sunrise_protocol::packets::{configuration::CustomPayload, play::Clientbound as Packet};
     let mut tracker =
         RequestTracker::new("fixture:request_owner", "fixture:request_reply").unwrap();
     tracker.restart().unwrap();

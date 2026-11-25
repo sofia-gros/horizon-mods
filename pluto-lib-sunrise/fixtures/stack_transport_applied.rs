@@ -1,7 +1,7 @@
 //! Positive fixture: run against a Horizon client library with PlutoLib's
 //! transport hooks already applied, not against a pristine host.
 use sunrise_client_lib::{item_sync, items::ItemStack, lan::guest::stack_to_network};
-use horizon_protocol::{
+use sunrise_protocol::{
     buf::{Codec, Reader, Writer},
     item::{component, Slot},
     registry::{Builtin, Dynamic, Ids},

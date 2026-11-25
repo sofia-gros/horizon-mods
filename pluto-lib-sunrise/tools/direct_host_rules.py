@@ -121,7 +121,7 @@ RULES = [
             }),
             _ => None,
         };
-        let pluto_click_random = horizon_core::random::RandomSource::next_float(&mut self.world.random);
+        let pluto_click_random = sunrise_core::random::RandomSource::next_float(&mut self.world.random);
         let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
             let (changed, context) = sunrise_client::menu::pluto_menu_actions::scope(pluto_context.take(), pluto_click_random, || {
             if matches!(kind, Kind::Mod(_)) {'''),

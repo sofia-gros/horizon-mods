@@ -29,7 +29,7 @@ TRADE_TARGET = "sunrise_client::game::trading::Game<'_>::offers_from_set"
 TRADE_FILES = {'crates/horizon-client/src/merchant.rs', 'crates/horizon-client/src/game/trading.rs'}
 RELOAD_TARGET = "sunrise_client::game::native_reload_listeners::Game<'_>::native_reload_listeners"
 RELOAD_APPLY_TARGET = "sunrise_client::game::native_hooks::Game<'_>::native_server_reload_listener_apply"
-RELOAD_FILES = {'crates/horizon-client-core/src/registries.rs', 'crates/horizon-client/src/game/chat.rs',
+RELOAD_FILES = {'crates/sunrise-client-core/src/registries.rs', 'crates/horizon-client/src/game/chat.rs',
                 'crates/horizon-client/src/game/native_reload_listeners.rs',
                 # Public host re-exports transport the exact adapted registry /
                 # world types to trait packages; renamed foreign modules here

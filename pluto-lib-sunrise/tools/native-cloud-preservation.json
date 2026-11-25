@@ -1,18 +1,18 @@
 {
   "schema": 6,
   "horizon_revision": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
-  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics. One further reviewed attachment, pluto-damage-dragon, observes dragon damage for the damage-event reach; it creates, stores and ticks no clouds. The live potion-facts module republishes the preserved potion/effect catalog (horizon_client_core::potions) read-only as pluto_potions for the API crate; it registers, applies and ticks no effects and creates, stores and ticks no clouds.",
+  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics. One further reviewed attachment, pluto-damage-dragon, observes dragon damage for the damage-event reach; it creates, stores and ticks no clouds. The live potion-facts module republishes the preserved potion/effect catalog (sunrise_client_core::potions) read-only as pluto_potions for the API crate; it registers, applies and ticks no effects and creates, stores and ticks no clouds.",
   "sources": {
     "crates/horizon-client/src/game/potions.rs": "69328359c5df8e6dbff9fd76979d56b94f07b8c5789d946f28f670428157abd7",
     "crates/horizon-client/src/game/dragon.rs": "bd1ec0e7e76701f31e4080b380b6d58a4aee887cf7b50d7188b1744dbe627bc6",
-    "crates/horizon-client-core/src/potions.rs": "463be6e6ad469f1624fe6a58bbd53182062af4caac32fa24dbc38fbac1ccca1f",
+    "crates/sunrise-client-core/src/potions.rs": "463be6e6ad469f1624fe6a58bbd53182062af4caac32fa24dbc38fbac1ccca1f",
     "crates/horizon-client/src/game/potions/cloud_nbt.rs": "7e3d524ed6ea48b5c9e6821f4999b154e01812855ebf63dac7500b2206ad0497",
     "crates/horizon-client/src/game/potions/cloud_particle.rs": "6ebbbda20867d0e589c09191bf19fced95ad483e58968bd51663078cd4d0180a"
   },
   "protected_prefixes": [
     "sunrise_client::game::potions::",
     "sunrise_client::game::dragon::",
-    "horizon_client_core::potions::"
+    "sunrise_client_core::potions::"
   ],
   "contact_module": {
     "mod_id": "pluto_lib",

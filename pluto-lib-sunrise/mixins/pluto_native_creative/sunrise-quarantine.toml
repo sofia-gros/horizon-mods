@@ -1,0 +1,47 @@
+# Quarantined from sunrise-mod.toml during the Sunrise conversion.
+# [[state]]/[[state.constructor]]: REFUSED by the Sunrise package reader
+# (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
+# [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
+# of the native build. Kept verbatim for the migration work.
+
+[[crate]]
+id = "creative-api"
+path = "api"
+dependent = "sunrise-client"
+
+[[crate]]
+id = "inventory-api"
+path = "inventory-api"
+dependent = "sunrise-client-lib"
+
+[[state]]
+id = "landing-state"
+target = "sunrise_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<i32, crate::chunk_map::pluto_landing_state::LandingState>"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "advancement-tags"
+target = "sunrise_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_advancement_tag_state::TagState"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "saved-book-pending"
+target = "sunrise_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_saved_book_state::State"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+

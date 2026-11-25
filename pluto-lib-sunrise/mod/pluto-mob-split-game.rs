@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use super::Game;
 use sunrise_client::{entry::pluto_mob_split as access,items::ItemStack,mobs::{Mob,Species,gear}};
-use horizon_core::random::{LegacyRandom,RandomSource};
+use sunrise_core::random::{LegacyRandom,RandomSource};
 use sunrise_world::player_inventory::EquipmentSlot;
 
 struct Random<'a>(&'a mut LegacyRandom);

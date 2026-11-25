@@ -1,26 +1,31 @@
-[mod]
-id = "pluto_wand_b2"
+id = "unknown"
+name = "unknown"
 version = "0.1.0"
-priority = 200
-[compatibility]
-horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
-[[module]]
+api = "0.2"
+side = "both"
+
+[native]
+game = "26.3"
+sunrise = "3d34bbe63d71bb24c098c1e4021ef866be12fe2d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
+
+[[native.module]]
 id = "behavior"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_wand_demo_b2"
 source = "behavior.rs"
-[[injection]]
+[[native.mixin]]
 id = "register-use"
 target = "sunrise_client::game::Game<'_>::use_tool"
 kind = "HEAD"
 helper = "register.rs"
-[[injection]]
+[[native.mixin]]
 id = "register-tooltip"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_tooltip"
 kind = "HEAD"
 helper = "register.rs"
 
-[[injection]]
+[[native.mixin]]
 id = "demo-stack-limit"
 target = "sunrise_world::item_defaults::native_modify_default_components"
 kind = "HEAD"

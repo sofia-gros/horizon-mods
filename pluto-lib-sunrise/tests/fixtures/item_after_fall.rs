@@ -1,7 +1,7 @@
 // Trace-only host double: execute the production callback adapter, not a
 // second collision solver. The pinned host supplies the resolved contact.
 #![allow(dead_code)]
-extern crate self as horizon_core;
+extern crate self as sunrise_core;
 extern crate self as sunrise_world;
 pub mod position {
     #[derive(Clone, Copy)]

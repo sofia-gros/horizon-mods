@@ -1,10 +1,15 @@
-[mod]
-id = "pluto_fail_probe"
+id = "unknown"
+name = "unknown"
 version = "0.1.0"
-priority = 100
-[compatibility]
-horizon_revision = "b2e71aca04c7f62f24eefd7dd0324bae9c04954f"
-[[injection]]
+api = "0.2"
+side = "both"
+
+[native]
+game = "26.3"
+sunrise = "3d34bbe63d71bb24c098c1e4021ef866be12fe2d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
+
+[[native.mixin]]
 id = "probe-fail"
 target = "sunrise_client::game::Game<'_>::use_tool"
 kind = "HEAD"

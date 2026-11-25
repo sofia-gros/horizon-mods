@@ -3,7 +3,7 @@
 use super::{Behaviours,LevelAccess,Ticks,feature_world::LevelFeatureWorld,pluto_tree_level};
 use super::pluto_block_access::{self,LevelView,LevelEdit,StateInfo,RootBindings,RootCallback,TreeCallback,TreeStep,PlannedTreeCallback,MAX_FEATURE_DEPTH};
 use super::pluto_structure_access::MarkerWorld;
-use horizon_core::{position::BlockPos,random::{LegacyRandom,RandomSource}};
+use sunrise_core::{position::BlockPos,random::{LegacyRandom,RandomSource}};
 use serde_json::Value;
 
 fn at([x,y,z]:[i32;3])->BlockPos {BlockPos::new(x,y,z)}
@@ -112,7 +112,7 @@ fn place_chunk<L:LevelAccess+?Sized>(
     random:&mut LegacyRandom,chunk_box:crate::worldgen::structure::BoundingBox,
 )->Result<(),String> {
     use crate::worldgen::structure::{start::Piece,legacy::PieceContext,pluto_registered_piece,legacy::pluto_structure_markers};
-    use horizon_core::position::ChunkPos;
+    use sunrise_core::position::ChunkPos;
     let Some(first)=start.pieces.first() else {return Ok(())};
     let first_box=first.bounding_box();let center=first_box.center();
     let reference=[center[0],first_box.min[1],center[2]];

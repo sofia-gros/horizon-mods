@@ -33,7 +33,7 @@ use std::sync::Mutex;
 
 use super::commands::Target;
 use super::Game;
-use horizon_core::geometry::Vec3;
+use sunrise_core::geometry::Vec3;
 
 #[derive(Clone, Copy)]
 enum PushRequest {

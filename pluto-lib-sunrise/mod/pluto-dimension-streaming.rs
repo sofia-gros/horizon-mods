@@ -4,7 +4,7 @@ use super::*;
 
 struct SavedStarts(sunrise_client::old_world::SavedOldWorld);
 impl sunrise_world::worldgen::blending::OldWorld for SavedStarts {
-    fn is_old_chunk_around(&self, _: horizon_core::position::ChunkPos, _: i32) -> bool { false }
+    fn is_old_chunk_around(&self, _: sunrise_core::position::ChunkPos, _: i32) -> bool { false }
     fn blending(&self, _: i32, _: i32) -> Option<Arc<sunrise_world::worldgen::blending::BlendingData>> { None }
     fn old_biomes(&self, _: i32, _: i32) -> Option<Arc<sunrise_world::worldgen::biome_chunk::BiomeChunk<sunrise_world::worldgen::biome::BiomeId>>> { None }
     fn saved_starts(&self, x: i32, z: i32) -> Vec<sunrise_world::worldgen::blending::SavedStart> {

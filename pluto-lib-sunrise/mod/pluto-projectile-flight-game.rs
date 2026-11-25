@@ -5,7 +5,7 @@
 use crate::entry::pluto_projectile_flight_access as access;
 use crate::mobs::Who;
 use crate::projectiles::{Projectile, ProjectileKind};
-use horizon_core::geometry::Vec3;
+use sunrise_core::geometry::Vec3;
 
 fn arrow_facts(p: &Projectile) -> Option<access::ArrowFacts> {
     p.arrow.as_ref().map(|a| access::ArrowFacts {

@@ -5,7 +5,7 @@
 use super::*;
 use crate::heightmap::HeightmapType;
 use crate::level::pluto_structure_access::{self,PlanResult,PlanningWorld};
-use horizon_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
+use sunrise_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
 
 // Owned catalog data with weak resource identities, never borrowed contexts.
 // The native constructor cannot accept a Mixins state field on this pin. A

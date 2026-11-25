@@ -52,7 +52,7 @@ pub(super) fn effects(m: &mut Mob, w: &MobWorld<'_>, level_random: &mut LegacyRa
         let [x, y, z] = m.block_on_legacy(w);
         crate::block_contact::emit(crate::block_contact::Event::StepOn(crate::block_contact::Contact {
             entity: m.id as i32, kind: &m.kind.id, block: w.block_name(x, y, z),
-            state: w.world.block(x, y, z), position: horizon_core::position::BlockPos::new(x, y, z),
+            state: w.world.block(x, y, z), position: sunrise_core::position::BlockPos::new(x, y, z),
         }));
         if w.block_name(x, y, z) == "minecraft:magma_block" {
             hurt(m, w, events,1.0, Damage::of(DamageKind::HotFloor));
@@ -77,7 +77,7 @@ pub(super) fn effects(m: &mut Mob, w: &MobWorld<'_>, level_random: &mut LegacyRa
                     if visited.contains(&p) { continue; }
                     crate::block_contact::emit(crate::block_contact::Event::Inside(crate::block_contact::Contact {
                         entity: m.id as i32, kind: &m.kind.id, block: w.block_name(x, y, z),
-                        state: w.world.block(x, y, z), position: horizon_core::position::BlockPos::new(x, y, z),
+                        state: w.world.block(x, y, z), position: sunrise_core::position::BlockPos::new(x, y, z),
                     }));
                     dispatch(m, w, p);
                     visited.push(p);

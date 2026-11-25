@@ -1,0 +1,16 @@
+# Quarantined from sunrise-mod.toml during the Sunrise conversion.
+# [[state]]/[[state.constructor]]: REFUSED by the Sunrise package reader
+# (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
+# [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
+# of the native build. Kept verbatim for the migration work.
+
+[[state]]
+id = "session"
+target = "sunrise_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_guide_lifetime_state::State"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+

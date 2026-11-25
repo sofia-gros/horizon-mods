@@ -1,21 +1,17 @@
+id = "unknown"
+name = "unknown"
+version = "0.1.0"
+api = "0.2"
+side = "both"
+
+[native]
+game = "26.3"
+sunrise = "3d34bbe63d71bb24c098c1e4021ef866be12fe2d"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
+
 # Block movement factors for mod blocks (A34): the host's block declarations carry no speed-factor key, so the
 # factors ride in PlutoLib's movement registry and this mixin applies them to the host's movement table when it loads.
-[mod]
-id = "pluto_movement"
-version = "0.1.0"
-priority = 100
-
-[compatibility]
-horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
-
-[[crate]]
-id = "movement-api"
-path = "api"
-dependent = "sunrise-world"
-
-# The movement table lives in sunrise-world; this module patches its bound states for registered blocks. It is a
-# child of movement_properties, so it may rewrite the bound table's private states.
-[[module]]
+[[native.module]]
 id = "movement-apply"
 file = "crates/sunrise-world/src/movement_properties.rs"
 name = "pluto_movement"
@@ -27,7 +23,7 @@ visibility = "pub"
 # movement value is read, and the only other reader of the unbound table reads its fall-distance
 # reduction, which the factors never change. The bound states carry the same factors the patched
 # definitions would have baked in, and a failed bind keeps the host's error untouched.
-[[injection]]
+[[native.mixin]]
 id = "movement-table"
 target = "sunrise_world::movement_properties::MovementProperties<'_>::bind"
 kind = "RETURN"

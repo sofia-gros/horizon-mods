@@ -1,5 +1,5 @@
 // Read-only potion/effect catalog facts. Content and application policy stay in consumers.
-use horizon_client_core::potions;
+use sunrise_client_core::potions;
 
 /// A registered effect without exposing the host's definition type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -64,7 +64,7 @@
     "crates/horizon-client/src/mobs/drops.rs":"e00562da048a7028cfdf1c8d6dfb736c6e162a0d48b02ec3c604d5f9251c72b8",
     "crates/horizon-client/src/game/native_ticks.rs":"9f7f724564db33ab53e7b8296292baec5616f84b05aa417902c44160983a54d8",
     "crates/horizon-client/src/mobs/cube.rs":"8c3767f17e06d3e5e72b71f4c68f8e0c52bc41f30ef4901587c347cb01f1f2e7",
-    "crates/horizon-client-core/src/particle_type.rs":"b424b79015ccd5c1a7232c189b225fe75c3a50726d409d698051667e6001d575",
+    "crates/sunrise-client-core/src/particle_type.rs":"b424b79015ccd5c1a7232c189b225fe75c3a50726d409d698051667e6001d575",
     "crates/horizon-client/src/game/native_client_particles.rs":"8f2d640c7a2333470038841bdc5ee5212a1096d464f563b3aae1c168ce13c8bd",
     "crates/horizon-client/src/game/item_particles.rs":"c2bd4628a2e214669f9332a4c8a31c4ef5649fe397a2ef53429791eea6cb9175",
     "crates/horizon-client-render/src/particles.rs":"5735256da38d4c7115cb8d2ce13cf0b74b0e804ed735264bdb5627a45aa02c7e",
@@ -74,7 +74,7 @@
     "crates/horizon-assets/src/item_bake.rs":"e6938c696a6d6a39bf35c1e451ceae963a27c306ebf33ff5682dc39bfbc0b08e",
     "crates/horizon-client/src/game/item_draw.rs":"461ee4e705ec244c363e900601ee4e7367e5b25d26dbbd3333ef56281e12fdf7",
     "crates/horizon-world/src/item_defaults.rs":"69dccdc06347da83dd81200f2d0106b727fb2ffbaa8d1ad723c59cf82f46ec24",
-    "crates/horizon-client-core/src/scoreboard.rs":"c13372ff4fcd2c24430ead4a349239ababf8dad48c91ba94b4937eb980f6b37d",
+    "crates/sunrise-client-core/src/scoreboard.rs":"c13372ff4fcd2c24430ead4a349239ababf8dad48c91ba94b4937eb980f6b37d",
     "crates/horizon-client/src/mobs/gear.rs":"b9e7003fc3530dc905a8eeae06a4fdf23b5c7b86bcb5559db2e0aef1c8198839",
     "crates/horizon-client/src/mobs/item_break.rs":"f6ebe5d0b4849127b2acf822a55c04049f301ab9ffde85685175ee1251d8be04",
     "crates/horizon-client/src/entity_nbt.rs":"879e711bc2a40cfb2b066230084a9c4d97ab41db5dca272b3d87bd48a9a66f00",
@@ -93,7 +93,7 @@
     "crates/horizon-client/src/game/natural_spawning.rs":"5db689ebf31ce5fa5e29be94031ba6acc82bdd643986e94fbc7f9f667f86bd39",
     "crates/horizon-client/src/mobs.rs": "7e6e01176689d07fc98ed1dcc71abdffedecb29c7443ab462ee12ed4ddacff45",
     "crates/horizon-client/src/game/native_reload_listeners.rs": "e13348fe83453abcf048b77795e5839b284b785f0143f67085a5a7f8faba5014",
-    "crates/horizon-client-core/src/registries.rs": "ea9d1cc35da7ed7b72742b75fb3fe15569759cd60257308c403020b2958113da",
+    "crates/sunrise-client-core/src/registries.rs": "ea9d1cc35da7ed7b72742b75fb3fe15569759cd60257308c403020b2958113da",
     "crates/horizon-client/src/game/chat.rs": "c957fd35a1ddd46c9baad53290f4497ba88b16c232e17217930a71814068d7c9",
     "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
     "crates/horizon-client/src/merchant.rs": "996b95484acf884a6e07ce74929faccf62aa3fc11ec9f113042f50b44683b7aa",
@@ -133,7 +133,7 @@
     {"module_id":"pluto-entity-spawn-access","file":"crates/horizon-client/src/entry.rs","name":"pluto_entity_spawn_access","visibility":"pub","source_file":"pluto-entity-spawn-access.rs","source_sha256":"ac4258ec8fa4164e86ea4d5012fb2cfe3d2c25878f28fb569fc673fca4ada8d2"},
     {"module_id":"pluto-entity-spawn-game","file":"crates/horizon-client/src/game.rs","name":"pluto_entity_spawn_game","visibility":"pub(crate)","source_file":"pluto-entity-spawn-game.rs","source_sha256":"207992b84b6444150f9133e074231bd7fa95fd6455a0e3fee47a22644ca716a7"},
     {"module_id":"pluto-entity-spawn-state-module","file":"crates/horizon-client/src/mobs/nav.rs","name":"pluto_entity_spawn_state","visibility":"pub","source_file":"pluto-entity-spawn-state.rs","source_sha256":"e2860d49af43ba96f7c1feb8dab828dd6311a6fb5ba743445e6e1481b7ffa6cd"},
-    {"module_id":"pluto-reload-registry-access","file":"crates/horizon-client-core/src/registries.rs","name":"pluto_reload_registry","visibility":"pub","source_file":"pluto-reload-registry-access.rs","source_sha256":"cef877ca8c804f6d6fef9f4686f51e95f4227f60f2d0e93ea6d35827c8252475"},
+    {"module_id":"pluto-reload-registry-access","file":"crates/sunrise-client-core/src/registries.rs","name":"pluto_reload_registry","visibility":"pub","source_file":"pluto-reload-registry-access.rs","source_sha256":"cef877ca8c804f6d6fef9f4686f51e95f4227f60f2d0e93ea6d35827c8252475"},
     {"module_id":"pluto-reload-registry-source","file":"crates/horizon-client/src/game/chat.rs","name":"pluto_reload_registry_source","visibility":"pub(crate)","source_file":"pluto-reload-registry-source.rs","source_sha256":"f5888c61ce7b4bc62619db3a5cd38694f017b20c2738c80efba06624537d34cb"},
     {
       "module_id": "pluto-trade-pool",
@@ -481,5 +481,5 @@
       ]
     }
   ],
-  "exclusive_files": ["crates/horizon-assets/src/item_model.rs", "crates/horizon-assets/src/item_model/special.rs", "crates/horizon-client/src/item_render/special.rs", "crates/horizon-client/src/game/armor_stands.rs","crates/horizon-client/src/game/combat.rs", "crates/horizon-client/src/mobs/drops.rs", "crates/horizon-client/src/mobs/cube.rs", "crates/horizon-client/src/game/native_client_particles.rs", "crates/horizon-client/src/item_render.rs", "crates/horizon-items/src/items.rs", "crates/horizon-client/src/game/spawner.rs", "crates/horizon-client/src/game/raids.rs", "crates/horizon-client/src/game/persist.rs", "crates/horizon-client/src/game/creatures.rs", "crates/horizon-client/src/game/natural_spawning.rs", "crates/horizon-client/src/merchant.rs", "crates/horizon-client/src/game/trading.rs", "crates/horizon-client-core/src/registries.rs", "crates/horizon-client/src/game/chat.rs", "crates/horizon-client/src/game/native_reload_listeners.rs"]
+  "exclusive_files": ["crates/horizon-assets/src/item_model.rs", "crates/horizon-assets/src/item_model/special.rs", "crates/horizon-client/src/item_render/special.rs", "crates/horizon-client/src/game/armor_stands.rs","crates/horizon-client/src/game/combat.rs", "crates/horizon-client/src/mobs/drops.rs", "crates/horizon-client/src/mobs/cube.rs", "crates/horizon-client/src/game/native_client_particles.rs", "crates/horizon-client/src/item_render.rs", "crates/horizon-items/src/items.rs", "crates/horizon-client/src/game/spawner.rs", "crates/horizon-client/src/game/raids.rs", "crates/horizon-client/src/game/persist.rs", "crates/horizon-client/src/game/creatures.rs", "crates/horizon-client/src/game/natural_spawning.rs", "crates/horizon-client/src/merchant.rs", "crates/horizon-client/src/game/trading.rs", "crates/sunrise-client-core/src/registries.rs", "crates/horizon-client/src/game/chat.rs", "crates/horizon-client/src/game/native_reload_listeners.rs"]
 }

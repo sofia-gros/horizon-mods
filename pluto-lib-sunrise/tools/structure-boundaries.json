@@ -375,7 +375,7 @@
       "bindings": [
         {"name":"mob","ty":"&mut crate::mobs::Mob","value":"&mut *m"},
         {"name":"world","ty":"&crate::mobs::MobWorld<'_>","value":"w"},
-        {"name":"random","ty":"&mut horizon_core::random::LegacyRandom","value":"&mut *level_random"},
+        {"name":"random","ty":"&mut sunrise_core::random::LegacyRandom","value":"&mut *level_random"},
         {"name":"events","ty":"&mut Vec<crate::mobs::MobEvent>","value":"&mut *events"}
       ],
       "source_file": "pluto-mob-inside-head.rs",
@@ -392,7 +392,7 @@
         {"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"},
         {"name":"item","ty":"&mut sunrise_client::entities::ItemEntity","value":"&mut *item"},
         {"name":"escape_speed","ty":"Option<f32>","value":"escape_speed"},
-        {"name":"entity_boxes","ty":"&[horizon_core::geometry::Aabb]","value":"entity_boxes"},
+        {"name":"entity_boxes","ty":"&[sunrise_core::geometry::Aabb]","value":"entity_boxes"},
         {"name":"client","ty":"bool","value":"client"},
         {"name":"splash","ty":"&mut dyn FnMut(sunrise_client::entities::ItemSplash)","value":"&mut *splash"}
       ],
@@ -415,7 +415,7 @@
         {"name":"item","ty":"&mut crate::entities::ItemEntity","value":"&mut *self"},
         {"name":"world","ty":"&crate::world::World","value":"world"},
         {"name":"collision","ty":"&sunrise_world::block_collision::BlockCollisionRegistry<'_>","value":"collision"},
-        {"name":"contact","ty":"Option<horizon_core::position::BlockPos>","value":"contact"}
+        {"name":"contact","ty":"Option<sunrise_core::position::BlockPos>","value":"contact"}
       ],
       "source_file": "pluto-item-after-fall.rs",
       "source_sha256": "5619126ff0a4442016aabd861188fccbbbbdcc75381dc379118db47c3fa3eaa4"
@@ -471,10 +471,10 @@
       "cancellable": true,
       "bindings": [
         {"name":"world","ty":"&mut crate::motion::MotionWorld<'_, '_, '_>","value":"&mut *self"},
-        {"name":"from","ty":"horizon_core::geometry::Vec3","value":"from"},
-        {"name":"to","ty":"horizon_core::geometry::Vec3","value":"to"},
+        {"name":"from","ty":"sunrise_core::geometry::Vec3","value":"from"},
+        {"name":"to","ty":"sunrise_core::geometry::Vec3","value":"to"},
         {"name":"visited","ty":"&mut crate::fast_hash::FxHashSet<i64>","value":"visited"},
-        {"name":"entered","ty":"&mut Vec<(i32, horizon_core::position::BlockPos)>","value":"entered"},
+        {"name":"entered","ty":"&mut Vec<(i32, sunrise_core::position::BlockPos)>","value":"entered"},
         {"name":"max_iterations","ty":"i32","value":"max_iterations"},
         {"name":"damage_only","ty":"bool","value":"damage_only"}
       ],
@@ -493,7 +493,7 @@
         {"name":"state","ty":"sunrise_world::registry::BlockStateId","value":"state"},
         {"name":"x","ty":"bool","value":"x"},
         {"name":"z","ty":"bool","value":"z"},
-        {"name":"resolved","ty":"horizon_core::geometry::Vec3","value":"resolved"}
+        {"name":"resolved","ty":"sunrise_core::geometry::Vec3","value":"resolved"}
       ],
       "source_file": "pluto-block-motion-head.rs",
       "source_sha256": "d400022e159ec33bca148fc74fa0d48c456d1376cc7341286c915ab7d4b49fd3"
@@ -508,7 +508,7 @@
       "bindings": [
         {"name":"world","ty":"&crate::motion::MotionWorld<'_, '_, '_>","value":"self"},
         {"name":"state","ty":"sunrise_world::registry::BlockStateId","value":"state"},
-        {"name":"position","ty":"horizon_core::position::BlockPos","value":"position"},
+        {"name":"position","ty":"sunrise_core::position::BlockPos","value":"position"},
         {"name":"distance","ty":"f64","value":"distance"},
         {"name":"damage","ty":"f32","value":"damage"}
       ],

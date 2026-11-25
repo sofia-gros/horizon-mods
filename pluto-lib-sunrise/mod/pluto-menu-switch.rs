@@ -101,11 +101,11 @@ impl Game<'_> {
             let mut data = None;
             self.native_menu_extra_data(uuid, menu, &block, [to.0, to.1, to.2], &mut data);
             let mut data = data.unwrap_or_default();
-            if data.len() > horizon_protocol::menu_extra::MAX_DATA {
+            if data.len() > sunrise_protocol::menu_extra::MAX_DATA {
                 log::warn!(
                     "Horizon: {block}'s menu extra data ({} bytes) is past {} bytes; sent without it",
                     data.len(),
-                    horizon_protocol::menu_extra::MAX_DATA
+                    sunrise_protocol::menu_extra::MAX_DATA
                 );
                 data.clear();
             }

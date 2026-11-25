@@ -1,5 +1,5 @@
 // Minecraft 26.3 Tool stream component (id 28), for the pinned host.
-use horizon_protocol::buf::{Reader, Writer};
+use sunrise_protocol::buf::{Reader, Writer};
 use sunrise_world::nbt::Tag;
 
 fn string(tag: &Tag) -> Option<String> {

@@ -2,7 +2,7 @@
 // spawning::finalize callee. Source attachment remains gated pending all D.
 use super::Game;
 use sunrise_client::{entry::pluto_entity_spawn_access as access,items::{Items,ItemStack},mobs::{Mob,gear}};
-use horizon_core::random::{LegacyRandom,RandomSource};
+use sunrise_core::random::{LegacyRandom,RandomSource};
 use sunrise_world::player_inventory::EquipmentSlot;
 
 struct Random<'a>(&'a mut LegacyRandom);

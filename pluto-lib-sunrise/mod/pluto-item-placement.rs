@@ -4,7 +4,7 @@
 // This avoids unsupported state initialization in the generic Behaviours builder.
 use super::{Behaviours, ItemKind};
 use super::pluto_item_placement_access;
-use horizon_core::geometry::Direction;
+use sunrise_core::geometry::Direction;
 
 pub fn apply(tables: &mut Behaviours) -> Result<(), String> {
     let Some(declarations) = pluto_item_placement_access::declarations() else { return Ok(()) };

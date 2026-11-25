@@ -18,7 +18,7 @@ def prepare(horizon: Path, output: Path):
     pin = tomllib.loads((root / "mixins/pluto_native_creative/sunrise-mod.toml").read_text())["compatibility"]["horizon_revision"]
     head = clean_official(horizon, pin)
     official_lock = (horizon / "Cargo.lock").read_bytes()
-    core = horizon / "crates/horizon-client-core"
+    core = horizon / "crates/sunrise-client-core"
     if not (core / "Cargo.toml").is_file():
         raise ValueError("Official client-core crate is missing")
     if output.exists():

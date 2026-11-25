@@ -145,9 +145,9 @@ def prepare(host, stage, cutoff_path, output):
     check_hashes(ROOT / 'mixins/pluto_native_creative/inventory-api', api_entries[0]['files'])
     original = (host / HOST_ADVANCEMENTS).read_bytes()
     (native / 'advancements.rs').write_bytes(original)
-    (native / 'lib.rs').write_text('pub use horizon_client_core::{potions as brewing, nbt_path};\npub mod advancements;\n')
+    (native / 'lib.rs').write_text('pub use sunrise_client_core::{potions as brewing, nbt_path};\npub mod advancements;\n')
     (native / 'Cargo.toml').write_text('[package]\nname="pluto-provider-native-fixture"\nversion="0.0.0"\nedition="2024"\n[lib]\npath="lib.rs"\n[dependencies]\nserde_json="1"\nlog="0.4"\n'
-        'horizon-client-core={path=' + json.dumps(str(stage / 'crates/horizon-client-core')) + '}\n'
+        'sunrise-client-core={path=' + json.dumps(str(stage / 'crates/sunrise-client-core')) + '}\n'
         'horizon-world={path=' + json.dumps(str(stage / 'crates/horizon-world')) + '}\n')
     (output / 'provider-facts-tests.rs').write_bytes((ROOT / 'tests/native/provider_facts.rs').read_bytes())
     declarations.append('#[path="provider-facts-tests.rs"] mod cross_service_tests;')

@@ -1,6 +1,6 @@
 // Read-only access to the host's registered block-entity fluid tanks.
 use crate::{containers::BlockEntity, world::World};
-use horizon_core::geometry::Direction;
+use sunrise_core::geometry::Direction;
 use sunrise_world::nbt::Tag;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

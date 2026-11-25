@@ -15,7 +15,7 @@ mod sunrise_world {
         }
     }
 }
-mod horizon_client_core {
+mod sunrise_client_core {
     pub mod scoreboard {
         // The real conversion's shapes for the cases the adapters meet.
         pub fn tag_to_json(t: &super::super::sunrise_world::nbt::Tag) -> serde_json::Value {
