@@ -424,8 +424,11 @@ pub(crate) fn register() {
         });
     }
     ScreenHandlerRegistry::register(window);
+    // The registered slot count is the menu's whole slot space (PlutoLib's `menu` contract):
+    // the block's own slots plus the linked range the menu declaration names, or the host
+    // drops the menu for a size mismatch.
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(id).item_slots(SLOT_COUNT as u32).menu("tconstruct:part_builder").on_place(crate::retextured::keep_texture).ticker(|tick| {
+        BlockEntityType::new(id).item_slots((SLOT_COUNT + crate::tabbed_tables::SIDE_SLOTS) as u32).menu("tconstruct:part_builder").on_place(crate::retextured::keep_texture).ticker(|tick| {
             // Keep the staged stacks' model data in step with their material data, as in the
             // station windows (a stack written outside the stations renders untextured otherwise).
             for slot in tick.items.iter_mut().flatten() {

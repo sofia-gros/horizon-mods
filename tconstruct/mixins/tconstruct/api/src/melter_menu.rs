@@ -269,8 +269,11 @@ pub(crate) fn register() {
         .on_button(|button| melter_press(button))
         .on_menu_links(|context| fuel_links(context.pos));
     ScreenHandlerRegistry::register(window);
+    // The registered slot count is the menu's whole slot space (PlutoLib's `menu` contract):
+    // the block's own slots plus the linked range the menu declaration names, or the host
+    // drops the menu for a size mismatch.
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(melter_id).item_slots(SLOTS as u32).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").sync_data().ticker(tick_melter)
+        BlockEntityType::new(melter_id).item_slots(SLOTS as u32 + 1).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").sync_data().ticker(tick_melter)
             .on_use(|used| crate::fluid_items::use_tank(used, MELTER_CAPACITY as u32)),
     );
 
