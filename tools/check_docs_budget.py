@@ -17,7 +17,7 @@ ALLOWED = [
     'pluto-lib/docs/fabric-api-hook-map.md', 'pluto-lib/docs/support-matrix.md', 'pluto-lib/docs/api/*.md',
     'tconstruct/README.md',
     # licence and attribution notices are legal text, not documentation
-    '*NOTICE.md', '*NOTICES.md', '*LICENSE.md',
+    '*NOTICE.md', '*NOTICES.md', '*LICENSE.md', '*CREDITS.md',
 ]
 MAX_ALLOWED_BYTES = 80_000  # a single document this large is no longer readable by a person
 
