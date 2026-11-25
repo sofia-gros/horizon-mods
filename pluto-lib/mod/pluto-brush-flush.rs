@@ -7,9 +7,10 @@
 // archaeology drop of a completed block rolls against it) is the stack of the use in
 // progress; a stroke whose use already ended names a slot past the inventory, whose
 // stack reads as none, so its block drops its item with no tool. A stroke that brushed
-// nothing queues no stroke, so its generic sound is queued apart (see take_fallbacks)
-// and played here for the acting player alone, as the original plays it on the
-// brushing player's client only.
+// nothing queues no stroke, so its fallback is queued apart (see take_fallbacks)
+// and played here for the acting player alone: the dust on the block it aimed at
+// and the generic sound, as the original's brushEffects spawns the dust with the
+// sound on the brushing player's client only.
 use super::*;
 
 pub(crate) fn flush(game: &mut Game<'_>) {
@@ -40,15 +41,29 @@ pub(crate) fn flush(game: &mut Game<'_>) {
         game.audio.play(sound, Some(at), 1.0, 1.0);
         game.brush_block(queued.pos, queued.face, slot);
     }
-    // The generic sound of the strokes that brushed nothing (BrushModule.onUsingTick's
-    // `damage == 0` fallback, `SoundEvents.BRUSH_GENERIC`): the brushing player alone
-    // hears it, as the original plays it on their client only. The local player hears
-    // it unshared from this client; a guest hears it as a sound sent to them alone —
-    // the game's own broadcast sound (`World::play_sound`) would reach the guests near
-    // the block instead and never the local player, the reverse of the original.
+    // The fallback of the strokes that brushed nothing (BrushModule.onUsingTick's
+    // `damage == 0` fallback: its brushEffects with `SoundEvents.BRUSH_GENERIC`) —
+    // the dust on the block the stroke aimed at and the generic sound, for the
+    // brushing player alone, as the original plays the effect on their client only.
+    // The local player is dusted here, as the game's own brush dusts every local
+    // stroke, and hears the sound unshared from this client; a guest hears it as a
+    // sound sent to them alone — the game's own broadcast sound (`World::play_sound`)
+    // would reach the guests near the block instead and never the local player, the
+    // reverse of the original — and is not dusted, as a brushable stroke's guest is
+    // not: the dust is this window's.
     for queued in crate::entry::pluto_brush_access::take_fallbacks(dimension) {
         let at = queued.pos.map(|v| f64::from(v) + 0.5);
         if game.lan_acting.is_none() {
+            let hit = Hit {
+                pos: queued.pos,
+                face: queued.face,
+                point: [
+                    f64::from(queued.pos[0]) + 0.5 + f64::from(queued.face[0]) * 0.5,
+                    f64::from(queued.pos[1]) + 0.5 + f64::from(queued.face[1]) * 0.5,
+                    f64::from(queued.pos[2]) + 0.5 + f64::from(queued.face[2]) * 0.5,
+                ],
+            };
+            game.brush_dust(&hit, slot == crate::game::shield::OFFHAND_SLOT);
             game.audio.play_unshared("minecraft:item.brush.brushing.generic", Some(at), 1.0, 1.0);
         } else {
             let player = crate::lan::playerdata::ints_uuid(game.acting_player_uuid());

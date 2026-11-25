@@ -8,8 +8,8 @@
 //! the ends BrushModule.onUsingTick runs, asked of PlutoLib's player surface and applied by the game at
 //! its seam (see `brush`'s notes). It also answers the brush's highlight through PlutoLib's highlight
 //! surface (see `highlight`). The range the strokes aim over is the player's block-interaction-range
-//! attribute (see `block_reach`), and a stroke that brushes nothing plays the generic brush sound for
-//! the acting player alone (see `brush`'s notes for the dust that stays open).
+//! attribute (see `block_reach`), and a stroke that brushes nothing plays the fallback effect — the
+//! centre block's dust and the generic brush sound — for the acting player alone (see `brush`'s notes).
 use crate::{break_speed_hook::with_held_tool, brush, edible, edible_hook, tool_damage_hook, tool_slot, tool_stack};
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry};
 use pluto_lib::{Direction, EntityReach, Identifier, ItemEvents, ItemSlot, Nbt, StackData, StackSlot, UseTick, World};
@@ -190,7 +190,7 @@ fn on_tick(tick: &UseTick) {
     let neighbours = neighbours(&tick.stack, &world, hit, face, yaw, pitch);
     let damage = brush::stroke(&world, hit, face, &neighbours);
     if brush::fallback(damage) {
-        world.brush_fallback_sound(hit);
+        world.brush_fallback(hit, face);
     }
     if wear(tick, damage) {
         tick.player.stop_use();
