@@ -1150,7 +1150,9 @@ bindings = [{ name = "resources", ty = "&Resources", value = "resources" }]
 # The same tick also applies the brush strokes a mod ordered and ends the item uses a mod
 # ordered ended: the flushes in the game's brush and using_item modules apply what was
 # queued. One injection per place: all three callbacks run from this single head injection,
-# cooking first, and a use's strokes before its end.
+# cooking first, and a use's strokes before its end. The tick also publishes the block
+# survival facts from the behaviour tables, which are built while the world rest loads,
+# after the load-time fact publication above.
 [[module]]
 id = "pluto-cooking-recipes"
 file = "crates/horizon-client/src/entry.rs"

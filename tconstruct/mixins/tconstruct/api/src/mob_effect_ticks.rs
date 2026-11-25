@@ -361,7 +361,7 @@ mod tests {
             id: 0,
             kind: id(kind),
             item: None,
-            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+            living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
         }
     }
 

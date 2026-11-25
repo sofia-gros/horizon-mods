@@ -761,8 +761,8 @@ mod tests {
         let mut ops = MemoryEntityOps::default();
         ops.entities = vec![
             ([1.5, 64.5, 1.5], WorldEntity { id: 1, kind: id("minecraft:item"), item: Some(ItemSlot::new(id("minecraft:iron_ingot"), 2)), living: None }),
-            ([2.5, 64.5, 2.5], WorldEntity { id: 2, kind: id("minecraft:blaze"), item: None, living: Some(LivingFacts { fire_immune: true, invulnerable: false, fire_resistant: false }) }),
-            ([2.5, 64.5, 3.5], WorldEntity { id: 3, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: true }) }),
+            ([2.5, 64.5, 2.5], WorldEntity { id: 2, kind: id("minecraft:blaze"), item: None, living: Some(LivingFacts { fire_immune: true, invulnerable: false, fire_resistant: false, spectator: false }) }),
+            ([2.5, 64.5, 3.5], WorldEntity { id: 3, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: true, spectator: false }) }),
         ];
         let data = Data::default();
         with_entities(&mut ops, || {

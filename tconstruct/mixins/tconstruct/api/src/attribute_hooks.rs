@@ -372,7 +372,7 @@ mod tests {
         ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], true, vec![("tconstruct:double_jump".to_owned(), 0, 100)]));
         assert!((custom_attributes::value(entity, JUMP_COUNT) - 2.0).abs() < 1e-9, "the double-jump effect is read");
         let mut ops = MemoryEntityOps::default();
-        ops.entities = vec![([0.0, 64.0, 0.0], WorldEntity { id: 7709, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) })];
+        ops.entities = vec![([0.0, 64.0, 0.0], WorldEntity { id: 7709, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) })];
         let mut world = MemoryWorldOps::default();
         // The recorded facts are asserted between rounds, not inside the scopes: while a
         // scope runs it holds the ops and the world mutably, so reading them inside the
@@ -418,7 +418,7 @@ mod tests {
         let entity = 7710;
         if let Ok(mut pending) = PENDING_BOOST.lock() { pending.insert(entity, 1.0); }
         let mut ops = MemoryEntityOps::default();
-        ops.entities = vec![([0.0, 64.0, 0.0], WorldEntity { id: 7710, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) })];
+        ops.entities = vec![([0.0, 64.0, 0.0], WorldEntity { id: 7710, kind: Identifier::parse("minecraft:player").unwrap(), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) })];
         with_entities(&mut ops, || {
             ServerLivingEntityEvents::PLAYER_TICK.invoke(&tick_for(entity, [0.0, 64.0, 0.0], true, Vec::new()));
         });

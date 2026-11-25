@@ -259,6 +259,71 @@ pub fn placement_facts(block: &str) -> Option<PlacementFacts> {
     lookup(block)
 }
 
+/// The game's own survival facts for a block: what `canSurvive`'s support, solidity, fire
+/// and fluid arms read, as the game's behaviour table reports them (the host's
+/// `pluto_block_facts::SurvivalFacts`, published from the game's own tables once they are
+/// built). The table answers by block name, so a block whose states differ answers with
+/// its first state.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SurvivalFacts {
+    /// `BlockState.isSolid`: the behaviour table's SOLID flag (not the legacy render
+    /// solidity, which is a different field and is not substituted for it).
+    pub solid: bool,
+    /// `isFaceSturdy(.., SupportType.CENTER)` packed by Direction ordinal (0 down, 1 up,
+    /// 2 north, 3 south, 4 west, 5 east).
+    pub sturdy_center: u8,
+    /// `isFaceSturdy(.., SupportType.RIGID)` packed by Direction ordinal.
+    pub sturdy_rigid: u8,
+    /// `Block.isFaceFull(collision shape, direction)` packed by Direction ordinal.
+    /// Meaningless when `dynamic_shape` is set: that shape depends on the world.
+    pub full_faces: u8,
+    /// Whether the collision shape's face in a direction is not empty
+    /// (`!shape.getFaceShape(direction).isEmpty()`), packed by Direction ordinal.
+    /// Meaningless when `dynamic_shape` is set.
+    pub nonempty_faces: u8,
+    /// The collision shape depends on the position or a block entity (bamboo,
+    /// speleothems, shulker boxes), so the published face bits do not describe it.
+    pub dynamic_shape: bool,
+    /// The state holds a fluid of its own (the behaviour table's LIQUID flag).
+    pub liquid: bool,
+    /// `FireBlock.getIgniteOdds` for the block. A waterlogged state never burns; the
+    /// reader applies that, as the odds the game reports for it are its dry ones.
+    pub ignite_odds: i32,
+    /// The state's own fluid is in the `lava` fluid tag.
+    pub fluid_lava: bool,
+    /// The state holds no fluid at all.
+    pub fluid_empty: bool,
+    /// The state's own fluid is in the fluid tag `supports_lily_pad`.
+    pub fluid_supports_lily_pad: bool,
+    /// The state's own fluid is in the fluid tag `supports_frogspawn`.
+    pub fluid_supports_frogspawn: bool,
+    /// The state's own fluid is in the fluid tag `supports_sugar_cane_adjacently`.
+    pub fluid_supports_sugar_cane_adjacently: bool,
+    /// The blocks this block may stand on by its own support set (a stem's
+    /// `mayPlaceOn`), by name; empty when the block has no support set.
+    pub support_blocks: Vec<String>,
+}
+
+/// A survival-facts lookup the host installs: the facts for a named block, if the game's
+/// table names it.
+pub type SurvivalFactsLookup = fn(&str) -> Option<SurvivalFacts>;
+
+static SURVIVAL_FACTS_LOOKUP: RwLock<Option<SurvivalFactsLookup>> = RwLock::new(None);
+
+/// Installs the survival-facts lookup. Called by the host adapter at startup.
+pub fn set_survival_facts_lookup(lookup: SurvivalFactsLookup) {
+    if let Ok(mut slot) = SURVIVAL_FACTS_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// The survival facts for `block`, when the game's table answers for it.
+pub fn survival_facts(block: &str) -> Option<SurvivalFacts> {
+    let guard = SURVIVAL_FACTS_LOOKUP.read().ok()?;
+    let lookup = (*guard)?;
+    lookup(block)
+}
+
 /// The build range each level last published on its tick, by dimension: what a reader outside a
 /// world callback reads the level's range from (a projectile's flight telling runs in none). A
 /// level publishes its range every tick it runs, so the entry for a loaded dimension is its own
@@ -489,9 +554,9 @@ impl World {
     /// come from the entity scope, which the caller's callback must have open (a player
     /// tick does) — `None` outside one. `Some(true)` is clear, `Some(false)` is blocked,
     /// `None` is unknown, and a caller that places on `None` keeps the pre-check behaviour.
-    /// Item entities never block building, and a spectator's box is not told apart from any
-    /// other living entity's (the reach carries no spectator flag), so one standing in the
-    /// cell blocks it here where the game would let the placement through.
+    /// Item entities never block building, and neither does a spectator: the entity
+    /// reach reports a player's game mode, so a spectator standing in the cell is
+    /// passed over, as the game lets the placement through.
     pub fn is_unobstructed(&self, state: &BlockState, pos: BlockPos) -> Option<bool> {
         let facts = placement_facts(&state.block.to_string())?;
         if !facts.full_collision {
@@ -509,6 +574,10 @@ impl World {
             [x - 3.0, y - 3.0, z - 3.0], [x + 4.0, y + 4.0, z + 4.0]);
         for entity in found {
             if entity.kind.to_string() == "minecraft:item" {
+                continue;
+            }
+            // A spectator has no collision and never blocks a placement.
+            if entity.living.is_some_and(|living| living.spectator) {
                 continue;
             }
             match EntityReach::bounding_box_of(entity.id) {
@@ -647,6 +716,10 @@ impl BlockView for WorldView<'_> {
 
     fn placement_facts(&self, state: &BlockState) -> Option<PlacementFacts> {
         placement_facts(&state.block.to_string())
+    }
+
+    fn survival_facts(&self, state: &BlockState) -> Option<SurvivalFacts> {
+        survival_facts(&state.block.to_string())
     }
 
     fn brightness(&self, pos: BlockPos) -> u8 {
@@ -1372,8 +1445,70 @@ mod tests {
             id,
             kind: Identifier::parse("minecraft:zombie").unwrap(),
             item: None,
-            living: Some(super::super::entity_api_v1::LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+            living: Some(super::super::entity_api_v1::LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }),
         }
+    }
+
+    fn test_survival_facts(block: &str) -> Option<SurvivalFacts> {
+        match block {
+            "minecraft:stone" => Some(SurvivalFacts {
+                solid: true, sturdy_center: 0b111111, sturdy_rigid: 0b111111,
+                full_faces: 0b111111, nonempty_faces: 0b111111, dynamic_shape: false,
+                liquid: false, ignite_odds: 0, fluid_lava: false, fluid_empty: true,
+                fluid_supports_lily_pad: false, fluid_supports_frogspawn: false,
+                fluid_supports_sugar_cane_adjacently: false, support_blocks: Vec::new(),
+            }),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn survival_facts_come_from_the_installed_lookup() {
+        set_survival_facts_lookup(test_survival_facts);
+        let stone = survival_facts("minecraft:stone").expect("the lookup names stone");
+        assert!(stone.solid);
+        assert_eq!(stone.sturdy_center, 0b111111);
+        assert_eq!(survival_facts("minecraft:unknown_block"), None);
+    }
+
+    #[test]
+    fn can_survive_over_a_world_reads_the_survival_facts() {
+        set_placement_facts_lookup(test_placement_facts);
+        set_sturdy_lookup(|block, _| Some(block == "minecraft:stone"));
+        set_survival_facts_lookup(test_survival_facts);
+        let world = World::new("minecraft:overworld");
+        let mut ops = MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 63, 0]), "minecraft:stone".to_owned());
+        with_world(&mut ops, || {
+            let torch = BlockState::parse("minecraft:torch").unwrap();
+            assert_eq!(world.can_survive(&torch, [0, 64, 0], 4), Some(true), "the stone's CENTER bit holds the torch");
+        });
+    }
+
+    #[test]
+    fn is_unobstructed_passes_a_spectator_by() {
+        let (world, mut ops, mut entities) = obstruction_world();
+        let ice = BlockState::parse("minecraft:frosted_ice").unwrap();
+        let cell = [0, 64, 0];
+        let spectator = super::super::entity_api_v1::WorldEntity {
+            id: 7,
+            kind: Identifier::parse("minecraft:player").unwrap(),
+            item: None,
+            living: Some(super::super::entity_api_v1::LivingFacts { fire_immune: false, invulnerable: true, fire_resistant: false, spectator: true }),
+        };
+        entities.entities = vec![([0.5, 64.0, 0.5], spectator)];
+        entities.boxes = vec![(7, [[0.2, 64.0, 0.2], [0.8, 65.8, 0.8]])];
+        let clear = |world: &World, ops: &mut MemoryWorldOps, entities: &mut super::super::entity_api_v1::MemoryEntityOps| {
+            with_world(ops, || {
+                super::super::entity_api_v1::with_entities(entities, || world.is_unobstructed(&ice, cell))
+            })
+        };
+        assert_eq!(clear(&world, &mut ops, &mut entities), Some(true), "a spectator standing in the cell does not block");
+        // The same player out of spectator mode blocks the cell like anyone else.
+        if let Some((_, entity)) = entities.entities.iter_mut().find(|(_, entity)| entity.id == 7) {
+            entity.living = Some(super::super::entity_api_v1::LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false });
+        }
+        assert_eq!(clear(&world, &mut ops, &mut entities), Some(false), "a survival player in the cell blocks it");
     }
 
     #[test]

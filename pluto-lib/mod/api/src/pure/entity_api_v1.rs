@@ -17,6 +17,9 @@ pub struct LivingFacts {
     pub invulnerable: bool,
     /// It has the fire resistance effect (`MobEffects.FIRE_RESISTANCE`).
     pub fire_resistant: bool,
+    /// It is a spectator (`Entity.isSpectator`): it has no collision and never blocks a
+    /// placement. Only players can be spectators; every other living kind answers false.
+    pub spectator: bool,
 }
 
 /// One entity inside a box.
@@ -556,8 +559,8 @@ mod tests {
         let mut ops = MemoryEntityOps::default();
         ops.entities = vec![
             ([1.5, 64.5, 1.5], WorldEntity { id: 1, kind: id("minecraft:item"), item: Some(ItemSlot::new(id("minecraft:iron_ingot"), 3)), living: None }),
-            ([2.5, 64.5, 2.5], WorldEntity { id: 2, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
-            ([9.5, 64.5, 9.5], WorldEntity { id: 3, kind: id("minecraft:cow"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
+            ([2.5, 64.5, 2.5], WorldEntity { id: 2, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) }),
+            ([9.5, 64.5, 9.5], WorldEntity { id: 3, kind: id("minecraft:cow"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) }),
         ];
         ops
     }
@@ -676,8 +679,8 @@ mod tests {
     fn an_ignite_is_recorded_for_a_creeper_only() {
         let mut ops = MemoryEntityOps::default();
         ops.entities = vec![
-            ([1.5, 64.5, 1.5], WorldEntity { id: 2, kind: id("minecraft:creeper"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
-            ([2.5, 64.5, 2.5], WorldEntity { id: 3, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }) }),
+            ([1.5, 64.5, 1.5], WorldEntity { id: 2, kind: id("minecraft:creeper"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) }),
+            ([2.5, 64.5, 2.5], WorldEntity { id: 3, kind: id("minecraft:zombie"), item: None, living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false, spectator: false }) }),
         ];
         with_entities(&mut ops, || {
             assert!(EntityReach::ignite_creeper(2), "the creeper ignites");
