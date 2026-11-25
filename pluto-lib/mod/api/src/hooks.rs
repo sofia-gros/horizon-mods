@@ -241,7 +241,6 @@ pub fn hooks() -> Box<dyn Hooks> {
     .expect("PlutoLib break completion sink installs once");
     horizon_client::entry::pluto_throw_sound_access::set_sink(horizon_client::entry::pluto_throw_sound_access::Sink {
         throw_sound: projectile_api_v1::throw_sound_for,
-        is_throw_sound: projectile_api_v1::is_throw_sound_event,
     }).expect("PlutoLib throw sound sink installs once");
     horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
         .expect("PlutoLib block entity predicate installs once before native initialization");

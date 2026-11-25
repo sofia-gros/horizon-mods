@@ -3083,14 +3083,19 @@ helper = "pluto-effect-apply-head.rs"
 bindings = [{ name = "value", ty = "horizon_client::effects::EffectInstance", value = "$value" }]
 # The throw sound: the game plays the vanilla snowball throw for every thrown type (Game::throw_item), where
 # Java plays the type's own sound (tconstruct:throw.throwball / throw.shuriken, NEUTRAL, 0.5, pitch
-# 0.4 / (random * 0.4 + 0.8)). The game's volume and pitch already are Java's; the rest is made Java's by
-# three reaches on the same sink: the store of `sound` in throw_item is replaced with the thrown type's
-# registered throw sound, when it has one (pluto-throw-sound); the play position `Some(eye)` becomes the
-# thrower's feet for such a type, as Java plays at the player's position (pluto-throw-sound-position); and
-# the game's filing of the event under a sound source answers NEUTRAL for a registered throw sound, where
-# a modded event matches none of the vanilla families and would land on MASTER (pluto-throw-source, on
-# settings::sound_source, whose support module lives in the render crate and is fed by the same sink).
-# A binding may name only a target parameter (no locals), so the reaches bind the thrown stack and the game
+# 0.4 / (random * 0.4 + 0.8)). The game's volume and pitch already are Java's; the event is made Java's by
+# one reach on the throw-sound sink: the store of `sound` in throw_item is replaced with the thrown type's
+# registered throw sound, when it has one (pluto-throw-sound).
+# RESIDUAL (wave-3 integration, 2026-11-26): Java also plays at the thrower's feet and files the sound
+# under NEUTRAL; the game plays at the eye (`Some(eye)` in the same throw_item) and files a modded event
+# under MASTER. No weave shape reaches either value: MODIFY_EXPRESSION_VALUE on `Some(eye)` is refused
+# (E_UNSUPPORTED_CONTROL_FLOW - throw_item's body uses `?`); MODIFY_VARIABLE on `eye` is refused
+# (E_UNSUPPORTED_LOCAL - `eye` is bound by the `let Some(eye) = ... else` pattern); and a RETURN on
+# settings::sound_source is refused (E_UNSUPPORTED_CONTROL_FLOW - nested items in target functions are
+# unsupported). The position therefore stays the game's eye and the filing stays MASTER for now; the
+# follow-up design is a pending-throw bridge (a HEAD reach on throw_item records the thrower's feet in
+# the sink, a reach on Audio::play spends it - the play call is where position and source are consumed).
+# A binding may name only a target parameter (no locals), so the reach binds the thrown stack and the game
 # side recovers the type with the host's own thrown_by_item - the same lookup throw_item built the kind from.
 [[module]]
 id = "pluto-throw-sound-access"
@@ -3106,13 +3111,6 @@ name = "pluto_throw_sound"
 source = "pluto-throw-sound-game.rs"
 visibility = "pub(crate)"
 
-[[module]]
-id = "pluto-throw-source-access"
-file = "crates/horizon-client-render/src/settings.rs"
-name = "pluto_throw_source_access"
-source = "pluto-throw-source-access.rs"
-visibility = "pub"
-
 [[injection]]
 id = "pluto-throw-sound"
 target = "horizon_client::game::creatures::Game<'_>::throw_item"
@@ -3124,28 +3122,4 @@ helper = "pluto-throw-sound.rs"
 bindings = [
  { name = "value", ty = "&'static str", value = "$value" },
  { name = "stack", ty = "&crate::items::ItemStack", value = "stack" }
-]
-
-[[injection]]
-id = "pluto-throw-sound-position"
-target = "horizon_client::game::creatures::Game<'_>::throw_item"
-kind = "MODIFY_EXPRESSION_VALUE"
-selector = "Some(eye)"
-require = 1
-ordinal = 0
-helper = "pluto-throw-sound-position.rs"
-bindings = [
- { name = "value", ty = "Option<[f64; 3]>", value = "$value" },
- { name = "stack", ty = "&crate::items::ItemStack", value = "stack" },
- { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }
-]
-
-[[injection]]
-id = "pluto-throw-source"
-target = "horizon_client_render::settings::sound_source"
-kind = "RETURN"
-helper = "pluto-throw-source.rs"
-bindings = [
- { name = "value", ty = "usize", value = "$value" },
- { name = "event", ty = "&str", value = "event" }
 ]

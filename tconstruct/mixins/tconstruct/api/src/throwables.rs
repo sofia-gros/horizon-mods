@@ -40,10 +40,12 @@
 //!   NEUTRAL, 0.5 volume, pitch `0.4F / (random * 0.4F + 0.8F)`) at the thrower's feet; the game
 //!   picks the throw sound by projectile kind and plays the vanilla snowball throw for thrown
 //!   types, at the eye and filed under MASTER, so each type registers its throw sound on its
-//!   [`ThrownType`] and PlutoLib's throw reaches (`pluto-throw-sound`, a MODIFY_VARIABLE on the
-//!   game's `throw_item`, with `pluto-throw-sound-position` and `pluto-throw-source`) play that
-//!   sound at the feet on NEUTRAL instead — the volume and pitch the game already plays are
-//!   Java's.
+//!   [`ThrownType`] and PlutoLib's throw reach (`pluto-throw-sound`, a MODIFY_VARIABLE on the
+//!   game's `throw_item`) plays that sound instead — the volume and pitch the game already
+//!   plays are Java's. Two residues: the play position stays the game's eye, not the feet,
+//!   and the filing stays MASTER, not NEUTRAL — no weave shape reaches either value
+//!   (documented with the throw-sound reach in PlutoLib's manifest, with the pending-throw
+//!   bridge follow-up design).
 //! - Dispensers: Java registers a `ShootProjectileDispenserBehavior` (power 1.1, inaccuracy
 //!   6.0) for all four items, and they are registered the same way below, in PlutoLib's
 //!   [`DispenseRegistry`]: the host's `dispense_item` hook (API 67) asks its mods before it
