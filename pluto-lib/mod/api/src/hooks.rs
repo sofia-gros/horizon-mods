@@ -3842,6 +3842,9 @@ struct HostDraw<'a> {
     draw: &'a mut BlockEntityDraw,
     state: horizon_world::registry::BlockStateId,
     client_data: Option<&'a NbtCompound>,
+    /// The draw's packed light at each `push`, restored by the matching `pop`: the host's pose stack
+    /// saves only the pose, so a block light raise (`raise_block_light`) is scoped by this stack.
+    lights: Vec<u32>,
 }
 
 impl BlockEntityCanvas for HostDraw<'_> {
@@ -3852,11 +3855,23 @@ impl BlockEntityCanvas for HostDraw<'_> {
     fn partial_tick(&self) -> Option<f32> { Some(self.draw.partial) }
     fn game_time(&self) -> Option<i64> { Some(self.draw.game_time) }
     fn push(&mut self) {
+        self.lights.push(self.draw.light);
         self.draw.push();
     }
 
     fn pop(&mut self) {
         self.draw.pop();
+        if let Some(light) = self.lights.pop() { self.draw.light = light; }
+    }
+
+    fn raise_block_light(&mut self, level: u8) {
+        // `BlockEntityDraw.light`: 16 times sky light in bits 0..8, 16 times block light in bits 8..16
+        // (the host's own packing, named on the field). Only the block light rises and the sky light is
+        // kept, as `FluidRenderer.withBlockLight` combines the two.
+        let wanted = u32::from(level.min(15)) * 16;
+        if wanted > (self.draw.light >> 8) & 0xFF {
+            self.draw.light = (self.draw.light & !0xFF00) | (wanted << 8);
+        }
     }
 
     fn translate(&mut self, by: [f32; 3]) {
@@ -5054,7 +5069,7 @@ impl Hooks for PlutoHooks {
         let client_data = event.entity.__horizon_mixins_pluto_lib_pluto_block_entity_client_state()
             .snapshot().ok().map(|snapshot| compound_from_tag(&snapshot));
         let mut canvas = HostDraw { host, draw: &mut *event.draw, state: event.state,
-            client_data: client_data.as_ref() };
+            client_data: client_data.as_ref(), lights: Vec::new() };
         // The renderer also sees the entity's item slots: they live outside the saved data, and a renderer that
         // draws the contents (a melter's items, a cast on a table) has no other way to reach them.
         let items: Vec<Option<ItemSlot>> = event.entity.items

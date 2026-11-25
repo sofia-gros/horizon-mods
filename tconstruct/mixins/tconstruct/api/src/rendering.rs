@@ -11,9 +11,10 @@
 //! What the host cannot express yet, named rather than faked:
 //! - The canvas tint is `0xRRGGBB` — there is no alpha. The casting renderer's fades (the fluid's opacity in the last
 //!   10% of cooling, the recipe output item fading in through `CastingItemRenderTypeBuffer`) are drawn solid instead.
-//! - The canvas has no light parameter, so `FluidRenderer.withBlockLight` (raising the quad light to the fluid's
-//!   light level) cannot be applied; the host lights the geometry, and the blocks' own `light` state already
-//!   follows the fluid for the tanks.
+//! - `FluidRenderer.withBlockLight` is applied through the canvas's block light raise: every fluid cuboid is
+//!   drawn with the block light raised to the fluid's light level, as the original's fluid rendering does
+//!   (the casting paths raise it inside `renderTransparentCuboid` and `renderScaledCuboid`). The blocks'
+//!   own `light` state also follows the fluid for the tanks.
 //! - A renderer sees only its own block entity: no neighbouring blocks. The faucet's stream below it is drawn
 //!   anyway: its client tick walks the blocks below through the client world view and keeps their states in transient
 //!   client data (`stream`), and the renderer draws each block's own `faucet_fluid` cuboids translated down (Mantle's
@@ -37,10 +38,11 @@ use pluto_lib::{
     NbtCompound, NbtCompoundExt,
 };
 
-/// A fluid's drawn appearance: the still and flowing sprites, the tint (`0xRRGGBB`) and whether it is a gas
-/// (lighter than air: a negative density, as `FluidType.isLighterThanAir`).
+/// A fluid's drawn appearance: the still and flowing sprites, the tint (`0xRRGGBB`), whether it is a gas
+/// (lighter than air: a negative density, as `FluidType.isLighterThanAir`) and its light level
+/// (`FluidType.getLightLevel`, the level its drawn geometry is lit to).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Visual { pub still: String, pub flowing: String, pub tint: u32, pub gas: bool }
+pub(crate) struct Visual { pub still: String, pub flowing: String, pub tint: u32, pub gas: bool, pub light: u8 }
 
 /// The appearance of a fluid: its textures from the original's fluid texture data (vanilla's two fluids, whose
 /// textures every tank may hold, are named directly), its tint and gas test from its fluid definition.
@@ -56,8 +58,11 @@ pub(crate) fn visual(fluid: &Identifier) -> Option<Visual> {
     };
     let def = FluidRegistry::get(&id);
     let gas = def.as_ref().is_some_and(|def| def.attributes.density < 0);
+    // the game's own fluids are registered by nobody, so their light is the game's own (lava glows at 15),
+    // the same fallback as the tank block's `light` state (`crate::tank`)
+    let light = def.as_ref().map_or(if id == "minecraft:lava" { 15 } else { 0 }, |def| def.attributes.luminance.min(15));
     let tint = def.map_or(if id == "minecraft:water" { 0x3F76E4 } else { 0xFFFFFF }, |def| def.attributes.color & 0x00FF_FFFF);
-    Some(Visual { still, flowing, tint, gas })
+    Some(Visual { still, flowing, tint, gas, light })
 }
 
 /// The fluid in host tank `index` of a block entity's saved data (the host's own tank storage, `fluids`).
@@ -82,11 +87,14 @@ pub(crate) fn variant_data<'a, T>(variants: &'a [render_data::Variant<T>], canva
         .map_or(&[], |variant| variant.data)
 }
 
-/// The rotation of a block model from its canonical north facing to `facing`, in degrees (the block state's own
-/// `y` values: east 90, south 180, west 270). Mantle's `RenderingHelper.applyRotation` turns the model data, which
-/// is authored facing north, by the same amount.
+/// The turn that takes block entity data to `facing`, in degrees: Mantle's `RenderingHelper.applyRotation`,
+/// `Axis.YP.rotationDegrees(-90 * facing.get2DDataValue())` about the block's centre (south 0, west 270,
+/// north 180, east 90). The data the renderers draw — Mantle's fluid cuboids and item placements — is
+/// authored facing south, so this is the block state's own `y` rotation turned by 180; using the blockstate
+/// values directly leaves a north or south block's data facing the wrong way (a faucet's stream landing on
+/// the far side of its basin).
 pub(crate) fn facing_degrees(facing: &str) -> f32 {
-    match facing { "east" => 90.0, "south" => 180.0, "west" => 270.0, _ => 0.0 }
+    match facing { "north" => 180.0, "east" => 90.0, "west" => 270.0, _ => 0.0 }
 }
 
 fn rotate_to_facing(canvas: &mut dyn BlockEntityCanvas, facing: &str) {
@@ -94,10 +102,23 @@ fn rotate_to_facing(canvas: &mut dyn BlockEntityCanvas, facing: &str) {
     if degrees != 0.0 { canvas.rotate_about([0.0, 1.0, 0.0], degrees, [0.5, 0.0, 0.5]); }
 }
 
-/// The rotation that turns a south-facing model (the channel's side cuboids) to `side`.
-fn rotate_to_side(canvas: &mut dyn BlockEntityCanvas, side: Direction) {
-    let degrees = (facing_degrees(side.name()) + 180.0) % 360.0;
+/// The block state's own `y` rotation (north 0, east 90, south 180, west 270): the turn of the block's
+/// model, for data authored in the model's own frame — the io blocks' fluid plates and the controller's
+/// window, which the original carries in the block model rather than in a block entity renderer.
+fn model_degrees(facing: &str) -> f32 {
+    match facing { "east" => 90.0, "south" => 180.0, "west" => 270.0, _ => 0.0 }
+}
+
+fn rotate_model_to_facing(canvas: &mut dyn BlockEntityCanvas, facing: &str) {
+    let degrees = model_degrees(facing);
     if degrees != 0.0 { canvas.rotate_about([0.0, 1.0, 0.0], degrees, [0.5, 0.0, 0.5]); }
+}
+
+/// The rotation that turns the channel's side cuboids to `side`: they are authored on the south side (the
+/// side cuboids sit at the south edge of the block), so Mantle's `applyRotation` for the side itself, as
+/// `ChannelBlockEntityRenderer` calls it per side.
+fn rotate_to_side(canvas: &mut dyn BlockEntityCanvas, side: Direction) {
+    rotate_to_facing(canvas, side.name());
 }
 
 /// `renderScaledCuboid`'s box: the cuboid filled to `scale` of its height from the bottom, or from the top for a
@@ -140,11 +161,19 @@ fn draw_face(canvas: &mut dyn BlockEntityCanvas, face: &Face, from: [f32; 3], to
 pub(crate) fn draw_cuboid(canvas: &mut dyn BlockEntityCanvas, cuboid: &Cuboid, visual: &Visual) {
     let from = [cuboid.from[0] / 16.0, cuboid.from[1] / 16.0, cuboid.from[2] / 16.0];
     let to = [cuboid.to[0] / 16.0, cuboid.to[1] / 16.0, cuboid.to[2] / 16.0];
+    // `FluidRenderer` draws a fluid's cuboids with the block light raised to the fluid's light level
+    // (`withBlockLight`, applied inside its cuboid renders): the raise is scoped to this cuboid's draws.
+    let lit = visual.light > 0;
+    if lit {
+        canvas.push();
+        canvas.raise_block_light(visual.light);
+    }
     if cuboid.faces.len() == 6 && cuboid.faces.iter().all(|face| !face.flowing && face.rotation == 0) {
         canvas.cube(from, to, &visual.still, visual.tint);
-        return;
+    } else {
+        for face in cuboid.faces { draw_face(canvas, face, from, to, visual); }
     }
-    for face in cuboid.faces { draw_face(canvas, face, from, to, visual); }
+    if lit { canvas.pop(); }
 }
 
 /// The display context a RenderItem's transform falls back to without Tinkers' custom contexts: the casting
@@ -243,11 +272,12 @@ const IO_PLATES: [Cuboid; 5] = [
 ];
 
 /// Draws the io plates in `visual`, turned to the block's facing. The plate is the whole window: the
-/// original's model fluid is not scaled by the amount.
+/// original's model fluid is not scaled by the amount. The plates are the model's own data, so they take
+/// the model's turn (`rotate_model_to_facing`), not the block entity data turn.
 fn draw_io_fluid(canvas: &mut dyn BlockEntityCanvas, visual: &Visual) {
     let facing = canvas.state_property("facing").unwrap_or_else(|| "north".to_owned());
     canvas.push();
-    rotate_to_facing(canvas, &facing);
+    rotate_model_to_facing(canvas, &facing);
     for plate in &IO_PLATES { draw_cuboid(canvas, plate, visual); }
     canvas.pop();
 }
@@ -465,7 +495,8 @@ fn render_controller(render: &mut BlockEntityRender<'_>) {
         if let Some(visual) = visual(&first.fluid) {
             let facing = canvas.state_property("facing").unwrap_or_else(|| "north".to_owned());
             canvas.push();
-            rotate_to_facing(canvas, &facing);
+            // the window is part of the controller's model, so it takes the model's turn
+            rotate_model_to_facing(canvas, &facing);
             draw_cuboid(canvas, &CONTROLLER_WINDOW, &visual);
             canvas.pop();
         }
@@ -503,6 +534,7 @@ fn render_controller(render: &mut BlockEntityRender<'_>) {
             let (ox, oz) = ((within % (xd + 1) as usize) as f32, (within / (xd + 1) as usize) as f32);
             canvas.push();
             canvas.translate([ox + 0.5, height + 0.5, oz + 0.5]);
+            // the original turns each melting item by `rotationDegrees(-90 * get2DDataValue())`: `facing_degrees`
             let degrees = facing_degrees(&facing);
             if degrees != 0.0 { canvas.rotate_about([0.0, 1.0, 0.0], degrees, [0.0; 3]); }
             canvas.scale([15.0 / 16.0; 3]);
@@ -563,6 +595,7 @@ mod tests {
         fn client_data(&self) -> Option<&NbtCompound> { self.client.as_ref() }
         fn push(&mut self) { self.log.push("push".into()); }
         fn pop(&mut self) { self.log.push("pop".into()); }
+        fn raise_block_light(&mut self, level: u8) { self.log.push(format!("light {level}")); }
         fn translate(&mut self, by: [f32; 3]) { self.log.push(format!("translate {}", point(by))); }
         fn rotate_about(&mut self, axis: [f32; 3], degrees: f32, pivot: [f32; 3]) { self.log.push(format!("rotate {} {degrees:.1} {}", point(axis), point(pivot))); }
         fn scale(&mut self, by: [f32; 3]) { self.log.push(format!("scale {}", point(by))); }
@@ -609,7 +642,7 @@ mod tests {
             match block {
                 "tconstruct:seared_melter" => render_melter(&mut render),
                 "tconstruct:seared_ingot_tank" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_lantern" => render_tank(&mut render),
-                "tconstruct:seared_table" => render_casting(&mut render),
+                "tconstruct:seared_table" | "tconstruct:seared_basin" => render_casting(&mut render),
                 "tconstruct:seared_faucet" => render_faucet(&mut render),
                 "tconstruct:seared_channel" => render_channel(&mut render),
                 "tconstruct:smeltery_controller" => render_controller(&mut render),
@@ -630,8 +663,12 @@ mod tests {
         assert_eq!(log, [
             "push",
             "rotate [0.0000, 1.0000, 0.0000] 90.0 [0.5000, 0.0000, 0.5000]",
+            // the fluid is drawn lit to molten iron's light level 12 (`FluidRenderer.withBlockLight`)
+            "push",
+            "light 12",
             // half of 2160 in the half tank: from y 8.08/16 up half of its 7.84/16 height
             "cube tconstruct:fluid/molten/ore/iron/still [0.0050, 0.5050, 0.0050] -> [0.9950, 0.7500, 0.9950] tint FFFFFF",
+            "pop",
             "push",
             "translate [0.5000, 0.7500, 0.7500]",
             "scale [0.4688, 0.4688, 0.4688]",
@@ -639,9 +676,9 @@ mod tests {
             "pop",
             "pop",
         ]);
-        // an empty melter draws nothing but the turn
+        // an empty melter draws nothing but the turn: north is 180, as `applyRotation` turns south-authored data
         let log = run("tconstruct:seared_melter", &NbtCompound::new(), &[], vec![("facing", "north")]);
-        assert_eq!(log, ["push", "pop"]);
+        assert_eq!(log, ["push", "rotate [0.0000, 1.0000, 0.0000] 180.0 [0.5000, 0.0000, 0.5000]", "pop"]);
     }
 
     #[test]
@@ -655,16 +692,20 @@ mod tests {
         // half of the lantern's fifty: the model box [5.05, 1, 5.05] to [10.95, 6, 10.95] filled to half its height (top at 3.5/16)
         let sprite = "tconstruct:fluid/molten/ore/iron/still";
         assert_eq!(log, [
+            // the fluid is drawn lit to molten iron's light level 12
+            "push".to_string(),
+            "light 12".to_string(),
             format!("quad {sprite} [0.3156, 0.2188, 0.3156] [0.3156, 0.2188, 0.6844] [0.6844, 0.2188, 0.6844] [0.6844, 0.2188, 0.3156] uv [5.05, 5.05, 10.95, 10.95] tint FFFFFF"),
             format!("quad {sprite} [0.6844, 0.2188, 0.3156] [0.6844, 0.0625, 0.3156] [0.3156, 0.0625, 0.3156] [0.3156, 0.2188, 0.3156] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
             format!("quad {sprite} [0.3156, 0.2188, 0.6844] [0.3156, 0.0625, 0.6844] [0.6844, 0.0625, 0.6844] [0.6844, 0.2188, 0.6844] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
             format!("quad {sprite} [0.3156, 0.2188, 0.3156] [0.3156, 0.0625, 0.3156] [0.3156, 0.0625, 0.6844] [0.3156, 0.2188, 0.6844] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
             format!("quad {sprite} [0.6844, 0.2188, 0.6844] [0.6844, 0.0625, 0.6844] [0.6844, 0.0625, 0.3156] [0.6844, 0.2188, 0.3156] uv [5.05, 12.50, 10.95, 15.00] tint FFFFFF"),
+            "pop".to_string(),
         ]);
         // hanging, the box stands one step higher (its top at 4.5/16 when half full); empty, nothing is drawn
         let log = run("tconstruct:seared_lantern", &data, &[], vec![("hanging", "true")]);
-        assert_eq!(log.len(), 5);
-        assert!(log.iter().all(|line| line.contains("0.2812") || line.contains("0.1250")), "the hanging box runs from 2/16 to 4.5/16: {log:?}");
+        assert_eq!(log.iter().filter(|line| line.starts_with("quad")).count(), 5);
+        assert!(log.iter().filter(|line| line.starts_with("quad")).all(|line| line.contains("0.2812") || line.contains("0.1250")), "the hanging box runs from 2/16 to 4.5/16: {log:?}");
         assert!(run("tconstruct:seared_lantern", &NbtCompound::new(), &[], vec![]).is_empty());
     }
 
@@ -676,7 +717,8 @@ mod tests {
         let mut data = NbtCompound::new();
         data.insert("tank".into(), Nbt::Compound(tank));
         let log = run("tconstruct:seared_ingot_tank", &data, &[], vec![]);
-        assert_eq!(log, ["cube tconstruct:fluid/molten/ore/gold/still [0.0050, 0.0050, 0.0050] -> [0.9950, 0.5000, 0.9950] tint FFFFFF"]);
+        // drawn lit to molten gold's light level 12 (`FluidRenderer.withBlockLight`)
+        assert_eq!(log, ["push", "light 12", "cube tconstruct:fluid/molten/ore/gold/still [0.0050, 0.0050, 0.0050] -> [0.9950, 0.5000, 0.9950] tint FFFFFF", "pop"]);
         // ichor is lighter than air: a quarter of the fuel tank hangs from the top of the cuboid
         let mut tank = NbtCompound::new();
         tank.insert("FluidName".into(), Nbt::String("tconstruct:ichor".into()));
@@ -711,6 +753,27 @@ mod tests {
         assert_eq!(quads.len(), 1);
         assert!(quads[0].starts_with("quad tconstruct:fluid/molten/ore/iron/still [0.0625, 0.9937, 0.0625]"), "{}", quads[0]);
         assert!(log.iter().any(|line| line == "item minecraft:iron_ingot x1 Fixed"), "{log:?}");
+    }
+
+    #[test]
+    fn a_basin_turns_its_data_to_the_facing_lights_its_fluid_by_the_metal_and_draws_its_output_at_full_size() {
+        // a full basin of molten gold facing north (issue #366): the data is turned 180, as `applyRotation`
+        // turns south-authored data for north — with the blockstate's own 0 the stream cuboid of a north
+        // faucet landed on the basin's far side; the fluid is lit to gold's light level 12, not the
+        // ambient light of the basin's position; the cooled output is drawn at its RenderItem's size
+        let mut data = host_fluid("tconstruct:molten_gold", 90);
+        data.insert("capacity".into(), Nbt::Int(90));
+        let items = [None, Some(stack("minecraft:gold_block"))];
+        let log = run("tconstruct:seared_basin", &data, &items, vec![("facing", "north")]);
+        assert!(log.iter().any(|line| line == "rotate [0.0000, 1.0000, 0.0000] 180.0 [0.5000, 0.0000, 0.5000]"), "{log:?}");
+        assert!(log.iter().any(|line| line == "light 12"), "{log:?}");
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 5, "the basin cuboid's five faces: {log:?}");
+        assert!(quads.iter().all(|line| line.contains("tconstruct:fluid/molten/ore/gold/still")), "{log:?}");
+        // the output: centred at [8, 10, 8]/16, at 12/16 size, in the basin's none display context
+        assert!(log.iter().any(|line| line == "translate [0.5000, 0.6250, 0.5000]"), "{log:?}");
+        assert!(log.iter().any(|line| line == "scale [0.7500, 0.7500, 0.7500]"), "{log:?}");
+        assert!(log.iter().any(|line| line == "item minecraft:gold_block x1 None"), "{log:?}");
     }
 
     #[test]
@@ -764,8 +827,12 @@ mod tests {
         assert_eq!(quads.len(), 11, "{log:?}");
         let at = log.iter().position(|line| line == "translate [0.0000, -1.0000, 0.0000]").expect("the stream is translated down");
         assert_eq!(log[at - 1], "push");
-        assert_eq!(log[at + 5], "pop");
-        let stream = &log[at + 1..at + 5];
+        // the stream cuboid is drawn lit to the fluid's light level: push, the raise, its four quads, pop, pop
+        assert_eq!(log[at + 1], "push");
+        assert_eq!(log[at + 2], "light 12");
+        assert_eq!(log[at + 7], "pop");
+        assert_eq!(log[at + 8], "pop");
+        let stream = &log[at + 3..at + 7];
         assert!(stream.iter().all(|line| line.contains("tconstruct:fluid/molten/ore/iron/flowing")), "{log:?}");
         assert!(stream[0].starts_with("quad tconstruct:fluid/molten/ore/iron/flowing [0.6250, 1.0000, 0.3750] [0.6250, 0.9375, 0.3750] [0.3750, 0.9375, 0.3750] [0.3750, 1.0000, 0.3750] uv [6.00, 0.00, 10.00, 1.00]"), "{}", stream[0]);
         // without client data there is no stream to draw: the faucet's own cuboids only
@@ -790,7 +857,10 @@ mod tests {
         let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
         assert_eq!(quads.len(), 9, "{log:?}");
         let at = log.iter().position(|line| line == "translate [0.0000, -1.0000, 0.0000]").expect("the stream is translated down");
-        let stream = &log[at + 1..at + 5];
+        // inside the translate: the light raise's push and the raise itself, then the stream's four quads
+        assert_eq!(log[at + 1], "push");
+        assert_eq!(log[at + 2], "light 12");
+        let stream = &log[at + 3..at + 7];
         assert!(stream[0].starts_with("quad tconstruct:fluid/molten/ore/iron/flowing [0.6250, 1.0000, 0.3750] [0.6250, 0.2500, 0.3750] [0.3750, 0.2500, 0.3750] [0.3750, 1.0000, 0.3750] uv [6.00, 0.00, 10.00, 12.00]"), "{}", stream[0]);
     }
 
@@ -804,7 +874,8 @@ mod tests {
         let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
         assert_eq!(quads.len(), 5, "{log:?}");
         assert_eq!(log.iter().filter(|line| line.starts_with("rotate")).count(), 3);
-        assert!(log.iter().all(|line| !line.starts_with("rotate") || line.contains("270.0") || line.contains("180.0")), "{log:?}");
+        // the turns are `applyRotation` for each side: east 90, north 180, and the center's east again
+        assert!(log.iter().all(|line| !line.starts_with("rotate") || line.contains("90.0") || line.contains("180.0")), "{log:?}");
         // two out sides disagree: the center is the still (fail) form, drawn whole as up and down faces
         assert_eq!(center_flow(&[Direction::East]), Some(Direction::East));
         assert_eq!(center_flow(&[Direction::East, Direction::West]), None);
@@ -827,8 +898,12 @@ mod tests {
         assert!(!log.iter().any(|line| line.starts_with("rotate")), "{log:?}");
         let at = log.iter().position(|line| line == "translate [0.0000, -1.0000, 0.0000]").expect("the stream is translated down");
         assert_eq!(log[at - 1], "push");
-        assert_eq!(log[at + 5], "pop");
-        let stream = &log[at + 1..at + 5];
+        // the stream cuboid is drawn lit to the fluid's light level: push, the raise, its four quads, pop, pop
+        assert_eq!(log[at + 1], "push");
+        assert_eq!(log[at + 2], "light 12");
+        assert_eq!(log[at + 7], "pop");
+        assert_eq!(log[at + 8], "pop");
+        let stream = &log[at + 3..at + 7];
         assert!(stream.iter().all(|line| line.contains("tconstruct:fluid/molten/ore/iron/flowing")), "{log:?}");
         assert!(stream[0].starts_with("quad tconstruct:fluid/molten/ore/iron/flowing [0.6250, 1.0000, 0.3750] [0.6250, 0.9375, 0.3750] [0.3750, 0.9375, 0.3750] [0.3750, 1.0000, 0.3750] uv [6.00, 0.00, 10.00, 1.00]"), "{}", stream[0]);
         // without client data there is no stream to draw: the center and the drop only
