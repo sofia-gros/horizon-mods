@@ -171,17 +171,19 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         let path = name.strip_prefix("tconstruct:").unwrap();
         if tools.contains(name) { "tools" }
         else if parts.contains(name) { "tool_parts" }
-        // TinkerTables.addTabItems and the declared gadgets of TinkerGadgets.addTabItems (the general tab); the Deco tab only holds retextured variants
-        else if ["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "materials_and_you", "puny_smelting", "mighty_smelting", "tinkers_gadgetry", "fantastic_foundry", "encyclopedia", "cheese_ingot", "cheese_block", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "soul_glass", "soul_glass_pane",
+        // TinkerCommons.addTabItems' own accepts (the tables via TinkerTables, the books, the food, the glass) and the declared gadgets of TinkerGadgets.addTabItems (the general tab); the Deco tab only holds retextured variants
+        else if ["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "materials_and_you", "puny_smelting", "mighty_smelting", "tinkers_gadgetry", "fantastic_foundry", "encyclopedia", "bacon", "jeweled_apple", "cheese_ingot", "cheese_block", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "soul_glass", "soul_glass_pane",
                  "punji", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "clear_glass", "clear_glass_pane", "clear_tinted_glass", "gold_bars", "obsidian_pane", "copper_platform", "exposed_copper_platform", "weathered_copper_platform", "oxidized_copper_platform", "waxed_copper_platform", "waxed_exposed_copper_platform", "waxed_weathered_copper_platform", "waxed_oxidized_copper_platform", "iron_platform", "gold_platform", "cobalt_platform", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane"].contains(&path) { "general" }
-        // TinkerMaterials.addTabItems, which the general tab calls: the firewood sets, the loose nuggets and, per metal, the block, ingot and nugget
-        else if ["copper_nugget", "debris_nugget", "netherite_nugget"].contains(&path)
+        // TinkerMaterials.addTabItems, which the general tab calls: the bones, the firewood sets, the loose nuggets and, per metal, the block, ingot and nugget
+        else if ["venombone", "blazing_bone", "necronium_bone", "copper_nugget", "debris_nugget", "netherite_nugget"].contains(&path)
             || ["nahuatl", "blazewood"].iter().any(|wood| path.strip_prefix(wood).is_some_and(|rest| ["", "_fence", "_slab", "_stairs"].contains(&rest)))
             || ["cobalt", "steel", "slimesteel", "amethyst_bronze", "rose_gold", "pig_iron", "cinderslime", "queens_slime", "manyullyn", "hepatizon", "knightmetal", "knightslime"].iter().any(|metal| path.strip_prefix(metal).is_some_and(|rest| ["_block", "_ingot", "_nugget"].contains(&rest))) { "general" }
-        // TinkerWorld.addTabItems: ores, the heads, the monsters (the EntityObjects' spawn eggs), slimes and their dirt, the slime wood sets, the foliage, the geodes and the metal shards
+        // TinkerModifiers.addTabItems, which the general tab calls: the silky cloth, the reinforcements and the creative slot
+        else if ["silky_cloth", "creative_slot", "emerald_reinforcement", "slimesteel_reinforcement", "iron_reinforcement", "seared_reinforcement", "gold_reinforcement", "cobalt_reinforcement", "obsidian_reinforcement"].contains(&path) { "general" }
+        // TinkerWorld.addTabItems: ores, the mob drops, the heads, the monsters (the EntityObjects' spawn eggs), slimes and their dirt, the slime wood sets, the foliage, the geodes and the metal shards
         // TinkerGadgets.addTabItems is called by the general tab and accepts the piggy backpack
         else if path == "piggy_backpack" { "general" }
-        else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
+        else if ["cobalt_ore", "raw_cobalt", "raw_cobalt_block", "necrotic_bone", "dragon_scale", "steel_shard", "cobalt_shard", "knightmetal_shard"].contains(&path)
             || path.ends_with("_spawn_egg")
             || path.ends_with("_slime_ball") || path.ends_with("_congealed_slime") || path.ends_with("_slime_dirt") || ["sky_slime", "ichor_slime", "ender_slime"].contains(&path)
             || path.ends_with("_slime_grass") || path.ends_with("_slime_leaves") || path.ends_with("_slime_sapling") || path.ends_with("_slime_fern")
@@ -189,6 +191,8 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
             || path.ends_with("_head") || path.ends_with("_cluster") || path.ends_with("_slime_crystal") || path.ends_with("_slime_crystal_block")
             || path.ends_with("_slime_crystal_bud") || path.starts_with("budding_")
             || ["greenheart", "skyroot", "bloodshroom", "enderbark"].iter().any(|wood| path.starts_with(&format!("{wood}_")) || path.starts_with(&format!("stripped_{wood}_"))) || path.ends_with("_slime_grass_seeds") { "world" }
+        // TinkerToolParts.addTabItems pairs each plating with its dummy (registered as TinkerSmeltery.dummyPlating, but the smeltery tab itself notes "dummy parts are in tool parts creative tab")
+        else if path.ends_with("_plating_dummy") { "tool_parts" }
         else { "smeltery" }
     };
     let mut wrong = Vec::new();
@@ -221,7 +225,9 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     for (tab, entries) in &groups {
         for entry in entries { assert!(declared.contains(entry), "{tab} lists {entry}, which this port does not declare"); }
     }
-    assert!(groups["fluids"].iter().all(|item| item.ends_with("_tank") || item.ends_with("_gauge")), "{:?}", groups["fluids"]);
+    // the fluids tab (TinkerFluids.addFilledContainers) holds filled containers only: the copper can, and
+    // per tank kind the lantern, tank and gauge items (CopperCanItem/TankItem.addFilledVariants)
+    assert!(groups["fluids"].iter().all(|item| item.ends_with("_tank") || item.ends_with("_gauge") || item.ends_with("_lantern") || item == "tconstruct:copper_can"), "{:?}", groups["fluids"]);
     assert!(declared.len() > 240, "{}", declared.len());
 }
 
