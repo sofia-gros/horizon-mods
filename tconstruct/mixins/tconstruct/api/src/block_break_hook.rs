@@ -140,9 +140,11 @@ fn hardness_allows(origin: Option<f32>, candidate: Option<f32>) -> bool {
 
 /// ToolHarvestLogic.runBlockBreak's area half: when the tool is effective on the block being broken, its
 /// definition's AOE iterator (computed now, before the break, as the original computes it) selects the
-/// extra blocks and the break takes them with it. Box and circle candidates are filtered by the
-/// default block predicate — vein and tree select by their own block rules, as their
-/// getBlocks takes no predicate — air is skipped, as the original skips it, and the predicate's
+/// extra blocks and the break takes them with it. Candidates are filtered by the default block
+/// predicate when the iterator owes it (box and circle, and a conditional through the branch it
+/// takes, as ConditionalAOEIterator delegates to the branch's getBlocks) — vein and tree select
+/// by their own block rules, as their getBlocks takes no predicate — air is skipped, as the
+/// original skips it, and the predicate's
 /// hardness clause is read from the hardness the game published (see hardness_allows). A break whose
 /// face the game did not report has no plane to expand over, so it stays single-block.
 fn area_break(broken: &BlockBreakContext) {
@@ -162,7 +164,7 @@ fn area_break(broken: &BlockBreakContext) {
         let block_at = |pos: [i32; 3]| world.get_block_state(pos).map(|state| state.block.clone());
         let in_tag_at = |pos: [i32; 3], tag: &Identifier| world.get_block_state(pos).is_some_and(|state| state.is_in_tag(&tag.to_string()));
         let positions = iterator.positions(broken.pos, face, broken.yaw, broken.pitch, expanded, &block_at, &in_tag_at);
-        if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
+        if iterator.owes_default_predicate(broken.pos, &block_at, &in_tag_at) {
             positions.into_iter().filter(|pos| world.get_block_state(*pos).as_ref().is_some_and(|state| state.block.to_string() != "minecraft:air" && hardness_allows(origin_hardness, pluto_lib::world_api_v1::block_hardness(&state.block.to_string())) && effective_on(state))).collect()
         } else {
             positions
@@ -413,8 +415,9 @@ fn exchange_after(broken: &BlockBreakContext) {
 /// brush's shouldHighlight answers. The gate is the render event's own: nothing is outlined when
 /// the tool is effective on nothing at the aim and carries no AOE-interaction modifier (pathing,
 /// stripping, tilling, brushing, splashing, harvest), and the distance gate is the frame's block
-/// reach, as the brush's is. Box and circle candidates are filtered to the effective ones, as the
-/// break hook filters its area; vein, tree and conditional positions ride as the break hook takes
+/// reach, as the brush's is. Candidates the iterator owes the default predicate for (box and
+/// circle, and a conditional through the branch it takes) are filtered to the effective ones, as
+/// the break hook filters its area; vein and tree positions ride as the break hook takes
 /// them, so only when the tool is effective on the aimed block itself — otherwise a brush tool's
 /// vein would outline blocks its stroke never breaks. The predicate's hardness clause (a
 /// neighbour unbreakable, or more than three times as hard as the aim) is applied from the
@@ -439,7 +442,7 @@ fn highlight(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]> {
         let face = Direction::from_offset(target.face).unwrap_or(Direction::Up);
         let origin_hardness = (facts.hardness_at)(target.pos);
         let positions = iterator.positions(target.pos, face, facts.yaw, facts.pitch, expanded, facts.block_at, facts.in_tag_at);
-        if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
+        if iterator.owes_default_predicate(target.pos, facts.block_at, facts.in_tag_at) {
             positions.into_iter().filter(|pos| (facts.block_at)(*pos).is_some_and(|block| block.to_string() != "minecraft:air") && hardness_allows(origin_hardness, (facts.hardness_at)(*pos)) && effective_on(*pos)).collect()
         } else if effective_on(target.pos) {
             positions

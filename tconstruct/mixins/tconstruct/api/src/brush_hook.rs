@@ -74,8 +74,9 @@ fn blocked_by_entity(tick: &UseTick, distance: f64) -> bool {
 }
 
 /// The tool's AOE transform neighbours of the hit block (the definition's AOE_ITERATOR over
-/// the hit, as the break hook computes its area): box and circle candidates still owe the
-/// default predicate's other half to the caller — here only air is skipped, as the original
+/// the hit, as the break hook computes its area): candidates the iterator owes the default
+/// predicate for (box and circle, and a conditional through the branch it takes) still owe the
+/// predicate's other half to the caller — here only air is skipped, as the original
 /// skips it, and the stroke itself tests each candidate for brushability.
 fn neighbours(stack: &StackData, world: &World, origin: [i32; 3], face: [i32; 3], yaw: f32, pitch: f32) -> Vec<[i32; 3]> {
     let block_at = |pos: [i32; 3]| world.get_block_state(pos).map(|state| state.block.clone());
@@ -94,7 +95,7 @@ fn neighbours_with(stack: &StackData, origin: [i32; 3], face: [i32; 3], yaw: f32
             _ => 0,
         };
         let positions = iterator.positions(origin, direction(face), yaw, pitch, expanded, block_at, in_tag_at);
-        if matches!(iterator, crate::aoe::Iterator::Box { .. } | crate::aoe::Iterator::Circle { .. }) {
+        if iterator.owes_default_predicate(origin, block_at, in_tag_at) {
             positions.into_iter().filter(|pos| block_at(*pos).is_some_and(|block| block.to_string() != "minecraft:air")).collect()
         } else {
             positions

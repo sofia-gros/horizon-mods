@@ -6,7 +6,10 @@
 //! predicate (AreaOfEffectIterator.defaultBlockPredicate) is the caller's to apply, as the
 //! original applies it inside its box and circle iterators: it rejects air, blocks whose
 //! hardness is -1 or more than three times the origin's, and blocks the tool is not effective
-//! on. The hardness half reads the hardness the game published from its block table
+//! on. Which iterators owe it is `Iterator::owes_default_predicate`'s to say: box and circle
+//! owe it, a conditional owes what the branch it takes owes (ConditionalAOEIterator
+//! delegates to the branch's getBlocks, predicate included), and vein and tree owe nothing.
+//! The hardness half reads the hardness the game published from its block table
 //! (pluto_lib::world_api_v1::block_hardness). SlimeKnights (MIT; see LICENSE).
 use pluto_lib::{Direction, Identifier};
 use serde_json::{Map, Value};
@@ -136,7 +139,8 @@ impl Iterator {
     /// The extra positions this iterator selects around `origin`, in the original's iteration order.
     /// `expanded` is the tool's EXPANDED volatile level; `face` the hit face; `yaw`/`pitch` the player's
     /// look. Box and circle positions still owe the caller the default block
-    /// predicate (see the module notes); vein, tree and conditional apply their own block rules here.
+    /// predicate (see the module notes), as does a conditional through the branch it takes;
+    /// vein and tree apply their own block rules here.
     pub(crate) fn positions(&self, origin: [i32; 3], face: Direction, yaw: f32, pitch: f32, expanded: i32, block_at: &BlockAt<'_>, in_tag_at: &InTagAt<'_>) -> Vec<[i32; 3]> {
         match self {
             Self::Empty => Vec::new(),
@@ -156,17 +160,39 @@ impl Iterator {
                     .into_iter().filter(|pos| distance_sq(origin, *pos) <= radius_sq).collect()
             }
             Self::Vein { max_distance } => vein(origin, *max_distance + expanded, block_at),
-            Self::Conditional { condition, if_true, if_false } => {
-                let Some(block) = block_at(origin) else { return Vec::new(); };
-                // The branch is picked without a dig report: no block facts are known at selection
-                // time, so a block-property predicate takes its fallback (blast resistance) or stays
-                // unmatched (requires-tool), exactly as a dig that reported nothing does.
-                let chosen = if condition.matches(&block, &|tag| in_tag_at(origin, tag), &crate::mining_speed::BlockFacts::default()) { if_true } else { if_false };
-                chosen.positions(origin, face, yaw, pitch, expanded, block_at, in_tag_at)
-            }
+            Self::Conditional { .. } => match self.chosen(origin, block_at, in_tag_at) {
+                Some(chosen) => chosen.positions(origin, face, yaw, pitch, expanded, block_at, in_tag_at),
+                None => Vec::new(),
+            },
             Self::Tree { width_bonus, depth_bonus } => {
                 tree(origin, face, yaw, *width_bonus + (expanded + 1) / 2, *depth_bonus + expanded / 2, block_at, in_tag_at)
             }
+        }
+    }
+
+    /// The branch a conditional takes for the block at `origin`: None when this is not a
+    /// conditional, or when no block is loaded at the origin (the conditional then selects
+    /// nothing). The branch is picked without a dig report: no block facts are known at
+    /// selection time, so a block-property predicate takes its fallback (blast resistance)
+    /// or stays unmatched (requires-tool), exactly as a dig that reported nothing does.
+    fn chosen(&self, origin: [i32; 3], block_at: &BlockAt<'_>, in_tag_at: &InTagAt<'_>) -> Option<&Self> {
+        let Self::Conditional { condition, if_true, if_false } = self else { return None; };
+        let block = block_at(origin)?;
+        if condition.matches(&block, &|tag| in_tag_at(origin, tag), &crate::mining_speed::BlockFacts::default()) { Some(if_true) } else { Some(if_false) }
+    }
+
+    /// Whether the positions this iterator selects still owe the caller the default block
+    /// predicate (AreaOfEffectIterator.defaultBlockPredicate). Box and circle owe it, as
+    /// their getBlocks applies it; vein, tree and empty select by their own block rules and
+    /// owe nothing. A conditional owes what the branch it takes owes, as
+    /// ConditionalAOEIterator.getBlocks delegates to the branch's getBlocks, predicate
+    /// included; a conditional whose origin block is not loaded selects nothing and owes
+    /// nothing.
+    pub(crate) fn owes_default_predicate(&self, origin: [i32; 3], block_at: &BlockAt<'_>, in_tag_at: &InTagAt<'_>) -> bool {
+        match self {
+            Self::Box { .. } | Self::Circle { .. } => true,
+            Self::Conditional { .. } => self.chosen(origin, block_at, in_tag_at).is_some_and(|branch| branch.owes_default_predicate(origin, block_at, in_tag_at)),
+            _ => false,
         }
     }
 }
@@ -558,5 +584,44 @@ mod tests {
         assert_eq!(boxed.len(), 3 * 2 * 2 - 1, "the 3x2x2 box minus the origin: {boxed:?}");
         assert!(boxed.contains(&[0, 65, 1]), "up and away from the hit face");
         assert!(!boxed.contains(&[0, 64, 0]));
+    }
+
+    #[test]
+    fn a_conditional_owes_the_default_predicate_only_through_a_box_or_circle_branch() {
+        fn decode(fields: serde_json::Value) -> Iterator { Iterator::decode(fields.as_object().unwrap()).unwrap().unwrap() }
+        let log = id("minecraft:oak_log");
+        let blocks = |pos: [i32; 3]| -> Option<Identifier> { if pos == [0, 64, 0] { Some(log.clone()) } else { None } };
+        let in_tag = |_: [i32; 3], tag: &Identifier| tag == &id("tconstruct:tree_log");
+        let no_tag = |_: [i32; 3], _: &Identifier| false;
+        // Condition met: the tree branch owes nothing. Condition unmet: the box branch owes it.
+        let tree_or_box = decode(json!({"type": "tconstruct:conditional_aoe",
+            "condition": {"type": "mantle:tag", "tag": "tconstruct:tree_log"},
+            "if_true": {"type": "tconstruct:tree_aoe"},
+            "if_false": {"type": "tconstruct:box_aoe", "expansion_direction": "tconstruct:height", "bonus": {"width": 1, "height": 1, "depth": 1}}}));
+        assert!(!tree_or_box.owes_default_predicate([0, 64, 0], &blocks, &in_tag), "the tree branch applies its own block rules");
+        assert!(tree_or_box.owes_default_predicate([0, 64, 0], &blocks, &no_tag), "the box branch owes the predicate");
+        // A circle branch owes it too; a vein branch does not.
+        let circle_or_vein = decode(json!({"type": "tconstruct:conditional_aoe",
+            "condition": {"type": "mantle:tag", "tag": "tconstruct:tree_log"},
+            "if_true": {"type": "tconstruct:circle_aoe", "diameter": 3},
+            "if_false": {"type": "tconstruct:vein_aoe", "max_distance": 2}}));
+        assert!(circle_or_vein.owes_default_predicate([0, 64, 0], &blocks, &in_tag));
+        assert!(!circle_or_vein.owes_default_predicate([0, 64, 0], &blocks, &no_tag));
+        // A nested conditional follows the branch it takes all the way down.
+        let nested = decode(json!({"type": "tconstruct:conditional_aoe",
+            "condition": {"type": "mantle:tag", "tag": "tconstruct:tree_log"},
+            "if_true": {"type": "tconstruct:conditional_aoe",
+                "condition": {"type": "mantle:tag", "tag": "tconstruct:tree_log"},
+                "if_true": {"type": "tconstruct:box_aoe", "expansion_direction": "tconstruct:height", "bonus": {"width": 1, "height": 1, "depth": 1}},
+                "if_false": {"type": "tconstruct:vein_aoe", "max_distance": 2}},
+            "if_false": {"type": "tconstruct:vein_aoe", "max_distance": 2}}));
+        assert!(nested.owes_default_predicate([0, 64, 0], &blocks, &in_tag), "conditional in conditional, a box at the leaf");
+        assert!(!nested.owes_default_predicate([0, 64, 0], &blocks, &no_tag));
+        // No block at the origin: nothing is selected, nothing is owed.
+        let air = |_: [i32; 3]| -> Option<Identifier> { None };
+        assert!(!tree_or_box.owes_default_predicate([0, 64, 0], &air, &in_tag));
+        // The plain kinds, for the record.
+        assert!(decode(json!({"type": "tconstruct:box_aoe", "expansion_direction": "tconstruct:height", "bonus": {"width": 1}})).owes_default_predicate([0, 64, 0], &blocks, &in_tag));
+        assert!(!decode(json!({"type": "tconstruct:vein_aoe", "max_distance": 2})).owes_default_predicate([0, 64, 0], &blocks, &in_tag));
     }
 }
