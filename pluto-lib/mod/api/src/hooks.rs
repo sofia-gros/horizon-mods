@@ -6092,6 +6092,27 @@ impl Hooks for PlutoHooks {
         event.amount = entity_events_v1::modify_damage(&damage);
     }
 
+    fn living_damage_post(&self, event: &mut horizon_client::mod_api::LivingDamagePostEvent<'_>) {
+        // The end of actuallyHurt: what came off the entity's health, once armor, enchantments, effects and absorption
+        // took their part. A weapon hit the incoming report named is told again with that amount (the original's
+        // damageDealt); the effects its callbacks put on the mob are pushed for the game to apply, as the weapon-hit
+        // effects are, and their actions land as a damage event's do.
+        let damage = LivingDamage {
+            entity: event.entity,
+            kind: event.kind.to_owned(),
+            damage_type: event.damage_type.to_owned(),
+            attacker: event.causing,
+            direct: event.direct,
+            amount: event.amount,
+        };
+        let grants = entity_events_v1::weapon_hit_dealt(&damage);
+        if let Ok(entity) = u32::try_from(event.entity) {
+            for grant in grants {
+                horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
+    }
+
     fn living_incoming_damage(&self, event: &mut LivingIncomingDamageEvent<'_>) -> Flow {
         let damage = LivingDamage {
             entity: event.entity,
@@ -6261,6 +6282,8 @@ impl Hooks for PlutoHooks {
             damage_dealt: event.amount, attack_ticks,
             attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
+        // The hit is remembered for the damage report that follows in the same call, which tells it again with what it dealt.
+        entity_events_v1::note_weapon_hit(&hit, event.damage_type);
         // The looting slot this attack claims (canon's `ModifierLootingHandler`: the slot the
         // attacking tool came from): the weapon matched against the attacker's worn armor and off
         // hand, else the main hand. The experience drop of a mob this blow kills reads it. Only

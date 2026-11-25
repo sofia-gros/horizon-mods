@@ -4,10 +4,11 @@
 //! `tool_tank`; what lives here is the wiring the §4 audit found missing:
 //!
 //! - **SpillingModule** (MELEE_HIT, MONSTER_MELEE_HIT, LAUNCHER_HIT): a hit applies the tank
-//!   fluid's entity effects to the target. The melee half runs on the weapon-hit telling
-//!   (`on_weapon_hit`), the launcher half on the impact telling (in `flight_hook`, fed by the
-//!   flight profile's spilling snapshot). A monster's melee hit with a tank tool is the same
-//!   weapon-hit telling with a mob attacker; the port's telling names the weapon either way.
+//!   fluid's entity effects to the target. The melee half runs on the dealt telling
+//!   (`on_weapon_hit_dealt`), the weapon hit heard again after its damage landed with what
+//!   came off the target's health, the launcher half on the impact telling (in `flight_hook`,
+//!   fed by the flight profile's spilling snapshot). A monster's melee hit with a tank tool
+//!   is the same telling with a mob attacker; the port's telling names the weapon either way.
 //! - **WettingModifier / BurstingModifier** (UseFluidOnHitModifier): being hit applies the worn
 //!   tank's fluid — wetting onto the wearer, bursting onto the attacker — each at a 25% chance
 //!   per level, the application always at level 1. Both run on the damage-modification telling
@@ -35,9 +36,9 @@
 //! - **OverburnModule** (INVENTORY_TICK): the inventory tick drives the burn now that this
 //!   consumer keeps the holder's tick count itself (the remembered player facts below).
 //!
-//! The standing reductions, each the closest the tellings allow: a hit's damage-dealt gate reads
-//! the incoming damage before armor takes its share, so a hit the armor absorbs whole still
-//! counts as dealt (the telling reports no post-armor amount); a creative holder's tank is spent
+//! The standing reductions, each the closest the tellings allow: a spilling application's
+//! effects and tank spend land with the damage events' action queues (the attacker's and the
+//! target's next ticks), not in the hit's own call, as wetting's and bursting's do; a creative holder's tank is spent
 //! like a survival one's where a telling does not name the game mode (the capacity write-backs
 //! accept the same); the splashing item cooldown (20 / draw speed) is started at both
 //! splash sites through the item-cooldown surface the sleeves lane built in PlutoLib
@@ -56,7 +57,7 @@ use pluto_lib::{
     ServerPlayer, StackData, StackSlot, StackedOnOtherDecision, StackedOnOtherRegistry, StackedOnOtherRequest, StackedSound,
     UseItemFinishCallback, UseItemOnBlockCallback, UseItemOnEntityContext, UseItemOnBlockContext, UseEntityCallback, World,
 };
-use pluto_lib::entity_events_v1::{DamageModification, PlayerTick, WeaponHit};
+use pluto_lib::entity_events_v1::{DamageModification, PlayerTick, WeaponHitDealt};
 
 use crate::{
     break_speed_hook::with_held_tool,
@@ -225,18 +226,20 @@ fn breath_sound(world: &World, at: [f64; 3]) {
 
 /* Spilling, wetting, bursting: the on-hit applications */
 
-/// SpillingModule.afterMeleeHit: the weapon's tank fluid applied to the mob. The telling is
-/// heard before the damage lands, so the original's damageDealt > 0 and fully-charged gates
-/// cannot be read; the application runs at the telling (see the module note).
-fn on_weapon_hit(hit: &WeaponHit) {
+/// SpillingModule.afterMeleeHit: the weapon's tank fluid applied to the mob, heard after the
+/// hit's damage landed with what came off the mob's health — the original's damageDealt, so a
+/// hit the armor absorbed whole (dealt 0) applies nothing, as the original's gate reads. The
+/// fully-charged gate reads the hit as the weapon-hit telling reported it.
+fn on_weapon_hit_dealt(dealt: &WeaponHitDealt) {
+    let hit = &dealt.hit;
     let Some(weapon) = &hit.weapon else { return };
     if hit.dimension.is_empty() { return; }
     let _ = with_held_tool(weapon, |env, tool| {
         let modules = tool_stack::tank_modules(&tool.custom_data, env);
         if modules.spilling.is_empty() || tool_stack::is_broken(&tool.custom_data) { return; }
-        // SpillingModule.onAttack: the hit must deal damage and the swing must be fully charged (the telling reports the
-        // incoming damage before armor takes its share, so a hit the armor absorbs whole still counts as dealt).
-        if hit.damage_dealt <= 0.0 { return; }
+        // SpillingModule.afterMeleeHit: the hit must have dealt damage — what came off the target's health, not the
+        // incoming amount the weapon-hit telling reported — and the swing must have been fully charged.
+        if dealt.dealt <= 0.0 { return; }
         if !hit.fully_charged(tool_stack::stat(&tool.custom_data, Stat::AttackSpeed)) { return; }
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return };
         if !describe(&fluid).map_or(false, |(_, has_entity, _)| has_entity) { return; }
@@ -1350,7 +1353,7 @@ const TOOL_ITEMS: &[&str] = &[
 /// Registers the tank consumers. Called once from the product's hooks, after the fluid items
 /// are registered (the slot interaction asks their registry).
 pub(crate) fn register() {
-    ServerLivingEntityEvents::WEAPON_HIT.register(on_weapon_hit);
+    ServerLivingEntityEvents::WEAPON_HIT_DEALT.register(on_weapon_hit_dealt);
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(on_damage_modification);
     ServerLivingEntityEvents::PLAYER_TICK.register(on_player_tick);
     PlayerInventoryEvents::TICK.register(on_inventory_tick);
