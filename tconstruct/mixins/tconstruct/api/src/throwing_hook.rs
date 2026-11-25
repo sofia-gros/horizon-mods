@@ -203,7 +203,7 @@ pub(crate) fn throw_stored_shuriken(player: &ServerPlayer, dimension: &str, eye:
     let stack = StackData {
         item: thrown.item.to_string(), count: thrown.count, damage: thrown.damage, max_damage: thrown.max_damage,
         custom_data: thrown.custom_data.clone(), custom_model_data: thrown.custom_model_data.clone(),
-        enchantments: thrown.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(),
+        enchantments: thrown.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(), can_place_on: thrown.can_place_on.clone(),
     };
     if !shuriken(&stack) { return false; }
     spawn_shuriken(&World::new(dimension), dimension, eye, look, player.uuid, &stack, None)

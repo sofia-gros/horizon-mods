@@ -129,7 +129,7 @@ mod tests {
     use super::*;
 
     fn stack(item: &str) -> StackData {
-        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data: Default::default(), custom_model_data: None, enchantments: Default::default() }
+        StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data: Default::default(), custom_model_data: None, can_place_on: None, enchantments: Default::default() }
     }
 
     #[test]

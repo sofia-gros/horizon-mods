@@ -128,7 +128,7 @@ pub(crate) fn stack_of(slot: &ItemSlot) -> StackData {
         max_damage: slot.max_damage,
         custom_data: slot.custom_data.clone(),
         custom_model_data: slot.custom_model_data.clone(),
-        enchantments: slot.enchantments.clone().unwrap_or_default(),
+        enchantments: slot.enchantments.clone().unwrap_or_default(), can_place_on: slot.can_place_on.clone(),
     }
 }
 

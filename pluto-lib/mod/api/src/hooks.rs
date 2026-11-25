@@ -154,7 +154,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             };
             crate::pure::color_provider_api_v1::ColorProviderRegistry::item_color(
                 &crate::pure::color_provider_api_v1::ItemColorContext {
-                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data,enchantments:Default::default()},tint_index,
+                    stack:player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data,can_place_on:None,enchantments:Default::default()},tint_index,
                 })
         },
     ).expect("PlutoLib item colour provider installs once before native rendering");
@@ -1257,7 +1257,7 @@ fn read_stack(stack: &ItemStack) -> player_api::StackData {
         Some(Tag::Int(value)) => Some(*value),
         _ => None,
     };
-    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data, custom_model_data: read_custom_model_data(stack), enchantments: read_enchantments(stack).unwrap_or_default() }
+    player_api::StackData { item: stack.item.to_string(), count: stack.count, damage: stack.damage, max_damage, custom_data, custom_model_data: read_custom_model_data(stack), can_place_on: read_can_place_on(stack), enchantments: read_enchantments(stack).unwrap_or_default() }
 }
 
 /// The stack's own `minecraft:custom_model_data` component as PlutoLib's `CustomModelData`, None when it has none.
@@ -1266,6 +1266,11 @@ fn read_custom_model_data(stack: &ItemStack) -> Option<player_api::CustomModelDa
         Some(Tag::Compound(compound)) => Some(player_api::CustomModelData::from_nbt(&compound_from_tag(compound))),
         _ => None,
     }
+}
+
+/// The stack's own `minecraft:can_place_on` component (the adventure-mode placement predicates), None when it has none.
+fn read_can_place_on(stack: &ItemStack) -> Option<Nbt> {
+    stack.data().and_then(|d| d.other("minecraft:can_place_on")).and_then(nbt_from_tag)
 }
 
 /// The stack's own `minecraft:profile` component (a player head's owner), None when it has none.
@@ -1301,7 +1306,7 @@ fn reload_item_prototypes(registries:&std::collections::BTreeMap<Identifier,reso
             .map_err(|e|format!("invalid item prototype NBT: {e}"))?;
         if used!=prototype.custom_data.len() { return Err("trailing item prototype NBT".into()); }
         let Some(Nbt::Compound(custom_data))=strict(&tag) else { return Err("unsupported item prototype custom data".into()) };
-        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data,custom_model_data:None,enchantments:Default::default() })
+        Ok(player_api::StackData { item:prototype.id.clone(),count:1,damage:0,max_damage:prototype.max_damage,custom_data,custom_model_data:None,can_place_on:None,enchantments:Default::default() })
     }).collect::<Result<Vec<_>,String>>()?;
     crate::pure::item_registry::ItemRegistrySnapshot::decode(lookup,stacks)?
         .with_crafting_remainders(defaults.iter().map(|prototype|(prototype.id.clone(),prototype.crafting_remainder.clone())).collect()).map(Some)
@@ -1323,6 +1328,8 @@ fn write_stack(stack: &mut ItemStack, new: &player_api::StackData) {
     }
     // the stack's own model selection: the item definition reads it, so it must travel with the stack
     stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&new.custom_model_data));
+    // the stack's own adventure-mode placement predicates: the fluid effects' place gate reads them off the stack
+    stack.data_mut().set_other("minecraft:can_place_on", new.can_place_on.as_ref().map(tag_from_nbt));
     stack.tidy();
 }
 
@@ -3408,6 +3415,7 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.attribute_modifiers = read_attribute_modifiers(stack);
     slot.enchantments = read_enchantments(stack);
     slot.custom_model_data = data.custom_model_data;
+    slot.can_place_on = data.can_place_on;
     slot.profile = read_profile(stack);
     slot.map_id = stack.data().and_then(|d| d.map_id);
     slot.capture(stack.clone());
@@ -3523,6 +3531,10 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     // The stack's own profile: a player head's owner, whose skin the head shows.
     if slot.profile != read_profile(stack) {
         stack.data_mut().set_other("minecraft:profile", slot.profile.as_ref().map(|profile| Tag::Compound(compound_to_tag(profile))));
+    }
+    // The stack's own adventure-mode placement predicates: the fluid effects' place gate reads them off the stack.
+    if slot.can_place_on != before.can_place_on {
+        stack.data_mut().set_other("minecraft:can_place_on", slot.can_place_on.as_ref().map(tag_from_nbt));
     }
     // The stack's own map id: a filled map's identity, which the map tick and the map face read.
     if slot.map_id != stack.data().and_then(|d| d.map_id) {
@@ -3684,7 +3696,7 @@ fn worn_stack(item:&str,count:i32,components:&std::collections::BTreeMap<String,
             _=>Default::default(),
         },
     };
-    Some(player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data,enchantments})
+    Some(player_api::StackData {item:item.into(),count,damage,max_damage,custom_data,custom_model_data,can_place_on:None,enchantments})
 }
 fn skull_model_to_native(part:&horizon_client::mod_api::ModelPart)->horizon_client::entry::pluto_block::SkullModelPart {
     let p=part.store_pose();
@@ -4492,6 +4504,7 @@ impl Hooks for PlutoHooks {
                 [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
             },
             creative: player.game_mode == 1,
+            game_mode: player.game_mode,
             ticks_used: (total - event.duration).max(0) as u32,
             duration: total as u32,
         };
@@ -5283,6 +5296,7 @@ impl Hooks for PlutoHooks {
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
             player_dimension: dimension.clone(),
             creative,
+            game_mode: player.as_ref().map_or(-1, |player| player.game_mode),
             actions: std::cell::RefCell::new(Vec::new()),
         };
         let handle = HostHandle::new(host);
@@ -5629,7 +5643,7 @@ impl Hooks for PlutoHooks {
             let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
             // Whether the player is on a climbable block, as the game's own check works it out; a spectator never counts.
             let on_climbable = player.game_mode != 3 && entity_on_climbable(host, "minecraft:player", feet, false, player.gliding);
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, look, creative, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, look, creative, game_mode: player.game_mode, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
             // The world scope is open while the tick runs, so a callback may work on the blocks around the player;
             // the entity scope is open too, so a callback may reach the entities around them (a bounce sets a velocity).
             let handle = HostHandle::new(host);
@@ -5759,10 +5773,10 @@ impl Hooks for PlutoHooks {
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
         // The host names the acting player only for a guest's action; the world's own player is the only one logged in then.
-        let (uuid, name, dimension, creative) = match host.acting_player() {
-            Some(player) => (player.uuid, player.name.clone(), player.dimension.clone(), player.game_mode == 1),
+        let (uuid, name, dimension, creative, game_mode) = match host.acting_player() {
+            Some(player) => (player.uuid, player.name.clone(), player.dimension.clone(), player.game_mode == 1, player.game_mode),
             None => match sole_player() {
-                Some((uuid, name)) => (uuid, name, host.dimension().to_string(), false),
+                Some((uuid, name)) => (uuid, name, host.dimension().to_string(), false, -1),
                 None => return Flow::Continue,
             },
         };
@@ -5774,6 +5788,7 @@ impl Hooks for PlutoHooks {
             face: event.face,
             dimension: dimension.clone(),
             creative,
+            game_mode,
             sneaking: host.sneaking(),
             player: player_api::ServerPlayer { uuid, name },
         };
@@ -5805,6 +5820,7 @@ impl Hooks for PlutoHooks {
             dimension: player.dimension.to_string(),
             position: player.position,
             creative: player.game_mode == 1,
+            game_mode: player.game_mode,
         };
         // A stack a callback put in the hand replaces what the hand holds; a count of 0 empties it.
         if let Some(replacement) = scoped(host, || events_interaction_v0::use_item_finish(&context)) {
@@ -6256,9 +6272,13 @@ impl Hooks for PlutoHooks {
         // attacker reads as charged, as mobs keep no strength ticker (see `entity_events_v1::ATTACK_TICKS_CHARGED`).
         let attack_ticks = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
             .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| entity_events_v1::attack_ticks(player.uuid)).unwrap_or(entity_events_v1::ATTACK_TICKS_CHARGED);
+        // The attacking player's game mode, named as the player state above names them; -1 when the
+        // attacker is no player the game names (a mob, an unnamed cause).
+        let attacker_game_mode = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.game_mode).unwrap_or(-1);
         let hit = entity_events_v1::WeaponHit {
             entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),
-            damage_dealt: event.amount, attack_ticks,
+            damage_dealt: event.amount, attack_ticks, attacker_game_mode,
             attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
         // The looting slot this attack claims (canon's `ModifierLootingHandler`: the slot the

@@ -700,13 +700,13 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 
 ### `WeaponHit`
 
-A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `damage_dealt` the damage the hit is about to deal, before armor takes its share (a hit the armor absorbs whole still reads pre-armor), `attack_ticks` the attacker's ticks since their last swing (a mob attacker reads as fully charged), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands. `fully_charged(attack_speed)` is the host's charge gate for the weapon's attack speed; the ticks are tracked from the player's ticks and reset on a swing and on a main-hand change.
+A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `damage_dealt` the damage the hit is about to deal, before armor takes its share (a hit the armor absorbs whole still reads pre-armor), `attack_ticks` the attacker's ticks since their last swing (a mob attacker reads as fully charged), `attacker_game_mode` the attacker's game mode as the game numbers it (-1 when not a named player), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands. `fully_charged(attack_speed)` is the host's charge gate for the weapon's attack speed; the ticks are tracked from the player's ticks and reset on a swing and on a main-hand change.
 
 ```rust
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.borrow().is_empty() && hit.fully_charged(4.0));
 ```
 
@@ -1162,7 +1162,7 @@ assert_eq!(ATTACK_TICKS_CHARGED, 10_000);
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 ```
 
@@ -1174,7 +1174,7 @@ assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 use pluto_lib::WeaponHit;
 use std::cell::RefCell;
 
-let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+let hit = WeaponHit { entity: 4, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: 10_000, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
 assert!(hit.fully_charged(4.0));
 ```
 

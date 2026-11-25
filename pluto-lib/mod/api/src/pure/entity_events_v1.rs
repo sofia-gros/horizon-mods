@@ -231,6 +231,9 @@ pub struct WeaponHit {
     /// reads as fully charged, as mobs keep no strength ticker; with the weapon's attack speed
     /// this is the host's attack-strength scale (see [`WeaponHit::fully_charged`]).
     pub attack_ticks: u32,
+    /// The attacking player's game mode as the game numbers it: 0 survival, 1 creative, 2 adventure,
+    /// 3 spectator; -1 when the attacker is not a player the game names.
+    pub attacker_game_mode: i32,
     /// What the player and the mob were doing as the hit landed; None when the game could not tell.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
@@ -281,6 +284,8 @@ pub struct PlayerTick {
     pub look: [f64; 3],
     /// Whether the player is in creative mode.
     pub creative: bool,
+    /// The player's game mode as the game numbers it: 0 survival, 1 creative, 2 adventure, 3 spectator.
+    pub game_mode: i32,
     /// Whether the player stands on the ground.
     pub on_ground: bool,
     /// Whether the player holds sneak (`Player.isShiftKeyDown`).
@@ -2185,7 +2190,7 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
@@ -2200,7 +2205,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
-        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert!(weapon_hit(&hit).is_empty());
         assert_eq!(*seen.lock().unwrap(), vec![1]);
         forget_armor(0xA11CE);
@@ -2294,7 +2299,7 @@ mod tests {
         assert!(take_wearer_actions(41).is_empty(), "the queue is emptied once taken");
         wearer_hit(&hit, None);
         assert!(take_wearer_actions(41).is_empty(), "a hit with no known wearer queues nothing");
-        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         weapon_hit(&weapon);
         assert_eq!(take_weapon_actions(&weapon), vec![EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }]);
         assert!(take_weapon_actions(&weapon).is_empty());
@@ -2353,7 +2358,7 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, game_mode: 0, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
@@ -2650,7 +2655,7 @@ mod tests {
             if tick.entity != 6262 { return; }
             tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
         });
-        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, game_mode: 0, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");
@@ -2853,7 +2858,7 @@ mod tests {
 
     #[test]
     fn a_hit_reports_its_damage_and_charge() {
-        let hit = |ticks: u32| WeaponHit { entity: 1, kind: "minecraft:husk".into(), attacker: 2, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ticks, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |ticks: u32| WeaponHit { entity: 1, kind: "minecraft:husk".into(), attacker: 2, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ticks, attacker_game_mode: -1, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         // A sword at 4.0 attack speed swings every 5 ticks: 4 ticks is a 0.9 scale, not over it.
         assert!(!hit(4).fully_charged(4.0));
         assert!(hit(5).fully_charged(4.0));

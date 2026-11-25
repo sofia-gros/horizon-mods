@@ -164,7 +164,7 @@ fn profile_of_slot(slot: &ItemSlot) -> tool_stack::FlightProfile {
         max_damage: slot.max_damage,
         custom_data: slot.custom_data.clone(),
         custom_model_data: slot.custom_model_data.clone(),
-        enchantments: slot.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(),
+        enchantments: slot.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(), can_place_on: slot.can_place_on.clone(),
     })
 }
 
@@ -808,6 +808,7 @@ mod tests {
             max_damage: None,
             custom_data: pluto_lib::NbtCompound::new(),
             custom_model_data: None,
+            can_place_on: None,
             enchantments: Default::default(),
         };
         let profile = tool_stack::FlightProfile { enderference: mark, ..Default::default() };

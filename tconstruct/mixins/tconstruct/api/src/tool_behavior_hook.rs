@@ -30,7 +30,7 @@ pub(crate) fn register() {
             .can_perform_action(|query| {
                 let stack = StackData {
                     item: query.item.clone(), count: 1, damage: 0, max_damage: None,
-                    custom_data: query.custom_data.clone(), custom_model_data: None, enchantments: Default::default(),
+                    custom_data: query.custom_data.clone(), custom_model_data: None, can_place_on: None, enchantments: Default::default(),
                 };
                 // A stack that is not a built, unbroken Tinkers tool delegates: the item has no actions of
                 // its own for the game to find, which is the same answer the original gives for it.

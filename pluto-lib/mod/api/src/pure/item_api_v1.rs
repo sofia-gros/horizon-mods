@@ -516,6 +516,8 @@ pub struct UseTick {
     pub look: [f64; 3],
     /// Whether the player is in creative mode.
     pub creative: bool,
+    /// The player's game mode as the game numbers it: 0 survival, 1 creative, 2 adventure, 3 spectator.
+    pub game_mode: i32,
     /// How many ticks the use has run: the use's full time less the ticks left, so the first
     /// ticks of a use read near 0 and the last near `duration`.
     pub ticks_used: u32,

@@ -454,7 +454,7 @@ fn centre(pos: BlockPos) -> [f64; 3] {
 }
 
 fn stack_of(held: &StackData) -> StackData {
-    StackData { item: held.item.clone(), count: held.count, damage: 0, max_damage: None, custom_data: Default::default(), custom_model_data: None, enchantments: held.enchantments.clone() }
+    StackData { item: held.item.clone(), count: held.count, damage: 0, max_damage: None, custom_data: Default::default(), custom_model_data: None, can_place_on: held.can_place_on.clone(), enchantments: held.enchantments.clone() }
 }
 
 /// Probes a position whose state is already known.

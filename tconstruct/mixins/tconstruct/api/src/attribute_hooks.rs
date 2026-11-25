@@ -306,7 +306,7 @@ mod tests {
     fn tick_for(entity: i32, position: [f64; 3], on_ground: bool, effects: Vec<(String, i32, i32)>) -> PlayerTick {
         PlayerTick {
             player: entity as u128, entity, dimension: "minecraft:overworld".to_owned(),
-            position, look: [0.0, 0.0, 1.0], creative: false, on_ground, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false,
+            position, look: [0.0, 0.0, 1.0], creative: false, game_mode: 0, on_ground, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false,
             armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects,
             remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()),
         }

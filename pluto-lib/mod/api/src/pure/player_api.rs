@@ -202,6 +202,9 @@ pub struct StackData {
     pub custom_data: crate::pure::base::NbtCompound,
     /// The stack's `minecraft:custom_model_data` component, which item models select on; None for none.
     pub custom_model_data: Option<CustomModelData>,
+    /// The stack's `minecraft:can_place_on` component (the adventure-mode placement predicates: a list of
+    /// block predicates) as NBT; None when the stack has none.
+    pub can_place_on: Option<crate::pure::base::Nbt>,
     /// The stack's own `minecraft:enchantments` component as enchantment id to level (such as `minecraft:fortune` to 3); empty when
     /// the stack has none of its own or the game did not report them. Enchantments the item itself grants through its data (a tool's
     /// modifier-granted levels kept in `custom_data`) are not listed here; this is the component the game itself applies.
@@ -900,7 +903,7 @@ mod stack_tests {
     use crate::pure::base::Nbt;
 
     fn pickaxe(damage: u32) -> StackData {
-        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, enchantments: Default::default() }
+        StackData { item: "tconstruct:pickaxe".into(), count: 1, damage, max_damage: Some(60), custom_data: [("stats".to_owned(), Nbt::Int(60))].into(), custom_model_data: None, can_place_on: None, enchantments: Default::default() }
     }
 
     #[test]
@@ -1189,7 +1192,7 @@ mod tests {
         });
         assert!(inventory_tick_heard());
         inventory_tick(&InventoryTick { player: None, slot: 3, selected: true, stack: None });
-        inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, enchantments: std::collections::BTreeMap::new() }) });
+        inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, can_place_on: None, enchantments: std::collections::BTreeMap::new() }) });
         let seen = SEEN.lock().unwrap().clone();
         assert_eq!(seen, vec![(3, true, None), (100, false, Some("minecraft:torch".into()))]);
     }
@@ -1229,6 +1232,7 @@ mod tests {
             max_damage: Some(60),
             custom_data: crate::pure::base::NbtCompound::new(),
             custom_model_data: None,
+            can_place_on: None,
             enchantments: std::collections::BTreeMap::new(),
         };
         assert!(!with_ops(&mut ops, || held

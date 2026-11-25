@@ -406,7 +406,7 @@ mod tests {
             volatile.insert("tconstruct:piglin_neutral".into(), pluto_lib::Nbt::Byte(1));
             custom_data.insert(crate::tool_stack::TAG_VOLATILE.into(), pluto_lib::Nbt::Compound(volatile));
         }
-        pluto_lib::StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data, custom_model_data: None, enchantments: Default::default() }
+        pluto_lib::StackData { item: item.into(), count: 1, damage: 0, max_damage: None, custom_data, custom_model_data: None, can_place_on: None, enchantments: Default::default() }
     }
 
     #[test]
