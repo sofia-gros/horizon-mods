@@ -27,6 +27,7 @@ class CleanPort(unittest.TestCase):
             shutil.copy2(ROOT / rel, dst)
         shutil.copytree(ROOT / port.BUNDLE, self.root / port.BUNDLE)
         shutil.copytree(ROOT / 'pipes/mixins/pipes', self.root / 'pipes/mixins/pipes')
+        shutil.copytree(ROOT / 'stellarsky/mixins/stellarsky', self.root / 'stellarsky/mixins/stellarsky')
 
     def test_package_contains_only_checked_product_and_never_overwrites(self):
         output = self.root / '.local/test.hnmod'
