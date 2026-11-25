@@ -2561,7 +2561,7 @@ mod tests {
             dealt.hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 0, duration: 20 });
             dealt.hit.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Victim, amount: 1.0 });
         });
-        let hit = WeaponHit { entity: 9911, kind: "minecraft:husk".into(), attacker: 77, dimension: "minecraft:overworld".into(), weapon: Some(StackData { item: "example:wand".into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WeaponHit { entity: 9911, kind: "minecraft:husk".into(), attacker: 77, attacker_player: None, dimension: "minecraft:overworld".into(), weapon: Some(StackData { item: "example:wand".into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         let post = |attacker: i32, amount: f32| LivingDamage { entity: 9911, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker, direct: attacker, amount };
         // A damage report from another attacker is not the hit's: nothing is heard.
         note_weapon_hit(&hit, "minecraft:player_attack");
