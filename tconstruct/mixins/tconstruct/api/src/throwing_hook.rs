@@ -165,7 +165,7 @@ fn throw_tool(release: &ReleaseUsing) {
     let mut carried = stack.clone();
     carried.count = 1;
     let profile = flight_hook::profile_of(stack);
-    flight_hook::bind(&release.dimension, id, flight_hook::thrown_flight(profile, carried, velocity));
+    flight_hook::bind(&release.dimension, id, flight_hook::thrown_flight(profile, carried, velocity, charge, !release.creative));
     if !release.creative {
         if let Some(edit) = consume_edit(release) { release.edits.borrow_mut().push(edit); }
     }

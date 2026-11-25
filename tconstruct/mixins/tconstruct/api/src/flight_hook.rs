@@ -60,6 +60,13 @@ struct ThrownTool {
     stack: StackData,
     /// The velocity stat the tool was thrown with: its melee damage multiplier.
     multiplier: f32,
+    /// The charge the tool was thrown with (ThrowingModule.getToolCharge): the cooldown of
+    /// the attack context its hit builds, whose > 0.9 is the original's fully charged gate.
+    charge: f32,
+    /// Whether the thrower pays resource costs (ModifierUtil.consumesResources of the player
+    /// attacker; a creative thrower does not). Recorded at the throw, as the impact telling
+    /// names no game mode.
+    consumes: bool,
     /// Whether it has hit an entity (the original's dealtDamage: starts the loyalty return).
     dealt: bool,
     /// Whether the loyalty return has begun (the tool is worn by 1 when it leaves the ground).
@@ -130,8 +137,8 @@ pub(crate) fn bind(dimension: &str, projectile: u32, flight: InFlight) {
 }
 
 /// The thrown tool state a release binds for the arrow it is about to summon.
-pub(crate) fn thrown_flight(profile: tool_stack::FlightProfile, stack: StackData, multiplier: f32) -> InFlight {
-    InFlight { profile, thrown: Some(ThrownTool { stack, multiplier, dealt: false, returning: false }), ..Default::default() }
+pub(crate) fn thrown_flight(profile: tool_stack::FlightProfile, stack: StackData, multiplier: f32, charge: f32, consumes: bool) -> InFlight {
+    InFlight { profile, thrown: Some(ThrownTool { stack, multiplier, charge, consumes, dealt: false, returning: false }), ..Default::default() }
 }
 
 /// The shuriken state a release binds for the thrown type it is about to summon.
@@ -589,6 +596,44 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
             }).unwrap_or(0.0);
             let damage_type = thrown_tool_damage_type(&hit.entity_kind, &hit.entity_effects);
             hit.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: damage_type.into() });
+            // SpillingModule.afterMeleeHit, run by the thrown tool's own attack: ThrownTool's
+            // hit is a full ToolAttackUtil.performAttack, whose after-melee-hit hooks apply the
+            // tool's tank fluid to the target at the module's level when the attack dealt damage
+            // on a fully charged throw (the context's cooldown is the throw's charge, and fully
+            // charged is > 0.9). The fluid is the thrown tool's own, read live as the original
+            // reads the tool in flight (not the profile's snapshot, which exists for shots whose
+            // tool is out of this telling's reach), and what the application spends is spent
+            // from that very stack, as the original's setFluid writes back to the stack in
+            // flight; a thrower who does not consume resources (a creative player) spends
+            // nothing and shows no particles, as ModifierUtil.consumesResources gates both.
+            // The damage gate reads the attack's amount, the standing reduction of the hit
+            // tellings (see tank_hook's module note).
+            if amount > 0.0 && thrown.charge > 0.9 && !profile.spilling.is_empty() && hit.entity.is_some_and(|id| {
+                EntityReach::in_box([hit.at[0] - 0.5, hit.at[1] - 0.5, hit.at[2] - 0.5], [hit.at[0] + 0.5, hit.at[1] + 0.5, hit.at[2] + 0.5])
+                    .into_iter().find(|entity| entity.id == id as u64)
+                    .is_some_and(|entity| entity.living.is_some_and(|facts| !facts.invulnerable))
+            }) {
+                if let (Some(effects), Some(tags)) = (crate::common::fluid_effects(), crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.tags.clone()))) {
+                    let effects = effects.read().expect("fluid effects lock poisoned");
+                    let holder_stack = crate::fluid_world::stack_of_data(&thrown.stack);
+                    let mut world = crate::fluid_world::LiveWorld::new(hit.world());
+                    for (level, _) in &profile.spilling {
+                        let Some(fluid) = crate::tool_tank::fluid(&thrown.stack.custom_data) else { continue };
+                        if !effects.describe(&fluid, &tags).map_or(false, |(_, has_entity, _)| has_entity) { continue; }
+                        let mut target = crate::fluid_world::LiveTarget::victim(hit, &hit.actions);
+                        let mut context = crate::fluid_effects::EntityContext {
+                            env: crate::fluid_effects::Env { world: &mut world, holder: crate::fluid_world::holder(holder_stack.clone(), Some((hit.projectile as i32, hit.motion)), hit.at) },
+                            target: &mut target,
+                            location: hit.at,
+                        };
+                        let consumed = effects.apply_to_entity(&fluid, *level, &mut context, &tags);
+                        if consumed > 0 && thrown.consumes {
+                            crate::fluid_world::spawn_fluid_particles(&hit.world(), &fluid, hit.at, 10);
+                            crate::tool_tank::consume(&mut thrown.stack.custom_data, consumed);
+                        }
+                    }
+                }
+            }
             *hit.motion_after.borrow_mut() = Some([hit.motion[0] * -0.01, hit.motion[1] * -0.1, hit.motion[2] * -0.01]);
             thrown.dealt = true;
             put_flight(&hit.dimension, hit.projectile, state);
@@ -652,8 +697,8 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
     // the standing shape of the launcher applications here. The original's damageDealt > 0 gate
     // has no amount at the impact telling; a hit on a living target that can be hurt deals
     // damage, so that is the gate (an invulnerable or non-living target deals none).
-    // A thrown tool's own impact never reaches this block (see the thrown-tool branch above),
-    // so its spilling stays unwired there — out of this lane's four items, noted for the next.
+    // A thrown tool's own impact never reaches this block: its attack is a melee attack,
+    // so its spilling runs in the thrown-tool branch above, from the tool itself (see there).
     if hit.entity.is_some() && !profile.spilling.is_empty() && hit.entity.is_some_and(|id| {
         EntityReach::in_box([hit.at[0] - 0.5, hit.at[1] - 0.5, hit.at[2] - 0.5], [hit.at[0] + 0.5, hit.at[1] + 0.5, hit.at[2] + 0.5])
             .into_iter().find(|entity| entity.id == id as u64)
@@ -811,7 +856,7 @@ mod tests {
             enchantments: Default::default(),
         };
         let profile = tool_stack::FlightProfile { enderference: mark, ..Default::default() };
-        bind(dimension, 7, thrown_flight(profile, stack, 1.0));
+        bind(dimension, 7, thrown_flight(profile, stack, 1.0, 1.0, true));
         ProjectileImpact {
             dimension: dimension.into(),
             projectile: 7,
@@ -1185,7 +1230,7 @@ mod tests {
             release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
         };
         let stack = StackData { item: "example:thrown_tool".into(), count: 1, ..StackData::default() };
-        bind("minecraft:overworld", 424243, thrown_flight(tool_stack::FlightProfile { infinity: true, ..Default::default() }, stack, 1.0));
+        bind("minecraft:overworld", 424243, thrown_flight(tool_stack::FlightProfile { infinity: true, ..Default::default() }, stack, 1.0, 1.0, true));
         on_flight(&flight);
         assert_eq!(flight.pickup_after.get(), None, "a thrown tool is not a shot: its pickup is its own stack");
     }
