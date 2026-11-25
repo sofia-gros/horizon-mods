@@ -485,7 +485,7 @@ pub fn hooks() -> Box<dyn Hooks> {
             world.set_block_state([26, 80, 26], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());
             let used = pluto_lib::UseItemOnBlockContext {
                 item: "tconstruct:sky_slime_grass_seeds".into(), count: 1, pos: [26, 80, 26], face: [0, 1, 0],
-                dimension: "minecraft:overworld".into(), player: pluto_lib::ServerPlayer { uuid: 1, name: "probe".into() }, creative: true, held: None,
+                dimension: "minecraft:overworld".into(), player: pluto_lib::ServerPlayer { uuid: 1, name: "probe".into() }, creative: true, game_mode: -1, sneaking: false, held: None,
             };
             let answer = pluto_lib::UseItemOnBlockCallback::EVENT.invoke(&used);
             let seeded = world.get_block_state([26, 80, 26]).map(|s| s.block.to_string());
