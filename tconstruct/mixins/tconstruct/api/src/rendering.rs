@@ -17,8 +17,8 @@
 //! - A renderer sees only its own block entity: no neighbouring blocks. The faucet's stream below it is drawn
 //!   anyway: its client tick walks the blocks below through the client world view and keeps their states in transient
 //!   client data (`stream`), and the renderer draws each block's own `faucet_fluid` cuboids translated down (Mantle's
-//!   `RenderingHelper.renderFaucetFluids`). The channel's down stream is not drawn yet — it needs the same client tick
-//!   of its own — and the channel's edge cuboid — drawn by the original only against a neighbour that is not the same
+//!   `RenderingHelper.renderFaucetFluids`). The channel's down stream is drawn the same way, from its own client
+//!   tick. The channel's edge cuboid — drawn by the original only against a neighbour that is not the same
 //!   channel — is drawn unconditionally.
 //! - The display contexts of `TinkerItemDisplays` (melter, casting table, casting basin) are custom; the canvas
 //!   knows only the vanilla contexts, so an item is drawn with the original context's fallback (fixed for the
@@ -336,12 +336,21 @@ fn render_faucet(render: &mut BlockEntityRender<'_>) {
 /// the stream inside the faucet's rotation. A block with no cuboids for the facing draws nothing, as the original
 /// skips it; without client data (an unsupported canvas) there is no stream to draw.
 fn draw_faucet_stream(canvas: &mut dyn BlockEntityCanvas, facing: &str, visual: &Visual) {
+    let center = facing == "down" || facing == "up";
+    draw_stream_below(canvas, center, visual);
+}
+
+/// The stream into the blocks below (Mantle's `RenderingHelper.renderFaucetFluids` with direction down, whose
+/// cuboids are the center form, the direction being vertical): the blocks the client tick measured below, each
+/// drawn with its own `faucet_fluid` cuboids — the center form for a pour straight down, the side form for a
+/// side-facing faucet — translated down by its depth. A block with no cuboids for the form draws nothing, as the
+/// original skips it; without client data (an unsupported canvas) there is no stream to draw.
+fn draw_stream_below(canvas: &mut dyn BlockEntityCanvas, center: bool, visual: &Visual) {
     // The stream is copied out of the client data: the canvas is drawn to while it is read.
     let Some(stream) = canvas.client_data().and_then(|data| data.get("stream")).and_then(|stream| stream.as_list()).map(|stream| stream.to_vec())
     else {
         return;
     };
-    let center = facing == "down" || facing == "up";
     for (index, entry) in stream.iter().enumerate() {
         let Some(text) = entry.as_str() else { continue };
         let Ok(state) = BlockState::parse(text) else { continue };
@@ -363,9 +372,9 @@ pub(crate) fn center_flow(flowing_out: &[Direction]) -> Option<Direction> {
 
 /// ChannelBlockEntityRenderer: each connected side's cuboid (the flow form while the side flows — in or out —
 /// the still form otherwise, with the edge against the neighbour), the center in its still or flowing form, and
-/// the drop below the center while the down side flows. The stream below that is `renderFaucetFluids` (not drawn,
-/// see the module docs), and the edge is drawn without the original's neighbour check, which a renderer cannot
-/// make.
+/// the drop below the center while the down side flows, with the stream into the blocks below it, which the
+/// channel's client tick measured (Mantle's `RenderingHelper.renderFaucetFluids` with direction down). The edge
+/// is drawn without the original's neighbour check, which a renderer cannot make.
 fn render_channel(render: &mut BlockEntityRender<'_>) {
     let Some(fluid) = host_tank(render.data, 0) else { return };
     let Some(visual) = visual(&fluid.fluid) else { return };
@@ -398,6 +407,7 @@ fn render_channel(render: &mut BlockEntityRender<'_>) {
     }
     if canvas.state_property("down").as_deref() == Some("true") && state.is_flowing(Direction::Down) {
         draw_cuboid(canvas, &model.down, &visual);
+        draw_stream_below(canvas, true, &visual);
     }
 }
 
@@ -801,6 +811,34 @@ mod tests {
         assert_eq!(center_flow(&[]), None);
         // no fluid: nothing
         assert!(run("tconstruct:seared_channel", &NbtCompound::new(), &[], vec![("east", "out")]).is_empty());
+    }
+
+    #[test]
+    fn a_channel_flowing_down_draws_the_drop_and_the_stream_into_the_block_below() {
+        let mut data = host_fluid("tconstruct:molten_iron", 40);
+        data.insert("is_flowing".into(), Nbt::IntArray(vec![2, 0, 0, 0, 0]));
+        let mut client = NbtCompound::new();
+        client.insert("stream".into(), Nbt::List(vec![Nbt::String("tconstruct:seared_table".into())]));
+        let log = run_with_client("tconstruct:seared_channel", &data, &[], vec![("down", "true")], Some(client));
+        // the still center (two faces), the drop (four flowing faces) and the table's center stream cuboid
+        // (four flowing faces) a block down: ten quads, none of them turned
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 10, "{log:?}");
+        assert!(!log.iter().any(|line| line.starts_with("rotate")), "{log:?}");
+        let at = log.iter().position(|line| line == "translate [0.0000, -1.0000, 0.0000]").expect("the stream is translated down");
+        assert_eq!(log[at - 1], "push");
+        assert_eq!(log[at + 5], "pop");
+        let stream = &log[at + 1..at + 5];
+        assert!(stream.iter().all(|line| line.contains("tconstruct:fluid/molten/ore/iron/flowing")), "{log:?}");
+        assert!(stream[0].starts_with("quad tconstruct:fluid/molten/ore/iron/flowing [0.6250, 1.0000, 0.3750] [0.6250, 0.9375, 0.3750] [0.3750, 0.9375, 0.3750] [0.3750, 1.0000, 0.3750] uv [6.00, 0.00, 10.00, 1.00]"), "{}", stream[0]);
+        // without client data there is no stream to draw: the center and the drop only
+        let log = run("tconstruct:seared_channel", &data, &[], vec![("down", "true")]);
+        assert_eq!(log.iter().filter(|line| line.starts_with("quad")).count(), 6);
+        // down closed: neither the drop nor the stream, the still center only
+        let mut client = NbtCompound::new();
+        client.insert("stream".into(), Nbt::List(vec![Nbt::String("tconstruct:seared_table".into())]));
+        let log = run_with_client("tconstruct:seared_channel", &data, &[], vec![("down", "false")], Some(client));
+        assert_eq!(log.iter().filter(|line| line.starts_with("quad")).count(), 2);
     }
 
     #[test]

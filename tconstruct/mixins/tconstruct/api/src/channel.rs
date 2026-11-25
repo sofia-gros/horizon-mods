@@ -5,7 +5,7 @@
 //! the logic), and "a fluid handler" is the set of blocks this port gives tanks (`HANDLERS`), as no other mod's blocks exist here.
 use crate::faucet::MB_PER_TICK;
 use pluto_lib::{
-    BlockBehavior, BlockBehaviors, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
+    BlockBehavior, BlockBehaviors, BlockEntityClientTick, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
     FluidStack, Identifier, Nbt, NbtCompound, NbtCompoundExt, Neighbours, Placement,
 };
 
@@ -232,6 +232,22 @@ fn tick_channel(tick: &mut BlockEntityTick<'_>) {
     tick.set_fluid(0, state.fluid.clone());
 }
 
+/// The client tick of a channel: while the down side flows, the stream below it is measured from the client
+/// world and kept in the transient client data (`stream`: the block states below, nearest first), so the
+/// renderer can draw it (Mantle's `RenderingHelper.renderFaucetFluids` reads the same states live); when the
+/// down side does not flow the stream is cleared, so nothing stale is drawn. The faucet's client tick
+/// (`tick_faucet_client`) is the same shape.
+pub(crate) fn tick_channel_client(tick: &mut BlockEntityClientTick<'_>) {
+    let state = State::load(tick.data, None);
+    if !state.is_flowing(Direction::Down) {
+        tick.client_data.remove("stream");
+        return;
+    }
+    let states = crate::faucet::stream_states(tick.world, tick.pos);
+    let stream = Nbt::List(states.into_iter().map(Nbt::String).collect());
+    tick.client_data.insert("stream".into(), stream);
+}
+
 fn fill_channel(fill: &mut BlockEntityFill<'_>) -> u32 {
     let mut state = State::load(fill.data, fill.fluid_in(0));
     let taken = state.fill(&shape_at(fill.pos), fill.face, &fill.fluid.clone());
@@ -244,7 +260,7 @@ pub(crate) fn register() {
     for name in BLOCKS {
         let block = Identifier::new("tconstruct", name).expect("valid channel id");
         BlockEntityTypeRegistry::register(
-            BlockEntityType::new(block.clone()).fluid_tanks([CAPACITY as u32]).sync_data().ticker(tick_channel).fluid_filler(fill_channel),
+            BlockEntityType::new(block.clone()).fluid_tanks([CAPACITY as u32]).sync_data().ticker(tick_channel).client_ticker(tick_channel_client).fluid_filler(fill_channel),
         );
         BlockBehaviors::register(BlockBehavior::new(block)
             .state_for_placement(|c| Placement::State(placement(c.state.clone(), c.pos, c.face, c.sneaking, c.view)))
@@ -351,5 +367,22 @@ mod tests {
         assert_eq!(placement(channel(), [0, 64, 0], Direction::West, true, &view).property("east"), Some("in"));
         assert_eq!(placement(channel(), [0, 64, 0], Direction::Up, false, &view).property("down"), Some("true"), "on top, over a tank");
         assert_eq!(placement(channel(), [5, 64, 0], Direction::Up, false, &view).property("down"), Some("false"));
+    }
+
+    #[test]
+    fn the_client_tick_keeps_the_stream_below_while_the_down_side_flows_and_clears_it_after() {
+        let mut view = MemoryBlockView::default();
+        view.blocks.insert([0, 63, 0], BlockState::parse("tconstruct:seared_table").unwrap());
+        // the down side is flowing (flow slot 0): the stream names the block below
+        let mut data = NbtCompound::new();
+        State { flowing: [2, 0, 0, 0, 0], ..State::default() }.save(&mut data);
+        let mut client = NbtCompound::new();
+        tick_channel_client(&mut BlockEntityClientTick { pos: [0, 64, 0], data: &data, client_data: &mut client, world: &view });
+        assert_eq!(client.get("stream"), Some(&Nbt::List(vec![Nbt::String("tconstruct:seared_table".into())])));
+        // nothing flows down anymore: the kept stream is cleared, so the renderer draws none
+        let mut data = NbtCompound::new();
+        State::default().save(&mut data);
+        tick_channel_client(&mut BlockEntityClientTick { pos: [0, 64, 0], data: &data, client_data: &mut client, world: &view });
+        assert_eq!(client.get("stream"), None);
     }
 }
