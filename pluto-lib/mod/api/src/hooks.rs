@@ -4806,7 +4806,13 @@ impl Hooks for PlutoHooks {
         use crate::pure::base::action_result::ActionResult;
         let pos = event.pos;
         let block = host.block(pos);
-        if !block_entity_api_v1::has_use_hook(&block) {
+        let has_hook = block_entity_api_v1::has_use_hook(&block);
+        // A block whose block entity declares a menu asks for that menu to open when a click
+        // nothing else consumes reaches it (pluto-menu-open): the sim opens menus only for
+        // the vanilla menu blocks, so a mod block on a plain template never gets its open
+        // from the sim, and the ask is queued here for the flush at the end of the click.
+        let opens_menu = block_entity_api_v1::menu(&block).is_some();
+        if !has_hook && !opens_menu {
             return Flow::Continue;
         }
         // The host names the acting player only for a guest's action; the world's own player is the only one logged in
@@ -4824,6 +4830,17 @@ impl Hooks for PlutoHooks {
         let slot = if matches!(event.hand, Hand::Off) { EquipmentSlot::OffHand } else { EquipmentSlot::MainHand };
         let held = host.player_equipment(player_uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
         let sneaking = host.sneaking();
+        // The sim's own block phase skips a sneaking click with an item in either hand (it
+        // is a placement against the block, not a use of it), so such a click asks for no
+        // menu either; every other unconsumed click on a menu block does.
+        let hands_full = [EquipmentSlot::MainHand, EquipmentSlot::OffHand].iter().any(|hand| host.player_equipment(player_uuid, *hand).is_some_and(|stack| stack.count > 0));
+        let menu_ask = opens_menu && !(sneaking && hands_full);
+        if !has_hook {
+            if menu_ask {
+                horizon_client::game::pluto_menu_open::queue_open(pos, Some(player_uuid));
+            }
+            return Flow::Continue;
+        }
         let mut outcome = None;
         let mut hand = Some(held.clone());
         // The use handler sees the same reach as a ticker: its dimension, the world, and the neighbours' containers and
@@ -4863,7 +4880,15 @@ impl Hooks for PlutoHooks {
             nbt.insert("Item".to_owned(), Nbt::Compound(item));
             host.summon(&player_dimension, "minecraft:item", player_position, compound_to_tag(&nbt));
         }
-        if matches!(outcome.result, ActionResult::Pass) { Flow::Continue } else { Flow::Cancel }
+        if matches!(outcome.result, ActionResult::Pass) {
+            // The use handler passed the click on: a menu the block declares opens for it.
+            if menu_ask {
+                horizon_client::game::pluto_menu_open::queue_open(pos, Some(player_uuid));
+            }
+            Flow::Continue
+        } else {
+            Flow::Cancel
+        }
     }
 
     fn menu_button_v2(&self, host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {

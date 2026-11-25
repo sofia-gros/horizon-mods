@@ -293,6 +293,14 @@ impl State {
     }
 }
 
+/// Whether the melter at `pos` stands over its fuel source (its `in_structure` state), for the use gate in
+/// melter_menu: canon opens the melter's menu only then, and spends the click on its no-fuel status
+/// otherwise. Where no state can be read — the pure fixtures, which drive the uses with no ticking world
+/// at all — the melter counts as formed, the same convention `formed` uses for the ticker.
+pub(crate) fn melter_formed(pos: BlockPos) -> bool {
+    World::ticking().and_then(|world| world.get_block_state(pos)).and_then(|state| state.property("in_structure").map(|value| value == "true")).unwrap_or(true)
+}
+
 /// The synchronized menu values: 0 fuel, 1 fuel quality, 2 temperature, 3 rate, then four per slot (current time, required time,
 /// required temperature, and 1 when an item is in it), then the tank's amount and which defined fluid it holds (one more than its
 /// position in `fluid_order`, 0 for none). The original syncs the three times per slot; the occupied flag is what lets the window

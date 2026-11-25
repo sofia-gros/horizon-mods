@@ -274,7 +274,18 @@ pub(crate) fn register() {
     // drops the menu for a size mismatch.
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(melter_id).item_slots(SLOTS as u32 + 1).fluid_tanks([MELTER_CAPACITY as u32]).menu("tconstruct:melter").sync_data().ticker(tick_melter)
-            .on_use(|used| crate::fluid_items::use_tank(used, MELTER_CAPACITY as u32)),
+            .on_use(|used| {
+                let pos = used.pos;
+                match crate::fluid_items::use_tank(used, MELTER_CAPACITY as u32) {
+                    // Canon (TinyMultiblockControllerBlock.use, ControllerBlock.openGui): the tank
+                    // transfer comes first; with nothing moved, the menu opens only over a fuel
+                    // source — without one the click is spent on the no-fuel status instead, so it
+                    // is consumed here and no open is asked for. (The status text itself is not
+                    // shown: a use handler has no player to address it to.)
+                    pluto_lib::ActionResult::Pass if !melter::melter_formed(pos) => pluto_lib::ActionResult::Success,
+                    result => result,
+                }
+            }),
     );
 
     let heater_id = Identifier::new("tconstruct", HEATER).expect("valid heater id");
