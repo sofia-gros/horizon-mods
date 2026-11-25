@@ -225,7 +225,8 @@ pub struct WeaponHit {
     pub weapon: Option<StackData>,
     /// The damage the hit is about to deal, before armor and enchantments take their share (the
     /// incoming-damage amount); 0 when the game did not report one. A hit the armor absorbs whole
-    /// still reads its pre-armor amount here.
+    /// still reads its pre-armor amount here. What the hit actually dealt is heard afterwards on
+    /// [`ServerLivingEntityEvents::WEAPON_HIT_DEALT`].
     pub damage_dealt: f32,
     /// The attacker's attack ticks as the hit landed: ticks since their last swing. A mob attacker
     /// reads as fully charged, as mobs keep no strength ticker; with the weapon's attack speed
@@ -265,6 +266,24 @@ impl WeaponHit {
     pub fn fully_charged(&self, attack_speed: f32) -> bool {
         self.attack_strength_scale(attack_speed) > 0.9
     }
+}
+
+/// A player's weapon hit on a mob, heard again after the hit's damage landed: the hit as
+/// [`WeaponHit`] reported it, and what the hit actually dealt. The game's post-damage report
+/// names what came off the target's health once armor, enchantment protection, effects and
+/// absorption took their part (NeoForge's `LivingDamageEvent.Post`), which is the original's
+/// `damageDealt` of `MeleeHitModifierHook.afterMeleeHit`: 0 for a hit the target's armor
+/// absorbed whole, where the weapon-hit telling's own `damage_dealt` still reads the incoming
+/// amount. Heard only for a hit the weapon-hit telling named and whose damage went ahead to
+/// be applied; a hit that was refused or cancelled is never heard here.
+#[derive(Clone, Debug)]
+pub struct WeaponHitDealt {
+    /// The hit as the weapon-hit telling reported it, before its damage landed; its
+    /// `damage_dealt` is the incoming amount, and its effect and action queues are this
+    /// telling's own, drained after the callbacks as a damage event's are.
+    pub hit: WeaponHit,
+    /// What came off the target's health: the damage the hit dealt, after mitigation.
+    pub dealt: f32,
 }
 
 /// A server player's tick, heard while the player wears armor or holds a tool that carries custom data, or carries a mob effect.
@@ -870,6 +889,7 @@ static SHEAR: Event<ShearAttempt, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
 static MOB_TICK: Event<MobTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
+static WEAPON_HIT_DEALT: Event<WeaponHitDealt, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
 static MODIFY_ITEM_DAMAGE: Event<ItemDamage, ()> = Event::void();
@@ -907,6 +927,10 @@ impl ServerLivingEntityEvents {
     pub const WEARER_HIT: &'static Event<WearerHit, ()> = &WEARER_HIT;
     /// A player's weapon hit on a mob, before its damage lands: push status effects on the mob with `effects`. Server only.
     pub const WEAPON_HIT: &'static Event<WeaponHit, ()> = &WEAPON_HIT;
+    /// A player's weapon hit on a mob, after its damage landed: the hit as `WEAPON_HIT` reported it and what came off the
+    /// target's health (the original's `damageDealt` of `afterMeleeHit`), for the gates the incoming amount cannot read.
+    /// The effects the callbacks push land on the mob as a weapon hit's do, and their actions as a damage event's do. Server only.
+    pub const WEAPON_HIT_DEALT: &'static Event<WeaponHitDealt, ()> = &WEAPON_HIT_DEALT;
     /// NeoForge: `LivingKnockBackEvent`. Change the strength or direction with `set`, or set `cancel`. Server only.
     pub const MODIFY_KNOCKBACK: &'static Event<KnockbackModification, ()> = &MODIFY_KNOCKBACK;
     /// A player's item losing durability: change the amount with `amount.set` or set `cancel`. Server only.
@@ -1361,6 +1385,42 @@ pub(crate) fn take_weapon_actions(hit: &WeaponHit) -> Vec<EntityAction> {
     hit.actions.borrow_mut().drain(..).collect()
 }
 
+/// A weapon hit is landing on a mob: the hit, remembered for the damage report that follows in the same call, so the
+/// dealt telling can hand the callbacks the hit as it was reported (with queues of its own, emptied here). Only the
+/// newest report stands, as with the hit's states.
+pub(crate) fn note_weapon_hit(hit: &WeaponHit, damage_type: &str) {
+    let mut noted = hit.clone();
+    noted.effects.borrow_mut().clear();
+    noted.actions.borrow_mut().clear();
+    PENDING_WEAPON_HIT.with(|pending| {
+        *pending.borrow_mut() = Some((hit.entity, hit.attacker, damage_type.to_owned(), noted, std::time::Instant::now()));
+    });
+}
+
+/// The damage a hit dealt has landed (`damage.amount` is what came off the entity's health): when the hit is the
+/// weapon hit the incoming report named — same entity, same attacker, same damage type, in the hit's own window —
+/// the callbacks hear it again as dealt, with the hit as it was reported. The effects they put on the mob are
+/// returned for the game to apply; the actions they queue land as a damage event's actions do. A report no weapon
+/// hit matches (another damage source, a superseded or stale report) hears nothing.
+pub(crate) fn weapon_hit_dealt(damage: &LivingDamage) -> Vec<EffectGrant> {
+    let hit = PENDING_WEAPON_HIT.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match pending.take() {
+            Some((entity, attacker, damage_type, hit, at)) if entity == damage.entity && at.elapsed() < HIT_STATES_LIFETIME => {
+                if attacker == damage.attacker && damage_type == damage.damage_type { Some(hit) } else { None }
+            }
+            Some((entity, _, _, _, at)) if entity == damage.entity || at.elapsed() >= HIT_STATES_LIFETIME => None,
+            other => { *pending = other; None }
+        }
+    });
+    let Some(hit) = hit else { return Vec::new() };
+    let dealt = WeaponHitDealt { hit, dealt: damage.amount };
+    WEAPON_HIT_DEALT.invoke(&dealt);
+    queue_dealt_actions(damage, &dealt);
+    let grants: Vec<EffectGrant> = dealt.hit.effects.borrow_mut().drain(..).collect();
+    grants
+}
+
 /// The knockback after the callbacks as (strength, x, z), or None when a callback cancelled it.
 pub(crate) fn modify_knockback(modification: &KnockbackModification) -> Option<(f64, f64, f64)> {
     MODIFY_KNOCKBACK.invoke(modification);
@@ -1541,6 +1601,7 @@ thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
     static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>, std::time::Instant)>> = const { RefCell::new(None) };
     static PENDING_POSITIONS: RefCell<Option<(i32, Option<[f64; 3]>, Option<[f64; 3]>, std::time::Instant)>> = const { RefCell::new(None) };
+    static PENDING_WEAPON_HIT: RefCell<Option<(i32, i32, String, WeaponHit, std::time::Instant)>> = const { RefCell::new(None) };
 }
 
 /// How long the states of a hit stay good: the damage event follows in the same call, so a few milliseconds is plenty, and a longer gap
@@ -2041,6 +2102,28 @@ fn queue_damage_actions(damage: &LivingDamage, modification: &DamageModification
     }
 }
 
+/// Queues the actions a dealt-telling callback asked for, as a damage event's are queued: a drop is handed to the
+/// game for its target, the ones for the attacking player land on that player's next tick (the hit names the stack
+/// they attacked with), and one for a party neither queue can place is kept for that entity's next tick.
+fn queue_dealt_actions(damage: &LivingDamage, dealt: &WeaponHitDealt) {
+    for action in dealt.hit.actions.borrow_mut().drain(..) {
+        // A drop lands at its target entity whatever the parties are; the game spawns it there.
+        if let EntityAction::DropItem { target, stack } = &action {
+            let entity = match target { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+            if entity >= 0 { if let Ok(mut queue) = DROP_ACTIONS.lock() { queue.push((entity, stack.clone())); } }
+            continue;
+        }
+        // The actions a player's attack asks for the attacker land on that player's next tick, with the damaged entity as the other party.
+        if action_target(&action) == ActionTarget::Attacker && dealt.hit.weapon.is_some() && damage.attacker >= 0 {
+            if let Ok(mut queue) = ATTACKER_ACTIONS.lock() { queue.push((damage.attacker, damage.entity, action)); }
+            continue;
+        }
+        // Neither tick queue can place it: keep it for the target entity's next tick instead of dropping it.
+        let entity = match action_target(&action) { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+        if entity >= 0 { if let Ok(mut queue) = LATE_ACTIONS.lock() { queue.push((entity, damage.attacker, damage.entity, action)); } }
+    }
+}
+
 /// Which party an action is done to.
 fn action_target(action: &EntityAction) -> ActionTarget {
     match action {
@@ -2453,6 +2536,35 @@ mod tests {
         assert_eq!(resolve_wearer_hit(&damage), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
         assert_eq!(*seen.lock().unwrap(), 1, "the report resolves by its attacker when no wearer holds the armor");
         assert!(take_self_effects(9).is_empty(), "with no known wearer the wearer's own effects are dropped, as before");
+    }
+
+    #[test]
+    fn a_weapon_hit_is_heard_again_with_what_it_dealt() {
+        let heard = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let heard_in = heard.clone();
+        ServerLivingEntityEvents::WEAPON_HIT_DEALT.register(move |dealt| {
+            if dealt.hit.entity != 9911 { return; }
+            heard_in.lock().unwrap().push((dealt.hit.damage_dealt, dealt.dealt));
+            dealt.hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 0, duration: 20 });
+            dealt.hit.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Victim, amount: 1.0 });
+        });
+        let hit = WeaponHit { entity: 9911, kind: "minecraft:husk".into(), attacker: 77, dimension: "minecraft:overworld".into(), weapon: Some(StackData { item: "example:wand".into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let post = |attacker: i32, amount: f32| LivingDamage { entity: 9911, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker, direct: attacker, amount };
+        // A damage report from another attacker is not the hit's: nothing is heard.
+        note_weapon_hit(&hit, "minecraft:player_attack");
+        assert!(weapon_hit_dealt(&post(78, 3.0)).is_empty());
+        assert!(heard.lock().unwrap().is_empty());
+        // The hit's own report, its damage wholly absorbed: heard with 0 dealt, the incoming amount kept, and the
+        // effects the callback put on the mob handed back.
+        note_weapon_hit(&hit, "minecraft:player_attack");
+        let grants = weapon_hit_dealt(&post(77, 0.0));
+        assert_eq!(grants, vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 0, duration: 20 }]);
+        assert_eq!(*heard.lock().unwrap(), vec![(5.0, 0.0)]);
+        // The victim action the callback queued waits for the victim's own tick, as a damage event's does.
+        assert_eq!(take_late_actions(9911), vec![(77, 9911, EntityAction::Heal { target: ActionTarget::Victim, amount: 1.0 })]);
+        // The report is spent: a second one hears nothing.
+        assert!(weapon_hit_dealt(&post(77, 2.0)).is_empty());
+        assert_eq!(heard.lock().unwrap().len(), 1);
     }
 
     #[test]
