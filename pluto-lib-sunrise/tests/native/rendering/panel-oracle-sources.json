@@ -1,0 +1,14 @@
+{
+  "reference_commit": "8443c8c857131877e62d458948235a113d38e756",
+  "old_draw_sha256": "caf11ba0a8925abba38e5afe5f022bfe66d26fbb7b9af6a0a755b3135a872306",
+  "new_draw_sha256": "2f031d7bdd61f76c629296254db4e7a34797eca1b9e76a22dd0b7a9abc1e477b",
+  "unchanged_layout_sha256": "81e799c05f3e3d2a5f5ab5a1bf73119a5332f57e853fc6c783a1e96bbbf08897",
+  "oracle_sha256": "9a0627b673232f1d689e62ef3f20fabe7f1d6a25ef672e2ea4054843f71c079e",
+  "adaptations": [
+    "Extract exact draw prefix between first mode sprite and tank loading.",
+    "Replace container-empty and cursor-hover expressions with bool inputs; caller keeps original expressions.",
+    "Replace atlas sprite lookup with a synthetic HashMap of actual official Rect values, preserving each texture key and absence.",
+    "Replace page tuple and clamped mode with numeric inputs; copy unchanged source layout functions.",
+    "Use actual official HudBatch/Rect and actual Pluto crop implementation; no renderer types are mocked."
+  ]
+}

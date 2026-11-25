@@ -1,0 +1,763 @@
+//! Throwaway consumer: proves PlutoLib's events fire in a running game. Uses only the PlutoLib API.
+use sunrise_client::mod_api::Hooks;
+use pluto_lib::{
+    BlockEntityRendererRegistry, BlockEntityType, BlockEntityTypeRegistry, FluidStack, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, Nbt, NbtCompoundExt, AttachmentRegistry, ItemGroup, ItemGroupRegistry, ItemStack, CommandRegistrationCallback, ItemUse, ItemUseRegistry, UseAction, ConfigEvents, ConfigKind, ConfigRegistry, Identifier, LootTableEvents, ResourceManagerHelper, ResourceType, ServerChunkEvents, ServerLifecycleEvents, ServerPlayConnectionEvents,
+    ServerTickEvents,
+};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+fn check_resource_pack(count: usize) {
+    if std::env::var("PLUTO_PROBE_RESOURCE_PACK").as_deref() != Ok("1") { return; }
+    let id = Identifier::parse("pluto_probe:probe.txt").unwrap();
+    let image_id = Identifier::parse("pluto_probe:textures/resource_probe.png").unwrap();
+    let raw = ResourceManagerHelper::read_client_resource(&id);
+    let image = ResourceManagerHelper::read_client_image(&image_id);
+    let initial = [200, 100, 50, 128, 0, 0, 255, 255];
+    let reloaded = [1, 2, 3, 255, 4, 5, 6, 64];
+    let expected_raw: &[u8] = if count == 1 { b"initial" } else { b"reloaded" };
+    let expected_pixels = if count == 1 { &initial } else { &reloaded };
+    let mut valid = raw.as_deref() == Some(expected_raw)
+        && image.as_ref().is_some_and(|image| image.width == 1 && image.height == 2 && image.rgba == expected_pixels.as_slice());
+    static SNAPSHOT: std::sync::Mutex<Option<pluto_lib::ResourceImage>> = std::sync::Mutex::new(None);
+    let mut snapshot = SNAPSHOT.lock().unwrap();
+    if count == 1 { *snapshot = image; }
+    else { valid &= snapshot.as_ref().is_some_and(|old| old.rgba == initial); }
+    println!("PLUTO-PROBE client_pack count={count} pass={valid}");
+    assert!(valid, "native resource pack priority/reload/snapshot mismatch");
+}
+
+fn register_feature_probe() {
+    use pluto_lib::{BlockBehavior, BlockBehaviors, BlockState, ConfiguredFeature, FeatureTypeRegistry};
+    let Ok(mode) = std::env::var("PLUTO_PROBE_FEATURE_MODE") else { return };
+    // The production propagule fixture must use Tinkers' real callbacks, not
+    // throwaway probe behaviours or a replacement tree grower.
+    if mode == "propagules" { return; }
+    if mode == "decline" || mode == "invalid" {
+        let invalid = mode == "invalid";
+        assert!(FeatureTypeRegistry::register(Identifier::parse("minecraft:huge_fungus").unwrap(), move |_| {
+            if invalid { return Err("probe deliberately invalid native feature configuration".into()); }
+            Ok(ConfiguredFeature::new(|_| {
+                println!("PLUTO-PROBE native_feature declined");
+                false
+            }))
+        }));
+        return;
+    }
+    if mode == "ender" {
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let index = context.pos[0] / 48;
+                if !(0..8).contains(&index) || context.pos[0] % 48 != 0 { return }
+                let name = format!("pluto_probe:ender_{index}");
+                if !context.world.set_block_state_with_flags(context.pos, &BlockState::parse("minecraft:air").unwrap(), 19) { return }
+                let placed = context.world.place_feature(&name, context.pos);
+                if !placed {
+                    // Only restore the fixture trigger; failed tree writes, if any,
+                    // remain. This is not a rollback implementation.
+                    context.world.set_block_state_with_flags(context.pos, &BlockState::parse("minecraft:dead_bush").unwrap(), 19);
+                    println!("PLUTO-PROBE feature_request name={name} placed=false");
+                    return;
+                }
+                let flavor = ["earth", "sky", "ichor", "ender"][(index / 2) as usize];
+                let expected = format!("tconstruct:{flavor}_enderbark_roots");
+                let (mut logs, mut leaves, mut vines, mut propagules, mut roots, mut variants) = (0,0,0,0,0,0);
+                let mut states_ok = true;
+                let mut supported_leaves = 0;
+                for x in context.pos[0]-16..=context.pos[0]+16 {
+                    for y in 99..=145 {
+                        for z in -16..=16 {
+                            let Some(state) = context.world.block_state([x,y,z]) else { states_ok = false; continue };
+                            let block = state.block.to_string();
+                            match block.as_str() {
+                                "tconstruct:enderbark_log" => logs += 1,
+                                "tconstruct:ender_slime_leaves" => {
+                                    leaves += 1;
+                                    match state.property("distance").and_then(|v| v.parse::<u8>().ok()) {
+                                        Some(1..=6) => supported_leaves += 1,
+                                        Some(7) => {},
+                                        _ => states_ok = false,
+                                    }
+                                }
+                                "tconstruct:ender_slime_vine" => vines += 1,
+                                "tconstruct:ender_slime_sapling" => {
+                                    propagules += 1;
+                                    states_ok &= state.property("hanging") == Some("true")
+                                        && state.property("age").and_then(|v| v.parse::<u8>().ok()).is_some_and(|age| age <= 4);
+                                }
+                                "tconstruct:enderbark_roots" => roots += 1,
+                                block if block.ends_with("_enderbark_roots") => { roots += 1; if block == expected { variants += 1; } },
+                                _ => {},
+                            }
+                        }
+                    }
+                }
+                states_ok &= supported_leaves > 0;
+                println!("PLUTO-PROBE ender_case index={index} placed={placed} logs={logs} leaves={leaves} vines={vines} propagules={propagules} roots={roots} variants={variants} states_ok={states_ok}");
+                assert!(logs > 0 && leaves > 0 && vines > 0 && roots > 0 && variants > 0 && states_ok, "Ender tree fixture failed: {index}");
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
+    if mode == "ordered" {
+        use pluto_lib::{TreeDecoration, TreeDecorator};
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:ordered_fixture").unwrap(), |configuration| {
+            let tree = configuration.get("tree").cloned().ok_or_else(|| "tree missing".to_owned())?;
+            let case = configuration.get("case").and_then(|v| v.as_str()).ok_or_else(|| "case missing".to_owned())?.to_owned();
+            Ok(ConfiguredFeature::new(move |context| {
+                let trace = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+                let before_trace = trace.clone();
+                let fail = case == "error";
+                let before = TreeDecorator::new(move |context| {
+                    before_trace.lock().unwrap().push("before");
+                    let &[x,y,z] = context.logs.first().ok_or("no logs")?;
+                    let north = [x,y,z-1]; let south = [x,y,z+1];
+                    if !context.world.is_air(north) || !context.world.is_air(south) { return Err("native ran before first custom step".into()) }
+                    if !context.world.set_block_state_with_flags(north, &BlockState::parse("minecraft:stone").unwrap(), 19) { return Err("before write failed".into()) }
+                    if fail { Err("probe ordered decorator failure".into()) } else { Ok(()) }
+                });
+                let middle_trace = trace.clone();
+                let middle = TreeDecorator::new(move |context| {
+                    middle_trace.lock().unwrap().push("middle");
+                    let &[x,y,z] = context.logs.first().ok_or("no logs")?;
+                    let named = |pos, name: &str| context.world.block_state(pos).is_some_and(|s| s.block.to_string() == name);
+                    if !named([x,y,z-1], "minecraft:stone") || !named([x,y,z+1], "minecraft:gold_block") { return Err("native/custom interleaving mismatch".into()) }
+                    if !context.world.set_block_state_with_flags([x,y,z-1], &BlockState::parse("minecraft:air").unwrap(), 19) { return Err("middle write failed".into()) }
+                    Ok(())
+                });
+                let after_trace = trace.clone();
+                let after = TreeDecorator::new(move |context| {
+                    after_trace.lock().unwrap().push("after");
+                    let &[x,y,z] = context.logs.first().ok_or("no logs")?;
+                    let named = |pos, name: &str| context.world.block_state(pos).is_some_and(|s| s.block.to_string() == name);
+                    if !named([x,y,z-1], "minecraft:diamond_block") || !named([x,y,z+1], "minecraft:gold_block") { return Err("final native decoration missing".into()) }
+                    Ok(())
+                });
+                let plan = if case == "invalid" {
+                    vec![TreeDecoration::Custom(before), TreeDecoration::Native(0), TreeDecoration::Native(0)]
+                } else {
+                    vec![TreeDecoration::Custom(before), TreeDecoration::Native(1), TreeDecoration::Custom(middle), TreeDecoration::Native(0), TreeDecoration::Custom(after)]
+                };
+                if case != "invalid" && !context.world.set_block_state_with_flags(context.origin, &BlockState::parse("minecraft:air").unwrap(), 19) { return false }
+                let placed = context.world.place_tree_with_plan(&tree, context.origin, None, &plan);
+                let trace = trace.lock().unwrap();
+                let valid = match case.as_str() {
+                    "valid" => placed && trace.as_slice() == ["before", "middle", "after"],
+                    "error" => !placed && trace.as_slice() == ["before"],
+                    "invalid" => !placed && trace.is_empty() && context.world.block_state(context.origin).is_some_and(|s| s.block.to_string() == "minecraft:dead_bush"),
+                    _ => false,
+                };
+                println!("PLUTO-PROBE ordered_case case={case} placed={placed} callbacks={} valid={valid}", trace.len());
+                assert!(valid, "ordered fixture failed: {case}");
+                placed
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let name = match context.pos[0] { 0 => "pluto_probe:ordered_valid", 16 => "pluto_probe:ordered_error", 32 => "pluto_probe:ordered_invalid", _ => return };
+                let placed = context.world.place_feature(name, context.pos);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
+    if mode == "roots" {
+        use pluto_lib::{RootPlacement, RootPlacementTypeRegistry};
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:root_fixture").unwrap(), |configuration| {
+            let tree = configuration.get("tree").cloned().ok_or_else(|| "tree missing".to_owned())?;
+            let case = configuration.get("case").and_then(|v| v.as_str()).ok_or_else(|| "root case missing".to_owned())?.to_owned();
+            let root = RootPlacementTypeRegistry::decode(&Identifier::parse("tconstruct:extra_root_variants").unwrap(), configuration.get("roots").ok_or_else(|| "roots missing".to_owned())?)?
+                .ok_or_else(|| "Tinkers root override not registered".to_owned())?;
+            Ok(ConfiguredFeature::new(move |context| {
+                let origin = context.origin;
+                let snapshot = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+                let capture = snapshot.clone();
+                let root = root.clone();
+                let traced = RootPlacement::new(root.bindings().clone(), move |context| {
+                    let answer = root.place(context);
+                    capture.lock().unwrap().push((context.pos, answer.clone()));
+                    answer
+                });
+                if case != "invalid_binding" {
+                    let initial = match case.as_str() { "water" => "minecraft:water", "parent" => "minecraft:mud", _ => "minecraft:air" };
+                    if !context.world.set_block_state_with_flags(origin, &BlockState::parse(initial).unwrap(), 19) { return false; }
+                }
+                let placed = context.world.place_tree_with_roots(&tree, origin, &traced, &[]);
+                let calls = snapshot.lock().unwrap();
+                let selected = calls.iter().filter(|(_, answer)| matches!(answer, Ok(Some(_)))).count();
+                let parent = calls.iter().filter(|(_, answer)| matches!(answer, Ok(None))).count();
+                let errors = calls.iter().filter(|(_, answer)| answer.is_err()).count();
+                let weighted_ok = calls.iter().all(|(_, answer)| match answer {
+                    Ok(Some(state)) => matches!(state.block.to_string().as_str(), "minecraft:oak_log" | "minecraft:birch_log"),
+                    Ok(None) => true, Err(_) => false,
+                });
+                let center = context.world.block_state(origin).map(|s| {
+                    let properties = s.properties.iter().map(|(k,v)| format!("{k}={v}")).collect::<Vec<_>>().join(",");
+                    format!("{}[{properties}]", s.block)
+                }).unwrap_or_else(|| "unavailable".into());
+                println!("PLUTO-PROBE root_case case={case} placed={placed} calls={} selected={selected} parent={parent} errors={errors} weighted_ok={weighted_ok} center={center}", calls.len());
+                let valid = match case.as_str() {
+                    "weighted" => placed && selected > 0 && errors == 0 && weighted_ok,
+                    "water" => placed && selected > 0 && errors == 0 && center.contains("minecraft:mangrove_roots[") && center.contains("waterlogged=true"),
+                    "parent" => placed && selected == 0 && parent > 0 && errors == 0 && center.contains("minecraft:muddy_mangrove_roots["),
+                    "no_state" => !placed && calls.len() == 1 && errors == 1 && center.starts_with("minecraft:air["),
+                    "invalid_binding" => !placed && calls.is_empty() && center.starts_with("minecraft:dead_bush["),
+                    _ => false,
+                };
+                assert!(valid, "root fixture observation failed: {case}");
+                placed
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let name = match context.pos[0] {
+                    0 => "pluto_probe:roots_weighted", 40 => "pluto_probe:roots_water", 80 => "pluto_probe:roots_parent",
+                    120 => "pluto_probe:roots_no_state", 160 => "pluto_probe:roots_invalid_binding", _ => return,
+                };
+                let placed = context.world.place_feature(name, context.pos);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
+    if mode == "native_tree" {
+        use pluto_lib::{TreeDecorator, TreeDecoratorTypeRegistry};
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:gold_block").unwrap()).update_shape(|context| {
+            println!("PLUTO-PROBE tree_edge pos={:?}", context.pos);
+            None
+        }));
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:native_tree_fixture").unwrap(), |configuration| {
+            let tree = configuration.get("tree").cloned().ok_or_else(|| "tree missing".to_owned())?;
+            let fail = configuration.get("fail").and_then(|v| v.as_bool()).unwrap_or(false);
+            let remove = configuration.get("remove").and_then(|v| v.as_bool()).unwrap_or(true);
+            let vine = TreeDecoratorTypeRegistry::decode(&Identifier::parse("tconstruct:leave_vines").unwrap(),
+                &serde_json::json!({"vines":"tconstruct:ender_slime_vine","probability":1}))?
+                .ok_or_else(|| "Tinkers decorator not registered".to_owned())?;
+            Ok(ConfiguredFeature::new(move |context| {
+                let origin = context.origin;
+                let snapshot = std::sync::Arc::new(std::sync::Mutex::new((Vec::new(), Vec::new())));
+                let capture = snapshot.clone();
+                let vine = vine.clone();
+                let extra = TreeDecorator::new(move |context| {
+                    let roll = context.world.random_int(7);
+                    let nested_rejected = !context.world.place_feature("minecraft:oak", [origin[0] + 30, origin[1], origin[2]])
+                        && !context.world.place_tree(&serde_json::Value::Null, origin, &[]);
+                    println!("PLUTO-PROBE native_tree_context origin={origin:?} logs={} leaves={} roots={} rng_in_range={} nested_rejected={nested_rejected}",
+                        context.logs.len(), context.leaves.len(), context.roots.len(), (0..7).contains(&roll));
+                    *capture.lock().unwrap() = (context.logs.to_vec(), context.leaves.to_vec());
+                    println!("PLUTO-PROBE tree_extra_begin origin={origin:?}");
+                    if !context.world.set_block_state_with_flags([origin[0] + 6, origin[1], origin[2]], &BlockState::parse("minecraft:diamond_block").unwrap(), 19) {
+                        return Err("tree marker write failed".into());
+                    }
+                    vine.decorate(context)?;
+                    if fail { Err("probe deliberate tree decorator failure".into()) } else { Ok(()) }
+                });
+                if remove && !context.world.set_block_state_with_flags(origin, &BlockState::parse("minecraft:air").unwrap(), 19) { return false; }
+                let placed = context.world.place_tree(&tree, origin, &[extra]);
+                let (logs, leaves) = snapshot.lock().unwrap().clone();
+                let distances = !leaves.is_empty() && leaves.iter().all(|&pos| context.world.block_state(pos)
+                    .and_then(|s| s.property("distance").and_then(|p| p.parse::<i32>().ok())).is_some_and(|d| (1..=6).contains(&d)));
+                let mut vines = std::collections::BTreeSet::new();
+                for &[x, y, z] in &leaves {
+                    for (dx, dz) in [(0, -1), (1, 0), (0, 1), (-1, 0)] {
+                        for dy in 0..5 {
+                            let pos = [x + dx, y - dy, z + dz];
+                            if context.world.block_state(pos).is_some_and(|s| s.block.to_string() == "tconstruct:ender_slime_vine") { vines.insert(pos); }
+                        }
+                    }
+                }
+                println!("PLUTO-PROBE native_tree origin={origin:?} placed={placed} logs={} leaves={} vines={} distances_ok={distances}", logs.len(), leaves.len(), vines.len());
+                if placed && (logs.is_empty() || leaves.is_empty() || vines.is_empty() || !distances) { return false; }
+                placed
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true).on_bonemeal(|context| {
+                let name = match context.pos[0] {
+                    0 => "pluto_probe:native_tree_valid", 16 => "pluto_probe:native_tree_error", 32 => "pluto_probe:native_tree_invalid", _ => return,
+                };
+                let placed = context.world.place_feature(name, context.pos);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
+    if mode == "decorator" {
+        use pluto_lib::{TreeDecoratorContext, TreeDecoratorTypeRegistry};
+        assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:decorator_fixture").unwrap(), |configuration| {
+            let decorator = TreeDecoratorTypeRegistry::decode(&Identifier::parse("tconstruct:leave_vines").unwrap(), configuration)?
+                .ok_or_else(|| "Tinkers decorator is not registered".to_owned())?;
+            Ok(ConfiguredFeature::new(move |context| {
+                let leaf = [context.origin[0], context.origin[1] + 6, context.origin[2]];
+                if !context.world.set_block_state_with_flags(leaf, &BlockState::parse("minecraft:oak_leaves[persistent=true]").unwrap(), 19) { return false; }
+                let result = decorator.decorate(&mut TreeDecoratorContext { world: context.world, logs: &[], leaves: &[leaf], roots: &[] });
+                println!("PLUTO-PROBE decorator origin={:?} result={result:?}", context.origin);
+                result.is_ok()
+            }))
+        }));
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+            .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true)
+            .on_bonemeal(|context| {
+                let name = match context.pos[0] {
+                    0 => "pluto_probe:decorator_full", 8 => "pluto_probe:decorator_obstructed",
+                    16 => "pluto_probe:decorator_zero", 24 => "pluto_probe:decorator_invalid",
+                    32 => "pluto_probe:decorator_write_fail", _ => return,
+                };
+                let placed = context.world.place_feature(name, [context.pos[0], context.pos[1] + 1, context.pos[2]]);
+                println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+            }));
+        return;
+    }
+    let flags_mode = mode == "flags";
+    if mode != "column" && !flags_mode { return; }
+    if flags_mode {
+        BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:diamond_block").unwrap())
+            .update_shape(|context| {
+                println!("PLUTO-PROBE flag_shape pos={:?}", context.pos);
+                None
+            }));
+    }
+    assert!(FeatureTypeRegistry::register(Identifier::parse("pluto_probe:column").unwrap(), move |config| {
+        let height = config.get("height").and_then(serde_json::Value::as_u64)
+            .filter(|height| (1..=8).contains(height)).ok_or_else(|| "probe height must be 1..=8".to_owned())?;
+        let state = config.get("state").and_then(serde_json::Value::as_str)
+            .and_then(|text| BlockState::parse(text).ok()).ok_or_else(|| "probe block state missing".to_owned())?;
+        let nested = config.get("nested").and_then(serde_json::Value::as_str).map(str::to_owned);
+        let flags = match config.get("flags") {
+            Some(value) => value.as_i64().and_then(|value| i32::try_from(value).ok())
+                .ok_or_else(|| "probe flags must fit i32".to_owned())?,
+            None => 3,
+        };
+        Ok(ConfiguredFeature::new(move |context| {
+            if let Some(nested) = &nested { return context.world.place_feature(nested, context.origin); }
+            let roll = context.world.random_int(7);
+            if flags_mode { println!("PLUTO-PROBE flags_begin flags={flags} origin={:?}", context.origin); }
+            for dy in 0..height as i32 {
+                let Some(y) = context.origin[1].checked_add(dy) else { return false };
+                let pos = [context.origin[0], y, context.origin[2]];
+                let set = if flags_mode || flags != 3 { context.world.set_block_state_with_flags(pos, &state, flags) }
+                    else { context.world.set_block_state(pos, &state) };
+                if !set { return false; }
+            }
+            println!("PLUTO-PROBE custom_feature origin={:?} height={height} rng_in_range={} flags={flags}", context.origin, (0..7).contains(&roll));
+            true
+        }))
+    }));
+    BlockBehaviors::register(BlockBehavior::new(Identifier::parse("minecraft:dead_bush").unwrap())
+        .can_survive(|_| true).can_bonemeal(|_| true).bonemeal_success(|_| true)
+        .on_bonemeal(move |context| {
+            let name = if flags_mode { match context.pos[0] {
+                0 => "pluto_probe:flags_3",
+                6 => "pluto_probe:flags_2",
+                12 => "pluto_probe:flags_18",
+                18 => "pluto_probe:flags_19",
+                _ => return,
+            }} else { match context.pos[0] {
+                -2 => "pluto_probe:column_valid",
+                4 => "pluto_probe:column_bad",
+                10 => "pluto_probe:column_recursive",
+                _ => return,
+            }};
+            let pos = [context.pos[0], context.pos[1] + 1, context.pos[2]];
+            let placed = context.world.place_feature(name, pos);
+            println!("PLUTO-PROBE feature_request name={name} placed={placed}");
+        }));
+}
+
+mod structures;
+
+pub fn hooks() -> Box<dyn Hooks> {
+    register_feature_probe();
+    structures::register();
+    pluto_lib::ColorProviderRegistry::register_block(&[Identifier::new("minecraft", "oak_leaves").unwrap()], |context| {
+        if context.pos == Some([0, 101, 0]) && context.tint_index == 0 {
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE block_color pos=[0, 101, 0] tint=0 persistent={:?}", context.state.property("persistent"));
+            }
+            Some(0xFF00FF)
+        } else {
+            if context.pos == Some([3, 101, 0]) && context.tint_index == 0 {
+                static ONCE: AtomicBool = AtomicBool::new(false);
+                if !ONCE.swap(true, Ordering::Relaxed) { println!("PLUTO-PROBE block_color fallback pos=[3, 101, 0]"); }
+            }
+            None
+        }
+    });
+    pluto_lib::ProjectileEvents::IMPACT.register(|hit| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE projectile kind={} dimension={}", hit.kind, hit.dimension);
+        }
+        true
+    });
+    pluto_lib::Translations::register("en_us", [("pluto_probe.hello".to_owned(), "Hello from the probe".to_owned()), ("pluto_probe.tooltip".to_owned(), "Translated tooltip".to_owned())]);
+    pluto_lib::Translations::register("ja_jp", [("pluto_probe.hello".to_owned(), "プローブからこんにちは".to_owned())]);
+    BlockEntityRendererRegistry::register(Identifier::new("tconstruct", "seared_melter").unwrap(), |render| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE renderer pos={:?} data_keys={}", render.pos, render.data.len());
+        }
+        render.canvas.keep();
+    });
+    ScreenHandlerRegistry::register(
+        ScreenHandlerType::new(Identifier::new("tconstruct", "seared_melter").unwrap(), ScreenLayout::new(176.0, 166.0).slot(56.0, 17.0).slot(56.0, 53.0).slot(116.0, 35.0))
+            .on_draw(|d| {
+                static ONCE: AtomicBool = AtomicBool::new(false);
+                if !ONCE.swap(true, Ordering::Relaxed) {
+                    println!("PLUTO-PROBE screen_draw origin_set={}", d.origin[0] >= 0.0);
+                }
+            })
+            .on_quick_move(|q| {
+                if q.stack.item.to_string() != "minecraft:coal" {
+                    return false;
+                }
+                if q.items.len() < 3 {
+                    q.items.resize(3, None);
+                }
+                q.items[2] = Some(q.stack.clone()); // the furnace's own routing would send coal to the fuel slot, 1
+                q.stack.count = 0;
+                true
+            }),
+    );
+    BlockEntityTypeRegistry::register(
+        BlockEntityType::new(Identifier::new("tconstruct", "seared_melter").unwrap())
+            .with_id(Identifier::new("pluto_probe", "stone_entity").unwrap())
+            .item_slots(3)
+            .menu("minecraft:furnace")
+            .fluid_tanks([2000])
+            .ticker(|tick| {
+                let ticks = tick.data.get_int("ticks", 0) + 1;
+                tick.data.insert("ticks".to_owned(), Nbt::Int(ticks as i32));
+                if ticks == 1 {
+                    tick.set_fluid(0, Some(FluidStack { fluid: Identifier::new("minecraft", "water").unwrap(), amount: 500, tag: None }));
+                }
+                if ticks == 5 {
+                    println!("PLUTO-PROBE block_entity ticks={ticks} pos={:?} slots={} water={}", tick.pos, tick.items.len(), tick.fluid(0).map_or(0, |f| f.amount));
+                }
+                let held: Vec<String> = tick.items.iter().take(3).map(|s| s.as_ref().map_or("-".to_owned(), |s| format!("{}:{}", s.item, s.count))).collect();
+                let held = held.join(" ");
+                let seen = tick.data.get_string("held").unwrap_or("").to_owned();
+                if held != "- - -" && held != seen {
+                    println!("PLUTO-PROBE menu slots={held}");
+                    tick.data.insert("held".to_owned(), Nbt::String(held));
+                }
+            })
+            .sync_data(),
+    );
+    ItemGroupRegistry::register(
+        ItemGroup::new(Identifier::new("pluto_probe", "tab").unwrap(), "Probe Tab", ItemStack::new(Identifier::new("minecraft", "stick").unwrap(), 1))
+            .entry(ItemStack::new(Identifier::new("minecraft", "stick").unwrap(), 3).with_components("{\"minecraft:custom_name\":'\"Probe\"'}")),
+    );
+    ItemUseRegistry::register(
+        Identifier::new("pluto_probe", "snack").unwrap(),
+        ItemUse::new(16, UseAction::Eat).food(4, 0.5).remainder(Identifier::new("minecraft", "stick").unwrap(), 2),
+    );
+    CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("pluto_probe ping <word:word>", |ctx| {
+            let world = pluto_lib::World::new("minecraft:overworld");
+            let glass = pluto_lib::BlockState::new(Identifier::new("minecraft", "glass").unwrap());
+            let set = world.set_block_state([3, 81, 3], &glass);
+            println!("PLUTO-PROBE world set={set} read={:?}", world.get_block_state([3, 81, 3]).map(|s| s.to_string()));
+            // two punji sticks side by side on stone: each learns of the other; then the stone under one goes and so does the stick
+            let stone = pluto_lib::BlockState::parse("minecraft:stone").unwrap();
+            let punji = pluto_lib::BlockState::parse("tconstruct:punji[facing=down]").unwrap();
+            for x in [5, 6] {
+                world.set_block_state([x, 80, 5], &stone);
+                world.set_block_state([x, 81, 5], &punji);
+            }
+            let east = world.get_block_state([5, 81, 5]).and_then(|s| s.property("east").map(str::to_owned));
+            world.set_block_state([5, 80, 5], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
+            println!("PLUTO-PROBE punji east={east:?}");
+            // a slime vine hangs on a stone to its north, and goes when the stone does
+            world.set_block_state([40, 81, 40], &stone);
+            let vine = pluto_lib::BlockState::parse("tconstruct:sky_slime_vine[north=true]").unwrap();
+            world.set_block_state([40, 81, 41], &vine);
+            let kept = world.get_block_state([40, 81, 41]).is_some_and(|s| s.block.path() == "sky_slime_vine" && s.property("north") == Some("true"));
+            world.set_block_state([40, 81, 40], &pluto_lib::BlockState::parse("minecraft:air").unwrap());
+            println!("PLUTO-PROBE vine kept_on_stone={kept}");
+            // a glow stays on a solid face and goes when the face does
+            world.set_block_state([14, 80, 14], &stone);
+            world.set_block_state([14, 81, 14], &pluto_lib::BlockState::parse("tconstruct:glow[facing=down]").unwrap());
+            world.set_block_state([16, 81, 16], &pluto_lib::BlockState::parse("tconstruct:glow[facing=down]").unwrap());
+            world.set_block_state([16, 81, 17], &stone);
+            let kept_glow = world.get_block_state([14, 81, 14]).is_some_and(|s| s.block.path() == "glow");
+            let lost_glow = world.get_block_state([16, 81, 16]).is_some_and(|s| s.block.path() == "air");
+            println!("PLUTO-PROBE glow kept={kept_glow} lost={lost_glow}");
+            world.set_block_state([34, 80, 34], &pluto_lib::BlockState::parse("tconstruct:budding_sky_slime_crystal").unwrap());
+            // seeds used on slime dirt make grass (the event is invoked here; the game's hook calls it the same way)
+            world.set_block_state([26, 80, 26], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());
+            let used = pluto_lib::UseItemOnBlockContext {
+                item: "tconstruct:sky_slime_grass_seeds".into(), count: 1, pos: [26, 80, 26], face: [0, 1, 0],
+                dimension: "minecraft:overworld".into(), player: pluto_lib::ServerPlayer { uuid: 1, name: "probe".into() }, creative: true, held: None,
+            };
+            let answer = pluto_lib::UseItemOnBlockCallback::EVENT.invoke(&used);
+            let seeded = world.get_block_state([26, 80, 26]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE seeds answer={answer:?} block={seeded:?}");
+            // grass under a stone gets no light and turns back into dirt on a random tick
+            world.set_block_state([20, 80, 20], &pluto_lib::BlockState::parse("tconstruct:earth_earth_slime_grass").unwrap());
+            world.set_block_state([20, 81, 20], &stone);
+            // a sapling in its second stage on slime dirt grows into a tree on a random tick
+            world.set_block_state([24, 79, 24], &pluto_lib::BlockState::parse("tconstruct:earth_slime_dirt").unwrap());
+            world.set_block_state([24, 80, 24], &pluto_lib::BlockState::parse("tconstruct:earth_slime_sapling[stage=1]").unwrap());
+            // leaves count their distance from a slime log, and from leaves next to it
+            let log = pluto_lib::BlockState::parse("tconstruct:skyroot_log").unwrap();
+            let leaves = pluto_lib::BlockState::parse("tconstruct:sky_slime_leaves").unwrap();
+            world.set_block_state([44, 81, 44], &log);
+            world.set_block_state([45, 81, 44], &leaves);
+            world.set_block_state([46, 81, 44], &leaves);
+            let distance = |x: i32| world.get_block_state([x, 81, 44]).and_then(|s| s.property("distance").map(str::to_owned));
+            println!("PLUTO-PROBE leaves near={:?} next={:?}", distance(45), distance(46));
+            world.set_block_state([30, 96, 30], &pluto_lib::BlockState::parse("tconstruct:enderbark_roots").unwrap());
+            let signs: Vec<bool> = ["skyroot_sign", "skyroot_wall_sign", "greenheart_hanging_sign", "enderbark_wall_hanging_sign"]
+                .iter()
+                .enumerate()
+                .map(|(i, name)| {
+                    let state = pluto_lib::BlockState::parse(&format!("tconstruct:{name}")).unwrap();
+                    world.set_block_state([8 + i as i32 * 2, 81, 8], &state)
+                        && world.get_block_state([8 + i as i32 * 2, 81, 8]).is_some_and(|s| s.block.path() == *name)
+                })
+                .collect();
+            println!("PLUTO-PROBE signs placed={signs:?}");
+            // a platform learns of the stone below it and of the platform above it
+            let platform = pluto_lib::BlockState::parse("tconstruct:iron_platform").unwrap();
+            world.set_block_state([12, 81, 12], &platform);
+            world.set_block_state([12, 80, 12], &stone);
+            world.set_block_state([12, 82, 12], &platform);
+            let read = |key: &str| world.get_block_state([12, 81, 12]).and_then(|s| s.property(key).map(str::to_owned));
+            let pots: Vec<bool> = ["potted_blood_slime_fern", "potted_sky_slime_sapling"]
+                .iter()
+                .enumerate()
+                .map(|(i, name)| {
+                    let state = pluto_lib::BlockState::parse(&format!("tconstruct:{name}")).unwrap();
+                    world.set_block_state([16 + i as i32 * 2, 81, 16], &state) && world.get_block_state([16 + i as i32 * 2, 81, 16]).is_some_and(|s| s.block.path() == *name)
+                })
+                .collect();
+            println!("PLUTO-PROBE potted placed={pots:?}");
+            println!("PLUTO-PROBE platform down={:?} up={:?}", read("down"), read("up"));
+            println!("PLUTO-PROBE command ping arg={} source={}", ctx.args[0], ctx.source.name);
+            1
+        });
+    });
+    CommandRegistrationCallback::EVENT.register(|registrar| {
+        registrar.register("pluto_probe feed", |ctx| {
+            let drained = ctx.source.add_food(-10, 0.0);
+            let before = ctx.source.food();
+            let added = ctx.source.add_food(4, 0.25);
+            let after = ctx.source.food();
+            let invalid = !ctx.source.add_food(4, f32::NAN) && ctx.source.food() == after;
+            let absent = pluto_lib::ServerPlayer { uuid: u128::MAX, name: "Absent probe player".to_owned() };
+            let missing = !absent.add_food(4, 0.25) && ctx.source.food() == after;
+            let exact = match (before, after) {
+                (Some(before), Some(after)) => before.level == 10 && after.level == 14
+                    && after.saturation == (before.saturation + 2.0).min(14.0)
+                    && after.exhaustion == before.exhaustion,
+                _ => false,
+            };
+            let passed = drained && added && invalid && missing && exact;
+            println!("PLUTO-PROBE feed pass={passed} before={before:?} after={after:?} invalid={invalid} missing={missing}");
+            i32::from(passed)
+        });
+        registrar.register("pluto_probe tool", |ctx| {
+            // the wear of a tool after it dug: the game counts damage against the stack's own max damage
+            let tool = (0..36).filter_map(|slot| ctx.source.stack(slot)).find(|s| s.item == "tconstruct:pickaxe");
+            match tool {
+                Some(tool) => println!("PLUTO-PROBE tool damage={} max={:?}", tool.damage, tool.max_damage),
+                None => println!("PLUTO-PROBE tool none"),
+            }
+            1
+        });
+        registrar.register("pluto_probe check", |ctx| {
+            let later = pluto_lib::World::new("minecraft:overworld").get_block_state([5, 81, 5]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE punji after_support_removed_later={later:?}");
+            let vine = pluto_lib::World::new("minecraft:overworld").get_block_state([40, 81, 41]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE vine after_support_removed={vine:?}");
+            let grass = pluto_lib::World::new("minecraft:overworld").get_block_state([20, 80, 20]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE grass covered={grass:?}");
+            let around = pluto_lib::World::new("minecraft:overworld");
+            let buds = pluto_lib::Direction::ALL
+                .iter()
+                .filter_map(|d| around.get_block_state(d.relative([34, 80, 34])))
+                .filter(|s| s.block.path().ends_with("sky_slime_crystal_bud") || s.block.path().ends_with("sky_slime_crystal_cluster"))
+                .count();
+            println!("PLUTO-PROBE crystal buds_found={}", buds > 0);
+            let chime = around.play_sound("tconstruct:block.sky_crystal.chime", [34.5, 80.5, 34.5], 1.0, 1.0);
+            println!("PLUTO-PROBE chime played={chime}");
+            let tree = pluto_lib::World::new("minecraft:overworld").get_block_state([24, 80, 24]).map(|s| s.block.to_string());
+            println!("PLUTO-PROBE sapling grew={tree:?}");
+            let waxed = pluto_lib::World::new("minecraft:overworld").get_block_state([30, 79, 29]).map(|s| s.block.to_string());
+            let weathered = pluto_lib::World::new("minecraft:overworld").get_block_state([27, 79, 29]).is_some_and(|s| s.block.path() != "copper_platform");
+            println!("PLUTO-PROBE copper waxed={waxed:?} weathered={weathered}");
+            // a stack with custom data: read it, write it back changed, read it again
+            let slot = (0..36).find(|slot| ctx.source.stack(*slot).is_some_and(|s| s.item == "minecraft:diamond_pickaxe"));
+            if let Some(slot) = slot {
+                let mut stack = ctx.source.stack(slot).unwrap();
+                let read = stack.custom_data.get("pluto").and_then(Nbt::as_i64);
+                stack.custom_data.insert("pluto".to_owned(), Nbt::Int(8));
+                stack.damage = 5;
+                stack.max_damage = Some(500);
+                let written = ctx.source.update_stack(slot, &stack);
+                let after = ctx.source.stack(slot).unwrap();
+                println!("PLUTO-PROBE stack read={read:?} written={written} now={:?}:{}/{:?}", after.custom_data.get("pluto").and_then(Nbt::as_i64), after.damage, after.max_damage);
+            } else {
+                println!("PLUTO-PROBE stack missing");
+            }
+            // a tool built by a mod comes with its max damage and its data
+            let built = (0..36).filter_map(|slot| ctx.source.stack(slot)).find(|s| s.item == "tconstruct:pickaxe" && s.custom_data.contains_key("tconstruct:stats"));
+            match built {
+                Some(tool) => println!("PLUTO-PROBE built max_damage={:?} materials={}", tool.max_damage, tool.custom_data.get("tconstruct:materials").and_then(Nbt::as_list).map_or(0, <[Nbt]>::len)),
+                None => println!("PLUTO-PROBE built none"),
+            }
+            println!("PLUTO-PROBE cheese cured={}", !ctx.source.effects().iter().any(|e| e.id == "minecraft:night_vision"));
+            let mut drunk: Vec<String> = ctx.source.effects().into_iter().map(|e| e.id).filter(|id| id != "minecraft:speed").collect();
+            drunk.sort();
+            println!("PLUTO-PROBE bottle effects={drunk:?}");
+            // what real clicks did: seeds on dirt, bone meal on grass, on a sapling and on a fungus
+            let w = pluto_lib::World::new("minecraft:overworld");
+            let name = |pos| w.get_block_state(pos).map(|s| s.block.to_string()).unwrap_or_default();
+            println!("PLUTO-PROBE break protected={} allowed={}", name([28, 79, 31]) == "minecraft:stone", name([29, 79, 31]) == "minecraft:air");
+            let count = |from: [i32; 3], to: [i32; 3], pred: &dyn Fn(&str) -> bool| {
+                let mut n = 0;
+                for x in from[0]..=to[0] {
+                    for y in from[1]..=to[1] {
+                        for z in from[2]..=to[2] {
+                            if pred(&name([x, y, z])) {
+                                n += 1;
+                            }
+                        }
+                    }
+                }
+                n
+            };
+            let seeds_grass = name([28, 79, 30]) == "tconstruct:sky_earth_slime_grass";
+            let plants = count([27, 80, 28], [33, 81, 32], &|b| b.ends_with("_slime_fern") || b.ends_with("_slime_tall_grass")) > 0;
+            let tree = count([30, 80, 28], [34, 95, 32], &|b| b == "tconstruct:greenheart_log") > 0;
+            let fungus = count([34, 80, 26], [44, 100, 36], &|b| b == "tconstruct:bloodshroom_log") > 0;
+            println!("PLUTO-PROBE real seeds_grass={seeds_grass} bonemeal_plants={plants} sapling_tree={tree} fungus={fungus}");
+            1
+        });
+    });
+    // A vetoed real break keeps its block and reports CANCELED, unlike an allowed break.
+    pluto_lib::PlayerBlockBreakEvents::BEFORE.register(|c| c.pos != [28, 79, 31]);
+    pluto_lib::PlayerBlockBreakEvents::CANCELED.register(|c| println!("PLUTO-PROBE break_canceled pos={:?}", c.pos));
+    // picking a block and digging one in survival reach the callbacks
+    pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "earth_slime_dirt").unwrap()).pick_stack(|pick| {
+        println!("PLUTO-PROBE pick called block={}", pick.state.block);
+        Some(ItemStack::new(Identifier::new("minecraft", "bone_meal").unwrap(), 1))
+    }));
+    pluto_lib::BreakSpeedCallback::EVENT.register(|dig| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE break_speed block={} original={}", dig.block.block, dig.original);
+        }
+    });
+    // a random tick on a block the game ticks at random: the callback may write blocks and roll the level's dice
+    pluto_lib::BlockBehaviors::register(pluto_lib::BlockBehavior::new(Identifier::new("tconstruct", "enderbark_roots").unwrap()).random_tick(|c| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        let marker = pluto_lib::BlockState::parse("minecraft:glass").unwrap();
+        let rolled = c.world.random_int(6);
+        let set = c.world.set_block_state([c.pos[0], c.pos[1] + 2, c.pos[2]], &marker);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE random_tick pos={:?} rolled_in_range={} set={set}", c.pos, (0..6).contains(&rolled));
+        }
+    }));
+    ConfigRegistry::register("pluto_probe", ConfigKind::Common, "probe = true
+");
+    ConfigEvents::LOADING.register(|c| {
+        if c.mod_id == "pluto_probe" {
+            println!("PLUTO-PROBE config_loading {} text={:?}", c.file, c.text);
+        }
+    });
+    ServerLifecycleEvents::SERVER_STARTING.register(|s| println!("PLUTO-PROBE server_starting dedicated={}", s.dedicated));
+    ServerLifecycleEvents::SERVER_STOPPING.register(|s| println!("PLUTO-PROBE server_stopping dedicated={}", s.dedicated));
+    ServerLifecycleEvents::SERVER_STOPPED.register(|s| println!("PLUTO-PROBE server_stopped dedicated={}", s.dedicated));
+    ServerPlayConnectionEvents::JOIN.register(|p| {
+        println!("PLUTO-PROBE join name={}", p.name);
+        println!(
+            "PLUTO-PROBE i18n language={} text={} ja={} player_language={}",
+            pluto_lib::I18n::language(),
+            pluto_lib::I18n::translate("pluto_probe.hello"),
+            pluto_lib::I18n::translate_in("ja_jp", "pluto_probe.hello"),
+            p.player.language()
+        );
+        println!("PLUTO-PROBE fluids tconstruct={}", pluto_lib::FluidRegistry::registered().iter().filter(|f| f.id.namespace() == "tconstruct").count());
+        // what the game side holds for the item registered through PlutoLib
+        let spec = sunrise_client::entry::pluto_item_use::get("pluto_probe:snack");
+        println!("PLUTO-PROBE item_use game_side={spec:?}");
+        let said = p.player.send_message("PlutoLib says hello");
+        let left = p.player.give_item("minecraft:stick", 1);
+        println!("PLUTO-PROBE player send_message={said} give_left={left}");
+        let gave = p.player.add_effect(&pluto_lib::EffectInstance::new("minecraft:speed", 200).amplifier(1));
+        let have: Vec<String> = p.player.effects().iter().map(|e| format!("{}:{}", e.id, e.amplifier)).collect();
+        println!("PLUTO-PROBE effects gave={gave} have={have:?} food={:?} add_food={}", p.player.food(), p.player.add_food(4, 0.5));
+        let visits = AttachmentRegistry::create(Identifier::new("pluto_probe", "visits").unwrap(), || 0u32);
+        let before = p.player.get_attached(&visits);
+        let stored = p.player.set_attached(&visits, before + 1);
+        println!("PLUTO-PROBE attachment stored={stored} now={}", p.player.get_attached(&visits));
+    });
+    ServerChunkEvents::CHUNK_LOAD.register(|c| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE chunk_load {} {} {} new={}", c.dimension, c.x, c.z, c.newly_generated);
+        }
+    });
+    ServerTickEvents::END_SERVER_TICK.register(|_| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE end_server_tick");
+        }
+    });
+    LootTableEvents::MODIFY.register(|c| {
+        static ONCE: AtomicBool = AtomicBool::new(false);
+        if !ONCE.swap(true, Ordering::Relaxed) {
+            println!("PLUTO-PROBE loot_modify id={}", c.id);
+        }
+    });
+    pluto_lib::ItemTooltipCallback::EVENT.register(|tip| {
+        if tip.item != "minecraft:diamond" { return; }
+        tip.with_lines(|lines| {
+            let Some(original) = lines.first().cloned() else { return };
+            let plain = original.plain_text();
+            let component = original.component();
+            let before = lines.len();
+            lines.retain(|line| line.plain_text() != "minecraft:diamond");
+            let removed = lines.len() < before;
+            lines[0] = pluto_lib::TooltipText::literal("Edited diamond").with_color(0x55FF55FF);
+            lines.insert(1, original);
+            lines.insert(2, pluto_lib::TooltipText::translatable("pluto_probe.tooltip"));
+            let preserved = lines[1].component() == component && lines[1].plain_text() == plain;
+            static ONCE: AtomicBool = AtomicBool::new(false);
+            if plain == "Styled diamond" && removed && !ONCE.swap(true, Ordering::Relaxed) {
+                println!("PLUTO-PROBE tooltip existing={plain:?} removed_id={removed} preserved={preserved} component={component}");
+            }
+        });
+        tip.added.borrow_mut().push(pluto_lib::TooltipLine::grey("Legacy tooltip addition"));
+    });
+    ResourceManagerHelper::get(ResourceType::ServerData).register_reload_listener(
+        Identifier::new("pluto_probe", "server_reload").expect("valid id"),
+        || {
+            static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            let count = COUNT.fetch_add(1, Ordering::SeqCst) + 1;
+            println!("PLUTO-PROBE server_data_reloaded count={count}");
+        },
+    );
+    ResourceManagerHelper::get(ResourceType::ClientResources).register_reload_listener(
+        Identifier::new("pluto_probe", "reload").expect("valid id"),
+        || {
+            static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            let count = COUNT.fetch_add(1, Ordering::SeqCst) + 1;
+            let image_id = Identifier::parse("tconstruct:textures/colormap/earth_grass_color.png").unwrap();
+            let bytes = ResourceManagerHelper::read_client_resource(&image_id);
+            let image = ResourceManagerHelper::read_client_image(&image_id);
+            let missing = Identifier::parse("pluto_probe:textures/not_present.png").unwrap();
+            let valid = bytes.as_ref().is_some_and(|bytes| bytes.starts_with(b"\x89PNG\r\n\x1a\n"))
+                && image.as_ref().is_some_and(|image| image.width == 256 && image.height == 256 && image.rgba.len() == 256 * 256 * 4)
+                && ResourceManagerHelper::read_client_resource(&missing).is_none()
+                && ResourceManagerHelper::read_client_image(&missing).is_none();
+            println!("PLUTO-PROBE client_resources count={count} pass={valid}");
+            assert!(valid, "native client resource facade did not read the actual colormap");
+            check_resource_pack(count);
+            if count == 1 { println!("PLUTO-PROBE client_resources_reloaded"); }
+        },
+    );
+    Box::new(Probe)
+}
+
+struct Probe;
+impl Hooks for Probe {}

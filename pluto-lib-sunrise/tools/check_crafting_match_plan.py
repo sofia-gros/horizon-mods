@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Reserve the canonical crafting-match boundary in a complete plan.
+
+An earlier cancellation could bypass admission or assembly; a later rewrite
+could resurrect an output. Reuse the established exclusive-boundary validator
+without changing its placement metadata or relaxing either group's
+composition requirements.
+"""
+import importlib.util
+import json
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+_spec = importlib.util.spec_from_file_location(
+    '_pluto_exclusive_placement_boundary', ROOT / 'tools/check_recipe_placement_plan.py')
+_shared = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_shared)
+digest = _shared.digest
+
+
+def entries():
+    return json.loads((ROOT / 'tools/crafting-match-boundaries.json').read_text())['boundaries']
+
+
+def check_order(plan, metadata):
+    try:
+        _shared.check_order(plan, metadata)
+    except ValueError as error:
+        raise ValueError(str(error).replace('placement', 'crafting-match')) from error
+
+
+def verify_source(plan, workspace, metadata, helpers=None):
+    try:
+        _shared.verify_source(plan, workspace, metadata, helpers)
+    except ValueError as error:
+        raise ValueError(str(error).replace('placement', 'crafting-match')) from error
+
+
+NATIVE_SOURCES = {
+    'crates/horizon-client/src/crafting.rs': '298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e',
+}
+
+
+def check(plan, workspace):
+    if _shared.native_bundle(plan):
+        # Shaped/mirrored, shapeless and special matching remain native except
+        # for the reviewed crafting-match attachments the bundle now composes
+        # (owner decision, 2026-11-22): check_native admits the module and
+        # veto by exact pinned identity only, and once the native inventory
+        # gates are composed (pluto-inventory module present) both reviewed
+        # attachments are required exactly once, so the assembly path cannot
+        # silently lose the hooks its forwarders feed.
+        matched = _shared.check_native(plan, workspace, NATIVE_SOURCES, {'assemble_if_matches'})
+        if any(entry.get('module_id') == 'pluto-inventory' for entry in plan.get('modules', [])):
+            for meta in _shared.bundle_entries():
+                key = meta.get('injection_id', meta.get('module_id'))
+                if matched.get(key, 0) != 1:
+                    raise ValueError('reviewed crafting-match attachment missing or duplicated: ' + key)
+        return
+    metadata = entries()
+    check_order(plan, metadata)
+    verify_source(plan, workspace, metadata)
+
+
+def main(argv=None):
+    args = sys.argv[1:] if argv is None else argv
+    try:
+        if len(args) != 2:
+            raise ValueError('usage: check_crafting_match_plan.py COMPLETE_PLAN.json PRISTINE_OFFICIAL_WORKSPACE')
+        check(json.loads(Path(args[0]).read_text()), Path(args[1]))
+    except (ValueError, OSError, KeyError, TypeError, StopIteration) as error:
+        print('Crafting-match composition rejected: ' + str(error), file=sys.stderr)
+        return 1
+    print('Crafting-match boundary verified; the reviewed bundle veto is the only admission extension.')
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

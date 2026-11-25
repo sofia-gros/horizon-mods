@@ -1,0 +1,14 @@
+{
+  "hooks": [],
+  "helpers": [
+    {
+      "name": "open_item_menu",
+      "target": "sunrise_client::game::native_menus::Game<'_>::native_open_item_menu"
+    }
+  ],
+  "rust_summary": "a mod menu for a player's item through `Host` (`native_open_item_menu`).",
+  "doc_summary": "`native_open_item_menu` reaches `Host` as `open_item_menu(player, menu, title, items, extra)`: a native-slots menu of the mod menu type, with the items in its slots and the extra data as its menu-extra payload, opening at a positionless stand-in so no block is named. Bundles need \"helpers\": @API:open_item_menu@.",
+  "comments": [
+    "crates/horizon-client/src/game/native_menus.rs"
+  ]
+}

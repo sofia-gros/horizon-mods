@@ -1,0 +1,16 @@
+{
+  "horizon_revision": "624c4f6265c02296fbe8a80f029dd0d987fb94c0",
+  "official_source": "crates/horizon-client-render/src/mesher/fluid.rs",
+  "official_source_sha256": "79979538267fbb250f07e102a747e6b68953b4b3117c4d6faf1e1fd40922f309",
+  "span_sha256": {
+    "origin": "cd69a56d4d57055ba35868f142a210aea42f4b3ce364c67c8d3dcf7f351e92aa",
+    "top": "3717843b0c1441f72d9ae3b933bac90c894a73f22d962c7e8af0d51df83d82f7",
+    "bottom_y": "32f92f08c54a3fd591b31cb88f4b087a2b966625ffbd10ae4ea5be3f6a7c8b29",
+    "bottom": "b31a1e0baebcf6d02511f63b3bdf23b9000a1273f459bfd6454d487b90722ce3",
+    "side_match": "9412ea14bab5c8de1eb5caf7857f556b316fc170952a73558df13cad4f589e19",
+    "side_uv": "98b3e7796e01b605db8320dbb479dfac453f205327c0830b215c6d93b492083b",
+    "side": "0e1fd40852a17d6707fb314b6634e4bcebec25cc5944e3a4d985aa650f15c1a7",
+    "back": "4deeadb13e7e0edd3bf0deec32d96e6c82ff2ea9952faa4c949c6987cfa13d61",
+    "rotate": "89b4a0c6d142ed2f3bcb128065143bedd55b776f2940481cb212520d26860829"
+  }
+}

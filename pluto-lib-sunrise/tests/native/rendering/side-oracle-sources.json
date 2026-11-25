@@ -1,0 +1,25 @@
+{
+  "reference_commit": "f6dfe6c5eb595ae02f4d92e0a53ab6d678f23f6e",
+  "sources": [
+    {
+      "path": "tconstruct/mixins/tconstruct/source-side-draw.rs",
+      "old_sha256": "7e124147522c537de8e4e1b95f666d342de686bcbbbac98315e6f25a81bc3ab1",
+      "new_sha256": "09e54b1270c6c94596c94b8f5d68258174fa818e4c348ed656c727f8437fbd1c",
+      "non_crop_policy_sha256": "8321fda19d97868a6b734670864e6bebb8050c4ae65a72b907e893ff0d78243a"
+    },
+    {
+      "path": "tconstruct/mixins/tconstruct/builder-info-ui.rs",
+      "old_sha256": "13cfe112d75a54e92f68e9a8d420389220039dab7bb29e669ce6e29d7beb53b5",
+      "new_sha256": "d6e285b29834d472c91c1087e86ffb0e1bbc15c41377a4f9607af719c87ef7cf",
+      "non_crop_policy_sha256": "5eb3467f18c4f5c692b531fb82e97b094fd9d260e68f25f873dc056c8fbad092"
+    }
+  ],
+  "adaptations": [
+    "Side draw starts at layout calculation; its unchanged single text draw is excluded from geometry comparison.",
+    "Info panel uses exact function body except Game/atlas lookup is replaced by a map of real official Rect values.",
+    "Copy unchanged source side layout; retain every crop coordinate, row/padding/scroll branch and order.",
+    "Real official renderer types and Pluto implementation; no renderer mocks."
+  ],
+  "oracle_sha256": "9b65a6fcda95ec3b34cfcc96c8ac73f76bcc24e09422f645b18cbdbc3ec4d079",
+  "layout_sha256": "8110fcf8dac86a4149913339c110a1c07e23292c885b78b136af99438915d401"
+}

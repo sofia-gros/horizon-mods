@@ -1,0 +1,38 @@
+# Block movement factors for mod blocks (A34): the host's block declarations carry no speed-factor key, so the
+# factors ride in PlutoLib's movement registry and this mixin applies them to the host's movement table when it loads.
+[mod]
+id = "pluto_movement"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
+
+[[crate]]
+id = "movement-api"
+path = "api"
+dependent = "sunrise-world"
+
+# The movement table lives in sunrise-world; this module patches its bound states for registered blocks. It is a
+# child of movement_properties, so it may rewrite the bound table's private states.
+[[module]]
+id = "movement-apply"
+file = "crates/sunrise-world/src/movement_properties.rs"
+name = "pluto_movement"
+source = "movement-apply.rs"
+visibility = "pub"
+
+# The factors are applied when the loaded table is bound for use: from_table refuses every post-processing
+# seam (its body uses `?` and a closure), while bind is the funnel every load flows through before any
+# movement value is read, and the only other reader of the unbound table reads its fall-distance
+# reduction, which the factors never change. The bound states carry the same factors the patched
+# definitions would have baked in, and a failed bind keeps the host's error untouched.
+[[injection]]
+id = "movement-table"
+target = "sunrise_world::movement_properties::MovementProperties<'_>::bind"
+kind = "RETURN"
+helper = "movement-table.rs"
+bindings = [
+  { name = "value", ty = "io::Result<BoundMovementProperties>", value = "$value" },
+  { name = "properties", ty = "&MovementProperties<'_>", value = "&*self" },
+]

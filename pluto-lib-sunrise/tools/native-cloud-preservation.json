@@ -1,0 +1,68 @@
+{
+  "schema": 6,
+  "horizon_revision": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
+  "scope": "Preserve native cloud creation, storage and ticking. No custom insertion authority API is installed. The sole permitted potions attachment flushes player contact sounds; separate combined guards still own its world/contact semantics. One further reviewed attachment, pluto-damage-dragon, observes dragon damage for the damage-event reach; it creates, stores and ticks no clouds. The live potion-facts module republishes the preserved potion/effect catalog (horizon_client_core::potions) read-only as pluto_potions for the API crate; it registers, applies and ticks no effects and creates, stores and ticks no clouds.",
+  "sources": {
+    "crates/horizon-client/src/game/potions.rs": "69328359c5df8e6dbff9fd76979d56b94f07b8c5789d946f28f670428157abd7",
+    "crates/horizon-client/src/game/dragon.rs": "bd1ec0e7e76701f31e4080b380b6d58a4aee887cf7b50d7188b1744dbe627bc6",
+    "crates/horizon-client-core/src/potions.rs": "463be6e6ad469f1624fe6a58bbd53182062af4caac32fa24dbc38fbac1ccca1f",
+    "crates/horizon-client/src/game/potions/cloud_nbt.rs": "7e3d524ed6ea48b5c9e6821f4999b154e01812855ebf63dac7500b2206ad0497",
+    "crates/horizon-client/src/game/potions/cloud_particle.rs": "6ebbbda20867d0e589c09191bf19fced95ad483e58968bd51663078cd4d0180a"
+  },
+  "protected_prefixes": [
+    "sunrise_client::game::potions::",
+    "sunrise_client::game::dragon::",
+    "horizon_client_core::potions::"
+  ],
+  "contact_module": {
+    "mod_id": "pluto_lib",
+    "module_id": "pluto-contact-sound",
+    "file": "crates/horizon-client/src/game/potions.rs",
+    "name": "pluto_contact_sound",
+    "fingerprint": "ab35dbb0c50c1173c93c154e236ccaeca627d57c7069eb87155bb097bb9ca3fe"
+  },
+  "contact_hook": {
+    "mod_id": "pluto_lib",
+    "injection_id": "pluto-contact-sound-flush",
+    "file": "crates/horizon-client/src/game/potions.rs",
+    "target": "sunrise_client::game::potions::Game<'_>::tick_mob_effects",
+    "node": [32, 8],
+    "function_fingerprint": "a96d4cb4e1faf3574074a596237beef589a73f33683fa1ab88bbe109739e6d50",
+    "kind": "HEAD",
+    "priority": 0,
+    "cancellable": false,
+    "bindings": [{"name": "game", "ty": "&mut crate::game::Game<'_>", "value": "&mut *self"}]
+  },
+  "permitted_hooks": [
+    {
+      "mod_id": "pluto_lib",
+      "injection_id": "pluto-damage-dragon",
+      "file": "crates/horizon-client/src/game/dragon.rs",
+      "target": "sunrise_client::game::dragon::Dragon::hurt_health",
+      "node": [46, 12],
+      "function_fingerprint": "700d85c4ebd2df453a3610a62ce72ed10ff403a44e3cff820f0095bdbb2d12ed",
+      "kind": "HEAD",
+      "priority": 0,
+      "cancellable": false,
+      "bindings": [{"name": "dragon", "ty": "&Dragon", "value": "&*self"}],
+      "helper_source": "pluto-damage-dragon.rs",
+      "helper_sha256": "a4fdf2a2fb05b8e0a6323e7f2597bc1388437401a0152c05c60a1c2cda827856"
+    }
+  ],
+  "permitted_modules": [
+    {
+      "mod_id": "pluto_lib",
+      "module_id": "potion-facts",
+      "file": "crates/horizon-client/src/client_lib.rs",
+      "name": "pluto_potions",
+      "visibility": "pub",
+      "fingerprint": "381460c2c39215a9a008e3085a8c6b62e0d9cb3e5bd269db9c4c1837691bbe3d",
+      "source_file": "potion-facts.rs",
+      "source_sha256": "ae683f232ad1e44b9239bf121474bfd520a83daf63f8f6c7fdfa7ab3a37b9d80"
+    }
+  ],
+  "module_source": "pluto-contact-sound.rs",
+  "module_sha256": "44b79d3a9b2cf0d92e3f9cfff1905a3eda2caa07dcf00f6075f593d4bfd7967f",
+  "hook_source": "pluto-contact-sound-head.rs",
+  "hook_sha256": "569c1c7ebd8f18e9171304313985afe747d437319578df745ca07268a35bbfdb"
+}

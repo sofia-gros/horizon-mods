@@ -1,0 +1,3001 @@
+# PlutoLib: Horizon's Fabric API. A trait mod (see docs/native-mods.md, "Trait mods"): the launcher links the
+# [api] package into the game, and mods that declare "pluto_lib" in [dependencies] call its API.
+[mod]
+id = "pluto_lib"
+version = "0.1.0"
+
+[compatibility]
+horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
+
+[api]
+path = "api"
+
+# PlutoLib-owned direct edits stage custom menu clicks inside the native engine.
+# These declarations are transferred by prepare_direct_host, not applied twice.
+[[injection]]
+id = "pluto-menu-actions"
+target = "sunrise_client_lib::menu::Menu::click"
+kind = "HEAD"
+require = 1
+helper = "pluto-menu-actions.rs"
+bindings = []
+
+[[injection]]
+id = "pluto-menu-actions-local"
+target = "sunrise_client::game::menu_clicks::Game<'_>::menu_session"
+kind = "OVERWRITE"
+require = 1
+helper = "pluto-menu-actions.rs"
+bindings = []
+
+[[injection]]
+id = "pluto-menu-actions-guest"
+target = "sunrise_client::game::lan_crafting::Game<'_>::lan_machine_click"
+kind = "OVERWRITE"
+require = 1
+helper = "pluto-menu-actions.rs"
+bindings = []
+
+# A content mod's menu type's equipment slots (a station window's armor and offhand): the mod
+# registers them with the window, and the menu carries them as armor slots over the player's
+# equipment, so the clicks the layout's slots take reach them through the native armor behaviour.
+# The equipment joins the menu where a built menu is taken up for use, not in Menu::new: a
+# RETURN on the constructor cannot name its result (the weaver cannot concretize Self), and
+# the session's own body refuses site seams, so the funnels that interpret a menu's slots
+# attach it instead — slot_count reports the layout's count for a menu counted before its
+# pieces join it, the session's first slot write inserts them before any slot is set, and
+# every guest menu operation inserts them as it loads the guest's inventory in, before the
+# operation runs (a guest's menu is stored and reused across operations, so
+# insert_equipment leaves a menu that already carries its equipment alone). The remote
+# client's wire mapping needs no menu object: pluto-menu-equipment-slot below already
+# counts the equipment in.
+[[module]]
+id = "pluto-menu-equipment"
+file = "crates/sunrise-client/src/menu.rs"
+name = "pluto_menu_equipment"
+source = "pluto-menu-equipment.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-menu-equipment-slot-count"
+target = "sunrise_client_lib::menu::Menu::slot_count"
+kind = "RETURN"
+helper = "pluto-menu-equipment-slot-count.rs"
+bindings = [
+ { name = "value", ty = "usize", value = "$value" },
+ { name = "menu", ty = "&Menu", value = "&*self" }
+]
+
+[[injection]]
+id = "pluto-menu-equipment-set-slot"
+target = "sunrise_client_lib::menu::Menu::set_slot"
+kind = "HEAD"
+helper = "pluto-menu-equipment-set-slot.rs"
+bindings = [{ name = "menu", ty = "&mut Menu", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-menu-equipment-guest-load"
+target = "sunrise_client::game::lan_crafting::load_player"
+kind = "HEAD"
+helper = "pluto-menu-equipment-guest-load.rs"
+bindings = [{ name = "menu", ty = "&mut Menu", value = "&mut *menu" }]
+
+[[injection]]
+id = "pluto-menu-equipment-slot"
+target = "sunrise_client::game::remote::Game<'_>::menu_slot"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-menu-equipment-slot.rs"
+bindings = [{ name = "menu", ty = "&str", value = "menu" }, { name = "slot", ty = "i32", value = "slot" }]
+
+# Check every candidate, including results reached from a different clicked slot.
+[[injection]]
+id = "pluto-menu-pick-all"
+target = "sunrise_client_lib::menu::Menu::can_take_for_pick_all"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-menu-pick-all-head.rs"
+bindings = [
+ { name = "menu", ty = "&Menu", value = "&*self" },
+ { name = "slot", ty = "usize", value = "t" }
+]
+
+# Keep world adapters on the same host dependency as the trait API.
+[[module]]
+id = "pluto-host-world-reexport"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "pluto_host_world"
+source = "pluto-host-world-reexport.rs"
+visibility = "pub"
+
+# Re-export the single core-owned reload registry through the trait dependency.
+[[module]]
+id = "pluto-reload-registry-reexport"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "registries"
+source = "pluto-reload-registry-reexport.rs"
+visibility = "pub"
+
+# Owned reload registry context. Source-only; the native attachment guard stays closed.
+[[module]]
+id = "pluto-reload-registry-access"
+file = "crates/horizon-client-core/src/registries.rs"
+name = "pluto_reload_registry"
+source = "pluto-reload-registry-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-reload-registry-source"
+file = "crates/sunrise-client/src/game/chat.rs"
+name = "pluto_reload_registry_source"
+source = "pluto-reload-registry-source.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-reload-registry"
+target = "sunrise_client::game::native_reload_listeners::Game<'_>::native_reload_listeners"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-reload-registry-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+# The parse-order fix: a data load builds its content tables
+# (build_world_tables, which parses the recipes) before it applies the
+# mods' JSON reload listeners, so an ingredient of a mod's own kind was
+# answered from mod data that had not loaded yet, its load-time item
+# list came back empty, and the host dropped every recipe using one.
+# Apply the listeners first at the two points that build a load's
+# tables: a world opening and a reload. The host's own application
+# later in each flow still runs; listener application replaces the
+# loaded state wholesale, so it only refreshes the registry snapshots
+# with the tables the load just built.
+[[injection]]
+id = "pluto-reload-before-tables-open"
+target = "sunrise_client::game::Game<'_>::finish_open_world"
+kind = "HEAD"
+helper = "pluto-reload-before-tables.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "prepared", ty = "&crate::game::world_loading::PreparedWorld", value = "&prepared" }
+]
+
+[[injection]]
+id = "pluto-reload-before-tables-reload"
+target = "sunrise_client::game::world_entry::Game<'_>::reload_world_tables"
+kind = "HEAD"
+helper = "pluto-reload-before-tables-reload.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+# Capture the final owned item map, not its earlier insert/reference accesses.
+# The raw Arc is the loader's own snapshot. Native LOAD/type validation is pending native attachment validation.
+[[injection]]
+id = "pluto-item-prototypes"
+target = "sunrise_items::items::Items::load_with"
+kind = "MODIFY_VARIABLE"
+helper = "pluto-item-prototypes.rs"
+variable = { name = "items", ordinal = 0, at = "LOAD" }
+require = 3
+ordinal = 2
+bindings = [
+ { name = "value", ty = "HashMap<Arc<str>, ItemInfo>", value = "$value" },
+ { name = "raw", ty = "&Arc<sunrise_world::item_defaults::Defaults>", value = "$local_ref:raw:0" }
+]
+
+[[module]]
+id = "pluto-entity-spawn-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_entity_spawn_access"
+source = "pluto-entity-spawn-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-entity-spawn-game"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_entity_spawn_game"
+source = "pluto-entity-spawn-game.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-mob-split"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_mob_split"
+source = "pluto-mob-split.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-mob-split-game"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_mob_split_game"
+source = "pluto-mob-split-game.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-spawn-placement"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_spawn_placement"
+source = "pluto-spawn-placement.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-spawn-placement-game"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_spawn_placement_game"
+source = "pluto-spawn-placement-game.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-entity-hurt-game"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_entity_hurt_game"
+source = "pluto-entity-hurt-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-mob-split-head"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_mob_split"
+kind = "RETURN"
+helper = "pluto-mob-split-head.rs"
+bindings = [
+ { name = "value", ty = "()", value = "$value" },
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "parent", ty = "u32", value = "parent" },
+ { name = "kind", ty = "&str", value = "kind" },
+ { name = "size", ty = "i32", value = "size" },
+ { name = "child_size", ty = "i32", value = "child_size" },
+ { name = "count", ty = "&mut u32", value = "count" },
+ { name = "cancel", ty = "&mut bool", value = "cancel" },
+]
+
+[[injection]]
+id = "pluto-mob-split-children"
+target = "sunrise_client::game::creatures::Game<'_>::split_dead_cube"
+kind = "RETURN"
+helper = "pluto-mob-split-children.rs"
+bindings = [
+ { name = "value", ty = "()", value = "$value" },
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "m", ty = "&Mob", value = "&*m" },
+]
+
+[[injection]]
+id = "pluto-entity-spawn-runtime"
+target = "sunrise_client::game::creatures::Game<'_>::spawn_mob_internal"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-runtime-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "kind", ty = "&str", value = "kind" },
+ { name = "at", ty = "[f64; 3]", value = "at" },
+ { name = "persistent", ty = "bool", value = "persistent" },
+ { name = "scripted", ty = "bool", value = "scripted" },
+ { name = "natural", ty = "bool", value = "natural" },
+ { name = "finalize", ty = "bool", value = "finalize" },
+ { name = "yaw", ty = "SpawnYaw", value = "yaw" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-natural"
+target = "sunrise_client::game::natural_spawning::Game<'_>::finalize_spawned"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-natural-head.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "&*self" },
+ { name = "request", ty = "&SpawnRequest", value = "r" },
+ { name = "pending", ty = "&mut Vec<Mob>", value = "&mut *pending" }
+]
+
+# The spawn placement OR (permit-add) pass: after the game's own natural pass,
+# candidates for the OR-registered types whose predicate accepts are spawned
+# through the game's own preparation and finalization, adding the positions
+# the inherited species rules rejected (the original's Operation.OR).
+[[injection]]
+id = "pluto-spawn-placement-permit"
+target = "sunrise_client::game::natural_spawning::Game<'_>::spawn_natural"
+kind = "RETURN"
+helper = "pluto-spawn-placement-permit-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "value", ty = "()", value = "$value" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-add"
+target = "sunrise_client::game::natural_spawning::Game<'_>::add_spawned"
+kind = "OVERWRITE"
+helper = "pluto-entity-spawn-add.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "pending", ty = "Vec<Mob>", value = "pending" },
+ { name = "persistent", ty = "bool", value = "persistent" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-spawner"
+target = "sunrise_client::game::spawner::Game<'_>::plan_spawner_mob"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-spawner-head.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "&*self" },
+ { name = "level", ty = "&super::natural_spawning::GameLevel<'_, '_>", value = "l" },
+ { name = "request", ty = "&SpawnerSpawn<'_>", value = "r" },
+ { name = "planned", ty = "&mut Vec<Planned>", value = "&mut *planned" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-spawner-add"
+target = "sunrise_client::game::spawner::Game<'_>::add_planned"
+kind = "OVERWRITE"
+helper = "pluto-entity-spawn-spawner-add.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "planned", ty = "Vec<Planned>", value = "planned" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-raid"
+target = "sunrise_client::game::raids::Game<'_>::spawn_event_mob"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-raid-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "kind", ty = "&str", value = "kind" },
+ { name = "at", ty = "[f64; 3]", value = "at" },
+ { name = "leader", ty = "bool", value = "leader" },
+ { name = "reason", ty = "raider::Reason", value = "reason" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-structure"
+target = "sunrise_client::game::persist::Game<'_>::load_mob"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-structure-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "input", ty = "&Tag", value = "&tag" },
+ { name = "mount", ty = "Option<u32>", value = "mount" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-conversion"
+target = "sunrise_client::game::creatures::Game<'_>::convert_to"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-conversion-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "from", ty = "&Mob", value = "from" },
+ { name = "kind", ty = "&str", value = "kind" },
+ { name = "params", ty = "sunrise_client::mobs::conversion::Params", value = "params" }
+]
+
+[[injection]]
+id = "pluto-entity-spawn-converted"
+target = "sunrise_client::game::creatures::Game<'_>::finalize_converted"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-spawn-converted-head.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "&*self" },
+ { name = "id", ty = "u32", value = "id" }
+]
+
+# Mob itself is externally constructible, so Mixins refuses adding its fields.
+# Its owned Navigation has private fields and a concrete Default literal. It is
+# not replaced during the pinned spawn tails; moves retain and clones discard.
+[[module]]
+id = "pluto-entity-spawn-state-module"
+file = "crates/sunrise-client/src/mobs/nav.rs"
+name = "pluto_entity_spawn_state"
+source = "pluto-entity-spawn-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "pluto-entity-spawn-state"
+target = "sunrise_client_lib::mobs::nav::Navigation"
+ty = "crate::mobs::nav::pluto_entity_spawn_state::SpawnState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_lib::mobs::nav::<Navigation as Default>::default"
+selector = "Self"
+require = 1
+
+# Explicit custom block-entity types preempt native name/template factories once.
+# Source-integrated; actual attachment planning and native verification remain pending.
+[[module]]
+id = "pluto-block-entity-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_block_entity_access"
+source = "pluto-block-entity-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-block-entity-factory"
+target = "sunrise_client::game::native_hooks::Game<'_>::new_block_entity"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-block-entity-factory.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "name", ty = "&str", value = "name" }
+]
+
+# Client data belongs to the entity, not saved fields or a global position map.
+# Constructor/owner fingerprints await native attachment review; block_entities fails closed.
+[[module]]
+id = "pluto-block-entity-client-state-module"
+file = "crates/sunrise-client-render/src/lib.rs"
+name = "pluto_client_block_entity_state"
+source = "pluto-client-block-entity-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "pluto-block-entity-client-state"
+target = "sunrise_client_render::chunk::block_entity::ModBlockEntity"
+ty = "crate::pluto_client_block_entity_state::ClientState<sunrise_world::nbt::Compound>"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_render::chunk::block_entity::ModBlockEntity::new"
+selector = "Self"
+require = 1
+
+# Cache entries remember the registration epoch captured before drawing; native
+# revisions also include committed client data, without changing saved fields.
+[[module]]
+id = "pluto-block-entity-cache"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_block_entity_cache"
+source = "pluto-block-entity-cache.rs"
+visibility = "pub(crate)"
+
+[[state]]
+id = "pluto-block-entity-cache-generation"
+target = "sunrise_client::game::native_block_entity_draw::KeptEntry"
+ty = "u64"
+initial = "crate::game::pluto_block_entity_cache::frame_generation()"
+
+[[state.constructor]]
+target = "sunrise_client::game::native_block_entity_draw::KeptGeometry::keep"
+selector = "KeptEntry"
+require = 1
+
+[[injection]]
+id = "pluto-block-entity-cache-get"
+target = "sunrise_client::game::native_block_entity_draw::KeptGeometry::get"
+kind = "HEAD"
+helper = "pluto-block-entity-cache-get.rs"
+bindings = [
+ { name = "cache", ty = "&mut KeptGeometry", value = "&mut *self" },
+ { name = "pos", ty = "[i32; 3]", value = "pos" }
+]
+
+[[injection]]
+id = "pluto-block-entity-revision"
+target = "sunrise_client_render::chunk::block_entity::ModBlockEntity::revision"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-block-entity-revision.rs"
+bindings = [{ name = "entity", ty = "&ModBlockEntity", value = "self" }]
+
+# Calculate only on the uncancelled/nonimmune path, after Frog/Goat class math
+# and before mod_block_fall. Compound-write places are not LOADs in pinned Scopes.
+[[injection]]
+id = "pluto-living-entity-fall"
+target = "sunrise_client_lib::mobs::living::Mob::cause_fall_damage_at"
+kind = "MODIFY_VARIABLE"
+variable = { name = "damage", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "pluto-living-entity-fall.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "mob", ty = "&Mob", value = "&*self" }, { name = "distance", ty = "f64", value = "$local:distance:0" }, { name = "multiplier", ty = "f32", value = "$local:modifier:0" }]
+
+# A class causeFallDamage override replaces the inherited application before
+# it starts: cancel shapes like the living-fall cancellation, bounce rewrites
+# the motion. Unregistered kinds pay one sink check.
+[[injection]]
+id = "pluto-living-cause-fall"
+target = "sunrise_client_lib::mobs::living::Mob::cause_fall_damage_at"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-cause-fall.rs"
+bindings = [{ name = "mob", ty = "&mut Mob", value = "&mut *self" }, { name = "distance", ty = "f64", value = "distance" }, { name = "multiplier", ty = "f32", value = "modifier" }, { name = "events", ty = "&mut Vec<MobEvent>", value = "events" }, { name = "contact", ty = "Option<(&MobWorld, [i32; 3])>", value = "contact" }]
+
+# Class attributes use native Instance transient sets; bridge scalar resistance
+# operations without writing a permanent modifier or replacing its base store.
+[[module]]
+id = "pluto-living-load-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_living_load_access"
+source = "pluto-living-load-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-living-attribute-ops"
+file = "crates/sunrise-client/src/mobs/finalize.rs"
+name = "pluto_living_attribute_ops"
+source = "pluto-living-attribute-ops.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-living-attributes-join-module"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_living_attributes_join"
+source = "pluto-living-attributes-join.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-living-attributes-join"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_entity_join_level"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-attributes-join-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "dimension", ty = "&str", value = "dimension" }, { name = "entity", ty = "u32", value = "entity" }, { name = "kind", ty = "&str", value = "kind" }, { name = "canceled", ty = "&mut bool", value = "canceled" }]
+
+[[injection]]
+id = "pluto-living-attributes-reload"
+target = "sunrise_client::game::commands::data::Game<'_>::apply_entity_nbt"
+kind = "RETURN"
+helper = "pluto-living-attributes-reload.rs"
+bindings = [{ name = "value", ty = "R<()>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "target", ty = "Target", value = "t" }]
+
+[[injection]]
+id = "pluto-living-attributes-base"
+target = "sunrise_client_lib::mobs::finalize::set_base"
+kind = "RETURN"
+helper = "pluto-living-attributes-base.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "mob", ty = "&mut Mob", value = "&mut *m" }, { name = "attribute", ty = "Attr", value = "a" }, { name = "base", ty = "f64", value = "v" }]
+
+[[injection]]
+id = "pluto-living-attributes-compute"
+target = "sunrise_client_lib::mobs::finalize::compute"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-attributes-compute.rs"
+bindings = [{ name = "mob", ty = "&Mob", value = "m" }, { name = "attribute", ty = "Attr", value = "a" }, { name = "with_transient", ty = "bool", value = "with_transient" }, { name = "extra", ty = "&[(f64, Op)]", value = "extra" }]
+
+[[injection]]
+id = "pluto-living-attributes-has"
+target = "sunrise_client_lib::mobs::finalize::has_modifier"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-attributes-has.rs"
+bindings = [{ name = "mob", ty = "&Mob", value = "m" }, { name = "attribute", ty = "Attr", value = "a" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "pluto-living-attributes-amount"
+target = "sunrise_client_lib::mobs::finalize::modifier_amount"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-attributes-amount.rs"
+bindings = [{ name = "mob", ty = "&Mob", value = "m" }, { name = "attribute", ty = "Attr", value = "a" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "pluto-living-attributes-remove"
+target = "sunrise_client_lib::mobs::finalize::remove_modifier"
+kind = "HEAD"
+helper = "pluto-living-attributes-remove.rs"
+bindings = [{ name = "mob", ty = "&mut Mob", value = "&mut *m" }, { name = "attribute", ty = "Attr", value = "a" }, { name = "id", ty = "&str", value = "id" }]
+
+# Class query overrides stay separate from post-jump events and damage events.
+[[module]]
+id = "pluto-living-entity-access"
+file = "crates/sunrise-client/src/mobs.rs"
+name = "pluto_living_entity_access"
+source = "pluto-living-entity-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-living-entity-jump"
+target = "sunrise_client_lib::mobs::living::Mob::jump_power"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-entity-jump.rs"
+bindings = [{ name = "mob", ty = "&Mob", value = "self" }, { name = "world", ty = "&MobWorld<'_>", value = "w" }]
+
+[[injection]]
+id = "pluto-living-entity-attack"
+target = "sunrise_client_lib::mobs::cube::attack_damage"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-entity-attack.rs"
+bindings = [{ name = "mob", ty = "&Mob", value = "m" }]
+
+# Reuse the concrete loaded-block-entity tick pass, not window ticks that run
+# paused/on title screens. The helper rejects server calls explicitly.
+[[module]]
+id = "pluto-block-entity-client-tick-module"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_client_block_entity_tick"
+source = "pluto-client-block-entity-tick.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-block-entity-client-tick"
+target = "sunrise_client::game::block_entity_anims::Game<'_>::tick_block_entity_anims"
+kind = "HEAD"
+helper = "pluto-client-block-entity-tick-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+# Registration transport only. No placement/cache helper is declared: the
+# cached loader's build()? STORE is unsupported by the pinned validator.
+[[module]]
+id = "pluto-item-placement-access"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_item_placement_access"
+source = "pluto-item-placement-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-entity-type-access"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_entity_type_access"
+source = "pluto-entity-type-access.rs"
+visibility = "pub"
+
+# Shared custom skull identity/model paths, source-only until native attachment review.
+[[module]]
+id = "pluto-skull-model-access"
+file = "crates/sunrise-assets/src/item_model.rs"
+name = "pluto_skull_model_access"
+source = "pluto-skull-model-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-skull-item-models"
+file = "crates/sunrise-client/src/item_render.rs"
+name = "pluto_skull_item_models"
+source = "pluto-skull-item-models.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-skull-special-decode"
+target = "sunrise_assets::item_model::special::SpecialModel::decode"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-skull-special-decode.rs"
+bindings = [{ name = "v", ty = "&Value", value = "v" }]
+
+[[injection]]
+id = "pluto-skull-parts-return"
+target = "sunrise_client_lib::item_render::special::load_parts"
+kind = "RETURN"
+helper = "pluto-skull-parts-return.rs"
+bindings = [{ name = "value", ty = "HashMap<String, ModelPart>", value = "$value" }, { name = "root", ty = "&Path", value = "root" }]
+
+[[injection]]
+id = "pluto-skull-document-parts-return"
+target = "sunrise_client_lib::item_render::special::load_parts_from_document"
+kind = "RETURN"
+helper = "pluto-skull-document-parts-return.rs"
+bindings = [{ name = "value", ty = "HashMap<String, ModelPart>", value = "$value" }, { name = "document", ty = "&EntityModelDocument", value = "document" }]
+
+[[injection]]
+id = "pluto-skull-extents"
+target = "sunrise_client_lib::item_render::special::extents"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-skull-extents.rs"
+bindings = [{ name = "renderer", ty = "&ItemRenderer", value = "renderer" }, { name = "model", ty = "&SpecialModel", value = "model" }]
+
+[[injection]]
+id = "pluto-skull-submit"
+target = "sunrise_client_lib::item_render::special::submit"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-skull-submit.rs"
+bindings = [{ name = "renderer", ty = "&ItemRenderer", value = "renderer" }, { name = "model", ty = "&SpecialModel", value = "model" }, { name = "pose", ty = "Mat4", value = "pose" }, { name = "sprites", ty = "&HashMap<String, Rect>", value = "sprites" }, { name = "sink", ty = "&mut dyn ItemSink", value = "&mut *sink" }]
+
+[[injection]]
+id = "pluto-skull-worn-kind"
+target = "sunrise_client::game::armor_stands::skull_kind"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-skull-worn-kind.rs"
+bindings = [{ name = "item", ty = "&str", value = "item" }]
+
+[[module]]
+id = "pluto-block-settings-access"
+file = "crates/sunrise-client/src/mod_content.rs"
+name = "pluto_block_settings_access"
+source = "pluto-block-settings-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-block-settings-gameplay"
+target = "sunrise_client_lib::mod_content::Plan<'_>::override_gameplay"
+kind = "HEAD"
+helper = "pluto-block-settings-gameplay.rs"
+bindings = [{ name = "b", ty = "&NewBlock", value = "b" }, { name = "row", ty = "&mut J", value = "&mut *row" }]
+
+# Trade factories join native pools before selection; source-only until native attachment
+# review supplies the exact native contracts. Generic methods are not injected.
+[[module]]
+id = "pluto-trade-pool"
+file = "crates/sunrise-client/src/merchant.rs"
+name = "pluto_trade_pool"
+source = "pluto-trade-pool.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-trade-access"
+file = "crates/sunrise-client/src/merchant.rs"
+name = "pluto_trade_access"
+source = "pluto-trade-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-trade-offers"
+target = "sunrise_client::game::trading::Game<'_>::offers_from_set"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-trade-offers-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "set", ty = "&str", value = "set" },
+ { name = "variant", ty = "&str", value = "variant" },
+ { name = "origin", ty = "[f64; 3]", value = "origin" }
+]
+
+# Item extension transport and Enderman gaze adapter; native site validation is
+# pending the native attachment review. The mandatory attachment guard also owns this boundary.
+[[module]]
+id = "pluto-item-behavior-access"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_item_behavior_access"
+source = "pluto-item-behavior-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-item-ender-mask"
+target = "sunrise_client_lib::mobs::enderman::stared_at"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-mask-head.rs"
+bindings = [
+ { name = "m", ty = "&Mob", value = "m" },
+ { name = "w", ty = "&MobWorld<'_>", value = "w" }
+]
+
+# The enchanting table asks the stack for its enchantability: `enchantable_of` is the
+# one lookup the table's offers, costs and selection all read, and a registered
+# per-stack answer replaces its component/default lookup, as NeoForge's
+# stack-sensitive `getEnchantmentValue(ItemStack)` replaces the default.
+[[injection]]
+id = "pluto-item-enchantability"
+target = "sunrise_items::enchant::Enchantments::enchantable_of"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-enchantability-head.rs"
+bindings = [
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+# A dropped stack a mod marks indestructible (the original's indestructible item
+# entity) takes no environmental damage and never ages out: the item entity's
+# environment tick is the one place every environmental hurt of a dropped stack
+# flows through, so a registered true answer stills the tick and pins the age at
+# the host's own unlimited-lifetime value.
+[[injection]]
+id = "pluto-item-indestructible"
+target = "sunrise_client::entities::ItemEntity::environment_tick"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-indestructible-head.rs"
+bindings = [
+ { name = "entity", ty = "&mut ItemEntity", value = "self" }
+]
+
+# Shearing a snow golem or bogged asks the stack for SHEARS_HARVEST where vanilla
+# names the shears item; a granted stack runs the original body under the vanilla name.
+[[injection]]
+id = "pluto-item-shear-mob"
+target = "sunrise_client::game::creatures::Game<'_>::interact_shear_mob"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-shear-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "index", ty = "usize", value = "index" },
+ { name = "item", ty = "&str", value = "item" }
+]
+
+# Shearing a saddle or equipment off a mob asks the stack the same question.
+[[injection]]
+id = "pluto-item-shear-saddle"
+target = "sunrise_client::game::mounts::Game<'_>::shear_saddle"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-shear-saddle-head.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "index", ty = "usize", value = "index" },
+ { name = "item", ty = "&str", value = "item" }
+]
+
+# Symbolic binding rewrite before native loading; bindings get a distinct root
+# identity so cached content/behaviour tables cannot restore an older declaration.
+# Native plan fingerprints remain unset under the native attachment guard.
+[[module]]
+id = "pluto-item-placement-export"
+file = "crates/sunrise-client/src/mod_content.rs"
+name = "pluto_item_placement_export"
+source = "pluto-item-placement-export.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-item-placement-root-gate"
+target = "sunrise_client_lib::mod_content::resource_root"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-placement-root-gate.rs"
+bindings = [{ name = "mods", ty = "&[ContentMod]", value = "mods" }]
+
+[[injection]]
+id = "pluto-item-placement-root-path"
+target = "sunrise_client_lib::mod_content::resource_root"
+kind = "MODIFY_VARIABLE"
+variable = { name = "out", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-item-placement-root-path.rs"
+bindings = [{ name = "value", ty = "PathBuf", value = "$value" }]
+
+[[injection]]
+id = "pluto-item-placement-export-write"
+target = "sunrise_client_lib::mod_content::Overlay<'_>::write"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-placement-export-write.rs"
+bindings = [
+ { name = "overlay", ty = "&Overlay<'_>", value = "self" },
+ { name = "rel", ty = "&str", value = "rel" },
+ { name = "bytes", ty = "&[u8]", value = "bytes" }
+]
+
+# Actual client-level changes, not temporary server enter_level/as_guest swaps.
+[[module]]
+id = "pluto-block-entity-client-level"
+file = "crates/sunrise-client/src/game/remote.rs"
+name = "pluto_client_block_entity_level"
+source = "pluto-client-block-entity-level.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-block-entity-client-level-replace"
+target = "sunrise_client::game::remote::Game<'_>::enter_remote_dimension"
+kind = "HEAD"
+helper = "pluto-client-block-entity-level-replace.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "&*self" },
+ { name = "keep_world", ty = "bool", value = "keep_world" },
+ { name = "spawn", ty = "&play::SpawnInfo", value = "spawn" }
+]
+
+[[injection]]
+id = "pluto-block-entity-client-level-unload"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_client_level_unload"
+kind = "HEAD"
+helper = "pluto-client-block-entity-level-unload.rs"
+bindings = [{ name = "game", ty = "&Game<'_>", value = "&*self" }]
+
+# Path-node overrides borrow the same world-view contract as other block callbacks.
+[[module]]
+id = "pluto-block-path"
+file = "crates/sunrise-client/src/mobs/path.rs"
+name = "pluto_block_path"
+source = "pluto-block-path.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-block-view-shapes"
+file = "crates/sunrise-world/src/level/data.rs"
+name = "pluto_block_view_shapes"
+source = "pluto-block-view-shapes.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-path-node-type"
+target = "sunrise_client_lib::mobs::path::MobWorld<'_>::path_type_from_state"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-block-path-head.rs"
+bindings = [
+ { name = "world", ty = "&crate::mobs::MobWorld<'_>", value = "self" },
+ { name = "x", ty = "i32", value = "x" },
+ { name = "y", ty = "i32", value = "y" },
+ { name = "z", ty = "i32", value = "z" }
+]
+
+# Mutable contacts retain each entity family's native sweep/effect order.
+[[module]]
+id = "pluto-mob-inside"
+file = "crates/sunrise-client/src/mobs/ai.rs"
+name = "pluto_mob_inside"
+source = "pluto-mob-inside.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-item-inside"
+file = "crates/sunrise-client/src/entities.rs"
+name = "pluto_item_inside"
+source = "pluto-item-inside.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-contact-sweep"
+file = "crates/sunrise-client/src/block_contact.rs"
+name = "pluto_contact_sweep"
+source = "pluto-contact-sweep.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-mob-inside-motion"
+target = "sunrise_client_lib::mobs::ai::effects_from_blocks"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-mob-inside-head.rs"
+bindings = [
+ { name = "mob", ty = "&mut crate::mobs::Mob", value = "&mut *m" },
+ { name = "world", ty = "&crate::mobs::MobWorld<'_>", value = "w" },
+ { name = "random", ty = "&mut horizon_core::random::LegacyRandom", value = "&mut *level_random" },
+ { name = "events", ty = "&mut Vec<crate::mobs::MobEvent>", value = "&mut *events" }
+]
+
+[[injection]]
+id = "pluto-world-contact-begin"
+target = "sunrise_client::game::creatures::Game<'_>::tick_creature_entities"
+kind = "HEAD"
+helper = "pluto-world-contact-begin.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-world-contact-flush"
+target = "sunrise_client::game::creatures::Game<'_>::handle_mob_events_reusable"
+kind = "HEAD"
+helper = "pluto-world-contact-flush.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-item-inside-motion"
+target = "sunrise_client::game::entity::Game<'_>::tick_item_with_block_contacts"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-inside-head.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "item", ty = "&mut sunrise_client::entities::ItemEntity", value = "&mut *item" },
+ { name = "escape_speed", ty = "Option<f32>", value = "escape_speed" },
+ { name = "entity_boxes", ty = "&[horizon_core::geometry::Aabb]", value = "entity_boxes" },
+ { name = "client", ty = "bool", value = "client" },
+ { name = "splash", ty = "&mut dyn FnMut(sunrise_client::entities::ItemSplash)", value = "&mut *splash" }
+]
+
+# Strictly transient shared-borrow access; no saved attachment is decoded here.
+[[module]]
+id = "pluto-attachment-transient"
+file = "crates/sunrise-world/src/attachments.rs"
+name = "pluto_attachment_transient"
+source = "pluto-attachment-transient.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-contact-pending"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_contact_pending"
+source = "pluto-contact-pending.rs"
+visibility = "pub"
+
+# Item callbacks replace only vertical restitution, preserving the native tick.
+# Direct-host preparation transfers this site: Mixins cannot capture local contact.
+[[injection]]
+id = "pluto-item-after-fall"
+target = "sunrise_client_lib::entities::ItemEntity::tick_move_before_block_effects"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "vertical_collision_velocity(wanted.y, moved.y, ITEM_GRAVITY, self.on_ground, slime,)"
+ordinal = 0
+require = 1
+helper = "pluto-item-after-fall.rs"
+bindings = [
+    { name = "value", ty = "f64", value = "$value" },
+    { name = "item", ty = "&mut crate::entities::ItemEntity", value = "&mut *self" },
+    { name = "world", ty = "&crate::world::World", value = "world" },
+    { name = "collision", ty = "&sunrise_world::block_collision::BlockCollisionRegistry<'_>", value = "collision" },
+    { name = "contact", ty = "Option<horizon_core::position::BlockPos>", value = "contact" }
+]
+
+# Concrete mob landing uses the same callbacks, preserving native fall/contact order.
+[[module]]
+id = "pluto-mob-landing"
+file = "crates/sunrise-client/src/mobs/living.rs"
+name = "pluto_mob_landing"
+source = "pluto-mob-landing.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-mob-fall-damage"
+target = "sunrise_client_lib::mobs::living::Mob::mod_block_fall"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-mob-fall-head.rs"
+bindings = [{ name = "mob", ty = "&crate::mobs::Mob", value = "self" }, { name = "contact", ty = "Option<(&crate::mobs::MobWorld<'_>, [i32; 3])>", value = "contact" }, { name = "distance", ty = "f64", value = "distance" }, { name = "damage", ty = "f32", value = "damage" }]
+
+[[injection]]
+id = "pluto-mob-after-fall"
+target = "sunrise_client_lib::mobs::living::Mob::do_move"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-mob-move-head.rs"
+bindings = [{ name = "mob", ty = "&mut crate::mobs::Mob", value = "&mut *self" }, { name = "world", ty = "&crate::mobs::MobWorld<'_>", value = "w" }, { name = "events", ty = "&mut Vec<crate::mobs::MobEvent>", value = "events" }]
+
+# Registered blocks own vertical post-landing motion; native horizontal response stays intact.
+[[module]]
+id = "pluto-block-motion"
+file = "crates/sunrise-client/src/motion.rs"
+name = "pluto_block_motion"
+source = "pluto-block-motion.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-block-after-fall"
+target = "sunrise_client_lib::motion::<MotionWorld<'_,'_,'_> as EntityMoveWorld>::restitute"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-block-motion-head.rs"
+bindings = [{ name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }, { name = "state", ty = "sunrise_world::registry::BlockStateId", value = "state" }, { name = "x", ty = "bool", value = "x" }, { name = "z", ty = "bool", value = "z" }, { name = "resolved", ty = "horizon_core::geometry::Vec3", value = "resolved" }]
+
+# Concrete resident-player fall damage. Other entity kinds retain their native route.
+[[module]]
+id = "pluto-block-fall"
+file = "crates/sunrise-client/src/landing.rs"
+name = "pluto_block_fall"
+source = "pluto-block-fall.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-block-fall-damage"
+target = "sunrise_client_lib::landing::MotionWorld<'_,'_,'_>::mod_block_fall"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-block-fall-head.rs"
+bindings = [{ name = "world", ty = "&crate::motion::MotionWorld<'_, '_, '_>", value = "self" }, { name = "state", ty = "sunrise_world::registry::BlockStateId", value = "state" }, { name = "position", ty = "horizon_core::position::BlockPos", value = "position" }, { name = "distance", ty = "f64", value = "distance" }, { name = "damage", ty = "f32", value = "damage" }]
+
+# Items used over time (ItemUseRegistry): food, the "not hungry" rule and the remainder are applied by the game side.
+[[module]]
+id = "pluto-item-use"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_item_use"
+source = "pluto-item-use.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-item-use-plan"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_item_use_plan"
+source = "pluto-item-use-plan.rs"
+
+[[injection]]
+id = "pluto-item-use-start"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
+kind = "HEAD"
+helper = "pluto-item-use-start.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&sunrise_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
+
+[[injection]]
+id = "pluto-item-use-finish"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "pluto-item-use-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&sunrise_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<sunrise_client::items::ItemStack>", value = "&mut *result" }]
+
+# Creative inventory tabs (ItemGroupRegistry, ItemGroupEvents): the one place that edits the creative inventory data as it loads.
+[[module]]
+id = "pluto-creative"
+file = "crates/sunrise-client/src/creative.rs"
+name = "pluto_creative"
+source = "pluto-creative.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-creative-rebuild"
+target = "sunrise_client_lib::creative::Creative::rebuild"
+kind = "HEAD"
+helper = "pluto-creative-rebuild.rs"
+bindings = [{ name = "this", ty = "&mut crate::creative::Creative", value = "&mut *self" }]
+
+# Block behaviours (BlockBehaviors): where a mod's block may stand, the state it is placed in and how its neighbours change it. The only
+# places in the game that ask the behaviours; the game side reads states with the game's own answers.
+[[module]]
+id = "pluto-block"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_block"
+source = "pluto-block.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-block-level"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_block_level"
+source = "pluto-block-level.rs"
+
+# The game's per-state gameplay facts (hardness, correct-tool requirement, explosion resistance),
+# published when the resource tables load so the dig report can read them by block name.
+[[module]]
+id = "pluto-block-facts"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_block_facts"
+source = "pluto-block-facts.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-block-facts-publish"
+target = "sunrise_client::game::load_world_rest"
+kind = "HEAD"
+helper = "pluto-block-facts-publish-head.rs"
+bindings = [{ name = "resources", ty = "&Resources", value = "resources" }]
+
+# The game's cooking recipes (the furnace family), kept published from the recipe table the
+# game is currently using (the startup table, a world's pack table after open or /reload, or a
+# server's synced table) so the recipe API's cooking lookup can answer what a furnace does to
+# an item. The creature tick refreshes the publication whenever the table in use changes.
+# The same tick also applies the brush strokes a mod ordered and ends the item uses a mod
+# ordered ended: the flushes in the game's brush and using_item modules apply what was
+# queued. One injection per place: all three callbacks run from this single head injection,
+# cooking first, and a use's strokes before its end.
+[[module]]
+id = "pluto-cooking-recipes"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_cooking_recipes"
+source = "pluto-cooking-recipes.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-cooking-recipes-tick"
+target = "sunrise_client::game::creatures::Game<'_>::tick_creatures"
+kind = "HEAD"
+helper = "pluto-cooking-recipes-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The hand's use finished: the chestplate takeover runs the worn sleeves module when the
+# game did not consume the use (Tinkers' InteractionHandler, at its LOWEST priority). The
+# takeover reads the acting player, their aim and their crouch state; the cooldown module
+# carries the game's item cooldowns for the provider call. One injection per place.
+# The seam is a cancellable HEAD, not a RETURN: the use's body works through
+# closures and `?`, which a RETURN cannot plan (E_UNSUPPORTED_CONTROL_FLOW). The HEAD
+# runs the use itself under the module's guard (its nested call passes through
+# to the vanilla body) and reports the outcome the use leaves, as the menu
+# slot's wire mapping does for its body.
+[[module]]
+id = "pluto-sleeves-takeover-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_sleeves_takeover_access"
+source = "pluto-sleeves-takeover-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-sleeves-takeover"
+file = "crates/sunrise-client/src/game/use_hand.rs"
+name = "pluto_sleeves_takeover"
+source = "pluto-sleeves-takeover.rs"
+visibility = "pub(crate)"
+
+# A use's release asked for a drawtime cooldown: the release's dispatch holds no game
+# for its call, so the start queues in the cooldown module, and this RETURN on
+# Game::mod_release_using drains it after the host's own content cooldown, so the
+# drawtime wins the overwrite (the fireball's hand path:
+# GeneralInteractionModifierHook.addCooldown, speed factor 1). The module entry is
+# the sleeves trigger's item-cooldown surface, shared with its takeover provider
+# call; the drain helper is the fireball's own.
+[[module]]
+id = "pluto-item-cooldown"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_item_cooldown"
+source = "pluto-item-cooldown.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-sleeves-takeover-return"
+target = "sunrise_client::game::use_hand::Game<'_>::use_hand"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-sleeves-takeover-return.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "block_hit", ty = "Option<&Hit>", value = "block_hit" }]
+
+# The entity interaction finished: the same chestplate takeover runs when a click on an
+# entity took nothing (Tinkers' InteractionHandler.afterEntityInteract, at its LOWEST
+# priority, after the entity's own interaction ran). The module reports only clicks that
+# arrived as an entity packet; the local player's click falls through to the hand's use,
+# whose seam reports it instead. The provider and the cooldown hold are the hand seam's.
+# The seam is a cancellable HEAD, not a RETURN: the interaction's body works through
+# closures and `?`, which a RETURN cannot plan (E_UNSUPPORTED_CONTROL_FLOW). The HEAD
+# runs the interaction itself under the module's guard (its nested call passes through
+# to the vanilla body) and reports the outcome the interaction leaves, as the menu
+# slot's wire mapping does for its body.
+[[module]]
+id = "pluto-sleeves-takeover-entity"
+file = "crates/sunrise-client/src/game/item_actions.rs"
+name = "pluto_sleeves_takeover_entity"
+source = "pluto-sleeves-takeover-entity.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-sleeves-takeover-entity-return"
+target = "sunrise_client::game::item_actions::Game<'_>::interact_entity"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-sleeves-takeover-entity-return.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "target", ty = "Option<InteractTarget>", value = "target" }]
+
+[[injection]]
+id = "pluto-release-cooldown-drain"
+target = "sunrise_client::game::item_use::Game<'_>::mod_release_using"
+kind = "RETURN"
+helper = "pluto-release-cooldown-drain.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+# A dig is worked out: the level's build range is published for the dig report the mods are
+# about to be asked for (dwarven reads the level's max build height).
+[[injection]]
+id = "pluto-block-facts-head"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_break_speed"
+kind = "HEAD"
+helper = "pluto-block-facts-head.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "pluto-block-survive"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_can_survive"
+kind = "HEAD"
+helper = "pluto-block-survive.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
+
+[[module]]
+id = "pluto-contact-effects"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_contact_effects"
+source = "pluto-contact-effects.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-contact-sound"
+file = "crates/sunrise-client/src/game/potions.rs"
+name = "pluto_contact_sound"
+source = "pluto-contact-sound.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-contact-sound-flush"
+target = "sunrise_client::game::potions::Game<'_>::tick_mob_effects"
+kind = "HEAD"
+helper = "pluto-contact-sound-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "pluto-block-inside"
+file = "crates/sunrise-client/src/motion.rs"
+name = "pluto_block_inside"
+source = "pluto-block-inside.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-block-inside-motion"
+target = "sunrise_client_lib::motion::MotionWorld<'_,'_,'_>::check_inside_blocks"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-block-inside-head.rs"
+bindings = [{ name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }, { name = "from", ty = "horizon_core::geometry::Vec3", value = "from" }, { name = "to", ty = "horizon_core::geometry::Vec3", value = "to" }, { name = "visited", ty = "&mut crate::fast_hash::FxHashSet<i64>", value = "visited" }, { name = "entered", ty = "&mut Vec<(i32, horizon_core::position::BlockPos)>", value = "entered" }, { name = "max_iterations", ty = "i32", value = "max_iterations" }, { name = "damage_only", ty = "bool", value = "damage_only" }]
+
+[[injection]]
+id = "pluto-block-placement"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
+kind = "HEAD"
+helper = "pluto-block-placement.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "context", ty = "&PlacementContext", value = "context" }, { name = "answer", ty = "&mut Option<Option<BlockStateId>>", value = "&mut *answer" }]
+
+[[injection]]
+id = "pluto-block-update-shape"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_update_shape"
+kind = "HEAD"
+helper = "pluto-block-update-shape.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "ticks", ty = "&mut Ticks", value = "&mut *ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "direction", ty = "Direction", value = "direction" }, { name = "neighbour_pos", ty = "BlockPos", value = "neighbour_pos" }, { name = "neighbour", ty = "BlockStateId", value = "neighbour" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]
+
+[[injection]]
+id = "pluto-block-random-tick"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_random_tick"
+kind = "HEAD"
+helper = "pluto-block-random-tick.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
+
+[[injection]]
+id = "pluto-block-scheduled-tick"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_tick_block"
+kind = "HEAD"
+helper = "pluto-block-scheduled-tick.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
+
+[[injection]]
+id = "pluto-block-bonemeal-valid"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
+kind = "HEAD"
+helper = "pluto-block-bonemeal-valid.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+
+[[injection]]
+id = "pluto-block-bonemeal-success"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_is_bonemeal_success"
+kind = "HEAD"
+helper = "pluto-block-bonemeal-success.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "success", ty = "&mut bool", value = "&mut *success" }]
+
+[[injection]]
+id = "pluto-block-bonemeal-perform"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_perform_bonemeal"
+kind = "HEAD"
+helper = "pluto-block-bonemeal-perform.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
+
+[[injection]]
+id = "pluto-block-fire-odds"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_fire_odds"
+kind = "HEAD"
+helper = "pluto-block-fire-odds.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "_dimension", ty = "LevelDimension", value = "dimension" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "odds", ty = "&mut Option<(i32, i32)>", value = "&mut *odds" }]
+
+[[injection]]
+id = "pluto-block-may-place-on"
+target = "sunrise_client::game::native_hooks::GameLevel<'_>::native_may_place_on"
+kind = "HEAD"
+helper = "pluto-block-may-place-on.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "ground", ty = "BlockStateId", value = "ground" }, { name = "ground_pos", ty = "BlockPos", value = "ground_pos" }, { name = "may", ty = "&mut Option<bool>", value = "&mut *may" }]
+
+# Shared editor below the client crate; no reverse world -> client dependency.
+[[module]]
+id = "pluto-block-access"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_block_access"
+source = "pluto-block-access.rs"
+visibility = "pub"
+
+# Structure planning and explicit plain-template placement. Registered marker
+# pieces are in progress and require the typed placement adapter and guard review.
+[[module]]
+id = "pluto-structure-access"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_structure_access"
+source = "pluto-structure-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-context"
+file = "crates/sunrise-world/src/worldgen/generator_structures.rs"
+name = "pluto_structure_context"
+source = "pluto-structure-context.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-generation"
+file = "crates/sunrise-world/src/worldgen/generator_decoration.rs"
+name = "pluto_structure_generation"
+source = "pluto-structure-generation.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-generation-placement"
+file = "crates/sunrise-world/src/worldgen/generator_decoration.rs"
+name = "pluto_structure_generation_placement"
+source = "pluto-structure-generation-placement.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-generation-start"
+target = "sunrise_world::worldgen::generator_decoration::Decoration::decorate"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-generation-head.rs"
+bindings = [{ name = "decoration", ty = "&Decoration", value = "self" }, { name = "data", ty = "&Arc<GeneratorData>", value = "data" }, { name = "seed", ty = "i64", value = "seed" }, { name = "generation", ty = "WorldGenerationContext", value = "generation" }, { name = "worker", ty = "&mut WorkerState", value = "worker" }, { name = "region", ty = "&mut [ProtoChunk;9]", value = "region" }, { name = "level_random", ty = "&mut dyn super::structure::legacy::PieceRandom", value = "level_random" }, { name = "structures", ty = "Option<&super::generator_structures::StructureState>", value = "structures" }]
+
+[[module]]
+id = "pluto-structure-natural"
+file = "crates/sunrise-world/src/worldgen/generator_structures.rs"
+name = "pluto_structure_natural"
+source = "pluto-structure-natural.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-natural-start"
+target = "sunrise_world::worldgen::generator_structures::StructureState::build_starts"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-natural-head.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "wait", ty = "bool", value = "wait" }]
+
+[[module]]
+id = "pluto-structure-piece"
+file = "crates/sunrise-world/src/worldgen/structure.rs"
+name = "pluto_structure_piece"
+source = "pluto-structure-piece.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-registered-piece"
+file = "crates/sunrise-world/src/worldgen/structure.rs"
+name = "pluto_registered_piece"
+source = "pluto-registered-piece.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-markers"
+file = "crates/sunrise-world/src/worldgen/structure/legacy.rs"
+name = "pluto_structure_markers"
+source = "pluto-structure-markers.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-level"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_structure_level"
+source = "pluto-structure-level.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-structure-command"
+file = "crates/sunrise-client/src/game/commands/place.rs"
+name = "pluto_structure_command"
+source = "pluto-structure-command.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-structure-command-head"
+target = "sunrise_client::game::commands::place::Game<'_>::cmd_place_generated"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-command-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "id", ty = "&str", value = "id" }, { name = "context", ty = "&Context", value = "ctx" }]
+
+[[injection]]
+id = "pluto-structure-sources"
+target = "sunrise_world::worldgen::generator_structures::StructureState::new"
+kind = "HEAD"
+helper = "pluto-structure-sources.rs"
+bindings = [{ name = "data", ty = "&Arc<GeneratorData>", value = "data" }]
+
+[[injection]]
+id = "pluto-structure-start"
+target = "sunrise_world::worldgen::generator_structures::StructureState::structure_start"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-start.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "&str", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }]
+
+[[injection]]
+id = "pluto-structure-saved-piece"
+target = "sunrise_world::worldgen::generator_structures::StructureState::saved_pool_piece"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-structure-saved-piece.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "piece", ty = "&crate::nbt::Tag", value = "piece" }]
+
+# Native tree orchestration: callbacks stay before final distances/edge shapes.
+[[module]]
+id = "pluto-tree-placement"
+file = "crates/sunrise-world/src/worldgen/tree.rs"
+name = "pluto_tree_placement"
+source = "pluto-tree-placement.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-tree-catalog"
+file = "crates/sunrise-world/src/worldgen/live.rs"
+name = "pluto_tree_catalog"
+source = "pluto-tree-catalog.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-tree-level"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_tree_level"
+source = "pluto-tree-level.rs"
+visibility = "pub"
+
+# Live configured features: PlutoLib owns the native level boundary; no consumer injections.
+[[module]]
+id = "pluto-worldgen-level"
+file = "crates/sunrise-world/src/level/mod.rs"
+name = "pluto_worldgen_level"
+source = "pluto-worldgen-level.rs"
+visibility = "pub"
+
+# Replace only the first native tint value, before model color and lighting.
+# Numeric state ids are resolved against this mesher's actual resource owners.
+[[module]]
+id = "block-color-bridge"
+file = "crates/sunrise-client-render/src/mesher.rs"
+name = "pluto_block_colors"
+source = "pluto-block-colors.rs"
+visibility = "pub"
+
+[[injection]]
+id = "block-color-world-tint"
+target = "sunrise_client_render::mesher::Mesher<'_>::face"
+kind = "MODIFY_VARIABLE"
+variable = { name = "tint", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-block-color-tint.rs"
+bindings = [
+    { name = "value", ty = "Option<u32>", value = "$value" },
+    { name = "mesher", ty = "&Mesher<'_>", value = "&*self" },
+    { name = "id", ty = "u32", value = "id" },
+    { name = "world", ty = "BlockPos", value = "world" },
+    { name = "face", ty = "&BakedFace", value = "face" },
+]
+
+# Retextured blocks: a block entity's texture on its model. The face's own
+# tile layer is replaced with the texture block's particle layer, only on
+# faces the pure table names as retextured slots. The swap rides the STORE
+# of the `own` tile local (built from the second `face.layer as u16`
+# occurrence): rewriting that expression in place fails
+# E_UNSUPPORTED_CONTROL_FLOW in this closure-heavy body, while a variable
+# store in the same body is a proven seam (the block tint above). A
+# MODIFY_VARIABLE place is keyed by its variable (a selector on it is
+# rejected with E_SELECTOR), so this entry hooks `own`, not the tint
+# entry's `tint`. The first `face.layer as u16` occurrence feeds the
+# connected-texture pick and stays on the model's own sprite.
+[[module]]
+id = "pluto-retexture-module"
+file = "crates/sunrise-client-render/src/mesher.rs"
+name = "pluto_retexture"
+source = "pluto-retexture.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-retexture-layer"
+target = "sunrise_client_render::mesher::Mesher<'_>::face"
+kind = "MODIFY_VARIABLE"
+variable = { name = "own", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-retexture-layer.rs"
+bindings = [
+    { name = "value", ty = "TileLayer", value = "$value" },
+    { name = "mesher", ty = "&Mesher<'_>", value = "&*self" },
+    { name = "id", ty = "u32", value = "id" },
+    { name = "world", ty = "BlockPos", value = "world" },
+    { name = "face", ty = "&BakedFace", value = "face" },
+]
+
+# Common terrain-particle tint; preserve sprites and native grass dirt crumbs.
+[[injection]]
+id = "pluto-block-particle-tint"
+target = "sunrise_client::game::block_particles::Game<'_>::particle_sprite"
+kind = "MODIFY_VARIABLE"
+variable = { name = "tint", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-block-particle-tint.rs"
+bindings = [
+    { name = "value", ty = "u32", value = "$value" },
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+    { name = "state", ty = "BlockStateId", value = "state" },
+    { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# CombatTracker has private fields, derived Default and one explicit update
+# literal in mob_death_message. Constructor/type review remains native attachment gated.
+[[module]]
+id = "pluto-living-drop-state-module"
+file = "crates/sunrise-client/src/game/combat.rs"
+name = "pluto_living_drop_state"
+source = "pluto-living-drop-state.rs"
+visibility = "pub(crate)"
+
+[[state]]
+id = "pluto-living-drop-state"
+target = "sunrise_client::game::combat::CombatTracker"
+ty = "crate::game::combat::pluto_living_drop_state::HeadDeaths"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client::game::combat::Game<'_>::mob_death_message"
+selector = "CombatTracker"
+require = 1
+
+[[injection]]
+id = "pluto-head-wave-reset"
+target = "sunrise_client::game::creatures::Game<'_>::tick_creature_entities"
+kind = "MODIFY_VARIABLE"
+variable = { name = "round", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-head-wave-reset.rs"
+bindings = [
+    { name = "value", ty = "crate::game::native_ticks::TickRound", value = "$value" },
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+]
+
+# Borrowed living-drop dispatch and owner-local charged-creeper head policy.
+[[module]]
+id = "pluto-living-drops-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_living_drops"
+source = "pluto-living-drops.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-living-drops-game"
+file = "crates/sunrise-client/src/game/creatures.rs"
+name = "pluto_living_drops_game"
+source = "pluto-living-drops-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-living-drops-head"
+target = "sunrise_client::game::creatures::Game<'_>::drop_death_loot"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-living-drops-head.rs"
+bindings = [
+    { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+    { name = "m", ty = "&mut Mob", value = "&mut *m" },
+    { name = "player_uuid", ty = "Option<u128>", value = "player_uuid" },
+    { name = "by_player", ty = "bool", value = "player_killed" },
+    { name = "killer", ty = "&sunrise_world::loot::LootEntity", value = "&killer" },
+    { name = "consumed", ty = "bool", value = "consumed" },
+    { name = "pos", ty = "[f64; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "pluto-head-loot-gate"
+target = "sunrise_client_lib::mobs::drops::roll"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-head-loot-gate.rs"
+bindings = [{ name = "table", ty = "&str", value = "table" }]
+
+[[injection]]
+id = "pluto-entity-kind"
+target = "sunrise_client::game::native_hooks::mob_kind"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-kind.rs"
+bindings = [{ name = "mob", ty = "&sunrise_client::mobs::Mob", value = "mob" }]
+
+# Passenger (riding) transport for the entity reach: a snapshot of who rides
+# whom plus a queue of mount/dismount requests, applied by the game's own
+# rider synchronisation. The seat helper answers for the local player as a
+# vehicle, which the game's own seat table does not cover.
+[[module]]
+id = "pluto-entity-ride-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_entity_ride_access"
+source = "pluto-entity-ride-access.rs"
+visibility = "pub"
+
+# Block experience reach: on the player's own break path the sampled
+# experience is asked of the block experience callbacks while it can still
+# change (the game's silk-touch rule applies to the answer). The break's
+# breaker is remembered from its break event (see `note_block_breaker`), so a
+# guest's break is credited; the removal path hears it through the same note.
+[[module]]
+id = "pluto-block-exp-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_block_exp_access"
+source = "pluto-block-exp-access.rs"
+visibility = "pub"
+
+# The seam sits on the store of sampled_xp: the sampled expression's only
+# use is that store, and an expression seam inside break_block_as_player is
+# an unsupported injection context (the body uses closures and ?), while the
+# store carries the same value at the same point — the provider is asked
+# while the amount can still change, before the silk-touch rule reads it.
+[[injection]]
+id = "pluto-block-exp"
+target = "sunrise_client::game::Game<'_>::break_block_as_player"
+kind = "MODIFY_VARIABLE"
+variable = { name = "sampled_xp", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-block-exp.rs"
+bindings = [
+    { name = "value", ty = "u32", value = "$value" },
+    { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+    { name = "pos", ty = "[i32; 3]", value = "pos" }
+]
+
+# Entity push transport for the entity reach: a queue of knockbacks, pushes
+# and leave-ground lifts, applied by the game's own knockback and motion
+# paths at the head of its rider synchronisation (the passenger transport's
+# drain point).
+[[module]]
+id = "pluto-entity-push-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_entity_push_access"
+source = "pluto-entity-push-access.rs"
+visibility = "pub"
+
+# The climb state a mob's tick settles, for the tick reports: the mob's
+# climbing flag and its fall-flying state, recorded after its own tick and
+# read when the transport builds the report (see pluto-entity-climb-record).
+[[module]]
+id = "pluto-entity-climb-access"
+file = "crates/sunrise-client/src/mobs.rs"
+name = "pluto_entity_climb_access"
+source = "pluto-entity-climb-access.rs"
+visibility = "pub"
+
+# Player teleport transport for the entity reach: a queue of player teleports,
+# applied by the game's own server teleport call at the head of its rider
+# synchronisation (the passenger transport's drain point).
+[[module]]
+id = "pluto-entity-teleport-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_entity_teleport_access"
+source = "pluto-entity-teleport-access.rs"
+visibility = "pub"
+
+# Creeper ignite transport for the entity reach: a queue of creeper ids to
+# ignite, applied by setting the ignited flag the creeper's own tick reads
+# at the head of its rider synchronisation (the passenger transport's drain
+# point).
+[[module]]
+id = "pluto-entity-ignite-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_entity_ignite_access"
+source = "pluto-entity-ignite-access.rs"
+visibility = "pub"
+
+# Mob off-hand stack edit transport for the entity reach: a queue of
+# custom-data edits of the stack in a mob's off hand, applied against the
+# mob itself through the host's own whole-stack read and write for that
+# slot at the head of its rider synchronisation (the passenger transport's
+# drain point), because the living handle's equipment read builds that
+# slot from the item id alone.
+[[module]]
+id = "pluto-mob-offhand-access"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_mob_offhand_access"
+source = "pluto-mob-offhand-access.rs"
+visibility = "pub"
+
+# One drain for the five entity transports above: PlutoLib hooks each place
+# once, so a single head injection on the rider synchronisation applies the
+# passenger, push, teleport, ignite and off-hand edit queues, in that order.
+[[injection]]
+id = "pluto-entity-drain"
+target = "sunrise_client::game::passengers::Game<'_>::sync_riders"
+kind = "HEAD"
+helper = "pluto-entity-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# After a mob's own tick: record the climb state the tick settled, so the
+# tick report reads this tick's climbing flag and fall-flying state. A tick
+# that did not run (the mob is gone) records nothing: the return value is
+# true only for a mob whose tick ran through.
+[[injection]]
+id = "pluto-entity-climb-record"
+target = "sunrise_client::mobs::ai::tick"
+kind = "RETURN"
+helper = "pluto-entity-climb-record.rs"
+bindings = [
+ { name = "value", ty = "bool", value = "$value" },
+ { name = "m", ty = "&mut Mob", value = "&mut *m" },
+]
+
+[[injection]]
+id = "pluto-entity-seat-player"
+target = "sunrise_client::game::seats::Game<'_>::seat"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-entity-seat-player-head.rs"
+bindings = [
+ { name = "game", ty = "&Game<'_>", value = "self" },
+ { name = "id", ty = "u32", value = "id" }
+]
+
+# Preserve inherited cube splash RNG, replacing only its registered particle ID.
+[[module]]
+id = "pluto-entity-particles"
+file = "crates/sunrise-client/src/mobs.rs"
+name = "pluto_entity_particles"
+source = "pluto-entity-particles.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-entity-particle-kind"
+target = "sunrise_client_lib::mobs::cube::landing_splash"
+kind = "MODIFY_VARIABLE"
+variable = { name = "kind", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-entity-particle-kind.rs"
+bindings = [
+    { name = "value", ty = "&'static str", value = "$value" },
+    { name = "m", ty = "&Mob", value = "&*m" },
+]
+
+[[injection]]
+id = "pluto-entity-particle-host-event"
+target = "sunrise_client::game::creatures::Game<'_>::handle_mob_events"
+kind = "MODIFY_VARIABLE"
+variable = { name = "e", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "pluto-entity-particle-event.rs"
+bindings = [
+    { name = "value", ty = "MobEvent", value = "$value" },
+    { name = "game", ty = "&mut Game<'_>", value = "self" },
+]
+
+# Item-fragment factories for named requests through the native client API.
+[[module]]
+id = "pluto-item-particles"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_item_particles"
+source = "pluto-item-particles.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-item-particle-factory"
+target = "sunrise_client::game::native_client_particles::Game<'_>::native_add_particle"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-particle-head.rs"
+bindings = [
+    { name = "game", ty = "&mut Game<'_>", value = "self" },
+    { name = "options", ty = "&ParticleOptions", value = "options" },
+    { name = "at", ty = "[f64; 3]", value = "at" },
+    { name = "velocity", ty = "[f64; 3]", value = "velocity" },
+]
+
+# Shared baked-layer item tint seam; source declaration only until native attachment review.
+[[module]]
+id = "pluto-item-colors"
+file = "crates/sunrise-client/src/item_render.rs"
+name = "pluto_item_colors"
+source = "pluto-item-colors.rs"
+visibility = "pub"
+
+# Retextured items: the item-side half of the retexture seam. It shares the
+# one return place on `resolve_with_rule` with the tint seam above (one
+# injection per place), running on the layers the tint pass hands over.
+[[module]]
+id = "pluto-retexture-item"
+file = "crates/sunrise-client/src/item_render.rs"
+name = "pluto_retexture_item"
+source = "pluto-retexture-item.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-armor-layers"
+file = "crates/sunrise-client/src/item_render.rs"
+name = "pluto_armor_layers"
+source = "pluto-armor-layers.rs"
+visibility = "pub"
+
+# A worn stack's own layers (a registered armor renderer) replace its equipment asset's list; the worn-armour resolver is a source edit
+# (direct host attachment) because the layer list is chosen inside the one function that also draws glint, trims and CIT.
+[[injection]]
+id = "pluto-armor-worn-layers"
+target = "sunrise_client::game::armor_stands::Game<'_>::armor_layers"
+kind = "MODIFY_VARIABLE"
+variable = { name = "layers", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "pluto-armor-worn-layers.rs"
+bindings = [
+    { name = "value", ty = "&Vec<(String, Option<u32>)>", value = "$value" },
+    { name = "game", ty = "&Game<'_>", value = "self" },
+]
+
+[[injection]]
+id = "pluto-armor-stand-worn-layers"
+target = "sunrise_client::game::armor_stands::Game<'_>::armor_stand_vertices"
+kind = "MODIFY_VARIABLE"
+variable = { name = "layers", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "pluto-armor-worn-layers.rs"
+bindings = [
+    { name = "value", ty = "&Vec<(String, Option<u32>)>", value = "$value" },
+    { name = "game", ty = "&Game<'_>", value = "self" },
+]
+
+# A container's slots through a side as plain values for `Host`: the generated `Host` cannot name the crate-private `NativeContainerSlot`, so a
+# wrapper is appended to its file (direct host attachment) and listed by a helper fragment beside the upstream ones.
+[[injection]]
+id = "pluto-block-entity-container-reach"
+target = "sunrise_client::game::machines::native_items::Game<'_>::native_container_slots"
+kind = "HEAD"
+helper = "pluto-container-reach.rs"
+bindings = [
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+]
+
+# A mod menu for a player's item as plain values for `Host`: `Hub::open_container` is crate-private, so a wrapper is appended to its file
+# (direct host attachment) and listed by a helper fragment beside the upstream ones.
+[[injection]]
+id = "pluto-item-menu-open"
+target = "sunrise_client::game::native_menus::Game<'_>::native_open_item_menu"
+kind = "HEAD"
+helper = "pluto-item-menu-open.rs"
+bindings = [
+    { name = "game", ty = "&Game<'_>", value = "&*self" },
+]
+
+# A screen for a mod menu opened for an item (not a block): `open_native_screen` returns early for one, since no block at the stand-in
+# position carries the menu, so the hook opens the screen from the menu's own layout when the extra data marks an item menu.
+# A cancellable HEAD, not a RETURN: the host body spends its control flow in ways the weaver cannot rewrite for a return hook
+# (E_UNSUPPORTED_CONTROL_FLOW), so the head hook reproduces the return hook's decisions from the same state the body would have
+# read, and skips the body only on the path where it would have left `mod_screen` cleared.
+[[injection]]
+id = "pluto-open-item-screen"
+target = "sunrise_client::game::native_hooks::Game<'_>::open_native_screen"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-open-item-screen.rs"
+bindings = [
+    { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+    { name = "key", ty = "Pos", value = "key" },
+    { name = "target", ty = "Option<Pos>", value = "target" },
+    { name = "window", ty = "i32", value = "window" },
+    { name = "menu", ty = "&str", value = "menu" },
+    { name = "extra", ty = "&Option<horizon_protocol::menu_extra::Message>", value = "&extra" },
+]
+
+[[injection]]
+id = "pluto-item-color-layers"
+target = "sunrise_client_lib::item_render::ItemRenderer::resolve_with_rule"
+kind = "RETURN"
+helper = "pluto-item-color-layers.rs"
+bindings = [
+    { name = "value", ty = "ItemRenderState", value = "$value" },
+    { name = "renderer", ty = "&ItemRenderer", value = "&*self" },
+    { name = "stack", ty = "&StackView", value = "stack" },
+    { name = "env", ty = "&dyn ItemEnv", value = "env" },
+]
+
+# Successful server teardown, after the final save and networking cleanup.
+[[module]]
+id = "server-stopped-dispatch"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_server_stopped"
+source = "pluto-server-stopped.rs"
+visibility = "pub"
+
+[[injection]]
+id = "server-stopped-integrated"
+target = "sunrise_client::game::integrated::Game<'_>::run_integrated"
+kind = "RETURN"
+helper = "pluto-server-stopped-return.rs"
+bindings = [{ name = "value", ty = "Result<()>", value = "$value" }]
+
+[[injection]]
+id = "server-stopped-dedicated"
+target = "sunrise_client::game::dedicated::Game<'_>::run_dedicated"
+kind = "RETURN"
+helper = "pluto-server-stopped-dedicated-return.rs"
+bindings = [{ name = "value", ty = "Result<()>", value = "$value" }]
+
+# Optional dynamic slot positions. Shipped in the standalone PlutoLib bundle, not the legacy bundle.
+[[module]]
+id = "dynamic-screen-slots-api"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_dynamic_screen_slots"
+source = "dynamic-screen-slots-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "dynamic-screen-slots"
+file = "crates/sunrise-client/src/game/native_hooks.rs"
+name = "pluto_dynamic_screen_slots"
+source = "dynamic-screen-slots.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "dynamic-screen-slots-update"
+target = "sunrise_client::game::remote::Game<'_>::set_menu_slot"
+kind = "RETURN"
+helper = "dynamic-screen-slots-update.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "dynamic-screen-slots-data-update"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_screen_data"
+kind = "RETURN"
+helper = "dynamic-screen-slots-data-update.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Living-entity previews in mod screens: a screen's draw queues them (it holds only the
+# frame's batch), and the flush after the draw renders them with the game at hand.
+[[module]]
+id = "pluto-living-preview-api"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_living_preview"
+source = "pluto-living-preview-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-living-preview"
+file = "crates/sunrise-client/src/game/native_hooks.rs"
+name = "pluto_living_preview"
+source = "pluto-living-preview.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-living-preview-flush"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_screen_draw"
+kind = "RETURN"
+helper = "pluto-living-preview-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut sunrise_client::hud::HudBatch", value = "batch" }]
+
+# Menu switches a mod's menu button asked for (a tabbed table's tab): the press queues them
+# through the mod API, and the flush at the end of the press applies them with the game at
+# hand, opening the named block's menu for the player whose menu was pressed.
+[[module]]
+id = "pluto-menu-switch-api"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_menu_switch"
+source = "pluto-menu-switch-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-menu-switch"
+file = "crates/sunrise-client/src/game/native_hooks.rs"
+name = "pluto_menu_switch"
+source = "pluto-menu-switch.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-menu-switch-flush"
+target = "sunrise_client::game::native_hooks::Game<'_>::mod_menu_button"
+kind = "RETURN"
+helper = "pluto-menu-switch-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" }]
+
+# A LAN guest's menu switch: the local flush has no hold of the guest's menu (it lives in the
+# LAN host's guest state), so the guest flush runs on the LAN station button's return — after
+# the local flush, inside the same press — and applies the guest's switches through the host's
+# guest container open (pluto-menu-switch's guest half, mirroring lan_open_container).
+[[injection]]
+id = "pluto-menu-switch-guest-flush"
+target = "sunrise_client::game::lan_stations::Game<'_>::lan_station_button"
+kind = "RETURN"
+helper = "pluto-menu-switch-guest-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "host" }, { name = "conn", ty = "u32", value = "conn" }]
+
+# Map faces a mod's HUD drawing asked for (a minimap's map): the draw queues them through
+# the mod API's canvas, and the flush at the end of the HUD's draw renders each from its map
+# texture with the game at hand.
+[[module]]
+id = "pluto-map-face-api"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_map_face"
+source = "pluto-map-face-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-map-face"
+file = "crates/sunrise-client/src/game/native_hooks.rs"
+name = "pluto_map_face"
+source = "pluto-map-face.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-map-face-flush"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_hud"
+kind = "RETURN"
+helper = "pluto-map-face-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "batch", ty = "&mut sunrise_client::hud::HudBatch", value = "batch" }]
+
+# Pinned Persistent::worker installs saved structure starts in every dimension.
+# Keep make_streaming native; the former dimension replacement is not attached.
+
+# The stack a mod's item-wear callback puts in place of a worn armor piece.
+[[module]]
+id = "pluto-item-wear-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_item_wear_access"
+source = "pluto-item-wear-access.rs"
+visibility = "pub"
+
+# The local player's item wear reaches the same mod event a LAN player's does (the game's own hook skips the local player).
+[[injection]]
+id = "pluto-item-wear"
+target = "sunrise_client::game::enchant_effects::Game<'_>::wear"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-wear.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&sunrise_client::items::ItemStack", value = "stack" }, { name = "amount", ty = "u32", value = "amount" }]
+
+# The status effects a mod's weapon-hit callback puts on a mob (the game has no mod call that applies an effect to a mob).
+[[module]]
+id = "pluto-mob-effect-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_mob_effect_access"
+source = "pluto-mob-effect-access.rs"
+visibility = "pub"
+
+# What a mod's entity-inside callback does to the entity inside its block, carried to where the game may change it.
+[[module]]
+id = "pluto-contact-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_contact_access"
+source = "pluto-contact-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-mob-effect-apply"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_living_incoming_damage_v2"
+kind = "RETURN"
+helper = "pluto-mob-effect-apply.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A mob hurts the player: the mods hear it with the mob's state and may put status effects on the mob (the armor's counter-attacks).
+[[module]]
+id = "pluto-player-hurt-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_player_hurt_access"
+source = "pluto-player-hurt-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-player-hurt"
+target = "sunrise_client::game::native_hooks::Game<'_>::knockback_scope"
+kind = "HEAD"
+helper = "pluto-player-hurt.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "attacker", ty = "i32", value = "attacker" }]
+
+# The parties of a hit, named for the damage events: what the game knows of the mob behind a synchronous
+# attack and of the entity a hit lands on, and the drops a damage callback asks for at an entity.
+[[module]]
+id = "pluto-damage-facts-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_damage_facts_access"
+source = "pluto-damage-facts-access.rs"
+visibility = "pub"
+
+# A hit is opened on a living entity: the mods are told the health a mob victim has before the hit's hooks run.
+[[injection]]
+id = "pluto-damage-victim"
+target = "sunrise_client::game::native_hooks::hurt_server"
+kind = "HEAD"
+helper = "pluto-damage-victim.rs"
+bindings = [{ name = "hurting", ty = "&sunrise_client::health::Hurting<'_>", value = "&hurting" }]
+
+# The ender dragon's damage is worked out: the mods are told the health it has (it is no mob, so the mob
+# victim reach cannot name it).
+[[injection]]
+id = "pluto-damage-dragon"
+target = "sunrise_client::game::dragon::Dragon::hurt_health"
+kind = "HEAD"
+helper = "pluto-damage-dragon.rs"
+bindings = [{ name = "dragon", ty = "&Dragon", value = "&*self" }]
+# The frame's celestial bodies are built: the mods' dynamic sky layers are asked for their quads
+# (bright stars that twinkle, and the dark patches), and a layer may drop the vanilla star frame.
+# The reach is a cancellable HEAD, not a RETURN: the body's bare format! (the moon's sprite name)
+# cannot be re-emitted by the weaver (E_UNSUPPORTED_MACRO), so the head leaves the body untouched
+# and only answers in its place when a layer is present for the frame.
+[[module]]
+id = "pluto-sky-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_sky_access"
+source = "pluto-sky-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-sky-celestial"
+target = "sunrise_client::game::frame_geometry::Game<'_>::celestial_geometry"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-sky-celestial.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "sky", ty = "&sunrise_client::environment::Sky", value = "sky" }, { name = "rain", ty = "f32", value = "rain" }]
+
+
+# A mob works out how far it sees the player (sneaking, invisibility, worn heads): the mods scale that range for the kind of mob that is looking.
+[[module]]
+id = "pluto-player-visibility-access"
+file = "crates/sunrise-client/src/mobs.rs"
+name = "pluto_player_visibility_access"
+source = "pluto-player-visibility-access.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-player-visibility"
+target = "sunrise_client_lib::mobs::PlayerView::visibility_percent"
+kind = "RETURN"
+helper = "pluto-player-visibility.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "player", ty = "&PlayerView", value = "self" }, { name = "targeting", ty = "Option<&str>", value = "targeting" }]
+
+# Every server tick the player's attributes are refreshed: the status effects queued for mobs (a counter that hits an attacker) land then.
+[[injection]]
+id = "pluto-mob-effect-apply-tick"
+target = "sunrise_client::game::lan_attributes::Game<'_>::update_player_attributes"
+kind = "HEAD"
+helper = "pluto-mob-effect-apply-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The explosions a mod orders (the game has no mod call that sets one off; its own native_explode lives inside the game).
+[[module]]
+id = "pluto-explosion-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_explosion_access"
+source = "pluto-explosion-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-explosion-flush"
+file = "crates/sunrise-client/src/game/native_explosions.rs"
+name = "pluto_explosion_flush"
+source = "pluto-explosion-flush.rs"
+visibility = "pub(crate)"
+
+# The brush strokes a mod orders (the game has no mod call that brushes a block; its own
+# BrushableBlockEntity.brush lives inside the game, in the brush module the flush joins).
+[[module]]
+id = "pluto-brush-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_brush_access"
+source = "pluto-brush-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-brush-flush"
+file = "crates/sunrise-client/src/game/brush.rs"
+name = "pluto_brush_flush"
+source = "pluto-brush-flush.rs"
+visibility = "pub(crate)"
+
+# The item-use ends a mod orders (the game has no mod call that ends a use; its own
+# releaseUsingItem and stopUsingItem live inside the game, in the using_item module the
+# flush joins). The ends are applied at the creature tick seam, from the same head
+# injection as the cooking publication and the brush flush.
+[[module]]
+id = "pluto-use-stop-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_use_stop_access"
+source = "pluto-use-stop-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-use-stop-flush"
+file = "crates/sunrise-client/src/game/using_item.rs"
+name = "pluto_use_stop_flush"
+source = "pluto-use-stop-flush.rs"
+visibility = "pub(crate)"
+
+# The break-completion seam (BLOCKITEM-3): the return of the break funnel (player_break_block, the one
+# caller every player break returns through) reports the completed break
+# to the bridge, so a break's AFTER runs inside the break instead of at the player's next tick; the same
+# return plays the arm swings and break broadcasts queued for the acting player, and the player tick plays
+# the ones queued outside a break. The head of the game's own break reads the mined block's block entity
+# for the break context, so the off hand's place-tag NBT tests can be answered.
+[[module]]
+id = "pluto-break-complete-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_break_complete_access"
+source = "pluto-break-complete-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-break-complete"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_break_complete"
+source = "pluto-break-complete.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-player-animate-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_player_animate_access"
+source = "pluto-player-animate-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-player-animate-flush"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_player_animate_flush"
+source = "pluto-player-animate-flush.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "pluto-break-context-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_break_context_access"
+source = "pluto-break-context-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-break-context"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_break_context"
+source = "pluto-break-context.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-break-complete-return"
+target = "sunrise_client::game::block_breaking::Game<'_>::player_break_block"
+kind = "RETURN"
+helper = "pluto-break-complete-return.rs"
+bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+
+[[injection]]
+id = "pluto-player-animate-tick"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "HEAD"
+helper = "pluto-player-tick-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-break-context-head"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_destroy_block"
+kind = "HEAD"
+helper = "pluto-break-context-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+# The highlight's game-mode facts: the game's mode setter runs on every path that sets the local
+# mode (a world opening, /gamemode, a LAN mode), and no host read states it on the render path,
+# so this records the mode the setter leaves for the highlight transport to read as the frame's
+# block reach (4.5 in survival, 5.0 in creative).
+[[module]]
+id = "pluto-highlight-mode"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_highlight_mode"
+source = "pluto-highlight-mode.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-highlight-mode-head"
+target = "sunrise_client::game::game_mode::Game<'_>::set_mode"
+kind = "HEAD"
+helper = "pluto-highlight-mode-head.rs"
+bindings = [
+ { name = "mode", ty = "sunrise_client::command::args::GameMode", value = "mode" }
+]
+
+# Native inventory gates for the pure advancement/recipe forwarders in the
+# API package (hooks.rs, behind the `native-inventory-glue` feature). This is
+# the transport subset migrated from the retired pluto_native_creative
+# package: the shared inventory API crate, its client-library export, the
+# component/stack views the item-predicate boundary uses, and the
+# advancement event source/sink in the game module. The legacy package's
+# remaining boundaries stayed native-preserved under the retained guards at
+# that step. Owner decision, 2026-11-22: the crafting-match pair and the
+# advancement drain/trigger/index attachments are composed at the end of
+# this manifest under the reviewed bundle branches of the retained guards
+# (bundle_attachments in crafting-match-boundaries.json and
+# advancement-replacements.json). The station ingredient parser and recipe
+# placement stay native-preserved.
+# Rename record: the stack-storage module below is named `pluto_stack_store`
+# in this bundle, not the legacy `pluto_stack_storage` — that name is
+# reserved by the wire-snapshot guard for the native-preserved module, and
+# the copied component view references the module under its new name.
+
+[[crate]]
+id = "pluto-inventory-api"
+path = "inventory-api"
+dependent = "sunrise-client-lib"
+
+[[module]]
+id = "pluto-inventory"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "pluto_inventory"
+source = "pluto-inventory-export.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-component-view"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "pluto_component_view"
+source = "pluto-component-view.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-stack-storage"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "pluto_stack_store"
+source = "pluto-stack-storage.rs"
+visibility = "pub"
+
+# Read-only potion/effect catalog facts over the host's own tables
+# (horizon_client_core::potions). Anchored at client_lib.rs, the
+# sunrise-client-lib crate root, so the API crate reaches it as
+# sunrise_client::pluto_potions through the library's glob re-export.
+[[module]]
+id = "potion-facts"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "pluto_potions"
+source = "potion-facts.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-advancement-events"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_advancement_events"
+source = "pluto-advancement-events.rs"
+
+[[module]]
+id = "pluto-advancement-event-source"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_advancement_event_source"
+source = "pluto-advancement-event-source.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-advancement-tag-source"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_advancement_tag_source"
+source = "pluto-advancement-tag-source.rs"
+visibility = "pub"
+
+# The only host-shaped item predicate boundary. Consumers see PlutoLib facts.
+[[injection]]
+id = "pluto-item-predicate"
+target = "sunrise_client_lib::advancements::item"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-item-predicate-head.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }, { name = "w", ty = "&dyn World", value = "w" }]
+
+# Reviewed boundary attachments (owner decision, 2026-11-22). The bundle is
+# now the composition, so the retained guards admit exactly these attachments
+# under their reviewed bundle branches: pinned helper bytes, function
+# fingerprints and pristine file digests in crafting-match-boundaries.json
+# and advancement-replacements.json (bundle_attachments). Priority is the
+# bundle default 0, like every other pluto_lib injection: each target has
+# exactly one reviewed hook, so HEAD ordering against other hooks on these
+# targets cannot arise inside this composition. (The retired package planned
+# at priority 100 to order itself against third-party mods.)
+
+# Provider admission/assembly evaluation for the crafting-match veto below.
+[[module]]
+id = "pluto-crafting-match"
+file = "crates/sunrise-client/src/crafting.rs"
+name = "pluto_matching"
+source = "pluto-crafting-match.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-crafting-match-veto"
+target = "sunrise_client_lib::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-crafting-match-veto-head.rs"
+bindings = [{ name = "ctx", ty = "&Context<'_>", value = "ctx" }, { name = "input", ty = "&Input<'_>", value = "input" }, { name = "recipe", ty = "&Recipe", value = "recipe" }]
+
+# special-recipe providers: each registered provider id is planted as a
+# marker recipe entry (the data-pack file contribution below, plus the
+# synced-table mirror), and the crafting-match veto resolves a marker
+# through its provider. There is deliberately no injection on
+# Recipes::find_with: its borrowed (&str, ItemStack) result cannot be
+# spelled by a cancellable helper. Reviewed with the crafting-match
+# pair (crafting-match-boundaries.json).
+[[injection]]
+id = "pluto-crafting-special-files"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "HEAD"
+helper = "pluto-crafting-special-files-head.rs"
+bindings = [{ name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "files" }]
+
+[[injection]]
+id = "pluto-crafting-special-synced"
+target = "sunrise_client::game::native_recipes::Game<'_>::recipes_received_now"
+kind = "HEAD"
+helper = "pluto-crafting-special-synced-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Queued custom advancement events drain into the native sink each tick.
+[[injection]]
+id = "pluto-advancement-event-drain"
+target = "sunrise_client::game::advancements::Game<'_>::tick_advancements"
+kind = "HEAD"
+helper = "pluto-advancement-event-drain-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Component-aware inventory events, backed by the shared inventory API facade.
+[[injection]]
+id = "pluto-inventory-advancement-components"
+target = "sunrise_client::game::advancements::Game<'_>::check_inventory_trigger"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-inventory-advancements.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Custom item-tag overlays for advancement matching: per-world state on the
+# chunk map, its game-side sink, and the read paths (candidate index and the
+# World::in_tag predicate) the components replacement above consults.
+[[module]]
+id = "pluto-advancement-tag-state"
+file = "crates/sunrise-client-render/src/chunk_map.rs"
+name = "pluto_advancement_tag_state"
+source = "pluto-advancement-tag-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "pluto-advancement-tags"
+target = "sunrise_client_render::chunk_map::ChunkMap"
+ty = "crate::chunk_map::pluto_advancement_tag_state::TagState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "pluto-advancement-tags-sink"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_advancement_tags"
+source = "pluto-advancement-tags.rs"
+
+[[injection]]
+id = "pluto-advancement-tags-clear"
+target = "sunrise_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "pluto-advancement-tags-clear-head.rs"
+bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-advancement-tag-predicate"
+target = "sunrise_client::game::advancements::<View<'_,'_> as adv::World>::in_tag"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-tag-predicate-head.rs"
+bindings = [{ name = "view", ty = "&View<'_, '_>", value = "&*self" }, { name = "registry", ty = "&str", value = "registry" }, { name = "tag", ty = "&str", value = "tag" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "pluto-advancement-tag-index"
+target = "sunrise_client::game::advancements::Game<'_>::inventory_index"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-tag-index-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
+
+# Advancement function rewards resolved in code: the game's function
+# store carries only data pack files, so a function a mod registered
+# with the pure advancement API is granted by this hook at the head of
+# the game's own reward-function runner. The target is the function
+# runner in game/functions.rs, not one of the advancement caller
+# boundaries pinned by the advancement guard.
+[[module]]
+id = "pluto-advancement-function-source"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_advancement_function_source"
+source = "pluto-advancement-function-source.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-advancement-function-reward"
+target = "sunrise_client::game::functions::Game<'_>::run_advancement_reward_function"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-advancement-function-reward-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "id", ty = "&str", value = "id" }]
+
+# Fancy hanging entities: item frame and armor stand variants registered
+# with PlutoLib's hanging registry run their variant behaviour over the
+# host's vanilla frame/stand state (the variant rides in the entity's kept
+# raw NBT). Unregistered items and entities keep the vanilla paths.
+# The transport module hangs off client_lib.rs, the sunrise-client-lib
+# crate root, not entry.rs: the from-NBT loader compiles in
+# sunrise-client-lib, whose crate root has no `entry` module (entry and
+# game exist only in the sunrise_client library crate). entity_nbt.rs
+# itself cannot take a support module (its top-level glob re-exports make
+# the weaver refuse with E_MODULE_CONFLICT), so the module sits at the
+# shared root: crate::pluto_hanging_access in the client library, and
+# sunrise_client::pluto_hanging_access in the game crate through the
+# library's glob re-export - one instance, reachable from both contexts.
+[[module]]
+id = "pluto-hanging-access"
+file = "crates/sunrise-client/src/client_lib.rs"
+name = "pluto_hanging_access"
+source = "pluto-hanging-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-hanging-game"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_hanging_game"
+source = "pluto-hanging-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-hanging-frame-place"
+target = "sunrise_client::game::frames::Game<'_>::place_item_frame"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-frame-place.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "hit", ty = "&Hit", value = "hit" },
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-interact"
+target = "sunrise_client::game::frames::Game<'_>::interact_frame"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-frame-interact.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "target", ty = "Option<InteractTarget>", value = "target" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-from-nbt"
+target = "sunrise_client::entity_nbt::hanging::item_frame_from_nbt"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-frame-from-nbt.rs"
+bindings = [
+ { name = "tag", ty = "&Tag", value = "tag" },
+ { name = "id", ty = "u32", value = "id" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-tick"
+target = "sunrise_client::game::frames::Game<'_>::tick_item_frames"
+kind = "HEAD"
+helper = "pluto-hanging-frame-tick.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-analog"
+target = "sunrise_client::game::<GameLevel<'_> as LevelAccess>::item_frame_analog_output"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-frame-analog.rs"
+bindings = [
+ { name = "level", ty = "&GameLevel<'_>", value = "&*self" },
+ { name = "pos", ty = "BlockPos", value = "pos" },
+ { name = "facing", ty = "Direction", value = "facing" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-explosion-head"
+target = "sunrise_client::game::frames::Game<'_>::explosion_breaks_frames"
+kind = "HEAD"
+helper = "pluto-hanging-frame-explosion.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "blast", ty = "[f64; 3]", value = "blast" },
+ { name = "diameter", ty = "f64", value = "diameter" },
+ { name = "interaction", ty = "super::explosion::BlockInteraction", value = "interaction" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-explosion-return"
+target = "sunrise_client::game::explosion::Game<'_>::explosion_breaks_decorations"
+kind = "HEAD"
+helper = "pluto-hanging-frame-explosion-return.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-drops"
+target = "sunrise_client::game::frames::Game<'_>::drop_frame_items"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-frame-drops.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "f", ty = "&mut ItemFrame", value = "f" },
+ { name = "with_frame", ty = "bool", value = "with_frame" },
+ { name = "by_player", ty = "bool", value = "by_player" },
+ { name = "creative", ty = "bool", value = "creative" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-hit"
+target = "sunrise_client::game::frames::Game<'_>::hit_frame"
+kind = "RETURN"
+helper = "pluto-hanging-frame-hit.rs"
+bindings = [
+ { name = "value", ty = "()", value = "$value" },
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "i", ty = "usize", value = "i" },
+ { name = "by_player", ty = "bool", value = "by_player" },
+ { name = "creative", ty = "bool", value = "creative" }
+]
+
+[[injection]]
+id = "pluto-hanging-frame-set-item"
+target = "sunrise_client::game::frames::Game<'_>::set_frame_item"
+kind = "HEAD"
+helper = "pluto-hanging-frame-set-item.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "i", ty = "usize", value = "i" },
+ { name = "stack", ty = "&Option<ItemStack>", value = "&stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-place"
+target = "sunrise_client::game::armor_stands::Game<'_>::place_armor_stand"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-stand-place.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "hit", ty = "&super::Hit", value = "hit" },
+ { name = "stack", ty = "&ItemStack", value = "stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-break"
+target = "sunrise_client::game::armor_stands::Game<'_>::break_armor_stand_by_hit"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-stand-break.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "i", ty = "usize", value = "i" },
+ { name = "creative", ty = "bool", value = "creative" },
+ { name = "always_kills", ty = "bool", value = "always_kills" },
+ { name = "by", ty = "Option<super::commands::Target>", value = "by" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-tick-head"
+target = "sunrise_client::game::armor_stands::Game<'_>::tick_armor_stands"
+kind = "HEAD"
+helper = "pluto-hanging-stand-tick.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+# The stand tick's after-pass cannot be a RETURN on tick_armor_stands
+# (its body cannot be woven there), so it rides the head of the call the
+# pinned tick sequence makes immediately after it.
+[[injection]]
+id = "pluto-hanging-stand-tick-after"
+target = "sunrise_client::game::cushions::Game<'_>::tick_cushions"
+kind = "HEAD"
+helper = "pluto-hanging-stand-tick-after.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-dispense"
+target = "sunrise_client::game::dispenser::Game<'_>::dispense_item"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-stand-dispense.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+ { name = "facing", ty = "Direction", value = "facing" },
+ { name = "stack", ty = "&ItemStack", value = "&stack" }
+]
+
+[[injection]]
+id = "pluto-hanging-stand-command"
+target = "sunrise_client::game::armor_stands::Game<'_>::command_damage_stand"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-hanging-stand-command.rs"
+bindings = [
+ { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+ { name = "id", ty = "u32", value = "id" },
+ { name = "damage_type", ty = "&str", value = "damage_type" },
+ { name = "causing", ty = "Option<super::commands::Target>", value = "causing" }
+]
+
+# Fishing with a mod's rod: the shared state lives in the entry (the fishing module is private to
+# the game), the game-side work in the fishing module itself, and three small reaches: the tick
+# head that drains a queued use, the rod check that keeps a combat hook alive, and the hit head
+# that records the impact before the hook's velocity is zeroed.
+[[module]]
+id = "pluto-fishing-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_fishing_access"
+source = "pluto-fishing-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-fishing-game"
+file = "crates/sunrise-client/src/game/fishing.rs"
+name = "pluto_fishing_game"
+source = "pluto-fishing-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-fishing-tick-head"
+target = "sunrise_client::game::fishing::Game<'_>::tick_fishing"
+kind = "HEAD"
+helper = "pluto-fishing-tick-head.rs"
+bindings = [
+ { name = "game", ty = "&mut sunrise_client::game::Game<'_>", value = "&mut *self" }
+]
+
+[[injection]]
+id = "pluto-fishing-holds-rod-head"
+target = "sunrise_client::game::fishing::Game<'_>::holds_rod"
+kind = "HEAD"
+cancellable = true
+helper = "pluto-fishing-holds-rod-head.rs"
+bindings = [
+ { name = "game", ty = "&sunrise_client::game::Game<'_>", value = "&*self" }
+]
+
+[[injection]]
+id = "pluto-fishing-hit-head"
+target = "sunrise_client::game::fishing::Hook::hit_entity"
+kind = "HEAD"
+helper = "pluto-fishing-hit-head.rs"
+bindings = [
+ { name = "hook", ty = "&mut sunrise_client::game::fishing::Hook", value = "&mut *self" },
+ { name = "id", ty = "u32", value = "id" },
+ { name = "deflects", ty = "bool", value = "deflects" }
+]
+
+# The projectile spawn and flight tellings: the game's entity-tick telling does not cover projectiles (API 146), so
+# PlutoLib reaches into the game's own projectile list. The game-side pass lives in the creatures module; the API side
+# is asked through the entry-point sink.
+[[module]]
+id = "pluto-projectile-flight-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_projectile_flight_access"
+source = "pluto-projectile-flight-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-projectile-flight-game"
+file = "crates/sunrise-client/src/game/creatures.rs"
+name = "pluto_projectile_flight_game"
+source = "pluto-projectile-flight-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-projectile-spawn-head"
+target = "sunrise_client::game::creatures::Game<'_>::add_projectile"
+kind = "HEAD"
+helper = "pluto-projectile-spawn-head.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "&mut crate::projectiles::Projectile", value = "&mut p" }
+]
+
+[[injection]]
+id = "pluto-projectile-flight-return"
+target = "sunrise_client::game::fangs::Game<'_>::tick_fangs"
+kind = "HEAD"
+helper = "pluto-projectile-flight-return.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }
+]
+
+# The stored map in a worn piece ticks while it is worn (Tinkers' minimap module): the head
+# and return halves bracket the maps tick itself, so the swap is in place for the exploration
+# sweep on the local player and on a LAN guest alike, and the offhand is restored before
+# anything else runs. The return half hangs on the compass tick, not on the maps tick: the
+# maps tick's own body refuses a RETURN seam, and the compass tick is the first call after
+# it on both tick paths (the local player's equipment-compass pass opens with it, and a
+# guest's turn calls it directly), so the bracket still closes before anything — the
+# compass pass included — can read the offhand.
+[[module]]
+id = "pluto-map-tick-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_map_tick_access"
+source = "pluto-map-tick-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-map-tick"
+file = "crates/sunrise-client/src/game/maps.rs"
+name = "pluto_map_tick"
+source = "pluto-map-tick.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-map-tick-head"
+target = "sunrise_client::game::maps::Game<'_>::tick_maps"
+kind = "HEAD"
+helper = "pluto-map-tick-head.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "pluto-map-tick-return"
+target = "sunrise_client::game::maps::Game<'_>::tick_lodestone_compasses"
+kind = "HEAD"
+helper = "pluto-map-tick-return.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+# A piercing projectile's ignore list: the game's own list lives on the arrow (`pierced`), and a cancelled impact
+# re-flies the arrow as it was before the tick, without the victim — so a callback that re-deals a piercing hit
+# would meet the same entity again. The head on the native impact telling snapshots the list as the hit is told
+# (the game adds the victim before it tells the hit), the API side carries it on the hit and records the victim a
+# callback passes through, and the flight pass adds the record to the live arrow as the tick settles.
+[[module]]
+id = "pluto-projectile-impact-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_projectile_impact_access"
+source = "pluto-projectile-impact-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-projectile-impact-game"
+file = "crates/sunrise-client/src/game/creatures.rs"
+name = "pluto_projectile_impact_game"
+source = "pluto-projectile-impact-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-projectile-impact-head"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_projectile_impact"
+kind = "HEAD"
+helper = "pluto-projectile-impact-head.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "projectile", ty = "u32", value = "projectile" }
+]
+
+# The local player's active effects' icon flags (vanilla's MobEffectInstance.showIcon),
+# published at the head of every HUD draw so the effect read can carry them: the host's
+# effect read (NativeEffect) has no icon flag, and the HUD shift counts exactly the effects
+# that show their icon (ModifierClientEvents.getEffectOffset). The snapshot is the local
+# player's own list, taken where the draw is about to run; the API side reads it by effect
+# id and defaults an unnamed effect to shown, as vanilla does.
+[[module]]
+id = "pluto-effect-icon-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_effect_icon_access"
+source = "pluto-effect-icon-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-effect-icon"
+file = "crates/sunrise-client/src/game/native_hooks.rs"
+name = "pluto_effect_icon"
+source = "pluto-effect-icon.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-effect-icon-head"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_hud"
+kind = "HEAD"
+helper = "pluto-effect-icon-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+# The throw sound: the game plays the vanilla snowball throw for every thrown type (Game::throw_item), where
+# Java plays the type's own sound (tconstruct:throw.throwball / throw.shuriken, NEUTRAL, 0.5, pitch
+# 0.4 / (random * 0.4 + 0.8)). The game's volume and pitch already are Java's, so only the event id is swapped:
+# the store of `sound` in throw_item is replaced with the thrown type's registered throw sound, when it has one.
+# A binding may name only a target parameter (no locals), so the reach binds the thrown stack and the game
+# side recovers the type with the host's own thrown_by_item - the same lookup throw_item built the kind from.
+[[module]]
+id = "pluto-throw-sound-access"
+file = "crates/sunrise-client/src/entry.rs"
+name = "pluto_throw_sound_access"
+source = "pluto-throw-sound-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-throw-sound-game"
+file = "crates/sunrise-client/src/game/creatures.rs"
+name = "pluto_throw_sound"
+source = "pluto-throw-sound-game.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-throw-sound"
+target = "sunrise_client::game::creatures::Game<'_>::throw_item"
+kind = "MODIFY_VARIABLE"
+variable = { name = "sound", ordinal = 0, at = "STORE" }
+require = 1
+ordinal = 0
+helper = "pluto-throw-sound.rs"
+bindings = [
+ { name = "value", ty = "&'static str", value = "$value" },
+ { name = "stack", ty = "&crate::items::ItemStack", value = "stack" }
+]

@@ -1,0 +1,649 @@
+{
+  "schema": 6,
+  "horizon_revision": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
+  "direct_review_status": "reviewed",
+  "direct_helpers": {
+    "pluto-item-prototypes": "pluto-item-prototypes.rs",
+    "pluto-menu-actions": "pluto-menu-actions.rs",
+    "pluto-menu-actions-local": "pluto-menu-actions.rs",
+    "pluto-menu-actions-guest": "pluto-menu-actions.rs",
+    "pluto-item-after-fall": "pluto-item-after-fall.rs",
+    "pluto-mob-after-fall": "pluto-mob-move-head.rs",
+    "pluto-block-inside-motion": "pluto-block-inside-head.rs",
+    "pluto-entity-spawn-spawner-add": "pluto-entity-spawn-spawner-add.rs",
+    "pluto-living-attributes-reload": "pluto-living-attributes-reload.rs",
+    "pluto-skull-special-decode": "pluto-skull-special-decode.rs",
+    "pluto-item-placement-root-path": "pluto-item-placement-root-path.rs",
+    "pluto-entity-particle-host-event": "pluto-entity-particle-event.rs",
+    "pluto-armor-worn-layers": "pluto-armor-worn-layers.rs",
+    "pluto-armor-stand-worn-layers": "pluto-armor-worn-layers.rs",
+    "pluto-block-entity-container-reach": "pluto-container-reach.rs",
+    "pluto-item-menu-open": "pluto-item-menu-open.rs"
+  },
+  "direct_attachments": [
+    {"id":"pluto-block-entity-cache-generation","file":"crates/horizon-client/src/game/native_block_entity_draw.rs","before":"f2ba152dde79b3ee0610c179eee9c7dfa88974bfda492a9721fa78b1791a66e7","after":"cde2246d40e89509b11301843ca5f3df560d5f046e5b1b711e939c7260dbc206"},
+    {"id":"pluto-living-drop-state","file":"crates/horizon-client/src/game/combat.rs","before":"2d7a2a593644ea96f61878f9c1ab1d3eb1c4e61961ce4c31d3822c90d95f4ae0","after":"3dbf30de77ccca585a8b4055ac8e6debda1fc379888c1086c252609118ed6699"},
+    {"id":"pluto-item-prototypes","file":"crates/horizon-items/src/items.rs","before":"d9c283ac47a8ed7689e0b9ae72d7d20f872c3d8bd0d7515b47d12d8120d7c7aa","after":"85a8159f18a8596642f31b3a4a830b8eba586ead5d3f068b8b77e780e63d1132","helper_sha256":"bc2802b9b53aa8e52a18da63d5656216671bcb7a479b6616107d454c84f4e392"},
+    {"id":"pluto-menu-actions","file":"crates/horizon-client/src/menu.rs","before":"aa6d55c0d5dc90ad17ae361cf8547227ab675e98cbcb56f1aea3bea65657b9ec","after":"c6075bc4f6be14d7f3bae7136ad1942da01aac5faec2ad5841ee0e21c4d5f7a8","helper_sha256":"4c570ebc14c185247a8745ddc6012bdacd2c474043395e29f862ed3f621974aa"},
+    {"id":"pluto-menu-actions-local","file":"crates/horizon-client/src/game/menu_clicks.rs","before":"48d2e5ebd0cfe3e7186dd1c44edde127c19ee3e31c57f75fd55fd63eeaf5fb16","after":"5dd6813bade88869b56fe65fa75b07f46ccb6e3bcf7f9ee8aa7e913f306dd8df","helper_sha256":"4c570ebc14c185247a8745ddc6012bdacd2c474043395e29f862ed3f621974aa"},
+    {"id":"pluto-menu-actions-guest","file":"crates/horizon-client/src/game/lan_crafting.rs","before":"2de83cef1caa01154391170e390a41093bd63ccdf78d06056154b1c1924477a9","after":"9af192ca64f0b194b9c0df6f6d87aa5d1bbeca4a7aa3d8a05bc306597cc8e60d","helper_sha256":"4c570ebc14c185247a8745ddc6012bdacd2c474043395e29f862ed3f621974aa"},
+    {"id":"pluto-item-after-fall","file":"crates/horizon-client/src/entities.rs","before":"adc93c608a76dea972366c28419a9095e9dbe9b03ec516e56a46e653710ad819","after":"adc486d9c4da6a58b549fe7fe23bd946f67ee15a00d61483b16b9c608bfab12b","helper_sha256":"5619126ff0a4442016aabd861188fccbbbbdcc75381dc379118db47c3fa3eaa4"},
+    {"id":"pluto-mob-after-fall","file":"crates/horizon-client/src/mobs/living.rs","before":"9e45de46bba2cfc099c11b8eab7890aeb25e28430aa2ccad56107d140d3a315a","after":"e0bc82608716a04ded92aa5e8ca50cbcab334ba6b5017e43328d5ab0c0f4c0d5","helper_sha256":"3b4d7c15e6c72a24a09f83fa328d17ab0e9a7a292229e5322af7b0c884154ea2"},
+    {"id":"pluto-block-inside-motion","file":"crates/horizon-client/src/motion.rs","before":"eb2b80f88fd8a3438ab49db171ef6da1aa2d5fa3814d828ff7c11c99cd3ab976","after":"c78a4535ee34cf056dcd6c87193a4c0ef8b4fcb2a7fa5c57a46f65b6b8dacf8d","helper_sha256":"c723828b7695728b7d043753ac61f98f11f572d7152bcf8061c50a5decd7b802"},
+    {"id":"pluto-entity-spawn-spawner-add","file":"crates/horizon-client/src/game/spawner.rs","before":"f98a0947441b4eb62a8d927bb4b7d6bedd7843fb785100033bd8e9b3da7541cf","after":"510c64ca8364c3dc59fa863647a3f2c604a89249451a07484ea67658c57a91cf","helper_sha256":"98a6649dc14dc21ad0c1300fc285bf6895415227d8294fe7dbf69b361579042b"},
+    {"id":"pluto-living-attributes-reload","file":"crates/horizon-client/src/game/commands/data.rs","before":"4529f2dcddfbfa80c3e6004d2423b02a6607ac0dbef57c55f7facb03beb3e8b9","after":"c09c390c89075da562f110d30c470954ba86502ba8da96d68d1781b79a51c02e","helper_sha256":"fdd45086b85cc912effa09c1bf4626f09ca504113bb44ff9a76a883ff005502f"},
+    {"id":"pluto-skull-special-decode","file":"crates/horizon-assets/src/item_model/special.rs","before":"5e7043c2cfa3ef6ad4aef7a8bb1869f4ffb523522e71233e7c3416350c108de4","after":"4fd352bb661b47fd7cb31c4cf0c73126f2375d5cb978fd70245f00123b118c62","helper_sha256":"aeff2dc704d7228715c8e0b76dbb12a006dfe44bead515ec66f941afe5b5adcb"},
+    {"id":"pluto-item-placement-root-path","file":"crates/horizon-client/src/mod_content.rs","before":"14c725be4fda89fbf3dc3b9d99bbf53b008da191bca2259a84a70f2bc0890b21","after":"26f2f2864781f81060341bf7ead3063157ac12f9e03ac4fb608829f425a0ad93","helper_sha256":"2db4eb339f5d62499beed674b73a601584dd649c65f296e66c63ce6108ff5eca"},
+    {"id":"pluto-entity-particle-host-event","file":"crates/horizon-client/src/game/creatures.rs","before":"e276aab6cdbc245c8840a3b43dfb966dd1b1e69707f39dd1c2fd1442d917358e","after":"e2a6a83ce2f210596cc76a9886965f89198a416ea1c3a4673a3bee42ecb4002c","helper_sha256":"6f38cc6ca96a20145ed7147e48410dbae076c23d9941971714c26403795917c1"},
+    {"id":"pluto-armor-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a","after":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"},
+    {"id":"pluto-armor-stand-worn-layers","file":"crates/horizon-client/src/game/armor_stands.rs","before":"1d79feae57a0a08cb55c22c86e85ddac97436c12d2136c156f2081218127b933","after":"8e4037a44fd52d1bf1848f32277b4c7ae06743867d906739de0244111603e14a","helper_sha256":"b3775ec936b4304a2f3cb402ad20bfeea4953032e584bc7a294c345e4a4355dc"},
+    {"id":"pluto-block-entity-container-reach","file":"crates/horizon-client/src/game/machines/native_items.rs","before":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d","after":"e1dd3344a019f1f230d3faf401c2f083b041300999e4b93f36e7ecf984b37807","helper_sha256":"a2cc74811cb3d7c477c1da235ded1bd68d0b962f2e8535fda00d10d7c7259236"},
+    {"id":"pluto-item-menu-open","file":"crates/horizon-client/src/game/native_menus.rs","before":"e85cf29cb3ca1d7a2d1e1a28374c67738f71e4ca74208eef30e1ab1148958857","after":"538f2f1be3cf0799751b246c5f4e73415d523bc4a5f8fb8741e49b17a4fa169b","helper_sha256":"4b55ed13d239aa8cb63aa1fe36347ea6843745c5fcc43c92098962a25783009a"}
+  ],
+  "official_source_sha256": {
+    "crates/horizon-client/src/game/machines/native_items.rs":"bf50462deed846d3f688ca65cde341362a8dc35de1f2372c888ac3d0c667b24d",
+    "crates/horizon-client/src/game/armor_stands.rs":"72661bd140a45138bc19b2fcfc3b7eac5a2266f23d04f3ebc164ab7e4c3c381a",
+    "crates/horizon-client/src/menu.rs": "aa6d55c0d5dc90ad17ae361cf8547227ab675e98cbcb56f1aea3bea65657b9ec",
+    "crates/horizon-client/src/game/menu_clicks.rs": "48d2e5ebd0cfe3e7186dd1c44edde127c19ee3e31c57f75fd55fd63eeaf5fb16",
+    "crates/horizon-client/src/game/lan_crafting.rs": "2de83cef1caa01154391170e390a41093bd63ccdf78d06056154b1c1924477a9",
+    "crates/horizon-client/src/game/native_menus.rs": "e85cf29cb3ca1d7a2d1e1a28374c67738f71e4ca74208eef30e1ab1148958857",
+    "crates/horizon-client/src/game/native_block_entity_draw.rs": "f2ba152dde79b3ee0610c179eee9c7dfa88974bfda492a9721fa78b1791a66e7",
+    "crates/horizon-client/src/game/combat.rs": "2d7a2a593644ea96f61878f9c1ab1d3eb1c4e61961ce4c31d3822c90d95f4ae0",
+    "crates/horizon-items/src/items.rs": "d9c283ac47a8ed7689e0b9ae72d7d20f872c3d8bd0d7515b47d12d8120d7c7aa",
+    "crates/horizon-client/src/game/spawner.rs": "f98a0947441b4eb62a8d927bb4b7d6bedd7843fb785100033bd8e9b3da7541cf",
+    "crates/horizon-client/src/game/commands/data.rs": "4529f2dcddfbfa80c3e6004d2423b02a6607ac0dbef57c55f7facb03beb3e8b9",
+    "crates/horizon-assets/src/item_model/special.rs": "5e7043c2cfa3ef6ad4aef7a8bb1869f4ffb523522e71233e7c3416350c108de4",
+    "crates/horizon-client/src/mod_content.rs": "14c725be4fda89fbf3dc3b9d99bbf53b008da191bca2259a84a70f2bc0890b21",
+    "crates/horizon-world/src/attributes/entity.rs": "208b095ef215b57147c26cc983f3e6f98b090f4a3399a115ae3b23a84a398538",
+    "crates/horizon-client/src/block_contact.rs": "96b1d1a3838b94d0f1e4780a7c379ea9c6950b3351705a32c99d13e83eb90efa",
+    "crates/horizon-client/src/game/creatures.rs": "e276aab6cdbc245c8840a3b43dfb966dd1b1e69707f39dd1c2fd1442d917358e",
+    "crates/horizon-client/src/game/entity.rs": "5ee079cdfcd01358f9bd3fd710554649ace3d3beea870f97765fcf67cd17ad6f",
+    "crates/horizon-client/src/mobs/ai.rs": "140bf4d38db0a0e78d64cd59012d51c9108307f7f096f2157020fe555b6715eb",
+    "crates/horizon-client/src/entities.rs": "adc93c608a76dea972366c28419a9095e9dbe9b03ec516e56a46e653710ad819",
+    "crates/horizon-client/src/mobs/living.rs": "9e45de46bba2cfc099c11b8eab7890aeb25e28430aa2ccad56107d140d3a315a",
+    "crates/horizon-client/src/mobs.rs": "7e6e01176689d07fc98ed1dcc71abdffedecb29c7443ab462ee12ed4ddacff45",
+    "crates/horizon-client/src/game.rs": "5ba055053a6c7aef8230b8754b1098e7ac0011b11cbd0964587d4529540b7397",
+    "crates/horizon-client/src/game/mod_api_host.rs": "cd60654da2a43c5326384f2f540720f1c6a5de5da641d26ff0600b3237f13988",
+    "crates/horizon-client/src/game/potions.rs": "69328359c5df8e6dbff9fd76979d56b94f07b8c5789d946f28f670428157abd7",
+    "crates/horizon-client/src/game/lan_actions.rs": "26d65143fa910e29def487b93690b2b608a4276985b2ee5439a820c226f68e45",
+    "crates/horizon-client/src/game/native_hooks.rs": "1edb8ccc33f7b046428176755c3ffa59ad6184a1d044b45dabf9d865e5fb7012",
+    "crates/horizon-world/src/attachments.rs": "1de615241eb6c44f4ce83185bc59aaef4a1d3a2c8d0c6abe2a8aa18cd42bb99a",
+    "crates/horizon-client/src/motion.rs": "eb2b80f88fd8a3438ab49db171ef6da1aa2d5fa3814d828ff7c11c99cd3ab976",
+    "crates/horizon-client/src/landing.rs": "d38df809943eff53bf76414f1d1b629ecfd531dd95729d3c3e64f6f9db7ef0b5",
+    "crates/horizon-client/src/game/world_loading.rs": "ac569dab481c0ccf43b5cda6d505b1cf0b2a3a876748b569fdd6d7f2c3b38dde",
+    "crates/horizon-client/src/old_world.rs": "ec429cf05850d30a15a5baa58c74de86fca9049d6707db0224cdf62b2efaeb7c",
+    "crates/horizon-client-render/src/streaming.rs": "f6f7efc0d7717bf394e22f2d2508dd7ce332147250a939adfb5fca47d94d266e",
+    "crates/horizon-world/src/worldgen/generator_decoration.rs": "8a3fc47d39fc12eb6ba10a5e019608147fe65294aaec83d563ef07eb38a73191",
+    "crates/horizon-world/src/worldgen/generator_structures.rs": "6b46a74db3d3f84bb7a3af4d62789664692c5d3e89ca45124448a001f369f9df",
+    "crates/horizon-world/src/worldgen/generator.rs": "86f6e43dae9eff15d2d20ce3606dfb2eb4f9f60f2a2e072f7c25ec20ce1750ec",
+    "crates/horizon-world/src/worldgen/structure.rs": "8fd8383961195a4e67225985c8654fea92e6bc88b8dd60668903763bc17eeb04",
+    "crates/horizon-world/src/worldgen/structure/start.rs": "3893c0a43f3358f9e886740ad41cffff966a3e46517df9fe7d52efd41e796a36",
+    "crates/horizon-world/src/worldgen/structure/legacy.rs": "8dccd0c48f2a6bd0043b88111a4af899c56ae3c45ba54fa509dd7466519d984b",
+    "crates/horizon-world/src/worldgen/structure/simple.rs": "bb1f665c0a444546d5e8c31aaa1f1e251e071e1388cd0f7cbc54371f0122e836",
+    "crates/horizon-world/src/worldgen/structure/template.rs": "4cf42995a28e76e890633d03b900064a93d362b902530c2412753c8c4f30bd73",
+    "crates/horizon-world/src/level/mod.rs": "3c75361389ba39a5f184fd52fa518cc2965d960ee2b2025d93c10d59411a5ead",
+    "crates/horizon-world/src/level/growth.rs": "daabc6ae6de177a877c5715dd5b9095881aecd8f961a7092d364e2a4d231ab66",
+    "crates/horizon-world/src/level/feature_world.rs": "7596dacbea5cde22952abd24bb2c1955b12c44a717d9e531473522d7de9a37a7",
+    "crates/horizon-world/src/level/survive.rs": "088e1d33b1523f89b481eb9530e39e5d2ed19d6f20023a3b75963456469d55d9",
+    "crates/horizon-world/src/level/classes.rs": "efd947947f160ec3c5e371f32a69e137f733513c8e9af705547d5201e71f8524",
+    "crates/horizon-world/src/worldgen/live.rs": "49cd4cb5359b21720954cee2f52fe17e09c3805e814a56fdb60b2befd60870f9",
+    "crates/horizon-world/src/worldgen/tree.rs": "216b0382c1faa8297b1222072312075b431317d9eebfa0010c75a105ada31751",
+    "crates/horizon-client/src/game/commands/place.rs": "f294ee94bda980b5636716630c4326c4c67d2913e39b49cc7bac18100c51ec6f",
+    "crates/horizon-client/src/entry.rs": "19009b16085f3374c92f5bc711262c413c874087f312d0a457c8d6742350b984"
+  },
+  "modules": [
+    {
+      "module_id": "pluto-item-behavior-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_item_behavior_access",
+      "visibility": "pub",
+      "source_file": "pluto-item-behavior-access.rs",
+      "source_sha256": "313b9b3d03c6dd21172b865274c2999b509243c0f67e14ff8829efe0b9856fd4"
+    },
+    {
+      "module_id": "pluto-entity-type-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_entity_type_access",
+      "visibility": "pub",
+      "source_file": "pluto-entity-type-access.rs",
+      "source_sha256": "92fbb048834d9f0a7d96eca2bb71eb6fcd909f64d9e8ef2ea5cf433bf2ea95e7"
+    },
+    {
+      "module_id": "pluto-item-placement-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_item_placement_access",
+      "visibility": "pub",
+      "source_file": "pluto-item-placement-access.rs",
+      "source_sha256": "51dbc22d7c08569b00878f7b37c99b6525d2dde4178a681da87374cf60d84d9a"
+    },
+    {
+      "module_id": "pluto-mob-inside",
+      "file": "crates/horizon-client/src/mobs/ai.rs",
+      "name": "pluto_mob_inside",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-mob-inside.rs",
+      "source_sha256": "417cb92d1af0972a7f0bff91952b322e12d06c95e819f3bda1914f66cbb1b4c0"
+    },
+    {
+      "module_id": "pluto-item-inside",
+      "file": "crates/horizon-client/src/entities.rs",
+      "name": "pluto_item_inside",
+      "visibility": "pub",
+      "source_file": "pluto-item-inside.rs",
+      "source_sha256": "ad01ee6b4457d33e54cd13d7584caf491925de736aa099aa90e2028a3fb06ebf"
+    },
+    {
+      "module_id": "pluto-contact-sweep",
+      "file": "crates/horizon-client/src/block_contact.rs",
+      "name": "pluto_contact_sweep",
+      "visibility": "pub",
+      "source_file": "pluto-contact-sweep.rs",
+      "source_sha256": "004991a184097709051e9ca66ab5503bf8caa1da612f1b44a88f1a7bcc419f83"
+    },
+    {
+      "module_id": "pluto-attachment-transient",
+      "file": "crates/horizon-world/src/attachments.rs",
+      "name": "pluto_attachment_transient",
+      "visibility": "pub",
+      "source_file": "pluto-attachment-transient.rs",
+      "source_sha256": "cf0a8fc9e31474271a09896fb7d95a1aa8a6a823a6445a80011557c13547f2ee"
+    },
+    {
+      "module_id": "pluto-contact-pending",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_contact_pending",
+      "visibility": "pub",
+      "source_file": "pluto-contact-pending.rs",
+      "source_sha256": "abe4e61c152638b2fad112476348f3319a6fa8cefc79ccd605021052555213c2"
+    },
+    {
+      "module_id": "pluto-mob-landing",
+      "file": "crates/horizon-client/src/mobs/living.rs",
+      "name": "pluto_mob_landing",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-mob-landing.rs",
+      "source_sha256": "62131725aaf58b80766d01d3ac0ab7c6967ea403846a515f4915b81335a254e4"
+    },
+    {
+      "module_id": "pluto-contact-effects",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_contact_effects",
+      "visibility": "pub",
+      "source_file": "pluto-contact-effects.rs",
+      "source_sha256": "edd0b1037122ae3189fa4221f19b64a6c71457ac1b89b1b2a71f039c386de55c"
+    },
+    {
+      "module_id": "pluto-contact-sound",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "name": "pluto_contact_sound",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-contact-sound.rs",
+      "source_sha256": "44b79d3a9b2cf0d92e3f9cfff1905a3eda2caa07dcf00f6075f593d4bfd7967f"
+    },
+    {
+      "module_id": "pluto-block-inside",
+      "file": "crates/horizon-client/src/motion.rs",
+      "name": "pluto_block_inside",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-block-inside.rs",
+      "source_sha256": "2a5cf3e6576a70f399a463795b4adabdeade4b6a4cf7ead0ee04dc4117314428"
+    },
+    {
+      "module_id": "pluto-block-motion",
+      "file": "crates/horizon-client/src/motion.rs",
+      "name": "pluto_block_motion",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-block-motion.rs",
+      "source_sha256": "67d5d91af2e8039936ba5cb96580e8f516931f9f0322972fd0bd176dda40f2f0"
+    },
+    {
+      "module_id": "pluto-block-fall",
+      "file": "crates/horizon-client/src/landing.rs",
+      "name": "pluto_block_fall",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-block-fall.rs",
+      "source_sha256": "4ef749f04ae814849caed89d3f9664fd2ad2f04453a322eab05a5f5f098ca955"
+    },
+    {
+      "module_id": "pluto-block-level",
+      "file": "crates/horizon-client/src/game.rs",
+      "name": "pluto_block_level",
+      "visibility": "pub(crate)",
+      "source_file": "pluto-block-level.rs",
+      "source_sha256": "4af0676986b1a6bb3c614724440d4856a9d519e411edb637a1f1aa1b70c3220d"
+    },
+    {
+      "module_id": "pluto-structure-generation",
+      "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
+      "name": "pluto_structure_generation",
+      "visibility": "pub",
+      "source_file": "pluto-structure-generation.rs",
+      "source_sha256": "47c955874ca11303260c405d7df43646b990aeb76c5d430d12af7da055f3608d"
+    },
+    {
+      "module_id": "pluto-structure-generation-placement",
+      "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
+      "name": "pluto_structure_generation_placement",
+      "visibility": "pub",
+      "source_file": "pluto-structure-generation-placement.rs",
+      "source_sha256": "f93683356e92f6758491702b973bc81313513b370f770fd9f2458f166f4556ac"
+    },
+    {
+      "module_id": "pluto-structure-natural",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "name": "pluto_structure_natural",
+      "visibility": "pub",
+      "source_file": "pluto-structure-natural.rs",
+      "source_sha256": "bebce7e86f1ebfa21db0f75f49e55126efebebd80db75a1ebb7cb3b4d1b4acf3"
+    },
+    {
+      "module_id": "pluto-structure-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_structure_access",
+      "visibility": "pub",
+      "source_file": "pluto-structure-access.rs",
+      "source_sha256": "42a87a01f245174ee1aad1faf89c7e7221ee12c6689a347ff048350fb51b2d5b"
+    },
+    {
+      "module_id": "pluto-structure-context",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "name": "pluto_structure_context",
+      "visibility": "pub",
+      "source_file": "pluto-structure-context.rs",
+      "source_sha256": "f7de4edf47def8a9b329644740b99ac5c1efe741a0bdf8b758036330f6239001"
+    },
+    {
+      "module_id": "pluto-structure-piece",
+      "file": "crates/horizon-world/src/worldgen/structure.rs",
+      "name": "pluto_structure_piece",
+      "visibility": "pub",
+      "source_file": "pluto-structure-piece.rs",
+      "source_sha256": "fdf910d06ec42695a5e5e0ade6253719fed58d9ec942a25b8ccf70c8b4b1e6e5"
+    },
+    {
+      "module_id": "pluto-structure-registered-piece",
+      "file": "crates/horizon-world/src/worldgen/structure.rs",
+      "name": "pluto_registered_piece",
+      "visibility": "pub",
+      "source_file": "pluto-registered-piece.rs",
+      "source_sha256": "b113acd8e3bcc2d9461ea3b7324ff92184a12448c2696f6c4c76a85f0589565c"
+    },
+    {
+      "module_id": "pluto-structure-markers",
+      "file": "crates/horizon-world/src/worldgen/structure/legacy.rs",
+      "name": "pluto_structure_markers",
+      "visibility": "pub",
+      "source_file": "pluto-structure-markers.rs",
+      "source_sha256": "e4426e0a59d0b8282de41a387621ef2f9ba8b68d86c9da88cde347004c45d49b"
+    },
+    {
+      "module_id": "pluto-structure-level",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_structure_level",
+      "visibility": "pub",
+      "source_file": "pluto-structure-level.rs",
+      "source_sha256": "05601c24c3d9fe9f9851386d73640a2d09abe51eaf6eca145c02814d1607f1a9"
+    },
+    {
+      "module_id": "pluto-structure-command",
+      "file": "crates/horizon-client/src/game/commands/place.rs",
+      "name": "pluto_structure_command",
+      "visibility": "pub",
+      "source_file": "pluto-structure-command.rs",
+      "source_sha256": "7c4d509d1146eaa8ac57efe0f0aaef2355cf00b517141c037b4032238370907c"
+    },
+    {
+      "module_id": "pluto-block-access",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_block_access",
+      "visibility": "pub",
+      "source_file": "pluto-block-access.rs",
+      "source_sha256": "c7f9af0fe2d87c78c72e742b1c83ceff05d0e4664460486ef1c14b0f30681963"
+    },
+    {
+      "module_id": "pluto-block",
+      "file": "crates/horizon-client/src/entry.rs",
+      "name": "pluto_block",
+      "visibility": "pub",
+      "source_file": "pluto-block.rs",
+      "source_sha256": "1ce8b0253ae064c6740e25e1d2bdcdab11afee33a3fe7cf0292884fbc0664781"
+    },
+    {
+      "module_id": "pluto-tree-level",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_tree_level",
+      "visibility": "pub",
+      "source_file": "pluto-tree-level.rs",
+      "source_sha256": "c7b36b170374b01f5de713eef7ecfdd4b32d49f38fd18f43d49092bf8509e56c"
+    },
+    {
+      "module_id": "pluto-tree-placement",
+      "file": "crates/horizon-world/src/worldgen/tree.rs",
+      "name": "pluto_tree_placement",
+      "visibility": "pub",
+      "source_file": "pluto-tree-placement.rs",
+      "source_sha256": "7a1d8270441d640b34e9e86eb6e0070769fb811923f1760efcb9408471151f88"
+    },
+    {
+      "module_id": "pluto-tree-catalog",
+      "file": "crates/horizon-world/src/worldgen/live.rs",
+      "name": "pluto_tree_catalog",
+      "visibility": "pub",
+      "source_file": "pluto-tree-catalog.rs",
+      "source_sha256": "b65f26deff09f6280efb0ab612e03feb870b9471292b74cd20a6e640d032cbc2"
+    },
+    {
+      "module_id": "pluto-worldgen-level",
+      "file": "crates/horizon-world/src/level/mod.rs",
+      "name": "pluto_worldgen_level",
+      "visibility": "pub",
+      "source_file": "pluto-worldgen-level.rs",
+      "source_sha256": "09ab4485409a82d48dd15a993e840fda060a69e4b3f6679899c5513bfa7b223f"
+    }
+  ],
+  "injections": [
+    {"injection_id":"pluto-head-wave-reset","target":"sunrise_client::game::creatures::Game<'_>::tick_creature_entities","file":"crates/horizon-client/src/game/creatures.rs","function_fingerprint":"d759f8585303a09ba4172bafbe1f2e6586c5c8838c75738fda111b02b838a4f7","kind":"MODIFY_VARIABLE","cancellable":false,"site_fingerprint":"5feaec306a525eabd2b10ba993cc7e234fdbbddbc25d53b9deb984531f432feb","variable":{"local":{"id":4,"name":"round","ordinal":0,"parameter":false,"mutable":true,"supported":true,"ty":null,"fingerprint":"68cc892dacd8c1359847ad9a43edcf1166939fe17db525f005947246aebbb28f"},"at":"STORE"},"require":1,"ordinal":0,"bindings":[{"name":"value","ty":"crate::game::native_ticks::TickRound","value":"$value"},{"name":"game","ty":"&Game<'_>","value":"&*self"}],"source_file":"pluto-head-wave-reset.rs","source_sha256":"c50c51717824dff8e1f334fe4a9e29ff38dad6d7eaa59c9242ee151587ad6220"},
+    {
+      "injection_id": "pluto-world-contact-begin",
+      "target": "sunrise_client::game::creatures::Game<'_>::tick_creature_entities",
+      "file": "crates/horizon-client/src/game/creatures.rs",
+      "function_fingerprint": "d759f8585303a09ba4172bafbe1f2e6586c5c8838c75738fda111b02b838a4f7",
+      "kind": "HEAD",
+      "cancellable": false,
+      "bindings": [{"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"}],
+      "source_file": "pluto-world-contact-begin.rs",
+      "source_sha256": "223ae07b9832e256cb1399df06d562cfccd4ee1ebba50eb48096a895bf857ff9"
+    },
+    {
+      "injection_id": "pluto-world-contact-flush",
+      "target": "sunrise_client::game::creatures::Game<'_>::handle_mob_events_reusable",
+      "file": "crates/horizon-client/src/game/creatures.rs",
+      "function_fingerprint": "0a747c535180b5a072b9ed11e9c04d7eabc4533f194afd76f99f6ccac4256ceb",
+      "kind": "HEAD",
+      "cancellable": false,
+      "bindings": [{"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"}],
+      "source_file": "pluto-world-contact-flush.rs",
+      "source_sha256": "327963c7083ac9ea325ba63fc6ec21100a8d75ff1f06db27b4dd1fb0b6f6d7ff"
+    },
+    {
+      "injection_id": "pluto-mob-inside-motion",
+      "target": "sunrise_client_lib::mobs::ai::effects_from_blocks",
+      "file": "crates/horizon-client/src/mobs/ai.rs",
+      "function_fingerprint": "55bfc6e0f9b58ed47a05429a5ce5f34f0be9eaf6c59593bae3a82ab34a18d4f1",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"mob","ty":"&mut crate::mobs::Mob","value":"&mut *m"},
+        {"name":"world","ty":"&crate::mobs::MobWorld<'_>","value":"w"},
+        {"name":"random","ty":"&mut horizon_core::random::LegacyRandom","value":"&mut *level_random"},
+        {"name":"events","ty":"&mut Vec<crate::mobs::MobEvent>","value":"&mut *events"}
+      ],
+      "source_file": "pluto-mob-inside-head.rs",
+      "source_sha256": "77136c1de49ddc622058f7f81cd05551c42ad5275d563baf4a9b558bf3a2f406"
+    },
+    {
+      "injection_id": "pluto-item-inside-motion",
+      "target": "sunrise_client::game::entity::Game<'_>::tick_item_with_block_contacts",
+      "file": "crates/horizon-client/src/game/entity.rs",
+      "function_fingerprint": "7dbcc69115b4817226562e8b4d975da915b4bc2f293f05e709287efee0eda698",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"},
+        {"name":"item","ty":"&mut sunrise_client::entities::ItemEntity","value":"&mut *item"},
+        {"name":"escape_speed","ty":"Option<f32>","value":"escape_speed"},
+        {"name":"entity_boxes","ty":"&[horizon_core::geometry::Aabb]","value":"entity_boxes"},
+        {"name":"client","ty":"bool","value":"client"},
+        {"name":"splash","ty":"&mut dyn FnMut(sunrise_client::entities::ItemSplash)","value":"&mut *splash"}
+      ],
+      "source_file": "pluto-item-inside-head.rs",
+      "source_sha256": "2c927e8b6c78910db0306d277a2b1ab01fb6a0e490f58ecaf05cd055f845c4d8"
+    },
+    {
+      "injection_id": "pluto-item-after-fall",
+      "target": "sunrise_client_lib::entities::ItemEntity::tick_move_before_block_effects",
+      "file": "crates/horizon-client/src/entities.rs",
+      "function_fingerprint": "a2b64471d32d6e6869de9cffeec30471f48737dcdd89a020c9e975c2dc251395",
+      "kind": "MODIFY_EXPRESSION_VALUE",
+      "cancellable": false,
+      "selector": "vertical_collision_velocity(wanted.y, moved.y, ITEM_GRAVITY, self.on_ground, slime,)",
+      "ordinal": 0,
+      "require": 1,
+      "site_fingerprint": "cfea77f124fd3a65be196a72ea0bf4e9f6c68986967565cfc90002ccda34e921",
+      "bindings": [
+        {"name":"value","ty":"f64","value":"$value"},
+        {"name":"item","ty":"&mut crate::entities::ItemEntity","value":"&mut *self"},
+        {"name":"world","ty":"&crate::world::World","value":"world"},
+        {"name":"collision","ty":"&sunrise_world::block_collision::BlockCollisionRegistry<'_>","value":"collision"},
+        {"name":"contact","ty":"Option<horizon_core::position::BlockPos>","value":"contact"}
+      ],
+      "source_file": "pluto-item-after-fall.rs",
+      "source_sha256": "5619126ff0a4442016aabd861188fccbbbbdcc75381dc379118db47c3fa3eaa4"
+    },
+    {
+      "injection_id": "pluto-mob-after-fall",
+      "target": "sunrise_client_lib::mobs::living::Mob::do_move",
+      "file": "crates/horizon-client/src/mobs/living.rs",
+      "function_fingerprint": "7dc9218d45d65325d2d6d4b5c255fa1033fe83917e1d3d766e916f0c3a2e3279",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"mob","ty":"&mut crate::mobs::Mob","value":"&mut *self"},
+        {"name":"world","ty":"&crate::mobs::MobWorld<'_>","value":"w"},
+        {"name":"events","ty":"&mut Vec<crate::mobs::MobEvent>","value":"events"}
+      ],
+      "source_file": "pluto-mob-move-head.rs",
+      "source_sha256": "3b4d7c15e6c72a24a09f83fa328d17ab0e9a7a292229e5322af7b0c884154ea2"
+    },
+    {
+      "injection_id": "pluto-mob-fall-damage",
+      "target": "sunrise_client_lib::mobs::living::Mob::mod_block_fall",
+      "file": "crates/horizon-client/src/mobs/living.rs",
+      "function_fingerprint": "b7bb8150e1344402a70bbc863cf325680b884c543c9ac81f1026f633ee349b88",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"mob","ty":"&crate::mobs::Mob","value":"self"},
+        {"name":"contact","ty":"Option<(&crate::mobs::MobWorld<'_>, [i32; 3])>","value":"contact"},
+        {"name":"distance","ty":"f64","value":"distance"},
+        {"name":"damage","ty":"f32","value":"damage"}
+      ],
+      "source_file": "pluto-mob-fall-head.rs",
+      "source_sha256": "3ec1e8960f202c2f1e8befea26396bfb9d92598dfbe24453afb68a2c1bab6e6f"
+    },
+    {
+      "injection_id": "pluto-contact-sound-flush",
+      "target": "sunrise_client::game::potions::Game<'_>::tick_mob_effects",
+      "file": "crates/horizon-client/src/game/potions.rs",
+      "function_fingerprint": "a96d4cb4e1faf3574074a596237beef589a73f33683fa1ab88bbe109739e6d50",
+      "kind": "HEAD",
+      "cancellable": false,
+      "bindings": [ {"name":"game","ty":"&mut crate::game::Game<'_>","value":"&mut *self"} ],
+      "source_file": "pluto-contact-sound-head.rs",
+      "source_sha256": "569c1c7ebd8f18e9171304313985afe747d437319578df745ca07268a35bbfdb"
+    },
+    {
+      "injection_id": "pluto-block-inside-motion",
+      "target": "sunrise_client_lib::motion::MotionWorld<'_,'_,'_>::check_inside_blocks",
+      "file": "crates/horizon-client/src/motion.rs",
+      "function_fingerprint": "36934da086485129a481b027d69c6ac547afd5254f367273c1286685eec31bfe",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"world","ty":"&mut crate::motion::MotionWorld<'_, '_, '_>","value":"&mut *self"},
+        {"name":"from","ty":"horizon_core::geometry::Vec3","value":"from"},
+        {"name":"to","ty":"horizon_core::geometry::Vec3","value":"to"},
+        {"name":"visited","ty":"&mut crate::fast_hash::FxHashSet<i64>","value":"visited"},
+        {"name":"entered","ty":"&mut Vec<(i32, horizon_core::position::BlockPos)>","value":"entered"},
+        {"name":"max_iterations","ty":"i32","value":"max_iterations"},
+        {"name":"damage_only","ty":"bool","value":"damage_only"}
+      ],
+      "source_file": "pluto-block-inside-head.rs",
+      "source_sha256": "c723828b7695728b7d043753ac61f98f11f572d7152bcf8061c50a5decd7b802"
+    },
+    {
+      "injection_id": "pluto-block-after-fall",
+      "target": "sunrise_client_lib::motion::<MotionWorld<'_,'_,'_> as EntityMoveWorld>::restitute",
+      "file": "crates/horizon-client/src/motion.rs",
+      "function_fingerprint": "bde33c927d064514c3b1f3314ee71fbeaa6801edd819c56333c506bf2f130131",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"world","ty":"&mut crate::motion::MotionWorld<'_, '_, '_>","value":"&mut *self"},
+        {"name":"state","ty":"sunrise_world::registry::BlockStateId","value":"state"},
+        {"name":"x","ty":"bool","value":"x"},
+        {"name":"z","ty":"bool","value":"z"},
+        {"name":"resolved","ty":"horizon_core::geometry::Vec3","value":"resolved"}
+      ],
+      "source_file": "pluto-block-motion-head.rs",
+      "source_sha256": "d400022e159ec33bca148fc74fa0d48c456d1376cc7341286c915ab7d4b49fd3"
+    },
+    {
+      "injection_id": "pluto-block-fall-damage",
+      "target": "sunrise_client_lib::landing::MotionWorld<'_,'_,'_>::mod_block_fall",
+      "file": "crates/horizon-client/src/landing.rs",
+      "function_fingerprint": "aa8b9b3879ad78f99be02a29e94900ce6bf79282f070a0cc369c79c33930e14b",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {"name":"world","ty":"&crate::motion::MotionWorld<'_, '_, '_>","value":"self"},
+        {"name":"state","ty":"sunrise_world::registry::BlockStateId","value":"state"},
+        {"name":"position","ty":"horizon_core::position::BlockPos","value":"position"},
+        {"name":"distance","ty":"f64","value":"distance"},
+        {"name":"damage","ty":"f32","value":"damage"}
+      ],
+      "source_file": "pluto-block-fall-head.rs",
+      "source_sha256": "602057289f111ffe41c7a7fa379024e0a46dc27822631fb5592ab97d211d35f6"
+    },
+    {
+      "injection_id": "pluto-structure-generation-start",
+      "target": "sunrise_world::worldgen::generator_decoration::Decoration::decorate",
+      "file": "crates/horizon-world/src/worldgen/generator_decoration.rs",
+      "function_fingerprint": "248c2f794e370484a0f4de2ce449fde0a064c0b86a9fd4d94d0875c17f977584",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "decoration", "ty": "&Decoration", "value": "self" },
+        { "name": "data", "ty": "&Arc<GeneratorData>", "value": "data" },
+        { "name": "seed", "ty": "i64", "value": "seed" },
+        { "name": "generation", "ty": "WorldGenerationContext", "value": "generation" },
+        { "name": "worker", "ty": "&mut WorkerState", "value": "worker" },
+        { "name": "region", "ty": "&mut [ProtoChunk;9]", "value": "region" },
+        { "name": "level_random", "ty": "&mut dyn super::structure::legacy::PieceRandom", "value": "level_random" },
+        { "name": "structures", "ty": "Option<&super::generator_structures::StructureState>", "value": "structures" }
+      ],
+      "source_file": "pluto-structure-generation-head.rs",
+      "source_sha256": "3791b8bc535aeb311561d2fa5c278d0624bd4afe1fd3bb90af379b25e1fa7485"
+    },
+    {
+      "injection_id": "pluto-structure-natural-start",
+      "target": "sunrise_world::worldgen::generator_structures::StructureState::build_starts",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "05f877dd0482de4d2490ce27c06fe472145f0bc9ed64ec76a0b849c6f4fb181e",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "state", "ty": "&StructureState", "value": "self" },
+        { "name": "context", "ty": "&mut impl StartContext", "value": "context" },
+        { "name": "chunk", "ty": "ChunkPos", "value": "chunk" },
+        { "name": "wait", "ty": "bool", "value": "wait" }
+      ],
+      "source_file": "pluto-structure-natural-head.rs",
+      "source_sha256": "2b5bfcd37ba50fd9d2b749373d3577c924e6f6588ef2d2b3a42837ed03919bb6"
+    },
+    {
+      "injection_id": "pluto-structure-command-head",
+      "target": "sunrise_client::game::commands::place::Game<'_>::cmd_place_generated",
+      "file": "crates/horizon-client/src/game/commands/place.rs",
+      "function_fingerprint": "ee2238ebaab4830cd29fe4b0c02d31ba61c7af5b768a3eef7d3a5c2c315f3d09",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        { "name": "game", "ty": "&mut Game<'_>", "value": "self" },
+        { "name": "id", "ty": "&str", "value": "id" },
+        { "name": "context", "ty": "&Context", "value": "ctx" }
+      ],
+      "source_file": "pluto-structure-command-head.rs",
+      "source_sha256": "a4968c3d55ad39f0d084ed3e958d8d44dbba3a62edd384874a069046b76a35b1"
+    },
+    {
+      "injection_id": "pluto-structure-sources",
+      "target": "sunrise_world::worldgen::generator_structures::StructureState::new",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "e6b79dbbdd8083994fd9b22ceda6642726f207324ae0ce6b89fea427335d66dc",
+      "kind": "HEAD",
+      "cancellable": false,
+      "bindings": [
+        {
+          "name": "data",
+          "ty": "&Arc<GeneratorData>",
+          "value": "data"
+        }
+      ],
+      "source_file": "pluto-structure-sources.rs",
+      "source_sha256": "e759fb15c85900ec473cab67a024e09460a950b8aabcad9be624dd6a4cdc4721"
+    },
+    {
+      "injection_id": "pluto-structure-saved-piece",
+      "target": "sunrise_world::worldgen::generator_structures::StructureState::saved_pool_piece",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "60aff139289d5f5d0237802f17fd44058fd39ac0f120c476c763ce15a40e5df3",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {
+          "name": "state",
+          "ty": "&StructureState",
+          "value": "self"
+        },
+        {
+          "name": "piece",
+          "ty": "&crate::nbt::Tag",
+          "value": "piece"
+        }
+      ],
+      "source_file": "pluto-structure-saved-piece.rs",
+      "source_sha256": "6ef0b593e07f18c9d11b4d5b733a4869d7243f09aab2a57a4b3ce0f332281716"
+    },
+    {
+      "injection_id": "pluto-structure-start",
+      "target": "sunrise_world::worldgen::generator_structures::StructureState::structure_start",
+      "file": "crates/horizon-world/src/worldgen/generator_structures.rs",
+      "function_fingerprint": "b333a40a3e90e6320345437bd46a5d2daa90ccca3698a30feee69d8bc4c196f3",
+      "kind": "HEAD",
+      "cancellable": true,
+      "bindings": [
+        {
+          "name": "state",
+          "ty": "&StructureState",
+          "value": "self"
+        },
+        {
+          "name": "context",
+          "ty": "&mut impl StartContext",
+          "value": "context"
+        },
+        {
+          "name": "structure",
+          "ty": "&str",
+          "value": "structure"
+        },
+        {
+          "name": "chunk",
+          "ty": "ChunkPos",
+          "value": "chunk"
+        }
+      ],
+      "source_file": "pluto-structure-start.rs",
+      "source_sha256": "d2affae0beca9cf8bf8a197ba5a97adbe8c589d1afd095ff584343f1265e2a08"
+    }
+  ],
+  "exclusive_files": [
+    "crates/horizon-client/src/game/world_loading.rs",
+    "crates/horizon-world/src/worldgen/generator_decoration.rs",
+    "crates/horizon-world/src/worldgen/generator_structures.rs",
+    "crates/horizon-world/src/worldgen/structure.rs",
+    "crates/horizon-world/src/worldgen/structure/legacy.rs",
+    "crates/horizon-client/src/game/commands/place.rs"
+  ]
+}

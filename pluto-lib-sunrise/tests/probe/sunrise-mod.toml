@@ -1,0 +1,12 @@
+[mod]
+id = "pluto_probe"
+version = "0.1.0"
+
+[compatibility]
+horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
+
+[api]
+path = "api"
+
+[dependencies]
+pluto_lib = "^0.1"

@@ -1,0 +1,105 @@
+{
+  "official_horizon": "441f49d57e344bd56b90fd4af5c4e443ff3937c9",
+  "official_mixins": "e59da9094f0c2fdda6c627fe9eff22dec6a906f0",
+  "boundaries": [
+    {
+      "target": "sunrise_client_lib::crafting::Recipes::assemble_if_matches",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "bindings": [
+        {
+          "name": "input",
+          "ty": "&Input<'_>",
+          "value": "input"
+        },
+        {
+          "name": "recipe",
+          "ty": "&Recipe",
+          "value": "recipe"
+        }
+      ],
+      "function_fingerprint": "4df48b30b17f2c4d735e45b54ae2e5c7d23f679c993b3d942c07f5aaecbf401c",
+      "injection_id": "crafting-match-veto",
+      "helper": "crafting-match-veto.rs",
+      "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e",
+      "helper_sha256": "007c502aac2d2b66c54b327db60289836b12a38c0bf928671dee38f7e34051e4"
+    },
+    {
+      "target": "sunrise_client_lib::crafting::Recipes::find_with",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 100,
+      "bindings": [
+        {
+          "name": "recipes",
+          "ty": "&Recipes",
+          "value": "self"
+        },
+        {
+          "name": "grid",
+          "ty": "&[Option<ItemStack>]",
+          "value": "grid"
+        },
+        {
+          "name": "size",
+          "ty": "usize",
+          "value": "size"
+        },
+        {
+          "name": "map_scale",
+          "ty": "&dyn Fn(i32) -> Option<u8>",
+          "value": "map_scale"
+        }
+      ],
+      "function_fingerprint": "dbae351a5cca19163154dc1273150ef41da7bb2c56dcba331e69cb3077b899e7",
+      "injection_id": "crafting-special",
+      "helper": "crafting-special.rs",
+      "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e",
+      "helper_sha256": "a3736e47278116b3c9575daf1fd4d4b453b571b8a48b561eaa27440e517e9446"
+    }
+  ],
+  "bundle_attachments": [
+    {
+      "module_id": "pluto-crafting-match",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "name": "pluto_matching",
+      "visibility": "pub",
+      "fingerprint": "c2d2acf483670cda14df39e0da0d730516e500db691cba1866d30be082f729aa",
+      "source_file": "pluto-crafting-match.rs",
+      "source_sha256": "2e3255ae488acfca30e710b6fd20580992c5d7f440745456410f15ad32547ad4",
+      "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e"
+    },
+    {
+      "target": "sunrise_client_lib::crafting::Recipes::assemble_if_matches",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "kind": "HEAD",
+      "cancellable": true,
+      "priority": 0,
+      "bindings": [
+        {
+          "name": "ctx",
+          "ty": "&Context<'_>",
+          "value": "ctx"
+        },
+        {
+          "name": "input",
+          "ty": "&Input<'_>",
+          "value": "input"
+        },
+        {
+          "name": "recipe",
+          "ty": "&Recipe",
+          "value": "recipe"
+        }
+      ],
+      "function_fingerprint": "4df48b30b17f2c4d735e45b54ae2e5c7d23f679c993b3d942c07f5aaecbf401c",
+      "injection_id": "pluto-crafting-match-veto",
+      "helper": "pluto-crafting-match-veto-head.rs",
+      "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e",
+      "helper_sha256": "a4e5a283622deccad6e2256bfe7627102d5e2bd91048c90964438831f797feec"
+    }
+  ]
+}

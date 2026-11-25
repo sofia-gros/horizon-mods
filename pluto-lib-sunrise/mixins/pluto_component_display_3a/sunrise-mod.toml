@@ -1,0 +1,21 @@
+[mod]
+id = "pluto_component_display_3a"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "441f49d57e344bd56b90fd4af5c4e443ff3937c9"
+[[module]]
+id = "tooltip-policy"
+file = "crates/sunrise-client/src/game.rs"
+name = "pluto_component_display"
+source = "policy.rs"
+[[injection]]
+id = "durability-tooltip"
+target = "sunrise_client::game::native_hooks::Game<'_>::native_tooltip"
+kind = "HEAD"
+helper = "tooltip.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+  { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "&mut *lines" },
+]

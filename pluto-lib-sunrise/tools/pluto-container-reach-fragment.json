@@ -1,0 +1,14 @@
+{
+  "hooks": [],
+  "helpers": [
+    {
+      "name": "container_slots",
+      "target": "sunrise_client::game::machines::native_items::Game<'_>::native_container_reach"
+    }
+  ],
+  "rust_summary": "a container's slots through a side, read through `Host` (`native_container_slots`).",
+  "doc_summary": "`native_container_slots` reaches `Host` as `container_slots(dimension, pos, face)`: each slot as `(slot, stack, can_take)`, the plain-value form of the crate-private `NativeContainerSlot`. Bundles need \"hooks\": @API:container_slots@.",
+  "comments": [
+    "crates/horizon-client/src/game/machines/native_items.rs"
+  ]
+}
