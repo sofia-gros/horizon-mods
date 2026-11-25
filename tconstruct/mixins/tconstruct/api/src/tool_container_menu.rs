@@ -3,7 +3,7 @@
 //! player leaves in it. SlimeKnights (MIT; see LICENSE).
 //!
 //! The shape: the piece's inventory opens in the smallest tool-container menu type that holds it
-//! (one per row count, `tconstruct:tool_container_1` to `tconstruct:tool_container_6`), titled with
+//! (one per row count, `tconstruct:tool_container_1` to `tconstruct:tool_container_12`), titled with
 //! the piece's name, through the item-menu surface (`PlayerOps::open_item_menu`) — a native-slots
 //! menu of the mod menu type, not a block's. The extra data marks an item menu for the client
 //! screen and names the worn slot's carried number, so the close knows which piece to write back
@@ -13,13 +13,20 @@
 //!
 //! What the close does, and where it differs from the original: the player moves items in the
 //! menu by vanilla's click rules — the host's slot rules are vanilla, so the tool's blacklist and
-//! module filters cannot be enforced at placement. They are enforced at close instead: the
+//! module filters cannot be enforced at placement (issue #1159, checked against the pinned host:
+//! this menu is served by the host's LAN container engine, whose placement check consults no mod
+//! rule, and the one slot-rule hook the host offers feeds only the game menu engine's mod slots
+//! and carries no player or tool identity to judge a per-tool filter by). They are enforced at
+//! close instead: the
 //! kept stacks go into the worn piece's inventory only where the tool takes them, and a stack the
 //! tool does not take stays in the menu's slots and comes back to the player with the close, as
 //! vanilla's `clearContainer` gives a crafting grid's items back. The menu is padded to its type's
 //! full slot count (the host's menu type fixes the count), so a tool with fewer slots shows empty
 //! slots past its inventory: anything left in those comes back to the player too, never into the
-//! tool. A tool with more than 54 inventory slots opens nothing. The worn piece is read again at
+//! tool. The original's ToolContainerMenu is a single menu type with no slot cap at all; the
+//! port's per-row types are registered up to twelve rows, so a tool with more than 108 inventory
+//! slots opens nothing (the largest inventory the shipped modifier data can build is well under
+//! half that). The worn piece is read again at
 //! close and written back whole, so any damage or change it took while the menu was open is kept;
 //! when the worn slot no longer holds the same piece, nothing is taken and the kept stacks come
 //! back to the player instead.
@@ -42,20 +49,28 @@ use std::sync::{LazyLock, Mutex, Once};
 const ITEM_MENU_MAGIC: &[u8] = b"PLUTO\x01";
 
 /// The tool container menu types, one per row count: a tool's inventory is shown in the smallest
-/// that holds it, padded with empty slots to the type's full count.
-const MENU_KINDS: [&str; 6] = [
+/// that holds it, padded with empty slots to the type's full count. Twelve rows are registered:
+/// the original's single menu type has no cap, and twelve rows (108 slots) cover any inventory
+/// the shipped modifier data can build with room to spare.
+const MENU_KINDS: [&str; 12] = [
     "tconstruct:tool_container_1",
     "tconstruct:tool_container_2",
     "tconstruct:tool_container_3",
     "tconstruct:tool_container_4",
     "tconstruct:tool_container_5",
     "tconstruct:tool_container_6",
+    "tconstruct:tool_container_7",
+    "tconstruct:tool_container_8",
+    "tconstruct:tool_container_9",
+    "tconstruct:tool_container_10",
+    "tconstruct:tool_container_11",
+    "tconstruct:tool_container_12",
 ];
 
-/// The menu type for a tool inventory of `slots` slots, or None past six rows (54 slots). An
+/// The menu type for a tool inventory of `slots` slots, or None past twelve rows (108 slots). An
 /// inventory with no slots takes the one-row type.
 fn menu_kind_for(slots: usize) -> Option<&'static str> {
-    if slots > 54 { return None; }
+    if slots > 108 { return None; }
     Some(MENU_KINDS[slots.saturating_sub(1) / 9])
 }
 
@@ -74,7 +89,7 @@ static OPEN: LazyLock<Mutex<HashMap<(u128, i32), OpenToolMenu>>> = LazyLock::new
 /// Opens the worn piece's inventory screen for the player (InventoryMenuModule.startInteract):
 /// the smallest container menu type that holds the tool's inventory, titled with the piece's
 /// name. True when the menu opened; false for a piece that is not a built tool, or a tool with
-/// more than 54 inventory slots.
+/// more than 108 inventory slots.
 pub(crate) fn open_tool_menu(player: &ServerPlayer, piece: &StackData, worn: i32) -> bool {
     let Ok(Some((inventory, items))) = with_held_tool(piece, |env, tool| {
         let inventory = tool_stack::inventory(&tool.custom_data, env);
@@ -193,7 +208,9 @@ mod tests {
         assert_eq!(menu_kind_for(9), Some("tconstruct:tool_container_1"));
         assert_eq!(menu_kind_for(10), Some("tconstruct:tool_container_2"));
         assert_eq!(menu_kind_for(54), Some("tconstruct:tool_container_6"));
-        assert_eq!(menu_kind_for(55), None, "past six rows the menu cannot open");
+        assert_eq!(menu_kind_for(55), Some("tconstruct:tool_container_7"), "past six rows opens too (issue #1159)");
+        assert_eq!(menu_kind_for(108), Some("tconstruct:tool_container_12"));
+        assert_eq!(menu_kind_for(109), None, "past twelve rows the menu cannot open");
     }
 
     #[test]
