@@ -1766,6 +1766,13 @@ impl WorldOps for HostWorld {
         Some([min_y, min_y + height])
     }
 
+    fn logical_height(&mut self, dimension: &str) -> Option<i32> {
+        // The host's height call reports only the build range; the logical height is read
+        // from the level's shape by the woven head on that same read (pluto_level_facts),
+        // which the level tick's own height ask keeps published for every loaded level.
+        horizon_client::entry::pluto_level_facts::logical_height(dimension)
+    }
+
     fn block_state(&mut self, dimension: &str, pos: [i32; 3]) -> Option<String> {
         let host = self.0.get();
         let level = host.level(dimension)?;
@@ -5524,6 +5531,13 @@ impl Hooks for PlutoHooks {
             if let Some((min_y, height)) = host.level_height(level) {
                 world_api_v1::publish_level_height(&event.dimension, [min_y, min_y + height]);
             }
+            // The height ask above also had the woven head on it publish the level's
+            // logical height from its shape (the Host call reports only the range);
+            // forward it to the API's own publication, so a reader outside a callback
+            // sees it as it sees the range.
+            if let Some(logical) = horizon_client::entry::pluto_level_facts::logical_height(&event.dimension) {
+                world_api_v1::publish_level_logical_height(&event.dimension, logical);
+            }
         }
         lifecycle_events_v1::world_tick(true, event.dimension);
     }
@@ -5713,7 +5727,8 @@ impl Hooks for PlutoHooks {
         // The stack goes along whole: a use that depends on the stack's own data (a tool's fishing cast)
         // reads its stats from it. The player is named the way use_item_on names them; the host's use
         // event itself names neither a player nor a hand.
-        let player = match host.acting_player() {
+        let acting = host.acting_player();
+        let player = match &acting {
             Some(player) => Some(player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
             None => sole_player().map(|(uuid, name)| player_api::ServerPlayer { uuid, name }),
         };
@@ -5721,6 +5736,11 @@ impl Hooks for PlutoHooks {
             item: event.stack.item.to_string(),
             count: event.stack.count,
             stack: stack_data_of(host, &event.stack),
+            // The acting player names the dimension and where they stand, as use_item_on
+            // names them; without one, the host's own dimension answers and no position is
+            // claimed (a caster-less reading, as the context carried before).
+            dimension: acting.as_ref().map(|player| player.dimension.clone()).unwrap_or_else(|| host.dimension().to_string()),
+            position: acting.as_ref().map(|player| player.position),
             player,
         };
         cancel_if(scoped(host, || events_interaction_v0::use_item(&context)))

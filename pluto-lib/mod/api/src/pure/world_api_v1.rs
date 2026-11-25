@@ -113,6 +113,16 @@ pub trait WorldOps {
     fn build_height(&mut self, _dimension: &str) -> Option<[i32; 2]> {
         None
     }
+    /// The logical height of the dimension's level (Minecraft: `DimensionType.logicalHeight`):
+    /// how high the level's own logic reaches — portals, chorus fruit and random teleports clamp
+    /// to `min_y + logical_height - 1`, which may sit below the build limit (the nether's is 128
+    /// of its 256). None when the host cannot answer for the dimension, as for
+    /// [`WorldOps::build_height`]; a level's own tick publishes its logical height alongside its
+    /// build range (see `published_level_logical_height`), so a reader outside a callback still
+    /// sees it. The default host cannot answer.
+    fn logical_height(&mut self, _dimension: &str) -> Option<i32> {
+        None
+    }
     /// Whether the block (`minecraft:stone`) is in the block tag (`minecraft:mineable/pickaxe`); false for an unknown tag.
     fn block_in_tag(&mut self, _block: &str, _tag: &str) -> bool {
         false
@@ -277,6 +287,25 @@ pub(crate) fn published_level_height(dimension: &str) -> Option<[i32; 2]> {
     LEVEL_HEIGHTS.read().ok()?.get(dimension).copied()
 }
 
+/// The logical height each level last published on its tick, by dimension: the companion of
+/// [`LEVEL_HEIGHTS`] for the readers that clamp by the level's logical top (a random teleport).
+/// A level publishes it on the same tick as its build range, from the same woven read of the
+/// level's shape, so a loaded dimension always has both or neither.
+static LEVEL_LOGICAL_HEIGHTS: RwLock<BTreeMap<String, i32>> = RwLock::new(BTreeMap::new());
+
+/// Publishes the logical height of `dimension`'s level. Called by the host adapter on every
+/// level tick, alongside [`publish_level_height`].
+pub(crate) fn publish_level_logical_height(dimension: &str, logical_height: i32) {
+    if let Ok(mut heights) = LEVEL_LOGICAL_HEIGHTS.write() {
+        heights.insert(dimension.to_owned(), logical_height);
+    }
+}
+
+/// The logical height `dimension`'s level last published on its tick, if any.
+pub(crate) fn published_level_logical_height(dimension: &str) -> Option<i32> {
+    LEVEL_LOGICAL_HEIGHTS.read().ok()?.get(dimension).copied()
+}
+
 thread_local! {
     static OPS: Cell<Option<*mut dyn WorldOps>> = const { Cell::new(None) };
 }
@@ -408,6 +437,18 @@ impl World {
             return Some(height);
         }
         published_level_height(&self.dimension)
+    }
+
+    /// Minecraft: `DimensionType.logicalHeight`: the logical height of this dimension's level —
+    /// the height its own logic reaches, so a random teleport's top is the level's lowest y plus
+    /// this, less one. It may sit below the build height (the nether's is 128 of 256). Answered
+    /// and published exactly as [`World::build_height`]: the host inside a callback that carries
+    /// a world, else the level's last tick publication; None when neither has answered.
+    pub fn logical_height(&self) -> Option<i32> {
+        if let Some(height) = with_current(None, |ops| ops.logical_height(&self.dimension)) {
+            return Some(height);
+        }
+        published_level_logical_height(&self.dimension)
     }
 
     /// Minecraft: `setBlockState`. False if it could not be set (chunk not loaded, unknown block, outside a callback).
@@ -917,6 +958,8 @@ pub struct MemoryWorldOps {
     pub brush_fallbacks: Vec<BrushFallbackRecord>,
     /// The build ranges published per dimension, for [`World::build_height`] in tests.
     pub build_heights: BTreeMap<String, [i32; 2]>,
+    /// The logical heights published per dimension, for [`World::logical_height`] in tests.
+    pub logical_heights: BTreeMap<String, i32>,
 }
 
 impl WorldOps for MemoryWorldOps {
@@ -982,6 +1025,10 @@ impl WorldOps for MemoryWorldOps {
 
     fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> {
         self.build_heights.get(dimension).copied()
+    }
+
+    fn logical_height(&mut self, dimension: &str) -> Option<i32> {
+        self.logical_heights.get(dimension).copied()
     }
 }
 
@@ -1051,6 +1098,27 @@ mod tests {
         assert_eq!(World::new(dimension).build_height(), Some([-16, 96]), "no scope, yet the tick's publication answers");
         publish_level_height(dimension, [-16, 112]);
         assert_eq!(World::new(dimension).build_height(), Some([-16, 112]), "a later tick republishes");
+    }
+
+    #[test]
+    fn logical_height_reads_the_host_level_and_the_tick_publication() {
+        // A fresh dimension id, as the publication is per dimension.
+        let dimension = "example:logical";
+        let world = World::new(dimension);
+        assert_eq!(world.logical_height(), None, "outside a scope nothing is published");
+        // The host inside a scope answers its own value (a nether-like 128 of 256).
+        let mut memory = MemoryWorldOps::default();
+        memory.logical_heights.insert(dimension.into(), 128);
+        with_world(&mut memory, || assert_eq!(world.logical_height(), Some(128)));
+        assert_eq!(world.logical_height(), None, "the scope is closed again");
+        // The level's tick publication answers a reader without a scope, and republishes.
+        publish_level_logical_height(dimension, 128);
+        assert_eq!(published_level_logical_height(dimension), Some(128));
+        assert_eq!(world.logical_height(), Some(128), "no scope, yet the tick's publication answers");
+        publish_level_logical_height(dimension, 96);
+        assert_eq!(world.logical_height(), Some(96), "a later tick republishes");
+        // A dimension nobody answered for stays unanswered.
+        assert_eq!(World::new("example:unanswered").logical_height(), None);
     }
 
     #[test]

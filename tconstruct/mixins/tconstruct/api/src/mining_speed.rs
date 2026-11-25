@@ -155,6 +155,31 @@ pub(crate) fn level_build_height(dimension: &str) -> [i32; 2] {
     pluto_lib::World::new(dimension).build_height().unwrap_or_else(|| build_height_for(dimension))
 }
 
+/// The logical height of a dimension (DimensionType.logicalHeight) for when the host has not
+/// answered: the vanilla dimensions' own (the nether's 128 sits below its 256 build height),
+/// and for anything else the dimension's build height from the table above — a dimension type
+/// whose logical height its data does not lower reaches its whole build range. Only the
+/// fallback for when the host has not answered; see `level_logical_height`.
+pub(crate) fn logical_height_for(dimension: &str) -> i32 {
+    match dimension {
+        "minecraft:the_nether" => 128,
+        "minecraft:the_end" => 256,
+        "minecraft:overworld" | "minecraft:overworld_caves" => 384,
+        _ => {
+            let [min, max] = build_height_for(dimension);
+            max - min
+        }
+    }
+}
+
+/// The logical height of the level `dimension` stands in: the host's own for the dimension
+/// when the game has published it — any dimension, custom ones included — else the vanilla
+/// table above. What a random teleport clamps its top by (the level's lowest y plus this,
+/// less one), as TeleportHelper does.
+pub(crate) fn level_logical_height(dimension: &str) -> i32 {
+    pluto_lib::World::new(dimension).logical_height().unwrap_or_else(|| logical_height_for(dimension))
+}
+
 /// DwarvenModifier.getBoost: the speed after the depth adjustment, for a dig or a shot at height
 /// `y` in a level whose max build height is `max_build_height`. `bonus` is the per-level bonus at
 /// full depth (the mining bonus for a dig, the velocity bonus for a shot), already scaled by the
@@ -488,6 +513,32 @@ mod tests {
             assert_eq!(level_build_height("example:custom"), [-32, 128]);
             assert_eq!(level_build_height("minecraft:the_nether"), [0, 192]);
             assert_eq!(level_build_height("minecraft:the_end"), [0, 256]);
+        });
+    }
+
+    #[test]
+    fn logical_height_for_names_the_vanilla_dimensions_logical_heights() {
+        assert_eq!(logical_height_for("minecraft:overworld"), 384);
+        assert_eq!(logical_height_for("minecraft:the_nether"), 128, "the nether's logical height sits below its build height");
+        assert_eq!(logical_height_for("minecraft:the_end"), 256);
+        assert_eq!(logical_height_for("example:custom"), 384, "an unknown dimension reads its build height, the overworld's range");
+    }
+
+    #[test]
+    fn level_logical_height_reads_the_host_value_and_falls_back_to_the_table() {
+        use pluto_lib::world_api_v1::{with_world, MemoryWorldOps};
+        // No scope, no publication: the table answers.
+        assert_eq!(level_logical_height("minecraft:the_nether"), 128);
+        assert_eq!(level_logical_height("example:custom"), 384);
+        // A host value published for the dimension wins over the table, for a custom dimension
+        // and for a vanilla one alike; an unpublished dimension keeps the table.
+        let mut ops = MemoryWorldOps::default();
+        ops.logical_heights.insert("example:custom".into(), 96);
+        ops.logical_heights.insert("minecraft:the_nether".into(), 200);
+        with_world(&mut ops, || {
+            assert_eq!(level_logical_height("example:custom"), 96);
+            assert_eq!(level_logical_height("minecraft:the_nether"), 200);
+            assert_eq!(level_logical_height("minecraft:the_end"), 256);
         });
     }
 

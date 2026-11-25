@@ -26,7 +26,7 @@ pub use crate::pure::attribute_api_v1::{self, AttributeContribution, AttributeDe
 pub use crate::pure::skull_model_registry::{self, SkullModelAnimation, SkullModelRegistry};
 pub use crate::pure::data_attachment_api_v1::{self, AttachmentRegistry, AttachmentType};
 pub use crate::pure::dispense_api_v1::{self, DispenseBehavior, DispenseRegistry, dispense_shot};
-pub use crate::pure::fishing_api_v1::{self, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, hook_damage_type, pull_delta, retrieve_damage};
+pub use crate::pure::fishing_api_v1::{self, CastContext, Fishing, FishingProfile, FishingRegistry, Grapple, combat_damage, grapple_delta, hook_damage_type, pull_delta, retrieve_damage};
 pub use crate::pure::fov_api_v1::{self, FovCallback, FovFacts, FovRegistry, FovSlot, FovStack, fov_multiplier};
 pub use crate::pure::highlight_api_v1::{self, HighlightFacts, HighlightProvider, HighlightRegistry, HighlightTarget, highlight_positions, block_reach_for_mode, MAX_HIGHLIGHTS, OUTLINE_ARGB, OUTLINE_WIDTH, SURVIVAL_BLOCK_REACH, CREATIVE_BLOCK_REACH};
 pub use crate::pure::entity_events_v1::{self, sky_darken, effect_category, EffectCategory, StackSlot, StackDataEdit, armor_stack_slot, ActionTarget, CarriedEdit, CarriedSlot, CarriedStack, CounterDamage, CriticalHit, LivingJump, MovementInput, EntityAction, KnockbackDirection, DamageModification, EffectGrant, PlayerTick, MobTick, EntityInfo, EntityState, WeaponHit, WearerHit, ShearAttempt, ItemDamage, KnockbackModification, LivingDamage, VisibilityModification, ExperienceDrop, ServerEntityEvents, ServerLivingEntityEvents, MobSpawnInfo, MobSpawnPreparation, MobSpawnCompletion, MobSpawnAction, MobSpawnCallback, ATTACK_TICKS_CHARGED};

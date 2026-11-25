@@ -110,7 +110,7 @@ PlayerBlockBreakEvents::EXPERIENCE.register(|drop| {
 
 ### `UseItemContext`
 
-A player used an item in the air. `item` is the item id, `count` the stack size, `stack` the stack as used, with its damage and custom data (a tool's stats and modifiers live there), and `player` who used it (`None` when the host named no acting player and the world has not exactly one player). The host's use event names no hand; the hand holding the stack is the one whose carried stack equals `stack`.
+A player used an item in the air. `item` is the item id, `count` the stack size, `stack` the stack as used, with its damage and custom data (a tool's stats and modifiers live there), `player` who used it (`None` when the host named no acting player and the world has not exactly one player), `dimension` the dimension the use is in, and `position` where the user stands (their feet), `None` when the host named no acting player to read it from. The host's use event names no hand; the hand holding the stack is the one whose carried stack equals `stack`.
 
 ```rust
 use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
@@ -118,7 +118,7 @@ use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
 UseItemCallback::EVENT.register(|used: &UseItemContext| {
     if used.item == "minecraft:stick" && used.count > 1 { ActionResult::Fail } else { ActionResult::Pass }
 });
-let used = UseItemContext { item: "minecraft:stick".into(), count: 2, stack: StackData { item: "minecraft:stick".into(), count: 2, ..StackData::default() }, player: None };
+let used = UseItemContext { item: "minecraft:stick".into(), count: 2, stack: StackData { item: "minecraft:stick".into(), count: 2, ..StackData::default() }, player: None, dimension: "minecraft:overworld".into(), position: None };
 assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
@@ -225,7 +225,7 @@ Runs when a player uses an item. Answer `Fail` to cancel, `Success` / `Consume` 
 use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
 
 UseItemCallback::EVENT.register(|_| ActionResult::Consume);
-let used = UseItemContext { item: "minecraft:apple".into(), count: 1, stack: StackData { item: "minecraft:apple".into(), count: 1, ..StackData::default() }, player: None };
+let used = UseItemContext { item: "minecraft:apple".into(), count: 1, stack: StackData { item: "minecraft:apple".into(), count: 1, ..StackData::default() }, player: None, dimension: "minecraft:overworld".into(), position: None };
 assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Consume);
 ```
 

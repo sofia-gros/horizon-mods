@@ -321,7 +321,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `build_height(dimension) -> Option<[i32; 2]>` (the build range of the dimension's level, default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `build_height(dimension) -> Option<[i32; 2]>` (the build range of the dimension's level, default `None`), `logical_height(dimension) -> Option<i32>` (the logical height of the dimension's level, default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every generic brush sound asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, the logical heights published per dimension in `logical_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every generic brush sound asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -474,6 +474,35 @@ with_world(&mut levels, || {
     assert_eq!(World::new("example:custom").build_height(), Some([-32, 128]));
     assert_eq!(World::new("minecraft:overworld").build_height(), Some([-64, 320]));
     assert_eq!(World::new("minecraft:the_end").build_height(), None);
+});
+```
+
+### `World::logical_height`
+
+`fn logical_height(&self) -> Option<i32>`. Minecraft: `DimensionType.logicalHeight`: how high the level's own logic reaches, which can sit below its build height (the nether's is 128 under a build height of 256). What a random teleport clamps its top by: the lowest y plus this, less one. The host answers inside a callback that carries a world; outside one, the height the level last published on its tick answers (a level publishes every tick it runs). `None` when neither has answered for the dimension. A custom dimension reads its own height, not the overworld's.
+
+```rust
+use pluto_lib::{with_world, World, WorldOps};
+
+struct Levels;
+impl WorldOps for Levels {
+    fn block_state(&mut self, _: &str, _: [i32; 3]) -> Option<String> { None }
+    fn set_block_state(&mut self, _: &str, _: [i32; 3], _: &str) -> bool { false }
+    fn play_sound(&mut self, _: &str, _: &str, _: [f64; 3], _: f32, _: f32) -> bool { false }
+    fn logical_height(&mut self, dimension: &str) -> Option<i32> {
+        match dimension {
+            "minecraft:the_nether" => Some(128),
+            "example:custom" => Some(96),
+            _ => None,
+        }
+    }
+}
+let mut levels = Levels;
+assert_eq!(World::new("example:custom").logical_height(), None);
+with_world(&mut levels, || {
+    assert_eq!(World::new("example:custom").logical_height(), Some(96));
+    assert_eq!(World::new("minecraft:the_nether").logical_height(), Some(128));
+    assert_eq!(World::new("minecraft:the_end").logical_height(), None);
 });
 ```
 
@@ -1050,14 +1079,26 @@ let _ = registered;
 The registry of fishing rods a mod casts with: which items count as rods (a hook stays alive only while its owner holds one — the game's own check names the vanilla rod, and the transport asks this registry for the rest), and how a rod stack's cast profile is computed. The game's fishing is built around its own hook, whose rod use is gated to the vanilla item; a registered rod's use goes through [`Fishing::use_rod`](#fishing) instead.
 
 ```rust
-use pluto_lib::{FishingProfile, FishingRegistry, Grapple, Identifier, StackData};
+use pluto_lib::{CastContext, FishingProfile, FishingRegistry, Grapple, Identifier, StackData};
 
-FishingRegistry::register(Identifier::parse("example:war_rod").unwrap(), |stack| {
+FishingRegistry::register(Identifier::parse("example:war_rod").unwrap(), |stack, _cast| {
     (stack.count > 0).then_some(FishingProfile { power: 2.0, grapple: Grapple::Drill, ..FishingProfile::default() })
 });
 assert!(FishingRegistry::is_rod("example:war_rod"));
 let stack = StackData { item: "example:war_rod".into(), count: 1, ..StackData::default() };
-assert_eq!(FishingRegistry::profile(&stack).map(|profile| profile.power), Some(2.0));
+assert_eq!(FishingRegistry::profile(&stack, &CastContext::default()).map(|profile| profile.power), Some(2.0));
+```
+
+### `CastContext`
+
+What a use casting a rod knows of its caster, beyond the stack: where the caster stands (`position`, their feet) and the dimension they cast in (`dimension`), each None when the use named no caster or the fact could not be read. A cast profile whose numbers scale with the caster — a velocity that follows the holder's height against the level's build range — reads them here; a profile that does not need them ignores the context.
+
+```rust
+use pluto_lib::CastContext;
+
+let cast = CastContext { position: Some([0.0, -32.0, 0.0]), dimension: Some("minecraft:overworld".into()) };
+assert_eq!(cast.position.map(|position| position[1]), Some(-32.0));
+assert_eq!(CastContext::default(), CastContext { position: None, dimension: None });
 ```
 
 ### `FishingProfile`
@@ -1184,12 +1225,12 @@ assert!(DispenseRegistry::get("example:never_registered").is_none());
 
 ### `FishingRegistry::register`
 
-Registers a rod item and its cast profile computation: when the item is used, the computation reads the stack and answers the profile to cast with, or None to leave the use to the game.
+Registers a rod item and its cast profile computation: when the item is used, the computation reads the stack and what the use knows of its caster (the [`CastContext`](#castcontext)) and answers the profile to cast with, or None to leave the use to the game.
 
 ```rust
 use pluto_lib::{FishingProfile, FishingRegistry, Identifier};
 
-FishingRegistry::register(Identifier::parse("example:rod").unwrap(), |_| Some(FishingProfile::default()));
+FishingRegistry::register(Identifier::parse("example:rod").unwrap(), |_, _| Some(FishingProfile::default()));
 assert!(FishingRegistry::is_rod("example:rod"));
 ```
 
@@ -1216,12 +1257,12 @@ assert!(!FishingRegistry::is_rod("example:not_a_rod"));
 
 ### `FishingRegistry::profile`
 
-The profile a stack casts with, when its item registered a computation and the computation answers one.
+The profile a stack casts with under a cast context, when its item registered a computation and the computation answers one.
 
 ```rust
-use pluto_lib::{FishingRegistry, StackData};
+use pluto_lib::{CastContext, FishingRegistry, StackData};
 
-assert_eq!(FishingRegistry::profile(&StackData::default()), None);
+assert_eq!(FishingRegistry::profile(&StackData::default(), &CastContext::default()), None);
 ```
 
 ### `Fishing::use_rod`
