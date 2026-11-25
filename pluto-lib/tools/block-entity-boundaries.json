@@ -209,7 +209,7 @@
     },
 {"module_id":"pluto-projectile-flight-game","file":"crates/horizon-client/src/game/creatures.rs","name":"pluto_projectile_flight_game","visibility":"pub(crate)","source_file":"pluto-projectile-flight-game.rs","source_sha256":"408b8466080b5f732ffb6a1fec7465cb34cc20ca3ea29e7cd89f7df5c7381dba"},
     {"module_id":"pluto-projectile-impact-game","file":"crates/horizon-client/src/game/creatures.rs","name":"pluto_projectile_impact_game","visibility":"pub(crate)","source_file":"pluto-projectile-impact-game.rs","source_sha256":"1e1269928edb50c9dab1df4b9befe0582d8d7a1f5c6fa2e27af2dbb7a3cd0210"},
-    {"module_id":"pluto-throw-sound-game","file":"crates/horizon-client/src/game/creatures.rs","name":"pluto_throw_sound","visibility":"pub(crate)","source_file":"pluto-throw-sound-game.rs","source_sha256":"d7ce372c190824efb894274af7979799211a64f05f918e176d597c3f5fcb2c39"},
+    {"module_id":"pluto-throw-sound-game","file":"crates/horizon-client/src/game/creatures.rs","name":"pluto_throw_sound","visibility":"pub(crate)","source_file":"pluto-throw-sound-game.rs","source_sha256":"bde03661a023497cf1d0629c04b7d59c40477001f38e2bdd45df0399168f5d09"},
     {"module_id":"pluto-retexture-item","file":"crates/horizon-client/src/item_render.rs","name":"pluto_retexture_item","visibility":"pub","source_file":"pluto-retexture-item.rs","source_sha256":"49aba3476f0a5167beedeef99f48e8d9ee34bf45be807e409195031ab4a6e31e"}
   ],
   "injections": [
