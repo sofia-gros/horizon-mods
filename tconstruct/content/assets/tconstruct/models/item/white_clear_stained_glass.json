@@ -1,3 +1,8 @@
 {
-  "parent": "tconstruct:block/clear_glass/white/block"
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "tconstruct:block/clear_stained_glass",
+    "particle": "tconstruct:block/clear_stained_glass"
+  },
+  "render_type": "minecraft:translucent"
 }

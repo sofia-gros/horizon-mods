@@ -155,6 +155,7 @@ mod melter_blocks;
 mod world_blocks;
 mod gadgets;
 mod world_growth;
+mod platform;
 mod worldgen;
 mod slime_entities;
 mod trader;
@@ -215,6 +216,7 @@ pub fn hooks() -> pluto_lib::ModHooks {
     melter_menu::register();
     melter_blocks::register();
     world_blocks::register();
+    platform::register();
     gadgets::register();
     world_growth::register();
     worldgen::register();

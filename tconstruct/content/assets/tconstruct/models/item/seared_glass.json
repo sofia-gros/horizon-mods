@@ -1,3 +1,8 @@
 {
-  "parent": "tconstruct:block/smeltery/glass/block"
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "tconstruct:block/smeltery/seared_glass",
+    "particle": "tconstruct:block/smeltery/seared_glass"
+  },
+  "render_type": "minecraft:cutout"
 }

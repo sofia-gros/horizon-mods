@@ -155,6 +155,7 @@
     "api/src/world_blocks.rs",
     "api/src/gadgets.rs",
     "api/src/world_growth.rs",
+    "api/src/platform.rs",
     "api/src/worldgen.rs",
     "api/src/slime_entities.rs",
     "api/src/trader.rs",
