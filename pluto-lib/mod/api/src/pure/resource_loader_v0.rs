@@ -99,6 +99,9 @@ pub struct RegistryLookup {
 impl RegistryLookup {
     /// Whether the ID exists in this captured registry (not just a render catalog).
     pub fn contains(&self,id:&Identifier)->bool { self.entries.contains(id) }
+    /// Every ID in this captured registry, for consumers that republish the resolved snapshot
+    /// (a transfer that rebuilds the lookup with `from_parts` on the other side).
+    pub fn entries(&self)->&std::collections::BTreeSet<Identifier> { &self.entries }
     pub(crate) fn entry_count(&self)->usize { self.entries.len() }
     /// A copy with extra tag members added: each `(tag, members)` joins the captured tag of that id (or makes a new tag). Members that
     /// are not entries of this registry are left out, as an optional tag entry is. The snapshot itself is not changed.
@@ -530,6 +533,8 @@ mod tests {
             (empty.to_string(),vec![]),("example:slimes".into(),vec![custom.to_string()])]).unwrap();
         assert!(lookup.contains(&player)); assert!(lookup.contains(&custom));
         assert!(!lookup.contains(&Identifier::parse("example:missing").unwrap()));
+        assert_eq!(lookup.entries().iter().map(ToString::to_string).collect::<Vec<_>>(),vec![custom.to_string(),player.to_string()],
+            "entries republishes every captured ID, in set order");
         assert!(lookup.get_tag(&empty).unwrap().is_empty());
         assert!(lookup.get_tag(&Identifier::parse("example:missing").unwrap()).is_none());
         assert!(ResourceManagerHelper::reload_registry(&registry).is_none());

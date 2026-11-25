@@ -37,6 +37,7 @@ mod enchantment_converting;
 mod material_stats;
 mod material_snapshot;
 mod material_sync;
+mod tag_sync;
 mod model_flags;
 mod tool_materials;
 mod tool_stats;

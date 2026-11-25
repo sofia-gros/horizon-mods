@@ -41,6 +41,8 @@ mod material_stats;
 mod material_snapshot;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/material_sync.rs"]
 mod material_sync;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/tag_sync.rs"]
+mod tag_sync;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/model_flags.rs"]
 mod model_flags;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/tool_materials.rs"]

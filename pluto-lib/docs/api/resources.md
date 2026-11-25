@@ -236,6 +236,17 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 }
 ```
 
+### `RegistryLookup::entries`
+
+`fn entries(&self) -> &std::collections::BTreeSet<Identifier>`. Every ID in the captured registry, for consumers that republish the resolved snapshot (a transfer that rebuilds the lookup with `from_parts` on the other side). Set order is sorted ID order; it is not registry order.
+
+```rust
+use pluto_lib::{Identifier, ResourceManagerHelper};
+if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("minecraft:item").unwrap()) {
+    let _count = items.entries().len();
+}
+```
+
 ### `RegistryLookup::get_tag`
 
 `fn get_tag(&self, tag: &Identifier) -> Option<&std::collections::BTreeSet<Identifier>>`. Returns the captured tag's members; `None` means absent, `Some(empty)` means present but empty. This is membership, not an ordered tag RNG API.
