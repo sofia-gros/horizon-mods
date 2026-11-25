@@ -206,7 +206,14 @@ pub(crate) fn spend(release: &ReleaseUsing, amount: i32, cause: &Identifier) {
     };
     if let Some((slot, Some(mut worn))) = hand {
         let damaged = with_held_tool(&release.stack, |env, _tool| tool_slot::damage_slot(&mut worn, env, amount, !release.creative, true, Some(cause), &mut crate::tool_damage_hook::random));
+        let broke = matches!(&damaged, Ok(Ok(outcome)) if outcome.broke);
         if damaged.is_ok() {
+            // damageAnimated's other half: a release that broke the sling announces it, at the hand that held it.
+            if broke {
+                if let CarriedSlot::Equipment(stack_slot) = slot {
+                    release.player.broadcast_item_break(stack_slot, &crate::brush_hook::stack_of(&worn));
+                }
+            }
             release.edits.borrow_mut().push(CarriedEdit { slot, stack: worn });
         }
     }

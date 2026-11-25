@@ -6256,8 +6256,11 @@ impl Hooks for PlutoHooks {
         // attacker reads as charged, as mobs keep no strength ticker (see `entity_events_v1::ATTACK_TICKS_CHARGED`).
         let attack_ticks = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
             .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| entity_events_v1::attack_ticks(player.uuid)).unwrap_or(entity_events_v1::ATTACK_TICKS_CHARGED);
+        // The attacking player, named as the player state above names them; None for a mob attacker.
+        let attacker_player = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.uuid)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing).map(|player| player.uuid));
         let hit = entity_events_v1::WeaponHit {
-            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),
+            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, attacker_player, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),
             damage_dealt: event.amount, attack_ticks,
             attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };

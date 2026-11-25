@@ -135,10 +135,11 @@ fn simulate_entity(dimension: &str, fluid: &FluidStack, level: f32, holder: Hold
 
 /// The holder a tank's user makes for an application: themselves, with the tank tool as the
 /// context's stack.
-fn self_holder(entity: i32, player: bool, stack: &StackData, position: [f64; 3]) -> Holder {
+fn self_holder(entity: i32, player: bool, stack: &StackData, position: [f64; 3], player_uuid: Option<u128>) -> Holder {
     let mut holder = fluid_world::holder(fluid_world::stack_of_data(stack), None, position);
     holder.entity = Some(entity);
     holder.player = player;
+    holder.player_uuid = player_uuid;
     holder
 }
 
@@ -172,21 +173,29 @@ fn armor_slot_number(slot: &str) -> i32 {
 /// Whether `slot` (an inventory tick's number) is one of the four armor slots.
 fn is_armor_slot(slot: i32) -> bool { (100..=103).contains(&slot) }
 
-/// Writes a changed tool stack back to the hand that holds it, the brush consumer's shape: the
-/// main hand through the selected slot when it still holds the stack, the off hand otherwise.
-fn write_back_hand(player: &ServerPlayer, before: &StackData, after: &ItemSlot) {
-    let after_data = StackData {
+/// A slot-level stack as the StackData the player surface writes back and announces breaks of.
+fn stack_data_of(after: &ItemSlot) -> StackData {
+    StackData {
         item: after.item.to_string(), count: after.count, damage: after.damage, max_damage: after.max_damage,
         custom_data: after.custom_data.clone(), custom_model_data: after.custom_model_data.clone(),
         enchantments: after.enchantments.clone().unwrap_or_default(),
-    };
+    }
+}
+
+/// Writes a changed tool stack back to the hand that holds it, the brush consumer's shape: the
+/// main hand through the selected slot when it still holds the stack, the off hand otherwise.
+/// The hand the stack was written to, when the write landed — a caller announcing a break the
+/// write carried reads it; a main hand that matched but could not be written names no hand, as
+/// the write is not retried on the off hand.
+fn write_back_hand(player: &ServerPlayer, before: &StackData, after: &ItemSlot) -> Option<StackSlot> {
+    let after_data = stack_data_of(after);
     if let Some(main) = player.main_hand_stack() {
         if main.item == before.item && main.custom_data == before.custom_data {
-            if let Some(selected) = player.selected_slot() { player.update_stack(selected, &after_data); }
-            return;
+            if let Some(selected) = player.selected_slot() { return player.update_stack(selected, &after_data).then_some(StackSlot::MainHand); }
+            return None;
         }
     }
-    player.set_equipment(StackSlot::OffHand, Some(&after_data));
+    player.set_equipment(StackSlot::OffHand, Some(&after_data)).then_some(StackSlot::OffHand)
 }
 
 /// A StackData as the ItemSlot the slot-level tools (wear, the tank transfers) work on.
@@ -243,7 +252,7 @@ fn on_weapon_hit(hit: &WeaponHit) {
         let attacker_is_player = hit.attacker_state.as_ref().map_or(false, |state| state.kind == "minecraft:player");
         let position = hit.target_position.unwrap_or([0.0, 0.0, 0.0]);
         for level in &modules.spilling {
-            let holder = self_holder(hit.attacker, attacker_is_player, weapon, hit.attacker_position.unwrap_or(position));
+            let holder = self_holder(hit.attacker, attacker_is_player, weapon, hit.attacker_position.unwrap_or(position), hit.attacker_player);
             let mut target = LiveTarget::party(hit.entity, &hit.kind, position, &hit.actions, ActionTarget::Victim);
             let consumed = apply_entity(&hit.dimension, &fluid, *level, holder, &mut target, position);
             if consumed > 0 {
@@ -288,7 +297,7 @@ fn use_fluid_on_hit(
         if tool_damage_hook::random() >= chance { return false; }
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return false };
         if !describe(&fluid).map_or(false, |(has_block, has_entity, _)| has_block || has_entity) { return false; }
-        let holder = self_holder(wearer.0, true, piece, wearer.1);
+        let holder = self_holder(wearer.0, true, piece, wearer.1, None);
         let consumed = apply_entity(dimension, &fluid, 1.0, holder, target, target_position);
         if consumed <= 0 { return false; }
         fluid_world::spawn_fluid_particles(&World::new(dimension), &fluid, target_position, 10);
@@ -385,7 +394,7 @@ fn finish_drink(work: &mut NbtCompound, stack: &StackData, entry: &Entry, slurpi
     let world = World::new(&facts.dimension);
     drink_sound(&world, facts.position);
     fluid_world::spawn_fluid_particles(&world, &fluid, facts.position, 16);
-    let holder = self_holder(facts.entity, true, stack, facts.position);
+    let holder = self_holder(facts.entity, true, stack, facts.position, None);
     let mut target = LiveTarget::direct(facts.entity, "minecraft:player", facts.position);
     let consumed = apply_entity(&facts.dimension, &fluid, slurping.strength(entry), holder, &mut target, facts.position);
     if consumed > 0 { tool_tank::consume(work, consumed); }
@@ -492,7 +501,7 @@ fn on_use_tick(tick: &pluto_lib::UseTick) {
         let Some((entry, slurping)) = modules.slurping.first() else { return };
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return };
         let Some(entity) = EntityReach::id_of_uuid(tick.player.uuid) else { return };
-        let holder = self_holder(entity as i32, true, &tick.stack, tick.position);
+        let holder = self_holder(entity as i32, true, &tick.stack, tick.position, Some(tick.player.uuid));
         let mut target = LiveTarget::direct(entity as i32, "minecraft:player", tick.position);
         if simulate_entity(&tick.dimension, &fluid, slurping.strength(entry), holder, &mut target, tick.position) > 0 {
             drink_sound(&tick.world(), tick.position);
@@ -511,7 +520,7 @@ fn on_use_finish(done: &pluto_lib::UseItemFinishContext) {
         drink_sound(&world, done.position);
         fluid_world::spawn_fluid_particles(&world, &fluid, done.position, 16);
         let entity = EntityReach::id_of_uuid(done.player.uuid).map_or(0, |id| id as i32);
-        let holder = self_holder(entity, true, &done.stack, done.position);
+        let holder = self_holder(entity, true, &done.stack, done.position, Some(done.player.uuid));
         let mut target = LiveTarget::direct(entity, "minecraft:player", done.position);
         let consumed = apply_entity(&done.dimension, &fluid, slurping.strength(entry), holder, &mut target, done.position);
         if consumed > 0 && !done.creative {
@@ -539,8 +548,9 @@ fn spit_drawtime(stack: &StackData) -> f32 {
 }
 
 /// SpittingModule.spit: the plan, the fanned shots, the tank spent and the tool worn by the
-/// shots. Returns the stack after the spend and wear for the caller to write back; None when
-/// nothing was fired. `consumes` is ModifierUtil.consumesResources for the shooter.
+/// shots. Returns the stack after the spend and wear for the caller to write back, and whether
+/// the wear broke the tool (its damageAnimated answer); None when nothing was fired. `consumes`
+/// is ModifierUtil.consumesResources for the shooter.
 #[allow(clippy::too_many_arguments)]
 fn spit_fire(
     player: &ServerPlayer,
@@ -553,7 +563,7 @@ fn spit_fire(
     spitting: &tool_tank::Spitting,
     charge: f32,
     consumes: bool,
-) -> Option<ItemSlot> {
+) -> Option<(ItemSlot, bool)> {
     let fluid = tool_tank::fluid(&stack.custom_data)?;
     let (has_block, has_entity, amount_per_level) = describe(&fluid)?;
     if !has_block && !has_entity { return None; }
@@ -587,8 +597,8 @@ fn spit_fire(
     }
     let mut slot = slot_of(stack);
     if consumes { tool_tank::consume(&mut slot.custom_data, plan.amount_per_shot * plan.shots); }
-    let _ = tool_slot::damage_slot(&mut slot, env, plan.shots, consumes, true, Some(&entry.id), &mut tool_damage_hook::random);
-    Some(slot)
+    let outcome = tool_slot::damage_slot(&mut slot, env, plan.shots, consumes, true, Some(&entry.id), &mut tool_damage_hook::random);
+    Some((slot, matches!(outcome, Ok(outcome) if outcome.broke)))
 }
 
 /// The held spit's release (SpittingModule.onStoppedUsing): the charge from the ticks held,
@@ -689,8 +699,15 @@ fn on_release(release: &ReleaseUsing) {
         let Some((entry, spitting)) = modules.spitting.first() else { return };
         if tool_stack::is_broken(&tool.custom_data) { return; }
         let charge = crate::throwing_hook::charge(release.ticks_used, spit_drawtime(&release.stack));
-        if let Some(after) = spit_fire(&release.player, &release.dimension, release.eye, release.look, &release.stack, env, entry, spitting, charge, !release.creative) {
+        if let Some((after, broke)) = spit_fire(&release.player, &release.dimension, release.eye, release.look, &release.stack, env, entry, spitting, charge, !release.creative) {
             if let Some(slot) = release_hand(release) {
+                // SpittingModule wears with damageAnimated, in the form that finds the stack in
+                // the entity's slots: a spit that broke the tool announces it, at that hand.
+                if broke {
+                    if let CarriedSlot::Equipment(stack_slot) = slot {
+                        release.player.broadcast_item_break(stack_slot, &stack_data_of(&after));
+                    }
+                }
                 release.edits.borrow_mut().push(CarriedEdit { slot, stack: after });
             }
         }
@@ -721,7 +738,7 @@ pub(crate) fn armor_start(player: u128, packet_slot: u8) -> bool {
         let Some(fluid) = tool_tank::fluid(&tool.custom_data) else { return false };
         let mut work = tool.custom_data.clone();
         for (entry, slurping) in &modules.slurping {
-            let holder = self_holder(facts.entity, true, &piece, facts.position);
+            let holder = self_holder(facts.entity, true, &piece, facts.position, Some(player));
             let mut target = LiveTarget::direct(facts.entity, "minecraft:player", facts.position);
             if simulate_entity(&facts.dimension, &fluid, slurping.strength(entry), holder, &mut target, facts.position) > 0 {
                 tool_stack::with_persistent(&mut work, |persistent| slurping.armor_start(persistent, entry, facts.tick));
@@ -762,6 +779,7 @@ pub(crate) fn armor_stop(player: u128, packet_slot: u8) -> bool {
         let mut work = tool.custom_data.clone();
         let mut changed = false;
         let mut fired = false;
+        let mut broke = false;
         for (entry, slurping) in &modules.slurping {
             let live = tool_stack::with_persistent(&mut work, |persistent| crate::modifier_entries::nbt_int(persistent.get(&entry.id.to_string())));
             if live > 0 {
@@ -783,9 +801,10 @@ pub(crate) fn armor_stop(player: u128, packet_slot: u8) -> bool {
                     let eye = [facts.position[0], facts.position[1] + 1.62, facts.position[2]];
                     // The spend and wear land in `work` through the returned stack's data.
                     let current = { let mut current = piece.clone(); current.custom_data = work.clone(); current };
-                    if let Some(after) = spit_fire(&wearer, &facts.dimension, eye, look, &current, env, entry, spitting, charge, true) {
+                    if let Some((after, spit_broke)) = spit_fire(&wearer, &facts.dimension, eye, look, &current, env, entry, spitting, charge, true) {
                         work = after.custom_data;
                         fired = true;
+                        broke |= spit_broke;
                     }
                 }
             }
@@ -793,7 +812,12 @@ pub(crate) fn armor_stop(player: u128, packet_slot: u8) -> bool {
         if changed {
             let mut after = piece.clone();
             after.custom_data = work;
-            wearer.update_stack(armor_slot_number(slot), &after);
+            let written = wearer.update_stack(armor_slot_number(slot), &after);
+            // SpittingModule wears with damageAnimated, in the form that finds the stack in the
+            // entity's slots: a spit that broke the worn piece announces it, at the piece's slot.
+            if written && broke {
+                wearer.broadcast_item_break(armor_stack_slot(slot), &after);
+            }
         }
         changed || fired
     }) else { return false };
@@ -857,7 +881,7 @@ fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
             if working.amount == 0 { break; }
             let level = splashing.strength(entry);
             let mut targets = 0;
-            let holder = self_holder(player_entity, true, held, player_position);
+            let holder = self_holder(player_entity, true, held, player_position, Some(player.uuid));
             let mut target = LiveTarget::direct(click.entity, &click.kind, target_position);
             let consumed = apply_entity(&click.dimension, &working, level, holder, &mut target, target_position);
             if consumed > 0 {
@@ -875,7 +899,7 @@ fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
                     let Some(position) = EntityReach::position_of(entity.id) else { continue };
                     let delta = [position[0] - target_position[0], position[1] - target_position[1], position[2] - target_position[2]];
                     if delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2] >= range * range { continue; }
-                    let holder = self_holder(player_entity, true, held, player_position);
+                    let holder = self_holder(player_entity, true, held, player_position, Some(player.uuid));
                     let mut target = LiveTarget::direct(entity.id as i32, &entity.kind.to_string(), position);
                     let consumed = apply_entity(&click.dimension, &working, level, holder, &mut target, position);
                     if consumed > 0 {
@@ -890,8 +914,15 @@ fn on_entity_use(click: &UseItemOnEntityContext) -> ActionResult {
         if total_damage == 0 { return ActionResult::Pass; }
         let mut slot = slot_of(held);
         if working.amount == 0 { tool_tank::set_fluid(&mut slot.custom_data, None); } else { tool_tank::set_fluid(&mut slot.custom_data, Some(&working)); }
-        let _ = tool_slot::damage_slot(&mut slot, env, total_damage, true, true, None, &mut tool_damage_hook::random);
-        write_back_hand(player, held, &slot);
+        let outcome = tool_slot::damage_slot(&mut slot, env, total_damage, true, true, None, &mut tool_damage_hook::random);
+        // SplashingModule wears with damageAnimated here (its block half broadcasts by hand after
+        // a plain damage, to the same end): a splash that broke the tool announces it, at the hand
+        // the write-back landed in.
+        if let Some(hand) = write_back_hand(player, held, &slot) {
+            if matches!(&outcome, Ok(outcome) if outcome.broke) {
+                player.broadcast_item_break(hand, &stack_data_of(&slot));
+            }
+        }
         ActionResult::Success
     }) else { return ActionResult::Pass };
     result
@@ -975,7 +1006,7 @@ fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_sta
     for (entry, splashing) in &modules.splashing {
         if working.amount == 0 { break; }
         let level = splashing.strength(entry);
-        let holder = self_holder(player_entity, true, stack, player_position);
+        let holder = self_holder(player_entity, true, stack, player_position, Some(click.player.uuid));
         let consumed = apply_block(&click.dimension, &working, level, holder, click.pos, face, location);
         if consumed <= 0 { continue; }
         let mut targets = 1;
@@ -991,7 +1022,7 @@ fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_sta
                 for pos in iterator.positions(click.pos, face, 0.0, 0.0, expanded, &block_at, &in_tag_at) {
                     if working.amount == 0 { break; }
                     if pos == click.pos { continue; }
-                    let holder = self_holder(player_entity, true, stack, player_position);
+                    let holder = self_holder(player_entity, true, stack, player_position, Some(click.player.uuid));
                     let at = [pos[0] as f64 + 0.5, pos[1] as f64 + 0.5, pos[2] as f64 + 0.5];
                     let consumed = apply_block(&click.dimension, &working, level, holder, pos, face, at);
                     if consumed > 0 {
@@ -1007,8 +1038,14 @@ fn splash_block(click: &UseItemOnBlockContext, stack: &StackData, env: &tool_sta
     if total_damage == 0 { return false; }
     let mut slot = slot_of(stack);
     if working.amount == 0 { tool_tank::set_fluid(&mut slot.custom_data, None); } else { tool_tank::set_fluid(&mut slot.custom_data, Some(&working)); }
-    let _ = tool_slot::damage_slot(&mut slot, env, total_damage, true, true, None, &mut tool_damage_hook::random);
-    write_back_hand(&click.player, stack, &slot);
+    let outcome = tool_slot::damage_slot(&mut slot, env, total_damage, true, true, None, &mut tool_damage_hook::random);
+    // SplashingModule's block half wears with a plain damage and broadcasts the break by hand: a
+    // splash that broke the tool announces it, at the hand the write-back landed in.
+    if let Some(hand) = write_back_hand(&click.player, stack, &slot) {
+        if matches!(&outcome, Ok(outcome) if outcome.broke) {
+            click.player.broadcast_item_break(hand, &stack_data_of(&slot));
+        }
+    }
     true
 }
 

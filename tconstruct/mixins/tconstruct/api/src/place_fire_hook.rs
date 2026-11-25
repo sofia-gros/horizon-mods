@@ -16,7 +16,7 @@
 //!
 //! The block side of the same module lives in tool_action_hook.rs.
 use crate::{break_speed_hook::with_held_tool, tool_slot, tool_stack};
-use pluto_lib::{ActionResult, EntityReach, ItemSlot, StackData, UseEntityCallback, UseItemOnEntityContext, World};
+use pluto_lib::{ActionResult, EntityReach, Hand, ItemSlot, StackData, StackSlot, UseEntityCallback, UseItemOnEntityContext, World};
 
 /// Finds the player's hotbar or inventory slot holding exactly the stack that was used.
 fn find_slot(player: &pluto_lib::ServerPlayer, held: &StackData) -> Option<i32> {
@@ -60,11 +60,16 @@ fn ignite(used: &UseItemOnEntityContext, held: &StackData, fires: bool) -> Actio
             if let Some(slot) = find_slot(player, held) {
                 let worn = with_held_tool(held, |env, stack| {
                     let mut worn: ItemSlot = stack.clone();
-                    let applied = tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).is_ok();
-                    applied.then_some(worn)
+                    let outcome = tool_slot::damage_slot(&mut worn, env, 1, true, true, None, &mut random).ok()?;
+                    Some((worn, outcome.broke))
                 });
-                if let Ok(Some(worn)) = worn {
-                    player.update_stack(slot, &StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() });
+                if let Ok(Some((worn, broke))) = worn {
+                    let back = StackData { item: held.item.clone(), count: worn.count, damage: worn.damage, max_damage: worn.max_damage, custom_data: worn.custom_data.clone(), custom_model_data: worn.custom_model_data.clone(), enchantments: held.enchantments.clone() };
+                    // damageAnimated's other half: an ignite that broke the tool announces it, at
+                    // the hand the use names.
+                    if player.update_stack(slot, &back) && broke {
+                        player.broadcast_item_break(match used.hand { Hand::Main => StackSlot::MainHand, Hand::Off => StackSlot::OffHand }, &back);
+                    }
                 }
             }
         }

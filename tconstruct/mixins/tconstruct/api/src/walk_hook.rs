@@ -67,6 +67,7 @@ pub(crate) fn register() {
             let transforms = tool_stack::walk_transforms(&slot.custom_data, env);
             if transforms.is_empty() || tool_stack::is_broken(&slot.custom_data) { return None; }
             let before = slot.custom_data.clone();
+            let mut broke = false;
             let center = [tick.position[0].floor() as i32, (tick.position[1] + 0.5).floor() as i32, tick.position[2].floor() as i32];
             'modules: for (cause, action, sound, radius) in &transforms {
                 let true_radius = radius.min(16.0);
@@ -85,17 +86,22 @@ pub(crate) fn register() {
                         if !world.set_block_state(below, &transformed) { continue; }
                         world.set_block_state(target, &air());
                         world.play_sound(sound, [f64::from(below[0]) + 0.5, f64::from(below[1]) + 0.5, f64::from(below[2]) + 0.5], 1.0, 1.0);
-                        let _ = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(cause), &mut crate::tool_damage_hook::random);
+                        if let Ok(outcome) = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(cause), &mut crate::tool_damage_hook::random) { broke |= outcome.broke; }
                         // walkOn answers whether the tool is broken, which stops the iteration (and later modules).
                         if tool_stack::is_broken(&slot.custom_data) { break 'modules; }
                     }
                 }
             }
             let edits = crate::wearer_modules::edits_between(&before, &slot.custom_data);
-            (!edits.is_empty()).then_some(edits)
+            (!edits.is_empty()).then_some((edits, broke, crate::brush_hook::stack_of(&slot)))
         });
-        if let Ok(Some(edits)) = walked {
+        if let Ok(Some((edits, broke, worn))) = walked {
             tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
+            // ToolActionWalkerTransformModule wears with damageAnimated at the feet: a walk that
+            // broke the boots announces it.
+            if broke {
+                pluto_lib::ServerPlayer { uuid: tick.player, name: String::new() }.broadcast_item_break(StackSlot::Feet, &worn);
+            }
         }
     });
     // FireWalkerModule, GlowWalkerModule, CoverGroundWalkerModule and ReplaceBlockWalkerModule:
@@ -112,6 +118,7 @@ pub(crate) fn register() {
             let walkers = tool_stack::walk_modules(&slot.custom_data, env);
             if walkers.is_empty() || tool_stack::is_broken(&slot.custom_data) { return None; }
             let before = slot.custom_data.clone();
+            let mut broke = false;
             let center = [tick.position[0].floor() as i32, (tick.position[1] + 0.5).floor() as i32, tick.position[2].floor() as i32];
             'modules: for (cause, walk) in &walkers {
                 let radius = match walk { WalkModule::Fire { radius } | WalkModule::Glow { radius, .. } | WalkModule::Cover { radius, .. } | WalkModule::Replace { radius, .. } => *radius };
@@ -134,7 +141,7 @@ pub(crate) fn register() {
                                 if !world.set_block_state(target, &BlockState::new(fire)) { continue; }
                                 let pitch = 0.8 + world.random_float().unwrap_or(0.0) * 0.4;
                                 world.play_sound("minecraft:item.flintandsteel.use", [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5], 1.0, pitch);
-                                let _ = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(cause), &mut crate::tool_damage_hook::random);
+                                if let Ok(outcome) = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(cause), &mut crate::tool_damage_hook::random) { broke |= outcome.broke; }
                                 if tool_stack::is_broken(&slot.custom_data) { break 'modules; }
                             }
                             WalkModule::Glow { min_light, damage, .. } => {
@@ -147,7 +154,7 @@ pub(crate) fn register() {
                                 crate::throwables::place_glow(&world, target, pluto_lib::Direction::Down);
                                 if world.get_block_state(target).is_some_and(|state| state.block.to_string() == "tconstruct:glow") {
                                     world.play_sound("minecraft:block.stone.place", [f64::from(target[0]) + 0.5, f64::from(target[1]) + 0.5, f64::from(target[2]) + 0.5], 1.0, 1.0);
-                                    let _ = tool_slot::damage_slot(&mut slot, env, *damage, true, true, Some(cause), &mut crate::tool_damage_hook::random);
+                                    if let Ok(outcome) = tool_slot::damage_slot(&mut slot, env, *damage, true, true, Some(cause), &mut crate::tool_damage_hook::random) { broke |= outcome.broke; }
                                     // A single success per walk, as the original stops there to let the lighting settle.
                                     break 'cells;
                                 }
@@ -181,10 +188,15 @@ pub(crate) fn register() {
                 }
             }
             let edits = crate::wearer_modules::edits_between(&before, &slot.custom_data);
-            (!edits.is_empty()).then_some(edits)
+            (!edits.is_empty()).then_some((edits, broke, crate::brush_hook::stack_of(&slot)))
         });
-        if let Ok(Some(edits)) = walked {
+        if let Ok(Some((edits, broke, worn))) = walked {
             tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
+            // FireWalkerModule and GlowWalkerModule wear with damageAnimated at the feet: a walk
+            // that broke the boots announces it.
+            if broke {
+                pluto_lib::ServerPlayer { uuid: tick.player, name: String::new() }.broadcast_item_break(StackSlot::Feet, &worn);
+            }
         }
     });
     // LightspeedAttributeModule.onWalk: while the light at the wearer is above the module's minimum the boots
@@ -201,20 +213,26 @@ pub(crate) fn register() {
             let mut slot: ItemSlot = stack.clone();
             let before = slot.custom_data.clone();
             let mut additions = Vec::new();
+            let mut broke = false;
             for (modifier, module, level) in &modules {
                 let light = module.light(tick.block_light, tick.sky_light, tick.sky_darken);
                 if let Some(boost) = module.boost(light, *level) { additions.push((module.attribute().to_owned(), f64::from(boost))); }
                 if walked && world.random_float().is_some_and(|roll| roll < module.wear_chance(light)) {
-                    let _ = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(modifier), &mut crate::tool_damage_hook::random);
+                    if let Ok(outcome) = tool_slot::damage_slot(&mut slot, env, 1, true, true, Some(modifier), &mut crate::tool_damage_hook::random) { broke |= outcome.broke; }
                 }
             }
             let edits = crate::wearer_modules::edits_between(&before, &slot.custom_data);
-            Some((additions, edits))
+            Some((additions, edits, broke, crate::brush_hook::stack_of(&slot)))
         });
-        if let Ok(Some((additions, edits))) = done {
+        if let Ok(Some((additions, edits, broke, worn))) = done {
             tick.attribute_additions.borrow_mut().extend(additions);
             if !edits.is_empty() {
                 tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::Feet, item: feet.item.clone(), edits });
+                // LightspeedAttributeModule wears with damageAnimated at the feet: a walk that
+                // broke the boots announces it.
+                if broke {
+                    pluto_lib::ServerPlayer { uuid: tick.player, name: String::new() }.broadcast_item_break(StackSlot::Feet, &worn);
+                }
             }
         }
     });

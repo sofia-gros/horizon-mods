@@ -12,7 +12,7 @@
 //! The port has no knockback stat, so the profile's knockback is the module-computed melee knockback
 //! at no base strength, which is what a rod without knockback modifiers carries anyway.
 use crate::{break_speed_hook::with_held_tool, entity_facts, tool_damage_hook, tool_slot, tool_stack, tool_stats::Stat};
-use pluto_lib::{ActionResult, Fishing, FishingProfile, FishingRegistry, Grapple, Identifier, ItemSlot, StackData, UseItemCallback, UseItemContext};
+use pluto_lib::{ActionResult, Fishing, FishingProfile, FishingRegistry, Grapple, Identifier, ItemSlot, StackData, StackSlot, UseItemCallback, UseItemContext};
 
 /// The rod item: the one tool the fishing module's cast belongs to.
 const ROD: &str = "tconstruct:fishing_rod";
@@ -88,9 +88,14 @@ fn pay_wear(context: &UseItemContext) {
     let damaged = with_held_tool(&carried, |env, _tool| {
         tool_slot::damage_slot(&mut slot, env, wear as i32, true, true, None, &mut tool_damage_hook::random)
     });
+    let broke = matches!(&damaged, Ok(Ok(outcome)) if outcome.broke);
     if damaged.is_ok() {
         let back = StackData { item: slot.item.to_string(), count: slot.count, damage: slot.damage, custom_data: slot.custom_data.clone(), ..carried };
-        player.update_stack(hand, &back);
+        // The wear is damageAnimated in the original (FishingModule pays it so): a retrieve that
+        // broke the rod announces it, at the hand that held it.
+        if player.update_stack(hand, &back) && broke {
+            player.broadcast_item_break(if hand == -106 { StackSlot::OffHand } else { StackSlot::MainHand }, &back);
+        }
     }
 }
 

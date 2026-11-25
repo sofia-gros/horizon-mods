@@ -219,6 +219,10 @@ pub struct WeaponHit {
     pub entity: i32,
     pub kind: String,
     pub attacker: i32,
+    /// The attacking player, when the attacker is one; None for a mob attacker. The entity id alone
+    /// cannot name the player to the player reaches, whose key is the uuid, so a callback that acts
+    /// on the attacker as a player (a break of the attacking tool, among them) reads it here.
+    pub attacker_player: Option<u128>,
     /// The dimension the hit happens in, such as `minecraft:overworld`; empty when the game does not name it.
     pub dimension: String,
     /// The weapon: its damage, max damage and custom data; None for an empty hand.
@@ -712,6 +716,11 @@ pub struct DamageModification {
     /// The damaged entity's health as the hit arrived, before this hit's damage; None when the game did not
     /// report it (a player victim's health is not reported at this stage).
     pub target_health: Option<f32>,
+    /// The damaged player, when the damaged entity is one (their pieces are the remembered ones in
+    /// `armor`); None for a mob victim or a victim the game did not name as a player. A callback that
+    /// acts on the victim as a player (a break of a worn piece, among them) reads it here — the
+    /// entity id alone cannot name the player to the player reaches, whose key is the uuid.
+    pub target_player: Option<u128>,
     /// The damaged entity's `minecraft:attack_damage` attribute as the game reports it (a mob victim's); None
     /// when not reported.
     pub target_attack_damage: Option<f32>,
@@ -1828,7 +1837,9 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     // mob's saved data); a player's pieces are the remembered ones above.
     let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
     let (attacker_position, target_position) = take_pending_positions(damage.entity);
-    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
+    // The damaged player, when the damaged entity is one: their remembered pieces above name them.
+    let target_player = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(uuid, _)| *uuid));
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, target_player, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_DAMAGE.invoke(&modification);
     queue_damage_actions(damage, &modification);
@@ -1851,7 +1862,9 @@ pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
     // mob's saved data); a player's pieces are the remembered ones above.
     let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
     let (attacker_position, target_position) = pending_positions(damage.entity);
-    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
+    // The damaged player, when the damaged entity is one: their remembered pieces above name them.
+    let target_player = ARMOR.lock().ok().and_then(|worn| worn.get(&damage.entity).map(|(uuid, _)| *uuid));
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, target_player, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
     fill_damage_facts(&mut modification);
     MODIFY_HURT.invoke(&modification);
     queue_damage_actions(damage, &modification);
@@ -2185,7 +2198,7 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
@@ -2200,7 +2213,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
-        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert!(weapon_hit(&hit).is_empty());
         assert_eq!(*seen.lock().unwrap(), vec![1]);
         forget_armor(0xA11CE);
@@ -2294,7 +2307,7 @@ mod tests {
         assert!(take_wearer_actions(41).is_empty(), "the queue is emptied once taken");
         wearer_hit(&hit, None);
         assert!(take_wearer_actions(41).is_empty(), "a hit with no known wearer queues nothing");
-        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         weapon_hit(&weapon);
         assert_eq!(take_weapon_actions(&weapon), vec![EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }]);
         assert!(take_weapon_actions(&weapon).is_empty());
@@ -2853,7 +2866,7 @@ mod tests {
 
     #[test]
     fn a_hit_reports_its_damage_and_charge() {
-        let hit = |ticks: u32| WeaponHit { entity: 1, kind: "minecraft:husk".into(), attacker: 2, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ticks, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |ticks: u32| WeaponHit { entity: 1, kind: "minecraft:husk".into(), attacker: 2, attacker_player: None, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ticks, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         // A sword at 4.0 attack speed swings every 5 ticks: 4 ticks is a 0.9 scale, not over it.
         assert!(!hit(4).fully_charged(4.0));
         assert!(hit(5).fully_charged(4.0));

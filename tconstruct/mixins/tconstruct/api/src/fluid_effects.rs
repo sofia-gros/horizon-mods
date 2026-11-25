@@ -450,6 +450,10 @@ pub(crate) struct Holder {
     pub entity: Option<i32>,
     /// The user is a player (the context's player, set when the entity is one).
     pub player: bool,
+    /// The player's uuid, when the caller naming the holder knows it: a wear the application
+    /// applies to the holder's own tool (a block placement's provider wear) announces a break
+    /// through it. None when the caller cannot name the player (a facts snapshot, a mob).
+    pub player_uuid: Option<u128>,
     /// The projectile carrying the fluid, when one does.
     pub projectile: Option<ProjectileFacts>,
     /// The stack the fluid came from, for when no entity holds one (the context's stack).
@@ -473,7 +477,7 @@ pub(crate) struct Holder {
 impl Default for Holder {
     fn default() -> Self {
         Self {
-            entity: None, player: false, projectile: None,
+            entity: None, player: false, player_uuid: None, projectile: None,
             stack: Stack::empty(), main_hand: Stack::empty(), off_hand: Stack::empty(),
             may_build: true, adventure: false, creative: false, sneak: false,
             position: [0.0; 3], look_angle: [0.0, 0.0, 1.0],

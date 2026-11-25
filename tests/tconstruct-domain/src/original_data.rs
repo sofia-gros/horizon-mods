@@ -2307,15 +2307,17 @@ fn eating_wears_the_tool_but_not_for_a_creative_eater_and_a_tool_outside_the_val
     edible_pickaxe(&[("tconstruct:tasty", 1)], true, |env, tool| {
         let eaten = meal(&tool.custom_data, env).unwrap();
         let before = damage(&tool.custom_data);
-        let worn = pay(&eaten, tool, env, false);
+        let (worn, broke) = pay(&eaten, tool, env, false);
         assert_eq!(damage(&worn.custom_data) - before, 10, "tasty I wears 5 + 5");
         assert_eq!(worn.damage, tool.damage + 10, "the slot's bar follows the tool's damage");
-        assert_eq!(pay(&eaten, tool, env, true), *tool, "a creative eater pays nothing");
+        assert!(!broke, "a full tool does not break from one meal");
+        assert_eq!(pay(&eaten, tool, env, true), (tool.clone(), false), "a creative eater pays nothing");
         // eating cannot wear past what is left: the tool breaks instead
         let mut nearly_gone = tool.clone();
         tool_slot::direct_damage_slot(&mut nearly_gone, env, tool_slot::remaining(tool) - 3, true).unwrap();
-        let broken = pay(&eaten, &nearly_gone, env, false);
+        let (broken, broke) = pay(&eaten, &nearly_gone, env, false);
         assert!(tool_slot::broken(&broken), "the last 3 points of durability are all eating can take");
+        assert!(broke, "the meal that breaks the tool says so, for the break broadcast");
     });
     // Hunger applies only to the tools EdibleModule.VALID_TOOLS names (charging tools and armor).
     edible_pickaxe(&[("tconstruct:tasty", 1)], false, |env, tool| {

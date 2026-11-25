@@ -372,26 +372,52 @@ impl WorldAccess for LiveWorld {
                 enchantments: Default::default(),
             };
             let tagged = Identifier::parse(&held.item).is_ok_and(|item| durability_tagged(&item, self.items.as_deref()));
+            let provider_stack = spec.stack.clone();
             let outcome = break_speed_hook::with_held_tool(&held, |env, slot| {
                 let provider = tool_stack::block_item_provider(&slot.custom_data, env);
                 // ToolDamageUtil.damageAnimated on the reduced path, as the exchange's consume
                 // runs it: the TOOL_DAMAGE hooks speak first (overslime soaks what it can, the
                 // tool's own reductions apply), the durability-changed hooks hear the result, and
                 // the providing modifier is the cause. A wear that fails to apply leaves the tool
-                // unworn rather than eating it. (damageAnimated also broadcasts a break event when
-                // the tool breaks; neither this path nor the exchange's has a host reach for that
-                // broadcast from here.)
+                // unworn rather than eating it. damageAnimated also broadcasts a break event when
+                // the tool breaks: the exchange's consume announces its own in block_break_hook,
+                // and this path announces below, when the holder names its player.
                 let damaged = provider.as_ref().and_then(|(modifier, _provided, wear)| {
                     let mut slot = slot.clone();
-                    tool_slot::damage_slot(&mut slot, env, *wear, true, tagged, Some(modifier), &mut tool_damage_hook::random).ok()?;
-                    Some(slot.custom_data)
+                    let outcome = tool_slot::damage_slot(&mut slot, env, *wear, true, tagged, Some(modifier), &mut tool_damage_hook::random).ok()?;
+                    Some((slot.custom_data, outcome.broke))
                 });
                 (provider, damaged)
             });
             match outcome {
                 Ok((Some(_), damaged)) => {
-                    if let Some(data) = damaged {
+                    if let Some((data, broke)) = damaged {
                         spec.stack.nbt = Some(nbt_to_value(&data));
+                        if broke {
+                            if let Some(uuid) = spec.holder.player_uuid {
+                                let player = pluto_lib::ServerPlayer { uuid, name: String::new() };
+                                let mut after = held.clone();
+                                after.custom_data = data;
+                                // The hand that holds the provider: the holder's named hands
+                                // first, then the player's hands as they now stand (the tank
+                                // flows name no hands of their own). A provider in neither hand
+                                // names no slot to announce at.
+                                let hand = if !spec.holder.main_hand.is_empty() && spec.holder.main_hand == provider_stack {
+                                    Some(pluto_lib::StackSlot::MainHand)
+                                } else if !spec.holder.off_hand.is_empty() && spec.holder.off_hand == provider_stack {
+                                    Some(pluto_lib::StackSlot::OffHand)
+                                } else if player.main_hand_stack().is_some_and(|main| main.item == held.item && main.custom_data == held.custom_data) {
+                                    Some(pluto_lib::StackSlot::MainHand)
+                                } else if player.stack(-106).is_some_and(|off| off.item == held.item && off.custom_data == held.custom_data) {
+                                    Some(pluto_lib::StackSlot::OffHand)
+                                } else {
+                                    None
+                                };
+                                if let Some(hand) = hand {
+                                    player.broadcast_item_break(hand, &after);
+                                }
+                            }
+                        }
                     }
                 }
                 Ok((None, _)) => {

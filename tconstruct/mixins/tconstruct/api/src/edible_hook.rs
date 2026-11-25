@@ -3,7 +3,7 @@
 //! (`EdibleModule.onToolUse`); other tools, and a tool the use refuses, keep the game's own use. When the use is done the player is fed, the
 //! eating sounds play and each modifier's edible effects run, wearing the tool in the hand (`EdibleModule.eat`).
 use crate::{break_speed_hook::with_held_tool, edible, particles, tool_damage_hook, tool_slot, tool_stack, tool_stats::Stat};
-use pluto_lib::{Identifier, ItemEvents, ItemUseRegistry, ParticleData, StackData, StackUse, UseAction, UseItemFinishCallback, UseItemFinishContext, World};
+use pluto_lib::{Hand, Identifier, ItemEvents, ItemUseRegistry, ParticleData, StackData, StackSlot, StackUse, UseAction, UseItemFinishCallback, UseItemFinishContext, World};
 
 /// The tool items `EdibleModule.onToolUse` can start eating with: those tagged `tconstruct:modifiable/interactable/charge` (a tool that charges
 /// its right click: the swasher, the right-click and dual tools, the shields and the bows). Armor is never eaten with a right click, which
@@ -38,15 +38,20 @@ pub(crate) fn meal(nbt: &pluto_lib::NbtCompound, env: &tool_stack::Environment) 
     (nutrition > 0).then_some(Meal { nutrition, saturation, effects })
 }
 
-/// The tool in the hand once the meal's durability costs are paid: a creative eater pays nothing.
-pub(crate) fn pay(meal: &Meal, hand: &pluto_lib::ItemSlot, env: &tool_stack::Environment, creative: bool) -> pluto_lib::ItemSlot {
+/// The tool in the hand once the meal's durability costs are paid, and whether paying them broke
+/// it (EdibleConsumeDurabilityModule's directDamage answer): a creative eater pays nothing.
+pub(crate) fn pay(meal: &Meal, hand: &pluto_lib::ItemSlot, env: &tool_stack::Environment, creative: bool) -> (pluto_lib::ItemSlot, bool) {
     let mut worn = hand.clone();
+    let mut broke = false;
     for effect in &meal.effects {
         if let edible::Effect::ConsumeDurability(amount) = effect {
-            if let Err(reason) = tool_slot::direct_damage_slot(&mut worn, env, *amount, !creative) { eprintln!("Tinkers: eaten tool not worn: {reason}"); }
+            match tool_slot::direct_damage_slot(&mut worn, env, *amount, !creative) {
+                Ok(outcome) => broke |= outcome.broke,
+                Err(reason) => eprintln!("Tinkers: eaten tool not worn: {reason}"),
+            }
         }
     }
-    worn
+    (worn, broke)
 }
 
 /// The representative items' crumbs at `at`, `count` each (EdibleRepresentativeItemModule.eatEffects'
@@ -65,7 +70,7 @@ fn finished(done: &UseItemFinishContext) {
     let Some(hand) = done.slot.as_ref().filter(|hand| hand.item.to_string() == done.item && hand.custom_data == done.stack.custom_data) else { return };
     let Some(status) = done.player.food() else { return };
     if !edible::can_eat(done.creative, status.level) { return; }
-    let Ok(Some((meal, worn, presented))) = with_held_tool(&done.stack, |env, tool| meal(&tool.custom_data, env).map(|meal| { let worn = pay(&meal, hand, env, done.creative); let presented = tool_stack::representative_items(&tool.custom_data, env); (meal, worn, presented) })) else { return };
+    let Ok(Some((meal, worn, broke, presented))) = with_held_tool(&done.stack, |env, tool| meal(&tool.custom_data, env).map(|meal| { let (worn, broke) = pay(&meal, hand, env, done.creative); let presented = tool_stack::representative_items(&tool.custom_data, env); (meal, worn, broke, presented) })) else { return };
     done.player.add_food(meal.nutrition, meal.saturation);
     let world = World::new(&done.dimension);
     // The completion burst: sixteen crumbs of each representative item at the eater.
@@ -81,7 +86,15 @@ fn finished(done: &UseItemFinishContext) {
             edible::Effect::RemoveEffect(effect) => { done.player.remove_effect(&effect.to_string()); }
         }
     }
-    if worn != *hand { *done.replacement.borrow_mut() = Some(worn); }
+    if worn != *hand {
+        // EdibleConsumeDurabilityModule pays with a direct damage and broadcasts the break by
+        // hand when it broke: a meal that broke the tool announces it, at the hand that ate. A
+        // break always changes the stack, so it is announced exactly when the hand-back is set.
+        if broke {
+            done.player.broadcast_item_break(match done.hand { Hand::Main => StackSlot::MainHand, Hand::Off => StackSlot::OffHand }, &crate::brush_hook::stack_of(&worn));
+        }
+        *done.replacement.borrow_mut() = Some(worn);
+    }
 }
 
 /// Registers the use and the finish callback. Called once from the product's hooks.

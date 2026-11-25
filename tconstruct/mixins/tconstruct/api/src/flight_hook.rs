@@ -242,9 +242,16 @@ fn on_shot(shot: &pluto_lib::BowShot) {
         if let Some((slot, hand)) = &weapon_hand {
             if profile_of(hand).enderporting {
                 // EnderportingModifier.onProjectileLaunch: the launcher is worn by 10 on a primary shot.
-                if let Ok(edits) = with_held_tool(hand, |_env, tool| tool_stack::damage_edits(&tool.custom_data, 10)) {
+                if let Ok((edits, broken)) = with_held_tool(hand, |_env, tool| tool_stack::damage_edits(&tool.custom_data, 10)) {
                     if !edits.is_empty() {
                         shot.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: *slot, item: hand.item.clone(), edits });
+                        // The launch wear is damageLauncher in the original — damageAnimated at
+                        // the used hand: a shot that broke the launcher announces it.
+                        if let Some(data) = broken {
+                            let mut after = (*hand).clone();
+                            after.custom_data = data;
+                            pluto_lib::ServerPlayer { uuid: shot.player, name: shot.name.clone() }.broadcast_item_break(*slot, &after);
+                        }
                     }
                 }
             }

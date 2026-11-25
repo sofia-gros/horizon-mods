@@ -8,7 +8,7 @@
 //! data, so it reads the amount before the soak): it damages its own tool directly and charges the shield
 //! bar of a random other carried tool, which lands as a carried edit beside the wear.
 use crate::{break_speed_hook::with_held_tool, common, modifier_entries::List, modifier_modules::{leveling_compute, Module}, tool_slot, tool_stack};
-use pluto_lib::{CarriedEdit, CarriedSlot, CarriedStack, Identifier, ItemSlot, ServerLivingEntityEvents, StackSlot};
+use pluto_lib::{CarriedEdit, CarriedSlot, CarriedStack, Identifier, ItemSlot, ServerLivingEntityEvents, ServerPlayer, StackSlot};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SEED: AtomicU64 = AtomicU64::new(0x9E37_79B9_7F4A_7C15);
@@ -105,25 +105,30 @@ fn share_durability(tool: &ItemSlot, env: &tool_stack::Environment, amount: i32,
 /// ToolDamageUtil.damage does) and the worn stack with that wear applied; the amount unchanged and no stack when the stack is not
 /// a loaded Tinkers tool. ShareDurabilityModule's side effects ride along: its direct damage is applied to
 /// the replacement (or added to the amount a host-worn piece keeps, which has no replacement to carry it),
-/// and the charged carried stack comes back as the third value.
-pub(crate) fn worn(stack: &pluto_lib::StackData, slot: Option<&pluto_lib::ItemSlot>, amount: i32, is_player: bool, worn_place: Option<&CarriedSlot>, carried: &[CarriedStack], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> (i32, Option<pluto_lib::ItemSlot>, Option<CarriedEdit>) {
+/// and the charged carried stack comes back as the third value. The fourth value is whether the wear broke
+/// the tool — ToolDamageUtil.damage's own answer, the share's side effect included, as damageAnimated reads it.
+pub(crate) fn worn(stack: &pluto_lib::StackData, slot: Option<&pluto_lib::ItemSlot>, amount: i32, is_player: bool, worn_place: Option<&CarriedSlot>, carried: &[CarriedStack], in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> (i32, Option<pluto_lib::ItemSlot>, Option<CarriedEdit>, bool) {
     let Ok(result) = with_held_tool(stack, |env, tool| {
         let (extra, edit) = share_durability(tool, env, amount, is_player, worn_place, carried, in_tag);
         let mut data = tool.custom_data.clone();
         let soaked = crate::capacity::absorb(&mut data, env, None, amount, &mut random);
         let left = tool_stack::reduce_damage(&data, env, None, soaked, &mut random);
+        let mut broke = false;
         let replacement = slot.and_then(|slot| {
             let mut next = slot.clone();
             // The same modifier loop and the tool's own damage and broken state, then the visible stack follows.
-            tool_slot::damage_slot(&mut next, env, amount, true, true, None, &mut random).ok()?;
-            // ToolDamageUtil.directDamage: the share's own damage, unmodified, on top of the wear.
-            if extra > 0 { tool_slot::direct_damage_slot(&mut next, env, extra, true).ok()?; }
+            broke = tool_slot::damage_slot(&mut next, env, amount, true, true, None, &mut random).ok()?.broke;
+            // ToolDamageUtil.directDamage: the share's own damage, unmodified, on top of the wear. In the
+            // original the share runs inside damage's hook loop, before the amount lands, and damage's
+            // answer is the final state — a share that finishes the tool off breaks it for the broadcast
+            // too, though the share's own directDamage call never broadcasts by itself.
+            if extra > 0 { broke = tool_slot::direct_damage_slot(&mut next, env, extra, true).ok()?.broke || broke; }
             Some(next)
         });
         // A piece the event cannot rewrite keeps the host's wear: the direct damage joins the amount there.
         let amount = if replacement.is_none() { left + extra } else { left };
-        (amount, replacement, edit)
-    }) else { return (amount, None, None); };
+        (amount, replacement, edit, broke)
+    }) else { return (amount, None, None, false); };
     result
 }
 
@@ -141,21 +146,49 @@ pub(crate) fn register() {
         let Some(items) = common::item_snapshot() else { return; };
         let in_tag = |item: &Identifier, tag: &Identifier| items.get_tag(tag).is_some_and(|members| members.contains(item));
         // The formulas of tool damage modules read the player (light, temperature) as the tool wore.
-        let (left, replacement, edit) = crate::entity_facts::with_holder(wear.holder.as_ref(), || {
+        let (left, replacement, edit, broke) = crate::entity_facts::with_holder(wear.holder.as_ref(), || {
             worn(stack, wear.slot.as_ref(), amount, true, wear.worn.as_ref(), &wear.carried, &in_tag)
         });
         if left != amount { wear.amount.set(left); }
-        if replacement.is_some() { *wear.replacement.borrow_mut() = replacement; }
+        if replacement.is_some() { *wear.replacement.borrow_mut() = replacement.clone(); }
         if let Some(edit) = edit { wear.edits.borrow_mut().push(edit); }
+        broadcast_break(wear.player, &wear.name, wear.worn.as_ref(), replacement.as_ref(), broke);
     });
+}
+
+/// ToolDamageUtil.damageAnimated's broadcast, for the wear above: a tool this wear broke is
+/// announced exactly once, here where the replacement the game keeps is set. The game never breaks
+/// a Tinkers tool itself — its mirror stack stops one short of the game's break point — so the
+/// break is this port's to announce. A wear with no replacement keeps the host's own wear, whose
+/// break handling stays the host's; a wear that leaves the tool whole announces nothing. False
+/// when nothing was broadcast.
+fn broadcast_break(player: u128, name: &str, worn: Option<&CarriedSlot>, replacement: Option<&ItemSlot>, broke: bool) -> bool {
+    if !broke { return false; }
+    let (Some(replacement), Some(CarriedSlot::Equipment(slot))) = (replacement, worn) else { return false; };
+    ServerPlayer { uuid: player, name: name.to_owned() }.broadcast_item_break(*slot, &crate::brush_hook::stack_of(replacement))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::random;
+    use super::{broadcast_break, random};
+    use pluto_lib::{CarriedSlot, Identifier, ItemSlot, MemoryPlayerOps, StackSlot, with_ops};
 
     #[test]
     fn the_generator_stays_inside_zero_to_one() {
         for _ in 0..1000 { let value = random(); assert!((0.0..1.0).contains(&value), "{value}"); }
+    }
+
+    #[test]
+    fn a_wear_that_breaks_the_tool_broadcasts_exactly_once() {
+        let mut game = MemoryPlayerOps::default();
+        let replacement = ItemSlot::new(Identifier::parse("tconstruct:pickaxe").unwrap(), 1);
+        let hand = CarriedSlot::Equipment(StackSlot::MainHand);
+        with_ops(&mut game, || {
+            assert!(broadcast_break(7, "test", Some(&hand), Some(&replacement), true), "the breaking wear broadcasts");
+            assert!(!broadcast_break(7, "test", Some(&hand), Some(&replacement), false), "a wear that leaves the tool whole broadcasts nothing");
+            assert!(!broadcast_break(7, "test", Some(&hand), None, true), "a wear the host keeps (no replacement) is the host's own break to announce");
+            assert!(!broadcast_break(7, "test", None, Some(&replacement), true), "a wear at no equipment place names no slot to announce");
+        });
+        assert_eq!(game.breaks, [(7, StackSlot::MainHand, "tconstruct:pickaxe".to_string())], "exactly one broadcast, of the stack as it broke");
     }
 }

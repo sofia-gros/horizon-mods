@@ -147,12 +147,14 @@ fn wear(tick: &UseTick, amount: i32) -> bool {
         Some((stack_of(&slot), outcome.broke))
     }) else { return false };
     let main = tick.player.main_hand_stack().is_some_and(|held| held.item == tick.stack.item && held.custom_data == tick.stack.custom_data);
-    if main {
-        if let Some(selected) = tick.player.selected_slot() {
-            tick.player.update_stack(selected, &worn);
-        }
+    let written = if main {
+        tick.player.selected_slot().is_some_and(|selected| tick.player.update_stack(selected, &worn))
     } else {
-        tick.player.set_equipment(StackSlot::OffHand, Some(&worn));
+        tick.player.set_equipment(StackSlot::OffHand, Some(&worn))
+    };
+    // damageAnimated's other half: a stroke that broke the tool announces it, at the hand that held it.
+    if written && broke {
+        tick.player.broadcast_item_break(if main { StackSlot::MainHand } else { StackSlot::OffHand }, &worn);
     }
     broke
 }

@@ -244,8 +244,12 @@ pub(crate) fn on_armor_interact(player_uuid: u128) -> bool {
 fn wear_helmet(player: &ServerPlayer, head: &StackData, env: &tool_stack::Environment, amount: i32, cause: &Identifier) {
     if amount <= 0 { return; }
     let Some(mut slot) = brush_hook::slot_of(head) else { return };
-    if tool_slot::damage_slot(&mut slot, env, amount, true, true, Some(cause), &mut tool_damage_hook::random).is_err() { return; }
-    player.set_equipment(StackSlot::Head, Some(&brush_hook::stack_of(&slot)));
+    let Ok(outcome) = tool_slot::damage_slot(&mut slot, env, amount, true, true, Some(cause), &mut tool_damage_hook::random) else { return };
+    let back = brush_hook::stack_of(&slot);
+    // damageAnimated's other half: a shot that broke the helmet announces it.
+    if player.set_equipment(StackSlot::Head, Some(&back)) && outcome.broke {
+        player.broadcast_item_break(StackSlot::Head, &back);
+    }
 }
 
 /// CustomFireball.checkBelowWorld: the flight ends 64 past either build limit, read from

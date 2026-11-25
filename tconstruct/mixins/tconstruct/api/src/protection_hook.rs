@@ -5,7 +5,7 @@
 //! which the last slot sync recorded in the tool's data (tool_slot): the damage event reports no components, so a piece enchanted since
 //! its last sync is counted without the new enchantments until it is next synced. Modifiers that ignore the enchantment's protection take its points off again.
 use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
-use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerEntityEvents, ServerLifecycleEvents, ServerLivingEntityEvents};
+use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, Nbt, NbtCompound, ResourceManagerHelper, ResourceType, ServerEntityEvents, ServerLifecycleEvents, ServerLivingEntityEvents, StackData, StackDataEdit, StackSlot};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
 
 static TAGS: RwLock<Option<Arc<DamageTags>>> = RwLock::new(None);
@@ -119,6 +119,38 @@ fn recurrent(hit: &DamageModification, source: &DamageSource) {
     if after != amount && after.is_finite() { hit.amount.set(after.max(0.0)); }
 }
 
+/// Applies one stack-data edit to a custom-data compound, in the clone-and-reinsert shape the
+/// persistent data's own edits take: a path of keys, the value to set there, or None to remove it.
+fn apply_edit(data: &mut NbtCompound, path: &[String], value: &Option<Nbt>) {
+    let Some((key, rest)) = path.split_first() else { return };
+    if rest.is_empty() {
+        match value {
+            Some(value) => { data.insert(key.clone(), value.clone()); }
+            None => { data.remove(key.as_str()); }
+        }
+        return;
+    }
+    if let Some(Nbt::Compound(inner)) = data.get(key.as_str()) {
+        let mut inner = inner.clone();
+        apply_edit(&mut inner, rest, value);
+        data.insert(key.clone(), Nbt::Compound(inner));
+    }
+}
+
+/// Announces the break of a worn piece its module wear just broke (RestoreLostHealthModule and
+/// TeleportDodgeModule wear with damageAnimated in the original): the wear's edits carry the
+/// broken flag's edit when the wear broke the piece, and the announced stack is the piece with
+/// the edits applied. A wearer the hit does not name as a player (a mob) is not announced — the
+/// broadcast surface names players only.
+fn announce_break(hit: &DamageModification, slot: StackSlot, piece: &StackData, edits: &[StackDataEdit]) {
+    let Some(uuid) = hit.target_player else { return };
+    let broke = edits.iter().any(|edit| edit.path.len() == 1 && edit.path[0] == tool_stack::TAG_BROKEN && matches!(edit.value, Some(Nbt::Byte(1))));
+    if !broke { return; }
+    let mut after = piece.clone();
+    for edit in edits { apply_edit(&mut after.custom_data, &edit.path, &edit.value); }
+    pluto_lib::ServerPlayer { uuid, name: String::new() }.broadcast_item_break(slot, &after);
+}
+
 /// RestoreLostHealthModule: a share of the damage the wearer takes comes back as Regeneration, at a chance, and wears the piece. The effect and the
 /// edits of the piece reach the wearer on their next tick; several pieces give the effect as the game adds them (the longer one stays).
 fn restore_health(hit: &DamageModification, source: &DamageSource, hurt: bool) {
@@ -132,7 +164,10 @@ fn restore_health(hit: &DamageModification, source: &DamageSource, hurt: bool) {
             actions.push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: "minecraft:regeneration".into(), amplifier: 0, duration: restore.duration });
             if restore.wear <= 0 { continue; }
             let edits = with_held_tool(piece, |env, stack| crate::wearer_modules::wear_edits(&stack.custom_data, env, &modifier, restore.wear, &mut crate::tool_damage_hook::random)).unwrap_or_default();
-            if !edits.is_empty() { actions.push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits }); }
+            if !edits.is_empty() {
+                announce_break(hit, stack_slot, piece, &edits);
+                actions.push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits });
+            }
         }
     }
     hit.actions.borrow_mut().extend(actions);
@@ -156,7 +191,10 @@ fn dodge(hit: &DamageModification, source: &DamageSource) {
             }
             if dodge.wear > 0 {
                 let edits = with_held_tool(piece, |env, stack| crate::wearer_modules::wear_edits(&stack.custom_data, env, &modifier, dodge.wear, &mut crate::tool_damage_hook::random)).unwrap_or_default();
-                if !edits.is_empty() { hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits }); }
+                if !edits.is_empty() {
+                    announce_break(hit, stack_slot, piece, &edits);
+                    hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits });
+                }
             }
             if hit.damage.entity > 0 { crate::teleport_dodge::queue(hit.damage.entity); }
             hit.amount.set(0.0);

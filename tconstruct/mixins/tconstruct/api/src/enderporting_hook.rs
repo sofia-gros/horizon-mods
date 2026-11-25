@@ -45,9 +45,13 @@ static PENDING_PLANT_TELEPORTS: LazyLock<Mutex<HashMap<u128, (String, [f64; 3], 
 static PENDING_ROD_WEAR: LazyLock<Mutex<HashMap<u64, (u32, Instant)>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// The wear actions of a landed enderport: the tool in the main hand takes `amount` damage.
-fn wear(held: &pluto_lib::StackData, amount: i32) -> Option<EntityAction> {
-    let edits = with_held_tool(held, |_env, stack| tool_stack::damage_edits(&stack.custom_data, amount)).ok()?;
-    (!edits.is_empty()).then(|| EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: held.item.clone(), edits })
+/// The second value is the tool's data after the wear when the wear broke it, for the caller
+/// that announces the break (EnderportingModifier's wears are damageAnimated in the original,
+/// the rod's and the launch's through damageLauncher); a caller whose wearer is no player
+/// (a monster's swap) leaves it unannounced.
+fn wear(held: &pluto_lib::StackData, amount: i32) -> (Option<EntityAction>, Option<pluto_lib::NbtCompound>) {
+    let Ok((edits, broken)) = with_held_tool(held, |_env, stack| tool_stack::damage_edits(&stack.custom_data, amount)) else { return (None, None) };
+    ((!edits.is_empty()).then(|| EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: held.item.clone(), edits }), broken)
 }
 
 /// Whether the tool in hand carries enderporting.
@@ -111,7 +115,9 @@ pub(crate) fn monster_swap(hit: &DamageModification) -> bool {
     let (Some(attacker), Some(target)) = (hit.attacker_position, hit.target_position) else { return false; };
     hit.actions.borrow_mut().push(EntityAction::Teleport { target: ActionTarget::Attacker, position: target });
     hit.actions.borrow_mut().push(EntityAction::Teleport { target: ActionTarget::Victim, position: attacker });
-    if let Some(action) = wear(held, 2) { hit.actions.borrow_mut().push(action); }
+    // The wearer's break is not announced: the wearer is a monster, and the broadcast surface
+    // names players only.
+    if let (Some(action), _) = wear(held, 2) { hit.actions.borrow_mut().push(action); }
     true
 }
 
@@ -137,15 +143,23 @@ fn drain_tick(tick: &PlayerTick) {
     // enderporting: the original's updateFishingRod finds the rod the same way.
     for (name, stack) in &tick.hands {
         let slot = match name.as_str() { "mainhand" => StackSlot::MainHand, "offhand" => StackSlot::OffHand, _ => continue };
-        let Ok((edits, cooldown)) = with_held_tool(stack, |env, tool| {
-            if !tool_stack::can_perform_action(&tool.custom_data, env, "fishing_rod_cast") || !tool_stack::enderporting(&tool.custom_data, env) { return (Vec::new(), 0); }
+        let Ok(((edits, broken), cooldown)) = with_held_tool(stack, |env, tool| {
+            if !tool_stack::can_perform_action(&tool.custom_data, env, "fishing_rod_cast") || !tool_stack::enderporting(&tool.custom_data, env) { return ((Vec::new(), None), 0); }
             // updateFishingRod's applyCooldown: (int)(20 / draw speed) on the rod's item.
             let cooldown = (20.0 / tool_stack::draw_speed(&tool.custom_data, env, &crate::entity_facts::Entities::default())) as i32;
             (tool_stack::damage_edits(&tool.custom_data, i32::try_from(amount).unwrap_or(i32::MAX)), cooldown)
         }) else { continue; };
         if edits.is_empty() { continue; }
-        if cooldown > 0 { pluto_lib::ServerPlayer { uuid: tick.player, name: String::new() }.start_item_cooldown(&stack.item, cooldown); }
+        let player = pluto_lib::ServerPlayer { uuid: tick.player, name: String::new() };
+        if cooldown > 0 { player.start_item_cooldown(&stack.item, cooldown); }
         tick.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot, item: stack.item.clone(), edits });
+        // The rod's wear is damageAnimated in the original (CombatFishingHook pays it so): a
+        // retrieve that broke the rod announces it, at the hand that held it.
+        if let Some(data) = broken {
+            let mut after = stack.clone();
+            after.custom_data = data;
+            player.broadcast_item_break(slot, &after);
+        }
         return;
     }
 }
@@ -165,8 +179,16 @@ pub(crate) fn register() {
         let Some(world) = World::ticking() else { return; };
         if !slime_entities::teleport_lands(&world, dest) { return; }
         let mut actions = vec![EntityAction::Teleport { target: ActionTarget::Attacker, position: dest }];
-        actions.extend(wear(held, 2));
+        let (action, broke) = wear(held, 2);
+        actions.extend(action);
         broken.actions.borrow_mut().extend(actions);
+        // EnderportingModifier.afterHarvest wears with damageAnimated: a harvest that broke the
+        // tool announces it, in the main hand that held it.
+        if let (Some(data), Some(player)) = (broke, broken.player.as_ref()) {
+            let mut after = held.clone();
+            after.custom_data = data;
+            player.broadcast_item_break(StackSlot::MainHand, &after);
+        }
     });
     // afterMeleeHit: the attacker and the mob it hit trade places, and the tool wears by 2. An
     // extra attack is not told apart by the weapon-hit telling, so every direct hit swaps.
@@ -178,8 +200,16 @@ pub(crate) fn register() {
             EntityAction::Teleport { target: ActionTarget::Attacker, position: target },
             EntityAction::Teleport { target: ActionTarget::Victim, position: attacker },
         ];
-        actions.extend(wear(held, 2));
+        let (action, broke) = wear(held, 2);
+        actions.extend(action);
         hit.actions.borrow_mut().extend(actions);
+        // EnderportingModifier.afterMeleeHit wears with damageAnimated: a swap that broke the
+        // tool announces it, in the main hand that held it.
+        if let (Some(data), Some(uuid)) = (broke, hit.attacker_player) {
+            let mut after = held.clone();
+            after.custom_data = data;
+            pluto_lib::ServerPlayer { uuid, name: String::new() }.broadcast_item_break(StackSlot::MainHand, &after);
+        }
     });
 }
 
