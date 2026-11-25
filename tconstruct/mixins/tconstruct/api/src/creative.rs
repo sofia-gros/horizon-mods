@@ -6,10 +6,12 @@
 //! its material list: its stats need the loaded registries, so they are rebuilt when the stack is used.
 //! Only items this port declares are listed. The Deco tab is here with its retextured variants (their stacks carry the
 //! texture record, so one taken from the tab places with its texture kept; the variant pictures wait on the same
-//! model-data surface as every retexture). Not here: food (the cakes and the cheese, which are here), glass (but the clear, stained, tinted and soul glass, which are here), platforms, the books and
-//! the gadgets of the general tab (the piggyback and the fancy frames and armor stands are here; the throwables are in no tab, as in the original),
-//! tank and proxy tank of the smeltery tab, and the geodes, heads, trees and foliage
-//! of the world tab.
+//! model-data surface as every retexture). Not here: the throwables (in no tab, as in the original), the fake ingot and
+//! fake storage block variants of the general tab (their shipped variant data is empty, so they list nowhere), the
+//! soulsteel set (in no tab in the original) and a stack per potion bucket (the smeltery tab names items, so the
+//! potion bucket stands once for all of them). The original's parent-tab-only extra listings (the pattern in the
+//! general tab, gold bars and the gold platform in the smeltery tab) have no counterpart in a flat tab list; the
+//! items themselves are in the general tab, as in the original.
 use crate::{creative_fluids, creative_parts::{CRYSTALS, PARTS}, creative_tools::TOOLS};
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
 
@@ -25,9 +27,23 @@ fn group(name: &str, title: &str, icon: ItemStack) -> ItemGroup {
     ItemGroup::new(Identifier::new("tconstruct", name).expect("valid group id"), title, icon)
 }
 
-/// Tool Parts: one stack per part and visible material, the pairs in original order, then a modifier crystal per modifier a recipe makes.
+/// The tool parts in `TinkerToolParts.addTabItems` order; creative_parts.rs ships them in registry order instead.
+const PART_ORDER: &[&str] = &["repair_kit", "pick_head", "small_axe_head", "small_blade", "adze_head", "hammer_head", "broad_axe_head", "broad_blade", "large_plate", "tool_handle", "tool_binding", "tough_handle", "tough_binding", "bow_limb", "bow_grip", "bowstring", "arrow_head", "arrow_shaft", "fletching", "helmet_plating", "chestplate_plating", "leggings_plating", "boots_plating", "maille", "shield_core", "ribcage", "shell", "laces"];
+
+/// Tool Parts: one stack per part and visible material, the parts in the original's order with a plating dummy
+/// before each plating (the original pairs them), then a modifier crystal per modifier a recipe makes.
 pub(crate) fn tool_parts_group() -> ItemGroup {
-    let entries = PARTS.iter().flat_map(|(name, materials)| materials.iter().map(move |material| part(name, material)));
+    let mut entries: Vec<ItemStack> = Vec::new();
+    for &name in PART_ORDER {
+        if let Some((_, materials)) = PARTS.iter().find(|(part, _)| *part == name) {
+            if name.ends_with("_plating") { entries.push(item(&format!("{name}_dummy"))); }
+            entries.extend(materials.iter().map(|material| part(name, material)));
+        }
+    }
+    // A shipped part the original's order does not name keeps its shipped place, ahead of the crystals.
+    for &(name, materials) in PARTS {
+        if !PART_ORDER.contains(&name) { entries.extend(materials.iter().map(|material| part(name, material))); }
+    }
     let crystals = CRYSTALS.iter().map(|modifier| item("modifier_crystal").with_components(&format!("{{\"minecraft:custom_data\":{{modifier:\"{modifier}\"}}}}")));
     group("tool_parts", "Tinkers' Parts", part("pick_head", "wood")).entries(entries).entries(crystals)
 }
@@ -48,24 +64,25 @@ pub(crate) fn tools_group() -> ItemGroup {
     group("tools", "Tinkers' Tools", item("pickaxe")).entries(entries)
 }
 
-/// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
-/// The tables, then the crafting items of the general tab that this port declares (TinkerTables.addTabItems, the pattern last),
-/// the books (in TinkerCommons.addTabItems order), the gadgets of TinkerGadgets.addTabItems that this port declares (the punji, then the
-/// fancy frames and armor stands, then the
-/// cakes; the piggyback between them), then TinkerCommons' food (the cheese ingot and block), its
-/// glass section and bars (the clear and stained glass in GlassColor order, the clear tinted glass, the soul glass, the panes
-/// in the same order, gold bars, obsidian pane) and its platforms (the copper ones in weathering order, then their waxed
-/// forms, then iron, gold and cobalt), then TinkerMaterials.addTabItems, which the general tab calls: its firewood sets (the block,
-/// its slab, stairs and fence), the loose nuggets where the original puts them and, per metal, the block, the ingot and the nugget
-/// (its other non-metal materials are not declared).
+/// The general tab in the original's order: the tables (TinkerTables.addTabItems, the pattern last), the books, then
+/// TinkerCommons' own sections (the food; the glass section — the clear and stained glass in GlassColor order, the clear
+/// tinted glass, the soul glass, the panes in the same order; the bars; the platforms — the copper ones in weathering
+/// order, then their waxed forms, then iron, gold and cobalt), then the gadgets of TinkerGadgets.addTabItems (the punji,
+/// the fancy frames and armor stands, the piggyback between them, then the cakes), then TinkerMaterials.addTabItems,
+/// which the general tab calls (the bones, its firewood sets — the block, its slab, stairs and fence —, the loose
+/// nuggets where the original puts them and, per metal, the ingot, the nugget and the block), and
+/// TinkerModifiers.addTabItems last (the silky cloth, the reinforcements, the creative slot).
 pub(crate) const GENERAL: &[&str] = &["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "materials_and_you", "puny_smelting", "mighty_smelting", "tinkers_gadgetry", "fantastic_foundry", "encyclopedia",
-    "punji", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "piggy_backpack", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "cheese_ingot", "cheese_block",
+    "bacon", "jeweled_apple", "cheese_ingot", "cheese_block",
     "clear_glass", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "clear_tinted_glass", "soul_glass",
     "clear_glass_pane", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane", "soul_glass_pane",
     "gold_bars", "obsidian_pane",
     "copper_platform", "exposed_copper_platform", "weathered_copper_platform", "oxidized_copper_platform", "waxed_copper_platform", "waxed_exposed_copper_platform", "waxed_weathered_copper_platform", "waxed_oxidized_copper_platform", "iron_platform", "gold_platform", "cobalt_platform",
+    "punji", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "piggy_backpack", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake",
+    "venombone", "blazing_bone", "necronium_bone",
     "nahuatl", "nahuatl_slab", "nahuatl_stairs", "nahuatl_fence", "blazewood", "blazewood_slab", "blazewood_stairs", "blazewood_fence",
-    "copper_nugget", "cobalt_block", "cobalt_ingot", "cobalt_nugget", "steel_block", "steel_ingot", "steel_nugget", "debris_nugget", "slimesteel_block", "slimesteel_ingot", "slimesteel_nugget", "amethyst_bronze_block", "amethyst_bronze_ingot", "amethyst_bronze_nugget", "rose_gold_block", "rose_gold_ingot", "rose_gold_nugget", "pig_iron_block", "pig_iron_ingot", "pig_iron_nugget", "cinderslime_block", "cinderslime_ingot", "cinderslime_nugget", "queens_slime_block", "queens_slime_ingot", "queens_slime_nugget", "manyullyn_block", "manyullyn_ingot", "manyullyn_nugget", "hepatizon_block", "hepatizon_ingot", "hepatizon_nugget", "netherite_nugget", "knightmetal_block", "knightmetal_ingot", "knightmetal_nugget", "knightslime_block", "knightslime_ingot", "knightslime_nugget"];
+    "copper_nugget", "cobalt_ingot", "cobalt_nugget", "cobalt_block", "steel_ingot", "steel_nugget", "steel_block", "debris_nugget", "slimesteel_ingot", "slimesteel_nugget", "slimesteel_block", "amethyst_bronze_ingot", "amethyst_bronze_nugget", "amethyst_bronze_block", "rose_gold_ingot", "rose_gold_nugget", "rose_gold_block", "pig_iron_ingot", "pig_iron_nugget", "pig_iron_block", "cinderslime_ingot", "cinderslime_nugget", "cinderslime_block", "queens_slime_ingot", "queens_slime_nugget", "queens_slime_block", "manyullyn_ingot", "manyullyn_nugget", "manyullyn_block", "hepatizon_ingot", "hepatizon_nugget", "hepatizon_block", "netherite_nugget", "knightmetal_ingot", "knightmetal_nugget", "knightmetal_block", "knightslime_ingot", "knightslime_nugget", "knightslime_block",
+    "silky_cloth", "emerald_reinforcement", "slimesteel_reinforcement", "iron_reinforcement", "seared_reinforcement", "gold_reinforcement", "cobalt_reinforcement", "obsidian_reinforcement", "creative_slot"];
 
 pub(crate) fn general_group() -> ItemGroup {
     group("general", "Tinkers' General", item("tinker_station")).entries(GENERAL.iter().map(|name| item(name)))
@@ -127,8 +144,8 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     let mut rest: Vec<String> = Vec::new();
     rest.extend(["seared_faucet", "scorched_faucet", "seared_channel", "scorched_channel"].map(str::to_owned));
     rest.extend(["seared_table", "scorched_table", "seared_basin", "scorched_basin"].map(str::to_owned));
-    rest.extend(["seared_fluid_cannon", "scorched_fluid_cannon", "end_fluid_cannon"].map(str::to_owned));
     rest.extend(["seared_casting_tank", "scorched_proxy_tank"].map(str::to_owned));
+    rest.extend(["seared_fluid_cannon", "scorched_fluid_cannon", "end_fluid_cannon"].map(str::to_owned));
     rest.extend(building("seared_bricks", &["wall"]));
     rest.extend(building("seared_stone", &[]));
     rest.extend(["seared_cracked_bricks", "seared_fancy_bricks", "seared_triangle_bricks"].map(str::to_owned));
@@ -144,11 +161,12 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(casts("sand_"));
     rest.push("blank_red_sand_cast".to_owned());
     rest.extend(casts("red_sand_"));
-    // TinkerFluids.addTabItems, which the smeltery calls after the casts: the slime fluids and their bottles, the food fluids and the
+    // TinkerFluids.addTabItems, which the smeltery calls after the casts: the splash and lingering bottles, the slime fluids and their bottles, the food fluids and the
     // meat soup bowl, the stone fluids, the ore, metal and alloy fluids, then the compat metals and alloys, and the potion buckets
     // last. The soulsteel bucket is in no tab in the original.
     // The original's potion buckets are one stack per potion, each carrying that potion as its tag; this tab names items,
     // so the bucket stands once for all of them.
+    rest.extend(["splash_bottle", "lingering_bottle"].map(str::to_owned));
     rest.extend(["earth_slime_bucket", "sky_slime_bucket", "ichor_bucket", "ender_slime_bucket", "earth_slime_bottle", "sky_slime_bottle", "ichor_slime_bottle", "ender_slime_bottle", "magma_bucket", "magma_bottle", "venom_bucket", "venom_bottle"].map(str::to_owned));
     rest.extend(["honey_bucket", "beetroot_soup_bucket", "mushroom_stew_bucket", "rabbit_stew_bucket", "meat_soup_bucket", "meat_soup"].map(str::to_owned));
     rest.extend(["seared_stone_bucket", "scorched_stone_bucket", "molten_clay_bucket", "molten_porcelain_bucket", "molten_glass_bucket", "molten_obsidian_bucket", "liquid_soul_bucket", "molten_ender_bucket", "blazing_blood_bucket"].map(str::to_owned));
@@ -158,20 +176,12 @@ pub(crate) fn smeltery_group() -> ItemGroup {
     rest.extend(["molten_cinderslime_bucket", "molten_queens_slime_bucket", "molten_manyullyn_bucket", "molten_hepatizon_bucket", "molten_netherite_bucket", "molten_knightmetal_bucket", "molten_knightslime_bucket"].map(str::to_owned));
     rest.extend(["molten_tin_bucket", "molten_aluminum_bucket", "molten_lead_bucket", "molten_silver_bucket", "molten_nickel_bucket", "molten_zinc_bucket", "molten_platinum_bucket", "molten_tungsten_bucket", "molten_osmium_bucket", "molten_uranium_bucket", "molten_chromium_bucket", "molten_cadmium_bucket"].map(str::to_owned));
     rest.extend(["molten_bronze_bucket", "molten_brass_bucket", "molten_electrum_bucket", "molten_invar_bucket", "molten_constantan_bucket", "molten_pewter_bucket", "molten_nicrosil_bucket", "molten_enderium_bucket", "molten_lumium_bucket", "molten_signalum_bucket", "molten_refined_glowstone_bucket", "molten_refined_obsidian_bucket", "molten_duralumin_bucket", "molten_bendalloy_bucket", "molten_steeleaf_bucket", "fiery_liquid_bucket", "potion_bucket"].map(str::to_owned));
-    // The rest of the tab's declared items: the foods, the bones, the dragon scale, the silky cloth and the creative
-    // slot, the reinforcements, the plating dummies and the splash and lingering bottles.
-    // Not here: the soulsteel set (the original leaves it for the future, in no tab) and the clear tinted glass
-    // (the original puts it in the general tab only, where this port's GENERAL list already carries it).
-    rest.extend(["bacon", "jeweled_apple", "necrotic_bone", "venombone", "blazing_bone", "necronium_bone", "dragon_scale", "silky_cloth", "creative_slot",
-        "emerald_reinforcement", "slimesteel_reinforcement", "iron_reinforcement", "seared_reinforcement", "gold_reinforcement", "cobalt_reinforcement", "obsidian_reinforcement",
-        "boots_plating_dummy", "chestplate_plating_dummy", "helmet_plating_dummy", "leggings_plating_dummy",
-        "splash_bottle", "lingering_bottle"].map(str::to_owned));
     entries.extend(rest.iter().map(|name| item(name)));
     smeltery.entries(entries)
 }
 
-/// TinkerWorld.addTabItems for the declared items: ores, then the monsters (the three EntityObjects, whose tab entries are
-/// their spawn eggs), the heads, then each slime (ball, block, congealed), the slime wood sets with
+/// TinkerWorld.addTabItems for the declared items: ores, then the monsters (whose tab entries are
+/// their spawn eggs), the mob drops, the heads, then each slime (ball, block, congealed), the slime wood sets with
 /// their saplings and leaves and the enderbark roots, slime dirt, the foliage (tall grass, fern, vine, seeds and the five grasses
 /// of each visible foliage type) and the geodes (each crystal's shard, block, budding block
 /// and buds) with the metal shards and clusters between them. The wall signs have no item of their own
@@ -179,6 +189,7 @@ pub(crate) fn smeltery_group() -> ItemGroup {
 pub(crate) const WORLD: &[&str] = &[
     "cobalt_ore", "raw_cobalt", "raw_cobalt_block",
     "terracube_spawn_egg", "earth_slime_spawn_egg", "sky_slime_spawn_egg", "ender_slime_spawn_egg",
+    "necrotic_bone", "dragon_scale",
     "blaze_head", "enderman_head", "stray_head", "husk_head", "drowned_head", "spider_head", "cave_spider_head", "piglin_brute_head", "zombified_piglin_head",
     "earth_congealed_slime",
     "sky_slime_ball", "sky_slime", "sky_congealed_slime", "ichor_slime_ball", "ichor_slime", "ichor_congealed_slime", "ender_slime_ball", "ender_slime", "ender_congealed_slime",
@@ -209,17 +220,20 @@ pub(crate) fn world_group() -> ItemGroup {
     group("world", "Tinkers' World", item("cobalt_ore")).entries(WORLD.iter().map(|name| item(name)))
 }
 
-/// Tanks (TinkerFluids.tabFluids, TankItem.addFilledVariants): for every source fluid in registry order, the seared and scorched tank and
-/// gauge filled to capacity; metals use the ingot kinds, the rest the fuel kinds.
+/// Tanks (TinkerFluids.tabFluids: CopperCanItem.addFilledVariants, then TankItem.addFilledVariants): a copper can of
+/// every source fluid in registry order, then for every fluid the seared and scorched lantern, tank and gauge filled
+/// to capacity; metals use the ingot kinds, the rest the fuel kinds.
 pub(crate) fn fluids_group() -> ItemGroup {
     let vanilla = [("minecraft:water", false), ("minecraft:lava", false)].into_iter().map(|(name, metal)| (name.to_owned(), metal));
     let tinkers = creative_fluids::FLUIDS.iter().map(|(name, metal)| (format!("tconstruct:{name}"), *metal));
-    let mut entries = Vec::new();
-    for (fluid, metal) in vanilla.chain(tinkers) {
-        let (tank, gauge) = if metal { ("ingot_tank", "ingot_gauge") } else { ("fuel_tank", "fuel_gauge") };
+    let fluids: Vec<(String, bool)> = vanilla.chain(tinkers).collect();
+    let mut entries: Vec<ItemStack> = fluids.iter().map(|(fluid, _)| item("copper_can").with_components(&format!("{{\"minecraft:custom_data\":{{fluid:\"{fluid}\"}}}}"))).collect();
+    for (fluid, metal) in &fluids {
+        let (tank, gauge) = if *metal { ("ingot_tank", "ingot_gauge") } else { ("fuel_tank", "fuel_gauge") };
         for kind in ["seared", "scorched"] {
-            entries.push(filled_tank(&format!("{kind}_{tank}"), &fluid, capacity(tank)));
-            entries.push(filled_tank(&format!("{kind}_{gauge}"), &fluid, capacity(gauge)));
+            entries.push(filled_tank(&format!("{kind}_lantern"), fluid, crate::fluid_values::LANTERN_CAPACITY));
+            entries.push(filled_tank(&format!("{kind}_{tank}"), fluid, capacity(tank)));
+            entries.push(filled_tank(&format!("{kind}_{gauge}"), fluid, capacity(gauge)));
         }
     }
     group("fluids", "Tinkers' Tanks", filled_tank("seared_fuel_gauge", "tconstruct:molten_cobalt", capacity("fuel_gauge"))).entries(entries)
@@ -254,12 +268,18 @@ mod tests {
     #[test]
     fn every_part_lists_each_material_once_in_original_order_and_stacks_carry_the_material() {
         let group = tool_parts_group();
-        let expected: usize = PARTS.iter().map(|(_, materials)| materials.len()).sum::<usize>() + CRYSTALS.len();
+        let expected: usize = PARTS.iter().map(|(_, materials)| materials.len()).sum::<usize>() + CRYSTALS.len() + 4;
         assert_eq!(group.entries.len(), expected);
         assert!(expected > 500, "the shipped data gives a large catalog");
+        // The repair kit opens the tab, as in the original.
         let first = &group.entries[0];
-        assert_eq!(first.item.to_string(), "tconstruct:pick_head");
-        assert_eq!(first.to_snbt(), "{count:1,id:\"tconstruct:pick_head\",components:{\"minecraft:custom_data\":{Material:\"tconstruct:wood\"},\"minecraft:custom_model_data\":{strings:[\"wood\"]}}}");
+        assert_eq!(first.item.to_string(), "tconstruct:repair_kit");
+        assert_eq!(first.to_snbt(), "{count:1,id:\"tconstruct:repair_kit\",components:{\"minecraft:custom_data\":{Material:\"tconstruct:string\"},\"minecraft:custom_model_data\":{strings:[\"string\"]}}}");
+        // Each plating is preceded by its plating dummy, as the original pairs them.
+        for plating in ["helmet_plating", "chestplate_plating", "leggings_plating", "boots_plating"] {
+            let at = group.entries.iter().position(|stack| stack.item.path() == plating).unwrap();
+            assert_eq!(group.entries[at - 1].item.to_string(), format!("tconstruct:{plating}_dummy"));
+        }
         // No part repeats a material.
         for (item, materials) in PARTS {
             let mut seen = std::collections::BTreeSet::new();
@@ -312,14 +332,35 @@ mod tests {
         assert_eq!(deco.entries.len(), variants);
         assert_eq!(deco.entries[0].to_snbt(), "{count:1,id:\"tconstruct:tinkers_anvil\",components:{\"minecraft:custom_data\":{texture:\"tconstruct:slimesteel_block\"}}}");
         let fluids = fluids_group();
-        // water, lava and the 71 fluids that are not hidden (the potion): four tanks each
-        assert_eq!(fluids.entries.len(), 4 * (2 + creative_fluids::FLUIDS.len()));
+        // water, lava and the 71 fluids that are not hidden (the potion): a copper can and six filled tanks each
+        assert_eq!(fluids.entries.len(), 7 * (2 + creative_fluids::FLUIDS.len()));
+        assert_eq!(fluids.entries[0].to_snbt(), "{count:1,id:\"tconstruct:copper_can\",components:{\"minecraft:custom_data\":{fluid:\"minecraft:water\"}}}");
         let snbt: Vec<String> = fluids.entries.iter().map(ItemStack::to_snbt).collect();
         assert!(snbt.contains(&"{count:1,id:\"tconstruct:seared_ingot_tank\",components:{\"minecraft:custom_data\":{tank:{FluidName:\"tconstruct:molten_iron\",Amount:4320}}}}".to_owned()), "metals fill ingot tanks");
         assert!(snbt.contains(&"{count:1,id:\"tconstruct:scorched_fuel_gauge\",components:{\"minecraft:custom_data\":{tank:{FluidName:\"minecraft:lava\",Amount:4000}}}}".to_owned()), "other fluids fill fuel gauges");
+        assert!(snbt.contains(&"{count:1,id:\"tconstruct:seared_lantern\",components:{\"minecraft:custom_data\":{tank:{FluidName:\"minecraft:lava\",Amount:50}}}}".to_owned()), "lanterns are filled to the lantern capacity");
         let smeltery = smeltery_group();
         assert!(smeltery.entries.iter().any(|stack| stack.to_snbt().contains("tconstruct:blazing_blood")), "pre filled fuel tanks");
         let position = |name: &str| smeltery.entries.iter().position(|stack| stack.item.path() == name && stack.components.is_none()).unwrap();
         assert!(position("grout") < position("seared_melter") && position("seared_table") < position("seared_bricks") && position("seared_bricks") < position("ingot_cast") && position("ingot_cast") < position("blank_sand_cast") && position("blank_sand_cast") < position("ingot_sand_cast") && position("ingot_red_sand_cast") < position("venom_bottle"));
+        assert!(position("seared_casting_tank") < position("seared_fluid_cannon") && position("splash_bottle") < position("earth_slime_bucket"), "the casting tanks precede the cannons and the bottles open the fluids");
+    }
+
+    #[test]
+    fn the_items_the_audit_moved_sit_in_their_original_tabs() {
+        let has = |group: &ItemGroup, name: &str| group.entries.iter().any(|stack| stack.item.path() == name);
+        // TinkerCommons' food, TinkerMaterials' bones and TinkerModifiers' items belong to the general tab.
+        let general = general_group();
+        for name in ["bacon", "jeweled_apple", "venombone", "blazing_bone", "necronium_bone", "silky_cloth", "creative_slot", "emerald_reinforcement", "obsidian_reinforcement"] {
+            assert!(has(&general, name), "{name} belongs in the general tab");
+        }
+        // The mob drops belong to the world tab.
+        let world = world_group();
+        assert!(has(&world, "necrotic_bone") && has(&world, "dragon_scale"), "the mob drops belong in the world tab");
+        // None of them belongs to the smeltery tab, and neither do the plating dummies (the tool parts tab pairs them with the plating).
+        let smeltery = smeltery_group();
+        for name in ["bacon", "jeweled_apple", "necrotic_bone", "venombone", "blazing_bone", "necronium_bone", "dragon_scale", "silky_cloth", "creative_slot", "emerald_reinforcement", "helmet_plating_dummy"] {
+            assert!(!has(&smeltery, name), "{name} does not belong in the smeltery tab");
+        }
     }
 }
