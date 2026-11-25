@@ -25,7 +25,7 @@ use crate::pure::recipe_api_v1;
 use crate::pure::player_api::{self, PlayerOps};
 use horizon_client::items::ItemStack;
 use horizon_client::pluto_host_world as horizon_world;
-use crate::pure::base::{Identifier, Nbt, NbtCompound};
+use crate::pure::base::{Identifier, Nbt, NbtCompound, NbtCompoundExt};
 use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
 use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
 use crate::pure::entity_api_v1::{self, EntityOps};
@@ -3210,7 +3210,7 @@ fn queue_player_teleport(host: &mut dyn Host, dimension: &str, id: i32, pos: [f6
 /// a living entity is one whose data names a health above zero, so a kill is positively a health named
 /// and no longer above zero. An entity the host cannot reach, or whose data names no health, is not
 /// counted dead — a kill is recorded only on positive evidence.
-fn entity_dead(host: &dyn Host, id: u32) -> bool {
+fn entity_dead(host: &mut dyn Host, id: u32) -> bool {
     let Some(entity) = host.entity(id) else { return false };
     host.entity_nbt(entity).is_some_and(|data| data.iter().any(|(key, tag)| key.to_string_lossy() == "Health" && matches!(tag, Tag::Float(bits) if f32::from_bits(*bits) <= 0.0)))
 }
