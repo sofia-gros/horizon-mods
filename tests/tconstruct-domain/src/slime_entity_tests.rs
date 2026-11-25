@@ -1,7 +1,7 @@
 //! The slime mobs: the registered types and class queries against the original's values, and the shipped
 //! data (entity loot tables, spawn biome modifiers, spawn egg declarations) in the converted shapes.
 use crate::slime_entities::{TYPES, SlimeSplit, civil_from_days, finalize_spawn, head_drop_chance, sky_fall, tag_placement, teleport_destination, terracube_placement, terracube_rolls};
-use pluto_lib::{AttackDamageContext, AttributeModifierOperation, CalculateFallDamageContext, CauseFallDamageContext, EntityInfo, EquipmentDropChanceContext, FallOutcome, Identifier, JumpPowerContext, LivingEntityBehaviors, MobSpawnCompletion, MobSpawnInfo, MobSpawnPreparation, MobSplitCallback, MobSplitChild, MobSplitContext, MobSplitInheritance, MobSplitRandom, SpawnPlacementContext, StackData};
+use pluto_lib::{AttackDamageContext, AttributeModifierOperation, CalculateFallDamageContext, CauseFallDamageContext, EntityInfo, EquipmentDropChanceContext, FallOutcome, Identifier, JumpPowerContext, LivingEntityBehaviors, MobSpawnCompletion, MobSpawnInfo, MobSpawnPreparation, MobSplitCallback, MobSplitChild, MobSplitContext, MobSplitInheritance, MobSplitRandom, SpawnPlacementContext, SpawnPlacementRegistry, StackData};
 use serde_json::Value;
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -69,6 +69,16 @@ fn registering_publishes_the_class_queries_and_the_armored_slime_modifiers() {
         assert_eq!(rows, [("armor", "small_armor_bonus"), ("armor_toughness", "small_toughness_bonus"), ("knockback_resistance", "small_resistence_bonus")], "{slime}");
         assert!(modifiers.iter().all(|modifier| modifier.amount == 3.0 && modifier.operation == AttributeModifierOperation::AddMultipliedTotal), "{slime}");
     }
+    // Spawn placements: TinkerWorld registers all four predicates with Operation.OR — the vanilla
+    // slime's tag predicate, the sky and ender tag predicates, and the terracube's own canSpawnHere —
+    // so every type is OR-registered (the permit-add pass proposes its candidates) and none carries
+    // a replacing verdict at natural finalize.
+    for slime in ["sky_slime", "ender_slime", "terracube"] {
+        assert!(SpawnPlacementRegistry::is_or_registered(&id(&format!("tconstruct:{slime}"))), "{slime} is OR-registered");
+        assert!(!SpawnPlacementRegistry::is_registered(&id(&format!("tconstruct:{slime}"))), "{slime} has no replacing placement");
+    }
+    assert!(SpawnPlacementRegistry::is_or_registered(&id("minecraft:slime")), "the vanilla slime is OR-registered");
+    assert!(!SpawnPlacementRegistry::is_registered(&id("minecraft:slime")), "the vanilla slime has no replacing placement");
 }
 
 #[test]
@@ -378,6 +388,10 @@ fn the_placement_predicates_follow_the_originals_rules() {
     assert!(tag_placement(&context(false, "natural", "tconstruct:sky_sky_slime_grass", "minecraft:empty", "minecraft:empty", false, false), sky.spawn_blocks), "on its slime grass");
     assert!(!tag_placement(&context(false, "natural", "minecraft:grass_block", "minecraft:empty", "minecraft:empty", true, true), sky.spawn_blocks), "not on plain grass");
     assert!(terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:water", "minecraft:water", false, false)), "in water");
+    // The OR-only case: lit water (not dark, no valid spawn block below) still permits the terracube,
+    // because the original registers canSpawnHere with Operation.OR — the species rules' rejection
+    // is overridden by the predicate's water arm.
+    assert!(terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:flowing_water", "minecraft:water", false, false)), "in lit water");
     assert!(terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:empty", "minecraft:empty", true, true)), "a valid dark spot");
     assert!(!terracube_placement(&context(false, "natural", "minecraft:stone", "minecraft:empty", "minecraft:empty", true, false)), "not in the light");
     assert!(!terracube_placement(&context(true, "spawner", "minecraft:stone", "minecraft:water", "minecraft:water", true, true)), "never on peaceful, even from a spawner");

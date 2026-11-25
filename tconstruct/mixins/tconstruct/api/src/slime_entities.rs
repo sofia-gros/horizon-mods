@@ -96,15 +96,17 @@
 //! the `tconstruct:slime_spawn/earth` block tag, sky and ender get on-ground placements with the
 //! motion-blocking-no-leaves heightmap and a predicate on `tconstruct:slime_spawn/sky` /
 //! `tconstruct:slime_spawn/ender`, terracube gets the same placement with its own rule (never on peaceful,
-//! always from a spawner, in water, else a valid spawn block in the dark). All four tag predicates
-//! (the derived slimes' and the vanilla slime's) are registered on the placement registry's OR side
+//! always from a spawner, in water, else a valid spawn block in the dark). All four predicates
+//! — the three tag predicates (the derived slimes' and the vanilla slime's) and the terracube's
+//! own `canSpawnHere` rule — are registered on the placement registry's OR side, exactly as the
+//! original registers all four with Operation.OR
 //! (the tag predicates carry the shipped tags' current expansion, pinned against the tag JSONs by the
 //! domain tests): PlutoLib's permit-add pass proposes its own candidates after the game's natural
-//! pass and spawns the ones a predicate accepts, so the slimes spawn on their tag blocks even where
+//! pass and spawns the ones a predicate accepts, so the slimes spawn on their tag blocks — and the
+//! terracube in lit water — even where
 //! the inherited species rules turn the position away — the original's OR. (The registry's replacing
 //! consultation at natural finalize time remains for predicates that replace a type's rules
-//! outright, terracube's among them: its rule is the entity's own `canSpawnHere`, not a
-//! SpawnPlacements registration.) Natural
+//! outright; none of the slime placements is one.) Natural
 //! spawning itself is data: the importer ships the original's three biome modifiers
 //! (`spawn_overworld_slime`: sky slime, weight 100, group 2-4, overworld; `spawn_terracube`: weight 10,
 //! group 2-4, overworld; `spawn_end_slime`: ender slime, weight 10, group 2-4, the end). The terracube
@@ -619,7 +621,10 @@ pub(crate) fn register() {
     // EntityType.SLIME itself, over the earth tag.
     SpawnPlacementRegistry::register_or(Identifier::parse("minecraft:slime").expect("entity type id"), move |context| tag_placement(context, EARTH_SPAWN_BLOCKS))
         .unwrap_or_else(|error| panic!("registering the placement of minecraft:slime: {error}"));
-    SpawnPlacementRegistry::register(Identifier::parse("tconstruct:terracube").expect("entity type id"), terracube_placement)
+    // The terracube's own OR placement: TinkerWorld registers TerracubeEntity::canSpawnHere
+    // with Operation.OR as well, so the permit-add pass can propose the positions the species
+    // rules reject — the lit-water spawns among them.
+    SpawnPlacementRegistry::register_or(Identifier::parse("tconstruct:terracube").expect("entity type id"), terracube_placement)
         .unwrap_or_else(|error| panic!("registering the placement of tconstruct:terracube: {error}"));
     MobSpawnCallback::register(Identifier::parse("tconstruct:slime_finalization").expect("callback id"), finalize_spawn)
         .unwrap_or_else(|error| panic!("registering the slime spawn finalization: {error}"));
