@@ -689,3 +689,13 @@ fn removing_the_destination_mid_transit_never_loses_the_stack() {
     }
     assert_eq!(total, 3, "no stack was voided or duplicated when its destination vanished mid-transit");
 }
+
+#[test]
+fn creative_tab_lists_every_pipe() {
+    crate::creative::register();
+    let groups = pluto_lib::ItemGroupRegistry::registered();
+    let group = groups.iter().find(|g| g.id == id("pipes:pipes")).expect("pipes creative tab is registered");
+    let listed: Vec<&str> = group.entries.iter().map(|s| s.item.path()).collect();
+    assert_eq!(listed, ["item_pipe", "extraction_pipe", "fluid_pipe", "fluid_extraction_pipe"]);
+    assert_eq!(group.icon.item, id("pipes:item_pipe"));
+}
