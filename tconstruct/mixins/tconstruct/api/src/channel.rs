@@ -2,7 +2,8 @@
 //! tank (four nuggets) that takes fluid from above or from a side set to `in`, and every tick passes it down (when `down` is set)
 //! or, split evenly, out of the sides set to `out`. The block states, their placement and shape updates are here as pure logic;
 //! toggling a side by right click needs a block use hook with the hit position and a block state write (`interact_with_side` is
-//! the logic), and "a fluid handler" is the set of blocks this port gives tanks (`HANDLERS`), as no other mod's blocks exist here.
+//! the logic), and "a fluid handler" is a block whose block entity type exposes one to PlutoLib's registry
+//! (`BlockEntityTypeRegistry::is_fluid_handler`), the port's form of the original's capability check.
 use crate::faucet::MB_PER_TICK;
 use pluto_lib::{
     BlockBehavior, BlockBehaviors, BlockEntityClientTick, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
@@ -11,10 +12,6 @@ use pluto_lib::{
 
 pub(crate) const BLOCKS: [&str; 2] = ["seared_channel", "scorched_channel"];
 pub(crate) const CAPACITY: i32 = MB_PER_TICK * 4;
-/// The blocks that hold fluid in this port (`isFluidHandler`): the melter, the casting blocks and the channels.
-const HANDLERS: [&str; 10] = [
-    "seared_melter", "seared_table", "scorched_table", "seared_basin", "scorched_basin", "seared_channel", "scorched_channel", "seared_heater", "seared_faucet", "scorched_faucet",
-];
 /// Plane.HORIZONTAL.
 const SIDES: [Direction; 4] = [Direction::North, Direction::East, Direction::South, Direction::West];
 
@@ -54,7 +51,7 @@ impl Shape {
 }
 
 fn is_channel(state: &BlockState) -> bool { state.block.namespace() == "tconstruct" && BLOCKS.contains(&state.block.path()) }
-fn is_handler(state: &BlockState) -> bool { state.block.namespace() == "tconstruct" && HANDLERS.contains(&state.block.path()) }
+fn is_handler(state: &BlockState) -> bool { BlockEntityTypeRegistry::is_fluid_handler(&state.block.to_string()) }
 fn is_air(state: &BlockState) -> bool { state.block.namespace() == "minecraft" && state.block.path().ends_with("air") }
 
 fn can_connect(view: &dyn BlockView, pos: BlockPos, side: Direction) -> bool {
@@ -358,6 +355,8 @@ mod tests {
 
     #[test]
     fn placing_against_a_channel_or_a_tank_connects_to_it() {
+        // the melter below counts as a tank: its block entity type exposes a fluid handler
+        BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("tconstruct:seared_melter").unwrap()).fluid_tanks([1000]));
         let mut view = MemoryBlockView::default();
         view.blocks.insert([1, 64, 0], channel());
         view.blocks.insert([0, 63, 0], BlockState::parse("tconstruct:seared_melter").unwrap());
@@ -367,6 +366,10 @@ mod tests {
         assert_eq!(placement(channel(), [0, 64, 0], Direction::West, true, &view).property("east"), Some("in"));
         assert_eq!(placement(channel(), [0, 64, 0], Direction::Up, false, &view).property("down"), Some("true"), "on top, over a tank");
         assert_eq!(placement(channel(), [5, 64, 0], Direction::Up, false, &view).property("down"), Some("false"));
+        // a seared tank is a fluid handler too: placing against it connects out toward it (the in-game failure of #1161)
+        BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("tconstruct:seared_ingot_tank").unwrap()).fluid_tanks([4000]));
+        view.blocks.insert([5, 64, -1], BlockState::parse("tconstruct:seared_ingot_tank").unwrap());
+        assert_eq!(placement(channel(), [5, 64, 0], Direction::South, false, &view).property("north"), Some("out"), "against a tank: out");
     }
 
     #[test]

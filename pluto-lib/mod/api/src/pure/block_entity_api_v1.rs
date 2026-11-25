@@ -661,6 +661,13 @@ impl BlockEntityTypeRegistry {
         TYPES.lock().ok()?.iter().find(|t| t.block.to_string() == block).cloned()
     }
 
+    /// Whether the block's block entity exposes a fluid handler: declared tanks, or a filler, reader, drainer or
+    /// fluid forward hook. The port's form of the original's `isFluidHandler` capability check, for code that
+    /// classifies a neighbour block (a channel deciding what it connects to).
+    pub fn is_fluid_handler(block: &str) -> bool {
+        Self::get(block).is_some_and(|t| !t.tanks.is_empty() || t.filler.is_some() || t.reader.is_some() || t.drainer.is_some() || t.forward.is_some())
+    }
+
     /// Offers `fluid` to the block entity of `block` with the saved `data` and `items`: how much its [`BlockEntityType::fluid_filler`] takes, or
     /// `None` when the block has no filler (the host fills the declared tanks). With `execute` false the changes the filler makes are thrown away.
     pub fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, face: Option<super::block_api_v1::Direction>, execute: bool) -> Option<u32> {
@@ -1089,6 +1096,17 @@ mod tests {
         assert_eq!((out.result, out.held, out.give, items[0].clone()), (ActionResult::Success, None, vec![stick.clone()], Some(stick)));
         assert_eq!(BlockEntityTypeRegistry::use_block("test:basin", [0; 3], &mut data, &mut items, None, false).unwrap().result, ActionResult::Pass);
         assert!(BlockEntityTypeRegistry::use_block("test:plain_tank", [0; 3], &mut data, &mut items, None, false).is_none());
+    }
+
+    #[test]
+    fn a_fluid_handler_is_a_block_whose_type_takes_or_gives_fluid() {
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:handler_tank")).fluid_tanks([1000]));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:handler_filler")).fluid_filler(|_| 0));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(id("test:plain_block")));
+        assert!(BlockEntityTypeRegistry::is_fluid_handler("test:handler_tank"), "declared tanks are a handler");
+        assert!(BlockEntityTypeRegistry::is_fluid_handler("test:handler_filler"), "a filler hook is a handler");
+        assert!(!BlockEntityTypeRegistry::is_fluid_handler("test:plain_block"), "no fluid hooks, no handler");
+        assert!(!BlockEntityTypeRegistry::is_fluid_handler("test:never_registered"));
     }
 
     #[test]

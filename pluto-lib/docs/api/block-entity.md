@@ -424,6 +424,18 @@ BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example"
 assert!(BlockEntityTypeRegistry::get("example:found").is_some());
 ```
 
+### `BlockEntityTypeRegistry::is_fluid_handler`
+
+`fn is_fluid_handler(block: &str) -> bool`. Whether the block's block entity exposes a fluid handler: declared tanks, or a `fluid_filler`, `fluid_reader`, `fluid_drainer` or `fluid_forward` hook. The port's form of the original's `isFluidHandler` capability check, for code that classifies a neighbour block (a channel deciding what it connects to).
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier};
+
+assert!(!BlockEntityTypeRegistry::is_fluid_handler("example:no_such_block"));
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example", "cistern").unwrap()).fluid_tanks([4000]));
+assert!(BlockEntityTypeRegistry::is_fluid_handler("example:cistern"));
+```
+
 ## Item slots and fluid tanks
 
 ### `ItemSlot`

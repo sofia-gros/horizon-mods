@@ -105,7 +105,11 @@ impl Tank {
 
     /// `FluidType.getLightLevel` of the held fluid, the value of the block's `light` state.
     pub(crate) fn light(&self) -> u8 {
-        self.fluid.as_ref().and_then(|fluid| FluidRegistry::get(&fluid.fluid.to_string())).map_or(0, |def| def.attributes.luminance.min(15))
+        let Some(fluid) = &self.fluid else { return 0 };
+        if let Some(def) = FluidRegistry::get(&fluid.fluid.to_string()) { return def.attributes.luminance.min(15); }
+        // The game's own fluids are registered by nobody (the game already has them), so their light is the
+        // game's own: a tank of lava glows at 15, a tank of water not at all.
+        if fluid.fluid.namespace() == "minecraft" && fluid.fluid.path() == "lava" { 15 } else { 0 }
     }
 }
 
@@ -216,6 +220,17 @@ mod tests {
         tank.drain(None, 9999, true);
         assert_eq!(tank.fluid, None, "an emptied tank holds no fluid at all");
         assert_eq!(tank.fill(&id("minecraft:water"), 10, true), 10, "and takes any fluid again");
+    }
+
+    #[test]
+    fn a_tank_of_lava_glows_at_lavas_own_light_and_a_tank_of_water_not_at_all() {
+        let mut lava = Tank::empty(4000);
+        lava.fill(&id("minecraft:lava"), 1000, true);
+        assert_eq!(lava.light(), 15, "the game's own lava keeps its light even though no mod registers it");
+        let mut water = Tank::empty(4000);
+        water.fill(&id("minecraft:water"), 1000, true);
+        assert_eq!(water.light(), 0);
+        assert_eq!(Tank::empty(4000).light(), 0);
     }
 
     #[test]
