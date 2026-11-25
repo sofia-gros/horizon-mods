@@ -567,6 +567,14 @@ pub(crate) fn press(button: &mut MenuButton<'_>) {
     }
 }
 
+/// Whether the controller at `pos` stands in a formed structure (its own `in_structure` state), for the
+/// use gate in register: canon opens the controller's menu only then, and spends the click on the
+/// structure's status instead. Where no state can be read — the pure fixtures, which drive the uses
+/// with no ticking world at all — the controller counts as formed.
+fn controller_formed(pos: pluto_lib::BlockPos) -> bool {
+    World::ticking().and_then(|world| world.get_block_state(pos)).and_then(|state| state.property("in_structure").map(|value| value == "true")).unwrap_or(true)
+}
+
 pub(crate) fn register() {
     for (name, kind, title) in [(SMELTERY, Kind::Smeltery, "tconstruct:smeltery"), (FOUNDRY, Kind::Foundry, "tconstruct:foundry")] {
         let id = Identifier::new("tconstruct", name).expect("valid controller id");
@@ -590,7 +598,18 @@ pub(crate) fn register() {
         ScreenHandlerRegistry::register(window);
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(id).item_slots((MAX_SLOTS + 2) as u32).menu(&format!("tconstruct:{name}")).sync_data().on_place(crate::retextured::keep_texture).ticker(move |tick| tick_controller(kind, tick))
-                .on_use(move |_| { crate::advancements::container_opened(title); pluto_lib::ActionResult::Pass })
+                .on_use(move |used| {
+                    // Canon (ControllerBlock.openGui): the menu opens only in a formed structure;
+                    // unformed, the click is spent on the structure's status instead, so it is
+                    // consumed here and no open is asked for. (The status text itself is not
+                    // shown: a use handler has no player to address it to.)
+                    if controller_formed(used.pos) {
+                        crate::advancements::container_opened(title);
+                        pluto_lib::ActionResult::Pass
+                    } else {
+                        pluto_lib::ActionResult::Success
+                    }
+                })
                 // the tank answers drains, faucets and pipes (ISmelteryTankHandler.getFluidCapability): see smeltery_io
                 .fluid_reader(crate::smeltery_io::read_controller).fluid_filler(crate::smeltery_io::fill_controller).fluid_drainer(crate::smeltery_io::drain_controller),
         );

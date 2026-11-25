@@ -2093,6 +2093,59 @@ kind = "RETURN"
 helper = "pluto-menu-switch-guest-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "host" }, { name = "conn", ty = "u32", value = "conn" }]
 
+# Menu opens a mod's block use asked for (pluto-menu-open): the sim emits its menu effect
+# only for the vanilla menu blocks, so a mod block on a plain template never opens; the
+# right-click dispatch queues the open through the mod API, and it is settled in the
+# host's right-click bridge right after that dispatch: a click nothing else claimed
+# opens the clicked block's menu through the game's own menu open and is claimed by
+# it, as a block use that acted claims its click, so the click ends with the block.
+# (The settle cannot ride the use itself: the weaver refuses every re-emitting reach
+# into use_hand's try/closure body, so the bridge — a one-line body — is the seam.)
+[[module]]
+id = "pluto-menu-open-api"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_menu_open"
+source = "pluto-menu-open-api.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-menu-open"
+file = "crates/horizon-client/src/game/native_hooks.rs"
+name = "pluto_menu_open"
+source = "pluto-menu-open.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-menu-open-settle"
+target = "horizon_client::game::native_hooks::Game<'_>::native_right_click_block_v2"
+kind = "RETURN"
+helper = "pluto-menu-open-settle.rs"
+bindings = [
+    { name = "value", ty = "()", value = "$value" },
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "pos", ty = "[i32; 3]", value = "pos" },
+    { name = "cancel", ty = "&mut bool", value = "cancel" },
+]
+
+# A LAN guest's menu open: the settle point has no hold of the guest's menu (it lives in
+# the LAN host's guest state), so on a guest's turn it only marks the open ready (or
+# drops it), and the guest flush at the end of the guest's turn applies it through the
+# host's guest container open (pluto-menu-open's guest half, in lan_actions.rs where
+# that open lives).
+[[module]]
+id = "pluto-menu-open-guest"
+file = "crates/horizon-client/src/game/lan_actions.rs"
+name = "pluto_menu_open_guest"
+source = "pluto-menu-open-guest.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-menu-open-guest-flush"
+target = "horizon_client::game::lan_actions::Game<'_>::leave_guest"
+kind = "RETURN"
+helper = "pluto-menu-open-guest-flush.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "host" }]
+
 # Map faces a mod's HUD drawing asked for (a minimap's map): the draw queues them through
 # the mod API's canvas, and the flush at the end of the HUD's draw renders each from its map
 # texture with the game at hand.
