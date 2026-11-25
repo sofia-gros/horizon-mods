@@ -21,13 +21,16 @@
 //!
 //! The throws play their canon sounds: the shuriken's is `tconstruct:throw.shuriken`
 //! (ModifiableShurikenItem.use, NEUTRAL, 0.5, pitch `0.4F / (random * 0.4F + 0.8F)`), played here
-//! because the spawn itself is silent; a throwing tool's is the vanilla trident throw
-//! (ThrowingModule.onStoppedUsing, PLAYERS, 1, 1). Both go through `World::play_sound`, which plays
-//! in the block category where Java plays NEUTRAL/PLAYERS.
+//! because the spawn itself is silent, at the thrower's feet where Java plays it
+//! (`player.getX(), getY(), getZ()`); a throwing tool's is the vanilla trident throw
+//! (ThrowingModule.onStoppedUsing, PLAYERS, 1, 1), played at the thrown tool itself, which
+//! ThrownTool's constructor puts at the shooter's (x, eyeY - 0.1, z). Both go through
+//! `World::play_sound_with_source`, on the categories Java names; a plain `World::play_sound`
+//! would leave them on the block category.
 use crate::{break_speed_hook::with_held_tool, edible, edible_hook, flight_hook, tool_stack, tool_stats::Stat};
 use pluto_lib::{
     CarriedEdit, CarriedSlot, Identifier, ItemEvents, ItemSlot, ItemUseRegistry, Nbt, ProjectileSpawn,
-    ReleaseUsing, ServerPlayer, StackData, StackSlot, StackUse, ThrownType, ThrownTypeRegistry, UseAction, World, spawn_projectile,
+    ReleaseUsing, ServerPlayer, SoundSource, StackData, StackSlot, StackUse, ThrownType, ThrownTypeRegistry, UseAction, World, spawn_projectile,
 };
 
 /// ThrowingModule.getUseDuration.
@@ -131,17 +134,19 @@ fn throw_pitch(random: f32) -> f32 {
 }
 
 /// Plays the shuriken throw sound for a thrown shuriken: the spawn itself is silent, so the throw
-/// plays it at the eye, pitched from the level's own random stream (the mean pitch when the stream
-/// is not handed over). The host's own throw sound is the block category through `World::play_sound`,
-/// where Java plays NEUTRAL; the event, volume and pitch match.
+/// plays it where Java plays it — at the thrower's feet (ModifiableShurikenItem.use plays at
+/// `player.getX(), getY(), getZ()`) — on the NEUTRAL category, pitched from the level's own
+/// random stream (the mean pitch when the stream is not handed over).
 fn play_shuriken_throw(world: &World, at: [f64; 3]) {
-    world.play_sound(SHURIKEN_THROW_SOUND, at, 0.5, throw_pitch(world.random_float().unwrap_or(0.5)));
+    world.play_sound_with_source(SHURIKEN_THROW_SOUND, SoundSource::Neutral, at, 0.5, throw_pitch(world.random_float().unwrap_or(0.5)));
 }
 
-/// Plays the trident throw for a thrown tool: the arrow summon is silent, so the throw plays it at
-/// the eye. Same block-category note as `play_shuriken_throw`, where Java plays PLAYERS.
+/// Plays the trident throw for a thrown tool: the arrow summon is silent, so the throw plays it
+/// where Java plays it — at the thrown tool itself (ThrowingModule.onStoppedUsing plays the
+/// sound at the entity), which ThrownTool's constructor puts at the shooter's
+/// (x, eyeY - 0.1, z) — on the PLAYERS category.
 fn play_thrown_tool_throw(world: &World, at: [f64; 3]) {
-    world.play_sound("minecraft:item.trident.throw", at, 1.0, 1.0);
+    world.play_sound_with_source("minecraft:item.trident.throw", SoundSource::Player, at, 1.0, 1.0);
 }
 
 /// Throws the tool (ThrowingModule.onStoppedUsing past ten ticks).
@@ -161,7 +166,8 @@ fn throw_tool(release: &ReleaseUsing) {
     let spawn = ProjectileSpawn::new(Identifier::parse("minecraft:arrow").expect("valid kind"), release.eye, motion)
         .owner(release.player.uuid);
     let Some(id) = spawn_projectile(&world, &spawn) else { return };
-    play_thrown_tool_throw(&world, release.eye);
+    // The trident throw plays at the thrown tool: (x, eyeY - 0.1, z), as ThrownTool spawns.
+    play_thrown_tool_throw(&world, [release.position[0], release.eye[1] - 0.1, release.position[2]]);
     let mut carried = stack.clone();
     carried.count = 1;
     let profile = flight_hook::profile_of(stack);
@@ -176,12 +182,14 @@ fn throw_tool(release: &ReleaseUsing) {
 /// ModifiableShurikenItem.use); false when the thrown type could not be summoned. `holder_y` is the
 /// holder's height for the dwarven velocity half; None when the caller does not know it (a stored
 /// stack thrown from a worn piece's inventory), which leaves the dwarven arm at the stored value.
-fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3], owner: u128, stack: &StackData, holder_y: Option<f64>) -> bool {
+/// `feet` is where the thrower stands: the throw sound plays there, as Java plays it at the
+/// thrower's feet.
+fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3], feet: [f64; 3], owner: u128, stack: &StackData, holder_y: Option<f64>) -> bool {
     let velocity = f64::from(conditional_velocity(stack, holder_y, dimension));
     let motion = [look[0] * velocity, look[1] * velocity, look[2] * velocity];
     let thrown = Identifier::parse(&format!("tconstruct:{SHURIKEN_ENTITY}")).expect("valid thrown type");
     let Some(id) = pluto_lib::spawn_thrown(world, &thrown, eye, motion, Some(owner), pluto_lib::NbtCompound::new()) else { return false };
-    play_shuriken_throw(world, eye);
+    play_shuriken_throw(world, feet);
     let mut carried = stack.clone();
     carried.count = 1;
     // The knockback a shot's modules added rides the fired stack's persistent data, when present.
@@ -194,25 +202,26 @@ fn spawn_shuriken(world: &World, dimension: &str, eye: [f64; 3], look: [f64; 3],
 }
 
 /// Throws one shuriken from a stored stack (SleevesModule's use of the selected stack in a worn
-/// piece's inventory): the same spawn the release fires, aimed by the caller's eye and look. The
+/// piece's inventory): the same spawn the release fires, aimed by the caller's eye and look, its
+/// sound at the caller's feet. The
 /// stack is in no hand, so there is no release to spend from or to mark used: the caller stores
 /// the spent remainder itself, and the cooldown the release's `used` mark starts has no surface
 /// here (see sleeves_hook's notes). False when the stack is not this port's shuriken tool, whole
 /// and unbroken, or the thrown type could not be summoned.
-pub(crate) fn throw_stored_shuriken(player: &ServerPlayer, dimension: &str, eye: [f64; 3], look: [f64; 3], thrown: &ItemSlot) -> bool {
+pub(crate) fn throw_stored_shuriken(player: &ServerPlayer, dimension: &str, position: [f64; 3], eye: [f64; 3], look: [f64; 3], thrown: &ItemSlot) -> bool {
     let stack = StackData {
         item: thrown.item.to_string(), count: thrown.count, damage: thrown.damage, max_damage: thrown.max_damage,
         custom_data: thrown.custom_data.clone(), custom_model_data: thrown.custom_model_data.clone(),
         enchantments: thrown.enchantments.clone().map(|map| map.into_iter().collect()).unwrap_or_default(),
     };
     if !shuriken(&stack) { return false; }
-    spawn_shuriken(&World::new(dimension), dimension, eye, look, player.uuid, &stack, None)
+    spawn_shuriken(&World::new(dimension), dimension, eye, look, position, player.uuid, &stack, None)
 }
 
 /// Throws one shuriken (ModifiableShurikenItem.use: instant, the stack shrinks by one).
 fn throw_shuriken(release: &ReleaseUsing) {
     let stack = &release.stack;
-    if !spawn_shuriken(&release.world(), &release.dimension, release.eye, release.look, release.player.uuid, stack, Some(release.position[1])) { return; }
+    if !spawn_shuriken(&release.world(), &release.dimension, release.eye, release.look, release.position, release.player.uuid, stack, Some(release.position[1])) { return; }
     if !release.creative {
         // Spend one from the hand the shuriken was thrown from.
         let same = |slot: &ItemSlot| slot.item.to_string() == release.stack.item && slot.custom_data == release.stack.custom_data;
@@ -318,6 +327,14 @@ mod tests {
                 ("tconstruct:throw.shuriken".to_string(), [1.0, 64.0, 1.0]),
                 ("minecraft:item.trident.throw".to_string(), [2.0, 64.0, 2.0]),
             ]
+        );
+        assert_eq!(
+            ops.sounds_with_source,
+            [
+                ("tconstruct:throw.shuriken".to_string(), SoundSource::Neutral, [1.0, 64.0, 1.0]),
+                ("minecraft:item.trident.throw".to_string(), SoundSource::Player, [2.0, 64.0, 2.0]),
+            ],
+            "the shuriken plays NEUTRAL, the thrown tool PLAYERS, as Java names them"
         );
     }
 }

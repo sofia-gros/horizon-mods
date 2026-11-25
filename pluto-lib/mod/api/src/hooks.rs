@@ -1426,6 +1426,7 @@ fn native_post_use(host: &mut dyn Host, post: &horizon_client::entry::pluto_slee
     let context = events_interaction_v0::AfterUseContext {
         player: player_api::ServerPlayer { uuid: post.uuid, name: post.name.clone() },
         dimension: post.dimension.clone(),
+        position: post.position,
         eye: post.eye,
         look: post.look,
         crouching: post.crouching,
@@ -1782,6 +1783,10 @@ impl WorldOps for HostWorld {
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
         // source 4 is the block category
         self.0.get().play_sound(sound, at, 4, volume, pitch)
+    }
+
+    fn play_sound_with_source(&mut self, _dimension: &str, sound: &str, source: world_api_v1::SoundSource, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+        self.0.get().play_sound(sound, at, source.index(), volume, pitch)
     }
 
     fn set_block_state(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {

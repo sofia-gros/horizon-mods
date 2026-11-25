@@ -109,10 +109,15 @@ pub(crate) fn after_entity_use(game: &mut Game<'_>, value: Result<bool>) {
     let Some(eye) = game.eye_position() else {
         return;
     };
+    let Some(player) = game.player.as_ref() else {
+        return;
+    };
+    let position = [player.position.x, player.position.y, player.position.z];
     let post = crate::entry::pluto_sleeves_takeover_access::PostUse {
         uuid: horizon_client::lan::playerdata::ints_uuid(game.acting_player_uuid()),
         name: game.acting_player_name().to_owned(),
         dimension: game.dim.id().to_owned(),
+        position,
         eye,
         look: look_direction(game.yaw, game.pitch),
         crouching: game.keys.held(Mapping::Sneak),

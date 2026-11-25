@@ -9,7 +9,7 @@
 //!
 //! The trigger exists now: PlutoLib's `AfterUseCallback` fires when a use finished without the
 //! game consuming it (an empty-hand right click the world interaction did not take), carrying
-//! the crouch state and the eye and look the throw aims by. `register` answers it for a
+//! the crouch state, where the player stands and the eye and look the throw aims by. `register` answers it for a
 //! non-spectator wearing a chest piece with the sleeves modifier, with the selected item's
 //! cooldown as the gate (the host seam already excluded spectators and consumed uses). The
 //! entity-click path of the original's takeover is covered by the same callback: a click on
@@ -174,7 +174,7 @@ fn selected_item(piece: &StackData) -> Option<ItemSlot> {
 /// the thrown stack through the port's throwing flow, the piece written back to the chest slot
 /// and the selection message sent. False when nothing was used or cycled, or when the throw
 /// could not be summoned — the piece is then left as it was, rather than eating the stored stack.
-pub(crate) fn execute(player: &ServerPlayer, dimension: &str, eye: [f64; 3], look: [f64; 3], piece: &StackData, crouching: bool, creative: bool, cooling_down: bool) -> bool {
+pub(crate) fn execute(player: &ServerPlayer, dimension: &str, position: [f64; 3], eye: [f64; 3], look: [f64; 3], piece: &StackData, crouching: bool, creative: bool, cooling_down: bool) -> bool {
     match on_tool_use(piece, crouching, cooling_down) {
         Outcome::Nothing => false,
         Outcome::Cycled { piece, message } => {
@@ -183,7 +183,7 @@ pub(crate) fn execute(player: &ServerPlayer, dimension: &str, eye: [f64; 3], loo
             true
         }
         Outcome::Used { piece, thrown } => {
-            if !throwing_hook::throw_stored_shuriken(player, dimension, eye, look, &thrown) { return false; }
+            if !throwing_hook::throw_stored_shuriken(player, dimension, position, eye, look, &thrown) { return false; }
             // A creative use spends nothing, as the held flow keeps its stack (throwing_hook).
             if !creative { player.set_equipment(StackSlot::Chest, Some(&piece)); }
             // The throw starts the selected item's cooldown, even in creative: the held
@@ -210,7 +210,7 @@ pub(crate) fn register() {
         if context.player.is_item_on_cooldown(&piece.item) { return ActionResult::Pass; }
         let cooling_down = selected_item(&piece)
             .is_some_and(|selected| context.player.is_item_on_cooldown(&selected.item.to_string()));
-        if execute(&context.player, &context.dimension, context.eye, context.look, &piece, context.crouching, context.creative, cooling_down) {
+        if execute(&context.player, &context.dimension, context.position, context.eye, context.look, &piece, context.crouching, context.creative, cooling_down) {
             ActionResult::Success
         } else {
             ActionResult::Pass

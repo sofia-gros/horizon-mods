@@ -176,7 +176,7 @@ assert!(context.player.is_none() && context.held.is_none() && context.actions.bo
 
 ### `AfterUseContext`
 
-A player's use finished without the game consuming it. `player` is the player (its methods work inside the callback), `dimension` the level, `eye` where the player's eyes are and `look` where they look (a unit vector), `crouching` whether the player is sneaking, `creative` whether nothing is used up, and `consumed` whether the game's own handling consumed the use (false at both seams that report a use today: the hand's use, and a click on an entity the game did not take). The chestplate takeover a worn piece answers on (Tinkers' sleeves) reads the aim and the crouch state here.
+A player's use finished without the game consuming it. `player` is the player (its methods work inside the callback), `dimension` the level, `position` where the player stands (their feet), `eye` where the player's eyes are and `look` where they look (a unit vector), `crouching` whether the player is sneaking, `creative` whether nothing is used up, and `consumed` whether the game's own handling consumed the use (false at both seams that report a use today: the hand's use, and a click on an entity the game did not take). The chestplate takeover a worn piece answers on (Tinkers' sleeves) reads the aim and the crouch state here.
 
 ```rust
 use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
@@ -184,7 +184,7 @@ use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
 AfterUseCallback::EVENT.register(|used| if used.crouching { ActionResult::Success } else { ActionResult::Pass });
 let used = AfterUseContext {
     player: ServerPlayer { uuid: 1, name: "Alex".into() }, dimension: "minecraft:overworld".into(),
-    eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
+    position: [0.5, 62.4, 0.5], eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
 };
 assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
 ```
@@ -359,7 +359,7 @@ use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
 AfterUseCallback::EVENT.register(|used| if used.crouching { ActionResult::Success } else { ActionResult::Pass });
 let used = AfterUseContext {
     player: ServerPlayer { uuid: 1, name: "Alex".into() }, dimension: "minecraft:overworld".into(),
-    eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
+    position: [0.5, 62.4, 0.5], eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
 };
 assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
 ```

@@ -86,6 +86,57 @@ pub enum ExplosionInteraction {
     Tnt,
 }
 
+/// A sound's category (Minecraft: `SoundSource`): the mixer channel a sound plays on, whose
+/// volume the player's sound settings set per category. A plain [`World::play_sound`] names no
+/// category, so the game derives one from the sound event's family; a caller whose original
+/// names one (Java's `playSound` takes a `SoundSource`) passes it through
+/// [`World::play_sound_with_source`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SoundSource {
+    /// The master channel (Java: `MASTER`).
+    Master,
+    /// Music (Java: `MUSIC`).
+    Music,
+    /// Records: jukeboxes, goat horns (Java: `RECORD`).
+    Record,
+    /// Weather (Java: `WEATHER`).
+    Weather,
+    /// Blocks (Java: `BLOCK`).
+    Block,
+    /// Hostile creatures (Java: `HOSTILE`).
+    Hostile,
+    /// Neutral creatures (Java: `NEUTRAL`); a shuriken's throw plays here.
+    Neutral,
+    /// Players (Java: `PLAYER`); a thrown tool's trident throw plays here.
+    Player,
+    /// Ambient sounds (Java: `AMBIENT`).
+    Ambient,
+    /// Voices (Java: `VOICE`).
+    Voice,
+    /// Interface sounds (Java: `UI`).
+    Ui,
+}
+
+impl SoundSource {
+    /// The category's place in the game's own source list (the `source` a sound is played
+    /// with): vanilla's order, master first.
+    pub fn index(self) -> usize {
+        match self {
+            SoundSource::Master => 0,
+            SoundSource::Music => 1,
+            SoundSource::Record => 2,
+            SoundSource::Weather => 3,
+            SoundSource::Block => 4,
+            SoundSource::Hostile => 5,
+            SoundSource::Neutral => 6,
+            SoundSource::Player => 7,
+            SoundSource::Ambient => 8,
+            SoundSource::Voice => 9,
+            SoundSource::Ui => 10,
+        }
+    }
+}
+
 /// What the game can do for a world. PlutoLib implements it over Horizon's `Host`; a test can implement it (or use [`MemoryWorldOps`]).
 pub trait WorldOps {
     /// The block state at `pos` as text, or None if the chunk is not loaded.
@@ -100,6 +151,14 @@ pub trait WorldOps {
     fn set_block_state(&mut self, dimension: &str, pos: BlockPos, state: &str) -> bool;
     /// Plays the sound event `sound` for the players near `at` in the dimension; false if the sound is unknown or could not be played.
     fn play_sound(&mut self, dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool;
+    /// Plays the sound event `sound` on the category `source` (Minecraft: `playSound` with a
+    /// `SoundSource`), for the players near `at` in the dimension; false if the sound is
+    /// unknown or could not be played. The default drops the category and plays through
+    /// [`WorldOps::play_sound`]; a host that can carry a category overrides this.
+    fn play_sound_with_source(&mut self, dimension: &str, sound: &str, source: SoundSource, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+        let _ = source;
+        self.play_sound(dimension, sound, at, volume, pitch)
+    }
     /// Draw from the authoritative dimension's existing random stream, in [0, 1).
     /// None when the host cannot supply that level; never substitute a fresh RNG.
     fn random_float(&mut self, _dimension: &str) -> Option<f32> {
@@ -389,6 +448,14 @@ impl World {
     /// unknown, or the call is made outside a callback that carries a world.
     pub fn play_sound(&self, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
         with_current(false, |ops| ops.play_sound(&self.dimension, sound, at, volume, pitch))
+    }
+
+    /// Minecraft: `playSound` with a `SoundSource`. Plays the sound event `sound` for the players near `at`, on the
+    /// category `source` — the channel whose volume the player's sound settings set for it, where [`World::play_sound`]
+    /// leaves the category to the game (which derives one from the sound event's family). False if the sound is
+    /// unknown, or the call is made outside a callback that carries a world.
+    pub fn play_sound_with_source(&self, sound: &str, source: SoundSource, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+        with_current(false, |ops| ops.play_sound_with_source(&self.dimension, sound, source, at, volume, pitch))
     }
 
     /// Minecraft: `Level.random.nextFloat`, using the existing server-level
@@ -901,6 +968,9 @@ pub struct MemoryWorldOps {
     pub blocks: BTreeMap<(String, BlockPos), String>,
     /// The sounds played so far: sound event and position.
     pub sounds: Vec<(String, [f64; 3])>,
+    /// The sounds played with a category so far, in order: sound event, category and
+    /// position. A sourced play is in `sounds` too.
+    pub sounds_with_source: Vec<(String, SoundSource, [f64; 3])>,
     /// The `(block, tag)` pairs that are true for `block_in_tag`.
     pub tags: Vec<(String, String)>,
     /// The saved data of the block entities, by `(dimension, position)`.
@@ -950,6 +1020,11 @@ impl WorldOps for MemoryWorldOps {
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], _volume: f32, _pitch: f32) -> bool {
         self.sounds.push((sound.to_owned(), at));
         true
+    }
+
+    fn play_sound_with_source(&mut self, dimension: &str, sound: &str, source: SoundSource, at: [f64; 3], volume: f32, pitch: f32) -> bool {
+        self.sounds_with_source.push((sound.to_owned(), source, at));
+        self.play_sound(dimension, sound, at, volume, pitch)
     }
 
     fn summon_entity(&mut self, dimension: &str, kind: &str, pos: [f64; 3], nbt: &NbtCompound) -> Option<u32> {

@@ -6,7 +6,8 @@ use std::sync::Mutex;
 use horizon_client::mod_api::Host;
 
 /// What the hand's use left behind: who used it, where they aimed, and whether the game
-/// consumed it. The provider reads the aim (the eye and the look the throw aims by) and the
+/// consumed it. The provider reads the aim (the eye and the look the throw aims by), where
+/// the player stands (their feet: where a throw's sound plays) and the
 /// crouch state the sleeves module branches on; `consumed` is false at both seams that
 /// report a use today (the hand's use, and a click on an entity the game did not take; the
 /// takeover runs only when the game did not consume), and stays so a later seam can report
@@ -17,6 +18,8 @@ pub struct PostUse {
     pub name: String,
     /// The dimension, such as `minecraft:overworld`.
     pub dimension: String,
+    /// Where the player stands (their feet), in block coordinates.
+    pub position: [f64; 3],
     /// Where the player's eyes are, in block coordinates.
     pub eye: [f64; 3],
     /// Where the player looks, a unit vector.

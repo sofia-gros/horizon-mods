@@ -321,7 +321,7 @@ assert!(BlockState::parse("Not A Block").is_err());
 
 ### `WorldOps`
 
-What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `random_float(dimension) -> Option<f32>` (default `None`), `build_height(dimension) -> Option<[i32; 2]>` (the build range of the dimension's level, default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
+What the game can do for a world: `block_state(dimension, pos) -> Option<String>` (the state as text, `None` if the chunk is not loaded), `set_block_state(dimension, pos, state) -> bool`, `play_sound(dimension, sound, at, volume, pitch) -> bool`, `play_sound_with_source(dimension, sound, source, at, volume, pitch) -> bool` (default: plays through `play_sound`, dropping the category), `random_float(dimension) -> Option<f32>` (default `None`), `build_height(dimension) -> Option<[i32; 2]>` (the build range of the dimension's level, default `None`), `block_in_tag(block, tag) -> bool` (default `false`), `summon_entity(dimension, kind, pos, nbt) -> Option<u32>`, and `explode(dimension, center, radius, fire, interaction) -> bool` (default `false`). PlutoLib implements it over Horizon; a test can implement it or use `MemoryWorldOps`.
 
 ```rust
 use pluto_lib::{with_world, World, WorldOps};
@@ -361,7 +361,7 @@ assert!(World::new("minecraft:overworld").get_block_state([0, 64, 0]).is_none(),
 
 ### `MemoryWorldOps`
 
-An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every generic brush sound asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
+An in-memory world for tests: every block set is remembered in `blocks` (by dimension and position), the saved data of block entities is read and merged in `entities`, every sound played in `sounds`, every sound played with a category in `sounds_with_source`, the `(block, tag)` pairs of `tags` that `block_in_tag` answers true for, the build ranges published per dimension in `build_heights`, every entity summoned in `summons`, every explosion asked for in `explosions`, every brush stroke asked for in `brushes`, every generic brush sound asked for in `brush_fallbacks`, every particle send asked for in `particles`, and every other position reads as air.
 
 ```rust
 use pluto_lib::{with_world, BlockState, Identifier, MemoryWorldOps, World};
@@ -416,6 +416,46 @@ assert!(!world.play_sound("minecraft:block.grass.place", [0.5, 64.5, 0.5], 1.0, 
 let mut ops = MemoryWorldOps::default();
 with_world(&mut ops, || assert!(world.play_sound("minecraft:block.grass.place", [0.5, 64.5, 0.5], 1.0, 1.0)));
 assert_eq!(ops.sounds.len(), 1);
+```
+
+### `World::play_sound_with_source`
+
+`fn play_sound_with_source(&self, sound: &str, source: SoundSource, at: [f64; 3], volume: f32, pitch: f32) -> bool`. Plays the sound event `sound` for the players near `at`, on the category `source` — the channel whose volume the player's sound settings set for it, where `play_sound` leaves the category to the game (which derives one from the sound event's family). False if the sound is unknown, or the call is made outside a callback that carries a world.
+
+```rust
+use pluto_lib::{with_world, MemoryWorldOps, SoundSource, World};
+
+let world = World::new("minecraft:overworld");
+assert!(!world.play_sound_with_source("minecraft:entity.snowball.throw", SoundSource::Neutral, [0.5, 64.5, 0.5], 0.5, 1.0)); // outside a callback
+let mut ops = MemoryWorldOps::default();
+with_world(&mut ops, || assert!(world.play_sound_with_source("minecraft:entity.snowball.throw", SoundSource::Neutral, [0.5, 64.5, 0.5], 0.5, 1.0)));
+assert_eq!(ops.sounds_with_source.len(), 1);
+assert_eq!(ops.sounds_with_source[0].1, SoundSource::Neutral);
+```
+
+### `SoundSource`
+
+A sound's category (Minecraft: `SoundSource`): the mixer channel a sound plays on, whose volume the player's sound settings set per category. `Master`, `Music`, `Record`, `Weather`, `Block`, `Hostile`, `Neutral`, `Player`, `Ambient`, `Voice` and `Ui`.
+
+```rust
+use pluto_lib::SoundSource;
+
+assert_eq!(SoundSource::Neutral, SoundSource::Neutral);
+assert_ne!(SoundSource::Block, SoundSource::Player);
+```
+
+### `SoundSource::index`
+
+`fn index(self) -> usize`. The category's place in the game's own source list (the `source` a sound is played with): vanilla's order, master first.
+
+```rust
+use pluto_lib::SoundSource;
+
+assert_eq!(SoundSource::Master.index(), 0);
+assert_eq!(SoundSource::Block.index(), 4);
+assert_eq!(SoundSource::Neutral.index(), 6);
+assert_eq!(SoundSource::Player.index(), 7);
+assert_eq!(SoundSource::Ui.index(), 10);
 ```
 
 ### `World::random_float`

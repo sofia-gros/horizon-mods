@@ -71,6 +71,8 @@ pub struct AfterUseContext {
     pub player: ServerPlayer,
     /// The dimension, such as `minecraft:overworld`.
     pub dimension: String,
+    /// Where the player stands (their feet), in block coordinates.
+    pub position: [f64; 3],
     /// Where the player's eyes are, in block coordinates.
     pub eye: [f64; 3],
     /// Where the player looks, a unit vector.
@@ -991,7 +993,7 @@ mod tests {
         });
         let used = |crouching: bool| AfterUseContext {
             player: ServerPlayer { uuid: 9, name: "Alex".into() }, dimension: "minecraft:overworld".into(),
-            eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching, creative: false, consumed: false,
+            position: [0.5, 62.4, 0.5], eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching, creative: false, consumed: false,
         };
         assert!(after_use(&used(true)), "a crouching use is taken");
         assert!(!after_use(&used(false)), "a standing use leaves the click to the game");
