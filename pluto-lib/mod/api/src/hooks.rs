@@ -2683,7 +2683,13 @@ impl PlayerOps for HostOps {
     }
 
     fn add_effect(&mut self, player: u128, effect: &EffectInstance) -> bool {
-        self.host().add_effect(
+        // The host's add carries no icon flag and defaults it to shown, so the flag is
+        // recorded for this add (pluto-effect-apply-access) and the game's own add puts
+        // it on the instance as it is merged; the record is cleared after, so an add the
+        // host refuses (an unknown effect, a dead or unreached player) never leaves it
+        // for a later add of the same effect.
+        horizon_client::entry::pluto_effect_apply_access::request(effect.id.clone(), effect.show_icon);
+        let added = self.host().add_effect(
             player,
             &horizon_client::game::NativeEffect {
                 id: effect.id.clone(),
@@ -2692,7 +2698,9 @@ impl PlayerOps for HostOps {
                 ambient: effect.ambient,
                 particles: effect.particles,
             },
-        )
+        );
+        horizon_client::entry::pluto_effect_apply_access::clear();
+        added
     }
 
     fn remove_effect(&mut self, player: u128, id: &str) -> bool {
@@ -3298,7 +3306,12 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 // The effect keeps its level and flags: it is taken off and given back with the new time (adding a shorter one over it would keep the longer).
                 let Some(kept) = host.effects(player.uuid).and_then(|all| all.into_iter().find(|active| active.id == effect)) else { continue };
                 host.remove_effect(player.uuid, &effect);
+                // The icon flag is kept too: the read above is the host's flagless one,
+                // so the flag the effect shows now is recorded for the re-add and
+                // cleared after it, as in the player scope's add.
+                horizon_client::entry::pluto_effect_apply_access::request(kept.id.clone(), effect_shows_icon(&kept.id));
                 host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: kept.id, amplifier: kept.amplifier, duration, ambient: kept.ambient, particles: kept.particles });
+                horizon_client::entry::pluto_effect_apply_access::clear();
             }
             EntityAction::MultiplyAttribute { target, attribute, factor } => {
                 if !factor.is_finite() || factor <= 0.0 { continue; }

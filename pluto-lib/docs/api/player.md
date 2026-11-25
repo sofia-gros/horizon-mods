@@ -208,7 +208,7 @@ with_ops(&mut game, || assert_eq!(player.language(), "ja_jp"));
 
 ### `EffectInstance`
 
-A status effect on a player. Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration: i32` (ticks; -1 never ends), `ambient: bool` (beacon-style), `particles: bool` and `show_icon: bool` (whether its icon shows in the GUI; the read's flag, published by PlutoLib's effect-icon reach at the head of every HUD draw — giving an effect always shows its icon, as the host's add path carries no flag).
+A status effect on a player. Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration: i32` (ticks; -1 never ends), `ambient: bool` (beacon-style), `particles: bool` and `show_icon: bool` (whether its icon shows in the GUI; the read's flag is published by PlutoLib's effect-icon reach at the head of every HUD draw, and giving an effect records the flag through PlutoLib's effect-apply reach, so an effect can be given with its icon hidden).
 
 ```rust
 use pluto_lib::EffectInstance;
