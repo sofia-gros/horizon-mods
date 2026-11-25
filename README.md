@@ -65,3 +65,5 @@ Verified in game (Windows, the v0.0.1 build):
 ## Licence
 
 See the licence files in each directory.
+
+The Pipes mod uses original BuildCraft pipe textures, unmodified, under the MMPL; see pipes/CREDITS.md.
