@@ -148,6 +148,21 @@ fn value_to_nbt_value(value: &Value) -> Option<Nbt> {
     })
 }
 
+/// Whether a stack's adventure-mode place tag accepts the block at a position: the stack's
+/// `minecraft:can_place_on` component (the component the game's own matcher reads, under the key
+/// the bridge reads it by) parsed and matched through the structured predicate surface the break
+/// context's exchange gate uses — `pluto_lib::adventure_place_predicates` over the component,
+/// `pluto_lib::place_predicates_allow` against the block there, its block entity and the block
+/// snapshot for `#tag`s. A stack whose tag carries no such component, or whose component does
+/// not parse, names no block, as a tagless stack does in the original
+/// (`ItemStack.hasAdventureModePlaceTagForBlock` answers false for one).
+pub(crate) fn stack_place_tag_allows(stack: &Stack, state: &BlockState, block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool {
+    let Some(component) = stack.nbt.as_ref().and_then(|nbt| nbt.get("minecraft:can_place_on")).and_then(value_to_nbt_value) else {
+        return false;
+    };
+    pluto_lib::place_predicates_allow(&pluto_lib::adventure_place_predicates(&component), state, block_entity, blocks)
+}
+
 /// The holder of a fluid application with no entity behind it: the cannon's shot and a projectile's
 /// hit, where the original's context names a projectile (for the hit) and a fallback stack, and no
 /// player, so nothing is build-restricted (FluidEffectContext with a null user).
@@ -497,7 +512,18 @@ impl WorldAccess for LiveWorld {
         }
     }
 
-    fn adventure_place_allowed(&self, _stack: &Stack, _pos: BlockPos) -> bool { false }
+    fn adventure_place_allowed(&self, stack: &Stack, pos: BlockPos) -> bool {
+        // The stack's place tag against the block at the position, through the shared read
+        // (stack_place_tag_allows): the block and state terms are the live world's own, and the
+        // block snapshot resolves `#tag`s. The block-entity term reads through the world handle's
+        // own block-entity read, which names mod block entities only (the bridge's read, as
+        // `World::block_entity_data` documents), so an NBT test against a vanilla block entity
+        // reads no entity and fails — as it must when the entity cannot be read. A position whose
+        // block cannot be read names nothing the tag can accept.
+        let Some(state) = self.state_at(pos) else { return false };
+        let block_entity = self.world.block_entity_data(pos);
+        stack_place_tag_allows(stack, &state, block_entity.as_ref(), self.blocks.as_deref())
+    }
 
     fn preferred_item(&self, output: &ItemOutput) -> Option<Stack> {
         let item = match &output.source {
@@ -841,5 +867,32 @@ mod tests {
         assert!(live.potion_effects(Some(&tag)).is_empty(), "an unparsable id names no potion");
         tag.insert("Potion".to_owned(), Nbt::String("minecraft:strong_poison".to_owned()));
         assert!(live.potion_effects(Some(&tag)).is_empty(), "without a game no potion has effects");
+    }
+
+    #[test]
+    fn the_live_place_tag_reads_the_block_state_and_block_entity_at_the_position() {
+        // The fluid gate's oracle end to end over the memory world: a stack whose place tag names
+        // the block at the position — with the predicate's state and block-entity tests matching —
+        // is allowed; each failed term refuses, and a stack with no tag names nothing.
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        ops.blocks.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), "minecraft:chest[facing=east]".to_owned());
+        let mut locked = NbtCompound::new();
+        locked.insert("Lock".to_owned(), Nbt::String("key".to_owned()));
+        ops.entities.insert(("minecraft:overworld".to_owned(), [0, 64, 0]), locked);
+        let live = LiveWorld::new(World::new("minecraft:overworld"));
+        let tagged = |nbt: serde_json::Value| Stack { item: id("minecraft:stone"), count: 1, nbt: Some(nbt) };
+        pluto_lib::with_world(&mut ops, || {
+            let full = tagged(serde_json::json!({"minecraft:can_place_on": [{"blocks": ["minecraft:chest"], "state": {"facing": "east"}, "nbt": {"Lock": "key"}}]}));
+            assert!(live.adventure_place_allowed(&full, [0, 64, 0]), "block, state and block entity all match");
+            let wrong_state = tagged(serde_json::json!({"minecraft:can_place_on": [{"blocks": ["minecraft:chest"], "state": {"facing": "west"}}]}));
+            assert!(!live.adventure_place_allowed(&wrong_state, [0, 64, 0]), "the state test fails");
+            let wrong_nbt = tagged(serde_json::json!({"minecraft:can_place_on": [{"blocks": ["minecraft:chest"], "nbt": {"Lock": "other"}}]}));
+            assert!(!live.adventure_place_allowed(&wrong_nbt, [0, 64, 0]), "the block entity test fails");
+            let bare = tagged(serde_json::json!({"minecraft:can_place_on": ["minecraft:chest"]}));
+            assert!(live.adventure_place_allowed(&bare, [0, 64, 0]), "a bare id names the block with no further test");
+            let other_block = tagged(serde_json::json!({"minecraft:can_place_on": ["minecraft:dirt"]}));
+            assert!(!live.adventure_place_allowed(&other_block, [0, 64, 0]), "the tag names another block");
+            assert!(!live.adventure_place_allowed(&Stack::of(id("minecraft:stone"), 1), [0, 64, 0]), "a stack with no place tag names nothing");
+        });
     }
 }

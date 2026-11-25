@@ -1784,10 +1784,18 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
     };
     let Some((mode, which, state)) = candidate else { return 0.0 };
     let holder = context.env.holder.clone();
-    let probe = match which {
-        0 => context.env.holder.main_hand.clone(),
-        1 => context.env.holder.off_hand.clone(),
-        _ => context.env.holder.stack.clone(),
+    // The gate reads the stack the original reads (placeRestricted on the place context's item
+    // in hand): for a named block that is the fresh stack of the block the place context is built
+    // with, which carries no place tag — so a player who may not build is refused, as the
+    // original's named-block paths refuse one (the mayBuild pre-check, and the same gate on the
+    // fresh stack) — and for a hand or the context stack it is that stack itself.
+    let probe = match mode {
+        PlaceMode::BlockItemForm | PlaceMode::Manual => Stack::of(state.block.clone(), 1),
+        _ => match which {
+            0 => context.env.holder.main_hand.clone(),
+            1 => context.env.holder.off_hand.clone(),
+            _ => context.env.holder.stack.clone(),
+        },
     };
     if context.env.place_restricted(&probe, context.pos) { return 0.0; }
     if action.simulate() { return 1.0; }
@@ -2214,8 +2222,12 @@ mod tests {
         fn named_block_predicate(&self, _name: &str, _pos: BlockPos, _state: &BlockState) -> Option<bool> {
             None
         }
-        fn adventure_place_allowed(&self, _stack: &Stack, _pos: BlockPos) -> bool {
-            false
+        fn adventure_place_allowed(&self, stack: &Stack, pos: BlockPos) -> bool {
+            // The double answers the place tag through the same read as the live world, over the
+            // facts it models: the block it holds at the position, no block entity, and no block
+            // snapshot for `#tag`s.
+            let Some(state) = self.blocks.get(&pos) else { return false };
+            crate::fluid_world::stack_place_tag_allows(stack, state, None, None)
         }
         fn preferred_item(&self, output: &ItemOutput) -> Option<Stack> {
             match &output.source {
@@ -2674,5 +2686,94 @@ mod tests {
         assert_eq!(consumed, 0);
         drop(context);
         assert!(world.placed.is_empty());
+    }
+
+    /// A player in adventure mode, who may not build: the holder the place gate restricts.
+    fn adventure_holder() -> Holder {
+        let mut holder = Holder::default();
+        holder.player = true;
+        holder.may_build = false;
+        holder.adventure = true;
+        holder
+    }
+
+    /// A stack carrying a `minecraft:can_place_on` component of the given shape.
+    fn place_tagged(item: &str, on: serde_json::Value) -> Stack {
+        Stack { item: id(item), count: 64, nbt: Some(json!({"minecraft:can_place_on": on})) }
+    }
+
+    #[test]
+    fn place_block_lets_an_adventure_player_place_where_the_hand_stacks_tag_allows() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.blocks.insert([0, 0, 0], BlockState::new(id("minecraft:chest")));
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        let mut holder = adventure_holder();
+        holder.off_hand = place_tagged("minecraft:stone", json!(["minecraft:chest"]));
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:stone")))]);
+    }
+
+    #[test]
+    fn place_block_refuses_an_adventure_player_whose_hand_stack_has_no_place_tag() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.blocks.insert([0, 0, 0], BlockState::new(id("minecraft:chest")));
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        let mut holder = adventure_holder();
+        holder.off_hand = Stack::of(id("minecraft:stone"), 64);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 0);
+        drop(context);
+        assert!(world.placed.is_empty());
+    }
+
+    #[test]
+    fn place_block_refuses_an_adventure_player_when_the_tag_names_another_block() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.blocks.insert([0, 0, 0], BlockState::new(id("minecraft:chest")));
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        let mut holder = adventure_holder();
+        holder.off_hand = place_tagged("minecraft:stone", json!(["minecraft:dirt"]));
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 0);
+        drop(context);
+        assert!(world.placed.is_empty());
+    }
+
+    #[test]
+    fn place_block_with_a_named_block_gates_on_the_fresh_stack_of_the_block() {
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:molten_obsidian", "amount": 100},
+            "block_effects": [{"type": "tconstruct:place_block", "block": "minecraft:glowstone"}],
+        })).expect("named place block");
+        // An adventure player who may not build is refused even though the context stack's tag
+        // names the hit block: the gate reads the fresh stack of the named block, which carries
+        // no tag.
+        let mut world = TestWorld::default();
+        world.blocks.insert([0, 0, 0], BlockState::new(id("minecraft:chest")));
+        let mut holder = adventure_holder();
+        holder.stack = place_tagged("minecraft:stone", json!(["minecraft:chest"]));
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 0);
+        drop(context);
+        assert!(world.placed.is_empty());
+        // The same application by a player who may build places the named block.
+        let mut world = TestWorld::default();
+        let mut holder = adventure_holder();
+        holder.may_build = true;
+        holder.stack = place_tagged("minecraft:stone", json!(["minecraft:chest"]));
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:glowstone")))]);
     }
 }
