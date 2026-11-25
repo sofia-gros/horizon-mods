@@ -20,7 +20,7 @@
 //! is heard only for armor carrying custom data,
 //! which a plain head item does not, and the game already counts worn heads among its own factors; the
 //! enderman stare is modifier-driven, see mob_disguise_hook).
-use pluto_lib::{AfterFallContext, BlockBehavior, BlockBehaviors, BlockState, BlockView, CubeDefinition, Direction, EntityInsideMotionContext, EntityModelLayerRegistry, Identifier, ItemStack, LayerDefinition, LivingEntityDrops, LivingEntityDropsCallback, PartDefinition, PartPose, PathNodeType, PistonBehavior, Placement, ProjectileEvents, ProjectileImpact, SkullModelAnimation, SkullModelRegistry, StackData};
+use pluto_lib::{AfterFallContext, BlockBehavior, BlockBehaviors, BlockState, BlockView, CubeDefinition, Direction, EntityInsideMotionContext, EntityModelLayerRegistry, Identifier, ItemStack, LayerDefinition, LivingEntityDrops, LivingEntityDropsCallback, PartDefinition, PartPose, PathNodeType, PistonBehavior, Placement, ProjectileEvents, ProjectileImpact, ShapeUpdateContext, SkullModelAnimation, SkullModelRegistry, StackData};
 use pluto_lib::{ItemTooltipCallback, StandingAndWallBlockItem, TooltipLine};
 
 pub(crate) fn register() {
@@ -54,6 +54,7 @@ pub(crate) fn register() {
         BlockBehaviors::register(BlockBehavior::new(id(name))
             .state_for_placement(|c| Placement::State(cluster_placement(c.state.clone(), c.face, c.in_water)))
             .can_survive(|c| cluster_survives(&c.state, c.pos, c.view))
+            .update_shape(cluster_update)
             .piston_behavior(PistonBehavior::Destroy));
     }
     // BuddingCrystalBlock is destroyed by pistons too; world_growth.rs registers its growth and restates
@@ -160,6 +161,20 @@ pub(crate) fn cluster_placement(state: BlockState, face: Direction, in_water: bo
 pub(crate) fn cluster_survives(state: &BlockState, pos: [i32; 3], view: &dyn BlockView) -> bool {
     let Some(facing) = state.property("facing").and_then(Direction::parse) else { return false };
     view.is_face_sturdy(facing.opposite().relative(pos), facing)
+}
+
+/// AmethystClusterBlock.updateShape: when the block behind the point changes and can no longer hold it,
+/// the cluster falls (the host drops its item for the air state, as it does for the punji); any other
+/// change leaves the state as it is. The water tick a waterlogged cluster schedules there is the host's
+/// own business for a waterlogged block, the same as for the punji, so it is not scheduled here. This is
+/// the half of the survival pair the registration was missing: without it a bud whose crystal block is
+/// broken never re-checks its support and floats (finding #21).
+pub(crate) fn cluster_update(context: &ShapeUpdateContext<'_>) -> Option<BlockState> {
+    let facing = context.state.property("facing").and_then(Direction::parse)?;
+    if context.direction == facing.opposite() && !cluster_survives(&context.state, context.pos, context.view) {
+        return Some(BlockState::new(Identifier::new("minecraft", "air").expect("fixed block id")));
+    }
+    Some(context.state.clone())
 }
 
 /// RotationSegment.convertToSegment: a segment every 22.5 degrees, centred on the segment's angle.
@@ -397,4 +412,47 @@ fn inside(c: &mut EntityInsideMotionContext) {
     c.velocity[axis] = if direction == 0.0 { 0.0 } else { speed.copysign(direction) };
     c.sync_velocity = true;
     if speed > 0.1 { c.step_sound = Some([1.0, 1.0]); }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pluto_lib::MemoryBlockView;
+
+    fn bud(facing: &str) -> BlockState {
+        BlockState::new(Identifier::new("tconstruct", "small_earth_slime_crystal_bud").unwrap())
+            .with("facing", facing)
+            .with("waterlogged", "false")
+    }
+
+    fn stone() -> BlockState {
+        BlockState::new(Identifier::new("minecraft", "stone").unwrap())
+    }
+
+    #[test]
+    fn a_bud_falls_when_the_block_behind_its_point_goes() {
+        // The bud at (0,1,0) points up, so its support is the block below; the change comes from below
+        // and the support is gone (the view holds nothing there): the state becomes air.
+        let view = MemoryBlockView::default();
+        let context = ShapeUpdateContext::new(bud("up"), [0, 1, 0], Direction::Down, [0, 0, 0], None, &view);
+        let next = cluster_update(&context).expect("an update answers a state");
+        assert_eq!(next.block.to_string(), "minecraft:air");
+    }
+
+    #[test]
+    fn a_bud_stays_while_its_support_holds_and_ignores_other_sides() {
+        let mut view = MemoryBlockView::default();
+        view.blocks.insert([0, 0, 0], stone());
+        // The support is still there: a change from below leaves the bud as it is.
+        let context = ShapeUpdateContext::new(bud("up"), [0, 1, 0], Direction::Down, [0, 0, 0], None, &view);
+        assert_eq!(cluster_update(&context), Some(bud("up")));
+        // A change from the side is not the support direction: even with no support at all the
+        // original leaves the state alone (only the support direction re-checks survival).
+        let empty = MemoryBlockView::default();
+        let context = ShapeUpdateContext::new(bud("up"), [0, 1, 0], Direction::North, [0, 1, -1], None, &empty);
+        assert_eq!(cluster_update(&context), Some(bud("up")));
+        // A wall bud pointing east is held from the west: that side going drops it.
+        let context = ShapeUpdateContext::new(bud("east"), [1, 0, 0], Direction::West, [0, 0, 0], None, &empty);
+        assert_eq!(cluster_update(&context).map(|state| state.block.to_string()), Some("minecraft:air".to_owned()));
+    }
 }
