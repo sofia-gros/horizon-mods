@@ -4,12 +4,14 @@
 //! code or assets are used, and nothing here injects — every reach into the game goes through
 //! PlutoLib, exactly as Tinkers' Construct itself does.
 mod common;
+mod creative;
 mod connections;
 mod fluid_pipe;
 mod item_pipe;
 mod render;
 
 pub fn hooks() -> pluto_lib::ModHooks {
+    creative::register();
     item_pipe::register();
     fluid_pipe::register();
     connections::register();

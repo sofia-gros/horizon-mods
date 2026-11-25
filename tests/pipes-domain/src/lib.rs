@@ -9,5 +9,7 @@ mod fluid_pipe;
 mod connections;
 #[path = "../../../pipes/mixins/pipes/api/src/render.rs"]
 mod render;
+#[path = "../../../pipes/mixins/pipes/api/src/creative.rs"]
+mod creative;
 
 mod pipe_tests;
